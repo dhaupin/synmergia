@@ -6182,3 +6182,32 @@ peak_height_scan) remain in game/debug.
   rerun -- climate 32/32, roads/flow 14/14, shape ground 9/9,
   stream (all 20 faces, 4-patch steady state), village probe ALL
   PASS, charset lint 3/3.
+
+## 2026-10-13 (turn 21): THE SKY DAY -- the day wheel compresses to 2 hours
+- THE ORDER (the owner, answering the open question): an hour of
+  day + an hour of night with the transitions between. THE SKY DAY
+  lands in sign_service: SKY_DAY_SECONDS 7200 -- one sky day is
+  2 real hours, sky_epoch_days() now reads /7200 (was /86400).
+  The arc shape is UNTOUCHED (dawn 0, noon 0.25, dusk 0.5, the sin
+  ramp + the 28 deg tilt) so the same three-light structure -- sun
+  arc, terminator moon, night floor background -- keeps its
+  transitions at the band edges, just 12x faster.
+- THE TWO-CLOCK LAW (stated in the law comment): the CONCORD
+  CALENDAR (signs, 6 h windows, day-indexed cooldowns) stays on
+  REAL days via current_day_index; the SKY CLOCK (sun arc, moon
+  orbit, parent sky, weather events reading the epoch) rides the
+  2 h unit. They read the SAME raw clock (unix) -- only the unit
+  differs, so admin time travel still moves every sky law with
+  the calendar. Consequence logged honestly: day-denominated
+  gates and cooldowns that ride the epoch now run 12x more often
+  (a "day" of world time is 2 h), which is what an RPG shortening
+  its world day does.
+- Verification: check-only clean (the GameLog/GameManager
+  script-mode autoload complaints are pre-existing at HEAD);
+  test_world_registry all PASS (algebraic epoch reads unaffected).
+- Remaining open (the owner's confirmed polish backlog): shore
+  foam/wave line; waterfall seams at river drops; tree/grass
+  density per variety band; the harbor structures + the Capitol
+  city monolith on the coast with the connecting road; ambient
+  birds/wind audio; the freed-instance teardown race in the
+  inventory service (logged at turn 20).

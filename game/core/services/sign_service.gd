@@ -125,14 +125,32 @@ func current_day_index() -> int:
 	return day_index_for(_now_unix())
 
 
-## The canonical sky-clock epoch in fractional days -- the single
+## THE SKY DAY (the owner's order: an hour of day + an hour of
+## night, the dusk/dawn ramps between): one SKY day lasts 2 real
+## hours. The arc shape is untouched (dawn at phase 0, noon 0.25,
+## dusk 0.5 -- the sin ramp the sun/moon/shade laws read), so the
+## compressed cycle keeps the same three-light structure with the
+## transitions occupying the band edges. The CONCORD CALENDAR
+## (signs, windows, day-keyed cooldowns) stays on REAL days via
+## current_day_index -- the two clocks disagree ON PURPOSE and only
+## here, the way an RPG shortens its world day without shortening
+## its daily resets.
+## Everything sky-driven (sun arc, moon orbit, parent sky, weather
+## read) keys on THIS unit. Admin time travel overrides still move
+## every sky law with the calendar (override is real unix; the
+## unit scale below is a fixed law constant).
+const SKY_DAY_SECONDS: float = 7200.0
+
+## The canonical sky-clock epoch in fractional SKY days -- the single
 ## number every sky-driven system reads (S16.2: closed-form orbits
 ## evaluate WorldRegistry.orbit_position against THIS). Honors the
 ## clock override exactly like current_day_index, so admin time
 ## travel moves the moon with the calendar. One clock: the Concord
-## and the lattice never disagree about when it is.
+## and the lattice never disagree about when it is (they read the
+## SAME raw clock; the day index is calendar-scaled, this is
+## sky-scaled -- both from _now_unix).
 func sky_epoch_days() -> float:
-	return _now_unix() / 86400.0
+	return _now_unix() / SKY_DAY_SECONDS
 
 ## 0..3 window index within the day for a unix timestamp.
 func window_index_for(unix: float) -> int:
