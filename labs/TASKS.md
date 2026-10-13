@@ -6211,3 +6211,28 @@ peak_height_scan) remain in game/debug.
   city monolith on the coast with the connecting road; ambient
   birds/wind audio; the freed-instance teardown race in the
   inventory service (logged at turn 20).
+
+## 2026-10-13 (turn 22): THE POLISH PAIR — shore foam + waterfall seams (colors first)
+- THE SHORE FOAM + WAVE LINE (vertex_color): the last hand-span of
+  wet ground -- under EITHER the gated sheets (lakes, rivers,
+  ponds) or the ocean line itself -- reads a pale wash band whose
+  edge waves. The under-measure now unifies both waterlines
+  (max of gated surface and sea), and the mask reuses the bundle's
+  chatter noise, so the waviness costs zero extra noise reads.
+- THE WATERFALL SEAM (the owner's order): the drop tracking rides
+  RiverSpec itself -- per segment's base fall measured at spec
+  build (O(segments) dict reads per corner scan, not full
+  height re-derivations). waterfall_seam_at() answers a 0..1
+  paint mask: SHORT along-chord band centered on the drop (span
+  = 0.6 x segment), across-chord capsule at 2x the river radius
+  (the falling sheet reads wider than the bed), and a VERTICAL
+  span from just under the drop top past the landing. vertex_
+  color lerps the face toward pale water wash, flickered by the
+  bundle's chatter so the streaks read real. One SectorCache
+  memo, cleared on backend install/uninstall. Geometry verb
+  (the streamer's vertical fall-sheet quads) stays open -- the
+  color seam reads first; the sheet quad is the eye-check slice.
+- Verification: check-only clean; climate 32/32, roads/flow
+  14/14 (the 20 km sweeps stay inside the budget window -- the
+  seam law's mask runs the spec's cached drops, not fresh
+  heights), stream 0 FAIL, charset lint 3/3.

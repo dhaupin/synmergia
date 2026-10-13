@@ -361,12 +361,15 @@ static func install_terrain_backend(backend: Callable) -> void:
 	_temperature_cache.clear() # lapse rides the ground law
 	_water_table_cache.clear() # perch rides the ground law
 	_river_spec_cache.clear()  # springs/pathing re-derive under the seam
+	_waterfall_cache.clear()   # the seam masks ride the specs
 	_crag_cache.clear()        # the color noises ride the seed law
 
 
 static func uninstall_terrain_backend() -> void:
 	_height_backend = Callable()
 	_height_cache.clear()
+	_crag_cache.clear()
+	_waterfall_cache.clear()
 	_channel_cache.clear()
 	_temperature_cache.clear()
 	_water_table_cache.clear()
@@ -1013,9 +1016,27 @@ static func vertex_color(d: Vector3, world_seed: PackedByteArray, lift: float, s
 	# proportional. Sits AFTER the memoized blend (per-corner physics
 	# stay out of the cache).
 	var surf: float = hydro_water_surface(d, world_seed)
-	var under: float = surf - terrain_height(d, world_seed)
-	if under > 0.0 and under < 1.5:
-		c = c.darkened((1.0 - under / 1.5) * 0.5)
+	var under_g: float = surf - terrain_height(d, world_seed)
+	if under_g > 0.0 and under_g < 1.5:
+		c = c.darkened((1.0 - under_g / 1.5) * 0.5)
+	# THE SHORE FOAM + WAVE LINE (the owner's polish order): the last
+	# hand-span of wet ground -- under EITHER the gated sheets (lakes,
+	# rivers, ponds) or the ocean line itself -- reads a pale wash
+	# band whose edge WAVES. The mask reuses the bundle's chatter
+	# noise (cn.w), so the waviness costs no extra noise reads; the
+	# band rides the same under-measure the wet ring just paid.
+	var under: float = maxf(under_g, sea - lift if lift < sea else 0.0)
+	if under > 0.0 and under < 0.45:
+		var foam: float = (1.0 - under / 0.45) * 0.85 * smoothstep(0.45, 0.72, cn.w)
+		c = c.lerp(Color(0.93, 0.94, 0.92), clampf(foam, 0.0, 1.0))
+	# THE WATERFALL SEAM (the owner's polish order): where a river
+	# fell hard, the face below the drop reads the falling water's
+	# pale seam, flickered by the bundle's chatter so the streaks
+	# read real instead of a painted band.
+	var seam: float = waterfall_seam_at(d, world_seed)
+	if seam > 0.01:
+		var seam_c: float = seam * (0.55 + 0.4 * smoothstep(0.4, 0.8, cn.w))
+		c = c.lerp(Color(0.88, 0.91, 0.93), clampf(seam_c, 0.0, 1.0))
 	# THE ROAD LAW TINT (v1): the cartway paints its material - the
 	# dirt trail reads packed earth, the bridge deck reads plank wood.
 	# Per-corner physics again: the road state cache answers both.
@@ -1245,6 +1266,58 @@ static func river_mouth_factor(seg_dir: Vector3, world_seed: PackedByteArray) ->
 	return 0.0
 
 
+## THE WATERFALL SEAM LAW (the owner's polish order): where a river
+## fell HARD between two path nodes (drop >= WATERFALL_MIN_DROP),
+## the face below the drop reads the falling water's pale seam.
+## Value = the 0..1 paint mask (0 off-river). Geometry of the mask:
+## along the chord the seam is a SHORT band centered on the drop
+## segment's midpoint; across it a capsule of ~2x the river radius
+## (the falling sheet is wider than the bed); vertically it covers
+## the face from just under the drop TOP down past the landing.
+static var _waterfall_cache = SECTOR_CACHE.new()
+static var WATERFALL_MIN_DROP: float = 3.0
+const WATERFALL_SEAM_SPAN_K: float = 0.6   # the along-chord band (x seg len)
+const WATERFALL_SEAM_WIDTH_K: float = 2.0  # across-chord width (x river radius)
+static func waterfall_seam_at(d: Vector3, world_seed: PackedByteArray) -> float:
+	d = d.normalized()
+	var cached = _waterfall_cache.get_value(d, world_seed)
+	if cached != null:
+		return float(cached)
+	var best: float = 0.0
+	var sea: float = sea_level(world_seed)
+	for spec in river_specs_cached(world_seed):
+		var n: int = spec.path.size()
+		if n < 2:
+			continue
+		for si in range(n - 1):
+			var drop: float = float(spec.drops[si])
+			if drop < WATERFALL_MIN_DROP:
+				continue
+			var p0: Vector3 = spec.path[si]
+			var p1: Vector3 = spec.path[si + 1]
+			var seg_len: float = maxf(1e-6, p0.angle_to(p1))
+			# The tangent-plane polyline read (same approximation the
+			# channel capsule's chord law rides): project d onto the
+			# segment frame, clamp along, weigh the perpendicular.
+			var axis: Vector3 = (p1 - p0).normalized()
+			var r: Vector3 = d - p0
+			var along: float = r.dot(axis)
+			var perp: float = (r - axis * along).length()
+			var top_h: float = _terrain_height_base(p0, world_seed)
+			var bottom_h: float = top_h - drop * 0.8
+			var reach_ang: float = seg_len * WATERFALL_SEAM_SPAN_K
+			var half_spread: float = (Hydro.RIVER_RADIUS_ANG if Hydro.RIVER_RADIUS_ANG > 0.0 else 0.004) * WATERFALL_SEAM_WIDTH_K
+			var horiz: float = clampf(1.0 - (absf(along - seg_len * 0.5) / maxf(reach_ang, 1e-5)), 0.0, 1.0) \
+					* clampf(1.0 - perp / maxf(half_spread, 1e-5), 0.0, 1.0)
+			var lift: float = terrain_height(d, world_seed)
+			var band: float = smoothstep(bottom_h - 1.0, bottom_h + 1.0, lift) \
+					* (1.0 - smoothstep(top_h - 0.5, top_h + 0.3, lift))
+			var mask: float = clampf(horiz * band, 0.0, 1.0) * smoothstep(WATERFALL_MIN_DROP, WATERFALL_MIN_DROP + 3.0, drop)
+			best = maxf(best, mask)
+	_waterfall_cache.set_value(d, world_seed, minf(best, 1.0))
+	return minf(best, 1.0)
+
+
 static func river_channel(d: Vector3, world_seed: PackedByteArray) -> float:
 	d = d.normalized()
 	# Seed-tagged in the shared key law: different world seeds never
@@ -1391,6 +1464,10 @@ static func terrain_height(dir: Vector3, world_seed: PackedByteArray) -> float:
 class RiverSpec:
 	var spring: Vector3
 	var path: PackedVector3Array  # unit dirs, spring -> sea/lake
+	## THE DROP TRACKING (the waterfall seam law): per segment's base
+	## height fall (meters, positive downhill). Zero = a gentle reach;
+	## a DROP (>= WATERFALL_MIN_DROP) marks a waterfall seam.
+	var drops: PackedFloat32Array = PackedFloat32Array()
 
 
 ## SPRINGS: seed-derived river sources. One per land noise cell (the
@@ -1434,6 +1511,15 @@ static func river_springs(world_seed: PackedByteArray) -> Array:
 		var spec := RiverSpec.new()
 		spec.spring = d
 		spec.path = river_path(d, world_seed)
+		# THE DROP TRACKING: per segment's base fall, measured from the
+		# path itself (the river law's own read). Computed at spec
+		# build so every waterfall scan pays O(segments) dict reads,
+		# not the full base-height re-derivation per corner.
+		var nn: int = spec.path.size()
+		spec.drops.resize(nn - 1)
+		for si in range(nn - 1):
+			spec.drops[si] = _terrain_height_base(spec.path[si], world_seed) \
+				- _terrain_height_base(spec.path[si + 1], world_seed)
 		out.append(spec)
 	return out
 
