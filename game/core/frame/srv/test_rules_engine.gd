@@ -1,4 +1,4 @@
-## RulesEngine test suite. Spec: labs/world-building-arch.md В§5
+## RulesEngine test suite. Spec: labs/world-building-arch.md sec 5
 extends SceneTree
 
 const T3Script = preload("res://core/frame/kv/t3.gd")

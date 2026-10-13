@@ -1,4 +1,4 @@
-## Seed chain derivation tests. Spec: labs/prd-t3-substrate.md, world-building-arch.md В§7
+## Seed chain derivation tests. Spec: labs/prd-t3-substrate.md, world-building-arch.md sec 7
 extends SceneTree
 
 const T3Script = preload("res://core/frame/kv/t3.gd")

@@ -1,7 +1,7 @@
 ## RulesEngine -- evaluates actions against a rules tree using scope overrides.
 ##
-## Specification: labs/world-building-arch.md В§5.1-5.3
-## Architecture: labs/world-building-arch.md В§10 (data flow / tick model)
+## Specification: labs/world-building-arch.md sec 5.1-5.3
+## Architecture: labs/world-building-arch.md sec 10 (data flow / tick model)
 ##
 ## Wraps a T3 instance as the rules tree. Each rule is a node keyed by
 ## action name. Scope overrides flip resolution strategies per-rule.
