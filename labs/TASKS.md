@@ -6093,3 +6093,18 @@ peak_height_scan) remain in game/debug.
   uses). Measured: seat delta 0.0 under the current seed.
 - Verification: --check-only clean, shape ground 9/9, climate
   32/32, roads/flow 14/14, charset lint 3/3.
+
+## 2026-10-13 (turn 18): THE SKY SHADE LAW -- the background follows the clock
+- THE SKY SHADE (globe_world.gd): the static fixed sun light is
+  RETIRED (the re-parented SkySun already owns the arc-tracking
+  DirectionalLight -- the fixed 1.2-energy light was a second,
+  night-blind sun and part of the always-lit wrongness). The
+  WorldEnvironment is now owned and driven: background gradient and
+  ambient energy are PURE FUNCTIONS of the Concord epoch's day
+  phase -- deep blue-black night floor (never pure black: the sky
+  is machinery, not void), an amber dusk band firing mid-ramp only,
+  clean blue day, ambient 0.20..0.60 riding the same day curve
+  SkySun/SkyMoon read. One clock, no second one.
+- Verification: globe probe 0 FAIL, world-scoping 8/8, touch-HUD
+  suite all green (the GameLog check-only complaint is a script-mode
+  autoload artifact present at HEAD too, not a change regression).

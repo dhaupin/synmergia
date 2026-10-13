@@ -689,20 +689,53 @@ func _build_sky_moon() -> void:
 		add_child(moon)
 
 
+
 func _build_sun() -> void:
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-45.0, 30.0, 0.0)
-	sun.light_energy = 1.2
-	add_child(sun)
+	# THE ONE-SUN LAW: the static fixed sun light is retired -- the
+	# re-parented SkySun owns the arc-tracking DirectionalLight that
+	# dims to the night floor on the clock (globe sun build, round 5).
+	# This node owns the SKY SHADE: background + ambient, driven per
+	# frame by the same day curve the bodies ride.
 	var env := WorldEnvironment.new()
 	var e := Environment.new()
 	e.background_mode = Environment.BG_COLOR
-	e.background_color = Color(0.05, 0.07, 0.12)  # night space
+	e.background_color = NIGHT_BG
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	e.ambient_light_color = Color(0.4, 0.45, 0.5)
-	e.ambient_light_energy = 0.6
+	e.ambient_light_energy = NIGHT_AMBIENT
 	add_child(env)
 	env.environment = e
+	_env = e
+
+
+# THE SKY SHADE LAW (one clock): the background gradient and the
+# ambient energy are pure functions of the Concord epoch's day phase
+# (the SAME clock SkySun/SkyMoon/SignService read -- no second clock)
+# through three keyed ramps: deep blue-black night, amber dusk band,
+# clean blue day.
+const NIGHT_BG: Color = Color(0.015, 0.025, 0.055)
+const DAY_BG: Color = Color(0.30, 0.48, 0.66)
+const DUSK_BG: Color = Color(0.52, 0.24, 0.18)
+const NIGHT_AMBIENT: float = 0.20
+const DAY_AMBIENT: float = 0.60
+
+var _env: Environment = null
+
+
+func _process(_delta: float) -> void:
+	if _env == null:
+		return
+	var svc := get_node_or_null("/root/SignService")
+	var epoch: float = svc.sky_epoch_days() if svc != null and svc.has_method("sky_epoch_days") \
+		else float(Time.get_unix_time_from_system()) / 86400.0
+	var phase := fposmod(epoch, 1.0)
+	# The day curve mirrors sky_sun's (0 = dawn, 0.25 = noon, 0.5 =
+	# dusk); the dusk band fires mid-ramp only.
+	var day := clampf(sin(phase * TAU) * 1.6 + 0.08, 0.0, 1.0)
+	var dusk := smoothstep(0.0, 0.45, day) * (1.0 - smoothstep(0.45, 0.95, day))
+	var bg: Color = NIGHT_BG.lerp(DAY_BG, day)
+	_env.background_color = bg.lerp(DUSK_BG, dusk * 0.55)
+	_env.ambient_light_energy = NIGHT_AMBIENT + (DAY_AMBIENT - NIGHT_AMBIENT) * day
 
 
 ## S10: the arena gateway trigger at the village edge. An Area3D under
