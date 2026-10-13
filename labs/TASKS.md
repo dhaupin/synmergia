@@ -6236,3 +6236,23 @@ peak_height_scan) remain in game/debug.
   14/14 (the 20 km sweeps stay inside the budget window -- the
   seam law's mask runs the spec's cached drops, not fresh
   heights), stream 0 FAIL, charset lint 3/3.
+
+## 2026-10-13 (turn 23): THE DENSITY LAW — trees per variety band + the grass expression
+- THE TREE DENSITY (the owner's order): the per-face site ask now
+  reads the face's own biome BEFORE the per-site gates -- canopies
+  (forest/taiga/jungle) ask 14-22 sites, swamps 9-14, meadows
+  (grassland) 8-13, savanna 6-9, shore unchanged 4-8, the dry pans
+  (desert/tundra/steppe/badlands) thin to 1-3, and the past-the-
+  line bands (alpine/lake/ocean) brush 0-2. The species law below
+  still gates every planted tree (water/drought/line law), so the
+  slice sets HOW MANY sites a face walks, never WHICH grow. Reads
+  the face CENTER's band via the climate cache, so all faces of
+  one band answer identically (the seeded stream stays fair).
+- THE GRASS EXPRESSION (the color half): soft-growth bands
+  (grassland/savanna/jungle/forest/taiga) carry a fine sparkle of
+  dry-tuft specks in the vertex color -- the bundle's chatter as
+  the high-frequency mask, wet corners skipped (the water laws
+  own those edges) -- so meadows read lived-in ground instead of
+  flat green paint. The band read moved UP to the memo block: one
+  climate_biome_id call per vertex instead of two.
+- Verification: lint 3/3, climate 32/32, stream 0 FAIL.

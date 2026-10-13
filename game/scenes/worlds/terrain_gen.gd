@@ -978,6 +978,10 @@ static func vertex_color(d: Vector3, world_seed: PackedByteArray, lift: float, s
 	# x = macro tone noise, y = crag streak, z = strata wobble,
 	# w = fracture chatter.
 	var cn: Vector4 = _crag_noise(d, world_seed)
+	# THE BAND READ (one per vertex): the corner's biome drives the
+	# crag streaks AND the grass expression below -- one cached read
+	# instead of two passes through the climate law.
+	var id_check: int = climate_biome_id(d, world_seed)
 	# Slope physics: steep ground reads rock (bands: shallow slopes keep
 	# their biome; cliffs gray out).
 	c = c.lerp(Color(0.46, 0.42, 0.38), clampf(steep * 0.75, 0.0, 1.0))
@@ -1037,6 +1041,17 @@ static func vertex_color(d: Vector3, world_seed: PackedByteArray, lift: float, s
 	if seam > 0.01:
 		var seam_c: float = seam * (0.55 + 0.4 * smoothstep(0.4, 0.8, cn.w))
 		c = c.lerp(Color(0.88, 0.91, 0.93), clampf(seam_c, 0.0, 1.0))
+	# THE GRASS EXPRESSION (the density slice's color half): the soft
+	# growth bands carry a fine sparkle of dry-tuft specks -- the
+	# bundle's chatter as the high-frequency mask -- with wet corners
+	# skipped (the water laws own those), so meadows read lived-in
+	# ground instead of flat green paint.
+	if id_check == BiomeId.GRASSLAND or id_check == BiomeId.SAVANNA \
+			or id_check == BiomeId.JUNGLE or id_check == BiomeId.FOREST \
+			or id_check == BiomeId.TAIGA:
+		if under <= 0.01:
+			var tuft: float = smoothstep(0.78, 0.94, cn.w)
+			c = c.lerp(Color(0.78, 0.80, 0.40), tuft * 0.30)
 	# THE ROAD LAW TINT (v1): the cartway paints its material - the
 	# dirt trail reads packed earth, the bridge deck reads plank wood.
 	# Per-corner physics again: the road state cache answers both.
@@ -1052,7 +1067,6 @@ static func vertex_color(d: Vector3, world_seed: PackedByteArray, lift: float, s
 	# memo, no fresh noise per vertex pass).
 	var macro: float = (cn.x - 0.5) * 0.055
 	c = Color(clampf(c.r + macro, 0.0, 1.0), clampf(c.g + macro, 0.0, 1.0), clampf(c.b + macro, 0.0, 1.0))
-	var id_check: int = climate_biome_id(d, world_seed)
 	if id_check == BiomeId.BADLANDS or id_check == BiomeId.ALPINE:
 		var crag: float = pow(1.0 - absf(2.0 * cn.y - 1.0), 1.5)
 		c = c.lerp(Color(0.52, 0.48, 0.45), crag * 0.22)

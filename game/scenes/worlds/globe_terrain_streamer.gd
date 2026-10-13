@@ -924,6 +924,32 @@ func _spawn_trees(face: int, patch_node: Node3D) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = acc
 	var count: int = rng.randi_range(4, 8)
+	# THE DENSITY LAW (the owner's order: tree density per variety
+	# band): the face's own biome scales the site ask -- canopies
+	# quadruple, meadows thicken, the dry pans thin to a straggle,
+	# and the past-the-line bands barely brush. The per-site species
+	# law below still gates every planted tree; this only sets HOW
+	# MANY sites the face walks. Reads the face CENTER's band (the
+	# same quantized climate read the tints cache), so all faces of
+	# one band answer identically.
+	if terrain_on:
+		var cbid: int = TerrainGen.climate_biome_id(FacePatches.face_center(face).normalized(), world_seed)
+		if cbid == TerrainGen.BiomeId.FOREST or cbid == TerrainGen.BiomeId.TAIGA \
+				or cbid == TerrainGen.BiomeId.JUNGLE:
+			count = rng.randi_range(14, 22)
+		elif cbid == TerrainGen.BiomeId.SWAMP:
+			count = rng.randi_range(9, 14)
+		elif cbid == TerrainGen.BiomeId.GRASSLAND:
+			count = rng.randi_range(8, 13)
+		elif cbid == TerrainGen.BiomeId.SAVANNA:
+			count = rng.randi_range(6, 9)
+		elif cbid == TerrainGen.BiomeId.SHORE:
+			count = rng.randi_range(4, 8)
+		elif cbid == TerrainGen.BiomeId.DESERT or cbid == TerrainGen.BiomeId.TUNDRA \
+				or cbid == TerrainGen.BiomeId.STEPPE or cbid == TerrainGen.BiomeId.BADLANDS:
+			count = rng.randi_range(1, 3)
+		else:
+			count = rng.randi_range(0, 2)  # alpine / lake / ocean: past the line
 	var verts: PackedInt32Array = FacePatches.face_vertices(face)
 	# Scaled patch offset (matches _load_patch), for patch-local trees.
 	var patch_center: Vector3 = FacePatches.face_center(face) * (radius + TILE_LIFT)
