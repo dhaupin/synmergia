@@ -75,6 +75,17 @@ func _run() -> void:
 	_check(mk.position.distance_to(Vector2(expected_x, expected_y)) < 2.0,
 		"globe marker sits at the disk center (player-centered)")
 
+	# Edge: an UNSET player position (lat sentinel 999) must not fold
+	# around a garbage center -- defaults to the equator/prime meridian.
+	map.set("_player_lat", 999.0)
+	map.call("_toggle_globe_mode")
+	var eg_wait := 0
+	while map.get("_globe_generating") and eg_wait < 400:
+		await process_frame
+		eg_wait += 1
+	_check(not map.get("_globe_generating"), "unset player position folds at the equator (no garbage center)")
+	map.call("_toggle_globe_mode")
+
 	# Toggle back to flat (G5).
 	map.call("_toggle_globe_mode")
 	_check(not map.get("_globe_mode"), "toggle returns to flat")

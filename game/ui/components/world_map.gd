@@ -586,8 +586,8 @@ func _ensure_globe_texture() -> void:
 	if _globe_image == null:
 		_globe_image = Image.create(GLOBE_SIZE, GLOBE_SIZE, false, Image.FORMAT_RGBA8)
 	_globe_generating = true
-	var center_lat: float = _player_lat
-	var center_lon: float = _player_lon
+	var center_lat: float = _player_lat if _player_lat <= 90.0 else 0.0
+	var center_lon: float = _player_lon if _player_lat <= 90.0 else 0.0
 	# Center reference frame (yaw around y, roll around east axis):
 	var cr: float = cos(deg_to_rad(90.0 - center_lat))
 	var sr: float = sin(deg_to_rad(90.0 - center_lat))
@@ -631,6 +631,10 @@ func _run_globe_generation(src: Image, n: Vector3, e: Vector3, up: Vector3) -> v
 				_globe_image.set_pixel(px, row, c)
 				painted += 1
 		py = last_row
+		# The view flipped back to flat mid-fold: stop painting (the next
+		# chunk would otherwise overwrite the restored equirect texture).
+		if not _globe_mode:
+			break
 		_globe_texture = ImageTexture.create_from_image(_globe_image)
 		_map_texture.texture = _globe_texture
 		_position_player_marker()
