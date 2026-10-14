@@ -68,7 +68,11 @@ func _pm() -> Node:
 
 
 
-const PlayerController = preload("res://entities/player/player_controller.gd")
+# PlayerController resolves through its GLOBAL class_name, not a
+# const preload: player_controller.gd preloads targeting_manager back
+# (the camera/targeting bridge), so this const preload closed the
+# graph's last cyclic edge (the lint's 2-node WARN). Type usages below
+# (`is PlayerController`) belong to the global script registry.
 const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
 const NPCData = preload("res://core/schemas/npc_data.gd")
 const TargetSchema = preload("res://core/schemas/target_schema.gd")

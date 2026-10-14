@@ -804,7 +804,24 @@ func _setup_ambience() -> void:
 	amb.name = "AmbienceDriver"
 	amb.set_script(amb_script)
 	add_child(amb)
+	_setup_weather_events()
 	GameLog.info("GlobeWorld: ambience driver active (the weather sings)")
+
+
+## WeatherEventService (core/services/weather_event_service.gd): the
+## sun-to-sword seam, armed on the globe exactly like world_playable
+## arms it. Listens to CosmicService sparks + the weather band and
+## stages the world's reaction (stirred packs, aurora mystery
+## windows); the ambience driver's band-change push finds this sibling
+## by name. Child of the scene so it follows the world's lifecycle.
+func _setup_weather_events() -> void:
+	var we_script: GDScript = load("res://core/services/weather_event_service.gd")
+	if we_script == null:
+		return
+	var we := Node3D.new()
+	we.name = "WeatherEvents"
+	we.set_script(we_script)
+	add_child(we)
 
 
 func _build_player() -> void:
