@@ -46,6 +46,15 @@ const ACCENTS := {
 	"whistler": "res://audio/ambience/whistler.wav",
 }
 
+## Ambient bird one-shots (stochastic, chorus-driven). Not ACCENTS:
+## accents are storm behavior, birds are the clear-sky day voice --
+## separate registry so storm randomness never picks a birds_*.wav.
+const BIRDS := {
+	"birds_1": "res://audio/ambience/birds_1.wav",
+	"birds_2": "res://audio/ambience/birds_2.wav",
+	"birds_3": "res://audio/ambience/birds_3.wav",
+}
+
 const POOL_SIZE: int = 6
 const POSITIONAL_POOL_SIZE: int = 8
 ## Ambience tick: how often storm accents (thunder rolls, whistlers)
@@ -66,6 +75,15 @@ var _accent_timer: Timer = null
 ## tree, start() no-ops), so _on_accent_tick gates on this flag and
 ## tests assert it directly.
 var _accents_armed: bool = false
+## The birds share the same 4 s tick but obey their own law:
+## _birds_enabled comes from audio_layers(birds_enabled), and the
+## interval between chirps shrinks with chorus_density (a loud dawn
+## chorus calls fast; a single bird calls slow). Headless-safe like
+## _accents_armed -- the flag, not the Timer, is the source of truth.
+var _birds_armed: bool = false
+var _chorus_density: float = 0.0
+var _ms_since_bird: float = 0.0
+var _bird_streams: Dictionary = {}       # bird variant -> AudioStreamWAV
 var _layers: Dictionary = {}            # last applied audio_layers()
 
 var _positional_pool: Array = []        # AudioStreamPlayer3D pool
@@ -95,6 +113,10 @@ func ensure_initialized() -> void:
 		var accent = load(str(ACCENTS[key]))
 		if accent != null:
 			_accent_streams[key] = accent
+	for key in BIRDS.keys():
+		var bird = load(str(BIRDS[key]))
+		if bird != null:
+			_bird_streams[key] = bird
 	for i in POOL_SIZE:
 		var p := AudioStreamPlayer.new()
 		p.bus = "Master"
@@ -120,8 +142,8 @@ func ensure_initialized() -> void:
 	_music_player = AudioStreamPlayer.new()
 	_music_player.bus = "Master"
 	add_child(_music_player)
-	GameLog.info("AudioService: ready (%d sounds, %d accents, pools %d/%d)" % [
-		_streams.size(), _accent_streams.size(), _pool.size(), _positional_pool.size()])
+	GameLog.info("AudioService: ready (%d sounds, %d accents, %d birds, pools %d/%d)" % [
+		_streams.size(), _accent_streams.size(), _bird_streams.size(), _pool.size(), _positional_pool.size()])
 
 
 ## Play a named sound (SOUNDS key) at a volume offset in dB (0 = full).
@@ -163,15 +185,24 @@ func play_ui(sound_name: String, volume_db: float = -6.0) -> void:
 ##   wind_loop, rain_loop, aurora_pad  -> loop gains in [0,1]
 ##   thunder_chance, whistler_enabled  -> accent behavior
 ##   chorus_density                    -> hint; music layer consumes it
+##   birds_enabled                     -> ambient chirps (clear/cloudy)
 func apply_weather(layers: Dictionary) -> void:
 	ensure_initialized()
 	_layers = layers.duplicate()
 	_set_loop_gain("wind", float(layers.get("wind_loop", 0.0)))
 	_set_loop_gain("rain", float(layers.get("rain_loop", 0.0)))
 	_set_loop_gain("aurora", float(layers.get("aurora_pad", 0.0)))
+	# The chorus law: birds sing iff the sky says so (clear/cloudy) and
+	# the chorus has members; density only modulates the call interval.
+	# A rain/storm/aurora sky mutes the chorus -- heard sky, seen sky,
+	# one law.
+	_chorus_density = float(layers.get("chorus_density", 0.0))
+	_birds_armed = bool(layers.get("birds_enabled", false)) and _chorus_density > 0.0 \
+		and not _bird_streams.is_empty()
+	_ms_since_bird = 0.0
 	var want_accents: bool = float(layers.get("thunder_chance", 0.0)) > 0.0 \
 		or bool(layers.get("whistler_enabled", false))
-	_ensure_accent_timer(want_accents)
+	_ensure_accent_timer(want_accents, _birds_armed)
 
 
 ## Last applied layers (tests / HUD read this without re-resolving).
@@ -191,9 +222,11 @@ func _play_accent(accent_name: String, volume_db: float) -> void:
 	player.play()
 
 
-func _ensure_accent_timer(running: bool) -> void:
-	_accents_armed = running
-	if running:
+func _ensure_accent_timer(accents: bool, birds: bool = false) -> void:
+	_accents_armed = accents
+	if birds:
+		_birds_armed = birds
+	if accents or _birds_armed:
 		if _accent_timer == null:
 			_accent_timer = Timer.new()
 			_accent_timer.wait_time = ACCENT_TICK_SEC
@@ -203,12 +236,42 @@ func _ensure_accent_timer(running: bool) -> void:
 			return
 		_accent_timer.start()
 	elif _accent_timer != null:
+		_birds_armed = birds
 		_accent_timer.stop()
 
 
 func _on_accent_tick() -> void:
-	if not _accents_armed:
+	if not (_accents_armed or _birds_armed):
 		return
+	# The bird law: the chorus clock accumulates real seconds and fires
+	# a chirp whenever the density-driven interval has elapsed -- denser
+	# chorus, faster calls. Runs alongside the (storm) accent law on
+	# the same tick without sharing state with it.
+	if _birds_armed:
+		_ms_since_bird += ACCENT_TICK_SEC
+		if _ms_since_bird >= _bird_interval():
+			_ms_since_bird = 0.0
+			_play_bird()
+
+
+## Interval between chirps, driven by chorus density: a loud chorus
+## calls fast, a single bird calls slow. Denser sky -> shorter wait.
+func _bird_interval() -> float:
+	return clampf(12.0 / maxf(1.0, _chorus_density), 1.0, 6.0)
+
+
+## Fire one ambient bird chirp at a soft volume, round-robin through
+## the shared accent pool (storms mute birds, so the pools never
+## fight over the same speakers). No-op without loaded streams.
+func _play_bird() -> void:
+	if _bird_streams.is_empty() or _accent_pool.is_empty():
+		return
+	var keys := _bird_streams.keys()
+	var player: AudioStreamPlayer = _accent_pool[_accent_next]
+	_accent_next = (_accent_next + 1) % _accent_pool.size()
+	player.stream = _bird_streams[keys[randi() % keys.size()]]
+	player.volume_db = -10.0
+	player.play()
 
 
 func _set_loop_gain(loop_name: String, gain: float) -> void:
@@ -248,6 +311,8 @@ func stop_ambience() -> void:
 		if is_instance_valid(p):
 			p.stop()
 	_loop_players.clear()
+	_birds_armed = false
+	_chorus_density = 0.0
 	_ensure_accent_timer(false)
 	_layers = {}
 

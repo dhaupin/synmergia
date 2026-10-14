@@ -110,7 +110,9 @@ static func resolve_at_position(pos: Vector3, radius: float, day: float, cosmic:
 ## these — the music generator and the studio atmosphere synth key
 ## off the same numbers, so the game's sky and its soundtrack can
 ## never disagree. All gains in [0,1]; chorus_density is a count
-## hint for the bird/chorus synth layer.
+## hint for the bird/chorus synth layer; birds_enabled gates the
+## ambient chirps (the chorus sleeps in rain, storm, and aurora
+## shimmer — only clear and cloudy skies sing).
 static func audio_layers(state: Dictionary) -> Dictionary:
 	var wind: float = float(state.get("wind", 0.0))
 	var aurora: float = float(state.get("aurora", 0.0))
@@ -120,6 +122,7 @@ static func audio_layers(state: Dictionary) -> Dictionary:
 		"rain_loop": 1.0 if name == "rain" else (0.6 if name == "storm" else 0.0),
 		"thunder_chance": 0.8 if name == "storm" else 0.0,
 		"chorus_density": 2 + int(round(6.0 * wind + 4.0 * aurora)),  # sky-birds per stanza
+		"birds_enabled": name == "clear" or name == "cloudy",
 		"aurora_pad": aurora,                       # high shimmer drone
 		"whistler_enabled": wind >= 0.5,            # dispersive chirps in storms
 	}

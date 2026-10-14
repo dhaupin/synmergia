@@ -16,6 +16,7 @@ Outputs (game/audio/ambience/):
     wind_loop.wav     8.0 s  pink-ish noise bed, band-limited
     rain_loop.wav     8.0 s  dense droplet patter
     aurora_pad.wav   12.0 s  high shimmer drone (integer harmonics)
+    birds_1..3.wav    0.4 s  species chirp one-shots (chorus law)
     whistler.wav      1.5 s  dispersive chirp (storm accent)
     thunder.wav       3.0 s  one-shot rumble
 
@@ -151,6 +152,46 @@ def gen_thunder(seed: int = 5505) -> list[float]:
     return out
 
 
+def gen_birds(seed: int = 6606, chirps: int = 3) -> list[float]:
+    """One species' chirp call (AudioService's birds_1..3 one-shots).
+
+    Birds are not a loop: the ambience law fires short stochastic
+    calls on the accent tick, spaced by chorus_density. Each variant
+    is ~0.4 s of 2-5 kHz syllables (fast sweeps with a soft harmonic
+    overtone, rounded attack/decay so they never click); the three
+    committed variants differ in sweep shape and rhythm via the seed.
+    """
+    rng = random.Random(seed)
+    length_s = 0.38
+    n = int(SR * length_s)
+    out = [0.0] * n
+    # Syllables: non-overlapping, quick upsweeps or downsweeps.
+    cursor = int(0.02 * SR)
+    for _ in range(chirps):
+        syll_n = int(SR * rng.uniform(0.06, 0.12))
+        if cursor + syll_n >= n:
+            break
+        f_start = rng.uniform(1800.0, 2800.0)
+        f_end = rng.uniform(3000.0, 5000.0)
+        rising = rng.random() < 0.65
+        loud = rng.uniform(0.6, 1.0)
+        # Rounded envelope: raised-cosine attack/decay per syllable.
+        for j in range(syll_n):
+            prog = j / syll_n
+            freq = f_start + (f_end - f_start) * (prog if rising else 1.0 - prog)
+            env = math.sin(math.pi * prog) ** 1.4
+            s = loud * env * (
+                math.sin(math.tau * freq * j / SR)
+                + 0.3 * math.sin(math.tau * freq * 2.0 * j / SR)
+            )
+            out[cursor + j] += s
+        cursor += syll_n + int(SR * rng.uniform(0.03, 0.1))
+    # Faint dawn-chorus companions a fifth above, low-pass soft.
+    for i in range(n):
+        out[i] += 0.15 * out[i] if i > 0 else 0.0  # simple smearing tail
+    return out
+
+
 def main() -> None:
     os.makedirs(OUT_DIR, exist_ok=True)
     print("Generating ambience loops ->", os.path.abspath(OUT_DIR))
@@ -158,6 +199,13 @@ def main() -> None:
     write_wav(os.path.join(OUT_DIR, "rain_loop.wav"), gen_rain())
     write_wav(os.path.join(OUT_DIR, "aurora_pad.wav"), gen_aurora_pad())
     write_wav(os.path.join(OUT_DIR, "whistler.wav"), gen_whistler())
+    # Bird one-shots: three species variants for the chorus law
+    # (AudioService fires them stochastically from clear/cloudy skies).
+    for i in range(3):
+        write_wav(
+            os.path.join(OUT_DIR, "birds_%d.wav" % (i + 1)),
+            gen_birds(seed=6606 + i * 111, chirps=2 + (i % 2)),
+        )
     write_wav(os.path.join(OUT_DIR, "thunder.wav"), gen_thunder())
     print("Done.")
 

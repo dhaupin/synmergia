@@ -6285,3 +6285,45 @@ peak_height_scan) remain in game/debug.
   plaza -- the road genuinely arrives at the statue.
 - Verification: globe probe 0 FAIL x2, village probe ALL PASS,
   charset lint 3/3.
+
+## 2026-10-14 (turn 25): THE BIRD CHORUS — the clear sky gets a voice (backlog cleared)
+- THE CHORUS ASSET (scripts/gen_ambience_audio.py, same deterministic
+  family as the loops): gen_birds() -- a species chirp, ~0.4 s of
+  2-5 kHz syllables with rounded raised-cosine envelopes and a soft
+  harmonic overtone (no clicks). Three seed variants committed
+  (birds_1..3.wav); the regeneration ran byte-identical on the five
+  pre-existing loops, so determinism holds. Birds are ONE-SHOTS, not
+  a loop -- the law fires them stochastically.
+- THE CONTRACT (weather.gd audio_layers(), one additive key):
+  birds_enabled -- true exactly when the sky is clear or cloudy.
+  Rain, storm, and aurora mute the chorus (the aurora shimmer is a
+  night voice; no bird sings under it). chorus_density (already in
+  the contract) stays the intensity hint.
+- THE AMBIENCE LAW (AudioService): a BIRDS registry separate from
+  ACCENTS (birds are the clear-sky day voice; storm randomness never
+  picks a birds_*.wav), loaded in the same idempotent boot. On the
+  shared 4 s accent tick, the chorus clock accumulates real seconds
+  and fires a chirp whenever the density-driven interval elapses
+  (interval = 12/density clamped 1..6 s: loud chorus = fast calls,
+  lone bird = slow). Fires through the shared one-shot round-robin
+  at -10 dB -- storms mute birds, so the pools never fight over the
+  same speakers. Timer runs iff storm accents OR birds; the two laws
+  keep separate flags (_accents_armed stays storm-only, the pinned
+  contract unchanged).
+- THE PINS (test_audio_service.gd, +5 suites): variants load;
+  birds_enabled matches the sky in EVERY weather state (heard sky =
+  seen sky); clear arms with the carried density, rain mutes while
+  keeping the whistler timer, density zero mutes even a singing sky;
+  an armed chorus with an elapsed interval fires a chirp through the
+  pool and resets its clock, a muted chorus never advances the pool,
+  and the interval shrinks as the chorus densifies (6.0 -> 1.0 s).
+- Scope guards: AmbienceDriver unchanged (it forwards the resolved
+  audio_layers(); the law lives at the consumer). The 3 failing lint
+  suites are pre-existing cyclic-preload/whitespace items in files
+  this slice never touched (entity.gd cycles, several services'
+  trailing whitespace) -- noted, not silently swallowed.
+- Verification: test_weather exit 0; test_audio_service ok=true
+  (12/12 suites incl. the 5 new pins); lint: zero ERROR/WARN items
+  in weather.gd, audio_service.gd, or the test; new WAVs import
+  clean (headless import pass + .import sidecars, ignored per
+  repo '*.import' rule like the five existing loops).

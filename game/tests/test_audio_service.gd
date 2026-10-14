@@ -30,6 +30,10 @@ func _initialize() -> void:
 	ok = _test_weather_clear_is_silent() and ok
 	ok = _test_weather_storm_layers() and ok
 	ok = _test_weather_gains_bounded() and ok
+	ok = _test_birds_loaded() and ok
+	ok = _test_birds_band_contract() and ok
+	ok = _test_birds_armed_law() and ok
+	ok = _test_bird_fire_law() and ok
 	ok = _test_positional_and_music() and ok
 
 	print("--- AUDIO SERVICE: ok=%s ---" % str(ok))
@@ -103,6 +107,113 @@ func _test_positional_and_music() -> bool:
 	_audio.play_music("no_such_track")
 	_audio.stop_music()
 	print("[OK] positional pool of %d ready; play_at + music contract exercised" % _audio._positional_pool.size())
+	return true
+
+
+## The three committed bird one-shots load into the bird registry.
+## Birds are one-shots, not loops: the chorus law fires them
+## stochastically, so each variant is shareable across the pool.
+func _test_birds_loaded() -> bool:
+	if _audio._bird_streams.size() != _audio.BIRDS.size():
+		push_error("FAIL: %d of %d bird variants loaded" % [_audio._bird_streams.size(), _audio.BIRDS.size()])
+		return false
+	for key in ["birds_1", "birds_2", "birds_3"]:
+		if not _audio._bird_streams.has(key):
+			push_error("FAIL: missing bird variant %s" % key)
+			return false
+	print("[OK] %d bird chirp variants loaded" % _audio._bird_streams.size())
+	return true
+
+
+## The chorus obeys the sky contract across every weather state:
+## birds_enabled true exactly when the sky is clear or cloudy. Rain,
+## storm, and aurora mute the chorus -- the heard sky and the seen
+## sky stand or fall together.
+func _test_birds_band_contract() -> bool:
+	var WeatherScript = load("res://core/frame/srv/weather.gd")
+	for state in WeatherScript.STATES:
+		var name: String = str(state.get("name", "?"))
+		var want: bool = name == "clear" or name == "cloudy"
+		var got: bool = bool(WeatherScript.audio_layers(state).get("birds_enabled", true))
+		if got != want:
+			push_error("FAIL: state '%s' birds_enabled=%s, sky wants %s" % [name, str(got), str(want)])
+			return false
+	print("[OK] birds_enabled matches the sky in every weather state (clear/cloudy only)")
+	return true
+
+
+## Arming law: clear sky arms the chorus and stores the density;
+## rain and storm mute it. Density zero never arms, whatever the sky
+## says.
+func _test_birds_armed_law() -> bool:
+	var WeatherScript = load("res://core/frame/srv/weather.gd")
+	# Clear: armed with the contracted density.
+	var clear_layers: Dictionary = WeatherScript.audio_layers(WeatherScript.STATES[0])
+	_audio.apply_weather(clear_layers)
+	if not _audio._birds_armed:
+		push_error("FAIL: clear sky did not arm the chorus")
+		return false
+	if _audio._chorus_density != float(clear_layers.get("chorus_density", -1)):
+		push_error("FAIL: chorus_density not carried through")
+		return false
+	if _audio._accents_armed:
+		push_error("FAIL: clear sky accidentally armed storm accents")
+		return false
+	# Rain keeps the accent timer (whistlers) but mutes the birds.
+	_audio.apply_weather(WeatherScript.audio_layers(WeatherScript.STATES[2]))
+	if _audio._birds_armed:
+		push_error("FAIL: rain armed the chorus")
+		return false
+	# Density zero mutes even a singing sky.
+	var silent_layers: Dictionary = WeatherScript.audio_layers(WeatherScript.STATES[0]).duplicate()
+	silent_layers["chorus_density"] = 0.0
+	_audio.apply_weather(silent_layers)
+	if _audio._birds_armed:
+		push_error("FAIL: density zero armed the chorus")
+		return false
+	print("[OK] chorus arming: clear arms, rain/storm mute, density zero mutes")
+	return true
+
+
+## Fire law: an armed chorus with an elapsed interval fires a chirp
+## into the accent pool; a muted chorus never fires. And the interval
+## shrinks as the chorus densifies.
+func _test_bird_fire_law() -> bool:
+	# Armed + long wait -> a chirp plays on a pool player.
+	_audio._birds_armed = true
+	_audio._chorus_density = 8.0
+	_audio._ms_since_bird = _audio._bird_interval()
+	var had_birds: int = 0
+	var before: int = 0
+	for p in _audio._accent_pool:
+		if p.stream != null and str(p.stream.resource_path).contains("birds_"):
+			before += 1
+	_audio._on_accent_tick()
+	for p in _audio._accent_pool:
+		if p.stream != null and str(p.stream.resource_path).contains("birds_"):
+			had_birds += 1
+	if had_birds <= before:
+		push_error("FAIL: armed chorus with elapsed interval fired no chirp")
+		return false
+	if _audio._ms_since_bird != 0.0:
+		push_error("FAIL: chorus clock not reset after the fire")
+		return false
+	# Muted -> tick is a no-op.
+	_audio._birds_armed = false
+	var before_next: int = _audio._accent_next
+	_audio._on_accent_tick()
+	if _audio._accent_next != before_next:
+		push_error("FAIL: muted chorus advanced the pool")
+		return false
+	# Interval law: denser chorus, faster calls.
+	_audio._chorus_density = 2.0
+	var slow: float = _audio._bird_interval()
+	_audio._chorus_density = 14.0
+	var fast: float = _audio._bird_interval()
+	if not (slow > fast):
+		push_error("FAIL: interval %f did not shrink with density (fast %f)" % [slow, fast])
+		return false
+	print("[OK] bird fire law: armed fires, muted no-ops, interval shrinks with density (%f -> %f)" % [slow, fast])
 	return true
 
 
