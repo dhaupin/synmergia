@@ -136,6 +136,7 @@ func _ready() -> void:
 	_build_water()
 	_build_arena_gateway()
 	_build_starter_village()
+	_build_capitol_monolith()
 	_build_player()
 	planet_center = world_root.position
 	player.planet_center = planet_center
@@ -775,7 +776,18 @@ func _build_starter_village() -> void:
 		Callable(streamer, "walk_surface_h"))
 
 
+## THE CAPITOL MONOLITH (the ledger's coast build): the authored
+## megalith the road law walks the cart to -- the arrival anchor ring
+## points here; the structure rides the same authored-install frame
+## the village carries.
+func _build_capitol_monolith() -> void:
+	var CM: GDScript = load("res://entities/capitol_monolith.gd")
+	capitol_monolith = CM.build(world_root, planet_radius, STREAMER_TILE_LIFT, \
+		Callable(streamer, "walk_surface_h"))
+
+
 var starter_village: Node3D = null
+var capitol_monolith: Node3D = null
 
 
 func _build_player() -> void:

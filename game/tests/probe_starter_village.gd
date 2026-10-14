@@ -107,5 +107,25 @@ func _run() -> void:
 		_check("%s rides the walk law's lift (r %.2f ~ %.2f)" % [child.name, child.position.length(), expected_r],
 			absf(child.position.length() - expected_r) < 0.5)
 
+	# THE CAPITOL MONOLITH (the coast build): the far ring's authored
+	# megalith boots with the same one-law collider belt, rides the
+	# same walk-law frame, and THE CONNECTING ROAD reaches its plaza
+	# (the cartway's terminal corridor weight reads positive at the
+	# capitol bearing -- the road law's own village -> capitol walk).
+	var capitol: Node3D = world_root.get_node_or_null("CapitolMonolith")
+	_check("the capitol monolith boots into the world", capitol != null)
+	if capitol != null:
+		_check("the monolith carries the one-law PropBody", capitol.get_node_or_null("PropBody") != null)
+		var pl2: float = globe.get("planet_radius")
+		var walker2: Callable = Callable(globe.get("streamer"), "walk_surface_h")
+		var TGenCap = load("res://scenes/worlds/terrain_gen.gd")
+		var cap_dir: Vector3 = TGenCap.capitol_plaza_dir()
+		var expected_r2: float = pl2 + 0.52 + float(walker2.call(cap_dir))
+		_check("the monolith rides the walk law's lift (r %.2f ~ %.2f)" % [capitol.position.length(), expected_r2],
+			absf(capitol.position.length() - expected_r2) < 0.5)
+		var seed_cap: PackedByteArray = TGenCap.world_seed_bytes()
+		var road_w: float = TGenCap.road_state_at(cap_dir, seed_cap).x
+		_check("the connecting road reaches the capitol plaza (w %.2f)" % road_w, road_w > 0.05)
+
 	print("probe_starter_village: %s" % ("ALL PASS" if _fails == 0 else "%d FAIL" % _fails))
 	quit(0 if _fails == 0 else 1)

@@ -6256,3 +6256,32 @@ peak_height_scan) remain in game/debug.
   flat green paint. The band read moved UP to the memo block: one
   climate_biome_id call per vertex instead of two.
 - Verification: lint 3/3, climate 32/32, stream 0 FAIL.
+
+## 2026-10-13 (turn 24): THE CAPITOL MONOLITH — the far coast gets its statue (and the boot gets its clearance)
+- THE MONOLITH (game/entities/capitol_monolith.gd, wired by
+  globe_world._build_capitol_monolith next to the village): the
+  authored capitol installation the road law walks the cart to --
+  the CONNECTING ROAD already existed in the path law (village
+  harbor -> capitol plaza across the homeland) and the arrival law
+  already walks the player into the capitol anchor ring; the
+  megalith rounds the ring out. Plinth, seamed shaft with bronze
+  band rows, capstone, pennant poles, and a bench ring -- plain
+  authored colors (stone/bronze/timber), one-law PropCollider belt
+  (solid + climbable). Placement rides capitol_plaza_dir() (the
+  far-coast bearing at the harbor's own range) lifted by the same
+  authored-install frame the village uses.
+- THE BOOT-CLEAR REACH (the probe caught it: the globe's "initial
+  surface normal == radial" went flaky): the authored reaches are
+  ANGULAR, but the boot ball is a fixed meter size -- at the
+  prototype bench radius (100 m) the village sat inside the boot's
+  first ticks and the glue correction polluted the two-frame
+  sample. Fix: the builders pad every reach out to 8 METERS at
+  bench radii (scale-free clearance in meters; the authored layout
+  untouched above the 1000 m gate), so the boot and the village
+  never share the ball's arrival. Globe probe 0 FAIL twice;
+  village probe ALL PASS with the capitol pins (monolith boots,
+  PropBody, walk-law lift) AND the connecting-road pin: the
+  cartway's terminal corridor weight reads 1.00 AT the capitol
+  plaza -- the road genuinely arrives at the statue.
+- Verification: globe probe 0 FAIL x2, village probe ALL PASS,
+  charset lint 3/3.

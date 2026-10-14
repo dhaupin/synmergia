@@ -49,11 +49,22 @@ static func build(parent: Node3D, planet_radius: float, surface_lift: float,
 	var east: Vector3 = Vector3(0, 1, 0).cross(spawn).normalized()
 	var north: Vector3 = spawn.cross(east).normalized()
 
-	_structure(village, _dir_for(spawn, east, north, HALL_BEARING_DEG, HALL_REACH),
+	# THE BOOT-CLEAR REACH (the globe probe's boot normal caught it):
+	# the authored reaches are ANGULAR (the planet-scale layout), but
+	# the boot BALL is a fixed meter size -- at the prototype bench
+	# radius the angular reaches put the village INSIDE the boot's
+	# first ticks. The bench scale pads every reach out to 8 m so the
+	# clearance is scale-free in METERS, not radians: the planet keeps
+	# the authored layout, the bench keeps its boot sane.
+	var reach_floor: float = maxf(0.0, 8.0 / maxf(planet_radius, 1.0))
+	if planet_radius > 1000.0:
+		reach_floor = 0.0  # the authored planet layout owns the reach
+
+	_structure(village, _dir_for(spawn, east, north, HALL_BEARING_DEG, maxf(HALL_REACH, reach_floor)),
 		planet_radius, surface_lift, walk_surface_h, "VillageHall")
-	_structure(village, _dir_for(spawn, east, north, FORGE_BEARING_DEG, FORGE_REACH),
+	_structure(village, _dir_for(spawn, east, north, FORGE_BEARING_DEG, maxf(FORGE_REACH, reach_floor)),
 		planet_radius, surface_lift, walk_surface_h, "ForgeStall")
-	_structure(village, _dir_for(spawn, east, north, SIGN_BEARING_DEG, SIGN_REACH),
+	_structure(village, _dir_for(spawn, east, north, SIGN_BEARING_DEG, maxf(SIGN_REACH, reach_floor)),
 		planet_radius, surface_lift, walk_surface_h, "WaySignpost")
 	return village
 
