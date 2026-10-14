@@ -130,7 +130,7 @@ func _run():
 		# bypass cooldown directly by calling through the same signal the service uses
 		cosmic.spark.connect(func(p): bridged.append(str(p.get("wheel"))))
 		cosmic.cosmic.accumulate(1000.0)  # force a real spark on the live wheel
-		
+
 		_check("CosmicService emits sparks onto the bridge", bridged.size() >= 1)
 
 	# --- 5b. Admin surface: list_configs + force_fire (data-authored

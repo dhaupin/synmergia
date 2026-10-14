@@ -54,7 +54,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 				else:
 					style.bg_color = UIStyles.COLORS.background_dark
 					style.border_color = UIStyles.COLORS.border
-			
+
 			# Update text sizes
 			var keybind: Label = slot.get_node_or_null("Keybind")
 			var stack: Label = slot.get_node_or_null("StackCount")

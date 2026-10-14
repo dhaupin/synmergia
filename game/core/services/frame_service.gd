@@ -57,15 +57,15 @@ func enter_frame(player_id: String, frame_id: String) -> bool:
 		if stack.size() > 0:
 			GameLog.warn("FrameService: %s already in frame %s" % [player_id, stack[-1].frame_id])
 			return false
-	
+
 	var crypto := Crypto.new()
 	var frame_seed = crypto.generate_random_bytes(32)
 	var env = FrameEnv.new(frame_id, frame_seed)
-	
+
 	if not _player_frames.has(player_id):
 		_player_frames[player_id] = []
 	_player_frames[player_id].append(env)
-	
+
 	GameLog.info("FrameService: %s entered frame %s" % [player_id, frame_id])
 	frame_entered.emit(player_id, frame_id, frame_seed)
 	return true
@@ -79,20 +79,20 @@ func exit_frame(player_id: String) -> bool:
 	var stack: Array = _player_frames[player_id]
 	if stack.is_empty():
 		return false
-	
+
 	var env: FrameEnv = stack.pop_back()
 	var frame_id = env.frame_id
-	
+
 	if env.seed_tree != null:
 		env.seed_tree.clear()
 		env.seed_tree = null
 	if env.state_tree != null:
 		env.state_tree.clear()
 		env.state_tree = null
-	
+
 	if stack.is_empty():
 		_player_frames.erase(player_id)
-	
+
 	GameLog.info("FrameService: %s exited frame %s" % [player_id, frame_id])
 	frame_exited.emit(player_id, frame_id)
 	return true
@@ -130,7 +130,7 @@ func get_player_state_tree(player_id: String) -> StateTreeScript:
 	if not _player_frames.has(player_id):
 		_player_frames[player_id] = []
 	var stack: Array = _player_frames[player_id]
-	
+
 	if not _player_state_trees.has(player_id):
 		_player_state_trees[player_id] = StateTreeScript.new()
 	return _player_state_trees[player_id]

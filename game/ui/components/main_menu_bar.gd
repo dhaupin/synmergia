@@ -49,7 +49,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 			var current_size: int = btn.get_theme_font_size("font_size")
 			if current_size > 0:
 				btn.add_theme_font_size_override("font_size", int(current_size * scale))
-	
+
 	# Update expanded panel menu items
 	if _menu_items:
 		for child in _menu_items.get_children():
@@ -74,7 +74,7 @@ func _check_permissions() -> void:
 func _refresh_admin_debug_visibility() -> void:
 	if not _menu_items:
 		return
-	
+
 	for child in _menu_items.get_children():
 		if child.name.begins_with("menu_item_admin") or child.name.begins_with("menu_item_debug"):
 			child.visible = _is_admin_or_mod if child.name.begins_with("menu_item_admin") else _is_dev_mode
@@ -87,40 +87,40 @@ func _setup_ui() -> void:
 	bar.offset_bottom = 68
 	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bar.add_theme_constant_override("separation", 8)
-	
+
 	# Left: Hamburger menu button
 	_menu_button = _create_icon_button("=", "menu_button", "Open Main Menu (M)")
 	_menu_button.pressed.connect(_on_menu_button_pressed)
 	_menu_button.focus_mode = Control.FOCUS_ALL
 	bar.add_child(_menu_button)
-	
+
 	# Center spacer (pushes avatar to center-ish, settings to right)
 	var left_spacer := Control.new()
 	left_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bar.add_child(left_spacer)
-	
+
 	# Center: User avatar button (shows character name/level)
 	_avatar_button = _create_avatar_button()
 	_avatar_button.pressed.connect(_on_avatar_pressed)
 	_avatar_button.focus_mode = Control.FOCUS_ALL
 	bar.add_child(_avatar_button)
-	
+
 	# Right spacer
 	var right_spacer := Control.new()
 	right_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bar.add_child(right_spacer)
-	
+
 	# Right: Settings button
 	_settings_button = _create_icon_button("*", "settings_button", "Settings (O)")
 	_settings_button.pressed.connect(_on_settings_pressed)
 	_settings_button.focus_mode = Control.FOCUS_ALL
 	bar.add_child(_settings_button)
-	
+
 	add_child(bar)
-	
+
 	# Expanded menu panel (initially hidden)
 	_create_expanded_panel()
-	
+
 	set_anchors_preset(Control.PRESET_TOP_WIDE)
 	offset_top = 8
 	offset_bottom = 68
@@ -132,7 +132,7 @@ func _create_icon_button(text: String, name: String, tooltip: String) -> Button:
 	btn.custom_minimum_size = Vector2(48, 48)  # 48dp minimum touch target
 	btn.toggle_mode = false
 	btn.focus_mode = Control.FOCUS_ALL
-	
+
 	var style_normal := StyleBoxFlat.new()
 	style_normal.bg_color = _get_color("background_dark", Color(0.12, 0.12, 0.18, 0.9))
 	style_normal.border_color = _get_color("border_highlight", Color(0.4, 0.35, 0.3))
@@ -145,15 +145,15 @@ func _create_icon_button(text: String, name: String, tooltip: String) -> Button:
 	style_normal.corner_radius_bottom_left = 8
 	style_normal.corner_radius_bottom_right = 8
 	btn.add_theme_stylebox_override("normal", style_normal)
-	
+
 	var style_hover := style_normal.duplicate() as StyleBoxFlat
 	style_hover.bg_color = _get_color("background", Color(0.2, 0.18, 0.25, 0.95))
 	btn.add_theme_stylebox_override("hover", style_hover)
-	
+
 	var style_pressed := style_normal.duplicate() as StyleBoxFlat
 	style_pressed.bg_color = _get_color("background_dark", Color(0.15, 0.15, 0.22, 1.0))
 	btn.add_theme_stylebox_override("pressed", style_pressed)
-	
+
 	var style_focus := style_normal.duplicate() as StyleBoxFlat
 	style_focus.bg_color = _get_color("background", Color(0.2, 0.18, 0.25, 0.95))
 	style_focus.border_color = _get_color("accent_gold", UIStyles.COLORS.accent_gold)
@@ -162,12 +162,12 @@ func _create_icon_button(text: String, name: String, tooltip: String) -> Button:
 	style_focus.border_width_top = 3
 	style_focus.border_width_bottom = 3
 	btn.add_theme_stylebox_override("focus", style_focus)
-	
+
 	btn.add_theme_font_size_override("font_size", 24)
 	btn.add_theme_color_override("font_color", _get_color("text_primary", UIStyles.COLORS.text_primary))
 	btn.add_theme_color_override("font_focus_color", _get_color("accent_gold", UIStyles.COLORS.accent_gold))
 	btn.tooltip_text = tooltip
-	
+
 	return btn
 
 func _create_avatar_button() -> Button:
@@ -189,15 +189,15 @@ func _create_avatar_button() -> Button:
 	style_normal.corner_radius_bottom_left = 8
 	style_normal.corner_radius_bottom_right = 8
 	btn.add_theme_stylebox_override("normal", style_normal)
-	
+
 	var style_hover := style_normal.duplicate() as StyleBoxFlat
 	style_hover.bg_color = _get_color("background", Color(0.18, 0.15, 0.1, 0.95))
 	btn.add_theme_stylebox_override("hover", style_hover)
-	
+
 	var style_pressed := style_normal.duplicate() as StyleBoxFlat
 	style_pressed.bg_color = _get_color("background_dark", Color(0.2, 0.15, 0.1, 1.0))
 	btn.add_theme_stylebox_override("pressed", style_pressed)
-	
+
 	var style_focus := style_normal.duplicate() as StyleBoxFlat
 	style_focus.bg_color = _get_color("background", Color(0.18, 0.15, 0.1, 0.95))
 	style_focus.border_color = _get_color("accent_gold", UIStyles.COLORS.accent_gold)
@@ -206,13 +206,13 @@ func _create_avatar_button() -> Button:
 	style_focus.border_width_top = 3
 	style_focus.border_width_bottom = 3
 	btn.add_theme_stylebox_override("focus", style_focus)
-	
+
 	# Avatar content: icon + name + level
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 8)
 	hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hbox.focus_mode = Control.FOCUS_NONE
-	
+
 	# Character class icon placeholder
 	var icon_label := Label.new()
 	icon_label.text = "[C]"
@@ -223,7 +223,7 @@ func _create_avatar_button() -> Button:
 	icon_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon_label.focus_mode = Control.FOCUS_NONE
 	hbox.add_child(icon_label)
-	
+
 	# Name and level
 	var vbox := VBoxContainer.new()
 	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -237,7 +237,7 @@ func _create_avatar_button() -> Button:
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_label.focus_mode = Control.FOCUS_NONE
 	vbox.add_child(name_label)
-	
+
 	var level_label := Label.new()
 	level_label.name = "level_label"
 	level_label.text = "Level 1"
@@ -247,10 +247,10 @@ func _create_avatar_button() -> Button:
 	level_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	level_label.focus_mode = Control.FOCUS_NONE
 	vbox.add_child(level_label)
-	
+
 	hbox.add_child(vbox)
 	btn.add_child(hbox)
-	
+
 	return btn
 
 func _create_expanded_panel() -> void:
@@ -278,14 +278,14 @@ func _create_expanded_panel() -> void:
 	# panel stack (500) covers the menu. Round-4 fix: the menu used to
 	# sit at 100 -- BELOW chat, so menu items were unreadable.
 	_expanded_panel.z_index = 350
-	
+
 	_menu_items = VBoxContainer.new()
 	_menu_items.name = "MenuItems"
 	_menu_items.add_theme_constant_override("separation", 4)
 	_menu_items.focus_mode = Control.FOCUS_ALL
 	# Wrapped in a ScrollFrame below (after the items are built): the
 	# menu is taller than most phone viewports.
-	
+
 	# Add all panel shortcuts
 	var panels := [
 		{"id": "inventory", "text": "Inventory", "hotkey": "I", "icon": "[I]"},
@@ -305,31 +305,31 @@ func _create_expanded_panel() -> void:
 		{"id": "trade", "text": "Trade", "hotkey": "R", "icon": "[R]"},
 		{"id": "transfer", "text": "Transfer", "hotkey": "X", "icon": "[X]"},
 	]
-	
+
 	for panel in panels:
 		var btn := _create_menu_item(panel["id"], panel["text"], panel["hotkey"], panel["icon"])
 		_menu_items.add_child(btn)
-	
+
 	# Separator
 	var sep := HSeparator.new()
 	sep.add_theme_color_override("color", _get_color("border", UIStyles.COLORS.border))
 	sep.focus_mode = Control.FOCUS_NONE
 	_menu_items.add_child(sep)
-	
+
 	# Admin panel (only visible to MOD+)
 	var admin_btn := _create_menu_item("admin", "Admin Panel", "", "[A]", true)
 	admin_btn.name = "menu_item_admin_panel"
 	admin_btn.visible = _is_admin_or_mod
 	admin_btn.tooltip_text = "Admin Panel (requires Moderator+)"
 	_menu_items.add_child(admin_btn)
-	
+
 	# Debug panel (only visible to ADMIN+ or dev mode)
 	var debug_btn := _create_menu_item("debug", "Debug Panel", "", "[D]", true)
 	debug_btn.name = "menu_item_debug_panel"
 	debug_btn.visible = _is_dev_mode
 	debug_btn.tooltip_text = "Debug Panel (requires Admin/Dev Mode)"
 	_menu_items.add_child(debug_btn)
-	
+
 	# Settings item
 	var settings_btn := _create_menu_item("settings", "Settings", "O", "[*]")
 	_menu_items.add_child(settings_btn)
@@ -338,13 +338,13 @@ func _create_expanded_panel() -> void:
 	# to char select in menu") -- after the separator, always visible.
 	var exit_btn := _create_menu_item("exit_to_select", "Exit to Character Select", "", "[<<]")
 	_menu_items.add_child(exit_btn)
-	
+
 	# Separator
 	var sep2 := HSeparator.new()
 	sep2.add_theme_color_override("color", _get_color("border", UIStyles.COLORS.border))
 	sep2.focus_mode = Control.FOCUS_NONE
 	_menu_items.add_child(sep2)
-	
+
 	# Close menu item
 	var close_btn := _create_menu_item("close", "Close Menu", "", "X")
 	_menu_items.add_child(close_btn)
@@ -380,19 +380,19 @@ func _create_menu_item(panel_id: String, text: String, hotkey: String, icon: Str
 	btn.toggle_mode = false
 	btn.focus_mode = Control.FOCUS_ALL
 	btn.flat = false
-	
+
 	var display_text := "%s %s" % [icon, text] if icon != "" else text
 	if hotkey != "":
 		display_text = "%s  [%s]" % [display_text, hotkey]
 	btn.text = display_text
 	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.tooltip_text = "%s (Hotkey: %s)" % [text, hotkey] if hotkey != "" else text
-	
+
 	var style_normal := StyleBoxFlat.new()
 	style_normal.bg_color = Color(0, 0, 0, 0)
 	style_normal.border_color = Color(0, 0, 0, 0)
 	btn.add_theme_stylebox_override("normal", style_normal)
-	
+
 	var style_hover := StyleBoxFlat.new()
 	style_hover.bg_color = _get_color("background", Color(0.2, 0.18, 0.25, 0.8))
 	style_hover.border_color = Color(0, 0, 0, 0)
@@ -401,7 +401,7 @@ func _create_menu_item(panel_id: String, text: String, hotkey: String, icon: Str
 	style_hover.corner_radius_bottom_left = 4
 	style_hover.corner_radius_bottom_right = 4
 	btn.add_theme_stylebox_override("hover", style_hover)
-	
+
 	var style_pressed := StyleBoxFlat.new()
 	style_pressed.bg_color = _get_color("background_dark", Color(0.15, 0.15, 0.22, 1.0))
 	style_pressed.border_color = Color(0, 0, 0, 0)
@@ -410,7 +410,7 @@ func _create_menu_item(panel_id: String, text: String, hotkey: String, icon: Str
 	style_pressed.corner_radius_bottom_left = 4
 	style_pressed.corner_radius_bottom_right = 4
 	btn.add_theme_stylebox_override("pressed", style_pressed)
-	
+
 	var style_focus := StyleBoxFlat.new()
 	style_focus.bg_color = _get_color("background", Color(0.25, 0.22, 0.3, 0.9))
 	style_focus.border_color = _get_color("accent_gold", UIStyles.COLORS.accent_gold)
@@ -423,14 +423,14 @@ func _create_menu_item(panel_id: String, text: String, hotkey: String, icon: Str
 	style_focus.corner_radius_bottom_left = 4
 	style_focus.corner_radius_bottom_right = 4
 	btn.add_theme_stylebox_override("focus", style_focus)
-	
+
 	btn.add_theme_font_size_override("font_size", 14)
 	btn.add_theme_color_override("font_color", _get_color("text_primary", UIStyles.COLORS.text_primary))
 	btn.add_theme_color_override("font_focus_color", _get_color("accent_gold", UIStyles.COLORS.accent_gold))
-	
+
 	btn.pressed.connect(func(): _on_menu_item_pressed(panel_id))
 	btn.focus_entered.connect(func(): _on_menu_item_focused(btn))
-	
+
 	return btn
 
 func _get_color(key: String, fallback: Color) -> Color:
@@ -483,7 +483,7 @@ func show_expanded() -> void:
 	_menu_button.tooltip_text = "Close Main Menu (M)"
 	# Focus first visible menu item for keyboard navigation
 	call_deferred("_focus_first_menu_item")
-	
+
 	# Animate in
 	var tween := create_tween()
 	tween.tween_property(_expanded_panel, "modulate:a", 1.0, 0.15)
@@ -504,7 +504,7 @@ func hide_expanded() -> void:
 	_menu_button.tooltip_text = "Open Main Menu (M)"
 	# Return focus to menu button
 	call_deferred("_return_focus_to_menu_button")
-	
+
 	var tween := create_tween()
 	tween.tween_property(_expanded_panel, "modulate:a", 0.0, 0.1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tween.tween_callback(func(): _expanded_panel.visible = false)
@@ -528,17 +528,17 @@ func update_character_info(name: String, level: int, class_icon: String = "[C]")
 					name_label.text = name
 				if level_label:
 					level_label.text = "Level %d" % level
-		
+
 		# Update accessibility info
 		_avatar_button.tooltip_text = "Character: %s (Level %d)" % [name, level]
 
 func bind(hud: Node, menu_manager: Node) -> void:
 	_hud = hud
 	_mm = menu_manager
-	
+
 	if _mm:
 		panel_requested.connect(Callable(_mm, "_on_main_menu_panel_requested"))
-	
+
 	# Re-check permissions after bind (in case GameManager wasn't ready)
 	call_deferred("_check_permissions")
 	call_deferred("_refresh_admin_debug_visibility")
@@ -549,13 +549,13 @@ func _input(event: InputEvent) -> void:
 		var mouse_pos := get_viewport().get_mouse_position()
 		if not _expanded_panel.get_global_rect().has_point(mouse_pos) and not _menu_button.get_global_rect().has_point(mouse_pos):
 			hide_expanded()
-	
+
 	# Touch support
 	if _is_expanded and event is InputEventScreenTouch and event.pressed:
 		var touch_pos: Vector2 = (event as InputEventScreenTouch).position
 		if not _expanded_panel.get_global_rect().has_point(touch_pos) and not _menu_button.get_global_rect().has_point(touch_pos):
 			hide_expanded()
-	
+
 	# Keyboard navigation: Escape to close
 	if _is_expanded and event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		hide_expanded()
@@ -570,7 +570,7 @@ func _apply_high_contrast() -> void:
 	var high_contrast := false
 	if PlayerConfig:
 		high_contrast = PlayerConfig.get_account_setting("high_contrast", false)
-	
+
 	if high_contrast:
 		# Apply high contrast colors to all buttons
 		var buttons := [_menu_button, _avatar_button, _settings_button]
@@ -578,10 +578,10 @@ func _apply_high_contrast() -> void:
 			if btn:
 				var style_focus := UIStyles.create_focus_style(8, true)
 				btn.add_theme_stylebox_override("focus", style_focus)
-				
+
 				btn.add_theme_color_override("font_color", UIStyles.HIGH_CONTRAST_COLORS.text_primary)
 				btn.add_theme_color_override("font_focus_color", UIStyles.HIGH_CONTRAST_COLORS.accent_gold)
-				
+
 				# Update normal/hover/pressed styles for high contrast
 				var style_normal := StyleBoxFlat.new()
 				style_normal.bg_color = UIStyles.HIGH_CONTRAST_COLORS.background_dark
@@ -595,31 +595,31 @@ func _apply_high_contrast() -> void:
 				style_normal.corner_radius_bottom_left = 8
 				style_normal.corner_radius_bottom_right = 8
 				btn.add_theme_stylebox_override("normal", style_normal)
-				
+
 				var style_hover := style_normal.duplicate() as StyleBoxFlat
 				style_hover.bg_color = UIStyles.HIGH_CONTRAST_COLORS.background
 				btn.add_theme_stylebox_override("hover", style_hover)
-				
+
 				var style_pressed := style_normal.duplicate() as StyleBoxFlat
 				style_pressed.bg_color = UIStyles.HIGH_CONTRAST_COLORS.background_dark
 				btn.add_theme_stylebox_override("pressed", style_pressed)
-		
+
 		# Update expanded panel items
 		if _menu_items:
 			for child in _menu_items.get_children():
 				if child is Button:
 					var style_focus := UIStyles.create_focus_style(4, true)
 					child.add_theme_stylebox_override("focus", style_focus)
-					
+
 					child.add_theme_color_override("font_color", UIStyles.HIGH_CONTRAST_COLORS.text_primary)
 					child.add_theme_color_override("font_focus_color", UIStyles.HIGH_CONTRAST_COLORS.accent_gold)
-					
+
 					# Update normal/hover/pressed
 					var style_normal := StyleBoxFlat.new()
 					style_normal.bg_color = Color(0, 0, 0, 0)
 					style_normal.border_color = Color(0, 0, 0, 0)
 					child.add_theme_stylebox_override("normal", style_normal)
-					
+
 					var style_hover := StyleBoxFlat.new()
 					style_hover.bg_color = UIStyles.HIGH_CONTRAST_COLORS.background
 					style_hover.corner_radius_top_left = 4
@@ -627,7 +627,7 @@ func _apply_high_contrast() -> void:
 					style_hover.corner_radius_bottom_left = 4
 					style_hover.corner_radius_bottom_right = 4
 					child.add_theme_stylebox_override("hover", style_hover)
-					
+
 					var style_pressed := StyleBoxFlat.new()
 					style_pressed.bg_color = UIStyles.HIGH_CONTRAST_COLORS.background_dark
 					style_pressed.corner_radius_top_left = 4
@@ -637,7 +637,7 @@ func _apply_high_contrast() -> void:
 					child.add_theme_stylebox_override("pressed", style_pressed)
 				elif child is HSeparator:
 					child.add_theme_color_override("color", UIStyles.HIGH_CONTRAST_COLORS.border)
-		
+
 		# Update expanded panel style
 		if _expanded_panel:
 			var style := UIStyles.create_high_contrast_panel_style()

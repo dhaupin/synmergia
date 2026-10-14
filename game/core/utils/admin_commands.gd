@@ -768,7 +768,7 @@ func _cmd_invalidate_sessions(args: Array) -> Dictionary:
 	var reason = "World state restored from backup. Please reconnect."
 	if args.size() >= 1:
 		reason = " ".join(args)
-	
+
 	if ServerManager and ServerManager.has_method("invalidate_all_sessions"):
 		ServerManager.invalidate_all_sessions(reason)
 		if is_instance_valid(NotificationService):
@@ -782,7 +782,7 @@ func _cmd_invalidate_sessions(args: Array) -> Dictionary:
 			)
 		_audit_log(_caller, "invalidate_sessions", "all_sessions", {"reason": reason})
 		return {"success": true, "message": "All sessions invalidated"}
-	
+
 	return {"success": false, "message": "ServerManager not available"}
 
 ## Helper: Find entity by ID

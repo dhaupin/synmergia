@@ -645,19 +645,19 @@ func get_nearby_zones(from_zone_id: String, max_distance: float = -1.0) -> Array
 			# Use the zone's computed depth as the search threshold
 			# Subdivide one level deeper to find immediate neighbors
 			var search_depth: int = mini(from_depth + 2, _spatial_fragmenter.MAX_DEPTH)
-			
+
 			# Get bounding box of the from_zone's spatial address
 			var from_bbox: Dictionary = _spatial_fragmenter.get_bounding_box(from_addr)
-			
+
 			for zone_id in _zones:
 				var zone = _zones[zone_id]
 				if zone_id == from_zone_id or zone.is_instanced:
 					continue
-				
+
 				var zone_addr: int = get_zone_spatial_address(zone_id)
 				if zone_addr == 0:
 					continue
-				
+
 				# Check if zones share a common ancestor at search_depth or lower
 				var ancestor: int = _spatial_fragmenter.find_common_ancestor([from_addr, zone_addr])
 				if ancestor != 0:
@@ -665,7 +665,7 @@ func get_nearby_zones(from_zone_id: String, max_distance: float = -1.0) -> Array
 					if ancestor_depth <= search_depth:
 						results.append(zone)
 						continue
-				
+
 				# Also check bounding box overlap for zones at similar depth
 				var zone_bbox: Dictionary = _spatial_fragmenter.get_bounding_box(zone_addr)
 				if _bboxes_overlap(from_bbox, zone_bbox):
@@ -677,16 +677,16 @@ func get_nearby_zones(from_zone_id: String, max_distance: float = -1.0) -> Array
 		var fallback_distance: float = max_distance
 		if fallback_distance < 0.0:
 			fallback_distance = from_zone.zone_radius + 500.0  # Derived default
-		
+
 		for zone_id in _zones:
 			var zone = _zones[zone_id]
 			if zone_id == from_zone_id or zone.is_instanced:
 				continue
-			
+
 			# Avoid duplicates from spatial search
 			if results.has(zone):
 				continue
-				
+
 			var distance: float = from_zone.zone_center.distance_to(zone.zone_center)
 			if distance <= fallback_distance:
 				results.append(zone)
@@ -1015,7 +1015,7 @@ func _detect_zone_entries_spatial(entities: Array) -> void:
 			var zone_addr: int = zone_addresses[zone_id]
 			var zone_depth: int = _spatial_fragmenter.get_depth(zone_addr)
 			var zone_vertex: int = _spatial_fragmenter.get_vertex(zone_addr)
-			
+
 			# Use deeper depth for entity to be a descendant of zone
 			var entity_depth: int = mini(zone_depth + 4, _spatial_fragmenter.MAX_DEPTH)
 			var entity_addr: int = _spatial_fragmenter.make_address(

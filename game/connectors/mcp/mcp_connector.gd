@@ -41,7 +41,7 @@ func connect(config: Dictionary) -> bool:
 	mcp_server_url = config.get("server_url", mcp_server_url)
 	access_token = config.get("access_token", access_token)
 	model = config.get("model", model)
-	
+
 	# Set agent ID for rate limiting
 	_agent_id = config.get("agent_id", "mcp_agent_%d" % Time.get_ticks_msec())
 
@@ -162,27 +162,27 @@ func _on_ws_message(message: String) -> void:
 ## Check agent rate limits (QoS + per-tick)
 func _check_agent_rate_limit(action: AgentAction) -> bool:
 	var agent_id := _agent_id if _agent_id != "" else "mcp_agent"
-	
+
 	# Per-tick action limit
 	var current_tick := Time.get_ticks_msec() / 16  # ~60 ticks/sec
 	if current_tick != _last_tick:
 		_last_tick = current_tick
 		_agent_action_counts.erase(agent_id)
-	
+
 	var count := _agent_action_counts.get(agent_id, 0)
 	if count >= max_actions_per_tick:
 		# Exceeded per-tick limit
 		if QoSService:
 			QoSService.rate_limit(agent_id, "agent_action_burst")
 		return false
-	
+
 	_agent_action_counts[agent_id] = count + 1
-	
+
 	# QoS rate limit (token bucket per action type)
 	var action_type_str := AgentAction.ActionType.keys()[action.action_type].lower()
 	if QoSService and not QoSService.rate_limit(agent_id, "agent_" + action_type_str):
 		return false
-	
+
 	return true
 
 func _on_ws_connected() -> void:

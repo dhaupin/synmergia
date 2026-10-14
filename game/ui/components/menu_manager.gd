@@ -985,26 +985,26 @@ func _on_main_menu_panel_requested(panel_id: String) -> void:
 		"admin": "admin",
 		"debug": "debug",
 	}
-	
+
 	var internal_name: String = panel_map.get(panel_id, panel_id)
-	
+
 	# Special handling for settings (handled by HudLayer)
 	if internal_name == "settings":
 		if HudLayerScript.instance and HudLayerScript.instance.has_method("open_settings"):
 			HudLayerScript.instance.open_settings()
 		return
-	
+
 	# Special handling for world_map (handled by HudLayer)
 	if internal_name == "world_map":
 		if HudLayerScript.instance and HudLayerScript.instance.has_method("_toggle_world_map"):
 			HudLayerScript.instance._toggle_world_map()
 		return
-	
+
 	# Trade panel: the menu-item and R hotkey both route here now. With
 	# no active session the panel shows its idle state ("no trade in
 	# progress"); HudServices populates it when TradeService starts one.
 	# (The old code silently no-oped here.)
-	
+
 	# Permission check for admin panel
 	if internal_name == "admin":
 		if not _pmgr():
@@ -1017,7 +1017,7 @@ func _on_main_menu_panel_requested(panel_id: String) -> void:
 		if not pm.has_permission(player_id, pm.Level.MOD):
 			_notif_svc().notify(NotifKind.SECURITY_WARNING, "Insufficient permissions for Admin Panel", "MenuManager", "admin_perm", {}, player_id)
 			return
-	
+
 	# Permission check for debug panel
 	if internal_name == "debug":
 		if not _pmgr():
@@ -1034,7 +1034,7 @@ func _on_main_menu_panel_requested(panel_id: String) -> void:
 		if not is_admin and not is_dev:
 			_notif_svc().notify(NotifKind.SECURITY_WARNING, "Insufficient permissions for Debug Panel", "MenuManager", "debug_perm", {}, player_id)
 			return
-	
+
 	_toggle_menu_internal(internal_name)
 
 func _input(event: InputEvent) -> void:
@@ -1050,14 +1050,14 @@ func _create_debug_panel() -> Control:
 	var panel: Control = DebugPanelScript.new()
 	panel.set_panel_title("Debug Panel")
 	panel.custom_minimum_size = Vector2(600, 400)
-	
+
 	# Build the debug UI after the panel is in the scene tree.
 	# NOTE: the builder lives on MenuManager and must receive the panel
 	# explicitly -- it used to be deferred onto the panel itself, which
 	# has no such method ("Error calling deferred method ... Method not
 	# found" at full boot).
 	call_deferred("_debug_build_panel_ui", panel, self)
-	
+
 	return panel
 
 func _debug_build_panel_ui(panel: Control, menu_manager: MenuManager) -> void:
@@ -1066,24 +1066,24 @@ func _debug_build_panel_ui(panel: Control, menu_manager: MenuManager) -> void:
 	var panel_container: PanelContainer = panel.get_node_or_null("Panel")
 	if not panel_container:
 		return
-	
+
 	var vbox := VBoxContainer.new()
 	vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
 	vbox.add_theme_constant_override("separation", 8)
 	panel_container.add_child(vbox)
-	
+
 	# Tab container for different debug sections
 	var tabs := TabContainer.new()
 	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vbox.add_child(tabs)
-	
+
 	# System Info tab
 	var sys_tab := VBoxContainer.new()
 	sys_tab.add_theme_constant_override("separation", 8)
 	tabs.add_child(sys_tab)
 	tabs.set_tab_title(tabs.get_child_count() - 1, " System")
-	
+
 	var sys_info := Label.new()
 	sys_info.name = "sys_info_label"
 	menu_manager._update_debug_sys_info(sys_info)
@@ -1092,7 +1092,7 @@ func _debug_build_panel_ui(panel: Control, menu_manager: MenuManager) -> void:
 	sys_info.autowrap_mode = TextServer.AUTOWRAP_WORD
 	sys_info.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	sys_tab.add_child(sys_info)
-	
+
 	# Add refresh button for system info
 	var refresh_btn := Button.new()
 	refresh_btn.text = "Refresh System Info"
@@ -1101,13 +1101,13 @@ func _debug_build_panel_ui(panel: Control, menu_manager: MenuManager) -> void:
 	refresh_btn.focus_mode = Control.FOCUS_ALL
 	refresh_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	sys_tab.add_child(refresh_btn)
-	
+
 	# Network tab
 	var net_tab := VBoxContainer.new()
 	net_tab.add_theme_constant_override("separation", 8)
 	tabs.add_child(net_tab)
 	tabs.set_tab_title(tabs.get_child_count() - 1, " Network")
-	
+
 	var net_info := Label.new()
 	net_info.name = "net_info_label"
 	menu_manager._update_debug_net_info(net_info)
@@ -1116,7 +1116,7 @@ func _debug_build_panel_ui(panel: Control, menu_manager: MenuManager) -> void:
 	net_info.autowrap_mode = TextServer.AUTOWRAP_WORD
 	net_info.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	net_tab.add_child(net_info)
-	
+
 	var net_refresh_btn := Button.new()
 	net_refresh_btn.text = "Refresh Network Info"
 	net_refresh_btn.custom_minimum_size.y = 36
@@ -1124,13 +1124,13 @@ func _debug_build_panel_ui(panel: Control, menu_manager: MenuManager) -> void:
 	net_refresh_btn.focus_mode = Control.FOCUS_ALL
 	net_refresh_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	net_tab.add_child(net_refresh_btn)
-	
+
 	# Performance tab
 	var perf_tab := VBoxContainer.new()
 	perf_tab.add_theme_constant_override("separation", 8)
 	tabs.add_child(perf_tab)
 	tabs.set_tab_title(tabs.get_child_count() - 1, " Performance")
-	
+
 	var perf_info := Label.new()
 	perf_info.name = "perf_info_label"
 	menu_manager._update_debug_perf_info(perf_info)
@@ -1139,7 +1139,7 @@ func _debug_build_panel_ui(panel: Control, menu_manager: MenuManager) -> void:
 	perf_info.autowrap_mode = TextServer.AUTOWRAP_WORD
 	perf_info.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	perf_tab.add_child(perf_info)
-	
+
 	var perf_refresh_btn := Button.new()
 	perf_refresh_btn.text = "Refresh Performance"
 	perf_refresh_btn.custom_minimum_size.y = 36
@@ -1147,13 +1147,13 @@ func _debug_build_panel_ui(panel: Control, menu_manager: MenuManager) -> void:
 	perf_refresh_btn.focus_mode = Control.FOCUS_ALL
 	perf_refresh_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	perf_tab.add_child(perf_refresh_btn)
-	
+
 	# Entity Debug tab
 	var entity_tab := VBoxContainer.new()
 	entity_tab.add_theme_constant_override("separation", 8)
 	tabs.add_child(entity_tab)
 	tabs.set_tab_title(tabs.get_child_count() - 1, " Entities")
-	
+
 	var entity_info := Label.new()
 	entity_info.name = "entity_info_label"
 	menu_manager._update_debug_entity_info(entity_info)
@@ -1162,7 +1162,7 @@ func _debug_build_panel_ui(panel: Control, menu_manager: MenuManager) -> void:
 	entity_info.autowrap_mode = TextServer.AUTOWRAP_WORD
 	entity_info.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	entity_tab.add_child(entity_info)
-	
+
 	var entity_refresh_btn := Button.new()
 	entity_refresh_btn.text = "Refresh Entity Info"
 	entity_refresh_btn.custom_minimum_size.y = 36

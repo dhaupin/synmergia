@@ -168,7 +168,7 @@ func _estimate_packet_size(payload: Dictionary) -> int:
 func _chunk_payload(payload: Dictionary, chunk_type: int) -> Array:
 	var serialized: PackedByteArray = _serialize_payload(payload)
 	var total_size: int = serialized.size()
-	
+
 	if total_size <= MAX_CHUNK_PAYLOAD:
 		# Fits in single packet - no chunking needed
 		var single_chunk = {
@@ -180,25 +180,25 @@ func _chunk_payload(payload: Dictionary, chunk_type: int) -> Array:
 			"payload": payload
 		}
 		return [single_chunk]
-	
+
 	# Need to chunk
 	var chunks: Array = []
 	var message_id: int = _generate_message_id()
 	var offset: int = 0
 	var chunk_id: int = 0
 	var total_chunks: int = ceil(total_size / MAX_CHUNK_PAYLOAD)
-	
+
 	while offset < total_size:
 		var chunk_size: int = min(MAX_CHUNK_PAYLOAD, total_size - offset)
 		var chunk_data: PackedByteArray = serialized.slice(offset, offset + chunk_size)
-		
+
 		var is_final: bool = (chunk_id == total_chunks - 1)
 		var chunk_type_actual: int = CHUNK_TYPE_FULL_STATE if chunk_type == CHUNK_TYPE_FULL_STATE else CHUNK_TYPE_DIFF
 		if chunk_id > 0:
 			chunk_type_actual = CHUNK_TYPE_CONTINUATION
 		if is_final:
 			chunk_type_actual = CHUNK_TYPE_FINAL
-		
+
 		var chunk = {
 			"type": chunk_type_actual,
 			"message_id": message_id,
@@ -208,10 +208,10 @@ func _chunk_payload(payload: Dictionary, chunk_type: int) -> Array:
 			"payload_bytes": chunk_data
 		}
 		chunks.append(chunk)
-		
+
 		offset += chunk_size
 		chunk_id += 1
-	
+
 	return chunks
 
 ## Generates a unique message ID for chunking tracking.
@@ -230,13 +230,13 @@ func _reassemble_chunks(chunk: Dictionary) -> Dictionary:
 	var total_chunks: int = chunk.get("total_chunks", 1)
 	var is_final: bool = chunk.get("is_final", true)
 	var payload_bytes: PackedByteArray = chunk.get("payload_bytes", PackedByteArray())
-	
+
 	# Handle single-chunk messages (no chunking)
 	if total_chunks == 1:
 		if payload_bytes.size() > 0:
 			return _deserialize_payload(payload_bytes)
 		return chunk.get("payload", {})
-	
+
 	# Multi-chunk reassembly
 	if msg_id != _reassembly_message_id:
 		# New message - reset reassembly state
@@ -245,18 +245,18 @@ func _reassemble_chunks(chunk: Dictionary) -> Dictionary:
 		_reassembly_received_count = 0
 		_reassembly_accumulated = PackedByteArray()
 		_reassembly_buffer.clear()
-	
+
 	# Bounds check: prevent buffer overflow
 	if _reassembly_accumulated.size() + payload_bytes.size() > REASSEMBLY_BUFFER_SIZE:
 		_log("warn", "Reassembly buffer overflow, discarding message %d" % msg_id)
 		_reassembly_buffer.clear()
 		_reassembly_message_id = 0
 		return {}
-	
+
 	# Store chunk
 	_reassembly_buffer[chunk_id] = payload_bytes
 	_reassembly_received_count += 1
-	
+
 	# Check if complete
 	if _reassembly_received_count >= _reassembly_expected_chunks or is_final:
 		# Reassemble in order
@@ -269,16 +269,16 @@ func _reassemble_chunks(chunk: Dictionary) -> Dictionary:
 				_reassembly_buffer.clear()
 				_reassembly_message_id = 0
 				return {}
-		
+
 		# Reset for next message
 		_reassembly_buffer.clear()
 		_reassembly_message_id = 0
 		_reassembly_expected_chunks = 0
 		_reassembly_received_count = 0
 		_reassembly_accumulated = PackedByteArray()
-		
+
 		return _deserialize_payload(complete)
-	
+
 	return {}  # Still waiting for more chunks
 
 ## Deserializes payload bytes back to Dictionary.
@@ -313,12 +313,12 @@ func _queue_send(message: Dictionary) -> bool:
 	if _send_buffer_size >= SEND_BUFFER_CAPACITY:
 		_log("warn", "Send buffer full, dropping message (backpressure)")
 		return false
-	
+
 	var msg_bytes: int = _estimate_packet_size(message)
 	if _send_buffer_bytes + msg_bytes > SEND_BUFFER_MAX_BYTES:
 		_log("warn", "Send buffer byte limit reached, dropping message")
 		return false
-	
+
 	_send_buffer[_send_buffer_tail] = message
 	_send_buffer_tail = (_send_buffer_tail + 1) % SEND_BUFFER_CAPACITY
 	_send_buffer_size += 1
@@ -330,14 +330,14 @@ func _queue_send(message: Dictionary) -> bool:
 func _flush_send_buffer() -> void:
 	if not is_client or _send_buffer_size == 0:
 		return
-	
+
 	while _send_buffer_size > 0:
 		var message: Dictionary = _send_buffer[_send_buffer_head]
 		_send_buffer[_send_buffer_head] = null
 		_send_buffer_head = (_send_buffer_head + 1) % SEND_BUFFER_CAPACITY
 		_send_buffer_size -= 1
 		_send_buffer_bytes -= _estimate_packet_size(message)
-		
+
 		# Send via RPC to server (server is peer 1 in Godot multiplayer)
 		if multiplayer.is_network_connected() and multiplayer.multiplayer_peer:
 			# Use rpc for client->server messages
@@ -380,9 +380,9 @@ func _handle_character_select(peer_id: int, data: Dictionary) -> void:
 	if character_id == "":
 		_log("warn", "Character select: missing character_id from peer %d" % peer_id)
 		return
-	
+
 	_log("info", "Character select: peer %d selected character %s" % [peer_id, character_id])
-	
+
 	if LoginService:
 		var receipt: Resource = LoginService.on_character_selected(character_id, peer_id)
 		if receipt:
@@ -397,7 +397,7 @@ func _send_chunked_to_peer(peer_id: int, diff_payload: Dictionary, chunk_type: i
 		return
 	if not connected_peers.has(peer_id):
 		return
-	
+
 	var chunks: Array = _chunk_payload(diff_payload, chunk_type)
 	for chunk in chunks:
 		rpc_id(peer_id, "_receive_chunked_world_state", chunk)
@@ -407,11 +407,11 @@ func _send_chunked_to_peer(peer_id: int, diff_payload: Dictionary, chunk_type: i
 func _receive_chunked_world_state(chunk: Dictionary) -> void:
 	if not is_client:
 		return
-	
+
 	var reassembled: Dictionary = _reassemble_chunks(chunk)
 	if reassembled == null:
 		return  # Still waiting for more chunks
-	
+
 	# Process the fully reassembled payload
 	_process_reassembled_world_state(reassembled)
 
@@ -726,7 +726,7 @@ func kick_player_by_character_id(character_id: String, reason: String = "New ses
 	if not is_server:
 		_log("warn", "kick_player_by_character_id called but not running as server")
 		return false
-	
+
 	var peer_id := _find_peer_for_character(character_id)
 	if peer_id > 0:
 		_log("info", "Kicking existing session for character %s (peer %d): %s" % [character_id, peer_id, reason])
@@ -775,13 +775,13 @@ func _persist_peer_mapping(peer_id: int, player_id: String) -> void:
 func _receive_world_state(payload: Dictionary) -> void:
 	if not is_client:
 		return
-	
+
 	# Check if this is a chunked message (has chunk metadata)
 	if payload.has("type") and payload.has("message_id"):
 		# This is a chunk - delegate to chunked receiver
 		_receive_chunked_world_state(payload)
 		return
-	
+
 	_process_reassembled_world_state(payload)
 
 ## Processes a fully reassembled world state payload (chunked or legacy).
@@ -791,7 +791,7 @@ func _process_reassembled_world_state(payload: Dictionary) -> void:
 	var diff: Array = payload.get("diff", [])
 	var lod_level: int = payload.get("lod_level", 0)
 	var is_full_sync: bool = payload.get("is_full_sync", false)
-	
+
 	if diff.is_empty():
 		# Full state sync - reset client tree to server root
 		_client_root_hash = root_hash
@@ -818,7 +818,7 @@ func _process_reassembled_world_state(payload: Dictionary) -> void:
 				_request_full_state_sync()
 		else:
 			_log("warn", "Client missing root hash for diff at tick %d" % tick)
-	
+
 	world_state_received.emit(tick, diff)
 
 
@@ -826,10 +826,10 @@ func _process_reassembled_world_state(payload: Dictionary) -> void:
 func _request_full_state_sync() -> void:
 	if not is_client:
 		return
-	
+
 	_log("info", "Requesting full state sync from server due to hash divergence")
 	full_state_sync_requested.emit()
-	
+
 	# Send request to server via RPC
 	if multiplayer.is_network_connected() and multiplayer.multiplayer_peer:
 		rpc_id(1, "_receive_full_sync_request", peer_id)
@@ -842,9 +842,9 @@ func _receive_full_sync_request(requesting_peer_id: int) -> void:
 		return
 	if not connected_peers.has(requesting_peer_id):
 		return
-	
+
 	_log("info", "Server received full sync request from peer %d" % requesting_peer_id)
-	
+
 	# Delegate to TickService to send full scope snapshot
 	if TickService:
 		TickService.send_full_scope_sync(requesting_peer_id)
@@ -898,26 +898,26 @@ func _send_seed_receipt(peer_id: int, character_id: String, receipt: Resource) -
 func _receive_seed_receipt(character_id: String, receipt_bytes: PackedByteArray) -> void:
 	if not is_client:
 		return
-	
+
 	var SeedReceiptScript = preload("res://core/schemas/seed_receipt.gd")
 	var receipt: Resource = SeedReceiptScript.from_bytes(receipt_bytes)
-	
+
 	# Get the server HMAC key (embedded in client at build time)
 	var server_key := _get_client_server_key()
 	if server_key.is_empty():
 		_log("error", "SeedReceipt: Client server key not configured")
 		seed_receipt_failed.emit("Client server key not configured")
 		return
-	
+
 	# Verify the receipt
 	if not receipt.verify(server_key):
 		_log("error", "SeedReceipt: Verification failed for %s" % character_id)
 		seed_receipt_failed.emit("Signature verification failed")
 		return
-	
+
 	# Store the seeds for later state verification
 	_store_client_seeds(character_id, receipt)
-	
+
 	_log("info", "SeedReceipt: Verified and stored for %s" % character_id)
 	seed_receipt_received.emit(character_id, receipt)
 
@@ -937,7 +937,7 @@ func _get_client_server_key() -> PackedByteArray:
 		var key_str: String = GameConfig.get_server_hmac_key()
 		if key_str != "":
 			return key_str.hex_decode()
-	
+
 	# Fallback: derive from known constant (dev only, must match server)
 	var ctx := HashingContext.new()
 	ctx.start(HashingContext.HASH_SHA256)
@@ -950,7 +950,7 @@ func _store_client_seeds(character_id: String, receipt: Resource) -> void:
 	var err := config.load("user://client_seeds.cfg")
 	if err != OK:
 		config = ConfigFile.new()
-	
+
 	var section := "seeds_%s" % character_id
 	config.set_value(section, "world_seed", receipt.world_seed.hex_encode())
 	config.set_value(section, "shard_seed", receipt.shard_seed.hex_encode())
@@ -1004,11 +1004,11 @@ func get_client_seeds(character_id: String) -> Dictionary:
 	var err := config.load("user://client_seeds.cfg")
 	if err != OK:
 		return {}
-	
+
 	var section := "seeds_%s" % character_id
 	if not config.has_section(section):
 		return {}
-	
+
 	return {
 		"world_seed": config.get_value(section, "world_seed", "").hex_decode(),
 		"shard_seed": config.get_value(section, "shard_seed", "").hex_decode(),
@@ -1024,11 +1024,11 @@ func verify_state_hash(root_hash: PackedByteArray, character_id: String) -> bool
 	var seeds := get_client_seeds(character_id)
 	if seeds.is_empty():
 		return false
-	
+
 	var expected_seed: PackedByteArray = seeds.get("world_seed", PackedByteArray())
 	if expected_seed.is_empty():
 		return false
-	
+
 	# The root hash should match the world seed (or be derived from it)
 	# For now, direct comparison; can be extended with derivation logic
 	return root_hash == expected_seed

@@ -136,12 +136,12 @@ func _retry_request(callable: Callable, max_attempts: int = MAX_RETRIES) -> Redi
 		else:
 			last_error = "unexpected return type: " + str(result)
 			_record_failure()
-		
+
 		attempt += 1
 		if attempt <= max_attempts:
 			OS.delay_msec(delay_ms)
 			delay_ms = min(delay_ms * 2, MAX_RETRY_DELAY_MS)
-	
+
 	return RedisResult.err("Max retries exceeded: " + last_error, -3)
 
 

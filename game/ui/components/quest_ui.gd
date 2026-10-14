@@ -64,7 +64,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 				var current_size: int = btn.get_theme_font_size("font_size")
 				if current_size > 0:
 					btn.add_theme_font_size_override("font_size", int(current_size * scale))
-	
+
 	# Update quest list items
 	if _quest_list:
 		for child in _quest_list.get_children():

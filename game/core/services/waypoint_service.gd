@@ -598,7 +598,7 @@ func _load_waypoints() -> void:
 	for key in keys:
 		if key.begins_with(_kv_prefix):
 			waypoint_keys.append(key)
-	
+
 	if not waypoint_keys.is_empty():
 		var results: Dictionary = store.get_many(waypoint_keys)
 		for key in waypoint_keys:

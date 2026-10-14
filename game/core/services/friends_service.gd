@@ -329,7 +329,7 @@ func _renew_online_heartbeats() -> void:
 	var cache: CacheStore = registry.get_cache(_online_cache_name)
 	if not cache:
 		return
-	
+
 	for player_id in _online_players.keys():
 		var data: Dictionary = _online_players[player_id]
 		if data.get("online", false):

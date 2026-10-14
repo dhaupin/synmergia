@@ -1025,13 +1025,13 @@ func _load_state() -> void:
 			karma_keys.append(key)
 		elif key.begins_with(_kv_prefix + "revives:"):
 			revive_keys.append(key)
-	
+
 	if not karma_keys.is_empty():
 		var karma_results: Dictionary = store.get_many(karma_keys)
 		for key in karma_keys:
 			var entity_id = key.substr(_kv_prefix.length() + 6)
 			_karma[entity_id] = int(karma_results.get(key, {}).get("karma", 0))
-	
+
 	if not revive_keys.is_empty():
 		var revive_results: Dictionary = store.get_many(revive_keys)
 		for key in revive_keys:

@@ -203,7 +203,7 @@ func get_accessibility_info() -> Dictionary:
 func _apply_accessibility() -> void:
 	# Enable focus for keyboard navigation
 	focus_mode = Control.FOCUS_ALL
-	
+
 	# Set tooltip for mouse hover accessibility
 	if has_node("Panel"):
 		var panel := get_node("Panel")
@@ -225,7 +225,7 @@ func _apply_high_contrast_to_panel(panel: PanelContainer) -> void:
 	if _high_contrast:
 		var style := UIStyles.create_high_contrast_panel_style()
 		panel.add_theme_stylebox_override("panel", style)
-		
+
 		# Apply to all child buttons and interactive elements
 		_apply_high_contrast_recursive(panel)
 	else:
@@ -293,7 +293,7 @@ func create_close_button() -> Button:
 	btn.tooltip_text = "Close (ESC)"
 	# Apply focus style
 	btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style(8, _high_contrast))
-	
+
 	btn.pressed.connect(close)
 	return btn
 

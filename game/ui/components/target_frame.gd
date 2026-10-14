@@ -50,7 +50,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 	for bar in [_hp_bar, _mp_bar, _cast_bar]:
 		if bar and is_instance_valid(bar):
 			bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
-	
+
 	# Update buff/debuff containers
 	for container in [_buff_container, _debuff_container]:
 		if container:
@@ -65,7 +65,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 						else:
 							style.bg_color = UIStyles.COLORS.background_dark
 							style.border_color = UIStyles.COLORS.border
-	
+
 	# Update text sizes
 	var scale = UIStyles.get_text_scale()
 	for label in [_name_label, _level_label, _class_label, _guild_label, _cast_label]:
@@ -299,7 +299,7 @@ func set_target(target) -> void:
 	if target == null:
 		clear_target()
 		return
-	
+
 	var schema_id: String = "enemy"
 	if target and "entity_type" in target:
 		match target.entity_type:
@@ -341,7 +341,7 @@ func _on_effect_removed(entity_id: String, effect_id: String) -> void:
 func _refresh_effects() -> void:
 	_clear_effects(_buff_container)
 	_clear_effects(_debuff_container)
-	
+
 	for effect_id in _target_effects:
 		var effect: Dictionary = _target_effects[effect_id]
 		var is_debuff: bool = effect.get("is_debuff", false)
@@ -361,7 +361,7 @@ func _add_effect_icon(container: HBoxContainer, effect: Dictionary) -> void:
 	icon.tooltip_text = _build_effect_tooltip(effect)
 	icon.mouse_filter = Control.MOUSE_FILTER_PASS
 	container.add_child(icon)
-	
+
 	# Timer label
 	var timer := Label.new()
 	timer.custom_minimum_size = Vector2(24, 12)
@@ -425,7 +425,7 @@ func _update_display(data: Dictionary) -> void:
 				_class_icon.visible = true
 	else:
 		_class_icon.visible = false
-	
+
 	_guild_label.text = data.get("guild", "")
 
 	_current_hp = data.get("health", 100)
@@ -527,7 +527,7 @@ func start_cast(skill_name: String, cast_time: float, interruptible: bool = true
 	_cast_container.visible = true
 	_cast_bar.max_value = cast_time
 	_cast_bar.value = 0
-	
+
 	# Update interruptible indicator
 	if _interruptible_indicator:
 		_interruptible_indicator.visible = interruptible
@@ -569,11 +569,11 @@ func interrupt_cast() -> void:
 func _process(delta: float) -> void:
 	if not visible:
 		return
-	
+
 	# Update cast bar
 	if _cast_container.visible:
 		update_cast(delta)
-	
+
 	# Update effect timers
 	_update_effect_timers(delta)
 

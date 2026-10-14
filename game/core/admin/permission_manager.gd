@@ -104,7 +104,7 @@ func _load_audit_log() -> void:
 	for key in keys:
 		if key.begins_with(_audit_kv_prefix):
 			audit_keys.append(key)
-	
+
 	if not audit_keys.is_empty():
 		var results: Dictionary = store.get_many(audit_keys)
 		for key in audit_keys:
@@ -123,7 +123,7 @@ func _load_audit_log() -> void:
 						entry.timestamp = entry_data.get("timestamp", 0.0)
 						entry.admin_level = entry_data.get("admin_level", 0)
 						_audit_log.push_front(entry)
-	
+
 	# Trim to max size
 	while _audit_log.size() > MAX_AUDIT_LOG_SIZE:
 		_audit_log.pop_back()
@@ -132,21 +132,21 @@ func _load_audit_log() -> void:
 func _flush_audit_log() -> void:
 	if _audit_log.is_empty():
 		return
-	
+
 	var store := DictStore.new()
 	var entries: Dictionary = {}
-	
+
 	# Batch audit entries by time bucket (hourly)
 	var now := Time.get_unix_time_from_system()
 	var bucket := int(now / 3600)  # Hourly buckets
 	var bucket_key := _audit_kv_prefix + str(bucket)
-	
+
 	var bucket_data: Array = []
 	for entry in _audit_log:
 		bucket_data.append(entry.to_dict())
-	
+
 	entries[bucket_key] = bucket_data
-	
+
 	if not entries.is_empty():
 		store.set_batch(entries)
 		GameLog.debug("PermissionManager: Flushed %d audit entries to bucket %s" % [bucket_data.size(), str(bucket)])

@@ -21,14 +21,14 @@ func _run_tests() -> void:
 	# US-001: SeedSchema class with fields
 	_test_schema_exists()
 	_test_fields()
-	
+
 	# US-002: _to_canonical_bytes
 	_test_canonical_bytes_basic()
 	_test_canonical_bytes_deterministic()
 	_test_canonical_bytes_different_inputs()
 	_test_canonical_bytes_empty_path()
 	_test_canonical_bytes_special_chars()
-	
+
 	# US-003: _validate
 	_test_validate_valid()
 	_test_validate_missing_fields()
@@ -36,12 +36,12 @@ func _run_tests() -> void:
 	_test_validate_invalid_scope()
 	_test_validate_invalid_path_type()
 	_test_validate_invalid_params_type()
-	
+
 	# US-004: _to_display
 	_test_display_basic()
 	_test_display_empty_path()
 	_test_display_zero_params()
-	
+
 	# US-005: Sample .tres
 	_test_sample_tres_loads()
 
@@ -91,15 +91,15 @@ func _test_canonical_bytes_different_inputs() -> void:
 	var b1 = schema._to_canonical_bytes(v1) as PackedByteArray
 	var b2 = schema._to_canonical_bytes(v2) as PackedByteArray
 	_assert(b1 != b2, "different seed_type -> different bytes")
-	
+
 	v2 = {"seed_type": "locked", "visibility_scope": "shard", "path": "/a", "parameters": {}}
 	b2 = schema._to_canonical_bytes(v2)
 	_assert(b1 != b2, "different scope -> different bytes")
-	
+
 	v2 = {"seed_type": "locked", "visibility_scope": "world", "path": "/b", "parameters": {}}
 	b2 = schema._to_canonical_bytes(v2)
 	_assert(b1 != b2, "different path -> different bytes")
-	
+
 	v2 = {"seed_type": "locked", "visibility_scope": "world", "path": "/a", "parameters": {"x": 1}}
 	b2 = schema._to_canonical_bytes(v2)
 	_assert(b1 != b2, "different params -> different bytes")
@@ -119,57 +119,57 @@ func _test_canonical_bytes_special_chars() -> void:
 func _test_validate_valid() -> void:
 	var value := {"seed_type": "locked", "visibility_scope": "world", "path": "/a/b", "parameters": {"x": 1}}
 	_assert(schema._validate(value) == true, "valid input passes")
-	
+
 	value = {"seed_type": "open", "visibility_scope": "shard", "path": "", "parameters": {}}
 	_assert(schema._validate(value) == true, "valid empty path passes")
-	
+
 	value = {"seed_type": "frame", "visibility_scope": "player", "path": "/x", "parameters": {"nested": {"a": 1}}}
 	_assert(schema._validate(value) == true, "valid nested params passes")
 
 func _test_validate_missing_fields() -> void:
 	var value := {"visibility_scope": "world", "path": "/a", "parameters": {}}
 	_assert(schema._validate(value) == false, "missing seed_type fails")
-	
+
 	value = {"seed_type": "locked", "path": "/a", "parameters": {}}
 	_assert(schema._validate(value) == false, "missing scope fails")
-	
+
 	value = {"seed_type": "locked", "visibility_scope": "world", "parameters": {}}
 	_assert(schema._validate(value) == false, "missing path fails")
-	
+
 	value = {"seed_type": "locked", "visibility_scope": "world", "path": "/a"}
 	_assert(schema._validate(value) == false, "missing parameters fails")
-	
+
 	value = {}
 	_assert(schema._validate(value) == false, "empty dict fails")
 
 func _test_validate_invalid_seed_type() -> void:
 	var value := {"seed_type": "invalid", "visibility_scope": "world", "path": "/a", "parameters": {}}
 	_assert(schema._validate(value) == false, "invalid seed_type fails")
-	
+
 	value = {"seed_type": "LOCKED", "visibility_scope": "world", "path": "/a", "parameters": {}}
 	_assert(schema._validate(value) == false, "case-sensitive seed_type fails")
 
 func _test_validate_invalid_scope() -> void:
 	var value := {"seed_type": "locked", "visibility_scope": "invalid", "path": "/a", "parameters": {}}
 	_assert(schema._validate(value) == false, "invalid scope fails")
-	
+
 	value = {"seed_type": "locked", "visibility_scope": "WORLD", "path": "/a", "parameters": {}}
 	_assert(schema._validate(value) == false, "case-sensitive scope fails")
 
 func _test_validate_invalid_path_type() -> void:
 	var value := {"seed_type": "locked", "visibility_scope": "world", "path": 123, "parameters": {}}
 	_assert(schema._validate(value) == false, "non-string path fails")
-	
+
 	value = {"seed_type": "locked", "visibility_scope": "world", "path": [], "parameters": {}}
 	_assert(schema._validate(value) == false, "array path fails")
 
 func _test_validate_invalid_params_type() -> void:
 	var value := {"seed_type": "locked", "visibility_scope": "world", "path": "/a", "parameters": "not a dict"}
 	_assert(schema._validate(value) == false, "string params fails")
-	
+
 	value = {"seed_type": "locked", "visibility_scope": "world", "path": "/a", "parameters": []}
 	_assert(schema._validate(value) == false, "array params fails")
-	
+
 	value = {"seed_type": "locked", "visibility_scope": "world", "path": "/a", "parameters": 42}
 	_assert(schema._validate(value) == false, "int params fails")
 

@@ -225,7 +225,7 @@ func _check_controller() -> void:
 func _create_virtual_joystick() -> void:
 	if _virtual_joystick:
 		return
-	
+
 	_virtual_joystick = TouchHud.new()
 	add_child(_virtual_joystick)
 	_virtual_joystick.joystick_moved.connect(_on_virtual_joystick_moved)

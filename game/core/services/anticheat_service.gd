@@ -701,13 +701,13 @@ func _load_state() -> void:
 			suspicion_keys.append(key)
 		elif key.begins_with(_kv_prefix + "ban:"):
 			ban_keys.append(key)
-	
+
 	if not suspicion_keys.is_empty():
 		var suspicion_results: Dictionary = store.get_many(suspicion_keys)
 		for key in suspicion_keys:
 			var player_id = key.substr(_kv_prefix.length() + 10)
 			_suspicion_scores[player_id] = suspicion_results.get(key, {})
-	
+
 	if not ban_keys.is_empty():
 		var ban_results: Dictionary = store.get_many(ban_keys)
 		for key in ban_keys:

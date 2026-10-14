@@ -75,7 +75,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 	for btn in [_repair_btn, _close_btn]:
 		if btn and is_instance_valid(btn):
 			btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
-	
+
 	# Update item list focus styles
 	if _item_list:
 		for child in _item_list.get_children():
@@ -89,7 +89,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 					else:
 						style.bg_color = UIStyles.COLORS.background_dark
 						style.border_color = UIStyles.COLORS.border
-			
+
 			# Update text sizes
 			var scale = UIStyles.get_text_scale()
 			for label_name in ["ItemName", "Durability", "Cost"]:

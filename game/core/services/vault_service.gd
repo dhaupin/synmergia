@@ -479,7 +479,7 @@ func _load_vaults() -> void:
 			guild_keys.append(key)
 		elif key.begins_with(_kv_account):
 			account_keys.append(key)
-	
+
 	if not personal_keys.is_empty():
 		var personal_results: Dictionary = store.get_many(personal_keys)
 		for key in personal_keys:
@@ -487,7 +487,7 @@ func _load_vaults() -> void:
 			var data = personal_results.get(key)
 			if data:
 				_personal_vaults[player_id] = data
-	
+
 	if not guild_keys.is_empty():
 		var guild_results: Dictionary = store.get_many(guild_keys)
 		for key in guild_keys:
@@ -495,7 +495,7 @@ func _load_vaults() -> void:
 			var data: Dictionary = guild_results.get(key, {})
 			if data:
 				_guild_vaults[guild_id] = data
-	
+
 	if not account_keys.is_empty():
 		var account_results: Dictionary = store.get_many(account_keys)
 		for key in account_keys:

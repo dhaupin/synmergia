@@ -83,7 +83,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 				var current_size: int = child.get_theme_font_size("font_size")
 				if current_size > 0:
 					child.add_theme_font_size_override("font_size", int(current_size * scale))
-	
+
 	# Update chat history
 	if _chat_history:
 		_chat_history.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
@@ -91,7 +91,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 		var current_size: int = _chat_history.get_theme_font_size("default_font_size")
 		if current_size > 0:
 			_chat_history.add_theme_font_size_override("default_font_size", int(current_size * scale))
-	
+
 	# Update chat input
 	if _chat_input:
 		_chat_input.add_theme_stylebox_override("focus", UIStyles.create_focus_style())

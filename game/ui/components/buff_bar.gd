@@ -57,7 +57,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 				var current_size: int = child.get_theme_font_size("font_size")
 				if current_size > 0:
 					child.add_theme_font_size_override("font_size", int(current_size * scale))
-	
+
 	# Update buff/debuff containers
 	for container in [_buff_container, _debuff_container]:
 		if container:
@@ -72,7 +72,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 						else:
 							style.bg_color = UIStyles.COLORS.background_dark
 							style.border_color = UIStyles.COLORS.border
-				
+
 				# Update text sizes
 				var scale = UIStyles.get_text_scale()
 				for label_name in ["Timer", "StackCount"]:
@@ -231,23 +231,23 @@ func _should_show_effect(effect: Dictionary) -> bool:
 		var is_player_cast: bool = effect.get("is_player_cast", false)
 		if not is_player_cast:
 			return false
-	
+
 	# Check category filter
 	if _filter_category != EffectCategory.ALL:
 		var effect_category: int = effect.get("category", EffectCategory.MAGIC)
 		if effect_category != _filter_category:
 			return false
-	
+
 	return true
 
 func _refresh_display() -> void:
 	_clear_effects(_buff_container)
 	_clear_effects(_debuff_container)
-	
+
 	for buff in _buffs:
 		if _should_show_effect(buff):
 			_add_effect_icon(_buff_container, buff, false)
-	
+
 	for debuff in _debuffs:
 		if _should_show_effect(debuff):
 			_add_effect_icon(_debuff_container, debuff, true)
@@ -367,18 +367,18 @@ func _add_effect_icon(container: HBoxContainer, effect: Dictionary, is_debuff: b
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.focus_mode = Control.FOCUS_ALL
-	
+
 	# Use provided icon or resolve from effect data
 	if effect.has("icon") and effect.icon:
 		icon.texture = effect.icon
 	else:
 		icon.texture = IconResolver.get_effect_icon_from_dict(effect)
-	
+
 	icon.tooltip_text = _build_effect_tooltip(effect)
 	icon.mouse_filter = Control.MOUSE_FILTER_PASS
 	icon.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, false))
 	container.add_child(icon)
-	
+
 	# Timer label
 	var timer := Label.new()
 	timer.custom_minimum_size = Vector2(30, 14)
@@ -390,7 +390,7 @@ func _add_effect_icon(container: HBoxContainer, effect: Dictionary, is_debuff: b
 	var remaining: float = effect.get("remaining", 0)
 	timer.text = UIStyles.format_time_remaining(remaining)
 	icon.add_child(timer)
-	
+
 	# Stack count label
 	if effect.get("stack", 1) > 1:
 		var stack_label := Label.new()
@@ -402,12 +402,12 @@ func _add_effect_icon(container: HBoxContainer, effect: Dictionary, is_debuff: b
 		stack_label.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
 		stack_label.text = "x%d" % effect.stack
 		icon.add_child(stack_label)
-	
+
 	# Flash animation for new effects
 	if effect.get("is_new", false):
 		effect.is_new = false
 		_flash_new_effect(icon)
-	
+
 	# Pulse if <5s remaining
 	if remaining > 0 and remaining <= 5.0:
 		_pulse_timer(timer)
@@ -430,7 +430,7 @@ func _build_effect_tooltip(effect: Dictionary) -> String:
 	var cat_name := "Magic"
 	if category >= 0 and category < category_names.size():
 		cat_name = category_names[category]
-	
+
 	var text := "[b]%s[/b]\n" % name
 	text += "Type: %s\n" % cat_name
 	if stack > 1:

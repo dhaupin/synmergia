@@ -62,7 +62,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 				else:
 					style.bg_color = UIStyles.COLORS.background_dark
 					style.border_color = UIStyles.COLORS.border
-			
+
 			# Update text sizes
 			var scale = UIStyles.get_text_scale()
 			for label_name in ["Keybind", "StackCount", "CooldownText"]:
@@ -144,7 +144,7 @@ func _setup_ui() -> void:
 	if not panel:
 		return
 	var main: VBoxContainer = add_content_to_panel(panel)
-	
+
 	_page_container = HBoxContainer.new()
 	_page_container.name = "PageContainer"
 	_page_container.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -200,7 +200,7 @@ func _create_slot(index: int) -> Control:
 	bg_style.corner_radius_bottom_left = 6
 	bg_style.corner_radius_bottom_right = 6
 	slot.add_theme_stylebox_override("panel", bg_style)
-	
+
 	# Add focus style
 	slot.add_theme_stylebox_override("focus", UIStyles.create_focus_style(6, false))
 
@@ -366,11 +366,11 @@ func _update_visible_bar() -> void:
 		var slot: Control = _slots[i]
 		var global_index = _current_bar * SLOTS_PER_BAR + i
 		var data: Dictionary = _slot_data.get(global_index, {})
-		
+
 		var keybind: Label = slot.get_node_or_null("Keybind")
 		if keybind:
 			keybind.text = _get_keybind_text(i, _current_bar)
-		
+
 		if slot and not data.is_empty():
 			var icon: TextureRect = slot.get_node_or_null("VBox/Icon")
 			if icon:
@@ -476,7 +476,7 @@ func _play_glow_animation(slot: Control) -> void:
 	var glow: ColorRect = slot.get_node_or_null("GlowOverlay")
 	if not glow:
 		return
-	
+
 	# Respect reduce motion setting
 	if UIStyles.is_reduce_motion_enabled():
 		glow.visible = false

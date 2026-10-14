@@ -48,13 +48,13 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 	for container in _member_containers:
 		if container and is_instance_valid(container):
 			container.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
-			
+
 			# Update health/mana bars
 			for bar_name in ["HealthBar", "ManaBar"]:
 				var bar: ProgressBar = container.get_node_or_null(bar_name)
 				if bar and is_instance_valid(bar):
 					bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
-			
+
 			# Update labels
 			for label_name in ["NameLabel", "LevelLabel", "RoleLabel", "DistanceLabel"]:
 				var label: Label = container.get_node_or_null(label_name)
@@ -63,7 +63,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 					var current_size := label.get_theme_font_size("font_size")
 					if current_size > 0:
 						label.add_theme_font_size_override("font_size", int(current_size * scale))
-	
+
 	# Update ready check button
 	if has_node("PartyContainer/TitleRow/ReadyCheckBtn"):
 		var ready_check_btn: Button = get_node("PartyContainer/TitleRow/ReadyCheckBtn")
@@ -136,7 +136,7 @@ func _create_member_frame(index: int) -> Control:
 	style.corner_radius_bottom_left = 4
 	style.corner_radius_bottom_right = 4
 	frame.add_theme_stylebox_override("panel", style)
-	
+
 	# Add focus style
 	frame.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, false))
 
@@ -443,7 +443,7 @@ func update_party(party_members: Array) -> void:
 			typed_members.append(m)
 	_member_data = typed_members
 	_update_all_frames()
-	
+
 	if _member_data.size() > 0:
 		show()
 	else:

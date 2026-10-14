@@ -98,13 +98,13 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 				var current_size: int = btn.get_theme_font_size("font_size")
 				if current_size > 0:
 					btn.add_theme_font_size_override("font_size", int(current_size * scale))
-	
+
 	# Update equipment slots
 	for slot_id in _equipped_items:
 		var slot := get_node("Panel/Main/Content/EquipSlots/SlotContainer/Slot_%d" % slot_id)
 		if slot and is_instance_valid(slot):
 			slot.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
-	
+
 	# Update content panels
 	if _tab_contents:
 		for content in _tab_contents.values():

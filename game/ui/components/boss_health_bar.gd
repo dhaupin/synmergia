@@ -42,7 +42,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 	# Update HP bar
 	if _hp_bar and is_instance_valid(_hp_bar):
 		_hp_bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
-	
+
 	# Update labels
 	for label in [_name_label, _hp_label, _phase_label, _timer_label, _mechanics_warning]:
 		if label and is_instance_valid(label):
@@ -50,7 +50,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 			var current_size: int = label.get_theme_font_size("font_size")
 			if current_size > 0:
 				label.add_theme_font_size_override("font_size", int(current_size * scale))
-	
+
 	# Update mechanics container children
 	if _mechanics_container:
 		for child in _mechanics_container.get_children():
@@ -59,7 +59,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 				var current_size: int = child.get_theme_font_size("font_size")
 				if current_size > 0:
 					child.add_theme_font_size_override("font_size", int(current_size * scale))
-	
+
 	# Update phase indicators
 	if _phase_indicators:
 		for child in _phase_indicators.get_children():
@@ -210,7 +210,7 @@ func _create_mechanic_icon(mechanic_type: String, tooltip: String) -> TextureRec
 	icon.tooltip_text = tooltip
 	icon.focus_mode = Control.FOCUS_ALL
 	icon.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
-	
+
 	# Use IconResolver to get appropriate icon
 	var icon_path := "res://ui/textures/mechanics/%s.png" % mechanic_type.to_lower()
 	var texture := IconResolver.get_icon_for_path(icon_path)
@@ -231,14 +231,14 @@ func _create_mechanic_icon(mechanic_type: String, tooltip: String) -> TextureRec
 			_:
 				img.fill(Color(0.8, 0.8, 0.8, 1.0))
 		icon.texture = ImageTexture.create_from_image(img)
-	
+
 	# Add pulsing animation (respect reduce motion)
 	if not UIStyles.is_reduce_motion_enabled():
 		var tween := icon.create_tween()
 		tween.set_loops()
 		tween.tween_property(icon, "modulate:a", 0.5, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 		tween.tween_property(icon, "modulate:a", 1.0, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	
+
 	return icon
 
 func set_target(target) -> void:
@@ -316,12 +316,12 @@ func _build_phase_indicators() -> void:
 	# Clear existing indicators
 	for child in _phase_indicators.get_children():
 		child.queue_free()
-	
+
 	# Build phase indicators based on max phases
 	for i in range(_max_phases):
 		var indicator := PanelContainer.new()
 		indicator.custom_minimum_size = Vector2(12, 12)
-		
+
 		var style := StyleBoxFlat.new()
 		style.corner_radius_top_left = 6
 		style.corner_radius_top_right = 6
@@ -331,7 +331,7 @@ func _build_phase_indicators() -> void:
 		style.border_width_right = 2
 		style.border_width_top = 2
 		style.border_width_bottom = 2
-		
+
 		if i + 1 == _phase:
 			style.bg_color = UIStyles.COLORS.accent_gold
 			style.border_color = UIStyles.COLORS.accent_gold
@@ -341,7 +341,7 @@ func _build_phase_indicators() -> void:
 		else:
 			style.bg_color = UIStyles.COLORS.background_dark
 			style.border_color = UIStyles.COLORS.border
-		
+
 		indicator.add_theme_stylebox_override("panel", style)
 		_phase_indicators.add_child(indicator)
 
@@ -361,7 +361,7 @@ func update_health(current: int, maximum: int) -> void:
 func _check_phase_transition(percent: int) -> void:
 	# Default phase thresholds: 75%, 50%, 25%
 	var thresholds := [75, 50, 25]
-	
+
 	# Check if we crossed a threshold
 	for i in range(thresholds.size()):
 		var threshold: int = thresholds[i]
@@ -373,10 +373,10 @@ func set_phase(phase: int) -> void:
 	_phase = clampi(phase, 1, _max_phases)
 	_phase_label.text = " Phase %d" % _phase
 	_build_phase_indicators()
-	
+
 	# Show phase change announcement
 	_show_mechanics_warning("PHASE %d" % _phase, 3.0, UIStyles.COLORS.accent_gold)
-	
+
 	# Emit signal for phase change
 	emit_signal("phase_changed", _phase)
 
@@ -386,13 +386,13 @@ func show_mechanics_warning(message: String, duration: float = 5.0, color: Color
 func _show_mechanics_warning(message: String, duration: float, color: Color) -> void:
 	if color == null:
 		color = UIStyles.COLORS.warning
-	
+
 	_mechanics_warning.text = message
 	_mechanics_warning.add_theme_color_override("font_color", color)
 	_mechanics_container.visible = true
-	
+
 	var fade_dur: float = UIStyles.get_animation_duration(0.2)
-	
+
 	# Flash animation (respect reduce motion)
 	var tween: Tween = _mechanics_warning.create_tween()
 	tween.tween_property(_mechanics_warning, "modulate:a", 1.0, fade_dur)
@@ -416,13 +416,13 @@ func add_mechanic_icons(mechanic_types: Array[String]) -> void:
 	# Clear existing icons
 	for child in _mechanics_icons.get_children():
 		child.queue_free()
-	
+
 	# Add icons for each mechanic type
 	for mechanic in mechanic_types:
 		var tooltip := _get_mechanic_tooltip(mechanic)
 		var icon := _create_mechanic_icon(mechanic, tooltip)
 		_mechanics_icons.add_child(icon)
-	
+
 	_mechanics_container.visible = true
 
 func _get_mechanic_tooltip(mechanic: String) -> String:

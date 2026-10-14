@@ -46,7 +46,7 @@ func _get_pooled_label() -> Label:
 	for label in _label_pool:
 		if not label.visible:
 			return label
-	
+
 	# Pool exhausted, create new one
 	var label := Label.new()
 	label.name = "DamageNumber_Extra"
@@ -90,18 +90,18 @@ func show_damage(target: Node3D, amount: int, is_crit: bool = false, damage_type
 func show_heal(target: Node3D, amount: int, is_crit: bool = false) -> void:
 	if not _show_healing or not is_instance_valid(target):
 		return
-	
+
 	var color := UIStyles.COLORS.success
 	if is_crit:
 		color = Color(1.0, 1.0, 0.5)
-	
+
 	var text := "+%d" % amount
 	_spawn_number(target, text, color, is_crit, "Heal")
 
 func show_miss(target: Node3D, miss_type: String = "Miss") -> void:
 	if not _show_miss or not is_instance_valid(target):
 		return
-	
+
 	var colors := {
 		"Miss": UIStyles.COLORS.text_secondary,
 		"Block": Color(0.5, 0.7, 1.0),
@@ -110,7 +110,7 @@ func show_miss(target: Node3D, miss_type: String = "Miss") -> void:
 		"Immune": Color(1.0, 0.3, 0.3),
 		"Resist": Color(0.7, 0.5, 1.0)
 	}
-	
+
 	var color: Color = colors.get(miss_type, UIStyles.COLORS.text_secondary)
 	_spawn_number(target, miss_type, color, false, "Miss")
 
@@ -149,16 +149,16 @@ func _spawn_number(target: Node3D, text: String, color: Color, is_crit: bool, nu
 	label.add_theme_color_override("font_color", color)
 	label.set_meta("num_color", color)
 	label.visible = true
-	
+
 	# Position at target's screen position with random offset
 	var viewport := get_viewport()
 	var screen_pos := viewport.get_camera_3d().unproject_position(target.global_position)
-	
+
 	var offset_x := randf_range(-30, 30)
 	var offset_y := randf_range(-20, 20)
-	
+
 	label.global_position = screen_pos + Vector2(offset_x, offset_y)
-	
+
 	# Animation data
 	var anim_data := {
 		"label": label,
@@ -170,9 +170,9 @@ func _spawn_number(target: Node3D, text: String, color: Color, is_crit: bool, nu
 		"scale": 1.5 if is_crit else 1.0,
 		"type": num_type
 	}
-	
+
 	_active_numbers.append(anim_data)
-	
+
 	# Crit effects
 	if is_crit:
 		label.add_theme_font_size_override("font_size", int(_font_size * 1.5))
@@ -189,45 +189,45 @@ func _spawn_number(target: Node3D, text: String, color: Color, is_crit: bool, nu
 func _process(delta: float) -> void:
 	var current_time: float = Time.get_ticks_msec() / 1000.0
 	var to_remove: Array = []
-	
+
 	for i in range(_active_numbers.size()):
 		var anim := _active_numbers[i]
 		var elapsed: float = current_time - anim.start_time
 		var progress: float = elapsed / anim.duration
-		
+
 		if progress >= 1.0:
 			to_remove.append(i)
 			continue
-		
+
 		var label: Label = anim.label
 		if not is_instance_valid(label):
 			to_remove.append(i)
 			continue
-		
+
 		# Ease out animation
 		var eased: float = 1.0 - pow(1.0 - progress, 3)
-		
+
 		# Position
 		var pos: Vector2 = anim.start_pos.lerp(anim.end_pos, eased)
 		label.global_position = pos
-		
+
 		# Update outline if crit
 		if anim.has("outline") and is_instance_valid(anim.outline):
 			anim.outline.global_position = pos + Vector2(2, 2)
-		
+
 		# Fade out
 		var alpha: float = 1.0 - progress
 		var color: Color = label.get_meta("num_color", Color.WHITE)
 		color.a = alpha
 		label.add_theme_color_override("font_color", color)
-		
+
 		# Scale for crit
 		if anim.is_crit:
 			var scale: float = anim.scale * (1.0 - progress * 0.3)
 			label.add_theme_font_size_override("font_size", int(_font_size * scale))
 			if anim.has("outline") and is_instance_valid(anim.outline):
 				anim.outline.add_theme_font_size_override("font_size", int(_font_size * scale))
-	
+
 	# Remove finished animations (reverse order to maintain indices)
 	to_remove.reverse()
 	for i in to_remove:

@@ -116,27 +116,27 @@ func _parse_vant_response(response: Dictionary) -> void:
 ## Check agent rate limits (QoS + per-tick)
 func _check_agent_rate_limit(action: AgentAction) -> bool:
 	var agent_id := agent_session_id if agent_session_id != "" else "vant_agent"
-	
+
 	# Per-tick action limit
 	var current_tick := Time.get_ticks_msec() / 16  # ~60 ticks/sec
 	if current_tick != _last_tick:
 		_last_tick = current_tick
 		_agent_action_counts.erase(agent_id)
-	
+
 	var count := _agent_action_counts.get(agent_id, 0)
 	if count >= max_actions_per_tick:
 		# Exceeded per-tick limit
 		if QoSService:
 			QoSService.rate_limit(agent_id, "agent_action_burst")
 		return false
-	
+
 	_agent_action_counts[agent_id] = count + 1
-	
+
 	# QoS rate limit (token bucket per action type)
 	var action_type_str := AgentAction.ActionType.keys()[action.action_type].lower()
 	if QoSService and not QoSService.rate_limit(agent_id, "agent_" + action_type_str):
 		return false
-	
+
 	return true
 
 ## Create Vant agent session

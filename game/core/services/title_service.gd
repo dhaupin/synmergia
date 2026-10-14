@@ -296,7 +296,7 @@ func _load_player_titles() -> void:
 	for key in keys:
 		if key.begins_with(_kv_prefix):
 			title_keys.append(key)
-	
+
 	if not title_keys.is_empty():
 		var results: Dictionary = store.get_many(title_keys)
 		for key in title_keys:

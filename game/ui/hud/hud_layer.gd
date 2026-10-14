@@ -101,7 +101,7 @@ func _ready() -> void:
 	else:
 		queue_free()
 		return
-	
+
 	layer = LAYER_HUD
 	_setup_accessibility()
 	_wire_widgets()
@@ -295,7 +295,7 @@ func _on_state_changed(_state: int) -> void:
 func _setup_main_menu_bar() -> void:
 	if _main_menu_bar and _main_menu_bar.has_method("bind"):
 		_main_menu_bar.bind(self, _menu_manager)
-	
+
 	# Update character info when available
 	if _gm() and _gm().selected_character_data:
 		_push_character_to_main_menu()
@@ -307,14 +307,14 @@ func _push_character_to_main_menu() -> void:
 	var data: Resource = _gm().selected_character_data
 	if not (data is CharacterData):
 		return
-	
+
 	# Class icon: a SHORT badge glyph, never a res:// path. The raw
 	# icon_path used to be passed through and rendered as literal text
 	# ("res://ui/icons...") across the HUD's top-left on the web build
 	# (feedback #4). Class .tres icon_path values are filesystem paths,
 	# so they are deliberately not forwarded.
 	var class_icon := "[C]"  # Default fallback
-	
+
 	_main_menu_bar.update_character_info(data.display_name, data.level, class_icon)
 
 

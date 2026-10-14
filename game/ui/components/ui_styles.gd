@@ -375,10 +375,10 @@ static func create_accessible_button(text: String, accessible_name: String = "",
 	else:
 		btn.tooltip_text = text
 	apply_accessibility(btn, accessible_name if accessible_name != "" else text, tooltip)
-	
+
 	# Apply focus style
 	btn.add_theme_stylebox_override("focus", create_focus_style(8, high_contrast))
-	
+
 	return btn
 
 ## Apply high contrast theme to a panel container
@@ -417,7 +417,7 @@ static func apply_text_scaling(control: Control, scale: float) -> void:
 		var current_size := control.get_theme_font_size("font_size")
 		if current_size > 0:
 			control.add_theme_font_size_override("font_size", int(current_size * scale))
-	
+
 	# Recursively apply to children
 	for child in control.get_children():
 		if child is Control:

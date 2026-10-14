@@ -480,7 +480,7 @@ func _load_parties() -> void:
 			party_keys.append(key)
 		elif key.begins_with(_kv_invite):
 			invite_keys.append(key)
-	
+
 	if not party_keys.is_empty():
 		var party_results: Dictionary = store.get_many(party_keys)
 		for key in party_keys:
@@ -490,7 +490,7 @@ func _load_parties() -> void:
 				_parties[party_id] = data
 				for member_id in data.get("members", []):
 					_player_parties[member_id] = party_id
-	
+
 	if not invite_keys.is_empty():
 		var invite_results: Dictionary = store.get_many(invite_keys)
 		for key in invite_keys:

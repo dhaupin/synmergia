@@ -60,12 +60,12 @@ func start_cooldown(player_id: String, action_type: String, duration: float = -1
 
 	var key := "cooldown:%s:%s" % [player_id, action_type]
 	_cache.set_value(key, Time.get_unix_time_from_system(), int(duration) + 1)
-	
+
 	# Track in memory for iteration
 	if not _cooldowns.has(player_id):
 		_cooldowns[player_id] = {}
 	_cooldowns[player_id][action_type] = true
-	
+
 	cooldown_started.emit(player_id, action_type, duration)
 
 	GameLog.debug("CooldownService: %s started cooldown for %s (%.1fs)" % [player_id, action_type, duration])

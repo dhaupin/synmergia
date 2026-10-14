@@ -6354,3 +6354,31 @@ peak_height_scan) remain in game/debug.
   0 FAIL twice (boot normal == radial holds with the driver wired);
   bout-flow probe ALL PASS (the entity effect-stack change runs the
   combat paths); lint runner 36/0 x5 suites.
+
+## 2026-10-14 (turn 27): THE SUBAGENT BOARD + THE WHITESPACE SWEEP COMPLETES
+- THE BOARD (labs/subagent-tasks.md): the Solar Pro 4 handoff queue --
+  five markdown-only tasks (NPC voice/dialogue, quest briefs, the
+  Acts/Almanac chronicle, weather-event lore, landmark naming), each
+  grounded in the files its facts live in, with the ground rule:
+  everything produced lands in labs/, game/ is READ-ONLY context,
+  no commands, no commits -- the maintainer moves the good parts
+  into data files. Status column: draft/review/landed/wontfix.
+- THE WHITESPACE SWEEP COMPLETES: all trailing whitespace in game
+  .gd files is gone -- 534 raw lines over 199 files moved to ZERO
+  (the lint's own check reports one line per file, which ate the
+  list slowly; the last 11 holdouts held 249 of the lines). Trim
+  mechanics: regex sub of trailing [ \t] before the newline on
+  exactly the flagged lines, line count preserved (numstat shows
+  insertions==deletions on every file). A first python pass used
+  rstrip(' \t') on newline-terminated lines, which strips nothing
+  (the \n stops the char-set) -- it was caught by the lint rerun
+  showing unchanged counts, the bad state was reverted with git
+  checkout -- game/, and the corrected trim rebuilt. Lesson
+  recorded: verify whitespace edits with the same split/rstrip
+  semantics the checker uses, and re-derive the target list from a
+  FRESH lint run after every write (line numbers move).
+
+- Verification: lint runner 36/0 x5 suites with ZERO trailing-whitespace
+  WARNs remaining (raw grep count 0); every trim line-preserving;
+  hud-widget test 0 FAIL, test_progress_persistence exit 0 on the
+  edited UI and persistence files; globe/audio tests unchanged.

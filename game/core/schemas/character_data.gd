@@ -127,7 +127,7 @@ static func get_available_classes_for_species(species_id: String) -> Array[Chara
 				if cls.id.begins_with(species_id + "_"):
 					result.append(cls)
 		return result
-	
+
 	# Fallback to filesystem if DataService not available (export-safe
 	# scan: the pack stores .tres as .res + .tres.remap)
 	for p in ResourceScan.list_resources("res://data/classes"):
@@ -150,7 +150,7 @@ static func get_all_classes_for_species(species_id: String) -> Array[CharacterCl
 				if cls.id.begins_with(species_id + "_"):
 					result.append(cls)
 		return result
-	
+
 	# Fallback to filesystem if DataService not available (export-safe)
 	for p in ResourceScan.list_resources("res://data/classes"):
 		var res := load(p)
@@ -182,7 +182,7 @@ static func get_all_species() -> Array[Species]:
 			if sp is Species:
 				result.append(sp)
 		return result
-	
+
 	# Fallback to filesystem if DataService not available (export-safe)
 	for p in ResourceScan.list_resources("res://data/species"):
 		var res := load(p)
@@ -355,16 +355,16 @@ func get_derived_stats() -> Dictionary:
 		class_data = load_class(class_id)
 	if not class_data:
 		return {}
-	
+
 	var stats := get_all_stats_with_allocated()
 	if stats.is_empty():
 		return {}
-	
+
 	var vit: int = stats.get("vitality", 10)
 	var end: int = stats.get("endurance", 10)
 	var str: int = stats.get("strength", 10)
 	var intel: int = stats.get("intelligence", 10)
-	
+
 	# Base formulas - can be overridden by class/species
 	var max_health: int = int(100 + vit * 10)
 	var max_mana: int = int(50 + intel * 5)
@@ -372,7 +372,7 @@ func get_derived_stats() -> Dictionary:
 	var m_attack: int = int(10 + intel * 2)
 	var p_defense: int = int(5 + end * 1.5)
 	var m_defense: int = int(5 + intel * 1.5)
-	
+
 	# Apply class-specific modifiers if available
 	if class_data.has_method("modify_derived_stats"):
 		var modified: Dictionary = class_data.modify_derived_stats({
@@ -390,7 +390,7 @@ func get_derived_stats() -> Dictionary:
 			m_attack = modified.get("m_attack", m_attack)
 			p_defense = modified.get("p_defense", p_defense)
 			m_defense = modified.get("m_defense", m_defense)
-	
+
 	return {
 		"max_health": max_health,
 		"max_mana": max_mana,

@@ -300,19 +300,19 @@ func _load_state() -> void:
 			account_keys.append(key)
 		elif key.begins_with(_kv_prefix + "char:"):
 			char_keys.append(key)
-	
+
 	if not account_keys.is_empty():
 		var account_results: Dictionary = store.get_many(account_keys)
 		for key in account_keys:
 			var account_id = key.substr(_kv_prefix.length() + 8)
 			_accounts[account_id] = account_results.get(key, {})
-	
+
 	if not char_keys.is_empty():
 		var char_results: Dictionary = store.get_many(char_keys)
 		for key in char_keys:
 			var char_id = key.substr(_kv_prefix.length() + 5)
 			_characters[char_id] = char_results.get(key, {})
-	
+
 	# Rebuild mappings from loaded data
 	for char_id in _characters:
 		var char_data = _characters[char_id]

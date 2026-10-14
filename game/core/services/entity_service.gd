@@ -560,7 +560,7 @@ func _load_entity_metadata() -> void:
 	for key in keys:
 		if key.begins_with(_kv_prefix):
 			meta_keys.append(key)
-	
+
 	if not meta_keys.is_empty():
 		var results: Dictionary = store.get_many(meta_keys)
 		for key in meta_keys:

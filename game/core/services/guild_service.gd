@@ -818,7 +818,7 @@ func _load_guilds() -> void:
 			var parts = key.split(":")
 			if parts.size() >= 3:
 				guild_keys.append(key)
-	
+
 	if not guild_keys.is_empty():
 		var results: Dictionary = store.get_many(guild_keys)
 		for key in guild_keys:

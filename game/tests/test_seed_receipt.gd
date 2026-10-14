@@ -150,16 +150,16 @@ func _test_replay_window() -> void:
 	receipt.player_seed = _rand32()
 	receipt.manifest_hash = _rand32()
 	var key = _rand32()
-	
+
 	var now = Time.get_unix_time_from_system() * 1000
 	receipt.issued_at = now
 	receipt.sign(key)
 	_assert(receipt.verify(key), "fresh receipt verifies")
-	
+
 	receipt.issued_at = now - 30000
 	receipt.sign(key)
 	_assert(receipt.verify(key), "30s old receipt verifies")
-	
+
 	receipt.issued_at = now - 90000
 	receipt.sign(key)
 	_assert(not receipt.verify(key), "90s old receipt fails verification")

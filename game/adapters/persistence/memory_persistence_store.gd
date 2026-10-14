@@ -320,22 +320,22 @@ func _query_select(sql: String, params: Array) -> Array:
 	while pos < sql.length() and sql.unicode_at(pos) == 32:
 		pos += 1
 	select_start = pos
-	
+
 	var from_upper := upper.find("FROM")
 	if from_upper < 0:
 		return []
-	
+
 	var select_part := sql.substr(select_start, from_upper - select_start).strip_edges()
 	var columns := _parse_column_list(select_part)
-	
+
 	var after_from_start := from_upper + 4
 	while after_from_start < sql.length() and not _is_alpha(sql.unicode_at(after_from_start)):
 		after_from_start += 1
 	if after_from_start >= sql.length():
 		return []
-	
+
 	var rest := sql.substr(after_from_start).strip_edges()
-	
+
 	# Parse FROM with possible JOINs
 	var joins: Array = []
 	var base_table: String = ""
@@ -343,23 +343,23 @@ func _query_select(sql: String, params: Array) -> Array:
 	if tables_result.is_empty():
 		return []
 	base_table = tables_result[0]
-	
+
 	if not _tables.has(base_table):
 		return []
-	
+
 	var all_rows: Array = (_tables[base_table] as Array).duplicate(true)
-	
+
 	for join_info in joins:
 		var join_table: String = join_info[0]
 		var join_type: String = join_info[1]
 		var join_condition: String = join_info[2]
 		var join_rows: Array = (_tables.get(join_table, []) as Array)
-		
+
 		if join_type == "INNER":
 			all_rows = _apply_inner_join(all_rows, join_rows, join_condition, params)
 		elif join_type == "LEFT":
 			all_rows = _apply_left_join(all_rows, join_rows, join_condition, params)
-	
+
 	# Parse WHERE, ORDER BY, GROUP BY, LIMIT
 	# Clause indices are located on `rest` (AFTER FROM) so ORDER BY /
 	# GROUP BY / LIMIT parse even with NO WHERE clause. They previously
@@ -372,7 +372,7 @@ func _query_select(sql: String, params: Array) -> Array:
 	var order_by_idx := -1
 	var group_by_idx := -1
 	var limit_idx := -1
-	
+
 	order_by_idx = rest.to_upper().find(" ORDER BY")
 	if order_by_idx < 0:
 		order_by_idx = rest.to_upper().find(" order by")
@@ -382,7 +382,7 @@ func _query_select(sql: String, params: Array) -> Array:
 	limit_idx = rest.to_upper().find(" LIMIT")
 	if limit_idx < 0:
 		limit_idx = rest.to_upper().find(" limit")
-	
+
 	if where_idx >= 0:
 		var after_where := rest.substr(where_idx + 7).strip_edges()
 		# Find WHERE clause end (before ORDER BY, GROUP BY, or LIMIT)
@@ -392,19 +392,19 @@ func _query_select(sql: String, params: Array) -> Array:
 			if kw_idx >= 0 and kw_idx < where_end:
 				where_end = kw_idx
 		where_clause = after_where.substr(0, where_end).strip_edges()
-	
+
 	# Apply WHERE conditions
 	if where_clause != "" and not all_rows.is_empty():
 		var conds := _parse_where_full(where_clause, params)
 		all_rows = all_rows.filter(func(row): return _match_conds_full(row, conds, params))
-	
+
 	# Apply GROUP BY
 	var group_by_cols: Array = []
 	if group_by_idx >= 0:
 		var group_part := rest.substr(group_by_idx + 9).strip_edges()
 		group_by_cols = _split_csv(group_part)
 		all_rows = _apply_group_by(all_rows, group_by_cols, params)
-	
+
 	# Apply ORDER BY
 	var order_info: Array = []
 	if order_by_idx >= 0:
@@ -417,7 +417,7 @@ func _query_select(sql: String, params: Array) -> Array:
 			order_part = order_part.substr(0, limit_pos)
 		order_info = _parse_order_by(order_part, params)
 		all_rows = _apply_order_by(all_rows, order_info)
-	
+
 	# Apply LIMIT
 	var limit_val: int = -1
 	if limit_idx >= 0:
@@ -432,11 +432,11 @@ func _query_select(sql: String, params: Array) -> Array:
 		if num_str.length() > 0:
 			limit_val = num_str.to_int()
 		all_rows = all_rows.slice(0, limit_val)
-	
+
 	# Filter columns
 	if columns.size() == 1 and columns[0] == "*":
 		return all_rows
-	
+
 	var result: Array = []
 	for row in all_rows:
 		var filtered: Dictionary = {}
@@ -461,20 +461,20 @@ func _parse_from_with_joins(sql: String, joins: Array) -> Array:
 	# Re-searching for "FROM" here always returned -1, which made every
 	# SELECT against the memory backend return an empty result set.
 	var after_from := sql.strip_edges()
-	
+
 	var tables: Array = []
 	var current_pos := after_from
-	
+
 	while current_pos.length() > 0:
 		var table_name := ""
 		var join_type := ""
 		var join_condition := ""
-		
+
 		# Check for JOIN keywords
 		var join_pos := current_pos.to_upper().find(" JOIN ")
 		var left_join_pos := current_pos.to_upper().find(" LEFT JOIN ")
 		var inner_join_pos := current_pos.to_upper().find(" INNER JOIN ")
-		
+
 		if left_join_pos >= 0:
 			join_type = "LEFT"
 			join_pos = left_join_pos
@@ -483,12 +483,12 @@ func _parse_from_with_joins(sql: String, joins: Array) -> Array:
 			join_pos = inner_join_pos
 		elif join_pos >= 0:
 			join_type = "INNER"
-			
+
 		if join_pos >= 0:
 			# Extract table name before JOIN
 			table_name = current_pos.substr(0, join_pos).strip_edges()
 			var after_join := current_pos.substr(join_pos + 6).strip_edges()
-			
+
 			# Find ON condition
 			var on_idx := after_join.to_upper().find(" ON ")
 			if on_idx >= 0:
@@ -498,18 +498,18 @@ func _parse_from_with_joins(sql: String, joins: Array) -> Array:
 				if join_type == "LEFT":
 					# Skip "LEFT" keyword
 					join_table_part = join_table_part.substr(5).strip_edges()
-					
+
 				# The table after JOIN is our join table
 				var join_table_end := join_table_part.find(" ")
 				if join_table_end < 0:
 					join_table_end = join_table_part.length()
 				var join_table_name := join_table_part.substr(0, join_table_end).strip_edges()
 				joins.append([join_table_name, join_type, join_condition])
-			
+
 			# Update current_pos for next iteration
 			current_pos = after_join.substr(on_idx + 4 + join_condition.length()).strip_edges()
 			continue
-			
+
 		# No more JOINs: this is the base table. Stop at the first clause
 		# keyword (WHERE/ORDER BY/GROUP BY/LIMIT) -- everything after it
 		# belongs to those clauses, not the table name.
@@ -522,7 +522,7 @@ func _parse_from_with_joins(sql: String, joins: Array) -> Array:
 		table_name = current_pos.substr(0, table_end).strip_edges()
 		tables.append(table_name)
 		break
-		
+
 	return tables
 
 
@@ -569,7 +569,7 @@ func _match_conds_full_with_join(left: Dictionary, right: Dictionary, conds: Arr
 		var pidx: int = c.get("param", -1)
 		var val: Variant = null
 		var is_subquery: bool = c.get("subquery", false)
-		
+
 		if is_subquery:
 			var subquery_sql: String = c.get("subquery_sql", "")
 			var subquery_result := query(subquery_sql, params)
@@ -591,10 +591,10 @@ func _match_conds_full_with_join(left: Dictionary, right: Dictionary, conds: Arr
 			elif col_spec.begins_with("t2."):
 				lhs_row = right
 				col_spec = col_spec.substr(4)
-			
+
 			if pidx >= 0 and pidx < params.size():
 				val = params[pidx]
-			
+
 			if not _match_operator(lhs_row.get(col_spec, null), val, op):
 				return false
 	return true
@@ -616,7 +616,7 @@ func _parse_where_full(clause: String, params: Array) -> Array:
 
 func _parse_single_condition(clause: String, params: Array) -> Dictionary:
 	clause = clause.strip_edges()
-	
+
 	# Check for IN clause
 	var upper := clause.to_upper()
 	if upper.begins_with("(") and upper.ends_with(")"):
@@ -649,7 +649,7 @@ func _parse_single_condition(clause: String, params: Array) -> Dictionary:
 	var operators := ["IN(", "IN (", " >= ", " <= ", " != ", " LIKE ", " like ", ">=", "<=", "!=", ">", "<", " = ", "="]
 	var op_idx := -1
 	var op_str := ""
-	
+
 	for op_candidate in operators:
 		var idx := clause.find(op_candidate)
 		if idx >= 0:
@@ -658,16 +658,16 @@ func _parse_single_condition(clause: String, params: Array) -> Dictionary:
 				op_str = op_candidate
 	if op_idx < 0:
 		return {}
-	
+
 	var col := clause.substr(0, op_idx).strip_edges()
 	var rhs := clause.substr(op_idx + op_str.length()).strip_edges()
-	
+
 	if col.to_upper().begins_with("NOT "):
 		col = col.substr(4).strip_edges()
-	
+
 	var param_idx := -1
 	var literal_val: Variant = null
-	
+
 	if rhs.begins_with("$"):
 		var idx_str := rhs.substr(1)
 		if idx_str.is_valid_int():
@@ -679,7 +679,7 @@ func _parse_single_condition(clause: String, params: Array) -> Dictionary:
 			literal_val = _parse_literal(rhs)
 	else:
 		literal_val = _parse_literal(rhs)
-		
+
 	var result: Dictionary = {"col": col, "op": op_str.strip_edges(), "param": param_idx, "val": literal_val}
 	if op_str.begins_with("IN"):
 		result["op"] = "IN"
@@ -703,10 +703,10 @@ func _parse_in_values(content: String, params: Array) -> Array:
 	var current := ""
 	var in_quotes := false
 	var quote_char := ""
-	
+
 	for i in range(content.length()):
 		var c := content[i]
-		
+
 		if in_quotes:
 			current += c
 			if c == quote_char and (i == 0 or content[i-1] != "\\"):
@@ -729,11 +729,11 @@ func _parse_in_values(content: String, params: Array) -> Array:
 			current = ""
 		else:
 			current += c
-		
+
 	var v := current.strip_edges()
 	if v != "":
 		values.append(_parse_scalar_value(v, params))
-	
+
 	return values
 
 
@@ -774,7 +774,7 @@ func _match_conds_full(row: Dictionary, conds: Array, params: Array) -> bool:
 		var param_idx: int = c.get("param", -1)
 		var val: Variant = c.get("val", null)
 		var is_or_group: bool = c.get("or_group", false)
-		
+
 		if op == "IN_SUBQUERY":
 			var subquery_sql: String = c.get("subquery_sql", "")
 			var row_val = row.get(col, null)
@@ -821,7 +821,7 @@ func _match_operator(lhs: Variant, rhs: Variant, op: String) -> bool:
 		return lhs == rhs
 	if op == "!=":
 		return lhs != rhs
-		
+
 	# Handle NULL comparisons
 	if lhs == null:
 		if op == "IS NULL":
@@ -835,7 +835,7 @@ func _match_operator(lhs: Variant, rhs: Variant, op: String) -> bool:
 			return false
 		if op == "IS NOT NULL":
 			return true
-		
+
 	# Comparison operators for non-NULL values
 	if op == ">=":
 		return lhs >= rhs
@@ -886,19 +886,19 @@ func _match_like(text: String, pattern: String) -> bool:
 	return reg_ex.search(text.to_lower()) != null
 func _parse_order_by(sql: String, params: Array) -> Array:
 	var result: Array = []
-	
+
 	sql = sql.strip_edges()
-	
+
 	while sql.length() > 0:
 		var col: String = ""
 		var dir: String = "ASC"
-		
+
 		# Extract column name
 		var space_idx := sql.find(" ")
 		if space_idx >= 0:
 			col = sql.substr(0, space_idx).strip_edges()
 			var after_col := sql.substr(space_idx + 1).strip_edges()
-			
+
 			# Check for ASC/DESC
 			if after_col.to_upper().begins_with("ASC"):
 				dir = "ASC"
@@ -923,14 +923,14 @@ func _parse_order_by(sql: String, params: Array) -> Array:
 					sql = ""
 			else:
 				sql = after_col
-		
+
 		else:
 			col = sql.strip_edges()
 			var after_col := ""
-			
+
 			if sql.begins_with(","):
 				sql = sql.substr(1).strip_edges()
-			
+
 			if sql.to_upper().begins_with("ASC"):
 				dir = "ASC"
 				var after_asc := sql.substr(3).strip_edges()
@@ -942,7 +942,7 @@ func _parse_order_by(sql: String, params: Array) -> Array:
 					sql = after_asc
 				elif after_asc.length() == 0:
 					sql = ""
-					
+
 			elif sql.to_upper().begins_with("DESC"):
 				dir = "DESC"
 				var after_desc := sql.substr(5).strip_edges()
@@ -953,10 +953,10 @@ func _parse_order_by(sql: String, params: Array) -> Array:
 					sql = after_desc
 				elif after_desc.length() == 0:
 					sql = ""
-					
+
 			else:
 				sql = sql
-			
+
 		if col.length() > 0:
 			result.append({"col": col, "dir": dir})
 			if sql.begins_with(","):
@@ -971,23 +971,23 @@ func _parse_order_by(sql: String, params: Array) -> Array:
 func _apply_order_by(rows: Array, order_info: Array) -> Array:
 	if order_info.is_empty():
 		return rows
-	
+
 	rows.sort_custom(func(a, b):
 		for o in order_info:
 			var col: String = o["col"]
 			var dir: String = o["dir"]
 			var av: Variant = a.get(col, null)
 			var bv: Variant = b.get(col, null)
-			
+
 			if av == bv:
 				continue
-			
+
 			if dir == "ASC":
 				if av == null:
 					return true
 				if bv == null:
 					return false
-				
+
 				if av is Variant and bv is Variant:
 					if av < bv:
 						return true
@@ -1002,7 +1002,7 @@ func _apply_order_by(rows: Array, order_info: Array) -> Array:
 					return true
 				if av == null:
 					return false
-				
+
 				if av is Variant and bv is Variant:
 					if av > bv:
 						return true
@@ -1012,7 +1012,7 @@ func _apply_order_by(rows: Array, order_info: Array) -> Array:
 					if av > bv:
 						return true
 					return false
-					
+
 		return false
 	)
 	return rows
@@ -1020,24 +1020,24 @@ func _apply_order_by(rows: Array, order_info: Array) -> Array:
 func _apply_group_by(rows: Array, group_cols: Array, params: Array) -> Array:
 	if group_cols.is_empty():
 		return rows
-	
+
 	var groups: Dictionary = {}
 	for row in rows:
 		var key_parts: Array = []
 		for col in group_cols:
 			key_parts.append(str(row.get(col, "")))
 		var key := ",".join(key_parts)
-		
+
 		if not groups.has(key):
 			groups[key] = []
 		groups[key].append(row)
-	
+
 	var result: Array = []
 	for key in groups.keys():
 		var group_rows: Array = groups[key]
 		var agg: Dictionary = group_rows[0].duplicate(true)
 		result.append(agg)
-	
+
 	return result
 
 
@@ -1084,7 +1084,7 @@ func _exec_insert(sql: String, params: Array) -> int:
 	var upper := sql.to_upper()
 	var on_conflict_idx := upper.find(" ON CONFLICT")
 	var has_on_conflict := on_conflict_idx >= 0
-	
+
 	var main_sql := sql
 	var on_conflict_sql := ""
 	if has_on_conflict:
@@ -1094,11 +1094,11 @@ func _exec_insert(sql: String, params: Array) -> int:
 			on_conflict_sql = "DO_NOTHING"
 		elif after_conflict.find(" DO UPDATE") >= 0:
 			on_conflict_sql = "DO_UPDATE"
-		
+
 	var into_idx := main_sql.find("INTO")
 	if into_idx < 0:
 		return -1
-	
+
 	var rest := main_sql.substr(into_idx + 4).strip_edges()
 	var paren_open := rest.find("(")
 	if paren_open < 0:
@@ -1110,32 +1110,32 @@ func _exec_insert(sql: String, params: Array) -> int:
 		return -1
 	var cols_str := after_cols.substr(0, paren_close)
 	var columns := _split_csv(cols_str)
-	
+
 	if not _tables.has(table):
 		_tables[table] = []
-	
+
 	if has_on_conflict and on_conflict_sql == "DO_NOTHING":
 		var conflict_col := "id"
 		for col in columns:
 			if col.to_upper().find("ID") >= 0:
 				conflict_col = col
 				break
-			
+
 		var existing_values: Dictionary = {}
 		for row in (_tables[table] as Array):
 			if row.has(conflict_col):
 				existing_values[row[conflict_col]] = true
-				
+
 		var new_value := ""
 		for i in range(columns.size()):
 			if i < params.size():
 				if columns[i] == conflict_col:
 					new_value = str(params[i])
 					break
-			
+
 		if new_value != "" and existing_values.has(new_value):
 			return 0
-			
+
 	var values_part := after_cols.substr(paren_close + 1)
 	var values_idx := values_part.to_upper().find("VALUES")
 	if values_idx < 0:
@@ -1143,7 +1143,7 @@ func _exec_insert(sql: String, params: Array) -> int:
 	values_part = values_part.substr(values_idx + 6).strip_edges()
 	if values_part.begins_with("(") and values_part.ends_with(")"):
 		values_part = values_part.substr(1, values_part.length() - 2)
-	
+
 	var t: Array = _tables[table]
 	var entry: Dictionary = {}
 	for i in range(columns.size()):
@@ -1169,31 +1169,31 @@ func _exec_update(sql: String, params: Array) -> int:
 	var upper := sql.to_upper()
 	var set_idx := upper.find("SET")
 	var where_idx := upper.find(" WHERE ")
-	
+
 	if set_idx < 0 or where_idx < 0 or set_idx > where_idx:
 		return -1
-	
+
 	var table := sql.substr(0, set_idx).strip_edges()
 	table = table.substr(6).strip_edges()
-	
+
 	var set_part := sql.substr(set_idx + 3, where_idx - set_idx - 3).strip_edges()
 	var where_part := sql.substr(where_idx + 7).strip_edges()
-	
+
 	var set_pairs := _parse_set(set_part)
-	
+
 	var set_count := set_pairs.size()
 	var where_conds := _parse_where(where_part)
 	# Both SET values and WHERE conds store GLOBAL $N indices (1-based,
 	# over the full params array). Slicing here shifted every WHERE index
 	# and made parameterized UPDATEs match no rows.
 	var where_params := params
-	
+
 	if not _tables.has(table):
 		return 0
-		
+
 	var t: Array = _tables[table]
 	var updated := 0
-	
+
 	for row in t:
 		if _match_conds(row, where_conds, where_params):
 			for pair in set_pairs:
@@ -1212,10 +1212,10 @@ func _exec_delete(sql: String, params: Array) -> int:
 	if from_idx < 0:
 		return -1
 	var rest := sql.substr(from_idx + 4).strip_edges()
-	
+
 	var lower := rest.to_lower()
 	var where_idx := lower.find(" where ")
-	
+
 	if where_idx < 0:
 		var table := rest.strip_edges()
 		if not _tables.has(table):
@@ -1223,30 +1223,30 @@ func _exec_delete(sql: String, params: Array) -> int:
 		var n := (_tables[table] as Array).size()
 		_tables.erase(table)
 		return n
-		
+
 	var table := rest.substr(0, where_idx).strip_edges()
 	var where_str := rest.substr(where_idx + 7).strip_edges()
-		
+
 	if not _tables.has(table):
 		return 0
-		
+
 	var t: Array = _tables[table]
 	var conds := _parse_where(where_str)
 	var initial_size := t.size()
 	_tables[table] = t.filter(func(row): return not _match_conds(row, conds, params))
 	return initial_size - (_tables[table] as Array).size()
-	
+
 
 # --- Test/dev helpers ---
 
 func seed(table: String, rows: Array) -> void:
 	_tables[table] = rows.duplicate(true)
-	
-	
+
+
 func table_names() -> Array:
 	return _tables.keys()
-	
-	
+
+
 func row_count(table: String) -> int:
 	if not _tables.has(table):
 		return 0

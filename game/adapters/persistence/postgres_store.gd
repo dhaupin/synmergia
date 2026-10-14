@@ -359,12 +359,12 @@ func _retry_request(callable: Callable, max_attempts: int = MAX_RETRIES) -> Post
 		else:
 			last_error = "unexpected return type: " + str(result)
 			_record_failure()
-		
+
 		attempt += 1
 		if attempt <= max_attempts:
 			OS.delay_msec(delay_ms)
 			delay_ms = min(delay_ms * 2, MAX_RETRY_DELAY_MS)
-	
+
 	return PostgresResult.err("Max retries exceeded: " + last_error, -3)
 
 
@@ -399,10 +399,10 @@ func _blocking_get(path: String) -> bool:
 			_circuit_breaker_failures = 0
 		else:
 			return false
-	
+
 	var attempt: int = 0
 	var delay_ms: int = BASE_RETRY_DELAY_MS
-	
+
 	while attempt <= MAX_RETRIES:
 		_pending_queries += 1
 		var url: String = _bridge_url + path
@@ -418,12 +418,12 @@ func _blocking_get(path: String) -> bool:
 			else:
 				_record_success()
 				return true
-		
+
 		attempt += 1
 		if attempt <= MAX_RETRIES:
 			OS.delay_msec(delay_ms)
 			delay_ms = min(delay_ms * 2, MAX_RETRY_DELAY_MS)
-	
+
 	return false
 
 
@@ -496,11 +496,11 @@ func with_transaction(callable: Callable) -> int:
 		return -1
 	var result: int = -1
 	var success: bool = false
-	
+
 	result = callable.call(tx_id)
 	if result == 0:
 		success = true
-	
+
 	if success:
 		return commit(tx_id)
 	else:

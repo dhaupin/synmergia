@@ -213,7 +213,7 @@ func _save_all_characters() -> void:
 		return
 	var acc_id := LoginService.get_current_account_id() if LoginService else "default"
 	var key := "account:%s" % acc_id
-	
+
 	# Load existing to preserve other accounts
 	var rows = store.query("SELECT value FROM kv WHERE key = $1", [key])
 	var by_account: Dictionary = {}
@@ -223,12 +223,12 @@ func _save_all_characters() -> void:
 			var parsed = JSON.parse_string(raw)
 			if parsed is Dictionary:
 				by_account = parsed
-	
+
 	var serialized: Array = []
 	for cd in _characters:
 		serialized.append(cd.to_dict())
 	by_account[acc_id] = serialized
-	
+
 	var json = JSON.stringify(by_account)
 	store.execute("DELETE FROM kv WHERE key = $1", [key])
 	store.execute("INSERT INTO kv (key, value) VALUES ($1, $2)", [key, json])
@@ -238,7 +238,7 @@ func _remove_character_blob(account_id: String, character_id: String) -> void:
 	if store == null:
 		return
 	var key := "account:%s" % account_id
-	
+
 	var rows = store.query("SELECT value FROM kv WHERE key = $1", [key])
 	var by_account: Dictionary = {}
 	if not rows.is_empty():
@@ -250,7 +250,7 @@ func _remove_character_blob(account_id: String, character_id: String) -> void:
 	var list: Array = by_account.get(account_id, [])
 	list = list.filter(func(blob): return blob.get("character_id", "") != character_id)
 	by_account[account_id] = list
-	
+
 	var json = JSON.stringify(by_account)
 	store.execute("DELETE FROM kv WHERE key = $1", [key])
 	store.execute("INSERT INTO kv (key, value) VALUES ($1, $2)", [key, json])

@@ -148,7 +148,7 @@ func _setup_event_scheduler() -> void:
 			"time_restrictions": ["night"]
 		}
 	}
-	
+
 	# Initialize next event timers
 	_next_event_check = 0.0
 	_event_check_interval = 30.0  # Check every 30 seconds real-time
@@ -164,13 +164,13 @@ func _check_gateway_proximity() -> void:
 	var entity_service = EntityService
 	if not entity_service:
 		return
-	
+
 	var current_time = Time.get_ticks_msec() / 1000.0
 	var players = entity_service.get_all_players()
 	for player in players:
 		if not is_instance_valid(player):
 			continue
-		
+
 		var gateway = get_nearby_gateway(player)
 		if gateway:
 			# Check if player can use this gateway
@@ -193,26 +193,26 @@ func _process_event_scheduler(delta: float) -> void:
 	_next_event_check += delta
 	if _next_event_check < _event_check_interval:
 		return
-	
+
 	_next_event_check = 0.0
-	
+
 	# Don't spawn new events if too many active
 	if _active_events.size() >= 3:
 		return
-	
+
 	# Check each template for potential trigger
 	var current_time = get_time_of_day()
 	for event_id in _event_templates:
 		if is_event_active(event_id):
 			continue
-		
+
 		var template = _event_templates[event_id]
-		
+
 		# Check time restrictions
 		if template.time_restrictions.size() > 0:
 			if current_time not in template.time_restrictions:
 				continue
-		
+
 		# Random chance based on weight (weight out of 100)
 		var chance = template.weight * 0.01  # 10% base for weight 10
 		if randf() < chance:
@@ -777,7 +777,7 @@ func _nsc9_spatial_path(zone_manager, from_zone_id: String, to_zone_id: String) 
 		spatial_fragmenter = zone_manager.get_spatial_fragmenter()
 	elif zone_manager.has_method("_get_spatial_fragmenter"):
 		spatial_fragmenter = zone_manager._get_spatial_fragmenter()
-	
+
 	if spatial_fragmenter == null:
 		return []
 
@@ -795,11 +795,11 @@ func _nsc9_spatial_path(zone_manager, from_zone_id: String, to_zone_id: String) 
 			continue
 		if zone.is_instanced:
 			continue
-		
+
 		var zone_addr: int = zone_manager.get_zone_spatial_address(zone.id)
 		if zone_addr == 0:
 			continue
-		
+
 		# Zone is on the spatial path if it's an ancestor of from or to,
 		# or a descendant of the common ancestor
 		if spatial_fragmenter.is_ancestor(zone_addr, from_addr) or spatial_fragmenter.is_ancestor(zone_addr, to_addr) or \

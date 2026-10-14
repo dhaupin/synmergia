@@ -80,7 +80,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 					else:
 						style.bg_color = UIStyles.TEXT_COLORS.toast_bg
 						style.border_color = UIStyles.COLORS.border
-			
+
 			# Update text sizes
 			var scale = UIStyles.get_text_scale()
 			for label_name in ["Message", "ProgressBar"]:

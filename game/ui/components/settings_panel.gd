@@ -572,7 +572,7 @@ func _apply_text_scale() -> void:
 		scale = 0.8
 	elif scale > 1.5:
 		scale = 1.5
-	
+
 	# Broadcast text scale change to all UI components
 	# Components that listen for this will update themselves
 	if _event_hub():
@@ -583,7 +583,7 @@ func _apply_colorblind_shader() -> void:
 		return
 	var enabled: bool = _player_config().get_account_setting("colorblind_mode", false)
 	var type_idx: int = _player_config().get_account_setting("colorblind_type", 0)
-	
+
 	## Shader application would go here
 	## For now we just store the setting; actual shader application
 	## requires a ShaderMaterial on the viewport or CanvasLayer
@@ -601,7 +601,7 @@ func _apply_reduce_motion() -> void:
 		_glog().info("Reduce motion: Enabled (disabling UI animations)")
 	else:
 		_glog().info("Reduce motion: Disabled")
-	
+
 	# Broadcast reduce motion change to all UI components
 	if _event_hub():
 		_event_hub().emit_signal("accessibility_reduce_motion_changed", enabled)
@@ -614,7 +614,7 @@ func _apply_high_contrast() -> void:
 		_glog().info("High contrast: Enabled")
 	else:
 		_glog().info("High contrast: Disabled")
-	
+
 	# Broadcast high contrast change to all UI components
 	if _event_hub():
 		_event_hub().emit_signal("accessibility_high_contrast_changed", enabled)

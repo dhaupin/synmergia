@@ -930,7 +930,7 @@ func _load_trade_history() -> void:
 	for key in keys:
 		if key.begins_with(_kv_prefix):
 			trade_keys.append(key)
-	
+
 	if not trade_keys.is_empty():
 		var results: Dictionary = store.get_many(trade_keys)
 		for key in trade_keys:

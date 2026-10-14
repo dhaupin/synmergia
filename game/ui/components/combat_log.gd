@@ -55,7 +55,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 		var current_size: int = _search_box.get_theme_font_size("font_size")
 		if current_size > 0:
 			_search_box.add_theme_font_size_override("font_size", int(current_size * scale))
-	
+
 	# Update filter buttons
 	for btn in _filter_buttons.values():
 		if btn and is_instance_valid(btn):
@@ -64,7 +64,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 			var current_size: int = btn.get_theme_font_size("font_size")
 			if current_size > 0:
 				btn.add_theme_font_size_override("font_size", int(current_size * scale))
-	
+
 	# Update rich text label
 	if _rich_label:
 		var scale = UIStyles.get_text_scale()
@@ -314,14 +314,14 @@ func _refresh_display() -> void:
 			EntryType.ACHIEVEMENT: show = _show_achievement
 			EntryType.GUILD: show = _show_guild
 			EntryType.TRADE: show = _show_trade
-		
+
 		if not show:
 			continue
-		
+
 		# Filter by search text
 		if _search_filter != "" and _search_filter not in entry.text.to_lower():
 			continue
-		
+
 		var timestamp := _get_timestamp_for(entry.time)
 		var text := "[%s] %s" % [timestamp, entry.text]
 		_rich_label.append_text(text + "\n")
