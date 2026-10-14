@@ -1,3 +1,4 @@
+extends "res://adapters/persistence/memory_persistence_store.gd"
 class_name MemoryPersistenceStoreDurable
 
 # A MemoryPersistenceStore that SNAPSHOT-SERIALIZES itself to a
@@ -22,7 +23,6 @@ class_name MemoryPersistenceStoreDurable
 # the plain memory backend. And snapshotting itself is web-only: on
 # desktop/headless the wasm-heap death does not exist, and snapshots
 # would make --script tests leak state across invocations.
-extends "res://adapters/persistence/memory_persistence_store.gd"
 
 var _snapshot_path: String = ""
 ## Snapshotting is WEB-ONLY law: the reload problem is the wasm heap

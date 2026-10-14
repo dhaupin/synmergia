@@ -6327,3 +6327,30 @@ peak_height_scan) remain in game/debug.
   in weather.gd, audio_service.gd, or the test; new WAVs import
   clean (headless import pass + .import sidecars, ignored per
   repo '*.import' rule like the five existing loops).
+
+## 2026-10-14 (turn 26): LINT 5/5 — the pre-existing failures get their causes fixed (plus the globe's ambience seam)
+- THE LINT DEBT cleared, cause-first: (1) test_lint_general --
+  pentagrid.gd's Ammann bar return had four dict continuation lines
+  starting tab-tab-SPACE (mixed leading indent); normalized to tabs.
+  (2) test_lint_syntax -- durable_store.gd declared class_name before
+  its `extends "..."` script path (Godot 4 rule: extends first);
+  swapped. (3) test_lint_autoload -- the 3/4-node cyclic preloads all
+  shared ONE hub: entity.gd const-preloaded AuraComponent and
+  CombatComponent, so every effect-stack reload edge closed a cycle
+  (entity->aura->status, entity->combat->inventory, entity->combat->
+  skill, skill->status->entity->combat). Both components resolve
+  through their GLOBAL class_name refs now (zero behavior change,
+  load-order edge gone). Syntax suite 7/0, general 12/0, autoload
+  9/0 (the targeting_manager<->player_controller 2-node audit stays
+  a by-design WARN), full runner 36/0 across 5 suites.
+- THE GLOBE'S AMBIENCE SEAM: the driver only fed world_playable; the
+  globe had no ambience at all. _player_latlon now reads globe
+  entities' REAL cartesian lat/lon (planet_center-relative, floating-
+  origin immune; the player carries planet_radius/planet_center) with
+  the flat (x,z) mapping as the shard fallback, the player lookup
+  learns "GlobePlayer", and globe_world gains _setup_ambience()
+  mirroring world_playable's. One driver, one law, both worlds.
+- Verification: test_ambience_driver ok=true; globe probe 23 PASS /
+  0 FAIL twice (boot normal == radial holds with the driver wired);
+  bout-flow probe ALL PASS (the entity effect-stack change runs the
+  combat paths); lint runner 36/0 x5 suites.

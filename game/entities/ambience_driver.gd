@@ -10,11 +10,13 @@
 ## node (the SkySun/SkySigns pattern). Reads the scene's Player node;
 ## without one it idles silently (headless/lobby-safe).
 ##
-## This world v1 is a flat shard, not the sphere: the player's flat
-## (x, z) maps to latitude/lon via the 20 km planet scale -- position
-## on the ground stands in for position on the globe, so band/season
-## weather still varies across the map. When the globe lands, swap
-## _player_latlon for resolve_at_position() and nothing else changes.
+## Player position law, both worlds: on the GLOBE (the player carries
+## planet_radius / planet_center -- the globe entities do) the lat/lon
+## is the real cartesian read, so band/season weather follows the
+## sphere's cells. On the flat shard the player's (x, z) maps to
+## latitude/lon via the 20 km planet scale -- position on the ground
+## stands in for position on the globe. One driver, one law, both
+## worlds; nothing else changes.
 ##
 ## Purely a driver: zero gameplay authority. All actual audio lives in
 ## AudioService (tests pin its contract; this node only feeds it).
@@ -72,6 +74,8 @@ func _tick() -> void:
 	if audio == null:
 		return
 	var player := get_parent().get_node_or_null("Player") if get_parent() != null else null
+	if player == null and get_parent() != null:
+		player = get_parent().get_node_or_null("GlobePlayer")
 	if player == null:
 		return
 	var day: float = float(SignService.current_day_index()) if SignService != null else 0.0
@@ -116,12 +120,17 @@ func _tick() -> void:
 			_last_source, str(state.get("name", "?"))])
 
 
-## Flat-shard stand-in for the globe: (x, z) meters -> (lat, lon)
-## degrees at the v1 planet scale. ~55 km weather cells (CELL_DEG 0.5)
-## span a couple of shard maps, so intra-shard variation comes from
-## season/day rolls, not position -- matching the sky's "everyone
-## shares one sky" law for now.
+## Player (lat, lon) in degrees, by which world the player belongs to.
+## Globe entities carry planet_radius/planet_center (globe_player.gd):
+## their cartesian read is the real sphere position, planet-relative
+## (immune to floating origin). Flat players don't carry those, so the
+## (x, z) -> lat/lon shard mapping stays. ~55 km weather cells
+## (CELL_DEG 0.5) span either world the same way.
 func _player_latlon(player: Node3D) -> Vector2:
+	if "planet_radius" in player:
+		var center: Vector3 = player.planet_center if "planet_center" in player else Vector3.ZERO
+		return SphericalScript.cartesian_to_spherical(
+			player.global_position - center, float(player.planet_radius))
 	var p: Vector3 = player.global_position
 	var lat: float = p.z / SphericalScript.PLANET_RADIUS_METERS * 57.2957795
 	var lon: float = p.x / SphericalScript.PLANET_RADIUS_METERS * 57.2957795

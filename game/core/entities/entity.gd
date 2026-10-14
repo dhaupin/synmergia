@@ -126,18 +126,26 @@ var character_data = null  # Untyped to avoid circular dependency with Character
 # for fighters. Attached via _ensure_effect_stack() instead of relying
 # on _ready inheritance: Enemy._ready does not call super._ready(), so
 # a _ready-only attach would miss every enemy.
-const AuraComponentScript = preload("res://core/components/aura_component.gd")
-const CombatComponentScript = preload("res://core/components/combat_component.gd")
+#
+# The two components resolve through their GLOBAL class_name scripts
+# (AuraComponent / CombatComponent), not const preloads: entity.gd is
+# the hub of the effect-stack graph, and const preloads back into the
+# components made every one of their reload edges a cycle
+# (entity -> aura -> status_effect -> entity, entity -> combat ->
+# inventory -> entity, entity -> combat -> skill -> entity, skill ->
+# status -> entity -> combat -> skill). Global class_name refs are
+# lazy-registered and carry no load-order edge, so the graph stays
+# acyclic with zero behavior change.
 
 var aura_component = null    # AuraComponent once _ensure_effect_stack ran
 var combat_component = null  # CombatComponent (fighters only)
 
 func _ensure_effect_stack(with_combat: bool = false) -> void:
 	if aura_component == null:
-		aura_component = AuraComponentScript.new()
+		aura_component = AuraComponent.new()
 		add_child(aura_component)
 	if with_combat and combat_component == null:
-		combat_component = CombatComponentScript.new()
+		combat_component = CombatComponent.new()
 		add_child(combat_component)
 
 func _ready() -> void:

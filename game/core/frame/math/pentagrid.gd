@@ -677,13 +677,13 @@ static func edge_arrows(t: Tile) -> Array:
 	var lv_s: int = t.levels.y
 	return [
 		{"mult": mult_low, "dir": (verts[1] - verts[0]).normalized(),
-		 "fam": r, "level": lv_r},   # A: dual segment on L_{r, lv_r}
+			"fam": r, "level": lv_r},   # A: dual segment on L_{r, lv_r}
 		{"mult": mult_up,  "dir": (verts[2] - verts[1]).normalized(),
-		 "fam": s, "level": lv_s},   # B: dual segment on L_{s, lv_s}
+			"fam": s, "level": lv_s},   # B: dual segment on L_{s, lv_s}
 		{"mult": mult_up,  "dir": (verts[2] - verts[3]).normalized(),
-		 "fam": r, "level": lv_r},   # C: same L_{r, lv_r} line
+			"fam": r, "level": lv_r},   # C: same L_{r, lv_r} line
 		{"mult": mult_low, "dir": (verts[3] - verts[0]).normalized(),
-		 "fam": s, "level": lv_s},   # D: same L_{s, lv_s} line
+			"fam": s, "level": lv_s},   # D: same L_{s, lv_s} line
 	]
 
 

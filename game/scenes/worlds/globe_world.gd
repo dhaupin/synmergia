@@ -138,6 +138,7 @@ func _ready() -> void:
 	_build_starter_village()
 	_build_capitol_monolith()
 	_build_player()
+	_setup_ambience()
 	planet_center = world_root.position
 	player.planet_center = planet_center
 	_install_hud()
@@ -788,6 +789,22 @@ func _build_capitol_monolith() -> void:
 
 var starter_village: Node3D = null
 var capitol_monolith: Node3D = null
+
+
+## Ambience driver (entities/ambience_driver.gd): resolves weather at
+## the player every 2s and feeds AudioService.apply_weather. The same
+## seam world_playable carries; on the globe the driver reads the
+## player's REAL cartesian lat/lon (its own bulb law), so band/season
+## weather follows the sphere's cells.
+func _setup_ambience() -> void:
+	var amb_script: GDScript = load("res://entities/ambience_driver.gd")
+	if amb_script == null:
+		return
+	var amb := Node3D.new()
+	amb.name = "AmbienceDriver"
+	amb.set_script(amb_script)
+	add_child(amb)
+	GameLog.info("GlobeWorld: ambience driver active (the weather sings)")
 
 
 func _build_player() -> void:
