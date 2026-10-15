@@ -5,7 +5,7 @@
 ## (the "canonical drag-scroll handler" ask). This drop-in scroll body
 ## owns the whole surface once:
 ##
-##   var scroll := preload("res://ui/components/drag_scroll.gd").new()
+##   var scroll := DragScroll_script.new()   # = preload of this file
 ##   scroll.set_content(my_vbox)   # add_child also fine
 ##
 ##   - touch drag: native ScrollContainer law, preserved
