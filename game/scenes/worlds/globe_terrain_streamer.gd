@@ -1339,7 +1339,26 @@ func _level_for_edge() -> int:
 	var edge_full: float = 1.0515 * radius
 	# GDScript has no log2 builtin: log(x) is the natural log.
 	var lvl: float = log(edge_full / maxf(target_patch_edge, 0.001)) / log(2.0)
-	return clampi(int(round(lvl)), 1, 6)
+	var lvl_i: int = clampi(int(round(lvl)), 1, _max_level())
+	return lvl_i
+
+
+## THE MESH-RESOLUTION CAP (web round 17, "the fancy terrain vanished"):
+## beyond the desktop radius the tile grid SUBSAMPLES the analytic
+## relief -- at radius 20000 the level-6 tile edge is ~330 m, so an
+## ~800 m ring of ~90 m hills the boot can actually see renders as a
+## smooth green pancake while the walk law reads the full field (the
+## truth line held the exact legal plaza height over a flat screen --
+## sim right, draw starved). The cap is the mesh's Nyquist: it must
+## stay small enough that one tile edge spans less than the visible
+## relief band. Level 7 (~165 m edge at the planet scale) resolves the
+## near-horizon hills; the LOD NEAR law keeps the far patches at
+## coarse levels, so the 4x triangle cost lands only on the near band
+## (~20k tris per phone frame), not the whole sphere. Desktop-scale
+## prototype planets keep the old 6 cap: their tiles already resolve.
+const PLANET_MESH_CAPTURE_R: float = 10000.0
+func _max_level() -> int:
+	return 7 if radius >= PLANET_MESH_CAPTURE_R else 6
 
 
 ## Recursive spherical midpoint subdivision; preserves outward winding.
