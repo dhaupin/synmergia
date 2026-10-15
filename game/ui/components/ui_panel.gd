@@ -357,17 +357,30 @@ func create_accessible_tween(duration: float = 0.3) -> Tween:
 ## DISTANCE-BASED CLOSE (for interactable panels like dialogs, shops)
 ## ============================================================================
 
-var _max_interact_distance: float = 5.0  # Configurable per panel
+## The close law: ONE generous radius shared by every NPC-attached panel
+## (shop, blacksmith, skill academy, dialogs). Tap-targets are reachable
+## well beyond melee range, so a tight default closed panels the frame
+## after opening ("Moved too far" toast) whenever the player traded
+## from just outside 5m. 12m still closes on real walk-aways. Per-panel
+## override stays available through set_max_interact_distance.
+const DEFAULT_MAX_INTERACT_DISTANCE: float = 12.0
+
+var _max_interact_distance: float = DEFAULT_MAX_INTERACT_DISTANCE  # Configurable per panel
 
 ## Set max distance for auto-close when player moves away
 func set_max_interact_distance(distance: float) -> void:
 	_max_interact_distance = distance
 
+## Check if the player is within the close radius WITHOUT closing.
+## Panels call this in _process() and decide themselves whether to
+## close() so each panel keeps its own toast wording.
+func is_within_interact_distance(player_pos: Vector3, target_pos: Vector3) -> bool:
+	return player_pos.distance_to(target_pos) <= _max_interact_distance
+
 ## Check if player is within interact distance - call in _process()
 ## Override in subclasses that need distance-based auto-close
 func check_interact_distance(player_pos: Vector3, target_pos: Vector3) -> bool:
-	var dist: float = player_pos.distance_to(target_pos)
-	if dist > _max_interact_distance:
+	if not is_within_interact_distance(player_pos, target_pos):
 		close()
 		return false
 	return true

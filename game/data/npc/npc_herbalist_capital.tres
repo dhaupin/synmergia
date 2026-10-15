@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="NPCData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/npc_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "npc_herbalist_capital"
+display_name = "Strand Apothecary"
+description = "The Federation's herb counter on the baywalk. The same draughts the village sells, kept in sea-glass jars."
+npc_type = 6
+level = 1
+faction = "friendly"
+zone_id = "zone_nexus_central"
+spawn_offset = Vector3(12, 0, 3)
+greeting = "Sea air needs different teas. Browse the shelf."
+farewell = "Stay bilious away."
+shop_title = "Strand Apothecary"
+location_type = 0
+services = ["potions"]
+includes = [{"type": "offering", "ref_id": "potions"}]

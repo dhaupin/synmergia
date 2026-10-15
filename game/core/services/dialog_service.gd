@@ -80,6 +80,7 @@ const UIStyles = preload("res://ui/components/ui_styles.gd")
 var _dialogues: Dictionary = {}
 var _current_dialogue: DialogueData = null
 var _current_node: int = 0
+var _dialogue_seen: Dictionary = {}  # dialogue_id -> max node index reached (per-player memory, prd-dialogue sec.3)
 
 signal dialogue_started(npc_id: String, dialogue_id: String)
 signal dialogue_ended(npc_id: String, dialogue_id: String)
@@ -124,6 +125,7 @@ func start_dialogue(npc_id: String, dialogue_id: String) -> bool:
 		return false
 	_current_dialogue = dialogue
 	_current_node = 0
+	_mark_seen(dialogue_id, 0)
 	dialogue_started.emit(_esc(npc_id), _esc(dialogue_id))
 	node_changed.emit(_current_node, _node_to_dict(dialogue.get_node(_current_node)))
 	return true
@@ -134,7 +136,11 @@ func advance() -> Dictionary:
 		return {}
 	var node := _current_dialogue.get_node(_current_node)
 	if not _has_choices(node):
+		var leaving: Dictionary = node
 		_current_node += 1
+		# Node action fires on advance-out of auto-advance nodes (prd-dialogue sec.5:
+		# choice actions fire in select_choice; node actions fire when leaving).
+		_execute_node_action(leaving)
 	if _current_node < 0 or _current_node >= _current_dialogue.nodes.size():
 		end_dialogue()
 		return {}
@@ -149,10 +155,16 @@ func select_choice(choice_index: int) -> Dictionary:
 	if choice_index < 0 or choice_index >= choices.size():
 		return {}
 	var next: int = choices[choice_index].get("next_node", -1)
+	# Choice action fires BEFORE navigation (prd-dialogue sec. 5). The
+	# outgoing choice may mutate state (GIVE_QUEST, GIVE_ITEM) that the
+	# destination node's condition layer then reads.
+	var chosen: Dictionary = choices[choice_index]
+	_execute_choice_action(chosen)
 	if next < 0:
 		end_dialogue()
 		return {}
 	_current_node = next
+	_mark_seen(_current_dialogue.id, _current_node)
 	if _current_node < 0 or _current_node >= _current_dialogue.nodes.size():
 		end_dialogue()
 		return {}
@@ -194,8 +206,58 @@ func end_dialogue() -> void:
 	_current_node = 0
 	dialogue_ended.emit(npc_id, dialogue_id)
 
+## Per-player conversation memory (prd-dialogue sec.3): records the
+## furthest node reached per dialogue_id. In-memory this cut; persists
+## through the existing player-state path when the state-schema
+## extension lands. Never stores transcript text.
+func _mark_seen(dialogue_id: String, node_index: int) -> void:
+	if dialogue_id.is_empty():
+		return
+	var prev: int = _dialogue_seen.get(dialogue_id, -1)
+	if node_index > prev:
+		_dialogue_seen[dialogue_id] = node_index
+
+func get_seen_node(dialogue_id: String) -> int:
+	return _dialogue_seen.get(dialogue_id, -1)
+
+func has_seen_dialogue(dialogue_id: String) -> bool:
+	return _dialogue_seen.has(dialogue_id)
+
 func has_dialogue(dialogue_id: String) -> bool:
 	return _dialogues.has(dialogue_id)
+
+## Fire a choice's action (before navigation). Non-NONE only; failures
+## log but never block the tree (prd-dialogue sec. 5: actions are
+## best-effort mutations the destination conditions then read).
+func _execute_choice_action(choice: Dictionary) -> void:
+	var at: int = choice.get("action_type", 0)
+	if at == 0:
+		return
+	var ad: Dictionary = choice.get("action_data", {})
+	var player_id := get_local_player_id()
+	var ok := execute_action(at, ad, player_id)
+	var _gl := _glog()
+	if _gl:
+		if ok:
+			_gl.info("DialogAction: choice fired type=%d dialogue=%s" % [at, _current_dialogue.id if _current_dialogue else "?"])
+		else:
+			_gl.warn("DialogAction: choice FAILED type=%d dialogue=%s" % [at, _current_dialogue.id if _current_dialogue else "?"])
+
+## Fire a node's action on advance-out of an auto-advance (choicesless)
+## node. Closing nodes consolidate rewards this way (prd-dialogue sec. 5).
+func _execute_node_action(node: Dictionary) -> void:
+	var at: int = node.get("action_type", 0)
+	if at == 0:
+		return
+	var ad: Dictionary = node.get("action_data", {})
+	var player_id := get_local_player_id()
+	var ok := execute_action(at, ad, player_id)
+	var _gl := _glog()
+	if _gl:
+		if ok:
+			_gl.info("DialogAction: node fired type=%d dialogue=%s" % [at, _current_dialogue.id if _current_dialogue else "?"])
+		else:
+			_gl.warn("DialogAction: node FAILED type=%d dialogue=%s" % [at, _current_dialogue.id if _current_dialogue else "?"])
 
 func execute_action(action_type: int, action_data: Dictionary, player_id: String = "") -> bool:
 	var DialogActionType = DialogueData.DialogActionType

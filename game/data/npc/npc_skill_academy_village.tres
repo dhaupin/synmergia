@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="NPCData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/npc_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "npc_skill_academy_village"
+display_name = "Warden Trainer"
+description = "A retired campaign warden who drills the village's young fighters. The Academy's reach is long -- the basics are taught wherever a student stands."
+npc_type = 8
+level = 40
+faction = "friendly"
+zone_id = "zone_village_center"
+spawn_offset = Vector3(2, 0, 4)
+greeting = "Feet square, blade steady. What shall we drill?"
+farewell = "Return when your stance falters."
+shop_title = "Warden Drill Hall"
+location_type = 2
+services = ["skill_books", "skill_upgrade"]
+includes = [{"type": "offering", "ref_id": "skill_academy"}]

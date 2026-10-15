@@ -51,6 +51,7 @@ func _run() -> void:
 		["VillageHall", SV.HALL_BEARING_DEG, SV.HALL_REACH],
 		["ForgeStall", SV.FORGE_BEARING_DEG, SV.FORGE_REACH],
 		["WaySignpost", SV.SIGN_BEARING_DEG, SV.SIGN_REACH],
+		["GeneralStore", SV.STORE_BEARING_DEG, SV.STORE_REACH],
 	]
 
 	# LAW layer: plaza-flat ground, dry, clean corridor.
@@ -71,6 +72,21 @@ func _run() -> void:
 		_check("%s sits inside the plaza flat ring" % entry[0],
 			dir.angle_to(spawn) < TGen.SPAWN_FLAT_ANG)
 
+	# LAW layer, the DOCK's own anchor: the ferry terminal rides the
+	# plaza->harbor apron arc (6% of the bearing). Its foot must be
+	# DRY above the sea line (the apron ring holds), keep its ground
+	# under the cartway law, and sit inside the plaza flat ring.
+	var harbor_anchor: Vector3 = TGen.village_harbor_dir()
+	var dock_dir: Vector3 = spawn.slerp(harbor_anchor, 0.06).normalized()
+	var h_dock: float = TGen.terrain_height(dock_dir, seed_b)
+	_check("HarborDock foot is dry above the sea line (h %.2f)" % h_dock, h_dock > sea + 1.0)
+	_check("HarborDock sits inside the plaza flat ring",
+		dock_dir.angle_to(spawn) < TGen.SPAWN_FLAT_ANG)
+	var st_dock: Vector3 = TGen.road_state_at(dock_dir, seed_b)
+	var h_road_dock: float = TGen.road_height_override(dock_dir, seed_b, h_dock)
+	_check("HarborDock foot keeps its ground under the cartway law (w %.2f)" % st_dock.x,
+		absf(h_road_dock - h_dock) < 0.001)
+
 	# SCENE layer: the globe boots the village with colliders.
 	ProjectSettings.set_setting("synmergia/world/planet_radius", 100.0)
 	var packed: PackedScene = load(GLOBE_SCENE)
@@ -84,15 +100,35 @@ func _run() -> void:
 	if not _check("the village boots into the world", village != null):
 		quit(1)
 		return
-	_check("the village carries exactly the 3 authored structures",
-		village.get_child_count() == 3)
-	var expected: Array = ["VillageHall", "ForgeStall", "WaySignpost"]
+	# THE TURN-15 PROP LAW pinned ON the village root: the 5 authored
+	# structures PLUS the three game-function prop clusters (ankh,
+	# moon gate, bout stones) PLUS the NPC roster entities (the town
+	# rosters spawn under the village root on the globe -- the
+	# underworld's own-frame law). Names must carry the authored set.
+	var expected: Array = ["VillageHall", "ForgeStall", "WaySignpost", "GeneralStore", "HarborDock",
+		"VillageAnkh", "VillageMoonGate", "VillageBoutStones"]
 	var names_ok := true
+	var prop_names := 0
+	var npc_entities := 0
 	for child in village.get_children():
-		if not (child.name in expected):
-			names_ok = false
+		var cname: String = str(child.name)
+		if cname in expected:
+			prop_names += 1
+		else:
+			# The town roster: NPCEntity children under the town root
+			# (the underworld fold-away law). Counted by ELIMINATION --
+			# script-mode entity nodes can carry engine auto-names
+			# (@Node3D@N), so a name grep undercounts the roster.
+			npc_entities += 1
 	_check("structure names match the authored layout", names_ok)
+	_check("the village carries the 8 authored structure+prop nodes", prop_names == 8)
+	_check("the village roster spawns the NPC entities (>= 5 of 6)", npc_entities >= 5)
+	# PropBody pins apply ONLY to the authored structures (props ride
+	# their OWN interaction bodies; NPCs are entities).
 	for child in village.get_children():
+		var cname: String = str(child.name)
+		if not (cname in ["VillageHall", "ForgeStall", "WaySignpost", "GeneralStore", "HarborDock"]):
+			continue
 		var body: Node = child.get_node_or_null("PropBody")
 		_check("%s carries the one-law PropBody" % child.name, body != null)
 		if body != null:
@@ -126,6 +162,39 @@ func _run() -> void:
 		var seed_cap: PackedByteArray = TGenCap.world_seed_bytes()
 		var road_w: float = TGenCap.road_state_at(cap_dir, seed_cap).x
 		_check("the connecting road reaches the capitol plaza (w %.2f)" % road_w, road_w > 0.05)
+		# THE DUAL-TOWN ROSTER PIN (turn 17, the owner's symmetric-town
+		# law): the capitol carries the FULL function set too -- 7 NPCs
+		# (armory, skill academy, banker, smithy, merchant, herbalist,
+		# keeper), the ankh, the moon gate, and the bout stones, plus
+		# the four city quarters and the pier head under its root.
+		var cap_props: Array = ["CapitolAnkh", "CapitolMoonGate", "CapitolBoutStones"]
+		var cap_props_found := 0
+		var cap_npcs := 0
+		var cap_built := 0
+		var cap_expected_built: Array = ["ConcordHall", "WestHouse", "EastHouse", "SouthHouse", "CapitolPierHead"]
+		for child in capitol.get_children():
+			var cn: String = str(child.name)
+			if cn in cap_props:
+				cap_props_found += 1
+			elif cn in cap_expected_built:
+				cap_built += 1
+			else:
+				cap_npcs += 1  # NPC entities (the roster's own-frame law)
+		_check("the capitol carries the prop family (ankh, moon gate, bout stones)", cap_props_found == 3)
+		_check("the capitol quarters + pier head boot (5 built)", cap_built == cap_expected_built.size())
+		_check("the capitol roster spawns the 7 NPCs", cap_npcs >= 7)
+		# THE FERRY GATEWAY PIN: the route's city end names the cove
+		# pier gateway -- the boat sails the bay (the owner's turn-17
+		# retarget; veh_haven_ferry.route_gateways[1]).
+		var FS = root.get_node_or_null("FerryService")
+		var DS_f = root.get_node_or_null("DataService")
+		if FS != null and DS_f != null:
+			var veh = FS.get_ferry("veh_haven_ferry")
+			_check("the ferry route's city end is the capitol pier (the boat sails the bay)", \
+				veh != null and str(veh.route_gateways[1]) == "waypoint_capitol_pier" \
+				and DS_f.get_gateway("waypoint_capitol_pier") != null)
+		else:
+			_check("the ferry route's city end is the capitol pier (the boat sails the bay)", false)
 
 	print("probe_starter_village: %s" % ("ALL PASS" if _fails == 0 else "%d FAIL" % _fails))
 	quit(0 if _fails == 0 else 1)

@@ -119,6 +119,27 @@ func _run() -> void:
 		_room_rock_size(room3) == Vector3(3, 7, 3) \
 		and _room_rock_size(room2) == Vector3(6, 5, 3))
 	_check("elim ring keeps the duel center clean", not _room_center_blocked(room3))
+	# The instance style law (2026-10-15): every room renders in the
+	# planet's BiomeId palette with a visible wall face, and ROYALE
+	# stays bare (terrain cover reserved for the valley itself).
+	var elim_floor: Color = _room_env_floor(room3)
+	_check("elim room wears desert sand (coliseum biome)", \
+		elim_floor.r > 0.7 and elim_floor.g > 0.6)
+	_check("TDM room wears olive steppe (sandpit biome)", \
+		absf(_room_env_floor(room2).r - 0.52) < 1e-3)
+	_check("every elim wall shows its stone face", _room_wall_faces(room3) == 4)
+	var room_r = ArenaScene.new()
+	room_r.zone_data = zm.get_zone("zone_royale_valley")
+	root.add_child(room_r)
+	_check("royale zone loaded", room_r.zone_data != null)
+	_check("royale room stays bare (cover reserved)", _room_rock_count(room_r) == 0)
+	var roy_floor: Color = _room_env_floor(room_r)
+	_check("royale room wears badlands rust (valley biome)", \
+		roy_floor.r > 0.5 and roy_floor.g < 0.4)
+	_check("royale walls show the darker rust rim", _room_wall_faces(room_r) == 4)
+	_check("rooms carry a seeded floor tint (no flat paint)", \
+		_room_floor_tinted(room3) or _room_floor_tinted(room2))
+	room_r.queue_free()
 	room3.queue_free()
 	await process_frame
 
@@ -214,6 +235,42 @@ func _room_rock_size(room) -> Vector3:
 				if sub is CollisionShape3D and sub.shape is BoxShape3D:
 					return (sub.shape as BoxShape3D).size
 	return Vector3.ZERO
+
+## Floor plane's albedo (probe helper: the mode env palette check).
+func _room_env_floor(room) -> Color:
+	if room == null or not ("_floor" in room) or room._floor == null:
+		return Color.BLACK
+	for c in room._floor.get_children():
+		if c is MeshInstance3D and (c as MeshInstance3D).material_override is StandardMaterial3D:
+			return ((c as MeshInstance3D).material_override as StandardMaterial3D).albedo_color
+	return Color.BLACK
+
+## Count perimeter walls that show a visual mesh face (probe helper).
+func _room_wall_faces(room) -> int:
+	if room == null:
+		return 0
+	var n := 0
+	for c in room.get_children():
+		if not (c is StaticBody3D):
+			continue
+		var cn := String(c.name)
+		if cn == "ArenaFloor" or cn.begins_with("CoverRock_"):
+			continue
+		for sub in c.get_children():
+			if sub is MeshInstance3D:
+				n += 1
+				break
+	return n
+
+## True when the floor plane carries a noise tint beyond the flat color.
+func _room_floor_tinted(room) -> bool:
+	if room == null or not ("_floor" in room) or room._floor == null:
+		return false
+	for c in room._floor.get_children():
+		if c is MeshInstance3D:
+			var m = (c as MeshInstance3D).material_override
+			return m != null and (m as StandardMaterial3D).albedo_texture != null
+	return false
 
 ## True when any rock sits inside the central duel circle (r = 0.25
 ## of the room half) -- the elimination ring must keep it open.

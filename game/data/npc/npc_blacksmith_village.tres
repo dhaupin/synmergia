@@ -22,4 +22,8 @@ offers_bulk_discount = true
 bulk_discount_percent = 15.0
 bulk_discount_threshold = 3
 services = ["repair"]
-includes = [{"type": "offering", "ref_id": "blacksmith_service"}]
+includes = [
+	{"type": "offering", "ref_id": "blacksmith_service"},
+	{"type": "dialogue", "dialogue_id": "blacksmith_village_intro"},
+	{"type": "quest", "ref_id": "intro_core_npcs"}
+]

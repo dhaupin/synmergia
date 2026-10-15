@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "intro_core_npcs"
+display_name = "Meet the People Doing the Work"
+description = "Introduce yourself to the core NPCs and get a feel for what each one actually handles."
+quest_type = 1
+difficulty = 0
+giver_npc_id = "npc_blacksmith_village"
+turn_in_npc_id = "npc_blacksmith_village"
+auto_complete = true
+min_level = 1
+xp_reward = 250
+gold_reward = 25
+objectives = [
+	{"id": "meet_blacksmith", "type": 5, "target": "npc_blacksmith_village", "count": 1, "optional": false, "description": "Talk to the village blacksmith"},
+	{"id": "meet_academy", "type": 5, "target": "npc_skill_academy_capital", "count": 1, "optional": true, "description": "Speak with the skill academy instructor"},
+	{"id": "meet_store", "type": 5, "target": "npc_merchant_general", "count": 1, "optional": true, "description": "Speak with the general merchant"}
+]
+rewards = []
+next_quest_id = ""
+previous_quest_id = ""

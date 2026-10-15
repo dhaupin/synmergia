@@ -55,9 +55,15 @@ func get_node(index: int) -> Dictionary:
 
 func get_choices(node_index: int) -> Array[Dictionary]:
 	var node := get_node(node_index)
+	# .tres parses nested arrays as untyped Array (TYPE_ARRAY), so a
+	# direct `return node["choices"]` fails the typed return and yields
+	# [] silently (probed 2026-10-14). Rebuild a typed copy instead.
+	var typed: Array[Dictionary] = []
 	if node.has("choices"):
-		return node["choices"]
-	return []
+		for choice: Variant in node["choices"]:
+			if choice is Dictionary:
+				typed.append(choice)
+	return typed
 
 func get_node_action(node_index: int) -> Dictionary:
 	var node := get_node(node_index)

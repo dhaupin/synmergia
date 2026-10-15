@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="NPCData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/npc_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "npc_elder_capital"
+display_name = "Strand Keeper"
+description = "The Federation's town warden on the baywalk. The same taught-lore the village elder carries, at city reach."
+npc_type = 1
+level = 1
+faction = "friendly"
+scene_path = "res://scenes/npcs/village_elder.tscn"
+zone_id = "zone_nexus_central"
+spawn_offset = Vector3(14, 0, -4)
+greeting = "Union memory. The Baywalk wants your way home too."
+farewell = "Concord keeps its lights."
+includes = [
+	{"type": "dialogue", "dialogue_id": "village_elder_greeting"},
+	{"type": "quest", "quest_ids": ["quest_wolves_hunt", "quest_herb_gathering"]}
+]

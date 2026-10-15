@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="NPCData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/npc_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "npc_banker_capital"
+display_name = "Concord Banker"
+description = "The Federation's ledger keeper at the strand: deposits screened, withdrawals sealed, bullion stored below the plaza."
+npc_type = 6
+level = 1
+faction = "friendly"
+zone_id = "zone_nexus_central"
+spawn_offset = Vector3(3, 0, 3)
+greeting = "The Concord vault honors every posted rate."
+farewell = "Your coin is watched."
+shop_title = "Concord Vault"
+location_type = 0
+services = ["bank"]
+includes = [{"type": "offering", "ref_id": "bank_vault"}]

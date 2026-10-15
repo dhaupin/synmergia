@@ -24,15 +24,22 @@ const PropCollider = preload("res://entities/prop_collider.gd")
 
 
 ## Authored layout: (bearing degrees about spawn's tangent frame,
-## angular reach from the plaza center in radians). All three sit
-## inside SPAWN_FLAT_ANG's full-flat ring, bearings spread so the
-## structures frame the boot plaza without crowding the spawn point.
+## angular reach from the plaza center in radians). Five structures
+## frame the boot plaza without crowding the spawn point: the hall,
+## the forge, the way-sign, the general store (the merchant include's
+## ITS door), and the harbor dock -- the strait's ferry terminal at
+## the mainland rim (the road law's start bearing, the cartway
+## walks harbor -> capitol). HarborDock rides village_harbor_dir()
+## (its own anchor, not a spawn bearing): the REAL co-located seam
+## the ferry + road + npc_merchant_general .tres all point at.
 const HALL_BEARING_DEG: float = 8.0
 const HALL_REACH: float = 0.017
 const FORGE_BEARING_DEG: float = 48.0
 const FORGE_REACH: float = 0.019
 const SIGN_BEARING_DEG: float = -36.0
 const SIGN_REACH: float = 0.013
+const STORE_BEARING_DEG: float = -8.0
+const STORE_REACH: float = 0.020
 
 
 ## Build the village under `parent` (globe_world's world_root):
@@ -66,6 +73,21 @@ static func build(parent: Node3D, planet_radius: float, surface_lift: float,
 		planet_radius, surface_lift, walk_surface_h, "ForgeStall")
 	_structure(village, _dir_for(spawn, east, north, SIGN_BEARING_DEG, maxf(SIGN_REACH, reach_floor)),
 		planet_radius, surface_lift, walk_surface_h, "WaySignpost")
+	_structure(village, _dir_for(spawn, east, north, STORE_BEARING_DEG, maxf(STORE_REACH, reach_floor)),
+		planet_radius, surface_lift, walk_surface_h, "GeneralStore")
+	# THE HARBOR DOCK: its own anchor law (village_harbor_dir) -- the
+	# ferry terminal at the strait's mainland rim, where the island
+	# bearing points and the cart road starts. Build order: harbor
+	# dir -> de-rotated BACK toward spawn by the plaza's offset angle
+	# (the dock leans on the apron's dry ring, not beyond it).
+	var harbor_anchor: Vector3 = TerrainGen.village_harbor_dir()
+	# THE DOCK APRON LAW: the harbor rim sits ~2.3 deg off the spawn
+	# plaza; the dock rides the plaza-harbor arc at 6% of the bearing
+	# (still inside the boot apron's dry ring, so the foot keeps the
+	# walk law's flat read and the road law treats it as dry start).
+	var dock_apron: Vector3 = spawn.slerp(harbor_anchor, 0.06).normalized()
+	_structure(village, dock_apron, planet_radius, surface_lift,
+		walk_surface_h, "HarborDock")
 	return village
 
 
@@ -109,6 +131,26 @@ static func _build_parts(root: Node3D, prop_name: String) -> void:
 			_pole(root)
 			_box(root, Vector3(0.25, 1.9, 0), Vector3(0.9, 0.22, 0.06), _TIMBER)
 			_box(root, Vector3(-0.2, 1.5, 0), Vector3(0.9, 0.22, 0.06), _TIMBER)
+		"GeneralStore":
+			# The merchant's shop: a broad-boarded store with a
+			# striped awning over the counter and a crate stack.
+			_box(root, Vector3(0, 1.7, 0), Vector3(5.6, 3.4, 4.4), _STUCCO)
+			_prism(root, Vector3(0, 4.2, 0), Vector3(6.6, 2.2, 5.4), _TERRA)
+			_box(root, Vector3(0, 1.1, 2.3), Vector3(3.6, 2.2, 0.5), _TIMBER)  # counter
+			_awning(root)
+			_crate(root, Vector3(2.1, 0.4, 1.7))
+			_crate(root, Vector3(2.1, 1.1, 1.5))
+		"HarborDock":
+			# The ferry terminal: a timber pier walking into the water
+		# band (foot on dry land, deck reaching past the sea line), a
+		# mooring post pair, and a low goods shed. The pier is a
+		# slope-safe read of the authored strait; the moat law does
+		# not touch this ring.
+			_pier(root)
+			_box(root, Vector3(0, 1.5, -1.6), Vector3(3.2, 3.0, 2.6), _TIMBER)  # shed
+			_prism(root, Vector3(0, 3.4, -1.6), Vector3(3.8, 1.6, 3.0), _TERRA)  # shed roof
+			_pole_at(root, Vector3(-1.4, 0.9, 1.8))
+			_pole_at(root, Vector3(0.6, 0.9, 2.4))
 		_:
 			pass
 
@@ -139,6 +181,41 @@ static func _anvil(parent: Node3D) -> void:
 	_box(parent, Vector3(-0.6, 0.55, 1.0), Vector3(0.5, 0.3, 0.9), _IRON)
 
 
+static func _awning(parent: Node3D) -> void:
+	_box(parent, Vector3(0, 2.8, 2.6), Vector3(4.6, 0.16, 1.4), _CANVAS)
+
+
+static func _crate(parent: Node3D, pos: Vector3) -> void:
+	_box(parent, pos, Vector3(0.7, 0.7, 0.7), _CRATE)
+
+
+static func _pier(parent: Node3D) -> void:
+	# The pier reads along the local tangent (z = seaward here: the
+	# shed sits UP-shore behind the foot). Planks: five boards.
+	var z: int = 2
+	while z <= 10:
+		_box(parent, Vector3(0, 0.85, float(z) * 0.55), Vector3(1.7, 0.16, 0.42), _TIMBER)
+		z += 1
+	# The pier's two bracing posts underwater-tick every second plank.
+	z = 3
+	while z <= 9:
+		_box(parent, Vector3(-0.7, 0.35, float(z) * 0.55), Vector3(0.16, 1.2, 0.16), _TIMBER)
+		_box(parent, Vector3(0.7, 0.35, float(z) * 0.55), Vector3(0.16, 1.2, 0.16), _TIMBER)
+		z += 2
+
+
+static func _pole_at(parent: Node3D, pos: Vector3) -> void:
+	var mi := MeshInstance3D.new()
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = 0.07
+	mesh.bottom_radius = 0.09
+	mesh.height = 1.9
+	mi.mesh = mesh
+	mi.material_override = _TIMBER
+	mi.position = pos
+	parent.add_child(mi)
+
+
 static func _pole(parent: Node3D) -> void:
 	var mi := MeshInstance3D.new()
 	var mesh := CylinderMesh.new()
@@ -159,6 +236,9 @@ static var _STUCCO: StandardMaterial3D = _make_mat(Color(0.78, 0.73, 0.62))
 static var _TIMBER: StandardMaterial3D = _make_mat(Color(0.40, 0.27, 0.16))
 static var _STONE: StandardMaterial3D = _make_mat(Color(0.52, 0.50, 0.47))
 static var _IRON: StandardMaterial3D = _make_mat(Color(0.30, 0.31, 0.34))
+static var _TERRA: StandardMaterial3D = _make_mat(Color(0.66, 0.36, 0.24))
+static var _CANVAS: StandardMaterial3D = _make_mat(Color(0.82, 0.80, 0.74))
+static var _CRATE: StandardMaterial3D = _make_mat(Color(0.55, 0.38, 0.22))
 
 
 static func _make_mat(c: Color) -> StandardMaterial3D:

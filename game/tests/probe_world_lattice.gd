@@ -138,28 +138,40 @@ func _run() -> void:
 	if svc != null:
 		svc.ensure_initialized()
 		_check("sky_epoch_days seam exists on SignService", svc.has_method("sky_epoch_days"))
+		# THE SKY-DAY UNIT LAW (the compression retune): one SKY day is
+		# 2 real hours (SKY_DAY_SECONDS = 7200), so overrides set UNIX
+		# seconds and the sky epoch reads them at /7200. The override
+		# moves both the SKY epoch and the CALENDAR day index together
+		# -- the two clocks disagree only in UNIT SCALE.
+		var sky_day_s: float = svc.SKY_DAY_SECONDS
 		# Far-future day (year 2241): the override rolls the calendar in
 		# ISOLATION -- never mutate the live dev calendar from a probe.
 		var day_future := 99001
 		var e_hi := float(day_future) + 0.25
-		svc.set_clock_override(e_hi * 86400.0)
+		svc.set_clock_override(e_hi * sky_day_s)
 		var e_over: float = svc.sky_epoch_days()
+		# THE ONE-CLOCK CONTRACT (the compression law): the calendar
+		# day index (real days, /86400) and the sky epoch (sky days,
+		# /7200) DISAGREE BY DESIGN in unit scale -- but they must read
+		# ONE override: the two answers decode back to the SAME unix.
 		_check("override moves the epoch AND the day index together", \
-			absf(e_over - e_hi) < 0.000001 and svc.current_day_index() == day_future)
+			absf(e_over - e_hi) < 0.000001 \
+				and absf(e_over * sky_day_s - float(svc.current_day_index()) * 86400.0) < 86400.0)
 		var m_lo: Vector3 = WR.orbit_position(moon, svc.sky_epoch_days())
 		var m_hi: Vector3 = WR.orbit_position(moon, e_over + 0.5)
 		_check("moon position is a function of the Concord clock", \
 			m_lo != Vector3.ZERO and not m_lo.is_equal_approx(m_hi))
 		var e_final := float(day_future + 3) + 0.5
-		svc.set_clock_override(e_final * 86400.0)
+		svc.set_clock_override(e_final * sky_day_s)
 		_check("epoch and day index agree at the far-future day", \
-			absf(svc.sky_epoch_days() - e_final) < 0.000001 and svc.current_day_index() == day_future + 3)
+			absf(svc.sky_epoch_days() - e_final) < 0.000001 \
+				and absf(svc.sky_epoch_days() * sky_day_s - float(svc.current_day_index()) * 86400.0) < 86400.0)
 		_check("moon orbit periodic across one period under the sky clock", \
 			WR.orbit_position(moon, e_final).is_equal_approx( \
 				WR.orbit_position(moon, e_final + float(moon.orbit_period_days))))
 		svc.set_clock_override(-1.0)
 		_check("override reset returns to the live sky clock", \
-			absf(svc.sky_epoch_days() - float(Time.get_unix_time_from_system()) / 86400.0) < 0.001)
+			absf(svc.sky_epoch_days() - float(Time.get_unix_time_from_system()) / sky_day_s) < 0.001)
 
 	# ---- G. Moon Gate law (S16.3) ------------------------------------------
 	# The gate is the AncientDoor pattern between worlds: the entry law
@@ -480,6 +492,8 @@ func _run() -> void:
 	var svc2 = root.get_node_or_null("SignService")
 	_check("SignService present for the window law", svc2 != null)
 	if svc2 != null and GateScript != null and scope != null:
+		# The unit law again (section F's local does not reach here).
+		var sky_day_s: float = svc2.SKY_DAY_SECONDS
 		var moon_w2 = reg.get_world("moon")
 		var main_w2 = reg.get_world("main")
 		var P: float = float(moon_w2.orbit_period_days)
@@ -496,7 +510,7 @@ func _run() -> void:
 		# exemption is OFF -- this gate tests the window law alone, so
 		# hatch stays false and DEV_ONLY would refuse first; use the
 		# law state directly: window_status is entry-independent).
-		svc2.set_clock_override(e_align * 86400.0)
+		svc2.set_clock_override(e_align * sky_day_s)
 		var win_open: Dictionary = gate_win.window_status()
 		_check("at the alignment epoch the window is OPEN (favorability ~0)", \
 			bool(win_open.get("open")) and float(win_open.get("favorability")) < 0.01)
@@ -504,7 +518,7 @@ func _run() -> void:
 			str(win_open.get("message")) == "The sky aligns.")
 		# Half a period away: the window is CLOSED and the next window
 		# is named (within the search horizon).
-		svc2.set_clock_override((e_align + P * 0.5) * 86400.0)
+		svc2.set_clock_override((e_align + P * 0.5) * sky_day_s)
 		var win_shut: Dictionary = gate_win.window_status()
 		_check("half a period away the window is SHUT (favorability ~1)", \
 			not bool(win_shut.get("open")) and float(win_shut.get("favorability")) > 0.9)
@@ -518,10 +532,10 @@ func _run() -> void:
 		gate_dev_win.set("target_world", "moon")
 		gate_dev_win.set("dev_hatch", true)
 		root.add_child(gate_dev_win)
-		svc2.set_clock_override((e_align + P * 0.5) * 86400.0)
+		svc2.set_clock_override((e_align + P * 0.5) * sky_day_s)
 		_check("a hatched stone still SPEAKS an against-sky (charts never lie by omission)", \
 			str(gate_dev_win.get_interaction_prompt()).contains("against the sky"))
-		svc2.set_clock_override(e_align * 86400.0)
+		svc2.set_clock_override(e_align * sky_day_s)
 		_check("the prompt reads 'Step through' when the sky aligns", \
 			str(gate_dev_win.get_interaction_prompt()).contains("the sky aligns"))
 		_check("an aligned prompt does not warn of the sky", \
@@ -564,13 +578,13 @@ func _run() -> void:
 				pos_now != Vector3.ZERO and pos_now.is_equal_approx(pos_next_period))
 			chart.queue_free()
 		# The hatch bypasses the window law: dev work does not wait.
-		svc2.set_clock_override((e_align + P * 0.5) * 86400.0)
+		svc2.set_clock_override((e_align + P * 0.5) * sky_day_s)
 		var res_dev: Dictionary = gate_dev_win.try_interact(null)
 		_check("the hatch ignores an unfavorable sky (dev does not wait)", \
 			str(res_dev.get("reason")) == "no_scope_path")
 		# The window law at the ENTRY layer: a non-hatched DEV_ONLY
 		# target still refuses SEALED (entry first, window second).
-		svc2.set_clock_override(e_align * 86400.0)
+		svc2.set_clock_override(e_align * sky_day_s)
 		var res_sealed: Dictionary = gate_win.try_interact(null)
 		_check("entry law outranks the window (sealed before sky)", \
 			str(res_sealed.get("reason")) == "sealed")

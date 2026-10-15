@@ -24,6 +24,7 @@ const Contract = preload("res://core/schemas/instance_contract.gd")
 const BOUT_ZONES: Array = [
 	["zone_arena_coliseum", "The Coliseum (Elimination)"],
 	["zone_arena_sandpit", "The Sandpit (Team Deathmatch)"],
+	["zone_royale_valley", "The Sundered Valley (Royale)"],
 ]
 
 var _tabs: TabContainer

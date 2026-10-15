@@ -668,7 +668,15 @@ func _build_room() -> void:
 	if zone_data != null and "zone_radius" in zone_data:
 		half = float(zone_data.zone_radius) * 0.5
 
-	# Sand floor.
+	# Mode environment (the instance style law: rooms render in the
+	# planet's own BiomeId palette so a room reads as a slice of the
+	# world it fights in -- deserts for the coliseum, olive steppe for
+	# the sandpit, rust badlands for the Sundered Valley).
+	var env := _mode_env(int(_rules.get("mode")))
+
+	# Ground: collision slab + colored plane with a seeded noise tint
+	# (the same wobble law the surface terrain uses, so the floor is
+	# not flat paint). Deterministic per mode.
 	_floor = StaticBody3D.new()
 	_floor.name = "ArenaFloor"
 	var col := CollisionShape3D.new()
@@ -681,11 +689,19 @@ func _build_room() -> void:
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(2.0 * half, 2.0 * half)
 	floor_mesh.mesh = plane
+	var floor_mat := StandardMaterial3D.new()
+	floor_mat.albedo_color = env["floor"]
+	floor_mat.albedo_texture = _noise_tint(int(env["seed"]))
+	floor_mat.uv1_scale = Vector3(8, 8, 1)
+	floor_mat.roughness = 0.95
+	floor_mesh.material_override = floor_mat
 	_floor.add_child(floor_mesh)
 	add_child(_floor)
 
 	# Perimeter walls: keeps fighters inside the bounds (FALLS OFF
-	# THE SAND never happen; the room is sealed by design).
+	# THE SAND never happen; the room is sealed by design). Now with a
+	# visible stone face (alpine gray; the fog valley wears a darker
+	# rust rim) so the seal reads from inside instead of being air.
 	for wall in [
 		[Vector3(0, 5, -half), Vector3(2.0 * half, 10, 2)],
 		[Vector3(0, 5, half), Vector3(2.0 * half, 10, 2)],
@@ -699,6 +715,15 @@ func _build_room() -> void:
 		wall_col.shape = wall_shape
 		wall_body.add_child(wall_col)
 		wall_body.position = wall[0]
+		var wall_mesh := MeshInstance3D.new()
+		var wall_box := BoxMesh.new()
+		wall_box.size = wall[1]
+		wall_mesh.mesh = wall_box
+		var wall_mat := StandardMaterial3D.new()
+		wall_mat.albedo_color = env["wall"]
+		wall_mat.roughness = 1.0
+		wall_mesh.material_override = wall_mat
+		wall_body.add_child(wall_mesh)
 		add_child(wall_body)
 
 	# Cover rocks: TDM rooms get midfield slabs; elimination rooms get
@@ -714,10 +739,12 @@ func _build_cover(half: float) -> void:
 	# LOS blocks). Center stone tint differs so the two patterns read
 	# apart at a glance.
 	var elim_mode: bool = int(_rules.get("mode")) == Contract.InstanceMode.ELIMINATION
+	var env := _mode_env(int(_rules.get("mode")))
 	var layout: Array = ELIM_COVER_LAYOUT if elim_mode else COVER_LAYOUT
 	var rock_size := Vector3(3, 7, 3) if elim_mode else Vector3(6, 5, 3)
 	var rock_mat := StandardMaterial3D.new()
-	rock_mat.albedo_color = Color(0.55, 0.52, 0.46) if elim_mode else Color(0.45, 0.42, 0.38)
+	rock_mat.albedo_color = env["cover"]
+	rock_mat.roughness = 1.0
 	var rock_index := 0
 	for spot in layout:
 		var rock := StaticBody3D.new()
@@ -741,3 +768,32 @@ func _build_cover(half: float) -> void:
 		rock.name = "CoverRock_%d" % rock_index
 		rock_index += 1
 		add_child(rock)
+
+## The instance style law: per-mode environment palette. Colors are
+## read off TerrainGen.biome_color's palette so a room visually belongs
+## to its zone's biome (coliseum/fringe desert, sandpit/steppe, the
+## Sundered Valley/badlands rust). `seed` salts the floor noise tint.
+## ROYALE keeps bare terrain (cover reserved) but shares floor+wall.
+func _mode_env(mode: int) -> Dictionary:
+	match mode:
+		Contract.InstanceMode.ELIMINATION:
+			return {"seed": 11, "floor": Color(0.80, 0.68, 0.42), "wall": Color(0.55, 0.53, 0.50), "cover": Color(0.55, 0.52, 0.46)}
+		Contract.InstanceMode.ROYALE:
+			return {"seed": 23, "floor": Color(0.55, 0.34, 0.26), "wall": Color(0.40, 0.26, 0.20), "cover": Color(0.55, 0.34, 0.26)}
+		_:
+			# TEAM_DEATHMATCH (the sandpit): olive steppe ground, warm
+			# sand slabs.
+			return {"seed": 7, "floor": Color(0.52, 0.52, 0.32), "wall": Color(0.55, 0.53, 0.50), "cover": Color(0.45, 0.42, 0.38)}
+
+## Subtle seeded tint over a base albedo (biome albedo law): a small
+## noise texture so floors do not read as one flat paint pour.
+func _noise_tint(seed: int) -> NoiseTexture2D:
+	var noise := FastNoiseLite.new()
+	noise.seed = seed
+	noise.frequency = 0.08
+	var tex := NoiseTexture2D.new()
+	tex.noise = noise
+	tex.width = 64
+	tex.height = 64
+	tex.seamless = true
+	return tex

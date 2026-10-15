@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="NPCData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/npc_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "npc_merchant_capital"
+display_name = "Strand Merchant"
+description = "The gift-trade bourse at the cove: the same stock the village store carries, at Federation rates."
+npc_type = 6
+level = 1
+faction = "friendly"
+scene_path = "res://scenes/npcs/merchant_general.tscn"
+zone_id = "zone_nexus_central"
+spawn_offset = Vector3(10, 0, -2)
+greeting = "The cove carries everything. Names your want."
+farewell = "Mind the pier, it is slick."
+shop_title = "Strand Bourse"
+location_type = 0
+buy_multiplier = 0.6
+sell_multiplier = 1.0
+includes = [
+	{"type": "dialogue", "dialogue_id": "merchant_greeting"},
+	{"type": "offering", "ref_id": "general_store"},
+	{"type": "offering", "ref_id": "vendor_craft_shelf"}
+]

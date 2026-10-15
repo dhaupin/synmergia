@@ -650,13 +650,36 @@ func _on_context_action(action_id: String, target_id: String) -> void:
 
 		"skill_academy":
 			_open_skill_academy_ui()
+			_attach_npc_panel_proximity(_skill_academy_ui, target_id)
 		"blacksmith":
 			_open_blacksmith_ui()
+			_attach_npc_panel_proximity(_blacksmith_ui, target_id)
 		"craft":
 			_open_workbench_ui()
 		"character_stats":
 			_open_character_stats_ui()
 
+## The NPC-panel attach law: a panel opened from an NPC's action menu
+## binds to that NPC's position and auto-closes when the player walks
+## away past the canonical interact radius (UIPanel, 12m). The same
+## panel opened by hotkey/main menu (player skill management, K)
+## stays unattached and works everywhere. ShopUI already follows this
+## law via open_for_offering(npc_pos).
+func _attach_npc_panel_proximity(panel: Node, target_id: String) -> void:
+	if panel == null or not is_instance_valid(panel):
+		return
+	if not "set_npc_proximity" in panel:
+		return
+	if _current_target_info == null or _current_target_info.id != target_id \
+			or _current_target_info.entity_type != Entity.EntityType.NPC:
+		return
+	var npc_pos: Vector3 = _current_target_info.world_position
+	if npc_pos == Vector3.ZERO and _current_target_info.node != null \
+			and is_instance_valid(_current_target_info.node) \
+			and _current_target_info.node is Node3D:
+		npc_pos = (_current_target_info.node as Node3D).global_position
+	if npc_pos != Vector3.ZERO:
+		panel.call("set_npc_proximity", npc_pos)
 
 ## Resolve the dialogue id for an NPC's dialogue offering (inline or
 ## ref-based), or "" when the NPC has none.

@@ -275,7 +275,11 @@ func _run() -> void:
 		var patch_mi: MeshInstance3D = _globe.streamer._patches.get(f)
 		var own_lvl: int = int(_globe.streamer._patch_lvl.get(f, 0))
 		var want_edges: int = 3 * (1 << own_lvl)  # 3 border arcs x 2^lvl tile edges per face
-		if st_count <= 0 or st_count % 2 != 0 or (st_count / 2) != want_edges or patch_mi == null or patch_mi.mesh == null or patch_mi.mesh.get_surface_count() != 2:
+		# THE v3 SURFACE COUNT LAW: terrain (0) + skirt (1) are the
+		# always-surface pair; the hydrology water sheet may add
+		# surface 2 on wet patches (the cove/lake/moat read) -- so the
+		# pin demands >= 2, not exactly 2.
+		if st_count <= 0 or st_count % 2 != 0 or (st_count / 2) != want_edges or patch_mi == null or patch_mi.mesh == null or patch_mi.mesh.get_surface_count() < 2:
 			skirt_ok = false
 		else:
 			skirt_faces += 1
@@ -331,7 +335,7 @@ func _run() -> void:
 	var reuse_mesh: MeshInstance3D = _globe.streamer._patches.get(reuse_face)
 	ok = _check("lod: hot swap resets the mesh to base level", \
 		reuse_mesh != null and int(_globe.streamer._patch_lvl.get(reuse_face, -1)) == base2 \
-		and reuse_mesh.mesh.get_surface_count() == 2) and ok
+		and reuse_mesh.mesh.get_surface_count() >= 2) and ok
 
 	# ---- C. The water shell is the sea line -------------------------
 	if _globe.water_body != null:

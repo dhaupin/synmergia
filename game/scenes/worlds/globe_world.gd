@@ -137,6 +137,7 @@ func _ready() -> void:
 	_build_arena_gateway()
 	_build_starter_village()
 	_build_capitol_monolith()
+	_build_town_npcs()
 	_build_player()
 	_setup_ambience()
 	planet_center = world_root.position
@@ -775,6 +776,14 @@ func _build_starter_village() -> void:
 	var SV: GDScript = load("res://entities/starter_village.gd")
 	starter_village = SV.build(world_root, planet_radius, STREAMER_TILE_LIFT, \
 		Callable(streamer, "walk_surface_h"))
+	# THE GAME-FUNCTION PROPS (turn 15, the owner's law): the ankh
+	# shrine, moon gate, and bout queue stones ride the same walk-law
+	# frame under the village's own root (the props' dir-bearing
+	# block sits 120..-150 deg around the plaza, so they clear the
+	# authored structures' bearings).
+	var VP: GDScript = load("res://entities/village_props.gd")
+	VP.build_village(starter_village, planet_radius, STREAMER_TILE_LIFT, \
+		Callable(streamer, "walk_surface_h"))
 
 
 ## THE CAPITOL MONOLITH (the ledger's coast build): the authored
@@ -785,10 +794,92 @@ func _build_capitol_monolith() -> void:
 	var CM: GDScript = load("res://entities/capitol_monolith.gd")
 	capitol_monolith = CM.build(world_root, planet_radius, STREAMER_TILE_LIFT, \
 		Callable(streamer, "walk_surface_h"))
+	# THE CAPITOL PROPS (same turn-15 law): ankh, moon gate, bout
+	# stones -- the plaza beats ride the plaza flat in the strand's
+	# own tangent frame so the city plaza carries them too.
+	var VP2: GDScript = load("res://entities/village_props.gd")
+	VP2.build_capitol(capitol_monolith, planet_radius, STREAMER_TILE_LIFT, \
+		Callable(streamer, "walk_surface_h"))
 
 
 var starter_village: Node3D = null
 var capitol_monolith: Node3D = null
+
+
+## THE TOWN ROSTERS (the owner's turn-15 law: "the starter village
+## should have all the NPCs; capitol too"). On the PLANAR world the
+## spawn_all_offering_npcs path places NPCs from zone bind points;
+## on the GLOBE planar coords are meaningless (the underworld's own
+## camp-keeper law answers this: the owning globe scene spawns its
+## NPCs itself in its own frame). The village four stand around the
+## spawn plaza's tangent frame; the capitol two stand in the strand
+## frame -- each riding its dir's walk lift + a stall raise.
+## Ducks SpawnService like the underworld does (script-mode safe).
+const TerrainGenRef = preload("res://scenes/worlds/terrain_gen.gd")
+const VILLAGE_NPC_BATCH: Array = [
+	# npc_id, bearing_deg (spawn tangent frame), reach_rad
+	["npc_village_elder", 200.0, 0.009],
+	["npc_blacksmith_village", 44.0, 0.012],
+	["npc_merchant_general", -14.0, 0.013],
+	["npc_herbalist_village", 20.0, 0.012],
+	["npc_banker_village", -60.0, 0.011],
+	["npc_skill_academy_village", 160.0, 0.012],
+]
+const CAPITOL_NPC_BATCH: Array = [
+	# npc_id, bearing_deg (capitol strand frame), reach_rad
+	["npc_armory_capital", 60.0, 0.005],
+	["npc_skill_academy_capital", -120.0, 0.005],
+	["npc_banker_capital", 0.0, 0.007],
+	["npc_blacksmith_capital", 95.0, 0.006],
+	["npc_merchant_capital", 25.0, 0.006],
+	["npc_herbalist_capital", -70.0, 0.006],
+	["npc_elder_capital", 150.0, 0.006],
+]
+
+
+func _build_town_npcs() -> void:
+	var SS = get_node_or_null("/root/SpawnService")
+	var DS = get_node_or_null("/root/DataService")
+	if SS == null or DS == null or not SS.has_method("spawn_npc_entity"):
+		_log_backend("warn", "GlobeWorld: town NPCs idle (SpawnService/DataService absent)")
+		return
+	for entry in VILLAGE_NPC_BATCH:
+		_spawn_town_npc(str(entry[0]), TerrainGenRef.SPAWN_CENTER, \
+			float(entry[1]), float(entry[2]), SS, DS, starter_village)
+	for entry in CAPITOL_NPC_BATCH:
+		_spawn_town_npc(str(entry[0]), TerrainGenRef.capitol_plaza_dir(), \
+			float(entry[1]), float(entry[2]), SS, DS, capitol_monolith)
+	_log_backend("info", "GlobeWorld: town rosters placed (%d village, %d capitol)" \
+		% [VILLAGE_NPC_BATCH.size(), CAPITOL_NPC_BATCH.size()])
+
+
+## One town NPC at `center`'s tangent bearing `reach` out, riding the
+## walk law's lift; reparented under `parent_root` so it folds away
+## with the globe (the underworld's reparent law). Zone bookkeeping
+## rides the NPCData's own zone_id (quest TALK credit stays lawful).
+func _spawn_town_npc(npc_id: String, center: Vector3, bearing_deg: float,
+		reach: float, SS, DS, parent_root: Node3D) -> void:
+	var npc_data = DS.get_npc(npc_id) if DS.has_method("get_npc") else null
+	if npc_data == null:
+		_log_backend("warn", "GlobeWorld: %s missing; the beat stays empty" % npc_id)
+		return
+	var east: Vector3 = Vector3(0, 1, 0).cross(center).normalized()
+	var north: Vector3 = center.cross(east).normalized()
+	var rad: float = deg_to_rad(bearing_deg)
+	var dir: Vector3 = (center + east * (reach * cos(rad)) \
+		+ north * (reach * sin(rad))).normalized()
+	var surface: Vector3 = dir * (planet_radius + STREAMER_TILE_LIFT \
+		+ float(streamer.walk_surface_h(dir)) + 0.4)
+	var zone_id: String = str(npc_data.get("zone_id")) if "zone_id" in npc_data else ""
+	var entity = SS.spawn_npc_entity(zone_id, surface, npc_data)
+	if entity == null:
+		return
+	# Reparent under the town root (globe content, not persistent
+	# world state) -- the underworld's fold-away law.
+	if entity.get_parent() != parent_root and entity.get_parent() != null:
+		entity.get_parent().remove_child(entity)
+		parent_root.add_child(entity)
+	entity.global_position = world_root.global_position + surface
 
 
 ## Ambience driver (entities/ambience_driver.gd): resolves weather at

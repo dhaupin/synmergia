@@ -1113,7 +1113,7 @@ func _process(_delta: float) -> void:
 	var player := _get_local_player()
 	if player == null:
 		return
-	if player.global_position.distance_to(_npc_position) > 8.0:
+	if player.global_position.distance_to(_npc_position) > _max_interact_distance:
 		close()
 		if _notify_svc():
 			var NotifKind = load("res://core/notifications/notification_kind.gd").NotifKind

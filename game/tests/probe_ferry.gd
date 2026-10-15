@@ -40,9 +40,9 @@ func _run() -> void:
 	_check("the Haven Ferry is scheduled data (8 a day, 30 min)", \
 		v != null and int(v.ferries_per_day) == 8 \
 		and absf(float(v.crossing_hours) - 0.5) < 1e-9)
-	_check("the route has two ports (village docks -> Nexus harbor)", \
+	_check("the route has two ports (village harbor -> the Capitol pier)", \
 		v != null and str(v.route_gateways[0]) == "waypoint_village_center" \
-		and str(v.route_gateways[1]) == "waypoint_nexus_central")
+		and str(v.route_gateways[1]) == "waypoint_capitol_pier")
 	var st_live: Dictionary = fs.route_status(id)
 	_check("the dock chart is never blank (realtime status works)", \
 		not st_live.is_empty() and st_live.has("status") \
@@ -78,7 +78,7 @@ func _run() -> void:
 
 	var gate: Dictionary = fs.can_board("deckhand", id)
 	_check("in the window the dock says come aboard", \
-		bool(gate["ok"]) and str(gate["to"]) == "waypoint_nexus_central")
+		bool(gate["ok"]) and str(gate["to"]) == "waypoint_capitol_pier")
 	var board: Dictionary = fs.board_ferry("deckhand", id)
 	_check("deckhand boards the ferry (free, as the law settled)", \
 		bool(board["ok"]) and not board.has("skiff"))
@@ -100,7 +100,7 @@ func _run() -> void:
 	fs.rider_arrived.connect(func(pid, vid, at_p): _rider_arrivals.append(str(pid)))
 	fs._sailings[id]["remaining_s"] = 0.01
 	fs.tick(0.02)
-	_check("the ferry arrives at the Nexus harbor", _arrivals == ["waypoint_nexus_central"])
+	_check("the ferry arrives at the Capitol pier", _arrivals == ["waypoint_capitol_pier"])
 	_check("the rider's arrival is named", _rider_arrivals == ["deckhand"])
 	_check("the manifest disembarks cleanly", fs._manifests[id].is_empty())
 	_check("the wake is recorded (one crossing, one entry)", \

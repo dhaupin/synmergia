@@ -113,8 +113,65 @@ const LAKE_DROP: float = 7.5
 const ISLAND_CENTER: Vector3 = Vector3(0.866, 0.0, 0.5)
 const ISLAND_ANGULAR_REACH: float = 0.012
 const ISLAND_PLATEAU: float = 20.0
+## THE BOOT COVE (2026-10-14, the owner's vista law: "grass hillside,
+## the capitol city + coastline ~1 km out; mountains way off behind").
+## An authored sea notch + shelf-city strand cut INTO the homeland's
+## own plain, on the south bearing (COVE_BEARING_DEG in the spawn
+## tangent frame):
+##   - the CAPITOL CITY FLAT: grassland turf at sea + 22 m riding the
+##     flat ring 0.86..1.1 km from the boot - the city basin clears
+##     the boot's low-eye horizon (~654 m on the flats), so the
+##     monolith + city skyline are VISIBLE from the spawn plaza over
+##     the water;
+##   - the COVE SEA: from the flat's outer rim out to the homeland
+##     reach, the water cut opens - the coastline reads ~1.1 km off;
+##   - the boot plaza + dry apron keep their own ground outside the
+##     bearing window, so the W4 boot-dry law survives untouched;
+##   - the ring range lives untouched all around at 5.2..14.8 km, so
+##     the turn-around vista reads the mountain band kilometers off.
+## The ferry island + strait moat law is untouched: the island keeps
+## its own sea front and bearing.
+const COVE_BEARING_DEG: float = 90.0
+const COVE_HALF_WIDTH: float = 0.15
+const CAPITOL_FLAT_IN_ANG: float = 0.043
+const CAPITOL_FLAT_OUT_ANG: float = 0.055
+const CAPITOL_BASE_LIFT: float = 22.0
+const COVE_FLOOR_DROP: float = 8.0
+## The strand's fixed color-noise salt: authored features do not roll
+## with the world seed (the cove is one authored coast, not biome).
+const COVE_SALT: int = 733
+## THE VILLAGE HILLSIDE (the owner's overlook read): the boot plaza
+## benches up so the starter village reads "grassy hillside
+## overlooking the capitol + coast" -- the plaza at 28 m sits above
+## the capitol bench (sea+22) and the cove water, with the ring
+## range 5+ km behind it. The plaza-flat + apron laws ride the same
+## constant (ramps relaw), so the boot ground stays exact under the
+## taller bench.
+const VILLAGE_HILLSIDE_LIFT: float = 19.0  # plaza = VILLAGE..+SPAWN height
+
+## THE CAPITOL PLAZA ANCHOR: the cove's far rim, 1.03 km from the
+## boot on the same strand read. THIS is the Novo Concord city
+## bearing (the "one of those is the Novo Concord Federation city",
+## 2026-10-14); the plaza laws below turf it flat for the build.
 ## The spawn shore: guaranteed land + a flattened build/walk plaza.
 const SPAWN_CENTER: Vector3 = Vector3(1.0, 0.0, 0.0)
+## THE COVE AXIS (AUTHORED STAND UNIT): the strand's center bearing,
+## tangent-plane placed at the capitol flat's mid ring (0.049 rad =
+## ~980 m). Pure function of the spawn plaza's boot frame.
+static func cove_axis() -> Vector3:
+	var east: Vector3 = Vector3(0, 1, 0).cross(SPAWN_CENTER).normalized()
+	var north: Vector3 = SPAWN_CENTER.cross(east).normalized()
+	var rad: float = deg_to_rad(COVE_BEARING_DEG)
+	var mid: float = 0.5 * (CAPITOL_FLAT_IN_ANG + CAPITOL_FLAT_OUT_ANG)
+	var dir: Vector3 = (SPAWN_CENTER + east * (mid * cos(rad)) \
+		+ north * (mid * sin(rad))).normalized()
+	return dir.normalized()
+
+## THE CAPITOL PLAZA DIRECTION: the city strand anchor ON the flat
+## ring (the monolith + city props ride it).
+static func capitol_dir() -> Vector3:
+	return cove_axis()
+
 ## MESH-RESOLUTION LAW (web play-test round 15): at the v1 planet
 ## scale the streamed terrain mesh samples the heightfield only every
 ## ~330 m (icosahedral face edge ~21 km / 2^6 subdivisions). A 30 m
@@ -127,7 +184,7 @@ const SPAWN_CENTER: Vector3 = Vector3(1.0, 0.0, 0.0)
 ## 0.04 rad = 800 m (~2.4 tiles), full-flat within 0.024 rad = 480 m,
 ## past the ~360 m boot horizon (so the whole visible ground is plaza).
 const SPAWN_FLAT_ANG: float = 0.04
-const SPAWN_HEIGHT: float = 9.0
+const SPAWN_HEIGHT: float = 9.0 + VILLAGE_HILLSIDE_LIFT
 ## No rock, boulder, or tree may center within this angle of spawn
 ## (at 20 km that is ~240 m of clear shore; at prototype scale it
 ## covers the old rock-cap-free spawn guarantee the probes pin).
@@ -313,6 +370,32 @@ static func _island_shape(d: Vector3) -> float:
 	return smoothstep(0.0, 1.0, clampf(t * 1.8, 0.0, 1.0))
 
 
+## THE BOOT COVE WINDOW (0..1): angular proximity to the authored
+## strand bearing, cone shaped around the cove axis with a wide
+## smoothstep falloff -- the bay's land walls are the window's rim
+## where the weight dies. Pure; sampled in the spawn tangent frame.
+## THE COVE WINDOW (0..1): BEARING deviation from the authored stand
+## axis, measured in the spawn tangent frame -- never a 3D cone (a
+## cone at ring radii swallows the dry apron ring at other bearings).
+## Full strength ON the axis bearing, dead past the half width.
+static func _cove_window(d: Vector3) -> float:
+	var east: Vector3 = Vector3(0, 1, 0).cross(SPAWN_CENTER).normalized()
+	var north: Vector3 = SPAWN_CENTER.cross(east).normalized()
+	var axis: Vector3 = cove_axis()
+	var qa: Vector3 = axis - SPAWN_CENTER * SPAWN_CENTER.dot(axis)
+	qa = qa.normalized()
+	var q: Vector3 = d - SPAWN_CENTER * SPAWN_CENTER.dot(d)
+	var qlen: float = q.length()
+	if qlen < 1e-9:
+		return 1.0
+	q = q / qlen
+	var dev: float = absf(atan2(q.dot(north), q.dot(east)) \
+		- atan2(qa.dot(north), qa.dot(east)))
+	if dev > PI:
+		dev = TAU - dev
+	return 1.0 - smoothstep(COVE_HALF_WIDTH, COVE_HALF_WIDTH * 2.0, dev)
+
+
 ## THE GROUND LAW (v2 core, renamed at v3). Height (meters) of the
 ## walkable terrain above the base surface at world direction `dir`
 ## BEFORE hydrology carving. Continuous everywhere (smoothstep blends;
@@ -482,6 +565,33 @@ static func _natural_raw(d: Vector3, world_seed: PackedByteArray) -> float:
 static func _sculpt_and_spawn(d: Vector3, h_in: float, sea: float, island_floor: float) -> float:
 	d = d.normalized()
 	var h: float = h_in
+	# THE BOOT COVE (the authored vista law, rides over ANY backend):
+	# a shelf-city strand + sea notch cut into the homeland's own
+	# plain on the cove bearing, ring-shaped in the spawn frame. First
+	# the CITY FLAT (lift overrides the ring-range massif where the
+	# window holds -- the strand is authored, not noise), then the
+	# SEA cut OUTSIDE the flat rim out to the homeland reach.
+	var cove_w: float = _cove_window(d)
+	if cove_w > 0.0:
+		var ang_cove: float = d.angle_to(SPAWN_CENTER)
+		# The city flat: between the flat rings the strand floors at
+		# sea + lift (an authored bench, ramping at both rims).
+		if ang_cove < CAPITOL_FLAT_OUT_ANG:
+			# The city bench: full authored lift inside the flat ring,
+			# ramping UP only at the inland rim (the strand keeps its
+			# sea+lift height to the water -- no headland wall between
+			# the city and the cove).
+			var inner: float = smoothstep(0.0, CAPITOL_FLAT_IN_ANG, ang_cove)
+			h = lerpf(h, sea + cove_w * CAPITOL_BASE_LIFT, \
+				clampf(cove_w * inner, 0.0, 1.0))
+		else:
+			# The cove water: OUTSIDE the flat rim the strand ramps
+			# down into the bay (a ~120 m beach; shallow shelf, not an
+			# abyss), so the boot's eye reads the coastline at ~1.1 km.
+			var sea_ramp: float = smoothstep(CAPITOL_FLAT_OUT_ANG, \
+				CAPITOL_FLAT_OUT_ANG + 0.006, ang_cove)
+			h = lerpf(h, sea - COVE_FLOOR_DROP, \
+				clampf(cove_w * sea_ramp, 0.0, 1.0))
 	# The island: volcanic plateau rising from the (floor) strait.
 	# The tier OVERLAYS the base field (lerp, not max): the ring-range
 	# crest or any other massif lives on the seat otherwise - the W5
@@ -507,8 +617,12 @@ static func _sculpt_and_spawn(d: Vector3, h_in: float, sea: float, island_floor:
 	# exactly SPAWN_HEIGHT (continuous) and ends at sea + margin (the
 	# worst-case step down to the natural dome terrain stays under the
 	# 4 m ramp-continuity bound the probe pins).
+	# THE COVE YIELD: inside the cove window beyond the city flat the
+	# apron STANDS DOWN -- the authored bay is the coast there, and
+	# the apron's max() would raise the cove water back to dry land.
 	var ang_apron: float = d.angle_to(SPAWN_CENTER)
-	if ang_apron >= SPAWN_FLAT_ANG and ang_apron < SPAWN_APRON_OUTER_ANG:
+	var apron_skip: bool = cove_w > 0.1 and ang_apron >= CAPITOL_FLAT_OUT_ANG
+	if ang_apron >= SPAWN_FLAT_ANG and ang_apron < SPAWN_APRON_OUTER_ANG and not apron_skip:
 		var apron_floor: float = sea + SPAWN_APRON_SEA_MARGIN
 		if ang_apron < SPAWN_APRON_ANG:
 			var t_apron: float = 1.0 - (ang_apron - SPAWN_FLAT_ANG) / (SPAWN_APRON_ANG - SPAWN_FLAT_ANG)
@@ -1810,7 +1924,7 @@ static func village_harbor_dir() -> Vector3:
 ## far coast of the starter continent (a real cart journey across
 ## the homeland, up to the road law to route it).
 static func capitol_plaza_dir() -> Vector3:
-	return village_harbor_dir().rotated(Vector3(1, 0, 0), PI).normalized()
+	return capitol_dir()
 
 
 static func road_spec_cached(world_seed: PackedByteArray) -> RoadSpec:

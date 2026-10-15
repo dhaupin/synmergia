@@ -73,16 +73,24 @@ func _run() -> void:
 			plateau_cap_dirs += 1
 			if h > sea:
 				plateau_land_dirs += 1
+			elif _dir_in_cove(Gen, d):
+				# THE BOOT COVE exemption (2026-10-14 turn 15, the
+				# owner's vista law: the authored sea notch + shelf
+				# city cut INTO the homeland's own plain on the cove
+				# bearing). Only the authored window's water is
+				# allowed to read sea inside the plateau cap -- any
+				# OTHER open water there is still a W2 break.
+				plateau_land_dirs += 1
 			elif d.angle_to(Gen.ISLAND_CENTER.normalized()) > Gen.ISLAND_ANGULAR_REACH \
 					and d.angle_to(Gen.ISLAND_CENTER.normalized()) < Gen.ISLAND_MOAT_OUTER:
 				# THE AUTHORED STRAIT (turn 14, the owner's starter-vista
 				# proto): the ferry island moved INTO the homeland's sea
 				# front, so the moat law deliberately cuts the crossing
 				# between the village harbor and the island INSIDE the
-				# plateau cap. The exemption reads the moat constants
-				# exactly — only the authored annulus is allowed to read
-				# sea; any other open water inside the plateau is still
-				# a W2 break (the law's intent, unchanged).
+					# plateau cap. The exemption reads the moat constants
+					# exactly — only the authored annulus is allowed to read
+					# sea; any other open water inside the plateau is still
+					# a W2 break (the law's intent, unchanged).
 				plateau_land_dirs += 1
 
 
@@ -122,6 +130,28 @@ func _run() -> void:
 			det_ok = false
 			break
 	_check(det_ok, "the law is deterministic on a shared seed (W6)")
-
 	print("WORLD SHAPE probe: %d failure(s)" % _fails)
 	quit(1 if _fails > 0 else 0)
+
+
+## THE BOOT COVE window read (mirrors TerrainGen._cove_window's law):
+## true when dir falls inside the authored sea notch's bearing band.
+## Inlined here (the probes read statics only; the helper mirrors the
+## exact constants the law carries, so a drift breaks the pin).
+func _dir_in_cove(Gen, d: Vector3) -> bool:
+	var spawn: Vector3 = Gen.SPAWN_CENTER
+	var east: Vector3 = Vector3(0, 1, 0).cross(spawn).normalized()
+	var north: Vector3 = spawn.cross(east).normalized()
+	var axis: Vector3 = Gen.cove_axis()
+	var qa: Vector3 = axis - spawn * spawn.dot(axis)
+	qa = qa.normalized()
+	var q: Vector3 = d - spawn * spawn.dot(d)
+	var qlen: float = q.length()
+	if qlen < 1e-9:
+		return true
+	q = q / qlen
+	var dev: float = absf(atan2(q.dot(north), q.dot(east)) \
+		- atan2(qa.dot(north), qa.dot(east)))
+	if dev > PI:
+		dev = TAU - dev
+	return dev < Gen.COVE_HALF_WIDTH * 2.0

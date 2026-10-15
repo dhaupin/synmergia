@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="NPCData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/npc_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "npc_banker_village"
+display_name = "Village Banker"
+description = "The keep's vault keeper. Deposits, withdrawals, and the safe-keeping of coin that adventurers lose to the sea."
+npc_type = 6
+level = 1
+faction = "friendly"
+zone_id = "zone_village_center"
+spawn_offset = Vector3(4, 0, 2)
+greeting = "Coin or keepsakes? The vault holds both."
+farewell = "The vault keeps its word."
+shop_title = "Village Vault"
+location_type = 2
+services = ["bank"]
+includes = [{"type": "offering", "ref_id": "bank_vault"}]
