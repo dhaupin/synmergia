@@ -84,6 +84,26 @@ func _run() -> void:
 				break
 		if near_sculpt:
 			continue
+		# THE TAIL LAW: the sculpt tail (city cove, island ring, the
+		# moat band, spawn plaza/apron) and the hydrology tail
+		# (rivers/lakes/roads) legally ride ANY installed field -- this
+		# probe's own contract in checks 3-5. The fan samples CLEAR
+		# ground only; the carve sites each prove their own law
+		# separately. (The west axis sits in the island moat band: the
+		# old hand-listed center exception missed it.)
+		var back_c: float = minf(db.field(dir_v, seed_bytes), Gen.TERRAIN_MAX)
+		var sea: float = Gen.sea_level(seed_bytes)
+		var sculpted: float = Gen._sculpt_and_spawn(dir_v, back_c, sea,
+			sea - Gen.OCEAN_DEPTH_MIN)
+		if absf(sculpted - back_c) > 0.001:
+			continue
+		if Gen.river_channel(dir_v, seed_bytes) > 0.0:
+			continue
+		if absf(Gen.hydro_lake_carve(dir_v, seed_bytes, sculpted) - sculpted) > 0.001:
+			continue
+		if absf(Gen.terrain_height_carved(dir_v, seed_bytes, "_noroad")
+				- Gen.terrain_height_carved(dir_v, seed_bytes, "")) > 0.001:
+			continue
 		var back: float = db.field(dir_v, seed_bytes)
 		var got: float = Gen.terrain_height(dir_v, seed_bytes)
 		if absf(got - maxf(0.0, minf(back, Gen.TERRAIN_MAX))) > 0.001:

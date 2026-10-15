@@ -13,8 +13,11 @@
 ##     evaluation has no drift because it has no integration),
 ##
 ## and EVERY tier aligns to the same source: the Linux epoch (unix
-## seconds). SignService.sky_epoch_days() is unix/86400 -- the Concord
-## calendar and the lattice already hang off it. The tier clock never
+## seconds). SignService.sky_epoch_days() is unix/7200 -- the Concord
+## SKY clock, 7200-real-second sky days (S16.2; the calendar day index
+## stays real days). The lattice's orbit laws hang off the sky unit;
+## WorldRegistry.SKY_DAY_SECONDS converts it back to unix seconds for
+## the Real-seconds horizon (cosmic_age_s). The tier clock never
 ## replaces the epoch; it is an accuracy CONTRACT against it:
 ## max_drift_s is how far that scale's view may diverge from the
 ## epoch before a correction is mandatory, tick_horizon_s is how far

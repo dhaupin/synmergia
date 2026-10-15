@@ -88,7 +88,7 @@ func world_seed_hex(id: String) -> String:
 
 ## World-local position of an orbiting world at sky-epoch `epoch`
 ## (SignService.sky_epoch_days() -- the Concord clock in fractional
-## days, and it IS unix/86400 per calibration_tier; THE canonical
+## SKY days, 7200 real seconds each per SKY_DAY_SECONDS; THE canonical
 ## epoch since S16.2). Pure function:
 ## angle = 2pi * (epoch / period) + phase, rotated into the inclined
 ## plane. Returns ZERO for non-orbiting worlds.
@@ -220,14 +220,25 @@ static func parent_visible_from(child, epoch: float, local_azimuth: float) -> bo
 
 ## Age of the universe at a sky epoch, given the declared origin
 ## (calibration_tier.origin_unix -- Synmergia's is the first commit).
-## BOTH axes are Unix seconds: sky_epoch_days() IS unix/86400, so
-## epoch_days * 86400 is the current unix time and subtracting
-## origin_unix (also unix seconds) is well-posed -- not a mixed-epoch
-## bug (calibration_tier.gd: "sky_epoch_days() IS unix/86400").
+## THE UNIT LAW: epoch_days is the CONCORD SKY clock in fractional
+## sky days (SignService.sky_epoch_days() = unix / SKY_DAY_SECONDS;
+## S16.2's sky day is 7200 real seconds, and the orbit laws hang off
+## this unit -- probe_world_lattice pins it). One sky day of Concord
+## time = 7200 real seconds, so epoch_days * SKY_DAY_SECONDS IS the
+## current unix time and subtracting origin_unix (unix seconds too)
+## is well-posed -- not a mixed-epoch bug. (The pre-S16.2 law assumed
+## sky days == calendar days, 86400 s; the 12x inflation now observable
+## through the old constant is why the Horizon aged fast on the new
+## clock.)
+## THE ONE CLOCK: SKY_DAY_SECONDS is the FIXED law constant, mirrored
+## here because frame math reads no autoloads (same number as
+## SignService.SKY_DAY_SECONDS -- probe_calibration holds both sides
+## to the alignment).
+const SKY_DAY_SECONDS: float = 7200.0
 ## Negative ages clamp to 0: nothing is observable before the bang.
 ## Pure function -- the outer limit is a subtraction, not a wall.
 static func cosmic_age_s(origin_unix: float, epoch_days: float) -> float:
-	return maxf(epoch_days * 86400.0 - origin_unix, 0.0)
+	return maxf(epoch_days * SKY_DAY_SECONDS - origin_unix, 0.0)
 
 
 ## The observable-universe radius at an epoch: how far light has

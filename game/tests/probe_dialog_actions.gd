@@ -40,7 +40,7 @@ func _run() -> void:
 		print("RAW node3=", dlg.get_node(3))
 		var acts: Array = dlg.get_choices(3)
 		print("CHOICES size=", acts.size())
-		if acts.size() >= 1 and int(acts[0].get("action_type", -1)) == 1 and str(acts[0].get("action_data", {}).get("quest_id", "")) == "intro_core_npcs":
+		if acts.size() >= 1 and int(acts[0].get("action_type", -1)) == 1 and str(acts[0].get("action_data", {}).get("quest_id", "")) == "quest_intro_core_npcs":
 			print("quest-accept hook OK")
 		else:
 			print("FAIL quest-accept hook wrong: ", acts[0] if acts.size() > 0 else "(none)"); fails += 1

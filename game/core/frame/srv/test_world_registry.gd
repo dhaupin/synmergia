@@ -25,16 +25,17 @@ func _init() -> void:
 
 
 func _test_epoch_alignment() -> void:
-	# sky_epoch_days() = unix/86400, so epoch_days * 86400 = unix_now.
+	# sky_epoch_days() = unix/7200 (7200 s sky days, S16.2), so
+	# epoch_days * SKY_DAY_SECONDS = unix_now.
 	var origin := 1_600_000_000.0
 	var now_unix := 1_700_000_000.0
-	var age: float = WR.cosmic_age_s(origin, now_unix / 86400.0)
+	var age: float = WR.cosmic_age_s(origin, now_unix / WR.SKY_DAY_SECONDS)
 	_assert(absf(age - (now_unix - origin)) < 1.0, "cosmic age is unix seconds since the origin")
 	_assert(absf(age - 100_000_000.0) < 1.0, "cosmic age equals the elapsed unix seconds")
 
 
 func _test_negative_age_clamps() -> void:
-	_assert_eq(WR.cosmic_age_s(2_000_000_000.0, 1_000_000_000.0 / 86400.0), 0.0,
+	_assert_eq(WR.cosmic_age_s(2_000_000_000.0, 1_000_000_000.0 / WR.SKY_DAY_SECONDS), 0.0,
 		"an origin in the future clamps age to 0")
 
 
@@ -42,7 +43,7 @@ func _test_observable_radius_grows_at_c() -> void:
 	var c := 299_792_458.0
 	var r1: float = WR.observable_radius_m(0.0, 1000.0, c)
 	var r2: float = WR.observable_radius_m(0.0, 1001.0, c)
-	_assert(absf((r2 - r1) - 86400.0 * c) < 1.0, "the horizon grows exactly one light-day per day")
+	_assert(absf((r2 - r1) - WR.SKY_DAY_SECONDS * c) < 1.0, "the horizon grows one light-sky-day per sky day")
 
 
 func _test_universe_seed() -> void:

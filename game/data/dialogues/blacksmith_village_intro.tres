@@ -36,7 +36,7 @@ nodes = [
 		"speaker": "Village Smithy",
 		"text": "Owe? Depends. If you came because you heard this village was worth a second look, start by meeting the people who keep it running. The academy’s round the bend, and the general merchant’s the sort of place you don’t realize you needed until you’re carrying something awkward.",
 		"choices": [
-			{"text": "Point me at the people who matter.", "next_node": 4, "action_type": 1, "action_data": {"quest_id": "intro_core_npcs"}},
+			{"text": "Point me at the people who matter.", "next_node": 4, "action_type": 1, "action_data": {"quest_id": "quest_intro_core_npcs"}},
 			{"text": "I’ll start with the forge.", "next_node": -1, "action_type": 6, "action_data": {"shop_id": "blacksmith_service"}}
 		]
 	},

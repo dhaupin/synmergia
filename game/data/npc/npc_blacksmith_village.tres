@@ -25,5 +25,5 @@ services = ["repair"]
 includes = [
 	{"type": "offering", "ref_id": "blacksmith_service"},
 	{"type": "dialogue", "dialogue_id": "blacksmith_village_intro"},
-	{"type": "quest", "ref_id": "intro_core_npcs"}
+	{"type": "quest", "ref_id": "quest_intro_core_npcs"}
 ]

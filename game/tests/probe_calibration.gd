@@ -51,11 +51,13 @@ func _run() -> void:
 		str(local_t.epoch_source) == "unix" and str(world_t.epoch_source) == "unix" \
 		and str(system_t.epoch_source) == "unix" and str(galaxy_t.epoch_source) == "unix" \
 		and str(universe_t.epoch_source) == "unix")
-	# THE check: the Concord clock IS unix/86400. Linux epoch is aligned.
+	# THE check: the Concord sky clock IS the Linux clock in SKY days
+	# (S16.2: one sky day = SKY_DAY_SECONDS = 7200 real seconds; the
+	# calendar day index stays floor(unix/86400) -- see the next check).
 	var unix: float = float(Time.get_unix_time_from_system())
 	var concord: float = svc.sky_epoch_days()
-	_check("Concord epoch IS the Linux epoch (unix/86400)", \
-		absf(concord - unix / 86400.0) < 0.000001)
+	_check("Concord epoch IS the Linux epoch (sky days = unix/7200)", \
+		absf(concord - unix / svc.SKY_DAY_SECONDS) < 0.000001)
 	var day_index: int = svc.current_day_index()
 	_check("the sky calendar is floor(unix/86400)", day_index == int(floor(unix / 86400.0)))
 
@@ -119,6 +121,8 @@ func _run() -> void:
 	var origin: float = universe_t.origin_unix
 	_check("the origin is declared (the first commit)", origin == 1789861412.0)
 	var age_now: float = WR.cosmic_age_s(origin, svc.sky_epoch_days())
+	# NOTE: age_now converts the SKY epoch through WR.SKY_DAY_SECONDS
+	# (7200 s per sky day) -- one clock, two evaluations.
 	var age_direct: float = float(Time.get_unix_time_from_system()) - origin
 	_check("cosmic age IS now minus the bang (pure evaluation)", \
 		absf(age_now - age_direct) < 1.0)
@@ -138,11 +142,11 @@ func _run() -> void:
 	# Relative tolerance: at horizon magnitudes (~2e15 m) an absolute
 	# 1 m bound is below float64 resolution -- the honest check is the
 	# GROWTH RATE, not the meter count.
-	_check("the horizon grows at exactly c", \
-		r0 > 0.0 and absf((r1 - r0) / (universe_t.light_speed_m_s * 86400.0) - 1.0) < 0.000000001)
+	_check("the horizon grows at exactly c per sky day", \
+		r0 > 0.0 and absf((r1 - r0) / (universe_t.light_speed_m_s * WR.SKY_DAY_SECONDS) - 1.0) < 0.000000001)
 	_check("nothing is observable before the bang", \
-		WR.cosmic_age_s(origin, float(origin) / 86400.0 - 10.0) == 0.0 \
-		and WR.observable_radius_m(origin, float(origin) / 86400.0 - 10.0, universe_t.light_speed_m_s) == 0.0)
+		WR.cosmic_age_s(origin, float(origin) / WR.SKY_DAY_SECONDS - 10.0) == 0.0 \
+		and WR.observable_radius_m(origin, float(origin) / WR.SKY_DAY_SECONDS - 10.0, universe_t.light_speed_m_s) == 0.0)
 	_check("the Rest frame is declared (trilateral facilities)", \
 	str(universe_t.rest_frame).begins_with("nsc9:trilateral:"))
 	var rest_facets: PackedStringArray = str(universe_t.rest_frame).trim_prefix("nsc9:trilateral:").split("+")

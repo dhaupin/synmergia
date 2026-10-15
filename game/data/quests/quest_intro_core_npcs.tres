@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = "intro_core_npcs"
+id = "quest_intro_core_npcs"
 display_name = "Meet the People Doing the Work"
 description = "Introduce yourself to the core NPCs and get a feel for what each one actually handles."
 quest_type = 1
