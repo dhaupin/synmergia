@@ -520,9 +520,9 @@ static func toggle_menu(menu_name: String) -> void:
 	if instance:
 		instance._toggle_menu_internal(menu_name)
 
-static func open_menu(menu_name: String) -> void:
+static func open_menu(menu_name: String, npc_pos: Vector3 = Vector3.ZERO) -> void:
 	if instance:
-		instance._open_menu_internal(menu_name)
+		instance._open_menu_internal(menu_name, npc_pos)
 
 static func close_menu(menu_name: String) -> void:
 	if instance:
@@ -584,10 +584,19 @@ func _toggle_menu_internal(menu_name: String) -> void:
 	else:
 		_open_panel(menu_name, panel)
 
-func _open_menu_internal(menu_name: String) -> void:
+func _open_menu_internal(menu_name: String, npc_pos: Vector3 = Vector3.ZERO) -> void:
 	var panel := _get_panel(menu_name)
 	if not panel:
 		return
+	# The banker gate: the vault opens ONLY near a banker NPC. Every
+	# bank entry (hotkey, context menu, NPC interact) passes here.
+	if menu_name == "bank" and not _banker_gate(npc_pos):
+		return
+	# Attach the walk-away close when opened from an NPC's action menu
+	# (the blacksmith/academy law; MENU-panel flavor for the vault).
+	if menu_name == "bank" and npc_pos != Vector3.ZERO \
+			and "set_npc_proximity" in panel:
+		panel.call("set_npc_proximity", npc_pos)
 
 	if not _open_panels.has(menu_name):
 		_open_panels.append(menu_name)
@@ -624,6 +633,10 @@ func _close_panel(menu_name: String, panel: Control) -> void:
 	_update_back_button()
 
 func _open_panel(menu_name: String, panel: Control) -> void:
+	# The banker gate also owns the main-menu route (L key, HUD bar):
+	# the vault opens ONLY near a banker NPC.
+	if menu_name == "bank" and not _banker_gate(Vector3.ZERO):
+		return
 	if not _open_panels.has(menu_name):
 		_open_panels.append(menu_name)
 	_is_menu_open = true
@@ -664,6 +677,55 @@ func _local_player_id() -> String:
 	var eid = local.get("entity_id")
 	return String(eid) if eid != null else ""
 
+## ============================================================================
+## THE BANKER GATE: the vault opens ONLY near a banker NPC
+## ============================================================================
+
+## Search radius for a banker when opening the vault. Generous one
+## step past the UIPanel canonical 12m close law so the walk-away close
+## does not feel like a trap.
+const BANKER_RADIUS: float = 14.0
+
+## True when the local player stands within BANKER_RADIUS of any NPC
+## whose npc_data services include "bank". When npc_pos is supplied
+## (context-menu open) that banker's position is trusted directly --
+## the action menu itself proved proximity -- while the radius check
+## guards hotkey/main-menu opens. No local player or no EntityService
+## (tests/offline) degrades to allowed so probes keep flowing.
+func _banker_gate(npc_pos: Vector3) -> bool:
+	if npc_pos != Vector3.ZERO:
+		# Proven by the action menu; the walk-away close owns the rest.
+		return true
+	var pm := get_node_or_null("/root/PlayerManager")
+	var player = pm.get_local_player() if pm != null and pm.has_method("get_local_player") else null
+	if player == null or not is_instance_valid(player):
+		return true
+	if is_valid_banker_near(player):
+		return true
+	var ns := get_node_or_null("/root/NotificationService")
+	if ns != null:
+		var NotifKind = load("res://core/notifications/notification_kind.gd").NotifKind
+		ns.notify(NotifKind.CUSTOM, "Find a banker to access the vault.",
+			"MenuManager", "banker_gate", {}, _local_player_id())
+	return false
+
+## Nearest banker NPC within BANKER_RADIUS. The banker is identified
+## the same way the action menu is (NPCData.has_offering("bank")), so
+## the gate and the menu never disagree about who can bank.
+func is_valid_banker_near(player) -> bool:
+	var es := get_node_or_null("/root/EntityService")
+	if es == null or not es.has_method("get_entities_in_radius"):
+		return true
+	var origin: Vector3 = player.global_position if player is Node3D else Vector3.ZERO
+	for npc in es.get_entities_in_radius(origin, BANKER_RADIUS):
+		if npc == null or not is_instance_valid(npc):
+			continue
+		if not ("npc_data" in npc) or npc.npc_data == null:
+			continue
+		if npc.npc_data.has_method("has_offering") \
+				and npc.npc_data.has_offering("bank"):
+			return true
+	return false
 func _close_top_menu_internal() -> void:
 	if _open_panels.is_empty():
 		return

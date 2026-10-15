@@ -27,7 +27,7 @@ func interact(player_id: String) -> void:
 			player_id
 		)
 	if MenuManager:
-		MenuManager.open_menu("bank")
+		MenuManager.open_menu("bank", global_position)
 
 func stop_interact(player_id: String) -> void:
 	if _interacting_players.has(player_id):

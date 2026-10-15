@@ -45,6 +45,35 @@ var _vault_data: Dictionary = {}
 var _selected_slot: int = -1
 var _slot_data: Dictionary = {}  # slot_index -> {id, quantity, icon_path}
 
+## The NPC-attach law (matches BlacksmithUI / SkillAcademyUI): when the
+## vault is opened from a banker's action menu it binds to that banker's
+## position and auto-closes past the canonical UIPanel radius. Hotkey/
+## main-menu opens at a banker stay unattached, and MenuManager's banker
+## gate blocks the anywhere-open.
+var _npc_position: Vector3 = Vector3.ZERO
+var _proximity_enabled: bool = false
+
+func _process(_delta: float) -> void:
+	if not _proximity_enabled or _npc_position == Vector3.ZERO:
+		return
+	var pm: Node = _pm()
+	if pm == null:
+		return
+	var player: Node = pm.get_local_player()
+	if player == null:
+		return
+	if not check_interact_distance(player.global_position, _npc_position):
+		var ns = get_node_or_null("/root/NotificationService")
+		if ns == null:
+			return
+		var NotifKind = load("res://core/notifications/notification_kind.gd").NotifKind
+		ns.notify(NotifKind.CUSTOM, "Moved too far from the banker.",
+			"BankUI", "vault_out_of_range", {}, _pm().get_local_player_id())
+
+func set_npc_proximity(pos: Vector3) -> void:
+	_npc_position = pos
+	_proximity_enabled = true
+
 const GRID_COLS: int = 5
 const GRID_ROWS: int = 10
 const SLOT_SIZE: int = 48

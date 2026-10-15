@@ -638,8 +638,15 @@ func _on_context_action(action_id: String, target_id: String) -> void:
 		"quest":
 			_open_npc_quests(target_id)
 		"bank":
+			# The banker law: the vault opens at the banker (walk-away
+			# close attaches here); hotkey/main-menu opens are gated on
+			# proximity in MenuManager instead.
 			if _mmgr():
-				_mmgr().open_menu("bank")
+				var bank_pos: Vector3 = Vector3.ZERO
+				if _current_target_info and _current_target_info.id == target_id \
+						and _current_target_info.entity_type == Entity.EntityType.NPC:
+					bank_pos = _current_target_info.world_position
+				_mmgr().open_menu("bank", bank_pos)
 		"loot":
 			_pickup_loot_target(target_id)
 		"pass":
