@@ -3,8 +3,10 @@
 ## Focus: the derived Horizon math (cosmic age / observable radius) and
 ## the universe-seed decode. Orbits/windows are already covered by
 ## probe_world_lattice; this file LOCKS THE EPOCH ALIGNMENT that makes
-## cosmic_age_s correct -- SignService.sky_epoch_days() is unix/86400, so
-## cosmic_age_s(origin_unix, epoch_days) really is (unix_now - origin_unix).
+## cosmic_age_s correct -- SignService.sky_epoch_days() is unix/7200
+## (7200 s sky days, S16.2), so cosmic_age_s(origin_unix, epoch_days)
+## really is (unix_now - origin_unix) once the epoch is converted via
+## WR.SKY_DAY_SECONDS: real seconds in, real seconds out, no unit mix.
 ## Audit round 19 added it precisely because that alignment is easy to
 ## misread as a mixed-epoch bug and "fix" into a regression.
 extends SceneTree
