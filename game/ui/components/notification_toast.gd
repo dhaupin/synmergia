@@ -193,7 +193,7 @@ func _create_notification_center() -> Control:
 	header.add_child(clear_all_btn)
 
 	# History list
-	var scroll := ScrollContainer.new()
+	var scroll := preload("res://ui/components/drag_scroll.gd").new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(scroll)
 

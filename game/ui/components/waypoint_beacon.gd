@@ -4,8 +4,11 @@ extends Node3D
 # NOTE: WaypointService is an autoload; reference it directly.
 
 
-# Beacon components
-var _pillar: ImmediateMeshInstance3D
+# Beacon components -- the pillar draws through an ImmediateMesh on
+# a MeshInstance3D (ImmediateMeshInstance3D is not a Godot class; the
+# original orphan used a name that never compiled).
+var _pillar: MeshInstance3D
+var _pillar_mesh: ImmediateMesh
 var _base: MeshInstance3D
 var _icon_label: Label3D
 var _particles: GPUParticles3D
@@ -40,8 +43,19 @@ func _setup_beacon() -> void:
 	add_child(_base)
 
 	# Pillar (cone)
-	_pillar = ImmediateMeshInstance3D.new()
+	_pillar = MeshInstance3D.new()
 	_pillar.name = "Pillar"
+	_pillar_mesh = ImmediateMesh.new()
+	_pillar.mesh = _pillar_mesh
+	var pillar_mat := StandardMaterial3D.new()
+	pillar_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	pillar_mat.albedo_color = _color
+	pillar_mat.emission_enabled = true
+	pillar_mat.emission = _color
+	pillar_mat.emission_energy_multiplier = 2.0
+	pillar_mat.vertex_color_use_as_albedo = true
+	pillar_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_pillar.material_override = pillar_mat
 	add_child(_pillar)
 
 	# 3D Label
@@ -98,9 +112,9 @@ func _process(delta: float) -> void:
 	if not visible:
 		return
 
-	# Animate pillar
-	_pillar.clear()
-	_pillar.begin(Mesh.PRIMITIVE_TRIANGLE_STRIP)
+	# Animate pillar (ImmediateMesh surface, not the instance node)
+	_pillar_mesh.clear_surfaces()
+	_pillar_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLE_STRIP)
 
 	# Pulsing effect
 	var pulse := 0.8 + 0.2 * sin(Time.get_ticks_msec() / 500.0)
@@ -118,14 +132,14 @@ func _process(delta: float) -> void:
 		var z := sin(angle) * base_radius * (1.0 - t * 0.3)
 
 		# Bottom vertex
-		_pillar.set_color(Color(_color.r, _color.g, _color.b, alpha * 0.5))
-		_pillar.add_vertex(Vector3(x, 0.5, z))
+		_pillar_mesh.surface_set_color(Color(_color.r, _color.g, _color.b, alpha * 0.5))
+		_pillar_mesh.surface_add_vertex(Vector3(x, 0.5, z))
 
 		# Top vertex
-		_pillar.set_color(Color(_color.r, _color.g, _color.b, alpha * 0.2))
-		_pillar.add_vertex(Vector3(x * 0.3, height, z * 0.3))
+		_pillar_mesh.surface_set_color(Color(_color.r, _color.g, _color.b, alpha * 0.2))
+		_pillar_mesh.surface_add_vertex(Vector3(x * 0.3, height, z * 0.3))
 
-	_pillar.end()
+	_pillar_mesh.surface_end()
 
 	# Rotate label to face camera
 	_icon_label.rotate_y(delta * 0.5)
@@ -142,7 +156,11 @@ func toggle_beacon() -> void:
 	visible = not visible
 	_is_visible = visible
 
-func is_visible() -> bool:
+func beam_is_visible() -> bool:
+	# Node3D.is_visible() is a native method; overlapping its signature
+	# parses fine until warnings-as-errors and then hard-fails. The
+	# orphan's copy never surfaced because nothing loaded this script
+	# until the WaypointService beacon law preloaded it.
 	return _is_visible
 
 func get_waypoint_id() -> String:

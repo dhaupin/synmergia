@@ -261,7 +261,7 @@ func _create_stats_tab() -> void:
 	tab.add_child(refresh_btn)
 
 func _create_settings_tab() -> void:
-	var tab := ScrollContainer.new()
+	var tab := preload("res://ui/components/drag_scroll.gd").new()
 	_tab_container.add_child(tab)
 	_tab_container.set_tab_title(_tab_container.get_child_count() - 1, " Settings")
 

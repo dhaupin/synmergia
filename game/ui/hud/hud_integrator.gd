@@ -272,23 +272,33 @@ func _push_initial_state() -> void:
 
 
 func _process(_delta: float) -> void:
-	# Feed the minimap with the local player position.
-	if _minimap and PlayerManager and PlayerManager.local_player:
-		var p: Node = PlayerManager.local_player
-		if p and p.has_method("get_global_position"):
-			var pos: Vector3 = p.get_global_position()
-			_minimap.set_player_position(pos)
-			_minimap.set_zone_name(_get_current_zone(p))
-		if _world_map and _world_map.visible and _world_map.has_method("set_player_position"):
-			_world_map.set_player_position(p.get_global_position())
+	# Feed the minimap (and the expanded map) with the local player position.
+	if _minimap == null or not _minimap.has_method("set_player_position"):
+		return
+	var p: Node = PlayerManager.local_player if PlayerManager else null
+	if p == null or not is_instance_valid(p) or not (p is Node3D):
+		return
+	var pos: Vector3 = p.global_position
+	_minimap.set_player_position(pos)
+	_minimap.set_zone_name(_get_current_zone(p))
+	if _world_map != null and _world_map.has_method("set_player_position") \
+			and _world_map.has_method("is_minimap") and not _world_map.is_minimap():
+		_world_map.set_player_position(pos)
 
 
-func _get_current_zone(_player: Node) -> String:
-	if ZoneManager and ZoneManager.has_method("get_current_zone_id"):
-		var z: Variant = ZoneManager.get_current_zone_id()
-		if z is String:
-			return z
-	return "Starter Plains"
+func _get_current_zone(player: Node) -> String:
+	# Prefer the player's live zone; fall back to the meadow spawn default.
+	if ZoneManager and player != null and "entity_id" in player \
+			and ZoneManager.has_method("get_entity_zone_id"):
+		var z: String = str(ZoneManager.get_entity_zone_id(player))
+		if not z.is_empty():
+			var zone: Variant = ZoneManager.get_zone(z) if ZoneManager.has_method("get_zone") else null
+			if zone != null and "display_name" in zone:
+				var display: String = str(zone.display_name)
+				if not display.is_empty():
+					return display
+			return str(z).replace("zone_", "").capitalize()
+	return "Meadowhaven"
 
 
 # == Player resource handlers =============================================
@@ -344,6 +354,13 @@ func _on_target_updated(target) -> void:
 
 
 func _on_action_executed(action_id: String, target_id: String, result: Dictionary) -> void:
+	# Typed UI actions from the targeting pass: Check Lobby opens the
+	# lobby panel (TargetingManager returns action=open_lobby).
+	if action_id == "check_lobby" or str(result.get("action", "")) == "open_lobby":
+		if _mm and _mm.has_method("open_menu"):
+			_mm.open_menu("lobby")
+		return
+
 	# Mirror action results into the combat log.
 	if not _combat_log or not _combat_log.has_method("add_message"):
 		return

@@ -251,21 +251,20 @@ func _show_loading_and_change_scene(scene_path: String, status_text: String) -> 
 		# "Join" hop never showed anything (round-5 report).
 		await get_tree().process_frame
 		await get_tree().process_frame
-	var err = get_tree().change_scene_to_file(scene_path)
-	if err != OK:
-		if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").error("Failed to load %s: %s" % [scene_path, err])
-	# Play-day feedback #8: hold the screen until the new scene is
-	# actually current. The old code hid the overlay one frame after the
-	# swap -- a 2-frame flash nobody can see (species-select "Play"
-	# showed NO loading screen at all). The heavy world _ready runs
-	# synchronously inside the deferred swap, so this genuinely covers
-	# the freeze; the safety cap keeps a broken path from sticking.
-	if err == OK:
-		# TIME cap, not a frame cap: the old 600-frame loop assumed desktop
-		# frame rates; on wasm/software-GL devices frames run 2-4/s, so 600
-		# frames meant minutes of stuck loading screen with zero signal.
-		# 90s wall-clock covers the heaviest legitimate world build; a trip
-		# logs loudly so a broken path can never stick silently.
+	# THE ANIMATED LOAD: chunk the scene load across frames with the
+	# threaded loader and drive REAL progress into the bar. The old
+	# change_scene_to_file path blocked the main thread for the whole
+	# load -- the spinner froze precisely while the biggest cost ran,
+	# which read as a dead screen (the "loading screen doesn't animate"
+	# report). The get_status poll only yields BETWEEN chunks, so the
+	# ring keeps spinning; the progress list gives the percentage.
+	var ok: bool = await _threaded_scene_swap(scene_path, overlay, status_text)
+	if ok:
+		# Play-day feedback #8: hold the screen until the new scene is
+		# actually current. The heavy world _ready runs synchronously
+		# inside the swap, so this genuinely covers the freeze; the
+		# safety cap keeps a broken path from sticking. (TIME cap, not a
+		# frame cap: wasm frames run 2-4/s, a frame loop would stick.
 		var wait_ms := 0
 		while wait_ms < 90000:
 			var frame_start := Time.get_ticks_msec()
@@ -278,6 +277,48 @@ func _show_loading_and_change_scene(scene_path: String, status_text: String) -> 
 			if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").error("Scene swap wait timed out for %s (90s)" % scene_path)
 	if overlay != null:
 		await _hold_loading_min(overlay, shown_ms)
+
+## Threaded load + swap. Returns false on load failure (logged, old
+## direct-change path stands as the fallback so a broken scene cannot
+## stick). Every other transition keeps working identically.
+func _threaded_scene_swap(scene_path: String, overlay: Control, status_text: String) -> bool:
+	if not ResourceLoader.exists(scene_path):
+		get_tree().change_scene_to_file(scene_path)
+		return true
+	var op = ResourceLoader.load_threaded_request(scene_path)
+	if op != OK:
+		get_tree().change_scene_to_file(scene_path)
+		return true
+	var started := Time.get_ticks_msec()
+	var packed: PackedScene = null
+	while true:
+		var progress: Array = []
+		var status = ResourceLoader.load_threaded_get_status(scene_path, progress)
+		match status:
+			ResourceLoader.THREAD_LOAD_LOADED:
+				packed = ResourceLoader.load_threaded_get(scene_path)
+				break
+			ResourceLoader.THREAD_LOAD_FAILED, ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+				if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").error("Threaded load failed for %s; direct fallback" % scene_path)
+				get_tree().change_scene_to_file(scene_path)
+				return true
+			ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+				pass
+		if overlay != null and is_instance_valid(overlay) and not progress.is_empty():
+			overlay.show_progress(clampf(float(progress[0]) * 100.0, 0.0, 99.0), status_text)
+		await get_tree().process_frame
+		if Time.get_ticks_msec() - started > 90000:
+			if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").error("Threaded load timed out for %s (90s); direct fallback" % scene_path)
+			get_tree().change_scene_to_file(scene_path)
+			return true
+	if packed == null:
+		get_tree().change_scene_to_file(scene_path)
+		return true
+	var err = get_tree().change_scene_to_packed(packed)
+	if err != OK:
+		if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").error("Failed to load %s: %s" % [scene_path, err])
+		get_tree().change_scene_to_file(scene_path)
+	return err == OK
 
 ## Keep the overlay up at least long enough to read as an intentional
 ## screen (fast transitions otherwise flash under 200 ms).

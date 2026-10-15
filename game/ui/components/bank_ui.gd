@@ -139,7 +139,7 @@ func _setup_ui() -> void:
 	gold_row.add_child(_slot_count_label)
 
 	# Vault grid
-	var _scroll: ScrollContainer = ScrollContainer.new()
+	var _scroll: ScrollContainer = preload("res://ui/components/drag_scroll.gd").new()
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	main.add_child(_scroll)
 
@@ -376,7 +376,7 @@ func _show_deposit_dialog(items: Array) -> void:
 	add_child(dialog)
 
 	# Create scrollable item list
-	var scroll := ScrollContainer.new()
+	var scroll := preload("res://ui/components/drag_scroll.gd").new()
 	scroll.custom_minimum_size = Vector2(300, 200)
 	dialog.add_child(scroll)
 

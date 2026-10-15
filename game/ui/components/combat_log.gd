@@ -136,7 +136,7 @@ func _setup_ui() -> void:
 	_create_filter_button("Trade", EntryType.TRADE, UIStyles.COLORS.success)
 
 	# Scroll + RichTextLabel
-	_scroll = ScrollContainer.new()
+	_scroll = preload("res://ui/components/drag_scroll.gd").new()
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(_scroll)
 

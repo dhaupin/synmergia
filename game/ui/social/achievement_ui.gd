@@ -69,7 +69,7 @@ func _setup_ui() -> void:
 		filter_hbox.add_child(btn)
 
 	# Scroll area
-	var scroll := ScrollContainer.new()
+	var scroll := preload("res://ui/components/drag_scroll.gd").new()
 	scroll.name = "AchievementScroll"
 	scroll.custom_minimum_size.y = 350
 	scroll.focus_mode = Control.FOCUS_ALL

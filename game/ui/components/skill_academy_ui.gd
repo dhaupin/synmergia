@@ -265,7 +265,7 @@ func _build_tab_contents() -> Control:
 	return stack
 
 func _build_skills_tab() -> Control:
-	var sc := ScrollContainer.new()
+	var sc := preload("res://ui/components/drag_scroll.gd").new()
 	sc.name = "SkillsTab"
 	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	sc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -290,7 +290,7 @@ func _build_skills_tab() -> Control:
 	return sc
 
 func _build_books_tab() -> Control:
-	var sc := ScrollContainer.new()
+	var sc := preload("res://ui/components/drag_scroll.gd").new()
 	sc.name = "BooksTab"
 	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
@@ -436,7 +436,7 @@ func _build_stats_tab() -> Control:
 	root.add_child(header)
 
 	# Stats list
-	var stats_scroll := ScrollContainer.new()
+	var stats_scroll := preload("res://ui/components/drag_scroll.gd").new()
 	stats_scroll.name = "StatsScroll"
 	stats_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(stats_scroll)

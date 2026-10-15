@@ -158,6 +158,22 @@ func has_offering(offering_type: String) -> bool:
 	return false
 
 
+## True when the NPC provides the named SERVICE offering
+## (NPCOffering.type == "service" with the given service_id, e.g.
+## "BlacksmithService" at the smithy, "SkillAcademyService" at the
+## trainer). Gates the smithy/academy menu walks.
+func has_service_offering(service_id: String) -> bool:
+	for inc in includes:
+		var t := str(inc.get("type", ""))
+		if t == "":
+			continue
+		if t == "offering":
+			var res := load("res://data/npc_offerings/%s.tres" % str(inc.get("ref_id", "")))
+			if res != null and str(res.get("type")) == "service" and str(res.get("service_id")) == service_id:
+				return true
+	return false
+
+
 ## Normalize the two include shapes the codebase ships:
 ##   ref-based:  {type: "offering", ref_id: "vendor_general"}
 ##               -> data/npc_offerings/<ref_id>.tres (NPCOffering)

@@ -9,6 +9,11 @@ const NPCData = preload("res://core/schemas/npc_data.gd")
 # Entity.EntityType.X for menu item classification, which requires
 # Entity's class_name registered at parse time. Preload it here.
 const Entity = preload("res://core/entities/entity.gd")
+# Per-target menu routing (queue stones vs ankhs vs plain gateways)
+# reads node traits off the targeting registry. The manager is an
+# autoload; the script const + hard-guarded static instance access
+# keeps script-mode test boots alive.
+const TargetingScript = preload("res://core/targeting/targeting_manager.gd")
 
 
 ## Menu items
@@ -252,10 +257,30 @@ func _get_actions_for_type(target_type: int) -> Array:
 				{"id": "pass", "text": "Pass", "icon": "->"}
 			]
 		Entity.EntityType.TELEPORT:
-			actions = [
-				{"id": "enter", "text": "Enter", "icon": ""},
-				{"id": "cancel", "text": "Cancel", "icon": ""}
-			]
+			# Per-node action surfaces (the locator pass): queue stones
+			# queue/leave/lobby, ankhs bind/info, plain gateways enter.
+			var tnode: Node = null
+			var tm = TargetingScript.instance
+			if tm != null:
+				var tdata: Dictionary = tm.get_targetable(_target_id)
+				tnode = tdata.get("node", null)
+			if tnode != null and is_instance_valid(tnode):
+				if tnode.is_in_group("ankhs"):
+					actions = [
+						{"id": "ankh_set", "text": "Set Ankh (Bind)", "icon": ""},
+						{"id": "ankh_info", "text": "Ankh Info", "icon": ""},
+					]
+				elif "queue_mode" in tnode and bool(tnode.queue_mode):
+					actions = [
+						{"id": "queue_bout", "text": "Queue for Bout", "icon": ""},
+						{"id": "leave_bout_queue", "text": "Leave Queue", "icon": ""},
+						{"id": "check_lobby", "text": "Check Lobby", "icon": ""},
+					]
+			if actions.is_empty():
+				actions = [
+					{"id": "enter", "text": "Enter", "icon": ""},
+					{"id": "cancel", "text": "Cancel", "icon": ""}
+				]
 		Entity.EntityType.ENEMY:
 			actions = [
 				{"id": "attack", "text": "Attack", "icon": ""},

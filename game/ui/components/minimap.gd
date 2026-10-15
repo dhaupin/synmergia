@@ -37,6 +37,9 @@ var _show_quests: bool = true
 var _show_pois: bool = true
 var _show_vendors: bool = true
 var _show_waypoints: bool = true
+var _show_gates: bool = true
+var _show_ankhs: bool = true
+var _show_towns: bool = true
 
 ## Markers
 var _entity_markers: Dictionary = {}  # entity_id -> marker_data
@@ -51,6 +54,14 @@ const MARKER_VENDOR: int = 6
 const MARKER_WAYPOINT: int = 7
 const MARKER_PING: int = 8
 const MARKER_LOOT: int = 9
+const MARKER_GATE: int = 10
+const MARKER_ANKH: int = 11
+const MARKER_TOWN: int = 12
+
+## Landmark markers synced from world data (towns/gates/ankhs):
+## marker ids stay in _static_landmarks so the next zone sync can
+## replace exactly this set without touching live entity markers.
+var _static_landmarks: Array[String] = []
 
 signal waypoint_set(position: Vector3)
 signal ping_sent(position: Vector3)
@@ -294,13 +305,35 @@ func _create_circular_mask() -> Texture2D:
 	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
 	var center = Vector2(size / 2.0, size / 2.0)
 	var radius = size / 2.0 - 2
+	var inner := Color(0.05, 0.05, 0.08, 1.0)
 	for x in range(size):
 		for y in range(size):
 			var dist = Vector2(x, y).distance_to(center)
 			if dist <= radius:
-				img.set_pixel(x, y, Color(1, 1, 1, 1))
+				# The face must be the panel's dark backdrop, never
+				# white: a white mask disk shown through an empty
+				# MapTexture was the "minimap white circle" bug.
+				img.set_pixel(x, y, inner)
 			else:
 				img.set_pixel(x, y, Color(0, 0, 0, 0))
+	return ImageTexture.create_from_image(img)
+
+## Procedural zone backdrop for zones without a baked minimap
+## texture: a subtle dark field with a faint border so the disk
+## always reads as a map, never as a blank circle.
+func _procedural_zone_texture() -> Texture2D:
+	var size := 128
+	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	for x in range(size):
+		for y in range(size):
+			var shade := 0.07 + 0.03 * sin(float(x) * 0.4) * sin(float(y) * 0.35)
+			img.set_pixel(x, y, Color(0.09 + shade, 0.16 + shade, 0.13 + shade, 1.0))
+	# Border grain
+	for i in range(size):
+		img.set_pixel(i, 0, Color(0.2, 0.35, 0.25, 1.0))
+		img.set_pixel(i, size - 1, Color(0.2, 0.35, 0.25, 1.0))
+		img.set_pixel(0, i, Color(0.2, 0.35, 0.25, 1.0))
+		img.set_pixel(size - 1, i, Color(0.2, 0.35, 0.25, 1.0))
 	return ImageTexture.create_from_image(img)
 
 func _create_player_arrow() -> Control:
@@ -336,6 +369,9 @@ func _build_layer_toggles() -> void:
 		{"key": "pois", "label": "*", "tooltip": "Points of Interest", "color": UIStyles.COLORS.accent_gold, "default": true},
 		{"key": "vendors", "label": "$", "tooltip": "Vendors", "color": Color(0.8, 1.0, 0.4), "default": true},
 		{"key": "waypoints", "label": "W", "tooltip": "Waypoints", "color": UIStyles.COLORS.accent_gold, "default": true},
+		{"key": "gates", "label": "G", "tooltip": "Gates & Stones", "color": Color(0.65, 0.85, 1.0), "default": true},
+		{"key": "ankhs", "label": "A", "tooltip": "Ankhs", "color": Color(0.85, 0.7, 1.0), "default": true},
+		{"key": "towns", "label": "T", "tooltip": "Towns", "color": Color(0.95, 0.85, 0.5), "default": true},
 	]
 
 	for layer in layers:
@@ -378,6 +414,9 @@ func _on_layer_toggled(key: String, pressed: bool) -> void:
 		"pois": _show_pois = pressed
 		"vendors": _show_vendors = pressed
 		"waypoints": _show_waypoints = pressed
+		"gates": _show_gates = pressed
+		"ankhs": _show_ankhs = pressed
+		"towns": _show_towns = pressed
 	_update_visible_markers()
 
 func _on_zoom_changed(value: float) -> void:
@@ -440,6 +479,46 @@ func _on_context_menu_action(item_id: int) -> void:
 		3: _open_quest_tracker(world_pos)
 		4: _open_world_map(world_pos)
 
+
+## Map click law: a waypoint_set click creates + activates a waypoint
+## through WaypointService, which lights the world beacon (the sky
+## pillar) and refreshes the active-waypoint map marker.
+func _on_waypoint_set(world_pos: Vector3) -> void:
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return
+	var ws: Node = (ml as SceneTree).root.get_node_or_null("WaypointService")
+	if ws == null or PlayerManager == null:
+		return
+	var pid := str(PlayerManager.get_local_player_id()) if PlayerManager.has_method("get_local_player_id") else ""
+	if pid == "":
+		return
+	var created: Dictionary = ws.call("create_waypoint", pid, "Marker", world_pos, "")
+	if not bool(created.get("success", false)):
+		_created_failed_toast(pid, str(created.get("message", "Waypoint failed")))
+		return
+	var wpid := str(created.get("waypoint", {}).get("id", ""))
+	if wpid != "" and ws.has_method("activate_waypoint"):
+		ws.call("activate_waypoint", pid, wpid)
+	# Landmark sync law: the active waypoint's map marker refreshes
+	# immediately (the next zone sync repacks the whole list).
+	if not _static_landmarks.has("LANDMARK_active_waypoint"):
+		_static_landmarks.append("LANDMARK_active_waypoint")
+	add_marker("LANDMARK_active_waypoint", world_pos, MARKER_WAYPOINT, "Marker")
+
+
+## The creation failure needs to surface even when the service's own
+## notify misses (rate-limit returns a message, not a toast).
+func _created_failed_toast(_pid: String, text: String) -> void:
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return
+	var notif: Node = (ml as SceneTree).root.get_node_or_null("NotificationService")
+	if notif != null and notif.has_method("notify"):
+		# Kind 0 = INFO (NotificationService.NotificationType.INFO, kept
+		# numeric so a missing autoload cannot poison script boots).
+		notif.notify(0, text, "Minimap", "waypoint_fail", {})
+
 func _open_quest_tracker(position: Vector3) -> void:
 	var _tree := Engine.get_main_loop() as SceneTree
 	var quest_service := _tree.root.get_node_or_null(NodePath("QuestService")) if _tree and _tree.root else null
@@ -454,6 +533,9 @@ func _open_world_map(position: Vector3) -> void:
 		WorldMap.instance.show_position(position)
 
 func _connect_signals() -> void:
+	# Map-click waypoint law: clicks own the waypoint set flow.
+	if not waypoint_set.is_connected(_on_waypoint_set):
+		waypoint_set.connect(_on_waypoint_set)
 	var _tree := Engine.get_main_loop() as SceneTree
 	var zone_manager := _tree.root.get_node_or_null(NodePath("ZoneManager")) if _tree and _tree.root else null
 	if not zone_manager:
@@ -482,18 +564,129 @@ func _connect_signals() -> void:
 			entity_service.entity_unregistered.connect(_on_entity_despawned)
 
 func _on_zone_loaded(zone_data) -> void:
-	# ZoneData is a Resource: use `in` (Resources have no .has(); the
-	# direct property access then also must be guarded).
-	if zone_data != null and "bounds" in zone_data:
-		_map_size = _v3_to_v2(zone_data.bounds.size)
-	if zone_data != null and "minimap_texture" in zone_data:
-		_map_texture.texture = zone_data.minimap_texture
+	_apply_zone_backdrop(zone_data)
 
 func _on_player_entered_zone(_player, zone) -> void:
-	if zone != null and "bounds" in zone:
-		_map_size = _v3_to_v2(zone.bounds.size)
-	if zone != null and "minimap_texture" in zone:
-		_map_texture.texture = zone.minimap_texture
+	_apply_zone_backdrop(zone)
+
+## Shared backdrop + landmark sync for both zone-entry routes.
+func _sync_static_landmarks(zone_data) -> void:
+	if not _marker_container:
+		return
+	for lid in _static_landmarks:
+		remove_marker(lid)
+	_static_landmarks.clear()
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return
+	var tree := ml as SceneTree
+	var root := tree.root
+	# Window has no get_nodes_in_group -- the GROUPS live on the
+	# SceneTree itself (the root-node call threw on every sync).
+	var current_zone_id := ""
+	if zone_data != null and "id" in zone_data:
+		current_zone_id = str(zone_data.get("id"))
+	var seen := {}
+
+	# Towns: safe, non-instanced zones with a bind point read as
+	# settlements. Name rides the marker label.
+	if ZoneManager != null and ZoneManager.has_method("get_all_zones"):
+		for zone in ZoneManager.get_all_zones():
+			if zone == null:
+				continue
+			var zid := str(zone.get("id"))
+			if zid == "":
+				continue
+			# Two-arg Resource.get() throws in 4.7 (single-arg only).
+			var is_instanced_v: Variant = zone.get("is_instanced")
+			var pvp_mode_v: Variant = zone.get("pvp_mode")
+			if (is_instanced_v != null and bool(is_instanced_v)) \
+					or (pvp_mode_v != null and int(pvp_mode_v) != 0):
+				continue
+			var bind: Vector3 = Vector3.ZERO
+			if "bind_point" in zone:
+				bind = zone.bind_point
+			if bind == Vector3.ZERO:
+				continue
+			var tm_name: String = "Town"
+			if "display_name" in zone:
+				tm_name = str(zone.display_name)
+			var key := "LANDMARK_town_" + zid
+			if seen.has(key):
+				continue
+			seen[key] = true
+			add_marker(key, bind, MARKER_TOWN, tm_name)
+			_static_landmarks.append(key)
+
+	# Gates: data-placed gateways whose source zone matches the map's
+	# zone. Unset source positions fall back to the zone bind point
+	# (the .tres files ship Vector3(0,0,0) until placements are tuned).
+	if DataService != null and DataService.has_method("get_all_gateways"):
+		for g in DataService.get_all_gateways():
+			if g == null:
+				continue
+			var src_zone := str(g.get("source_zone_id"))
+			if current_zone_id != "" and src_zone != current_zone_id:
+				continue
+			var gname: String = "Gateway"
+			if "display_name" in g:
+				gname = str(g.display_name)
+			var pos: Vector3 = Vector3.ZERO
+			if "source_position" in g:
+				pos = g.source_position
+			if pos == Vector3.ZERO and ZoneManager != null and current_zone_id != "":
+				var znode = ZoneManager.get_zone(current_zone_id)
+				if znode != null and "bind_point" in znode:
+					pos = znode.bind_point + Vector3(0, 0, 6)
+			var gate_id: String = gname
+			if "id" in g:
+				var gid = g.id
+				if gid != null and str(gid) != "":
+					gate_id = str(gid)
+			var gkey := "LANDMARK_gate_%s" % gate_id
+			if seen.has(gkey):
+				continue
+			seen[gkey] = true
+			add_marker(gkey, pos, MARKER_GATE, gname)
+			_static_landmarks.append(gkey)
+
+	# Ankhs: live respawn anchors in the running scene.
+	for ankh in tree.get_nodes_in_group("ankhs"):
+		if ankh == null or not is_instance_valid(ankh):
+			continue
+		var ak_id: String = str(ankh.ankh_id) if "ankh_id" in ankh else ankh.name
+		var ak_name: String = str(ankh.display_name) if "display_name" in ankh else "Ankh"
+		var akey := "LANDMARK_ankh_" + ak_id
+		if seen.has(akey):
+			continue
+		seen[akey] = true
+		add_marker(akey, ankh.global_position, MARKER_ANKH, ak_name)
+		_static_landmarks.append(akey)
+
+	# The active waypoint rides the waypoint layer, BotW-style.
+	if WaypointService != null and PlayerManager != null:
+		var pid := str(PlayerManager.get_local_player_id()) if PlayerManager.has_method("get_local_player_id") else ""
+		var active: Dictionary = WaypointService.get_active_waypoint(pid) if pid != "" else {}
+		if not active.is_empty():
+			var wpos := Vector3(float(active.get("position_x", 0.0)), float(active.get("position_y", 0.0)), float(active.get("position_z", 0.0)))
+			add_marker("LANDMARK_active_waypoint", wpos, MARKER_WAYPOINT, str(active.get("name", "Waypoint")))
+			_static_landmarks.append("LANDMARK_active_waypoint")
+
+
+func _apply_zone_backdrop(zone_data) -> void:
+	if zone_data != null and "bounds" in zone_data:
+		_map_size = _v3_to_v2((zone_data.bounds as AABB).size)
+	var has_texture: bool = false
+	if zone_data != null and "minimap_texture" in zone_data:
+		has_texture = zone_data.minimap_texture != null
+	if has_texture:
+		_map_texture.texture = zone_data.minimap_texture
+	else:
+		# The white-circle fix's other half: an empty TextureRect let
+		# the mask show through blank. Paint the procedural backdrop.
+		if _map_texture.texture == null or not (_map_texture.texture is ImageTexture):
+			_map_texture.texture = _procedural_zone_texture()
+	_sync_static_landmarks(zone_data)
 
 ## AABB.size is a Vector3; the minimap works in XZ-plane Vector2 space.
 func _v3_to_v2(v3: Vector3) -> Vector2:
@@ -680,6 +873,18 @@ func _create_marker(marker_type: int, label: String) -> Control:
 			size = Vector2(8, 8)
 			color = Color(1.0, 0.85, 0.3)
 			shape = "loot"
+		MARKER_GATE:
+			size = Vector2(10, 10)
+			color = Color(0.65, 0.85, 1.0)
+			shape = "gate"
+		MARKER_ANKH:
+			size = Vector2(10, 10)
+			color = Color(0.85, 0.7, 1.0)
+			shape = "ankh"
+		MARKER_TOWN:
+			size = Vector2(12, 12)
+			color = Color(0.95, 0.85, 0.5)
+			shape = "town"
 		_:
 			size = Vector2(8, 8)
 			color = UIStyles.COLORS.info
@@ -825,6 +1030,64 @@ func _create_marker_visual(shape: String, size: Vector2, color: Color, label: St
 			loot.polygon = points
 			loot.color = color
 			container.add_child(loot)
+
+		"gate":
+			# An arch: two pillars + a lintel bar.
+			var s_g: float = min(size.x, size.y) / 2.0
+			var pillars := Polygon2D.new()
+			pillars.color = color
+			pillars.polygon = PackedVector2Array([
+				Vector2(-s_g * 0.7, -s_g), Vector2(-s_g * 0.3, -s_g),
+				Vector2(-s_g * 0.3, s_g), Vector2(-s_g * 0.7, s_g),
+				Vector2(s_g * 0.3, -s_g), Vector2(s_g * 0.7, -s_g),
+				Vector2(s_g * 0.7, s_g), Vector2(s_g * 0.3, s_g),
+			])
+			container.add_child(pillars)
+			var lintel := Polygon2D.new()
+			lintel.color = color
+			lintel.polygon = PackedVector2Array([
+				Vector2(-s_g * 0.8, -s_g), Vector2(s_g * 0.8, -s_g),
+				Vector2(s_g * 0.8, -s_g * 0.5), Vector2(-s_g * 0.8, -s_g * 0.5),
+			])
+			container.add_child(lintel)
+
+		"ankh":
+			# A looped cross, the classic ankh sign.
+			var a_s: float = min(size.x, size.y) / 2.0
+			var stem := Polygon2D.new()
+			stem.color = color
+			stem.polygon = PackedVector2Array([
+				Vector2(-a_s * 0.18, 0), Vector2(a_s * 0.18, 0),
+				Vector2(a_s * 0.18, a_s), Vector2(-a_s * 0.18, a_s),
+			])
+			stem.position = Vector2(0, -a_s * 0.5)
+			container.add_child(stem)
+			var arms := Polygon2D.new()
+			arms.color = color
+			arms.polygon = PackedVector2Array([
+				Vector2(-a_s * 0.6, 0), Vector2(a_s * 0.6, 0),
+				Vector2(a_s * 0.6, a_s * 0.36), Vector2(-a_s * 0.6, a_s * 0.36),
+			])
+			arms.position = Vector2(0, -a_s * 0.9)
+			container.add_child(arms)
+
+		"town":
+			# A little house: base + roof + door.
+			var t_s: float = min(size.x, size.y) / 2.0
+			var base := Polygon2D.new()
+			base.color = color
+			base.polygon = PackedVector2Array([
+				Vector2(-t_s * 0.7, 0), Vector2(t_s * 0.7, 0),
+				Vector2(t_s * 0.7, t_s), Vector2(-t_s * 0.7, t_s),
+			])
+			container.add_child(base)
+			var roof := Polygon2D.new()
+			roof.color = color
+			roof.polygon = PackedVector2Array([
+				Vector2(-t_s * 0.9, 0), Vector2(t_s * 0.9, 0), Vector2(0, -t_s * 0.9),
+			])
+			roof.position = Vector2(0, 0)
+			container.add_child(roof)
 
 		_:
 			var circle := TextureRect.new()
@@ -981,6 +1244,9 @@ func _update_visible_markers() -> void:
 			MARKER_POI: marker.visible = _show_pois
 			MARKER_VENDOR: marker.visible = _show_vendors
 			MARKER_WAYPOINT: marker.visible = _show_waypoints
+			MARKER_GATE: marker.visible = _show_gates
+			MARKER_ANKH: marker.visible = _show_ankhs
+			MARKER_TOWN: marker.visible = _show_towns
 			MARKER_PING: marker.visible = true
 
 func add_ping(position: Vector3, duration: float = 5.0) -> void:

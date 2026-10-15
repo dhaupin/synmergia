@@ -366,3 +366,21 @@ func stop_music() -> void:
 	if _music_player != null:
 		_music_player.stop()
 	_music_path = ""
+
+
+## THE EXIT LAW: leaving the world (character select, logout) stops
+## EVERYTHING the world left playing -- ambience loops, storm/bird
+## accents, one-shots, positional world noises, music -- not just the
+## ambience affinity (stop_ambience). A menu screen must be silent.
+func stop_all() -> void:
+	stop_ambience()
+	stop_music()
+	for p in _pool:
+		if is_instance_valid(p):
+			p.stop()
+	for p in _accent_pool:
+		if is_instance_valid(p):
+			p.stop()
+	for p in _positional_pool:
+		if is_instance_valid(p):
+			p.stop()

@@ -182,7 +182,7 @@ func _setup_tabs() -> void:
 	gold_row.add_child(_gold_label)
 
 	# Scroll + grid
-	_scroll = ScrollContainer.new()
+	_scroll = preload("res://ui/components/drag_scroll.gd").new()
 	_scroll.name = "Scroll"
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED

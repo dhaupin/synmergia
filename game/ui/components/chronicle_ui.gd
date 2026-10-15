@@ -32,7 +32,7 @@ func _setup_ui() -> void:
 	var main: VBoxContainer = panel.get_node_or_null("Main")
 	if not main:
 		return
-	var scroll := ScrollContainer.new()
+	var scroll := preload("res://ui/components/drag_scroll.gd").new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	main.add_child(scroll)

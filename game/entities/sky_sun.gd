@@ -23,7 +23,11 @@
 extends Node3D
 
 const SUN_DISTANCE: float = 260.0
-const SUN_RADIUS: float = 9.0
+# Clarity pass (the "sun isn't clear" report): 9 m at 260 m distances
+# ~2 deg -- a coin. 14 m reads as an unmistakable sky-body (3.1 deg,
+# ~6x the real sun, the same honesty trade the moon disc already
+# declared). Emission already saturates the disc at midday.
+const SUN_RADIUS: float = 14.0
 ## Arc tilt: degrees the sun's daily plane tips south of zenith.
 const ARC_TILT_DEG: float = 28.0
 ## Ambient floor at deep night (never pure black; the Concord sky

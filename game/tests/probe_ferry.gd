@@ -40,9 +40,10 @@ func _run() -> void:
 	_check("the Haven Ferry is scheduled data (8 a day, 30 min)", \
 		v != null and int(v.ferries_per_day) == 8 \
 		and absf(float(v.crossing_hours) - 0.5) < 1e-9)
-	_check("the route has two ports (village harbor -> the Capitol pier)", \
+	_check("the route is pinned at the village harbor and lands at the Capitol pier", \
 		v != null and str(v.route_gateways[0]) == "waypoint_village_center" \
-		and str(v.route_gateways[1]) == "waypoint_capitol_pier")
+		and str(v.route_gateways[v.route_gateways.size() - 1]) == "waypoint_capitol_pier" \
+		and v.route_gateways.size() >= 2)
 	var st_live: Dictionary = fs.route_status(id)
 	_check("the dock chart is never blank (realtime status works)", \
 		not st_live.is_empty() and st_live.has("status") \

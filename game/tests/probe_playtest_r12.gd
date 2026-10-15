@@ -79,11 +79,27 @@ func _run() -> void:
 	var Sph = load("res://core/frame/math/spherical.gd")
 	var seed_b: PackedByteArray = Gen.world_seed_bytes()
 	var sea: float = Gen.sea_level(seed_b)
+	# The canvas is painted asynchronously (4 rows per yielded frame, so
+	# ~48 frames for a 192px sky). _canvas_image is only the FINISHED
+	# painting at the end of _run_canvas_generation; the first frames
+	# hold the fallback ocean chart, which would sink every land row.
+	# Wait for the generation flag to drop before sampling.
+	var wait_frames := 0
+	while map._generating and wait_frames < 300:
+		await process_frame
+		wait_frames += 1
 	var canvas_tex: ImageTexture = map._canvas_texture
+	# Read the CPU-side image: ImageTexture.get_image() has no rasterizer
+	# read-back in headless -- it returns an empty (alpha-0) image and
+	# the row law could never match (the _canvas_image mirror exists for
+	# exactly this wish; world_map keeps them in sync).
+	var canvas_img: Image = map._canvas_image
+	if canvas_img == null and canvas_tex != null:
+		canvas_img = canvas_tex.get_image()
 	var discrim := 0
 	var matches := 0
-	if canvas_tex != null and canvas_tex.get_image() != null:
-		var img: Image = canvas_tex.get_image()
+	if canvas_img != null:
+		var img: Image = canvas_img
 		var iw: int = img.get_width()
 		var ih: int = img.get_height()
 		for la in [75.0, 60.0, 45.0, 30.0, 15.0, -15.0, -30.0, -45.0, -60.0, -75.0]:

@@ -115,6 +115,18 @@ func _get_respawn_options(player) -> Array[Dictionary]:
 			"position": player.global_position
 		})
 
+	# Nearest-ankh death law: offer the closest ankh whenever one
+	# exists in the world (even with no saved bind). The service
+	# translates this option onto the ANKH arm.
+	if RespawnService.has_method("get_nearest_ankh_info"):
+		var near_info: Dictionary = RespawnService.call("get_nearest_ankh_info", player)
+		if not near_info.is_empty():
+			options.append({
+				"mode": "nearest_ankh",
+				"name": near_info.get("display_name", "Nearest Ankh"),
+				"position": near_info.get("position", Vector3.ZERO),
+			})
+
 	return options
 
 ## UI picked an option: validate it against the options actually offered,

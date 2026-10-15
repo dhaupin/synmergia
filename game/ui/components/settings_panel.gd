@@ -99,6 +99,13 @@ func _adopt_into_menu_manager() -> void:
 	get_parent().remove_child(self)
 	mm.add_child(self)
 	z_index = 500
+	# BACK-STACK LAW: register with the one panel registry so ESC /
+	# Android back / web back close settings BEFORE the exit confirm
+	# (MenuManager._get_panel("settings")). Unregistered, ESC closed
+	# nothing and dropped the "Leave the world?" dialog with the panel
+	# still up (the "weird exit button on settings open" report).
+	if mm.has_method("register_settings_panel"):
+		mm.call("register_settings_panel", self)
 
 func _setup_ui() -> void:
 	var panel := get_panel()
@@ -626,7 +633,7 @@ func _apply_screen_shake() -> void:
 	_glog().info("Screen shake: %s" % ("Enabled" if enabled else "Disabled"))
 
 func _populate_graphics_settings(parent: VBoxContainer) -> void:
-	var scroll := ScrollContainer.new()
+	var scroll := preload("res://ui/components/drag_scroll.gd").new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	parent.add_child(scroll)
 
@@ -674,7 +681,7 @@ func _populate_graphics_settings(parent: VBoxContainer) -> void:
 	content.add_child(_create_toggle_row("show_health_bars", "Show Health Bars", true))
 
 func _populate_audio_settings(parent: VBoxContainer) -> void:
-	var scroll := ScrollContainer.new()
+	var scroll := preload("res://ui/components/drag_scroll.gd").new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	parent.add_child(scroll)
 
@@ -707,7 +714,7 @@ func _populate_audio_settings(parent: VBoxContainer) -> void:
 	content.add_child(_create_toggle_row("enable_voice_chat", "Enable Voice Chat", false))
 
 func _populate_controls_settings(parent: VBoxContainer) -> void:
-	var scroll := ScrollContainer.new()
+	var scroll := preload("res://ui/components/drag_scroll.gd").new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	parent.add_child(scroll)
 
@@ -804,7 +811,7 @@ func _populate_controls_settings(parent: VBoxContainer) -> void:
 	content.add_child(_create_keybind_row("key_settings", "Settings", KEY_ESCAPE, "settings"))
 
 func _populate_gameplay_settings(parent: VBoxContainer) -> void:
-	var scroll := ScrollContainer.new()
+	var scroll := preload("res://ui/components/drag_scroll.gd").new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	parent.add_child(scroll)
 
@@ -850,7 +857,7 @@ func _populate_gameplay_settings(parent: VBoxContainer) -> void:
 	content.add_child(_create_toggle_row("profanity_filter", "Profanity Filter", true))
 
 func _populate_accessibility_settings(parent: VBoxContainer) -> void:
-	var scroll := ScrollContainer.new()
+	var scroll := preload("res://ui/components/drag_scroll.gd").new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	parent.add_child(scroll)
 
@@ -892,7 +899,7 @@ func _populate_accessibility_settings(parent: VBoxContainer) -> void:
 	content.add_child(_create_dropdown_row("language", "Language:", ["English", "Spanish", "French", "German", "Russian", "Chinese", "Japanese", "Korean"], 0))
 
 func _populate_social_settings(parent: VBoxContainer) -> void:
-	var scroll := ScrollContainer.new()
+	var scroll := preload("res://ui/components/drag_scroll.gd").new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	parent.add_child(scroll)
 

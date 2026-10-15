@@ -129,7 +129,7 @@ func _setup_ui() -> void:
 	main.add_child(content)
 
 	# Quest list (left)
-	var list_scroll := ScrollContainer.new()
+	var list_scroll := preload("res://ui/components/drag_scroll.gd").new()
 	list_scroll.custom_minimum_size.x = 180
 	list_scroll.focus_mode = Control.FOCUS_ALL
 	list_scroll.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
@@ -140,7 +140,7 @@ func _setup_ui() -> void:
 	list_scroll.add_child(_quest_list)
 
 	# Quest detail (right)
-	var detail_scroll := ScrollContainer.new()
+	var detail_scroll := preload("res://ui/components/drag_scroll.gd").new()
 	detail_scroll.focus_mode = Control.FOCUS_ALL
 	detail_scroll.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	content.add_child(detail_scroll)

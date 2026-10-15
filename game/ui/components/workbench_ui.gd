@@ -141,7 +141,7 @@ func _setup_content() -> void:
 	purse_row.add_child(_gold_label)
 
 	# The recipe table itself.
-	var scroll := ScrollContainer.new()
+	var scroll := preload("res://ui/components/drag_scroll.gd").new()
 	scroll.custom_minimum_size.y = 380
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	main.add_child(scroll)

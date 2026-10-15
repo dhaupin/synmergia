@@ -129,7 +129,7 @@ func _setup_ui() -> void:
 	acts_label.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
 	main.add_child(acts_label)
 
-	var acts_scroll := ScrollContainer.new()
+	var acts_scroll := preload("res://ui/components/drag_scroll.gd").new()
 	acts_scroll.custom_minimum_size = Vector2(0, 118)
 	acts_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	main.add_child(acts_scroll)
@@ -445,7 +445,7 @@ func _refresh_sailing_page(day: int) -> void:
 		return
 	var ferry: Dictionary = ferries[0]
 	var route_row := Label.new()
-	route_row.text = "%s: %s -- %s (%d cast-offs a day)" % [str(ferry["name"]), str(ferry["from"]), str(ferry["to"]), int(ferry["per_day"])]
+	route_row.text = "%s: %s (%d cast-offs a day)" % [str(ferry["name"]), str(ferry["route"]), int(ferry["per_day"])]
 	route_row.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
 	_sail_rows.add_child(route_row)
 	var cross_row := Label.new()
@@ -485,11 +485,20 @@ func _sail_ferries() -> Array:
 	return out
 
 
+## The FULL route reads gateway-by-gateway (village center -- nexus
+## central -- capitol pier), so every called leg shows on the page --
+## the probe (probe_ocean J) pins all of them.
 func _ferry_row(v) -> Dictionary:
+	var route: String = ""
+	if v.route_gateways != null:
+		for i in range(v.route_gateways.size()):
+			var leg: String = str(v.route_gateways[i])
+			if i > 0:
+				route += " -- "
+			route += leg.trim_prefix("waypoint_").replace("_", " ")
 	return {
 		"name": str(v.display_name),
-		"from": str(v.route_gateways[0]).trim_prefix("waypoint_").replace("_", " "),
-		"to": str(v.route_gateways[v.route_gateways.size() - 1]).trim_prefix("waypoint_").replace("_", " "),
+		"route": route,
 		"per_day": int(v.ferries_per_day),
 		"cross_h": float(v.crossing_hours),
 		"dep": FerrySchedule.next_departure(int(v.ferries_per_day), float(v.first_departure_hour), _moon_epoch_days()),

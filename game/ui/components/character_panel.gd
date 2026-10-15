@@ -170,7 +170,7 @@ func _setup_tabs() -> void:
 	# -- ScrollContainers default to a 0-width fit, which left the tab
 	# bodies invisible even where content existed.
 	for tab in Tab.values():
-		var container := ScrollContainer.new()
+		var container := preload("res://ui/components/drag_scroll.gd").new()
 		container.name = "TabContent_%d" % tab
 		container.visible = false
 		container.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -516,7 +516,7 @@ func _show_equip_item_picker(slot_id: int) -> void:
 	vbox.custom_minimum_size = Vector2(300, 250)
 	dialog.add_child(vbox)
 
-	var scroll := ScrollContainer.new()
+	var scroll := preload("res://ui/components/drag_scroll.gd").new()
 	scroll.custom_minimum_size.y = 200
 	vbox.add_child(scroll)
 
@@ -1175,7 +1175,7 @@ func _setup_titles_tab() -> void:
 	unlocked_lbl.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
 	vbox.add_child(unlocked_lbl)
 
-	var titles_scroll := ScrollContainer.new()
+	var titles_scroll := preload("res://ui/components/drag_scroll.gd").new()
 	titles_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(titles_scroll)
 

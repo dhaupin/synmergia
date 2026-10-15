@@ -14,6 +14,11 @@ extends VBoxContainer
 
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 
+## THE CANONICAL DRAG-SCROLL LAW: the body is DragScroll (one drag-scroll
+## handler). Every panel that rides ScrollFrame gets touch + mouse drag
+## scroll for free; individual panels no longer patch their own.
+const DRAG_SCROLL := preload("res://ui/components/drag_scroll.gd")
+
 var _scroll: ScrollContainer
 var _up_btn: Button
 var _down_btn: Button
@@ -27,7 +32,7 @@ func _init() -> void:
 	_up_btn.visible = false
 	add_child(_up_btn)
 
-	_scroll = ScrollContainer.new()
+	_scroll = DRAG_SCROLL.new()
 	_scroll.name = "Scroll"
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL

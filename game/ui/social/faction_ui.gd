@@ -31,7 +31,7 @@ func _setup_ui() -> void:
 		return
 
 	# Faction list (scrollable)
-	var scroll := ScrollContainer.new()
+	var scroll := preload("res://ui/components/drag_scroll.gd").new()
 	scroll.name = "FactionScroll"
 	scroll.custom_minimum_size.y = 300
 	main.add_child(scroll)

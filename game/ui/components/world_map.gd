@@ -105,6 +105,9 @@ func _ready() -> void:
 	_setup_ui()
 	_set_minimap_mode()
 	_bind_zone_signals()
+	# Window resizes (and phone rotates) re-place the dots: the drawn
+	# rect law depends on the CONTROL size.
+	resized.connect(_position_entity_markers)
 	hide()
 
 
@@ -118,6 +121,7 @@ func _bind_zone_signals() -> void:
 
 
 func _on_zone_loaded(zone_data) -> void:
+	sync_landmark_markers()
 	if zone_data and "name" in zone_data:
 		set_zone_name(zone_data.name)
 
@@ -341,6 +345,9 @@ func toggle() -> void:
 		expand_to_fullscreen()
 
 func show_map() -> void:
+	# Landmark sync law: the full map refreshes its settlement/gate/
+	# ankh set on every open, so late spawns land on the map too.
+	sync_landmark_markers()
 	expand_to_fullscreen()
 
 func hide_map() -> void:
@@ -445,6 +452,7 @@ static func lat_lon_to_uv(lat: float, lon: float) -> Vector2:
 func _position_player_marker() -> void:
 	if _player_marker == null or _marker_container == null:
 		return
+	_position_entity_markers()
 	if _player_lat > 90.0:
 		return
 	if _globe_mode and _globe_texture != null:
@@ -731,10 +739,17 @@ func add_marker(entity_id: String, world_pos: Vector3, marker_type: int, label: 
 		color = UIStyles.COLORS.error
 	elif marker_type == 5:
 		color = UIStyles.COLORS.info
+	elif marker_type == 6:
+		color = Color(0.65, 0.85, 1.0)  # gate
+	elif marker_type == 7:
+		color = Color(0.85, 0.7, 1.0)  # ankh
+	elif marker_type == 8:
+		color = Color(0.95, 0.85, 0.5)  # town
 	else:
 		color = UIStyles.COLORS.info
 
 	var marker := _create_marker(entity_id, color)
+	marker.custom_minimum_size = Vector2(10, 10)
 	_marker_container.add_child(marker)
 
 	_entity_markers[entity_id] = {
@@ -743,6 +758,84 @@ func add_marker(entity_id: String, world_pos: Vector3, marker_type: int, label: 
 	"type": marker_type,
 	"label": label
 	}
+	# Label law: a marker that carried a name (town/gate/ankh sync) shows
+	# the name right beside its dot on the full map. Same node lifetime
+	# as the dot (remove_marker frees the dot, the label rides it).
+	if label != "":
+		var lbl := Label.new()
+		lbl.name = "MarkerLabel"
+		lbl.text = label
+		lbl.position = Vector2(10, -6)
+		lbl.add_theme_font_size_override("font_size", 11)
+		lbl.add_theme_color_override("font_color", color)
+		lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+		lbl.add_theme_constant_override("outline_size", 3)
+		marker.add_child(lbl)
+
+	if not _minimap_mode:
+		_position_entity_markers()
+
+## THE LANDMARK PLACEMENT LAW: a sync'd marker (town/gate/ankh) rides
+## the same canvas conventions the player dot uses. Minimap-mode
+## markers stay untouched. FLAT: world position -> lat/lon
+## (Spherical.cartesian_to_spherical) -> lat_lon_to_uv -> the
+## letterboxed drawn rect (square canvas: drawn height = control
+## height). GLOBE: the direction is projected onto the visible disk
+## (the inverse of the _run_globe_generation fold); markers on the far
+## hemisphere hide until the view turns their way.
+func _position_entity_markers() -> void:
+	if _minimap_mode or _canvas_image == null:
+		return
+	var Sph = load("res://core/frame/math/spherical.gd")
+	if Sph == null:
+		return
+	var vp_size := size
+	var drawn := vp_size.y
+	var x0 := maxf(0.0, (vp_size.x - drawn) * 0.5)
+	# Globe basis (same center law as _ensure_globe_texture).
+	var center_lat: float = _player_lat if _player_lat <= 90.0 else 0.0
+	var center_lon: float = _player_lon if _player_lat <= 90.0 else 0.0
+	var sr: float = sin(deg_to_rad(90.0 - center_lat))
+	var cr: float = cos(deg_to_rad(90.0 - center_lat))
+	var cy: float = cos(deg_to_rad(center_lon))
+	var sy: float = sin(deg_to_rad(center_lon))
+	var n := Vector3(sr * cy, cr, sr * sy)
+	var e := Vector3(-sy, 0.0, cy)
+	var up := n.cross(e).normalized()
+	var half: float = GLOBE_SIZE * 0.5
+	for entity_id in _entity_markers:
+		var data: Dictionary = _entity_markers[entity_id]
+		if str(entity_id) == "Player":
+			continue  # the gold dot has its own placement law
+		var marker: Control = data.get("marker")
+		if marker == null or not is_instance_valid(marker):
+			continue
+		var pos: Vector3 = data.get("position", Vector3.ZERO)
+		if pos == Vector3.ZERO:
+			# Unset placements (0,0,0 .tres) stay clear of the map.
+			marker.visible = false
+			continue
+		var ll: Vector2 = Sph.cartesian_to_spherical(pos, _bank.R if _bank != null else 20000.0)
+		var uv: Vector2 = lat_lon_to_uv(ll.x, ll.y)
+		marker.visible = true
+		if _globe_mode:
+			var lat_r := deg_to_rad(ll.x)
+			var lon_r := deg_to_rad(ll.y)
+			var d := Vector3(cos(lat_r) * cos(lon_r), sin(lat_r), cos(lat_r) * sin(lon_r))
+			var depth: float = d.dot(n)
+			if depth <= 0.0:
+				marker.visible = false  # far hemisphere
+				continue
+			var gx: float = (d.dot(e) / depth) * half + half - 0.5
+			var gy: float = (d.dot(up) / depth) * (-half) + half - 0.5
+			var gtex_norm: float = drawn / float(GLOBE_SIZE)
+			marker.position = Vector2(
+				x0 + gx * gtex_norm - marker.size.x * 0.5,
+				gy * gtex_norm - marker.size.y * 0.5)
+		else:
+			marker.position = Vector2(
+				x0 + uv.x * drawn - marker.size.x * 0.5,
+				uv.y * vp_size.y - marker.size.y * 0.5)
 
 func remove_marker(entity_id: String) -> void:
 	if not _entity_markers.has(entity_id):
@@ -752,6 +845,87 @@ func remove_marker(entity_id: String) -> void:
 	if marker:
 		marker.queue_free()
 		_entity_markers.erase(entity_id)
+
+## Landmark pass (gates + ankhs + town names): syncs the world-scope
+## settlement/respawn/gateway set onto the full map, keyed with a
+## "LANDMARK_" prefix so a resync replaces exactly its own set.
+func sync_landmark_markers() -> void:
+	var stale: Array[String] = []
+	for marker_id in _entity_markers.keys():
+		if str(marker_id).begins_with("LANDMARK_"):
+			stale.append(str(marker_id))
+	for marker_id in stale:
+		remove_marker(marker_id)
+
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return
+	var tree := ml as SceneTree
+	var root: Node = tree.root
+	# Window has no get_nodes_in_group -- the GROUPS live on the
+	# SceneTree itself (the root-node call threw on every sync).
+	var seen := {}
+
+	if ZoneManager != null and ZoneManager.has_method("get_all_zones"):
+		for zone in ZoneManager.get_all_zones():
+			if zone == null:
+				continue
+			var zid := str(zone.get("id"))
+			if zid == "":
+				continue
+			# Two-arg Resource.get() throws in 4.7 (single-arg only).
+			var is_instanced_v: Variant = zone.get("is_instanced")
+			var pvp_mode_v: Variant = zone.get("pvp_mode")
+			if (is_instanced_v != null and bool(is_instanced_v)) \
+					or (pvp_mode_v != null and int(pvp_mode_v) != 0):
+				continue
+			# Godot 4.7 law: Resource.get() takes ONE arg (the two-arg
+			# default form throws). Guard with has() instead.
+			var bind: Vector3 = Vector3.ZERO
+			if "bind_point" in zone:
+				bind = zone.bind_point
+			if bind == Vector3.ZERO:
+				continue
+			var town_name: String = "Town"
+			if "display_name" in zone:
+				town_name = str(zone.display_name)
+			var key := "LANDMARK_town_" + zid
+			if seen.has(key):
+				continue
+			seen[key] = true
+			add_marker(key, bind, 8, town_name)
+
+	if DataService != null and DataService.has_method("get_all_gateways"):
+		for g in DataService.get_all_gateways():
+			if g == null:
+				continue
+			var gname: String = "Gateway"
+			if "display_name" in g:
+				gname = str(g.display_name)
+			var pos: Vector3 = Vector3.ZERO
+			if "source_position" in g:
+				pos = g.source_position
+			var gate_id: String = gname
+			if "id" in g:
+				var gid = g.id
+				if gid != null and str(gid) != "":
+					gate_id = str(gid)
+			var key: String = "LANDMARK_gate_%s" % gate_id
+			if seen.has(key):
+				continue
+			seen[key] = true
+			add_marker(key, pos, 6, gname)
+
+	for ankh in tree.get_nodes_in_group("ankhs"):
+		if ankh == null or not is_instance_valid(ankh):
+			continue
+		var ak_id: String = str(ankh.get("ankh_id")) if "ankh_id" in ankh else str(ankh.name)
+		var ak_name := str(ankh.get("display_name")) if "display_name" in ankh else "Ankh"
+		var key := "LANDMARK_ankh_" + ak_id
+		if seen.has(key):
+			continue
+		seen[key] = true
+		add_marker(key, ankh.global_position, 7, ak_name)
 
 # Marker visibility toggles
 var _show_players: bool = true

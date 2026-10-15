@@ -336,6 +336,18 @@ func _is_admin() -> bool:
 
 
 func open_settings() -> void:
+	# THE ONE FUNNEL LAW: settings registers with MenuManager's panel
+	# registry (back-stack law), so open/close go through open_menu/
+	# close_menu -- the registry, the touch-HUD yield, the Back button,
+	# and ESC-while-settings-open all stay coherent. Direct fallback
+	# kept for the bare position (no MenuManager instance yet).
+	var mm = get_node_or_null("/root/MenuManager")
+	if mm == null:
+		var MenuManagerScript = load("res://ui/components/menu_manager.gd")
+		mm = MenuManagerScript.instance if MenuManagerScript != null else null
+	if mm != null and mm.has_method("open_menu") and mm.get_panel_node("settings") != null:
+		mm.open_menu("settings")
+		return
 	var panel := _resolve_settings_panel()
 	if panel != null:
 		# Prefer the UIPanel lifecycle (keeps _is_open in sync so the
@@ -348,6 +360,13 @@ func open_settings() -> void:
 
 
 func close_settings() -> void:
+	var mm = get_node_or_null("/root/MenuManager")
+	if mm == null:
+		var MenuManagerScript = load("res://ui/components/menu_manager.gd")
+		mm = MenuManagerScript.instance if MenuManagerScript != null else null
+	if mm != null and mm.has_method("close_menu") and mm.get_panel_node("settings") != null:
+		mm.close_menu("settings")
+		return
 	var panel := _resolve_settings_panel()
 	if panel != null:
 		if panel.has_method("close"):

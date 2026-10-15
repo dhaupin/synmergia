@@ -139,6 +139,81 @@ signal waypoints_cleared(player_id: String, count: int)
 func _ready() -> void:
 	GameLog.info("WaypointService: Ready")
 	_load_waypoints()
+	# Beacon law: the active waypoint shows in the world as a pillar of
+	# light. The service owns the beacon lifecycle off its own signals
+	# so every surface that activates a waypoint (UI list, map click,
+	# quest auto-track) lights the exact same beam.
+	waypoint_activated.connect(_on_waypoint_activated_for_beacon)
+	waypoint_deactivated.connect(_on_waypoint_deactivated_for_beacon)
+	waypoint_deleted.connect(_on_waypoint_deleted_for_beacon)
+
+
+## --- World beacon (WaypointBeacon) lifecycle -------------------------
+
+## The beacon node lives under the current scene so it streams with
+## the world and never leaves an orphan behind on scene changes.
+var _beacon: Node3D = null
+var _beacon_owner_id: String = ""
+const WaypointBeaconScript = preload("res://ui/components/waypoint_beacon.gd")
+
+func _ensure_beacon() -> void:
+	if _beacon != null and is_instance_valid(_beacon):
+		return
+	var tree := get_tree()
+	if tree == null:
+		return
+	var parent_node: Node = tree.current_scene if tree.current_scene else tree.root
+	if parent_node == null or not parent_node.is_inside_tree():
+		return
+	_beacon = WaypointBeaconScript.new()
+	_beacon.name = "WaypointBeacon"
+	parent_node.add_child(_beacon)
+
+func _on_waypoint_activated_for_beacon(player_id: String, waypoint_id: String) -> void:
+	_engine_beacon_sync(player_id, waypoint_id, false)
+
+func _on_waypoint_deactivated_for_beacon(player_id: String, _waypoint_id: String) -> void:
+	if player_id == _beacon_owner_id:
+		_hide_beacon()
+
+func _on_waypoint_deleted_for_beacon(player_id: String, _waypoint_id: String) -> void:
+	if player_id == _beacon_owner_id:
+		_hide_beacon()
+
+## Restamp the beam for `player_id`'s active waypoint (created = the
+## call also drops on a brand-new beacon). Non-local players' beams
+## never render: one waypoint marker per screen.
+func _engine_beacon_sync(player_id: String, waypoint_id: String, created: bool) -> void:
+	var wp_dict := get_waypoint(player_id, waypoint_id)
+	if wp_dict.is_empty():
+		return
+	var is_local := _is_local_player(player_id)
+	if not is_local:
+		return
+	_ensure_beacon()
+	if _beacon == null:
+		return
+	var is_new_target: bool = created
+	if not is_new_target and "get_waypoint_id" in _beacon:
+		is_new_target = str(_beacon.call("get_waypoint_id")) != waypoint_id
+	var pos := Vector3(float(wp_dict.get("position_x", 0.0)), float(wp_dict.get("position_y", 0.0)), float(wp_dict.get("position_z", 0.0)))
+	var color := get_color_value(int(wp_dict.get("color", WaypointColor.BLUE)))
+	if is_new_target:
+		_beacon.call("setup", waypoint_id, pos, color, int(wp_dict.get("icon", WaypointIcon.FLAG)))
+	if bool(wp_dict.get("show_beacon", true)):
+		_beacon.call("show_beacon")
+	else:
+		_beacon.call("hide_beacon")
+	_beacon_owner_id = player_id
+
+func _hide_beacon() -> void:
+	if _beacon != null and is_instance_valid(_beacon):
+		_beacon.call("hide_beacon")
+
+func _is_local_player(player_id: String) -> bool:
+	if PlayerManager != null and PlayerManager.has_method("get_local_player_id"):
+		return player_id == str(PlayerManager.call("get_local_player_id"))
+	return false
 
 ## Create a new waypoint
 func create_waypoint(player_id: String, name: String, position: Vector3, zone_id: String,

@@ -239,6 +239,13 @@ func initiate_respawn(player, zone_id: String = "") -> bool:
 	match mode:
 		RespawnMode.ANKH:
 			var ankh := _get_bound_ankh(player)
+			# Nearest-ankh death law: an explicit "nearest_ankh" UI
+			# choice, or a player who never bound one, revives at the
+			# closest ankh instead of the saved one.
+			if ankh == null or str(selected.get("mode", "")) == "nearest_ankh":
+				var nearest: Ankh = _get_nearest_ankh(player)
+				if nearest != null:
+					ankh = nearest
 			if ankh:
 				respawn_data = {
 					"ankh_id": ankh.ankh_id,
@@ -317,9 +324,11 @@ func get_available_respawn_modes(player, zone_id: String = "") -> Array[RespawnM
 	# Timed - always available
 	available.append(RespawnMode.TIMED)
 
-	# Ankh - if player has bound one and zone allows. The zone config
-	# flag is ankh_required ("must bind an ankh to respawn here"), which
-	# GATES nothing about offering the bound-ankh mode; an empty bound id
+	# Ankh - if the player has bound one, OR if any ankh exists in the
+	# world (the nearest-ankh death law: death asks "saved ankh or the
+	# closest one"). The zone config flag is ankh_required ("must bind
+	# an ankh to respawn here"), which GATES nothing about offering the
+	# bound-ankh mode; an empty bound id
 	# simply means the mode is unavailable. (Previously the flag
 	# INVERTED the check, hiding the ANKH option exactly when the player
 	# HAD bound an ankh.)
@@ -327,6 +336,8 @@ func get_available_respawn_modes(player, zone_id: String = "") -> Array[RespawnM
 		var ankh := _get_ankh_by_id(player.respawn_ankh_id)
 		if ankh != null:
 			available.append(RespawnMode.ANKH)
+	elif _get_nearest_ankh(player) != null:
+		available.append(RespawnMode.ANKH)
 
 	# Gateway - if in zone with gateways
 	if not config.gateway_ids.is_empty():
@@ -651,6 +662,8 @@ func _mode_for_choice(selected: Dictionary) -> RespawnMode:
 	match m:
 		"timed", "near_corpse":
 			return RespawnMode.TIMED
+		"nearest_ankh":
+			return RespawnMode.ANKH
 		"ankh":
 			return RespawnMode.ANKH
 		"revive":
@@ -723,6 +736,38 @@ func _get_bound_ankh(player) -> Ankh:
 	if player == null or not ("respawn_ankh_id" in player) or player.respawn_ankh_id == "":
 		return null
 	return _get_ankh_by_id(player.respawn_ankh_id)
+
+
+## The closest ankh to a dead player, rescuing them from the running
+## world (group "ankhs"). Used by both the UI option ("Nearest Ankh")
+## and the ANKHR arm's fallback when the player never bound one.
+func _get_nearest_ankh(player) -> Ankh:
+	if player == null or not is_instance_valid(player) or not is_inside_tree():
+		return null
+	var nearest: Ankh = null
+	var nearest_dist := INF
+	for ankh in get_tree().get_nodes_in_group("ankhs"):
+		if ankh == null or not is_instance_valid(ankh):
+			continue
+		var dist: float = ankh.global_position.distance_to(player.global_position)
+		if dist < nearest_dist:
+			nearest_dist = dist
+			nearest = ankh
+	return nearest
+
+## Get the nearest ankh's info for the death-screen "Nearest Ankh"
+## option (public). Empty dict = no ankh exists / player missing.
+func get_nearest_ankh_info(player) -> Dictionary:
+	var ankh := _get_nearest_ankh(player)
+	if ankh == null or not is_instance_valid(ankh):
+		return {}
+	return {
+		"ankh_id": ankh.ankh_id,
+		"display_name": ankh.display_name,
+		"zone_id": ankh.zone_id,
+		"position": ankh.global_position,
+		"respawn_time_modifier": ankh.respawn_time_modifier,
+	}
 
 ## Get player's bound ankh info (public)
 func get_bound_ankh(player) -> Dictionary:

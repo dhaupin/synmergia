@@ -92,7 +92,7 @@ func _setup_ui() -> void:
 	main_vbox.add_child(sep)
 
 	# Waypoint list scroll
-	var scroll := ScrollContainer.new()
+	var scroll := preload("res://ui/components/drag_scroll.gd").new()
 	scroll.name = "Scroll"
 	scroll.custom_minimum_size.y = 400
 	main_vbox.add_child(scroll)

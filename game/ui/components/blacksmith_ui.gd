@@ -163,7 +163,7 @@ func _setup_content() -> void:
 	discount_badge.add_theme_color_override("font_color", UIStyles.COLORS.success)
 	gold_row.add_child(discount_badge)
 
-	var scroll := ScrollContainer.new()
+	var scroll := preload("res://ui/components/drag_scroll.gd").new()
 	scroll.custom_minimum_size.y = 340
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	main.add_child(scroll)

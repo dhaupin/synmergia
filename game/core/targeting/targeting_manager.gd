@@ -50,6 +50,10 @@ func _trade_svc() -> Node:
 	var tree := Engine.get_main_loop() as SceneTree
 	return tree.root.get_node_or_null(NodePath("TradeService")) if tree and tree.root else null
 
+func _lobby_service() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("LobbyService")) if tree and tree.root else null
+
 func _duel_svc() -> Node:
 	var tree := Engine.get_main_loop() as SceneTree
 	return tree.root.get_node_or_null(NodePath("DuelService")) if tree and tree.root else null
@@ -434,6 +438,25 @@ func _register_default_actions() -> void:
 		func(src, tgt): return _action_enter(src, tgt)
 	))
 
+	# === BOUT STONES (queue/lobby pass) ===
+	register_action(ActionDef.new(
+		"queue_bout", "Queue for Bout", "",
+		ActionDef.ActionCategory.INTERACTION,
+		func(src, tgt): return _action_queue_bout(src, tgt)
+	))
+
+	register_action(ActionDef.new(
+		"leave_bout_queue", "Leave Queue", "",
+		ActionDef.ActionCategory.INTERACTION,
+		func(src, tgt): return _action_leave_bout_queue(src, tgt)
+	))
+
+	register_action(ActionDef.new(
+		"check_lobby", "Check Lobby", "",
+		ActionDef.ActionCategory.INTERACTION,
+		func(src, tgt): return _action_check_lobby(src, tgt)
+	))
+
 ## ============================================================================
 ## ACTION IMPLEMENTATIONS
 ## ============================================================================
@@ -572,6 +595,46 @@ func _action_use(_source_id: String, _target_id: String) -> Dictionary:
 
 func _action_enter(_source_id: String, _target_id: String) -> Dictionary:
 	return {"success": true, "message": "Entering...", "action": "enter_gateway"}
+
+
+## Bout stones (S11): enqueue at the stone through its public queue
+## surface. The stone toasts the lobby moment itself (queued / already
+## queued) so the result only needs success + echo.
+func _action_queue_bout(_source_id: String, target_id: String) -> Dictionary:
+	var node := get_entity_by_id(target_id)
+	if node == null or not is_instance_valid(node):
+		return {"success": false, "message": "Queue stone not found"}
+	if node.has_method("attempt_queue"):
+		var player: Node = null
+		if _pm() != null and _pm().has_method("get_local_player"):
+			player = _pm().get_local_player()
+		if player == null:
+			player = get_entity_by_id(_source_id)
+		var result: Dictionary = node.call("attempt_queue", player)
+		result["action"] = "queue_bout"
+		return result
+	return {"success": false, "message": "This stone does not open a queue"}
+
+
+## Leave the bout queue (LobbyService owns the roster). The queue is
+## keyed by entity id, so the caller's id is enough.
+func _action_leave_bout_queue(source_id: String, _target_id: String) -> Dictionary:
+	var svc = _lobby_service()
+	if svc == null:
+		return {"success": false, "message": "LobbyService unavailable"}
+	var player_id := source_id
+	if player_id == "" and _pm() != null and _pm().has_method("get_local_player_id"):
+		player_id = str(_pm().call("get_local_player_id"))
+	if player_id == "" or not svc.has_method("leave_queue"):
+		return {"success": false, "message": "Not queued"}
+	var ok: bool = bool(svc.call("leave_queue", player_id))
+	return {"success": ok, "message": "Left the bout queue" if ok else "You were not queued"}
+
+
+## Check Lobby: surfaces through the HUD (open the lobby panel). The
+## action result carries a typed "action" the HUD router honors.
+func _action_check_lobby(_source_id: String, _target_id: String) -> Dictionary:
+	return {"success": true, "message": "Opening the lobby...", "action": "open_lobby"}
 
 ## ============================================================================
 ## TARGETING API

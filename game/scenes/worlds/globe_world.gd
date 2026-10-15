@@ -717,10 +717,13 @@ func _build_sun() -> void:
 # (the SAME clock SkySun/SkyMoon/SignService read -- no second clock)
 # through three keyed ramps: deep blue-black night, amber dusk band,
 # clean blue day.
-const NIGHT_BG: Color = Color(0.015, 0.025, 0.055)
+# Night readability (the "sky is black" report): 0.015,0.025,0.055
+# rendered as near-void. The night floor is a deep STARLIGHT blue --
+# clearly night, never a blank black sheet.
+const NIGHT_BG: Color = Color(0.055, 0.085, 0.16)
 const DAY_BG: Color = Color(0.30, 0.48, 0.66)
 const DUSK_BG: Color = Color(0.52, 0.24, 0.18)
-const NIGHT_AMBIENT: float = 0.20
+const NIGHT_AMBIENT: float = 0.32
 const DAY_AMBIENT: float = 0.60
 
 var _env: Environment = null

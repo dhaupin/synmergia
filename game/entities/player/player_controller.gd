@@ -74,7 +74,18 @@ func _dialog_svc() -> Node:
 
 func _mmgr() -> Node:
 	var tree := Engine.get_main_loop() as SceneTree
-	return tree.root.get_node_or_null(NodePath("MenuManager")) if tree and tree.root else null
+	if tree and tree.root:
+		var mm: Node = tree.root.get_node_or_null(NodePath("MenuManager"))
+		if mm != null:
+			return mm
+	# Real client layout: MenuManager lives under the scene's HudLayer
+	# (hud_integrator resolves it the same way). Without this fallback
+	# every panel-opening context action silently no-op'd in scene runs.
+	if tree != null and tree.current_scene != null:
+		var hud: Node = tree.current_scene.get_node_or_null("HudLayer")
+		if hud != null:
+			return hud.get_node_or_null("MenuManager")
+	return null
 
 func _entity_svc() -> Node:
 	var tree := Engine.get_main_loop() as SceneTree
@@ -138,6 +149,7 @@ const Layers = preload("res://core/schemas/layer_profile.gd")
 const CharacterStatsUI = preload("res://ui/menus/character_stats_ui.gd")
 const GMIndicator = preload("res://entities/player/components/gm_indicator.gd")
 const ReportDialog = preload("res://ui/player/report_dialog.gd")
+const FloatingName = preload("res://entities/floating_name.gd")
 const SkillAcademyUI = preload("res://ui/components/skill_academy_ui.gd")
 
 
@@ -392,6 +404,43 @@ func _attach_blessed_mark() -> void:
 	_blessed_mark.set_wearer(character_class, self)
 
 
+## ---- Nameplate law (titles ride the name) --------------------------------
+## Attach the player's floating plate: "[Prefix] Name, Suffix", tinted
+## by the custom title color when one is set. Restamps on equip change
+## (title_equipped/unequipped) so the world label never goes stale.
+func _attach_floating_name() -> void:
+	_refresh_floating_name()
+	var svc := _titlesvc()
+	if svc and svc.has_signal("title_equipped") \
+			and not svc.title_equipped.is_connected(_on_title_state_changed):
+		svc.title_equipped.connect(_on_title_state_changed)
+	if svc and svc.has_signal("title_unequipped") \
+			and not svc.title_unequipped.is_connected(_on_title_state_changed):
+		svc.title_unequipped.connect(_on_title_state_changed)
+
+
+func _on_title_state_changed(player_id: String, _title_id: String, _slot: String = "") -> void:
+	if str(entity_id) != "" and player_id == str(entity_id):
+		_refresh_floating_name()
+
+
+func _refresh_floating_name() -> void:
+	var cfg := {}
+	var svc := _titlesvc()
+	if svc:
+		var color: Color = svc.call("get_title_color", str(entity_id))
+		if color != Color(0, 0, 0):
+			cfg["tint"] = color
+	FloatingName.ensure(self, FloatingName.player_text(self), "player", cfg)
+
+
+func _titlesvc() -> Node:
+	var ml := Engine.get_main_loop()
+	if ml is SceneTree and (ml as SceneTree).root:
+		return (ml as SceneTree).root.get_node_or_null("TitleService")
+	return null
+
+
 func _ready() -> void:
 	# Connect to input
 	_im().player_input.connect(_on_player_input)
@@ -412,6 +461,9 @@ func _ready() -> void:
 	# The blessed mark keys on the final class id (character data may
 	# arrive after _ready, like the hitbox); call_deferred sees it.
 	call_deferred("_attach_blessed_mark")
+	# Floating plate likewise keys on final character data + TitleService
+	# state; deferred attach restamps in place.
+	call_deferred("_attach_floating_name")
 
 	# Set collision (named bits, round 10): the body rides the entity
 	# layer and collides with the whole world (entities, props, ground).
@@ -666,6 +718,131 @@ func _on_context_action(action_id: String, target_id: String) -> void:
 		"character_stats":
 			_open_character_stats_ui()
 
+		# --- Ankh targeted law (action menu on the ankh itself) ---
+		"ankh_set":
+			_handle_ankh_action("bind", target_id)
+		"ankh_info":
+			_handle_ankh_action("info", target_id)
+		# --- Bout stones (locator pass): route through TargetingManager
+		# so the world menu and the HUD share one implementation.
+		"queue_bout", "leave_bout_queue":
+			_tm().execute_action_on(action_id, target_id)
+		"check_lobby":
+			if _mmgr().has_method("open_menu"):
+				_mmgr().open_menu("lobby")
+
+		# --- Player-to-player menu surface (view/Follow) ---
+		"view_character":
+			_open_player_inspect(target_id)
+		"follow":
+			_start_follow_target(target_id)
+		"stop_follow":
+			if _follow_svc():
+				_follow_svc().stop_follow(str(player_id), "cancelled")
+
+
+## The ankh targeted law: the action menu's Set-Ankh item binds the
+## player to the targeted ankh (denial reasons surf to typed toasts,
+## mirroring the proximity bind path); Ankh Info echoes the respawn
+## info dictionary.
+func _handle_ankh_action(kind: String, target_id: String) -> void:
+	var tdata: Dictionary = _tm().get_targetable(target_id)
+	var ankh: Node = tdata.get("node", null)
+	if ankh == null or not is_instance_valid(ankh) or not ankh.has_method("bind_player"):
+		var gl := _glog()
+		if gl:
+			gl.warn("PlayerController: ankh action %s on non-ankh target %s" % [kind, target_id])
+		return
+	if kind == "info" and ankh.has_method("get_respawn_info"):
+		var info: Dictionary = ankh.call("get_respawn_info", self)
+		var notif := _notify_svc()
+		if notif != null and notif.has_method("notify"):
+			notif.notify(
+				NotifKind.CUSTOM,
+				"%s (%s) -- respawn x%.2f in %s" % [
+					ankh.display_name,
+					info.get("ankh_type", "ANKH"),
+					float(info.get("respawn_time_modifier", 1.0)),
+					info.get("zone_id", "?")],
+				"Ankh",
+				"ankh_info:%s" % target_id,
+				info)
+		return
+	# Bind (kind == "bind"): same denial vocabulary the proximity path
+	# serves, so a refused bind toasts why instead of failing silently.
+	var denial := ""
+	if ankh.has_method("describe_bind_denial"):
+		denial = str(ankh.call("describe_bind_denial", self))
+	var ok := false
+	var denial_msg := ""
+	match denial:
+		"":
+			ok = bool(ankh.call("bind_player", self))
+		"cooldown":
+			denial_msg = "This ankh is still cooling down from your last bind."
+		"dead":
+			denial_msg = "You cannot bind while dead."
+		"guild", "guild_rank":
+			denial_msg = "This ankh answers only to its guild."
+		"faction":
+			denial_msg = "This ankh cannot serve your faction."
+		"not_allowed":
+			denial_msg = "This ankh is not yours to bind."
+		"quest":
+			denial_msg = "You have not earned the right to bind here yet."
+		"level_low":
+			denial_msg = "You are not ready to bind here yet."
+		"level_high":
+			denial_msg = "This ankh is beneath you."
+		_:
+			denial_msg = "This ankh resists your touch."
+	var notif2 := _notify_svc()
+	if notif2 != null and notif2.has_method("notify"):
+		if ok:
+			var bind_name := "Respawn point set"
+			if "display_name" in ankh:
+				bind_name = str(ankh.get("display_name"))
+			notif2.notify(
+				NotifKind.CUSTOM,
+				"Respawn point set: %s. You will revive here." % bind_name,
+				"Ankh",
+				"ankh_bind:%s:ok" % target_id,
+				{"ankh_id": target_id})
+		else:
+			notif2.notify(
+				NotifKind.CUSTOM,
+				denial_msg,
+				"Ankh",
+				"ankh_bind:%s:%s" % [target_id, denial],
+				{"ankh_id": target_id, "reason": denial})
+
+
+## Player-to-player menu actions: open the character panel in inspect
+## mode for the target (capability-probed, mirroring the HUD path).
+func _open_player_inspect(target_id: String) -> void:
+	var mm := _mmgr()
+	if mm == null:
+		return
+	if mm.has_method("open_character_inspect"):
+		mm.call("open_character_inspect", target_id)
+	elif mm.has_method("open_menu"):
+		mm.open_menu("character")
+
+
+## Follow a target player through FollowService (same call the HUD
+## menu router makes).
+func _start_follow_target(target_id: String) -> void:
+	var fs := _follow_svc()
+	if fs == null or PlayerManager == null:
+		return
+	var my_id := str(PlayerManager.get_local_player_id()) if PlayerManager.has_method("get_local_player_id") else str(player_id)
+	var ok := bool(fs.call("request_follow", my_id, target_id))
+	if not ok:
+		var gl := _glog()
+		if gl:
+			gl.info("PlayerController: follow request failed for %s" % target_id)
+
+
 ## The NPC-panel attach law: a panel opened from an NPC's action menu
 ## binds to that NPC's position and auto-closes when the player walks
 ## away past the canonical interact radius (UIPanel, 12m). The same
@@ -736,10 +913,18 @@ func _npc_quest_ids_for_target(target_id: String) -> Array:
 	for inc: Dictionary in npc_data.includes:
 		var t := str(inc.get("type", ""))
 		if t == "quest":
+			# Inline shape: quest_ids array. Ref shape: the ref_id IS the
+			# quest id (data/quests/<ref_id>.tres carries it as its own
+			# id; the blacksmith's "intro_core_npcs" include reads this
+			# way and previously resolved to nothing, killing the
+			# quests-panel context action silently).
 			var qids: Variant = inc.get("quest_ids")
 			if qids is Array:
 				ids = qids
-			break
+			elif str(inc.get("ref_id", "")) != "":
+				ids = [str(inc.get("ref_id"))]
+			if not ids.is_empty():
+				break
 		if t == "offering":
 			var res := load("res://data/npc_offerings/%s.tres" % str(inc.get("ref_id", "")))
 			if res != null and str(res.get("type")) == "quest":

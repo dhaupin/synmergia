@@ -33,7 +33,10 @@ const MOON_DISTANCE: float = 260.0
 ## Synmergia -- small and honest against the 26-degree Earth the
 ## mooners see. Scaled 4x for readability at render distance (a
 ## sky-light, not a collider; the angular RATE stays exact).
-const MOON_RADIUS: float = 3.6   # 260 m * tan(4 * 0.76 deg) ~ 3.6 m
+# Clarity pass (the "moon isn't clear" report): 3.6 m at 260 m is a
+# dot (0.8 deg). 7.2 m reads as a small visible body against the
+# 6x-honest sun; the angular RATE (the clock read) is unchanged.
+const MOON_RADIUS: float = 7.2
 ## Moonlight ceiling: a full overhead moon pushes 0.35 -- bright
 ## night, real shadows, but never sun-strength (day owns 1.15).
 const MOON_LIGHT_MAX: float = 0.35
@@ -115,11 +118,13 @@ func _apply_phase_shading() -> void:
 	# the sphere's own normals now. Light energy still rides the law.
 	var mat: ShaderMaterial = _disc_mesh_material()
 	if mat != null:
-		mat.set_shader_parameter("lit_gain", 1.75)
+		mat.set_shader_parameter("lit_gain", 2.2)
 		# Earthshine law: the dark side keeps a floor that scales with
 		# the phase (a quarter moon's shadowed sliver reads slightly
 		# brighter than a new moon's, the way scattered light works).
-		mat.set_shader_parameter("night_floor", clampf(0.10 + 0.06 * _phase_frac, 0.10, 0.16))
+		# Clarity pass: the old 0.10 floor vanished against the night
+		# sky; 0.14 keeps the disc's outline readable through the dark.
+		mat.set_shader_parameter("night_floor", clampf(0.14 + 0.06 * _phase_frac, 0.14, 0.20))
 
 
 ## The disc's ShaderMaterial (resolved through the mesh; the disc is

@@ -454,11 +454,20 @@ func _on_button_up(action: String) -> void:
 
 ## Inject the press into the global Input state (so state scripts polling
 ## Input.is_action_just_pressed react) and notify listeners.
+## THE LIVE-BUTTON LAW (the dead JMP/DSL report): parse_input_event alone
+## can lose the press on touch platforms whose [emulated-mouse] tap
+## arrives inside the same flush batch. action_press/action_release pin
+## the action's pressed state deterministically on EVERY platform, and
+## the parsed event still carries the one-frame just_pressed semantics
+## state scripts rely on. Both paths together are idempotent.
 func _press_action(action: String) -> void:
 	_dbg("press '%s'" % action)
 	if _debug_touch:
 		for frame in get_stack():
 			_dbg("  via %s:%s (%s)" % [str(frame.get("source", "?")), str(frame.get("line", "?")), str(frame.get("function", "?"))])
+	var already: bool = Input.is_action_pressed(action)
+	if not already:
+		Input.action_press(action)
 	var ev := InputEventAction.new()
 	ev.action = action
 	ev.pressed = true
@@ -470,6 +479,7 @@ func _press_action(action: String) -> void:
 
 func _release_action(action: String) -> void:
 	_dbg("release '%s'" % action)
+	Input.action_release(action)
 	var ev := InputEventAction.new()
 	ev.action = action
 	ev.pressed = false

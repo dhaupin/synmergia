@@ -37,6 +37,7 @@ var _guild_panel: Control
 var _party_panel: Control
 var _friends_panel: Control
 var _quest_panel: Control
+var _settings_panel: Control
 var _bank_panel: Control
 var _blacksmith_panel: Control
 var _dock_panel: Control
@@ -133,12 +134,20 @@ func _setup_hud() -> void:
 	add_child(_action_bar)
 
 	# Quick access bar (bottom left) - consumables
+	# THE PLACEHOLDER LAW (same reason _action_bar is inert): the real
+	# QuickAccessBar + status readouts live in hud_layer.tscn. These
+	# script-built placeholders DUPLICATED them -- faint empty slots and
+	# HP/MP/XP readouts rendered behind the chat panel (the "stray panel
+	# behind chat" report). Invisible below z 100, keyboard players cast
+	# through keys 1-8; the real widgets own the screen regions.
 	_quick_access_bar = HBoxContainer.new()
 	_quick_access_bar.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	_quick_access_bar.offset_right = 250
 	_quick_access_bar.offset_bottom = 60
 	_quick_access_bar.custom_minimum_size.y = 50
 	_quick_access_bar.z_index = 100
+	_quick_access_bar.visible = false
+	_quick_access_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_quick_access_bar.focus_mode = Control.FOCUS_ALL
 	_quick_access_bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	add_child(_quick_access_bar)
@@ -154,11 +163,14 @@ func _setup_hud() -> void:
 	_buff_bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	add_child(_buff_bar)
 
-	# Status bar (top center) - HP, MP, XP
+	# Status bar (top center) - HP, MP, XP (placeholder; inert, see the
+	# placeholder law above).
 	_status_bar = HBoxContainer.new()
 	_status_bar.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_status_bar.offset_top = 10
 	_status_bar.z_index = 100
+	_status_bar.visible = false
+	_status_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_status_bar.focus_mode = Control.FOCUS_ALL
 	_status_bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	add_child(_status_bar)
@@ -592,9 +604,22 @@ func _open_menu_internal(menu_name: String, npc_pos: Vector3 = Vector3.ZERO) -> 
 	# bank entry (hotkey, context menu, NPC interact) passes here.
 	if menu_name == "bank" and not _banker_gate(npc_pos):
 		return
+	# THE SERVICE GATES (same law as the vault): the smithy opens only
+	# near a blacksmith NPC, the skill academy only near a trainer NPC.
+	# Every entry (hotkey, action menu, NPC interact) passes _open_panel.
+	if menu_name == "blacksmith" and not _service_gate(npc_pos, "BlacksmithService", "blacksmith"):
+		return
+	if menu_name == "skill_academy" and not _service_gate(npc_pos, "SkillAcademyService", "skill academy"):
+		return
 	# Attach the walk-away close when opened from an NPC's action menu
 	# (the blacksmith/academy law; MENU-panel flavor for the vault).
 	if menu_name == "bank" and npc_pos != Vector3.ZERO \
+			and "set_npc_proximity" in panel:
+		panel.call("set_npc_proximity", npc_pos)
+	# The blacksmith/academy law (staging note): the walk-away close
+	# also owns the smithy and the trainer when opened from their NPC's
+	# action menu.
+	if npc_pos != Vector3.ZERO and (menu_name == "blacksmith" or menu_name == "skill_academy") \
 			and "set_npc_proximity" in panel:
 		panel.call("set_npc_proximity", npc_pos)
 
@@ -713,6 +738,49 @@ func _banker_gate(npc_pos: Vector3) -> bool:
 ## the same way the action menu is (NPCData.has_offering("bank")), so
 ## the gate and the menu never disagree about who can bank.
 func is_valid_banker_near(player) -> bool:
+	return _npc_offering_near(player, "bank")
+
+## THE SERVICE GATE: true when the local player stands within
+## BANKER_RADIUS (the same generous walk-law) of any NPC whose
+## NPC offering with the given service_id is a "service" -- a smith NPC
+## carries the BlacksmithService service, the academy NPC the
+## SkillAcademyService service. No EntityService or no local player
+## (tests/offline) degrades to allowed so probes keep flowing.
+## Otherwise the action menu for a missing NPC shows the gate toast.
+func _service_gate(npc_pos: Vector3, service_id: String, label: String) -> bool:
+	if npc_pos != Vector3.ZERO:
+		return true  # proven by the action menu
+	var pm := get_node_or_null("/root/PlayerManager")
+	var player = pm.get_local_player() if pm != null and pm.has_method("get_local_player") else null
+	if player == null or not is_instance_valid(player):
+		return true
+	if _npc_service_near(player, service_id):
+		return true
+	var ns := get_node_or_null("/root/NotificationService")
+	if ns != null:
+		var NotifKind = load("res://core/notifications/notification_kind.gd").NotifKind
+		ns.notify(NotifKind.CUSTOM, "Find a %s to use the %s." % [label, label],
+			"MenuManager", "service_gate_%s" % service_id, {}, _local_player_id())
+	return false
+
+func _npc_service_near(player, service_id: String) -> bool:
+	var es := get_node_or_null("/root/EntityService")
+	if es == null or not es.has_method("get_entities_in_radius"):
+		return true
+	var origin: Vector3 = player.global_position if player is Node3D else Vector3.ZERO
+	for npc in es.get_entities_in_radius(origin, BANKER_RADIUS):
+		if npc == null or not is_instance_valid(npc):
+			continue
+		if not ("npc_data" in npc) or npc.npc_data == null:
+			continue
+		if npc.npc_data.has_method("has_service_offering") \
+				and npc.npc_data.has_service_offering(service_id):
+			return true
+	return false
+
+## Shared radius scan for one offering shape (used by the banker and
+## service gates). Degrades to allowed without EntityService.
+func _npc_offering_near(player, offering_type: String) -> bool:
 	var es := get_node_or_null("/root/EntityService")
 	if es == null or not es.has_method("get_entities_in_radius"):
 		return true
@@ -723,7 +791,7 @@ func is_valid_banker_near(player) -> bool:
 		if not ("npc_data" in npc) or npc.npc_data == null:
 			continue
 		if npc.npc_data.has_method("has_offering") \
-				and npc.npc_data.has_offering("bank"):
+				and npc.npc_data.has_offering(offering_type):
 			return true
 	return false
 func _close_top_menu_internal() -> void:
@@ -901,6 +969,14 @@ func _hide_exit_confirm() -> void:
 
 func _exit_to_character_select() -> void:
 	_hide_exit_confirm()
+	# THE EXIT LAW: leaving the world stops every sound the world left
+	# playing -- ambience loops, accents, one-shots, positional noises,
+	# music. Runtime lookup (script-mode safe): a bare AudioService
+	# identifier fails compile when the autoload is absent.
+	var tree := Engine.get_main_loop() as SceneTree
+	var audio: Node = tree.root.get_node_or_null(NodePath("AudioService")) if tree and tree.root else null
+	if audio != null and audio.has_method("stop_all"):
+		audio.call("stop_all")
 	var gm = get_node_or_null("/root/GameManager")
 	if gm != null and gm.has_method("change_state"):
 		gm.change_state(gm.GameState.CHARACTER_SELECT)
@@ -958,6 +1034,13 @@ func _close_all_menus_internal() -> void:
 	_is_menu_open = false
 	_update_back_button()
 
+## The settings screen registers with the one panel registry. Settings
+## adopts INTO MenuManager after ready (z-stack law), so the node set
+## is delegated: HudLayer.open/close route through open_menu/close_menu
+## and ESC / back gestures see settings as a regular closable panel.
+func register_settings_panel(panel: Control) -> void:
+	_settings_panel = panel
+
 func _get_panel(menu_name: String) -> Control:
 	match menu_name:
 		"inventory": return _inventory_panel
@@ -984,14 +1067,28 @@ func _get_panel(menu_name: String) -> Control:
 		"shop": return _shop_panel
 		"admin": return _admin_panel
 		"debug": return _debug_panel
-	return null
+		# The settings screen rides the SAME registry so the back stack
+		# (ESC / Android back / web back) closes it BEFORE the exit
+		# confirm: with it unregistered, ESC-while-settings-open fell
+		# through to "Leave the world?" with the panel still up.
+		"settings": return _settings_panel
+		_: return null
 
 func _set_hud_visible_internal(visible: bool) -> void:
 	_is_hud_visible = visible
-	_action_bar.visible = visible
-	_quick_access_bar.visible = visible
-	_buff_bar.visible = visible
-	_status_bar.visible = visible
+	# Placeholder law: the script-built bars are inert duplicates of the
+	# real hud_layer widgets. The old blanket `visible = visible` RE-
+	# SHOWED them on every HUD visibility change (the stray panel read
+	# returns on the next state flip). Written without ternaries per
+	# the repo parse-safety law.
+	_action_bar.visible = false
+	_quick_access_bar.visible = false
+	_status_bar.visible = false
+	var real_buff_bar := get_node_or_null("/root/HudLayer/BuffBar")
+	if real_buff_bar != null:
+		_buff_bar.visible = false
+	else:
+		_buff_bar.visible = visible
 	hud_visibility_changed.emit(visible)
 
 func _update_hp_internal(current: int, maximum: int) -> void:

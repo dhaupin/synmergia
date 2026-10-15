@@ -162,7 +162,7 @@ func _create_titles_list_section() -> VBoxContainer:
 	list_title.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
 	section.add_child(list_title)
 
-	var scroll := ScrollContainer.new()
+	var scroll := preload("res://ui/components/drag_scroll.gd").new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	section.add_child(scroll)
 

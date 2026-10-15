@@ -6,6 +6,8 @@ const LootTable = preload("res://core/schemas/loot_table.gd")
 const HealthComponent = preload("res://core/components/health_component.gd")
 const AggroComponent = preload("res://core/components/aggro_component.gd")
 const KillRewards = preload("res://core/services/kill_rewards.gd")
+const EnemyData = preload("res://core/schemas/enemy_data.gd")
+const FloatingName = preload("res://entities/floating_name.gd")
 
 ## Mirror of the Entity damage event with explicit damage_type, consumed
 ## by the HUD bridge (world_playable) and CombatSystem listeners.
@@ -99,6 +101,24 @@ func _ready() -> void:
 	# component); training dummies only need the aura tracker.
 	_ensure_effect_stack(not is_training_dummy())
 
+	# Nameplate law: every enemy gets a floating name plate. Kind is
+	# read from the template's enemy class (elite/boss scale up), and
+	# world bosses (metadata WORLD_BOSS) get the big plate from
+	# SpawnService; ensure() is create-or-update so double-wiring is
+	# harmless.
+	var plate_kind := "enemy"
+	var plate_cfg := {}
+	if enemy_data != null and "enemy_type" in enemy_data:
+		var etype := int(enemy_data.enemy_type)
+		if etype == EnemyData.EnemyType.WORLD_BOSS or etype == EnemyData.EnemyType.RAID_BOSS:
+			plate_kind = "boss"
+			plate_cfg = {"big": true}
+		elif etype == EnemyData.EnemyType.BOSS:
+			plate_kind = "boss"
+		elif etype == EnemyData.EnemyType.CHAMPION or etype == EnemyData.EnemyType.ELITE:
+			plate_kind = "elite"
+	FloatingName.ensure(self, FloatingName.compose_text(display_name, level), plate_kind, plate_cfg)
+
 	GameLog.info("Enemy spawned: %s (lvl %d, %d HP)" % [display_name, level, max_health])
 
 
@@ -146,10 +166,38 @@ func _physics_process(delta: float) -> void:
 		if move_direction.length_squared() > 0.001:
 			var speed: float = _current_speed()
 			global_position += move_direction * speed * delta
+			_face_travel(move_direction)
 			move_direction = Vector3.ZERO  # consume the steer for this frame
 		_update_model_anim(true)
 	else:
 		_update_model_anim(false)
+
+
+## THE STAND LAW (the sideways-vertical wolf bug, world-shape aware):
+## the body's up is the local planet radial when a planet frame exists
+## (spherical world), else classic Y. Forward is the horizon part of
+## the wished direction; every steer re-stands the body so patrol
+## reads asWalking on the ground, never tipping or rolling.
+func _face_travel(dir: Vector3) -> void:
+	if dir.length_squared() < 0.000001:
+		return
+	var up := Vector3.UP
+	var pm: Node = get_node_or_null("/root/PlayerManager")
+	var local: Node = pm.local_player if pm != null and is_instance_valid(pm) else null
+	var planet_center: Variant = (local.planet_center if local != null and "planet_center" in local else Vector3.ZERO)
+	var pc: Vector3 = planet_center if planet_center is Vector3 else Vector3.ZERO
+	if pc != Vector3.ZERO:
+		var rel: Vector3 = global_position - pc
+		if rel.length() > 0.001:
+			up = rel.normalized()
+	var fwd: Vector3 = dir - up * dir.dot(up)
+	if fwd.length_squared() < 0.000001:
+		return  # straight up/down wish: no heading to face
+	fwd = fwd.normalized()
+	# Every other entity class faces -Z; the model root's own PI yaw
+	# keeps the authored forward on -Z too.
+	global_transform.basis = Basis.looking_at(-fwd, up)
+	_update_model_anim(true)
 
 
 ## Mount the skinned .glb from EnemyData.model_path under a ModelRoot

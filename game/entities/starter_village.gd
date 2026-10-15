@@ -76,17 +76,20 @@ static func build(parent: Node3D, planet_radius: float, surface_lift: float,
 	_structure(village, _dir_for(spawn, east, north, STORE_BEARING_DEG, maxf(STORE_REACH, reach_floor)),
 		planet_radius, surface_lift, walk_surface_h, "GeneralStore")
 	# THE HARBOR DOCK: its own anchor law (village_harbor_dir) -- the
-	# ferry terminal at the strait's mainland rim, where the island
-	# bearing points and the cart road starts. Build order: harbor
-	# dir -> de-rotated BACK toward spawn by the plaza's offset angle
-	# (the dock leans on the apron's dry ring, not beyond it).
+	# ferry terminal toward the strait's mainland rim, where the island
+	# bearing points and the cart road starts.
 	var harbor_anchor: Vector3 = TerrainGen.village_harbor_dir()
-	# THE DOCK APRON LAW: the harbor rim sits ~2.3 deg off the spawn
-	# plaza; the dock rides the plaza-harbor arc at 6% of the bearing
-	# (still inside the boot apron's dry ring, so the foot keeps the
-	# walk law's flat read and the road law treats it as dry start).
-	var dock_apron: Vector3 = spawn.slerp(harbor_anchor, 0.06).normalized()
-	_structure(village, dock_apron, planet_radius, surface_lift,
+	# THE DOCK APRON LAW: the real harbor rim sits ~32 deg / 11 km out
+	# (a full cart journey), but the apron's dry ring ends at
+	# SPAWN_APRON_OUTER_ANG (~1800 m). The dock sits ON that dry ring
+	# edge, on the REAL harbor's bearing: close enough to walk to from
+	# the plaza, honest about which way the coast is.
+	var harbor_bearing: float = spawn.signed_angle_to(harbor_anchor, spawn.cross(Vector3(0, 1, 0)).normalized())
+	var harbor_dir: Vector3 = _dir_for(spawn, \
+		Vector3(0, 1, 0).cross(spawn).normalized(), \
+		spawn.cross(Vector3(0, 1, 0)).normalized(), \
+		rad_to_deg(harbor_bearing), float(TerrainGen.SPAWN_APRON_OUTER_ANG))
+	_structure(village, harbor_dir, planet_radius, surface_lift,
 		walk_surface_h, "HarborDock")
 	return village
 

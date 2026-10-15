@@ -89,6 +89,36 @@ func _ready() -> void:
 	# Persist across scene reloads is NOT wanted for scene-placed ankhs
 	# (the scene owns them); group membership is what RespawnService
 	# resolves by, and that survives as long as the node does.
+	# Targetable registration (action-menu law): the ankh joins the
+	# targeting registry deferred so autoloads are settled. Registered
+	# as a TELEPORT-type targetable with metadata {"kind": "ankh"} --
+	# the locator flows through the same context-menu path as stones.
+	call_deferred("_register_targetable")
+
+
+## Deferred targetable registration (TargetingManager is an autoload;
+## a bare reference inside _ready races script-mode boots). 32 is
+## Entity.EntityType.TELEPORT -- referenced numerically because the
+## Entity script is not a safe class_name read from a schema file.
+func _register_targetable() -> void:
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return
+	var tm: Node = (ml as SceneTree).root.get_node_or_null("TargetingManager")
+	if tm != null and tm.has_method("register_targetable"):
+		tm.call("register_targetable", ankh_id, "ankh", self,
+			display_name, global_position, 32)
+	if not tree_exiting.is_connected(_on_tree_exiting):
+		tree_exiting.connect(_on_tree_exiting)
+
+
+func _on_tree_exiting() -> void:
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return
+	var tm: Node = (ml as SceneTree).root.get_node_or_null("TargetingManager")
+	if tm != null and tm.has_method("unregister_targetable"):
+		tm.call("unregister_targetable", ankh_id)
 
 ## Check if a player can bind to this ankh. Duck-typed on purpose:
 ## callers pass PlayerController (not an Entity), which carries

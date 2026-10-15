@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "zone_starter_plains"
-display_name = "Starter Plains"
+display_name = "Meadowhaven"
 description = "A peaceful meadow where new adventurers begin their journey. Safe from PvP."
 pvp_mode = 0
 level_requirement = 1

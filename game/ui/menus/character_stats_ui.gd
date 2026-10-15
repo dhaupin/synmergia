@@ -116,7 +116,10 @@ func _setup_panel() -> void:
 	main.add_child(header)
 
 	# Stats scroll area
-	var scroll := ScrollContainer.new()
+	# THE CANONICAL DRAG-SCROLL LAW: one handler (DragScroll) owns this
+	# surface; the hand-patched per-tab tweak this comment used to carry
+	# predated the canonical class.
+	var scroll := preload("res://ui/components/drag_scroll.gd").new()
 	scroll.name = "Scroll"
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	# Touch drag scrolling (play-day pass 2: scrolling worked via drag in

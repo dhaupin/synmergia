@@ -61,6 +61,45 @@ func _init() -> void:
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
+	# Targetable registration (the locator pass): the stone joins the
+	# targeting registry deferred (TargetingManager is an autoload; a
+	# bare reference in _ready races script-mode boots). Queue stones
+	# and direct-join stones share the gateway schema; the context menu
+	# picks the action list off node traits (queue_mode / group).
+	call_deferred("_register_targetable")
+	if not tree_exiting.is_connected(_on_tree_exiting):
+		tree_exiting.connect(_on_tree_exiting)
+
+
+## The locator law: stones are targetable at their own position with
+## their display name resolved from the zone data (a stone with no
+## zone still registers; the id falls back to the node name).
+func _register_targetable() -> void:
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return
+	var tm: Node = (ml as SceneTree).root.get_node_or_null("TargetingManager")
+	if tm == null or not tm.has_method("register_targetable"):
+		return
+	var stone_name := ""
+	var zone: ZoneData = null
+	if ZoneManager != null:
+		zone = ZoneManager.get_zone(zone_id)
+	if zone != null:
+		stone_name = zone.display_name
+	if stone_name == "":
+		stone_name = "Bout Stone" if queue_mode else "Arena Gate"
+	tm.call("register_targetable", "arena_stone_%s" % zone_id, "gateway", self,
+		stone_name, global_position, Entity.EntityType.TELEPORT)
+
+
+func _on_tree_exiting() -> void:
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return
+	var tm: Node = (ml as SceneTree).root.get_node_or_null("TargetingManager")
+	if tm != null and tm.has_method("unregister_targetable"):
+		tm.call("unregister_targetable", "arena_stone_%s" % zone_id)
 
 ## The join path fires once per entity per entry (re-entering after a
 ## full exit re-arms the trigger; standing inside does not spam).
@@ -105,14 +144,42 @@ func _on_body_exited(body: Node3D) -> void:
 	_entered.erase(str(body.entity_id))
 
 ## Lobby moment: OPEN/FULL + entry deadline surfaced as a typed toast.
+## THE STORM LAW (world-load dedupe): the globe streamer REBUILDS the
+## queue/arena stones as the player moves -- each rebuild re-enters the
+## standing body, `_entered` reset, and the FULL toast re-fired every
+## stream tick (6x in 6 s at world load). The cooldown lives in a
+## STATIC map keyed by entity + gate, so streaming rebuilds and node
+## frees cannot reset it.
+const FULL_TOAST_COOLDOWN_MS: int = 15000
+static var _full_toast_at: Dictionary = {}
+
 func _join_toasted(entity, result: Dictionary) -> void:
 	var notif = _notification_service()
 	if notif == null:
 		return
 	var eid: String = str(entity.entity_id)
+	# THE STORM GATE (world-load dedupe): every world NPC near the
+	# stones enters the trigger at load and each re-join fires a
+	# recipient notification (entity_1..entity_13 in the boot log).
+	# Those entity_* recipients never render a toast and just spam the
+	# notification stream and chat -- only the LOCAL player's lobby
+	# moment is a toast moment.
+	var pm = _local_player_manager()
+	if pm != null and pm.has_method("get_local_player_id"):
+		var local_id := str(pm.call("get_local_player_id"))
+		if local_id != "" and eid != local_id:
+			return
 	var iid: String = str(result.get("instance_id", ""))
 	if not bool(result.get("capacity_ok")):
 		# FULL or blocked: the lobby door is closed for now.
+		# Per-PLAYER key: the world carries SIX stones (village + capitol
+		# families); a per-node key would still print one toast per stone.
+		var key := eid
+		var now := Time.get_ticks_msec()
+		var last := int(_full_toast_at.get(key, -FULL_TOAST_COOLDOWN_MS))
+		if now - last < FULL_TOAST_COOLDOWN_MS:
+			return  # storm gate: the last FULL notice is still fresh
+		_full_toast_at[key] = now
 		notif.notify(
 			NotifKind.ZONE_CHANGED,
 			"The arena is full -- the bout has begun. Wait for the next.",
@@ -135,7 +202,13 @@ func _join_toasted(entity, result: Dictionary) -> void:
 		{"instance_id": iid, "lobby_state": state},
 		eid)
 
-# ---- Service resolvers (script-mode safe; AGENTS defensive pattern) -
+# ---- Service resolvers (script-mode safe; AGENTS defensive pattern) ---
+
+func _local_player_manager() -> Node:
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return null
+	return (ml as SceneTree).root.get_node_or_null("PlayerManager")
 
 ## Stamp the origin stone into the live instance's session record so
 ## the room (origin_stones) can send everyone home later. Duck-typed
@@ -202,6 +275,19 @@ func _notification_service():
 	if ml == null or not (ml is SceneTree):
 		return null
 	return (ml as SceneTree).root.get_node_or_null("NotificationService")
+
+## Public queue surface for the targeting/action-menu pass (the
+## context menu's "Queue for Bout" routes here). Same enqueue + lobby
+## signage the walk-in body path uses; returns a success/echo dict so
+## the action result carries something back.
+func attempt_queue(entity: Node3D) -> Dictionary:
+	if entity == null or not ("entity_id" in entity):
+		return {"success": false, "message": "No fighter to queue"}
+	var eid: String = str(entity.entity_id)
+	if _entered.has(eid):
+		return {"success": false, "message": "Already queued -- open the Lobby to check."}
+	_enqueue_at_stone(entity)
+	return {"success": true, "message": "Queued at the stone.", "zone_id": zone_id}
 
 ## Party members of this entity (empty = solo). PartyService owns the
 ## roster; read-only here. Any failure degrades to a solo join.

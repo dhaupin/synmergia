@@ -160,7 +160,7 @@ func can_board(player_id: String, vehicle_id: String) -> Dictionary:
 		if dep.is_empty():
 			return {"ok": false, "reason": "no schedule"}
 		return {"ok": false, "reason": "next cast-off in %.1f h" % float(dep["in_h"])}
-	return {"ok": true, "to": str(v.route_gateways[1]), \
+	return {"ok": true, "to": str(v.route_gateways[v.route_gateways.size() - 1]), \
 		"from": str(v.route_gateways[0])}
 
 
@@ -184,7 +184,7 @@ func board_ferry(player_id: String, vehicle_id: String) -> Dictionary:
 			"day": int(floor(_epoch_days())) + int(dep["day_offset"]), \
 			"cross_s": FerrySchedule.crossing_seconds(float(v.crossing_hours))}
 	rider_boarded.emit(player_id, vehicle_id, false)
-	return {"ok": true, "to": str(v.route_gateways[1]), \
+	return {"ok": true, "to": str(v.route_gateways[v.route_gateways.size() - 1]), \
 		"from": str(v.route_gateways[0])}
 
 
@@ -243,8 +243,8 @@ func charter_skiff(player_id: String, vehicle_id: String, ticket_cost: int = DEF
 		_sailings[vehicle_id]["cross_s"] = cross_s
 	_recorded_this_session[wake_key] = true
 	rider_boarded.emit(player_id, vehicle_id, true)
-	ferry_departed.emit(vehicle_id, from_id, str(v.route_gateways[1]), [player_id])
-	return {"ok": true, "to": str(v.route_gateways[1]), "skiff": true}
+	ferry_departed.emit(vehicle_id, from_id, str(v.route_gateways[v.route_gateways.size() - 1]), [player_id])
+	return {"ok": true, "to": str(v.route_gateways[v.route_gateways.size() - 1]), "skiff": true}
 
 
 ## The per-physics-tick driver: cast off when the manifest is loaded
@@ -275,7 +275,7 @@ func tick(delta: float) -> void:
 				"cross_s": FerrySchedule.crossing_seconds(float(v.crossing_hours)), \
 				"remaining_s": FerrySchedule.crossing_seconds(float(v.crossing_hours))}
 			ferry_departed.emit(vehicle_id, str(v.route_gateways[0]), \
-				str(v.route_gateways[1]), manifest.keys())
+				str(v.route_gateways[v.route_gateways.size() - 1]), manifest.keys())
 
 
 ## Arrival: the manifest lands at the destination port; the wake is
@@ -283,7 +283,7 @@ func tick(delta: float) -> void:
 func _arrive(vehicle_id: String) -> void:
 	var v = _ferries[vehicle_id]
 	var manifest: Dictionary = _manifests[vehicle_id]
-	var at_id := str(v.route_gateways[1])
+	var at_id := str(v.route_gateways[v.route_gateways.size() - 1])
 	ferry_arrived.emit(vehicle_id, at_id, manifest.keys())
 	for pid in manifest.keys():
 		var player := str(pid)

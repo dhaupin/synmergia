@@ -14,6 +14,7 @@ const Entity = preload("res://core/entities/entity.gd")
 const KillRewards = preload("res://core/services/kill_rewards.gd")
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 const EnemyScript = preload("res://entities/enemy.gd")
+const FloatingName = preload("res://entities/floating_name.gd")
 const EnemyAIScript = preload("res://core/ai/enemy_ai.gd")
 # Spawn points organized by zone (zone_id -> [SpawnPoint])
 var _spawn_points: Dictionary = {}
@@ -594,6 +595,10 @@ func spawn_boss(
 		parent_node.add_child(boss)
 	boss.global_position = position
 
+	# Nameplate law: world bosses read large. Use the explicit
+	# boss_name (schedule configs may use a display alias).
+	FloatingName.ensure(boss, boss.display_name, "boss", {"big": true})
+
 	# Register with EntityService (emits EventHub.entity_spawned with metadata)
 	var entity_service = EntityService
 	if entity_service:
@@ -730,6 +735,19 @@ func spawn_enemy_direct(
 		var parent_node: Node = tree.current_scene if tree.current_scene else tree.root
 		parent_node.add_child(enemy)
 	enemy.global_position = position
+
+	# Nameplate law: read the kind off the template's enemy class
+	# (the metadata variable declares after this block, so the
+	# template enum is the root truth here).
+	var plate_kind := "enemy"
+	var ttype := int(template.enemy_type) if "enemy_type" in template else 0
+	if ttype == EnemyData.EnemyType.WORLD_BOSS:
+		FloatingName.ensure(enemy, enemy.display_name, "boss", {"big": true})
+	elif ttype == EnemyData.EnemyType.BOSS:
+		FloatingName.ensure(enemy, enemy.display_name, "boss")
+	elif ttype == EnemyData.EnemyType.ELITE or ttype == EnemyData.EnemyType.CHAMPION:
+		plate_kind = "elite"
+		FloatingName.ensure(enemy, FloatingName.compose_text(enemy.display_name, enemy.level), plate_kind)
 
 	# AI configured from the template's ranges (same surface as
 	# spawn_enemy): without it the enemy stands inert.
@@ -1044,10 +1062,10 @@ func spawn_npc_entity(
 	entity.entity_type = Entity.EntityType.NPC
 	entity.relation = Entity.Relation.FRIENDLY
 
-	# Update NameLabel if present (for non-scene NPCs)
-	var name_label := entity.get_node_or_null("NameLabel") as Label3D
-	if name_label:
-		name_label.text = npc_data.display_name
+	# Nameplate law (create-or-update): scene NPCs may carry a
+	# scene-authored NameLabel, hand-built ones get one here. The old
+	# update-only block left non-scene NPCs with no plate at all.
+	FloatingName.ensure(entity, npc_data.display_name, "npc")
 
 	# Parent into the tree BEFORE positioning/registration: global_position
 	# reads and writes throw outside the tree ("!is_inside_tree()" engine

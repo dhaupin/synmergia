@@ -20,6 +20,37 @@ const SkillScript = preload("res://core/combat/skill.gd")
 const MAX_MEMORY_ENTRIES := 16
 
 
+## The body's "up" under the world-shape law: on the spherical world
+## that is the direction from the planet center to the body (the
+## tangent-plane normal); planar keeps the classic Y up. Enemies have
+## no planet_center of their own, so the player's reference is the
+## shared planet frame (all bodies ride one planet).
+static func _entity_up(entity: Node3D) -> Vector3:
+	var tree := entity.get_tree() if is_instance_valid(entity) else null
+	var pm: Node = tree.root.get_node_or_null("PlayerManager") if tree else null
+	var local: Node = pm.local_player if pm != null and is_instance_valid(pm) else null
+	var planet_center: Variant = (local.planet_center if local != null and "planet_center" in local and (local as Node3D).is_inside_tree() else Vector3.ZERO)
+	var pc: Vector3 = planet_center if planet_center is Vector3 else Vector3.ZERO
+	if pc != Vector3.ZERO:
+		var rel: Vector3 = (entity as Node3D).global_position - pc
+		if rel.length() > 0.001:
+			return rel.normalized()
+	return Vector3.UP
+
+
+## Project a wished world direction onto the body's local tangent
+## plane (the planet law): the vertical component would walk the body
+## up/down the ground (the sideways-vertical wolf bug) -- on the
+## sphere only the tangent part is a walk step.
+static func _tangent(entity: Node3D, dir: Vector3) -> Vector3:
+	var d := dir
+	if d.length_squared() < 0.000001:
+		return Vector3.ZERO
+	d = d.normalized()
+	var up := _entity_up(entity)
+	return (d - up * d.dot(up)).normalized() if d.dot(up) != 1.0 else Vector3.ZERO
+
+
 enum AIState {
 	IDLE,
 	PATROL,
@@ -393,8 +424,8 @@ func _update_patrol(delta: float) -> void:
 		_patrol_wait_time -= delta
 		return
 
-	# Move to patrol target
-	var dir := (_patrol_target - entity.global_position).normalized()
+	# Move to patrol target (tangent plane: walk the ground, not the
+	# planet's radial).
 	var dist: float = entity.global_position.distance_to(_patrol_target)
 
 	if dist < 1.0:
@@ -402,7 +433,8 @@ func _update_patrol(delta: float) -> void:
 		_patrol_wait_time = randf_range(2.0, 5.0)
 		_set_new_patrol_target()
 	else:
-		entity.move_direction = dir
+		var dir := (_patrol_target - entity.global_position).normalized()
+		entity.move_direction = _tangent(entity, dir)
 
 func _start_patrol() -> void:
 	_set_new_patrol_target()
@@ -444,9 +476,9 @@ func _update_chase(delta: float) -> void:
 		set_state(AIState.RETURN)
 		return
 
-	# Move toward target
+	# Move toward target (tangent plane under the world-shape law).
 	var dir: Vector3 = (_target.global_position - entity.global_position).normalized()
-	entity.move_direction = dir
+	entity.move_direction = _tangent(entity, dir)
 
 ## COMBAT: Attack target
 func _update_combat(delta: float) -> void:
@@ -481,8 +513,9 @@ func _update_combat(delta: float) -> void:
 		set_state(AIState.CHASE)
 		return
 
-	# Face target
-	entity.look_at(_target.global_position, Vector3.UP)
+	# Face target (planet law: on the spherical world "up" is the own
+	# radial; Vector3.UP would roll the body sideways/vertical).
+	entity.look_at(_target.global_position, _entity_up(entity))
 
 	# Attack
 	_attack_timer -= delta
@@ -565,9 +598,9 @@ func _update_flee(delta: float) -> void:
 		set_state(AIState.RETURN)
 		return
 
-	# Run away from target
+	# Run away from target (tangent plane law).
 	var dir: Vector3 = (entity.global_position - _target.global_position).normalized()
-	entity.move_direction = dir
+	entity.move_direction = _tangent(entity, dir)
 
 	# Stop fleeing when far enough
 	var dist: float = entity.global_position.distance_to(_target.global_position)
@@ -589,9 +622,9 @@ func _update_return(delta: float) -> void:
 		set_state(AIState.IDLE)
 		return
 
-	# Move toward spawn
+	# Move toward spawn (tangent plane law).
 	var dir := (_spawn_position - entity.global_position).normalized()
-	entity.move_direction = dir
+	entity.move_direction = _tangent(entity, dir)
 
 ## Set target
 func _set_target(new_target) -> void:
