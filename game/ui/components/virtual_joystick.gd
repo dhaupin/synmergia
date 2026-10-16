@@ -346,6 +346,42 @@ func _touch_over_control(pos: Vector2) -> bool:
 		var btn: Button = _buttons[action].button
 		if btn.visible and Rect2(btn.global_position, btn.size).has_point(pos):
 			return true
+	# THE UI-YIELD LAW (web round 18): the floating stick only spawns on
+	# truly empty ground. A tap on ANY other interactive Control (chat
+	# bar, minimap, toasts, quest tracker, tab row) must not drift the
+	# camera or spawn the stick over it — _panels_open only covers
+	# MenuManager panels, not the always-on HUD widgets. Walk the HUD
+	# tree: a visible Control with STOP/FILTER input that is not the
+	# stick's own body and contains the tap disarms the spawn.
+	var vp := get_viewport()
+	if vp != null:
+		for hud_control in vp.find_children("*", "Control", true, false):
+			if hud_control == _base or hud_control == _thumb or hud_control == _hint_base:
+				continue
+			if _is_stick_owned(hud_control):
+				continue
+			var ctl := hud_control as Control
+			if ctl == null or not is_instance_valid(ctl) or not ctl.is_visible_in_tree():
+				continue
+			if not ctl.get_global_rect().has_point(pos):
+				continue
+			if ctl.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+				return true
+	return false
+
+
+## True when the control belongs to the stick's own HUD layout (the
+## action buttons and their padding), so its STOP filter does not
+## read as foreign UI.
+func _is_stick_owned(node: Node) -> bool:
+	var n: Node = node
+	while n != null and n != self:
+		n = n.get_parent()
+	if n == self:
+		for action in _buttons:
+			var btn: Button = _buttons[action].button
+			if btn == node or btn.is_ancestor_of(node):
+				return true
 	return false
 
 func _dbg(msg: String) -> void:

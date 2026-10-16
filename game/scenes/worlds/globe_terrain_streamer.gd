@@ -92,7 +92,26 @@ var _patch_walk_h := {}  # int face -> Callable(dir) -> walk height
 ## never desync physics.
 var lod_on: bool = true
 const LOD_NEIGHBOR_DROP: int = 1
-const LOD_MIN_LEVEL: int = 2
+## THE GRADED LOD LAW (web round 18, "resource heavy"): round 17 raised
+## the planet-scale cap to 7 to resolve the near hills -- but EVERY
+## live patch then demanded base (4x 65536 = 262k tris on the phone;
+## the truth line's mesh:fN x4/65536 tag). Only the PLAYER'S face is
+## ever at arm's length: a neighbor is at least a half-face away, so
+## its ground detail halves again without a visible loss (the eye
+## cannot resolve a 165 m hill from 10+ km of arc). The graded law:
+## the near band keeps base (7); the FAR floor is an absolute LAW
+## constant (4) that does NOT fall with the base (the old
+## base-answer-1 law let every patch ride at 6 when base is 7 -- four
+## max-detail patches). Far patches carry the horizon silhouette, not
+## vertex detail (the skirt + tint carry the shape there).
+## Round 18b: floor CAME UP one level (4 -> 5). The first graded push
+## exposed its own edge: the starter village's houses ride the WALK
+## LAW pedestal (analytic heightfield), while a far face's level-4
+## mesh (1.3 km tile edge) sagged meters below the law between samples
+## -- "houses on a flat plane, the model gets higher as terrain
+## sinks". Level 5 (660 m edge) keeps the ped-vised silhouettes
+## honest; the near band still owns the fine detail underfoot.
+const LOD_FLOOR_LEVEL: int = 5
 ## NEAR threshold (radians): face-center distance minus the face's own
 ## angular reach (the largest center-angle among its vertices) <= this
 ## means SOME ground of the face is within one tile-edge of standing
@@ -260,7 +279,7 @@ func _level_for_face(face: int, player_dir: Vector3, level: int) -> int:
 	var center_ang: float = FacePatches.angular_distance_to_center(player_dir, face)
 	if center_ang <= reach + _near_band(base):
 		return base
-	return maxi(LOD_MIN_LEVEL, base - LOD_NEIGHBOR_DROP)
+	return LOD_FLOOR_LEVEL
 
 
 ## A face's angular reach: the largest center-angle over its three
@@ -322,7 +341,7 @@ func _demanded_level(face: int, player_dir: Vector3, cur: int = -1) -> int:
 	var center_ang: float = FacePatches.angular_distance_to_center(player_dir, face)
 	var band_in: float = _near_band(base)
 	var band_out: float = band_in * (1.0 + LOD_HYSTERESIS_MARGIN)
-	var floor_lvl: int = maxi(LOD_MIN_LEVEL, base - LOD_NEIGHBOR_DROP)
+	var floor_lvl: int = LOD_FLOOR_LEVEL
 	if center_ang <= reach + band_in:
 		_patch_far_ticks.erase(face)
 		return base
@@ -330,12 +349,12 @@ func _demanded_level(face: int, player_dir: Vector3, cur: int = -1) -> int:
 		var ticks: int = int(_patch_far_ticks.get(face, 0)) + 1
 		if ticks >= LOD_FAR_TICKS:
 			_patch_far_ticks.erase(face)
-			return maxi(LOD_MIN_LEVEL, base - LOD_NEIGHBOR_DROP)
+			return floor_lvl
 		_patch_far_ticks[face] = ticks
 		return cur
 	# Between the bands (or dwelling): the CURRENT law stands.
 	_patch_far_ticks.erase(face)
-	return cur if cur >= 0 else base
+	return cur if cur >= 0 else floor_lvl
 
 
 ## ----------------------------------------------------------------

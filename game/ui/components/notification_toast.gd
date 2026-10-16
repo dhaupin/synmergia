@@ -500,6 +500,30 @@ func _create_and_show_toast(data: Dictionary) -> void:
 	var dur = data.get("duration", DEFAULT_DURATION)
 	var progress_tween = progress.create_tween()
 	progress_tween.tween_property(progress, "value", 0, dur).set_trans(Tween.TRANS_LINEAR)
+	# THE WASM-TIMESTEP LAW (web round 18, "stuck 97% bars"): the phone's
+	# wasm engine runs frames at 2-4/s, and the tween + dismiss pair
+	# only advance inside process frames -- four stacked entry toasts
+	# sat at ~97% visually while their cycle stretched over minutes of
+	# wall time. A wall-clock TTL reader is bolted onto the bar so the
+	# display always matches the actual lifetime regardless of frame
+	# rate (the dismiss tween's own interval stays the authority).
+	progress.set_meta("born_ms", Time.get_ticks_msec())
+	progress.set_meta("dur_ms", int(dur * 1000.0))
+	var ttl_reader := Timer.new()
+	ttl_reader.name = "TtlReader"
+	ttl_reader.wait_time = 0.25
+	ttl_reader.timeout.connect(func():
+		if not is_instance_valid(progress):
+			return
+		var born := int(progress.get_meta("born_ms", 0))
+		var ttl_ms := int(progress.get_meta("dur_ms", 0))
+		if ttl_ms <= 0:
+			return
+		var remaining := 1.0 - clampf(float(Time.get_ticks_msec() - born) / float(ttl_ms), 0.0, 1.0)
+		progress.value = remaining * 100.0
+	)
+	progress.add_child(ttl_reader)
+	ttl_reader.start()
 
 	# Auto-dismiss
 	var dismiss_tween: Tween = UIStyles.create_accessible_tween(panel, slide_dur)

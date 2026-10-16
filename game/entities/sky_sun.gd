@@ -62,6 +62,14 @@ func _process(_delta: float) -> void:
 		# Day factor: smooth dawn/dusk ramp (phase distance from the
 		# horizon). 1.0 at high day, 0.0 through the night half.
 		var day := clampf(sin(phase * TAU) * 1.6 + 0.08, 0.0, 1.0)
+		# THE NIGHT GHOST LAW (web round 18): below the horizon the disc
+		# still rendered at its emission floor — at night the player saw
+		# a glowing ball stuck to the ground in the dark ("terrain moon").
+		# A real sun stops existing for the walk when it is under the
+		# horizon: same law the moon uses (_disc.visible = dir above
+		# ground). Fade the disc out as the arc dips below the horizon
+		# plane (y <= -0.06: dawn/dusk ramps keep the rise/set visible).
+		_disc.visible = _sun_dir.y > -0.06
 		_disc_mat.emission_energy_multiplier = 0.4 + 3.2 * day
 	if _light != null:
 		_light.position = global_position + _sun_dir * SUN_DISTANCE
