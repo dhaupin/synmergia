@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "waypoint_capitol_pier"
 display_name = "Capitol Pier Waypoint"
-description = "The Baywalk's ferry berth: the timber pier off the city strand where the barque calls between tides. The bay opens toward the island."
+description = "The Baywalk's ferry berth: the timber pier off the city strand where the Haven Ferry calls between tides. The bay opens toward the island."
 gateway_type = 1
 source_zone_id = "zone_nexus_central"
 source_position = Vector3(0, 0, 0)

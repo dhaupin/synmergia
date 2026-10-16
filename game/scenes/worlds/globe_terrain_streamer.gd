@@ -1385,10 +1385,19 @@ func _subdivide(a: Vector3, b: Vector3, c: Vector3, depth: int, out: Array) -> v
 	if depth <= 0:
 		out.append([a, b, c])
 		return
-	var r: float = a.length()
-	var mab: Vector3 = (a + b).normalized() * r
-	var mbc: Vector3 = (b + c).normalized() * r
-	var mca: Vector3 = (c + a).normalized() * r
+	# THE SHARED-CORNER LAW (sweep round 19): every interior edge is
+	# split by TWO recursive calls -- one with this corner as `a`, one
+	# with it as `c`. The old per-caller radius (a.length()) made the
+	# two copies of every shared midpoint drift by ULPs; the skirt's
+	# quantized edge keys papered over most of that, but level 7's
+	# fine spacing let two edges slip past the bucket lines (+4
+	# phantom strips on the plaza faces). The midpoint radius is the
+	# EDGE's symmetric average, so both callers construct the SAME
+	# bit-exact corner -- quantization never re-unifies what never
+	# drifted.
+	var mab: Vector3 = (a + b).normalized() * ((a.length() + b.length()) * 0.5)
+	var mbc: Vector3 = (b + c).normalized() * ((b.length() + c.length()) * 0.5)
+	var mca: Vector3 = (c + a).normalized() * ((c.length() + a.length()) * 0.5)
 	_subdivide(a, mab, mca, depth - 1, out)
 	_subdivide(mab, b, mbc, depth - 1, out)
 	_subdivide(mca, mbc, c, depth - 1, out)

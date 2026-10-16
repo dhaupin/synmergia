@@ -1353,10 +1353,10 @@ func _open_nearby_ship_dock() -> void:
 		dock_panel.open_for_player(entity_id if entity_id != "" else str(player_id))
 
 ## The vessel a dock pin fronts: the ferry whose ROUTE names the pin
-## (moor/seaward -> the Sundered Barque; village/nexus -> the Haven
-## Ferry; island_dock -> the Island Ferry). One truth door: the pin
-## id only resolves through a vehicle's data-truth route gateways --
-## no pin-to-boat lookup table to drift.
+## (moor/seaward -> the Sundered Barque; village/capitol pier -> the
+## Haven Ferry; village/island dock -> the Island Ferry). One truth
+## door: the pin id only resolves through a vehicle's data-truth
+## route gateways -- no pin-to-boat lookup table to drift.
 func _dock_vehicle_for_pin(gateway_pin_id: String) -> String:
 	var ds = get_node_or_null("/root/DataService")
 	if ds == null:

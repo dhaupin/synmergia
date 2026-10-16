@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "veh_haven_ferry"
 display_name = "Haven Ferry"
-description = "A flat-bellied barge poled by two patient oxen and one patient ferrymaster. Runs the bay between the village harbor and the Capitol pier -- one crossing through the moat strait, one along the shoreline (the schedule law splits the day between the two legs)."
+description = "A flat-bellied barge poled by two patient oxen and one patient ferrymaster. She runs the bay crossing between the village harbor and the Capitol pier -- eight cast-offs a day, and the bay is the honest time it takes."
 icon_path = "res://icons/vehicles/ferry.png"
 model_path = ""
 kind = 1
@@ -18,7 +18,7 @@ guild_owned = false
 source = 0
 currency_id = ""
 cost = 0
-route_gateways = ["waypoint_village_center", "waypoint_nexus_central", "waypoint_capitol_pier"]
+route_gateways = ["waypoint_village_center", "waypoint_capitol_pier"]
 soulbound = false
 ferries_per_day = 8
 first_departure_hour = 6.0

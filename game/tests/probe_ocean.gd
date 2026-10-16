@@ -194,7 +194,7 @@ func _run() -> void:
 					ferry_text += str(c.text) + " "
 		_check("the page names the Haven Ferry and its route", \
 			ferry_text.contains("Haven Ferry") and ferry_text.contains("village center") \
-			and ferry_text.contains("nexus central"))
+			and ferry_text.contains("capitol pier"))
 		_check("the page names the crossing time and the wake law", \
 			ferry_text.contains("crossing takes") and ferry_text.contains("first ride"))
 		_check("the page counts the cast-offs", ferry_text.contains("8"))

@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "waypoint_village_center"
 display_name = "Village Center Waypoint"
-description = "A mystical waypoint connecting to the village center."
+description = "The village harbor's shared berth: the mystical waypoint stones above the strand where the bay barge and the island skiff both moor -- two boats know this pin."
 gateway_type = 1
 source_zone_id = "zone_forest_meadow"
 source_position = Vector3(50, 1, 50)
