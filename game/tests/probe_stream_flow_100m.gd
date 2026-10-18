@@ -1,6 +1,10 @@
-## Terrain streaming probe (prd-spherical-mvp.md S5)
-## Run headless: godot --headless --path . --script res://tests/probe_terrain_stream.gd
-## Run rendered: GODOT_PROBE_XVFB=1 xvfb-run -a godot --path . --script res://tests/probe_terrain_stream.gd
+## Terrain streaming probe, CHUNK 1 of 2 (prototype flow laws)
+## Carved from probe_terrain_stream.gd (prd-spherical-mvp.md S5) so
+## CI minutes fit: this chunk runs only the 100 m prototype globe
+## (cheap). The planet-scale skirt/checks live in
+## probe_stream_continent_20km.gd (chunk 2, heavy).
+## Run headless: godot --headless --path . --script res://tests/probe_stream_flow_100m.gd
+## Run rendered: GODOT_PROBE_XVFB=1 xvfb-run -a godot --path . --script res://tests/probe_stream_flow_100m.gd
 ##   -> writes /tmp/play/stream_stage{1,2}.png
 extends SceneTree
 
@@ -17,7 +21,7 @@ func _init() -> void:
 func _run() -> void:
 	# PROTOTYPE-SCALE CONTRACT: streaming order/unload laws at the 100 m
 	# shell (the shipped game boots 20 km with terrain; probe_terrain_planet
-	# covers that). Pin the prototype radius explicitly.
+	# and chunk 2 cover that). Pin the prototype radius explicitly.
 	ProjectSettings.set_setting("synmergia/world/planet_radius", 100.0)
 	var ok := true
 	var packed: PackedScene = load(GLOBE_SCENE)
@@ -143,59 +147,8 @@ func _run() -> void:
 			break
 	ok = _check("all 20 faces stream (4-patch steady state)", sweep_ok) and ok
 
-	ProjectSettings.set_setting("synmergia/world/planet_radius", 20000.0)
-
-	# --- Tie-together: the seeded continent walks the FULL LOD path. --
-	# Boot a planet-scale globe (terrain on), then traverse ALL 20 face
-	# centers through the live update() one frame apart: this drives
-	# cold spawns, cross-face hot swaps (demote+promote), the skirt
-	# taper, and the prop-holder graft in one pass with the REAL
-	# heightfield. Assertions per stop: the walk law the faces serve
-	# equals the analytic law at that face's center (one ground truth
-	# with no cracks), and the props that streamed in SURVIVE their
-	# own face's unload/reload cycles (no corpses in the audit).
-	var packed_big: PackedScene = load(GLOBE_SCENE)
-	var globe_big: Node3D = packed_big.instantiate()
-	root.add_child(globe_big)
-	await root.get_tree().process_frame
-	await root.get_tree().physics_frame
-	var st_big = globe_big.get("streamer")
-	var Gen = load("res://scenes/worlds/terrain_gen.gd")
-	var seed_big: PackedByteArray = st_big.world_seed
-	var tie_ok := true
-	var live_rocks := 0
-	var stale_refs := 0
-	for f in range(F.face_count()):
-		var cdir: Vector3 = F.face_center(f)
-		st_big.update(cdir * 20000.0)
-		await root.get_tree().physics_frame
-		# One ground truth: the streamed walk law at this face's center
-		# equals the analytic heightfield + its rocks (LOD or not).
-		var streamed_h: float = st_big.walk_surface_h(cdir)
-		var law_h: float = Gen.terrain_height(cdir, seed_big) + Gen.rock_top_height(cdir, seed_big, f, 20000.0)
-		if absf(streamed_h - law_h) > 0.01:
-			tie_ok = false
-			print("TIE-FAIL face=%d streamed=%.3f law=%.3f" % [f, streamed_h, law_h])
-		# Audit the whole walk so far: no freed refs anywhere.
-		for fa in st_big.active_faces():
-			for r in (st_big._patch_rocks.get(fa, []) as Array):
-				live_rocks += 1
-				if not is_instance_valid(r):
-					stale_refs += 1
-	var totals: Array = [live_rocks, stale_refs]
-	ok = _check("continent walk: analysis == streamed ground law on all 20 faces", tie_ok) and ok
-	ok = _check("continent walk: %d live rocks, %d stale refs after the full hot-path traversal" % totals, \
-		stale_refs == 0 and live_rocks > 0) and ok
-	var surfaces_ok := true
-	for fa in st_big.active_faces():
-		var mi_f: MeshInstance3D = st_big._patches.get(fa)
-		if mi_f == null or mi_f.mesh == null or mi_f.mesh.get_surface_count() != 2:
-			surfaces_ok = false
-	ok = _check("continent walk: ground + skirt surfaces on every streamed face", surfaces_ok) and ok
-	globe_big.queue_free()
-	await root.get_tree().process_frame
 	if not ok:
-		push_error("TERRAIN STREAM PROBE FAILED")
+		push_error("TERRAIN STREAM FLOW PROBE FAILED")
 	quit(0 if ok else 1)
 
 

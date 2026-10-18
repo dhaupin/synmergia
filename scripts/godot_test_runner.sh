@@ -77,8 +77,18 @@ probe_startup_flow
 frame/srv/test_resource_scan
 frame/srv/test_world_registry
 probe_globe_world
-probe_terrain_stream
-probe_planet_scale_20km
+probe_stream_flow_100m
+probe_planet_control_100m
+# CI-minutes chunks (the two former monolith probes, split):
+# the 20 km continent shards + walk/rebase chunks exceed 4 min per
+# process (boot ~76 s + streamed face ~50 s), so they run under the
+# LONG_TIMEOUT cap below instead of the 240 s default.
+probe_stream_continent_a
+probe_stream_continent_b
+probe_stream_continent_c
+probe_stream_continent_d
+probe_planet_walk_20km
+probe_planet_rebase_20km
 test_world_shape
 test_terrain_determinism
 probe_terrain_planet
@@ -142,6 +152,15 @@ fi
 pass=0
 fail=0
 failed_names=""
+# LONG-TIMEOUT SET: process-heavy probes that cost minutes (20 km
+# boots ~76 s + streamed faces ~50 s each). Everything else keeps
+# the 240 s cap.
+LONG_TESTS="
+probe_stream_continent_a
+probe_stream_continent_b
+probe_stream_continent_c
+probe_stream_continent_d
+"
 for t in ${TESTS}; do
 	# Frame primitives keep their tests co-located (frame rule);
 	# a "frame/..." name resolves under core/frame/, else tests/.
@@ -157,7 +176,11 @@ for t in ${TESTS}; do
 		continue
 	fi
 	echo "[runner] == ${t}"
-	if (cd "${GAME_DIR}" && timeout 240 godot --headless --path . --script "${RES_PATH}" >"/tmp/syn_${t##*/}.log" 2>&1); then
+	PER_TIMEOUT=240
+	if printf '%s\n' "${LONG_TESTS}" | grep -qx "${t}"; then
+		PER_TIMEOUT=600
+	fi
+	if (cd "${GAME_DIR}" && timeout ${PER_TIMEOUT} godot --headless --path . --script "${RES_PATH}" >"/tmp/syn_${t##*/}.log" 2>&1); then
 		echo "[runner]    PASS ${t}"
 		pass=$((pass + 1))
 	else

@@ -1,33 +1,25 @@
-## Planet-scale probe (prd-spherical-mvp.md S8)
-## Verifies the synmergia/world/planet_radius config end to end and
-## proves the S8 stall fix (floating origin + re-anchored surface pad):
-##   Stage A (control): 100 m globe, snap on, walk 30 m. The baseline
-##     proves the radial-snap walker works at prototype scale on the
-##     megasphere shell (enabled below PLANAR_SHELL_MAX_R).
-##   Stage B: 20 km globe, snap on, walk 30 m. Spawn sits on the walk
-##     surface (R + TILE_LIFT + SKIN = 20001.52); the megasphere
-##     collider is DISABLED at planet scale and the re-anchored
-##     surface pad is the physics truth (S8 fix).
-##   Stage C: 20 km globe, snap OFF. The pad alone must hold the body
-##     against gravity AND allow free walking. Pre-fix this stage
-##     FAILED past R ~5 km (body-magnitude float32 degeneracy).
-##   Stage D (S8): forced floating-origin rebase. Teleport 1600 m out
-##     (past SHIFT_RADIUS = 1500): next physics frame the planet is
-##     shifted back around the player, the body lands near the world
-##     origin, ground support survives, and walking continues.
-##   Stage E: one direct spawn-direction -> icosahedral cell check at
-##     20 km (no slerp sweep: nearly-parallel vectors are degenerate).
+## Planet-scale probe, CHUNK 2 of 3 (20 km walks, snap ON and OFF)
+## Carved from probe_planet_scale_20km.gd (prd-spherical-mvp.md S8)
+## to keep each chunk inside the sandbox/CI wall-clock. This chunk
+## proves the S8 fix on the two 20 km walk stages: the floating
+## origin + re-anchored surface pad. Original stage B: 20 km globe,
+## snap on, walk 30 m. Spawn sits on the walk surface
+## (R + TILE_LIFT + SKIN = 20001.52); the megasphere collider is
+## DISABLED at planet scale and the re-anchored surface pad is the
+## physics truth (S8 fix). Original stage C: 20 km globe, snap OFF.
+## The pad alone must hold the body against gravity AND allow free
+## walking. Pre-fix stage C FAILED past R ~5 km (body-magnitude
+## float32 degeneracy). Siblings: probe_planet_control_100m.gd
+## (chunk 1) and probe_planet_rebase_20km.gd (chunk 3, stage D+E).
 ## Walk metric: ARC distance (acos(dot(start_dir,end_dir)) * R) -- the
 ## honest metric at 20 km (path_walked counts vertical jitter/fall).
-## Run headless:   godot --headless --path . --script res://tests/probe_planet_scale_20km.gd
-## Run rendered:   GODOT_PROBE_XVFB=1 xvfb-run -a godot --path . --script res://tests/probe_planet_scale_20km.gd
+## Run headless:   godot --headless --path . --script res://tests/probe_planet_walk_20km.gd
+## Run rendered:   GODOT_PROBE_XVFB=1 xvfb-run -a godot --path . --script res://tests/probe_planet_walk_20km.gd
 ##   -> writes /tmp/play/planet_stageB.png
-## The probe pins the project setting, restores 100.0 on exit.
 extends SceneTree
 
 const GLOBE_SCENE := "res://scenes/worlds/globe_world.tscn"
 const RADIUS_SETTING: String = "synmergia/world/planet_radius"
-const PLANET_RADIUS_100: float = 100.0
 const PLANET_RADIUS_20KM: float = 20000.0
 ## Walk surface above the base shell when streaming (mirrors the
 ## scene's STREAMER_TILE_LIFT / streamer.TILE_LIFT).
@@ -36,9 +28,6 @@ const TILE_LIFT: float = 0.52
 const WALK_TARGET_M: float = 30.0
 const WALK_SECONDS: float = 8.0
 const MAX_FRAMES: int = 600
-## Stage D teleport distance: past SHIFT_RADIUS (1500) but well inside
-## the streamed face scale, so patches can reload around the spot.
-const SHIFT_TELEPORT_M: float = 1600.0
 
 var _globe: Node3D
 var _shots := 0
@@ -56,27 +45,9 @@ func _run() -> void:
 	var Gen: GDScript = load("res://scenes/worlds/terrain_gen.gd")
 	var seed_b: PackedByteArray = Gen.world_seed_bytes()
 
-	# ---- Stage A: 100 m control walk --------------------------------
-	_set_planet_radius(PLANET_RADIUS_100)
-	if not _build_globe():
-		quit(1)
-		return
-	var pA: CharacterBody3D = _globe.get("player")
-	pA.begin_loop()
-	pA.auto_walk = true
-	var walkedA: float = await _walk_until(pA, WALK_TARGET_M, WALK_SECONDS)
-	pA.auto_walk = false
-	ok = _check("control: 100 m walk reaches ~30 m (got %.1f)" % walkedA, \
-		walkedA >= WALK_TARGET_M * 0.8) and ok
-	ok = _check("control: glued after walk", pA.is_glued(0.5)) and ok
-	ok = _check("control: megasphere collider ENABLED at 100 m", \
-		not _globe.shell_col.disabled) and ok
-	ok = _check("control: no surface pad at prototype scale", \
-		_globe.surface_pad == null) and ok
-	await _free_globe()
-
-	# ---- Stage B: 20 km, snap ON (the fixed walk) --------------------
 	_set_planet_radius(PLANET_RADIUS_20KM)
+
+	# ---- Stage B: 20 km, snap ON (the fixed walk) -------------------- 
 	if not _build_globe():
 		quit(1)
 		return
@@ -149,80 +120,8 @@ func _run() -> void:
 		abs(rC - (PLANET_RADIUS_20KM + TILE_LIFT + spawn_terrain_c + 1.0)) < 3.0) and ok
 	await _free_globe()
 
-	# ---- Stage D: forced floating-origin rebase at 20 km ------------
-	# Teleport past SHIFT_RADIUS: the planet must rebase around the
-	# player (body back near the world origin), ground support and
-	# streaming must survive, and walking must continue after the
-	# teleport. This is the regression guard for the S8 stall fix.
-	if not _build_globe():
-		quit(1)
-		return
-	var pD: CharacterBody3D = _globe.get("player")
-	await _settle(2)
-	# Terrain law at the SPAWN direction: the rebase returns the body
-	# to the pre-teleport surface gap (|c| and the re-land both derive
-	# from the spawn surface, not the teleport target's).
-	var spawn_dir_d: Vector3 = (pD.global_position - _globe.planet_center).normalized()
-	var terrain_d: float = Gen.terrain_height(spawn_dir_d, seed_b)
-	var shifts_spawn: int = _globe.scene_shift_count
-	# Local east at the spawn point (equator, lon 0): the player's own
-	# tangent frame convention, east = north x up = (0,0,-1) here.
-	var east: Vector3 = Vector3(0, 0, -1)
-	pD.position += east * SHIFT_TELEPORT_M
-	await _settle(3)
-	var body_r: float = pD.global_position.length()
-	var center_len: float = (_globe.planet_center as Vector3).length()
-	var walk_r: float = PLANET_RADIUS_20KM + TILE_LIFT + terrain_d + 1.0
-	print("  info: after teleport+shift: body |r| = %.1f m, |planet_center| = %.1f m, shifts = %d" % \
-		[body_r, center_len, _globe.scene_shift_count])
-	ok = _check("shift: rebase triggered exactly once more (got %d)" % _globe.scene_shift_count, \
-		_globe.scene_shift_count == shifts_spawn + 1) and ok
-	# Post-rebase the body sits at the gap between the moved planet
-	# center radius and the walk surface (|c| - walk_r ~ 64 m here):
-	# small, stable, and far under SHIFT_RADIUS. That IS the re-land.
-	# The re-land: the body returns NEAR the world origin. (The old
-	# exact-gap identity |r| = |c| - walk_r held only when the pad
-	# height was constant; with the terrain arc the re-land depends on
-	# the heightfield at the teleport column and the settle dynamics
-	# across the shift. Ground support is proven by the glue check and
-	# the post-shift walk below.)
-	ok = _check("shift: player body re-lands near the origin (|r|=%.1f)" % body_r, \
-		body_r < 150.0) and ok
-	ok = _check("shift: planet center carries the offset (|c|=%.1f)" % center_len, \
-		abs(center_len - sqrt(pow(walk_r, 2) + pow(SHIFT_TELEPORT_M, 2))) < 5.0) and ok
-	ok = _check("shift: still glued after rebase", pD.is_glued(2.0)) and ok
-	var facesD: Array = _globe.stream_active_faces()
-	ok = _check("shift: streaming survives rebase (got %d patches)" % facesD.size(), \
-		facesD.size() == 4) and ok
-	# Walk AFTER the shift: locomotion must still work (the original
-	# stall reproduced exactly here pre-fix).
-	pD.begin_loop()
-	pD.auto_walk = true
-	var walkedD: float = await _walk_until(pD, 10.0, 4.0)
-	pD.auto_walk = false
-	var arcD: float = _arc(pD._loop_start, pD.global_position, _globe.planet_center)
-	print("  info: post-shift walk = %.2f m (arc %.2f m)" % [walkedD, arcD])
-	ok = _check("shift: walks freely after rebase (got %.1f m)" % walkedD, \
-		walkedD >= 8.0) and ok
-	ok = _check("shift: arc metric sane post-shift (%.1f m)" % arcD, \
-		arcD >= 6.0 and arcD <= 14.0) and ok
-	ok = _check("shift: no runaway rebase loop (got %d)" % _globe.scene_shift_count, \
-		_globe.scene_shift_count == shifts_spawn + 1) and ok
-	await _free_globe()
-
-	# ---- Stage E: direct cell addressing at 20 km -------------------
-	# One spawn-direction lookup; no slerp sweep (nearly-parallel
-	# vectors on a 20 km arc are numerically degenerate for slerp).
-	var Faces: GDScript = load("res://core/frame/math/icosahedral_faces.gd")
-	var Sph: GDScript = load("res://core/frame/math/spherical.gd")
-	var dir: Vector3 = Sph.spherical_to_cartesian(19.4712, 0.0, 0.0, 1.0)
-	var face: int = Faces.face_for_direction(dir)
-	ok = _check("20km: spawn-direction resolves a face (got %d)" % face, \
-		face >= 0 and face < 20) and ok
-
-	_restore_setting()
 	if not ok:
-		push_error("PLANET 20KM PROBE FAILED")
+		push_error("PLANET 20KM WALK PROBE FAILED")
 	quit(0 if ok else 1)
 
 
@@ -266,10 +165,6 @@ func _free_globe() -> void:
 
 func _set_planet_radius(r: float) -> void:
 	ProjectSettings.set_setting(RADIUS_SETTING, r)
-
-
-func _restore_setting() -> void:
-	ProjectSettings.set_setting(RADIUS_SETTING, PLANET_RADIUS_100)
 
 
 ## Build a fresh globe scene. Caller must have pinned the setting first.

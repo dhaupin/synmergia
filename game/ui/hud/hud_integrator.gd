@@ -27,6 +27,8 @@ var _boss_health_bar: Node
 var _horde_bar: Node
 var _action_menu: Node
 var _minimap: Node
+## Damped heading (radians) fed to the minimap arrow each frame.
+var _last_player_yaw: float = 0.0
 var _world_map: Node
 var _chat: Node
 var _tooltip: Node
@@ -280,6 +282,19 @@ func _process(_delta: float) -> void:
 		return
 	var pos: Vector3 = p.global_position
 	_minimap.set_player_position(pos)
+	# THE HEADING FEED (the "doesn't turn" fix): nothing ever called
+	# set_player_rotation, so the arrow froze at spawn heading. The
+	# player's own facing getter is the one truth (targeting reads it
+	# too); damping keeps the arrow from trembling on idle jitter.
+	if _minimap.has_method("set_player_rotation") and p.has_method("get_look_direction"):
+		var look: Vector3 = p.get_look_direction()
+		if look.length_squared() > 0.0001:
+			var yaw: float = atan2(look.x, look.z)
+			if abs(yaw - _last_player_yaw) > PI:  # wrap -PI..PI
+				_last_player_yaw = yaw
+			else:
+				_last_player_yaw = lerp_angle(_last_player_yaw, yaw, 0.35)
+			_minimap.set_player_rotation(_last_player_yaw)
 	_minimap.set_zone_name(_get_current_zone(p))
 	if _world_map != null and _world_map.has_method("set_player_position") \
 			and _world_map.has_method("is_minimap") and not _world_map.is_minimap():

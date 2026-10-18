@@ -8,6 +8,13 @@ const IconResolver = preload("res://core/utils/icon_resolver.gd")
 ## Discrete zoom levels
 const ZOOM_LEVELS: Array[float] = [0.5, 1.0, 2.0, 4.0]
 
+## PLAYER-CENTERED VIEW LAW: the disk spans this many world meters at
+## zoom 1.0 (the old law keyed scale off _map_size, which on the globe
+## is the 2048 default -> 0.09 px/m -> a 30 m walk moved markers 2.6 px
+## and nothing visibly "scrolled"). A fixed window keeps the motion
+## readable at any world scale; zoom levels widen/narrow it.
+const DISK_METERS: float = 512.0
+
 ## Components
 var _map_texture: TextureRect
 var _player_marker: Control
@@ -449,10 +456,13 @@ func _handle_left_click(local_pos: Vector2) -> void:
 		return
 
 	var center = _minimap_size / 2.0
-	var map_scale = (_minimap_size.x / _map_size.x) * _zoom_level
+	var map_scale = _disk_scale()
 
-	var rel_pos = local_pos - center
-	var world_pos = Vector3(rel_pos.x / map_scale, 0, rel_pos.y / map_scale)
+	# Inverse of the player-centered law: screen offset from the disk
+	# center maps back to world offsets AROUND THE PLAYER, not around
+	# the world origin.
+	var rel_pos = (local_pos - center) / map_scale
+	var world_pos = Vector3(_player_position.x + rel_pos.x, 0, _player_position.z + rel_pos.y)
 
 	map_clicked.emit(world_pos)
 
@@ -462,10 +472,11 @@ func _show_context_menu(local_pos: Vector2) -> void:
 		return
 
 	var center = _minimap_size / 2.0
-	var map_scale = (_minimap_size.x / _map_size.x) * _zoom_level
+	var map_scale = _disk_scale()
 
-	var rel_pos = local_pos - center
-	var world_pos = Vector3(rel_pos.x / map_scale, 0, rel_pos.y / map_scale)
+	# Same inverse as _handle_left_click (player-centered law).
+	var rel_pos = (local_pos - center) / map_scale
+	var world_pos = Vector3(_player_position.x + rel_pos.x, 0, _player_position.z + rel_pos.y)
 
 	_context_menu.global_position = get_viewport().get_mouse_position()
 	_context_menu.popup()
@@ -752,33 +763,38 @@ func _update_player_marker() -> void:
 		return
 
 	var minimap_center := _minimap_size / 2.0
-	var map_scale := (_minimap_size.x / _map_size.x) * _zoom_level
+	var map_scale := _disk_scale()
 
-	var map_pos := Vector2(
-		_player_position.x * map_scale,
-		_player_position.z * map_scale
-	)
-
-	var marker_pos := minimap_center + map_pos
-
-	var radius = _minimap_size.x / 2.0 - 10
-	var dist = marker_pos.distance_to(minimap_center)
-	if dist > radius:
-		marker_pos = minimap_center + (marker_pos - minimap_center).normalized() * radius
-
-	_player_marker.position = marker_pos - Vector2(8, 8)
+	# PLAYER-CENTERED LAW (the spawn-stuck fix): the player rides the
+	# disk center and the WORLD scrolls under them, so the disk always
+	# mirrors "around the player" and never pins to spawn coords. The
+	# old math was absolute-world (center + pos*scale), which at planet
+	# scale clamped every read to the rim instantly and read as "the
+	# minimap sticks to the spawn area".
+	_player_marker.position = minimap_center - Vector2(8, 8)
 	_player_marker.rotation = -_player_rotation
+
+	# The backdrop scrolls with the same law: the texture is displaced
+	# by -player_pos so the world visibly glides under the player.
+	if _map_texture:
+		_map_texture.position = minimap_center \
+			- Vector2(_player_position.x, _player_position.z) * map_scale \
+			- _minimap_size / 2.0
 
 	# Update coordinates
 	if _coords_label:
 		_coords_label.text = "X: %d, Y: %d" % [_player_position.x, _player_position.z]
+
+## The disk's world-to-pixel scale (player-centered view law).
+func _disk_scale() -> float:
+	return (_minimap_size.x / DISK_METERS) * _zoom_level
 
 func _update_marker_positions() -> void:
 	if not _marker_container:
 		return
 
 	var minimap_center := _minimap_size / 2.0
-	var map_scale := (_minimap_size.x / _map_size.x) * _zoom_level
+	var map_scale := _disk_scale()
 
 	for entity_id in _entity_markers:
 		var data: Dictionary = _entity_markers[entity_id]
@@ -788,12 +804,12 @@ func _update_marker_positions() -> void:
 		if not marker or not is_instance_valid(marker):
 			continue
 
-		var map_pos := Vector2(
-			position.x * map_scale,
-			position.z * map_scale
-		)
-
-		var marker_pos := minimap_center + map_pos
+		# PLAYER-RELATIVE offset: marker screen pos = (world pos -
+		# player pos) * scale, mirrored around the disk center. The N
+		# column stays north-up; the world (not the player) carries the
+		# motion so the disk scrolls under the player as they walk.
+		var rel := Vector2(position.x - _player_position.x, position.z - _player_position.z)
+		var marker_pos := minimap_center + rel * map_scale
 
 		var radius = _minimap_size.x / 2.0 - 6
 		var dist = marker_pos.distance_to(minimap_center)
