@@ -1124,8 +1124,15 @@ func _update_spawn_truth() -> void:
 	# on phone/portrait layouts, and the round-10 pack-freshness question
 	# ("did the client run the UV-fix pack?") is exactly the tag that got
 	# hidden. Leading segment = always on screen.
-	_truth_label.text = "%s vis%d | ALT %.1f | lat %.2f lon %.2f | ground %.1f m | sea %.1f m | %s" % \
-		[stream_tag, vis, alt_m, ll.x, ll.y, ground, sea, "WET" if wet else "dry"]
+	# Build stamp (pack-freshness law): CI bakes the packed game content
+	# hash into project settings at export time (`git rev-parse --short
+	# HEAD` -> config/build/hash); default_project_settings.gsi falls back
+	# to "dev" outside CI. A screenshot of this line IS the answer to
+	# "is my preview stale?": the PCK content commit reads directly off
+	# the running client.
+	var content: String = ProjectSettings.get_setting("application/config/build_hash") if ProjectSettings.has_setting("application/config/build_hash") else "dev"
+	_truth_label.text = "%s vis%d | ALT %.1f | lat %.2f lon %.2f | ground %.1f m | sea %.1f m | %s | %s" % \
+		[stream_tag, vis, alt_m, ll.x, ll.y, ground, sea, "WET" if wet else "dry", content]
 	# Feed the full map's player dot (round 13: the map is generated
 	# from the terrain law; the gold dot rides the same lat/lon).
 	var map := hud.find_child("WorldMap", true, false) if hud != null else null

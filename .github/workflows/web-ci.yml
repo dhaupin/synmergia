@@ -108,6 +108,18 @@ jobs:
       - name: Export Web PCK (push path, per PRD strategy 2)
         run: |
           mkdir -p web
+          # Build stamp: bake the packed content's git hash into
+          # project settings so the in-game truth line can PROVE which
+          # content commit the running client holds (screenshot ->
+          # commit, the anti-stale-pck check). Local dev packs read
+          # "dev".
+          CONTENT_HASH=$(git rev-parse --short HEAD)
+          if grep -q '^application/config/build_hash=' game/project.godot; then
+            sed -i "s|^application/config/build_hash=.*|application/config/build_hash=\"$CONTENT_HASH\"|" game/project.godot
+          else
+            printf 'application/config/build_hash="%s"\n' "$CONTENT_HASH" >> game/project.godot
+          fi
+          echo "Stamping pck content at $CONTENT_HASH"
           echo "Exporting Web PCK bundle..."
           godot --headless --path game/ --export-pack "Web" "../web/game.pck"
           ls -lh web/game.pck
