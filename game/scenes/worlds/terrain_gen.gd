@@ -498,8 +498,16 @@ static func _cove_window(d: Vector3) -> float:
 ## Uninstall clears the height cache so a re-install never serves
 ## stale sectors.
 static var _height_backend: Callable = Callable()
+
+## THE LAW EPOCH (perf leg): bumped on every backend install/uninstall --
+## derived caches elsewhere (the streamer's warm-mesh ring) compare
+## their epoch against this to invalidate THEMSELVES, so a law change
+## guards every consumer seam without wiring a flush into each one.
+static var LAW_EPOCH: int = 0
+
 static func install_terrain_backend(backend: Callable) -> void:
 	_height_backend = backend
+	LAW_EPOCH += 1
 	# The one LEGAL wholesale flush: the LAW changed, so warm sectors
 	# are not stale-able but wrong. Capacity eviction (the LRU path)
 	# never lands here.
@@ -514,6 +522,7 @@ static func install_terrain_backend(backend: Callable) -> void:
 
 static func uninstall_terrain_backend() -> void:
 	_height_backend = Callable()
+	LAW_EPOCH += 1
 	_height_cache.clear()
 	_crag_cache.clear()
 	_waterfall_cache.clear()

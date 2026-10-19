@@ -2593,6 +2593,24 @@ const MESH_CACHE_MAX: int = 24
 
 var _mesh_cache: Dictionary = {}   # key -> entry (ring storage)
 var _mesh_cache_order: Array = []  # key ring, MRU first
+var _mesh_cache_epoch: int = -1    # the law epoch the ring was built under
+
+## THE EPOCH GUARD (the law-change law): any stash/stock checks the
+## terrain law's epoch FIRST -- a mismatch means the ring's content
+## is a product of a law this process no longer runs, so the ring
+## self-flushes before the operation. Covers uninstall (and any
+## future backend swap) without wiring a flush into every seam.
+func _mesh_cache_epoch_valid() -> bool:
+	var epoch: int = TerrainGen.LAW_EPOCH
+	if epoch != _mesh_cache_epoch:
+		_mesh_cache_epoch = epoch
+		for key in _mesh_cache_order.duplicate():
+			var e = _mesh_cache.get(key)
+			if e != null and is_instance_valid(e.get("mi")):
+				e["mi"].queue_free()
+		_mesh_cache.clear()
+		_mesh_cache_order.clear()
+	return true
 
 func _mesh_cache_key(face: int, lvl: int) -> String:
 	return "%d@%d" % [face, lvl]
@@ -2603,6 +2621,7 @@ func _mesh_cache_key(face: int, lvl: int) -> String:
 func _mesh_cache_stash(face: int, mi: MeshInstance3D) -> void:
 	if mi == null or not is_instance_valid(mi):
 		return
+	_mesh_cache_epoch_valid()
 	var lvl: int = int(_patch_lvl.get(face, -1))
 	if lvl < 0:
 		mi.queue_free()
@@ -2651,6 +2670,7 @@ func _mesh_cache_flush() -> void:
 ## from the builder's meta (the existing law); the walk closure and
 ## holder wiring stay the caller's job (same as always).
 func _mesh_cache_stock(face: int, use_lvl: int) -> MeshInstance3D:
+	_mesh_cache_epoch_valid()
 	var key: String = _mesh_cache_key(face, use_lvl)
 	var entry = _mesh_cache.get(key)
 	if entry != null:
