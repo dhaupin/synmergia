@@ -97,6 +97,12 @@ func _run() -> void:
 					per["detail"] = int(per["detail"]) + int(gmm.instance_count)
 					total["detail"] = int(total["detail"]) + int(gmm.instance_count)
 				continue
+			if String(ch.name).begins_with("DetailTuftBatch"):
+				var tmm = ch.get("multimesh")
+				if tmm != null:
+					per["detail"] = int(per["detail"]) + int(tmm.instance_count)
+					total["detail"] = int(total["detail"]) + int(tmm.instance_count)
+				continue
 			if name_samples.size() < 10:
 				name_samples.append(String(ch.name))
 			var cname := String(ch.name)

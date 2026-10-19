@@ -6393,6 +6393,59 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
   positionally CORRECT (probe_starter_village 19/19 PASS headless,
   plaza h=28.0 == the live ground read) but renders small/dark at
   distance -- a lighting/LOD/culling question, not placement.
+- FIELD-1 (FIX + SHIPPED 2026-10-19 late-night session fix): the
+  density law was ported to the detail tier per the bisection's fix
+  direction. Changes in globe_terrain_streamer.gd (both rng-for-rng
+  twins edited identically -- derive \_derive_detail_sites + sync
+  _spawn_detail_props, and both appliers):
+  1. THE DENSITY LADDER (_DETAIL_BUDGETS): real-geometry attempt
+     pools by the face CENTER's biome -- GRASSLAND 700, FOREST/TAIGA/
+     JUNGLE 480, SAVANNA/STEPPE 420, SWAMP 240, ALPINE/TUNDRA/
+     BADLANDS 200; NEAR faces pay full ask, MID a quarter, FAR skip
+     (unchanged). Attempt pool = 2x the ask.
+  2. THE LADDER GATE: the FIELD GATE lesson re-applied -- boot faces
+     resolve shore/lake CENTERS while hosting the homeland's
+     grassland slivers, so homeland-reach faces pay the GRASSLAND
+     ask regardless of center band (a bare center-band read would
+     have re-starved the boot again -- made that exact mistake and
+     measured it: unchanged 1520 totals until the gate went in).
+  3. THE TUFT BATCH LAW: tufts (the ~72% meadow mass) now paint as
+     ONE DetailTuftBatch MultiMesh per face (one node, one draw,
+     shared tuft mesh/material, no collider -- grass is ground) in
+     BOTH appliers + the sync twin; the raise buys blade instances,
+     NOT scene nodes. probe_prop_density counts the batch.
+  4. THE BOOT GROVE PULL tightened 0.62 -> 0.88 in the detail twins
+     AND the grass-field homeland law: at planet scale a face spans
+     ~0.6 rad, so the 0.62 drag left a ~4-5 km residual -- measured
+     DERIVE bands all-zero at <=600 m even AFTER the budget raise.
+     0.88 leaves a ~70 m residual: the furniture lands in the boot
+     600 m belt. Tree tier keeps its own 0.62 (dense already).
+  RECEIPTS (headless, exit-0): probe_prop_density BEFORE: TOTAALS
+  detail=1556, BAND <=600 m detail=0, nearest node 2,127 m. AFTER:
+  TOTALS detail=3040, BAND <=600 m detail=86 (0 -> 86), <=1,200 m
+  detail=88, <=2,400 m detail=199; faces 16/18 each carry ~70
+  blooms + ~110 bushes + ~510 batched tufts (derive kinds
+  3:515/4:71/2:114 = the v5 72/10/18 meadow roll intact) + 760-880
+  grass-field blades. res\_mooncap/res\_iron\_ore/res\_moonpetal
+  harvest registrations carry out unchanged through the batch
+  (bushes/ore re-register; tufts stay wheel-friendly).
+  PERF (bench_coldboot_wall headless): v8 BOOT_WALL_MS=86,608 /
+  STREAMER_MS=83,620 / worker sum 156,412 vs BASELINE (stashed
+  working tree, same host) = 90,886 / 87,989 / 171,056 -- the vite
+  production prop raise is NOT the boot-wall driver (the tree/mesh
+  derive lane dominates; the detail raise measures --4 s / --15 k ms
+  within noise). Steady frames + tris unchanged (FACES=4, TRIS=34,816).
+  LIMITATIONS + NEXT: (a) FIELD-3 now matters MORE (more props
+  amplify any height-sampling mismatch) -- the numeric sit-on-ground
+  pass in tests/diag_detail_kinds.gd is blocked by a world-root
+  render-scale artifact (all kinds report ~19.8 km below the
+  analytic surface pre/post, pre-existing kinds too) -- FIELD-3
+  verification stays an ON-DEVICE visual pass; (b) MID faces (lvl 5
+  boot window slots) stayed bare in the probe (face 14 EMPTY, face 6
+  rocks-only) -- if the player walks past the boot belt the first
+  2 km of MID land still reads sparse; watch for a follow-up budget
+  for those two faces; (c) the mobile fullscreen + density retest on
+  device is the acceptance verdict.
 - FIELD-2 houses identical + same spots: deterministic seed = same
   village layout every session, which is BY DESIGN for quest-anchored
   structures, but the player expectation is that DECORATIVE scatter

@@ -1614,7 +1614,18 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 	var drop: int = base_lvl - lvl
 	if drop >= 2:
 		return  # FAR: no detail pass at all (the budget law)
-	var budget: int = 18 if drop <= 0 else 4  # NEAR: 18, MID: 4
+	# THE REAL-GEOMETRY BUDGET (v8, sync twin of the derive law above).
+	var budget_full: int = int(_DETAIL_BUDGETS\
+		.get(TerrainGen.climate_biome_id(FacePatches.face_center(face).normalized(), world_seed), 0))
+	# THE LADDER GATE (sync twin -- see the derive law above): the
+	# homeland-reach faces pay the GRASSLAND ask even when their center
+	# resolves a bare shore/lake band.
+	if budget_full <= 0:
+		if FacePatches.face_center(face).angle_to(TerrainGen.SPAWN_CENTER) \
+				>= TerrainGen.HOMELAND_ANGULAR_REACH:
+			return  # beach/ocean/water center faces stay bare
+		budget_full = int(_DETAIL_BUDGETS.get(TerrainGen.BiomeId.GRASSLAND, 0))
+	var budget: int = budget_full if drop <= 0 else int(budget_full / 4)  # NEAR: full, MID: quarter
 	var bytes: PackedByteArray = TerrainGen.face_seed_bytes(world_seed, face)
 	var acc: int = 0
 	for b in bytes:
@@ -1626,18 +1637,19 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 	var scaled: float = radius + TILE_LIFT
 	var sea: float = TerrainGen.sea_level(world_seed)
 	var spawned := 0
-	for i in range(48):
+	var tuft_xforms: Array = []  # THE TUFT BATCH: one MultiMesh paints the field
+	for i in range(budget * 2):  # 2x the ask absorbs the water/bare rejects
 		if spawned >= budget:
-			return
+			break  # the tuft-batch flush runs after the loop
 		var v: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
 		var v2: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
 		var dir: Vector3 = (FacePatches.face_center(face) * 0.25 + v * 0.35 + v2 * 0.40).normalized()
-		# THE BOOT GROVE PULL (the detail tier's own copy): the meadow
-		# furniture dresses the belt the player walks, not the far side
-		# of the face (the tree law above carries the pressed counterpart).
+		# THE BOOT GROVE PULL (v8 tightened, sync twin -- see the
+		# derive law above): 0.88 leaves the boot belt,
+		# not a 4-5 km drag.
 		if FacePatches.face_center(face).angle_to(TerrainGen.SPAWN_CENTER) \
 				< TerrainGen.HOMELAND_ANGULAR_REACH:
-			dir = dir.slerp(TerrainGen.SPAWN_CENTER, 0.62)
+			dir = dir.slerp(TerrainGen.SPAWN_CENTER, 0.88)
 		var base_h: float = _prop_ground_h(face, dir)
 		if base_h < sea - 0.2:
 			continue  # no props in the water band
@@ -1676,22 +1688,21 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 		var mat := StandardMaterial3D.new()
 		mat.roughness = 1.0
 		if is_tuft:
-			# THE TUFT LAW (v5 grass tier): ONE shared three-blade mesh,
-			# vertex-graded (dark base -> sun-tipped), one draw each, no
-			# collider (the walk law treats grass as ground, not prop).
-			# Per-tuft variance rides the node transform: yaw + a gentle
-			# scale splay. Meshes below a cap read decorative at 0.5 m --
-			# exactly the detail band the budget law pays for.
-			prop.mesh = _tuft_mesh()
-			prop.material_override = _tuft_material()
-			prop.name = "Tuft%d" % i
-			prop.position = _tangent_patch_local(dir, patch_center, scaled + base_h)
+			# THE TUFT LAW (v8 batched, sync twin of the derive law):
+			# ONE shared three-blade mesh, vertex-graded (dark base ->
+			# sun-tipped), no collider (the walk law treats grass as
+			# ground, not prop). Per-tuft variance rides the instance
+			# transform: yaw + a gentle scale splay. The whole field
+			# paints as one MultiMesh per face (the flush below) -- the
+			# raised budget never pays a node per blade.
+			var tpos: Vector3 = _tangent_patch_local(dir, patch_center, scaled + base_h)
 			var up_t: Vector3 = dir
 			var hint_t: Vector3 = Vector3(0, 1, 0) if abs(up_t.dot(Vector3(0, 1, 0))) < 0.999 else Vector3(1, 0, 0)
 			var east_t: Vector3 = (hint_t - up_t * hint_t.dot(up_t)).normalized()
-			prop.basis = Basis(east_t, up_t, east_t.cross(up_t)).rotated(up_t, rng.randf_range(0.0, TAU))
-			prop.scale = Vector3.ONE * rng.randf_range(0.7, 1.6)
-			patch_node.add_child(prop)
+			var tyaw: float = rng.randf_range(0.0, TAU)
+			var tscl: float = rng.randf_range(0.7, 1.6)
+			tuft_xforms.append(Transform3D(
+				Basis(east_t, up_t, east_t.cross(up_t)).rotated(up_t, tyaw).scaled(Vector3.ONE * tscl), tpos))
 			spawned += 1
 			continue
 		if is_flower:
@@ -1832,6 +1843,8 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 			prop.basis = Basis()
 		patch_node.add_child(prop)
 		spawned += 1
+	# THE TUFT BATCH FLUSH: the deferred MultiMesh painter.
+	_apply_tuft_batch(tuft_xforms, patch_node)
 
 
 ## ===== THE PROP DERIVE / APPLY SPLIT (v6 threading) ============
@@ -2173,6 +2186,30 @@ const _DPROP_FLOWER: int = 4
 const _DPROP_MUSHROOM: int = 5   # v7: fungal cap (swamp/forest/jungle)
 const _DPROP_MYECLIUM: int = 6   # v7: glowing mycelium patch (same bands)
 
+## THE DETAIL DENSITY LADDER (v8, FIELD-1 closure): the real-geometry
+## port of the tree-tier law. A streamed icosahedral face is ~21 km of
+## ground at the planet scale, so the old 18/4 one-size budget starved
+## whole boot walks (probe_prop_density on the shipped tree: ZERO props
+## within 600 m of spawn, nearest node 2127 m). The ladder reads the
+## face CENTER's biome (the same quantized climate read the tree tier
+## scales with) and pays band-appropriate attempt pools. NEAR faces pay
+## the full ask; MID faces a quarter; FAR stays skip. Tufts (the ~72%
+## meadow mass) are MultiMesh-batched (THE TUFT BATCH LAW) so the
+## raise is paid in instance counts, not scene nodes.
+const _DETAIL_BUDGETS := {
+	TerrainGen.BiomeId.GRASSLAND: 700,
+	TerrainGen.BiomeId.SAVANNA: 420,
+	TerrainGen.BiomeId.STEPPE: 420,
+	TerrainGen.BiomeId.TAIGA: 420,
+	TerrainGen.BiomeId.FOREST: 480,
+	TerrainGen.BiomeId.ALPINE_MEADOW: 340,
+	TerrainGen.BiomeId.JUNGLE: 480,
+	TerrainGen.BiomeId.SWAMP: 240,
+	TerrainGen.BiomeId.ALPINE: 200,
+	TerrainGen.BiomeId.TUNDRA: 200,
+	TerrainGen.BiomeId.BADLANDS: 200,
+}
+
 func _derive_detail_sites(face: int) -> Array:
 	var sites: Array = []
 	var lvl: int = int(_patch_lvl.get(face, 99))
@@ -2182,7 +2219,22 @@ func _derive_detail_sites(face: int) -> Array:
 	var drop: int = base_lvl - lvl
 	if drop >= 2:
 		return sites  # FAR: no detail pass at all (the budget law)
-	var budget: int = 18 if drop <= 0 else 4  # NEAR: 18, MID: 4
+	# THE REAL-GEOMETRY BUDGET (v8): the ladder reads the face CENTER's
+	# band -- a 21 km face pays a real-face count, not 18 sites.
+	var budget_full: int = int(_DETAIL_BUDGETS\
+		.get(TerrainGen.climate_biome_id(FacePatches.face_center(face).normalized(), world_seed), 0))
+	# THE LADDER GATE (the galaxy-tier mirror of the FIELD GATE lesson):
+	# the boot faces resolve shore/lake CENTERS while hosting the
+	# homeland's grassland slivers -- a bare center-band read would
+	# leave the homeland detail-bare again. Any homeland-reach face
+	# pays the GRASSLAND ask (the meadow band); past the homeland the
+	# center-band ladder rules alone.
+	if budget_full <= 0:
+		if FacePatches.face_center(face).angle_to(TerrainGen.SPAWN_CENTER) \
+				>= TerrainGen.HOMELAND_ANGULAR_REACH:
+			return sites  # beach/ocean/water center faces stay bare
+		budget_full = int(_DETAIL_BUDGETS.get(TerrainGen.BiomeId.GRASSLAND, 0))
+	var budget: int = budget_full if drop <= 0 else int(budget_full / 4)  # NEAR: full, MID: quarter
 	var bytes: PackedByteArray = TerrainGen.face_seed_bytes(world_seed, face)
 	var acc: int = 0
 	for b in bytes:
@@ -2194,16 +2246,23 @@ func _derive_detail_sites(face: int) -> Array:
 	var scaled: float = radius + TILE_LIFT
 	var sea: float = TerrainGen.sea_level(world_seed)
 	var spawned: int = 0
-	for i in range(48):
+	for i in range(budget * 2):  # 2x the ask absorbs the water/bare rejects
 		if spawned >= budget:
-			return sites
+			break
 		var v: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
 		var v2: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
 		var dir: Vector3 = (FacePatches.face_center(face) * 0.25 + v * 0.35 + v2 * 0.40).normalized()
-		# THE BOOT GROVE PULL (the detail tier's own copy, sync law above).
+		# THE BOOT GROVE PULL (v8 tightened): the homeland-reach faces
+		# CONCENTRATE their furniture near the boot belt, not just drag
+		# it toward it. At planet scale a face spans ~0.6 rad; the old
+		# 0.62 drag left a ~4-5 km residual (the boot's 600 m walk
+		# stayed bare while the fields painted 2 km away). 0.88 leaves
+		# a ~0.07 rad residual (~70 m) -- the detail band the walk
+		# reads. The detail tier's own copy; the grass tier carries its
+		# own (same law, same strength).
 		if FacePatches.face_center(face).angle_to(TerrainGen.SPAWN_CENTER) \
 				< TerrainGen.HOMELAND_ANGULAR_REACH:
-			dir = dir.slerp(TerrainGen.SPAWN_CENTER, 0.62)
+			dir = dir.slerp(TerrainGen.SPAWN_CENTER, 0.88)
 		var base_h: float = _prop_site_ground_h(dir, face)
 		if base_h < sea - 0.2:
 			continue  # no props in the water band
@@ -2286,22 +2345,22 @@ func _derive_detail_sites(face: int) -> Array:
 	return sites
 
 func _apply_detail_sites(face: int, sites: Array, patch_node: Node3D) -> void:
+	var tuft_xforms: Array = []  # THE TUFT BATCH: one MultiMesh paints the field
 	for rec in sites:
 		var i: int = int(rec["i"])
 		var dir: Vector3 = rec["dir"]
 		if int(rec["kind"]) == _DPROP_TUFT:
-			# THE TUFT LAW (v5 grass tier -- see the sync twin above).
-			var prop := MeshInstance3D.new()
-			prop.mesh = _tuft_mesh()
-			prop.material_override = _tuft_material()
-			prop.name = "Tuft%d" % i
-			prop.position = rec["pos"]
+			# THE TUFT LAW (v8 batched -- the grass-field paint law):
+			# one shared MultiMesh paints the face's whole tuft field
+			# (the flush below); per-tuft variance rides the instance
+			# transform. No node per blade.
 			var up_t: Vector3 = dir
 			var hint_t: Vector3 = Vector3(0, 1, 0) if abs(up_t.dot(Vector3(0, 1, 0))) < 0.999 else Vector3(1, 0, 0)
 			var east_t: Vector3 = (hint_t - up_t * hint_t.dot(up_t)).normalized()
-			prop.basis = Basis(east_t, up_t, east_t.cross(up_t)).rotated(up_t, rec["yaw"])
-			prop.scale = Vector3.ONE * float(rec["scale"])
-			patch_node.add_child(prop)
+			var tscl: float = float(rec["scale"])
+			tuft_xforms.append(Transform3D(
+				Basis(east_t, up_t, east_t.cross(up_t)).rotated(up_t, float(rec["yaw"])).scaled(Vector3.ONE * tscl),
+				rec["pos"]))
 		elif int(rec["kind"]) == _DPROP_FLOWER:
 			var bloom := Node3D.new()
 			bloom.name = "Flower%d" % i
@@ -2428,6 +2487,29 @@ func _apply_detail_sites(face: int, sites: Array, patch_node: Node3D) -> void:
 			if bid_recheck == TerrainGen.BiomeId.ALPINE_MEADOW:
 				bush_item = "res_moonpetal"  # the meadow's herb law
 			_register_harvest_node(face, i, bush_item, dir, 45.0)
+	# THE TUFT BATCH FLUSH (v8): one MultiMesh paints the face's tuft field.
+	_apply_tuft_batch(tuft_xforms, patch_node)
+
+
+## THE TUFT BATCH LAW (both appliers): the face's collected tuft
+## transforms paint as ONE MultiMeshInstance3D -- one node, one draw
+## call -- reusing the shared tuft mesh + material. Same paint law as
+## the grass field: the raised budget buys blade instances, NOT
+## scene nodes. No collider (grass is ground, not prop).
+func _apply_tuft_batch(xforms: Array, patch_node: Node3D) -> void:
+	if xforms.is_empty():
+		return
+	var gm := MultiMesh.new()
+	gm.transform_format = MultiMesh.TRANSFORM_3D
+	gm.mesh = _tuft_mesh()
+	gm.instance_count = xforms.size()
+	for t in range(xforms.size()):
+		gm.set_instance_transform(t, xforms[t])
+	var gmi := MultiMeshInstance3D.new()
+	gmi.name = "DetailTuftBatch"
+	gmi.multimesh = gm
+	gmi.material_override = _tuft_material()
+	patch_node.add_child(gmi)
 
 ## --- THE GRASS FIELD (the dense meadow law) ----------------------
 ## One MultiMesh of blade clumps per grassland face: a handful of
@@ -2522,7 +2604,9 @@ func _derive_grass_field(face: int) -> Dictionary:
 		var v2: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
 		var dir: Vector3 = (center * 0.25 + v * 0.35 + v2 * 0.40).normalized()
 		if center.angle_to(TerrainGen.SPAWN_CENTER) < TerrainGen.HOMELAND_ANGULAR_REACH:
-			dir = dir.slerp(TerrainGen.SPAWN_CENTER, 0.62)
+			# THE HOMELAND CONCENTRATION (v8: 0.88 leaves the boot belt --
+			# the old 0.62 drag spread the carpet ~4-5 km from the plaza).
+			dir = dir.slerp(TerrainGen.SPAWN_CENTER, 0.88)
 		# THE PLAZA SKIRT: the boot clearing stays law-tidy -- the field
 		# nudges out of the spawn-clear ring rather than skipping the
 		# anchor (the meadow keeps its anchor count near the boot).
