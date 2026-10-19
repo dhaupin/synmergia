@@ -1,8 +1,36 @@
 # PRD: Terrain -- Biomes, Surface Look, Hydrology, Progressive Detail
 
-> **Status:** v1 (2026-10-10). Slice 1 (climate field + biome law) SHIPPED
-> with probe `probe_terrain_biome.gd`. Slices 2-4 designed; build to this
-> doc. **Last verified checks:** runner battery green; see TASKS.md for the
+> **Status:** v2 (2026-10-19). ALL FOUR SLICES ARE IN THE GROUND LAW AND
+> LIVE IN THE STREAMED GLOBE (this doc's old line -- "slices 2-4
+> designed" -- was stale; the 2026-10-19 audit found the implementation
+> ahead of the doc). Current truth:
+>
+> - **Slice 1** climate field + biome law: SHIPPED, probe-pinned
+>   (`probe_terrain_biome.gd`, `probe_terrain_climate.gd`).
+> - **Slice 2** surface colors: SHIPPED and beyond the v1 design --
+>   the vertex law carries the biome palette blend, slope rock,
+>   strata/fracture crag law, temperature snowline, wet dimming,
+>   shore foam, waterfall seams, the grass expression and the road
+>   tint.
+> - **Slice 3** hydrology: SHIPPED -- water-table fields with gated
+>   basins at ANY elevation, carved river channels with moisture
+>   ripple and waterfall seams, bridge decks read by the biome law.
+> - **Roads** (originally "new PRD entry"): SHIPPED ahead of plan --
+>   seeded route graph + corridor carve (bed/deck) + surface tints;
+>   the starter village battery pins the connecting road to the
+>   capitol plaza.
+> - **Slice 4** progressive scatter: SHIPPED and EXTENDED this
+>   session -- v4 density raise (barycentric site draws, belt-dry
+>   hydrology, homeland grass yield, boot grove pull), v5 grass
+>   tier (tufts + blooms), v6 threading + MultiMesh grass fields.
+>   Numbers: 25 collided trees / 1.2 km at boot, ~900 meadow clumps
+>   per face in one draw call.
+>
+> The original visibility gap (props placed 6+ km from a boot that
+> sits in a face corner) is what kept slices 2-4 "invisible"; the
+> density law fixes it at the seams all four slices share.
+> **Last verified checks:** determinism/village/lint batteries green
+> 2026-10-19; perf budget build pin passes. See TASKS.md for the
 > session log.
 
 ## 1. The law that already holds (context)
