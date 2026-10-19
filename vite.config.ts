@@ -9,7 +9,21 @@ function bridgeApiPlugin(): Plugin {
   return {
     name: 'bridge-api-plugin',
     async configureServer(server) {
-      await ensureBridgesRunning();
+      // Build-mode guard (Cloudflare Pages hang, 2026-10-19): the
+      // prerender also creates a Vite server (middlewareMode) to
+      // ssrLoadModule the app, which fires this hook on EVERY build.
+      // Starting the bridge sidecars there spawned python3 children
+      // with live stdio handles npm never reaps -> the Pages build
+      // printed the bridge banner and hung forever. Bridges are only
+      // meaningful when a server is actually SERVING requests; the
+      // prerender never calls /api/* (React SSR is pure). Detect the
+      // programmatic server and skip startup.
+      if (!server.config.server.middlewareMode) {
+        await ensureBridgesRunning();
+      } else {
+        // eslint-disable-next-line no-console
+        console.log('[bridge-api-plugin] middlewareMode server: skipping bridge spawn');
+      }
 
       server.middlewares.use((req, res, next) => {
         const url = req.url || '';

@@ -2,6 +2,26 @@ import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
 import http from 'http';
 
+// Child-cleanup belt: any python bridge a Node process spawned dies
+// with it. Without this, a programmatic Vite server (the prerender
+// path runs its own dev server in middlewareMode) could leak
+// live-stdio children and hang its host build (the 2026-10-19
+// Cloudflare Pages freeze; the direct fix is the middlewareMode
+// guard in vite.config.ts, and this hook is the depth layer).
+let exitHookInstalled = false;
+function installExitHook(): void {
+  if (exitHookInstalled) return;
+  exitHookInstalled = true;
+  process.on('exit', () => {
+    try {
+      pgProcess?.kill();
+    } catch {} /* already gone */
+    try {
+      redisProcess?.kill();
+    } catch {} /* already gone */
+  });
+}
+
 let pgProcess: ChildProcess | null = null;
 let redisProcess: ChildProcess | null = null;
 
@@ -25,6 +45,7 @@ export function ensureBridgesRunning(): Promise<{ pgPort: number; redisPort: num
         pgProcess.on('error', (err) => {
           console.warn('[bridge_manager] pgProcess error:', err.message);
         });
+        installExitHook();
       }
 
       checkHealth(REDIS_PORT, (redisAlive) => {
@@ -41,6 +62,7 @@ export function ensureBridgesRunning(): Promise<{ pgPort: number; redisPort: num
           redisProcess.on('error', (err) => {
             console.warn('[bridge_manager] redisProcess error:', err.message);
           });
+          installExitHook();
         }
 
         // Wait a short tick for boot if either was newly spawned
@@ -74,6 +96,7 @@ export async function startBridges(): Promise<void> {
     pgProcess.on('error', (err) => {
       console.warn('[bridge_manager] pgProcess error:', err.message);
     });
+    installExitHook();
   }
 
   // Start redis-bridge if not already running
@@ -91,6 +114,7 @@ export async function startBridges(): Promise<void> {
     redisProcess.on('error', (err) => {
       console.warn('[bridge_manager] redisProcess error:', err.message);
     });
+    installExitHook();
   }
 
   // Wait for both to be healthy before resolving
