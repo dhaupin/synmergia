@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "res_mooncap"
+display_name = "Mooncap"
+description = "A pale mycelial cap, cool to the touch and always faintly damp. The groves of the wandering belt carry them; alchemists and bowmen prize the broth."
+icon_path = "res://icons/resources/mooncap.png"
+item_category = 4
+rarity = 2
+equip_slot = 0
+stack_size = 100
+sell_price = 12
+buy_price = 30
+required_level = 0

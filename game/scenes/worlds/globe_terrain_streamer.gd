@@ -618,6 +618,11 @@ func _build_mesh(face: int, use_lvl: int) -> MeshInstance3D:
 	## the quad collapses out of the surface.
 	var water_tris: int = _water_surface(face, mi, verts, center, dir_h)
 	_patch_water_tris[face] = water_tris
+	# THE RAISED ROAD DECK (v7 polish, surface 3): the real cartway --
+	# a quad ribbon per road node at the carved law's own bed/deck
+	# height (the walk law and the planks agree exactly).
+	var deck_quads: int = _raised_road_deck(face, mi, center)
+	mi.set_meta("deck_quads", deck_quads)
 	mi.set_meta("tris", verts.size())
 	return mi
 
@@ -693,6 +698,72 @@ func _water_surface(face: int, mi: MeshInstance3D, verts: Array, center: Vector3
 		wmat.roughness = 0.1
 		mi.set_surface_override_material(2, wmat)
 	return water_tris
+
+
+## THE RAISED ROAD DECK (v7 polish): the deck segments the carved
+## law already walks on become real 3D strips -- a quad ribbon per
+## road node inside this face's angular reach, sitting at the bed/deck
+## height the WALK law answers (so feet and planks agree exactly).
+## TRIANGLE STRIP law: it adds the 4-vertex quad per node as two
+## tris (like the water sheet's tile law), not SurfaceTool strips.
+## Bridge segments (deck weight high) get plank posts at the rails --
+## small dark cylinders -- so a crossing reads as a built thing.
+## ADDS surface 3 on the patch mesh; the law is PURE per (face, seed)
+## so re-derivation is deterministic. Nothing touches the walk law.
+const DECK_RIBBON_HALF: float = 0.0032  # ~64 m cartway half-width (arc)
+const DECK_PLANK_COLOR := Color(0.44, 0.33, 0.22)
+
+func _raised_road_deck(face: int, mi: MeshInstance3D, center: Vector3) -> int:
+	if not terrain_on:
+		return 0
+	var spec: TerrainGen.RoadSpec = TerrainGen.road_spec_cached(world_seed)
+	var path: PackedVector3Array = spec.path
+	var t_r: float = radius + TILE_LIFT
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var quads := 0
+	var n: int = path.size()
+	for i in range(n - 1):
+		var p0: Vector3 = path[i]
+		var p1: Vector3 = path[i + 1]
+		# The ribbon segment spans this face's angular reach only.
+		if p0.angle_to(center) > 0.30 and p1.angle_to(center) > 0.30:
+			continue
+		var h0: float = spec.beds[i]
+		var h1: float = spec.beds[i + 1]
+		var is_bridge: bool = spec.bridges[i] > 0.4 or spec.bridges[i + 1] > 0.4
+		# Segment axis + its surface tangent (the rail direction).
+		var seg: Vector3 = p0.cross(p1).normalized()  # segment normal axis
+		var half: float = DECK_RIBBON_HALF
+		var a0: Vector3 = p0.rotated(seg, half).normalized()
+		var b0: Vector3 = p0.rotated(seg, -half).normalized()
+		var a1: Vector3 = p1.rotated(seg, half).normalized()
+		var b1: Vector3 = p1.rotated(seg, -half).normalized()
+		var va0: Vector3 = a0 * (t_r + h0) - center
+		var vb0: Vector3 = b0 * (t_r + h0) - center
+		var va1: Vector3 = a1 * (t_r + h1) - center
+		var vb1: Vector3 = b1 * (t_r + h1) - center
+		# Two triangles: (a0, b0, a1) and (b0, b1, a1). The face
+		# normal is the outward radial mid (up-ish on a road deck).
+		var mid: Vector3 = ((a0 + b0 + a1 + b1) * 0.25).normalized()
+		var col: Color = DECK_PLANK_COLOR
+		# Bridge segments read lighter (rail planks weather above the
+		# water; road bed planks stay earth-dark).
+		if is_bridge:
+			col = col.lightened(0.25)
+		var quad_pts: Array = [va0, vb0, va1, vb0, vb1, va1]
+		for p in quad_pts:
+			st.set_normal(mid)
+			st.set_color(col)
+			st.add_vertex(p)
+		quads += 1
+	if quads > 0:
+		mi.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, st.commit_to_arrays())
+		var dmat := StandardMaterial3D.new()
+		dmat.albedo_color = DECK_PLANK_COLOR
+		dmat.roughness = 0.95
+		mi.set_surface_override_material(3, dmat)
+	return quads
 
 
 ## Emit ONE water triangle for tile `tri` at radius (tile_r + t_h)
@@ -1390,9 +1461,10 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 		var prop := MeshInstance3D.new()
 		var mesh: Mesh
 		var mat := StandardMaterial3D.new()
-		mat.roughness = 1.0			if is_tuft:
-				# THE TUFT LAW (v5 grass tier): ONE shared three-blade mesh,
-				# vertex-graded (dark base -> sun-tipped), one draw each, no
+		mat.roughness = 1.0
+		if is_tuft:
+			# THE TUFT LAW (v5 grass tier): ONE shared three-blade mesh,
+			# vertex-graded (dark base -> sun-tipped), one draw each, no
 			# collider (the walk law treats grass as ground, not prop).
 			# Per-tuft variance rides the node transform: yaw + a gentle
 			# scale splay. Meshes below a cap read decorative at 0.5 m --
@@ -1481,6 +1553,8 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 			cap_node.material_override = cap_mat_s
 			cap_node.position = Vector3(0.0, stem_h_s + cap_r_s * 0.2, 0.0)
 			fungi_s.add_child(cap_node)
+			# THE FUNGAL HARVEST LAW (sync twin -- see the apply branch).
+			_register_harvest_node(face, i, "res_mooncap", dir, 240.0)
 			var up_ms: Vector3 = dir
 			var hint_ms: Vector3 = Vector3(0, 1, 0) if abs(up_ms.dot(Vector3(0, 1, 0))) < 0.999 else Vector3(1, 0, 0)
 			var east_ms: Vector3 = (hint_ms - up_ms * hint_ms.dot(up_ms)).normalized()
@@ -2132,6 +2206,12 @@ func _apply_detail_sites(face: int, sites: Array, patch_node: Node3D) -> void:
 			var east_m: Vector3 = (hint_m - up_m * hint_m.dot(up_m)).normalized()
 			fungi.basis = Basis(east_m, up_m, east_m.cross(up_m)).rotated(up_m, float(rec["yaw"]))
 			patch_node.add_child(fungi)
+			# THE FUNGAL HARVEST LAW (v7 polish): what you see is what you
+			# gather -- the drawn cap cluster registers as a live
+			# HarvestService node yielding the grove's own mooncap (the
+			# drawn bush registers the same way; the ore branch too).
+			# Respawn slow: groves regenerate on the mycelial clock.
+			_register_harvest_node(face, i, "res_mooncap", dir, 240.0)
 		elif int(rec["kind"]) == _DPROP_MYECLIUM:
 			var patch_n := MeshInstance3D.new()
 			var pm_p := SphereMesh.new()
@@ -2219,6 +2299,43 @@ const GRASS_ANCHORS: int = 22
 const GRASS_BLADES_PER: int = 40
 const GRASS_RING: float = 0.00035  # ~7 m ground arc at the 20 km scale
 
+## THE GRASS SPECIES PALETTE (v7 polish: the per-biome meadow tints).
+## The tuft mesh carries its vertex-graded greens; the per-biome
+## material MODULATES they multiply onto them, so the same three-blade
+## geometry reads straw on the savanna, cool blue-green in the taiga,
+## frost-pale at the alpine rim, and the homeland green untouched.
+## Cached per biome id (one material per meadow band, ever).
+const GRASS_TINTS := {
+	9: Color(1.0, 1.0, 1.0),        # GRASSLAND: the homeland green
+	14: Color(1.0, 0.88, 0.5),      # SAVANNA: dry straw
+	15: Color(1.0, 0.95, 0.68),     # STEPPE: pale wheat
+	7: Color(0.72, 0.9, 1.0),       # TAIGA: cool blue-green
+	10: Color(0.82, 0.94, 1.0),     # ALPINE_MEADOW: frost rim
+}
+static var _grass_tint_mats := {}  # biome id -> StandardMaterial3D
+
+func _grass_material_for(bid: int) -> StandardMaterial3D:
+	if _grass_tint_mats.has(bid):
+		return _grass_tint_mats[bid]
+	var m := StandardMaterial3D.new()
+	m.vertex_color_use_as_albedo = true
+	m.roughness = 1.0
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.albedo_color = GRASS_TINTS.get(bid, Color(1.0, 1.0, 1.0))
+	_grass_tint_mats[bid] = m
+	return m
+
+## The blade-scale splay per meadow band (the species SILHOUETTE):
+## savanna grass grows tall and lean, alpine hunkers low, the
+## homeland keeps its v5 feel.
+static func _grass_scale_range(bid: int) -> Vector2:
+	match bid:
+		14: return Vector2(1.0, 2.1)   # savanna: tall straw
+		15: return Vector2(0.7, 1.6)   # steppe: lean wheat
+		7: return Vector2(0.5, 1.2)    # taiga: short cool tufts
+		10: return Vector2(0.4, 0.95)  # alpine: hunker
+		_: return Vector2(0.6, 1.5)    # homeland default
+
 func _derive_grass_field(face: int) -> Dictionary:
 	if not terrain_on:
 		return {}  # prototype keeps its S7 set
@@ -2243,7 +2360,19 @@ func _derive_grass_field(face: int) -> Dictionary:
 	var scaled: float = radius + TILE_LIFT
 	var sea: float = TerrainGen.sea_level(world_seed)
 	var xforms: Array = []
+	var bids: Array = []  # per-xform biome (the per-instance tint law)
 	var tang_a: Vector3 = Vector3(0, 1, 0).cross(center).normalized()
+	# THE MEADOW FAMILY (v7 polish): grass still dominates, but the
+	# grass-family bands ride their own species look now -- savanna
+	# straw, steppe wheat, taiga cool tufts. The DRIVE-BY MEADOW LAW
+	# (the detail tier's set): the field no longer skips the
+	# grass-family bands outright; it only refuses water bands.
+	var center_meadow: bool = cbid == TerrainGen.BiomeId.GRASSLAND \
+		or cbid == TerrainGen.BiomeId.SAVANNA or cbid == TerrainGen.BiomeId.STEPPE \
+		or cbid == TerrainGen.BiomeId.TAIGA or cbid == TerrainGen.BiomeId.ALPINE_MEADOW
+	if cbid != TerrainGen.BiomeId.GRASSLAND and not center_meadow \
+			and center.angle_to(TerrainGen.SPAWN_CENTER) >= TerrainGen.HOMELAND_ANGULAR_REACH:
+		return {}  # the field law: meadow faces (or the homeland set)
 	for a in range(GRASS_ANCHORS):
 		var v: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
 		var v2: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
@@ -2258,7 +2387,16 @@ func _derive_grass_field(face: int) -> Dictionary:
 		var base_h: float = _prop_site_ground_h(dir, face)
 		if base_h < sea - 0.2:
 			continue
-		if TerrainGen.climate_biome_id(dir, world_seed) != TerrainGen.BiomeId.GRASSLAND:
+		# THE ANCHOR SPECIES CHECK (v7 polish: per-meadow tints).
+		# The meadow FAMILY test replaced the old grassland-only gate,
+		# so savanna/steppe/taiga/alpine anchors carry their own
+		# species look (the drive-through law above covered the drive;
+		# this one per anchor).
+		var bid_a: int = TerrainGen.climate_biome_id(dir, world_seed)
+		var meadow_a: bool = bid_a == TerrainGen.BiomeId.GRASSLAND \
+			or bid_a == TerrainGen.BiomeId.SAVANNA or bid_a == TerrainGen.BiomeId.STEPPE \
+			or bid_a == TerrainGen.BiomeId.TAIGA or bid_a == TerrainGen.BiomeId.ALPINE_MEADOW
+		if not meadow_a:
 			continue
 		var arot: float = rng.randf_range(0.0, TAU)
 		for k in range(GRASS_BLADES_PER):
@@ -2273,26 +2411,46 @@ func _derive_grass_field(face: int) -> Dictionary:
 			if abs(up_b.dot(hint_b)) > 0.999:
 				hint_b = Vector3(0, 0, -1)
 			var east_b: Vector3 = (hint_b - up_b * hint_b.dot(up_b)).normalized()
-			var scl: float = 0.6 + 0.9 * rng.randf()
+			# THE SPECIES SILHOUETTE: per-meadow scale splay (the band
+		# the anchor resolved picks the height band -- tall lean
+		# savanna straw, hunkered alpine rim).
+			var srange: Vector2 = _grass_scale_range(bid_a)
+			var scl: float = rng.randf_range(srange.x, srange.y)
 			var pose: Transform3D = Transform3D(
 				Basis(east_b, up_b, east_b.cross(up_b)).rotated(up_b, rng.randf_range(0.0, TAU)).scaled(Vector3(scl, scl, scl)), bpos)
 			xforms.append(pose)
-	return {"xforms": xforms}
+			bids.append(bid_a)
+	return {"xforms": xforms, "bids": bids}
 
 func _apply_grass_field(grass: Dictionary, patch_node: Node3D) -> void:
 	var xforms: Array = grass.get("xforms", [])
 	if xforms.is_empty():
 		return
+	var bids: Array = grass.get("bids", [])
 	var gm := MultiMesh.new()
 	gm.transform_format = MultiMesh.TRANSFORM_3D
 	gm.mesh = _tuft_mesh()
 	gm.instance_count = xforms.size()
+	gm.use_colors = true
+	var majority: int = -1
+	var tally := {}  # biome id -> instance count (the majority's material)
 	for t in range(xforms.size()):
 		gm.set_instance_transform(t, xforms[t])
+		var bid: int = int(bids[t]) if t < bids.size() else -1
+		tally[bid] = int(tally.get(bid, 0)) + 1
+		if int(tally[bid]) > int(tally.get(majority, 0)):
+			majority = bid
 	var gmi := MultiMeshInstance3D.new()
 	gmi.name = "GrassField"
 	gmi.multimesh = gm
-	gmi.material_override = _tuft_material()
+	# THE PER-FIELD SPECIES LAW (v7 polish): the field's material is
+	# the MAJORITY biome's tint (the anchors of one field cluster on
+	# the same band), so savanna fields read straw, taiga fields
+	# read cool, the homeland reads its v5 green untouched.
+	if majority >= 0:
+		gmi.material_override = _grass_material_for(majority)
+	else:
+		gmi.material_override = _tuft_material()
 	patch_node.add_child(gmi)
 
 ## The sync fallback path (threadless hosts / one-shot offenders).
