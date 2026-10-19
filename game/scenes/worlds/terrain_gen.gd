@@ -60,7 +60,7 @@ static var _river_spec_cache = LRU_CACHE.new(8)
 ## real geometry (rock specs 6..10, boulders 2..3, tree site ladder
 ## in the streamer's _spawn_trees). Prop content re-derives; the
 ## height law is BIT-IDENTICAL through the v3->v4 move.
-const RULESET_VERSION: String = "terrain_v4"
+const RULESET_VERSION: String = "terrain_v7"
 
 ## Project default world seed (dev). Shards override per-shard later.
 const DEFAULT_WORLD_SEED: String = "saltcrown-isle-4"
@@ -72,6 +72,55 @@ const WORLD_SEED_SETTING: String = "synmergia/world/seed"
 ## which the walk-over cap height matches exactly.
 const ROCK_RADIUS: float = 1.2
 const ROCK_EMBED: float = 0.3
+
+## -- BIODIVERSITY LEG (v7) --------------------------------------------
+## TREE SPECIES LAW (v7). Species codes -- NEVER renumber (sites may
+## carry these into derived content). The biome at the tree SITE picks
+## one via species_at(); the streamer's twin tree builders (sync node
+## path + batched MultiMesh path) read the SAME code, so a promoted
+## face and its far-face twin show the same tree.
+class TreeSpecies:
+	const BROADLEAF: int = 0   # the v4 default (trunk cylinder + canopy sphere)
+	const CONIFER: int = 1     # taiga/alpine-meadow: stacked cone crown
+	const ACACIA: int = 2      # savanna: flat-topped umbrella canopy
+	const PALM: int = 3        # shore (warm): bare trunk + frond rosette
+	const MANGROVE: int = 4    # swamp: dark mass on stilted root
+	const DEAD_SNAG: int = 5   # badlands/tundra/steppe: bare gray snag
+	const BAOBAB: int = 6      # savanna rare: fat bottle trunk
+
+## The species pick (PURE, cached on the sector primitive -- one read
+## per tree site). Biome -> species ladder with a seeded twist so two
+## trees in the same biome still vary (savanna's acacia/baobab mix).
+static var _species_cache = SECTOR_CACHE.new()
+static func tree_species_at(dir: Vector3, world_seed: PackedByteArray) -> int:
+	var cached = _species_cache.get_value(dir, world_seed)
+	if cached != null:
+		return int(cached)
+	var bid: int = climate_biome_id(dir, world_seed)
+	var t: float = climate_temperature(dir, world_seed)
+	var salt: int = _seed_salt(world_seed, "tree_species")
+	var acc: int = salt
+	var q: Vector3i = Vector3i(int(dir.x * 4096.0), int(dir.y * 4096.0), int(dir.z * 4096.0))
+	acc = (acc * 131 + absi(q.x) + absi(q.y) * 7 + absi(q.z) * 13) % 9007199254740991
+	var roll: float = float(acc % 1000) / 1000.0
+	var sp: int = TreeSpecies.BROADLEAF
+	match bid:
+		BiomeId.TAIGA:
+			sp = TreeSpecies.CONIFER
+		BiomeId.ALPINE_MEADOW:
+			sp = TreeSpecies.CONIFER if roll < 0.7 else TreeSpecies.BROADLEAF
+		BiomeId.SAVANNA:
+			sp = TreeSpecies.ACACIA if roll < 0.8 else TreeSpecies.BAOBAB
+		BiomeId.SHORE:
+			sp = TreeSpecies.PALM if t > 0.55 else TreeSpecies.BROADLEAF
+		BiomeId.SWAMP:
+			sp = TreeSpecies.MANGROVE if roll < 0.75 else TreeSpecies.BROADLEAF
+		BiomeId.BADLANDS, BiomeId.TUNDRA, BiomeId.STEPPE:
+			sp = TreeSpecies.DEAD_SNAG if roll < 0.5 else TreeSpecies.BROADLEAF
+		_:
+			sp = TreeSpecies.BROADLEAF
+	_species_cache.set_value(dir, world_seed, sp)
+	return sp
 
 ## -- Terrain arc constants (planet-scale law; all heights in meters) --
 ## Hard ceiling on the ground law: nothing grows above this.

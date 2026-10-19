@@ -833,12 +833,28 @@ func _spawn_rocks(face: int) -> void:
 		# prototype (terrain off) keeps its S7 greenery untouched.
 		if terrain_on and base_h < sea - 0.6:
 			continue
+		# THE ROCK VARIETY LAW (v7): the rock's kind follows the BIOME
+		# it sits in -- alpine/tundra cap gray-blue granite, badlands
+		# roast rust-red, desert bakes pale sandstone, swamp greens
+		# mossy, shores keep the weathered default. The S7 look stays
+		# for every green band, so existing pins read unchanged.
+		var rbid: int = TerrainGen.climate_biome_id(s.dir, world_seed) if terrain_on else -1
+		var rock_col: Color = Color(0.45, 0.42, 0.40)
+		match rbid:
+			TerrainGen.BiomeId.ALPINE, TerrainGen.BiomeId.TUNDRA:
+				rock_col = Color(0.52, 0.54, 0.58)
+			TerrainGen.BiomeId.BADLANDS:
+				rock_col = Color(0.52, 0.33, 0.24)
+			TerrainGen.BiomeId.DESERT:
+				rock_col = Color(0.60, 0.52, 0.38)
+			TerrainGen.BiomeId.SWAMP:
+				rock_col = Color(0.36, 0.40, 0.30)
 		var rmi := MeshInstance3D.new()
 		var rmesh := SphereMesh.new()
 		rmesh.radius = TerrainGen.ROCK_RADIUS * s.scale
 		rmesh.height = rmesh.radius * 2.0
 		var rmat := StandardMaterial3D.new()
-		rmat.albedo_color = Color(0.45, 0.42, 0.40)
+		rmat.albedo_color = rock_col
 		rmat.roughness = 1.0
 		rmesh.material = rmat
 		rmi.mesh = rmesh
@@ -852,6 +868,39 @@ func _spawn_rocks(face: int) -> void:
 		patch_node.add_child(rmi)
 		rmi.name = "Rock%d" % nodes.size()  # census/debug law: every prop stays name-resolvable
 		nodes.append(rmi)
+		# THE SCREE LAW (v7): in alpine/tundra/badlands each rock drops
+		# a seeded 2..4-rubble collar on its downhill rim -- the scree
+		# field the rocky bands owed. Same mesh family as the rock,
+		# two tints darker; NO walk-cap change (rubble sits below the
+		# cap the rock itself already raises, so the walk law is
+		# untouched -- pure paint).
+		if rbid == TerrainGen.BiomeId.ALPINE or rbid == TerrainGen.BiomeId.TUNDRA \
+				or rbid == TerrainGen.BiomeId.BADLANDS:
+			var scree_acc: int = 0
+			for b in TerrainGen.face_seed_bytes(world_seed, face):
+				scree_acc = (scree_acc * 131 + b) % 9007199254740991
+				scree_acc = (scree_acc * 257 + nodes.size()) % 9007199254740991
+			var scree_rng := RandomNumberGenerator.new()
+			scree_rng.seed = scree_acc
+			var scree_n: int = scree_rng.randi_range(2, 4)
+			for k in range(scree_n):
+				var s_hint: Vector3 = Vector3(0, 1, 0) if abs(s.dir.dot(Vector3(0, 1, 0))) < 0.9 else Vector3(1, 0, 0)
+				var s_axis: Vector3 = s.dir.cross(s_hint).normalized()
+				var s_dir: Vector3 = s.dir.rotated(s_axis, \
+					(TerrainGen.ROCK_RADIUS * s.scale * (1.25 + 0.4 * scree_rng.randf())) / maxf(rock_r, 1.0) \
+					+ scree_rng.randf_range(0.0, 0.03))
+				var sr := MeshInstance3D.new()
+				var srm := SphereMesh.new()
+				srm.radius = TerrainGen.ROCK_RADIUS * scree_rng.randf_range(0.22, 0.45)
+				srm.height = srm.radius * 2.0
+				var srm_mat := StandardMaterial3D.new()
+				srm_mat.albedo_color = rock_col.darkened(0.25)
+				srm_mat.roughness = 1.0
+				srm.material = srm_mat
+				sr.mesh = srm
+				sr.name = "Scree%d_%d" % [nodes.size(), k]
+				sr.position = _tangent_patch_local(s_dir, patch_center, rock_r + TerrainGen.ROCK_EMBED * 0.4)
+				patch_node.add_child(sr)
 	if terrain_on:
 		_spawn_boulders(face, patch_node)
 	# TREES / DETAILS / GRASS: the derive-heavy laws ride the worker
@@ -1330,13 +1379,20 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 			and meadow_roll < 0.10
 		var is_bush_kept: bool = meadow and not is_flower and meadow_roll > 0.82
 		var is_tuft: bool = meadow and not is_flower and not is_bush_kept
+		# THE FUNGAL TIER (v7): the sync twin of the derive law above.
+		# A second roll (own draw) keeps the two streams independent.
+		var fungal: bool = bid == TerrainGen.BiomeId.SWAMP \
+			or bid == TerrainGen.BiomeId.FOREST or bid == TerrainGen.BiomeId.JUNGLE \
+			or bid == TerrainGen.BiomeId.TAIGA
+		var fungal_roll: float = rng.randf()
+		var is_mushroom: bool = fungal and fungal_roll < 0.14
+		var is_mycelium: bool = fungal and not is_mushroom and fungal_roll < 0.22
 		var prop := MeshInstance3D.new()
 		var mesh: Mesh
 		var mat := StandardMaterial3D.new()
-		mat.roughness = 1.0
-		if is_tuft:
-			# THE TUFT LAW (v5 grass tier): ONE shared three-blade mesh,
-			# vertex-graded (dark base -> sun-tipped), one draw each, no
+		mat.roughness = 1.0			if is_tuft:
+				# THE TUFT LAW (v5 grass tier): ONE shared three-blade mesh,
+				# vertex-graded (dark base -> sun-tipped), one draw each, no
 			# collider (the walk law treats grass as ground, not prop).
 			# Per-tuft variance rides the node transform: yaw + a gentle
 			# scale splay. Meshes below a cap read decorative at 0.5 m --
@@ -1385,6 +1441,71 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 			var east_f: Vector3 = (hint_f - up_f * hint_f.dot(up_f)).normalized()
 			bloom.basis = Basis(east_f, up_f, east_f.cross(up_f)).rotated(up_f, rng.randf_range(0.0, TAU))
 			patch_node.add_child(bloom)
+			spawned += 1
+			continue
+		if is_mushroom:
+			# THE FUNGAL BUILD (v7, sync twin of the derive build). See
+			# the _apply_detail_sites twin above for the shape law.
+			var fungi_s := Node3D.new()
+			fungi_s.name = "Mushroom%d" % i
+			fungi_s.position = _tangent_patch_local(dir, patch_center, scaled + base_h)
+			var pal_idx_s: int = rng.randi() % 4
+			var fungal_c_s: Color = [
+				Color(0.70, 0.30, 0.36),
+				Color(0.72, 0.54, 0.28),
+				Color(0.80, 0.78, 0.70),
+				Color(0.55, 0.36, 0.62),
+			][pal_idx_s]
+			var sm_s := CylinderMesh.new()
+			sm_s.top_radius = 0.035
+			sm_s.bottom_radius = 0.055
+			var stem_h_s: float = rng.randf_range(0.18, 0.55)
+			sm_s.height = stem_h_s
+			var stem_mat_s := StandardMaterial3D.new()
+			stem_mat_s.albedo_color = Color(0.78, 0.74, 0.66)
+			stem_mat_s.roughness = 1.0
+			var stem_node := MeshInstance3D.new()
+			stem_node.mesh = sm_s
+			stem_node.material_override = stem_mat_s
+			stem_node.position = Vector3(0.0, stem_h_s * 0.5, 0.0)
+			fungi_s.add_child(stem_node)
+			var cap_m := SphereMesh.new()
+			var cap_r_s: float = rng.randf_range(0.10, 0.30)
+			cap_m.radius = cap_r_s
+			cap_m.height = cap_r_s * 0.9
+			var cap_mat_s := StandardMaterial3D.new()
+			cap_mat_s.albedo_color = fungal_c_s
+			cap_mat_s.roughness = 0.8
+			var cap_node := MeshInstance3D.new()
+			cap_node.mesh = cap_m
+			cap_node.material_override = cap_mat_s
+			cap_node.position = Vector3(0.0, stem_h_s + cap_r_s * 0.2, 0.0)
+			fungi_s.add_child(cap_node)
+			var up_ms: Vector3 = dir
+			var hint_ms: Vector3 = Vector3(0, 1, 0) if abs(up_ms.dot(Vector3(0, 1, 0))) < 0.999 else Vector3(1, 0, 0)
+			var east_ms: Vector3 = (hint_ms - up_ms * hint_ms.dot(up_ms)).normalized()
+			fungi_s.basis = Basis(east_ms, up_ms, east_ms.cross(up_ms))
+			patch_node.add_child(fungi_s)
+			spawned += 1
+			continue
+		if is_mycelium:
+			var patch_s := MeshInstance3D.new()
+			var pm_s := SphereMesh.new()
+			var pr_s: float = rng.randf_range(0.5, 1.3)
+			pm_s.radius = pr_s
+			pm_s.height = pr_s * 0.12
+			var mat_s := StandardMaterial3D.new()
+			mat_s.roughness = 0.55
+			var pv_s: float = rng.randf()
+			mat_s.albedo_color = Color(0.5 + 0.2 * pv_s, 0.3 + 0.1 * pv_s, 0.6 + 0.2 * (1.0 - pv_s))
+			mat_s.emission_enabled = true
+			mat_s.emission = Color(0.42, 0.22, 0.55).lerp(Color(0.20, 0.55, 0.50), pv_s)
+			mat_s.emission_energy_multiplier = 1.2
+			patch_s.mesh = pm_s
+			patch_s.material_override = mat_s
+			patch_s.name = "Mycelium%d" % i
+			patch_s.position = _tangent_patch_local(dir, patch_center, scaled + base_h + 0.03)
+			patch_node.add_child(patch_s)
 			spawned += 1
 			continue
 		if is_ore:
@@ -1616,9 +1737,13 @@ func _derive_tree_sites(face: int) -> Array:
 		var gval: float = 0.3 + 0.14 * rng.randf()
 		var tint_r: float = 0.18 + 0.06 * rng.randf()
 		var yaw: float = rng.randf_range(0.0, TAU)
+		var sp: int = 0
+		if terrain_on:
+			sp = TerrainGen.tree_species_at(dir, world_seed)
 		sites.append({
 			"dir": dir, "pos": _tangent_patch_local(dir, patch_center, scaled + base_h),
-			"trunk_h": trunk_h, "crown": crown, "tint_r": tint_r, "gval": gval, "yaw": yaw,
+			"trunk_h": trunk_h, "crown": crown, "tint_r": tint_r, "gval": gval,
+			"yaw": yaw, "sp": sp,
 		})
 	return sites
 
@@ -1640,6 +1765,47 @@ func _apply_tree_sites(face: int, sites: Array, patch_node: Node3D) -> Array:
 		var east: Vector3 = (hint - up * hint.dot(up)).normalized()
 		var north: Vector3 = east.cross(up)
 		var tree_basis := Basis(east, up, north).rotated(up, s["yaw"])
+		# THE SPECIES LAW (v7): read the site's species once, then let
+		# both build paths (node + batched) branch on it. Conifer
+		# stacks a cone; acacia flattens the crown wider; palm thins
+		# the trunk and lifts a small head (fronds read at near level);
+		# mangrove muddies the tint and squashes the crown low; snag
+		# kills the canopy (bare gray); baobab fattens the trunk base.
+		var species: int = int(s.get("sp", 0))
+		var trunk_w_mult: float = 1.0
+		var trunk_tint: Color = Color(0.36, 0.26, 0.17)
+		var canopy_h_mult: float = 1.8
+		var canopy_w_mult: float = 1.0
+		var canopy_tint_extra: float = 0.0
+		var bare: bool = false  # dead snag: no canopy at all
+		match species:
+			TerrainGen.TreeSpecies.CONIFER:
+				canopy_h_mult = 2.6
+				canopy_w_mult = 0.62
+				canopy_tint_extra = -0.06
+			TerrainGen.TreeSpecies.ACACIA:
+				canopy_h_mult = 0.9
+				canopy_w_mult = 1.55
+				canopy_tint_extra = 0.05
+			TerrainGen.TreeSpecies.PALM:
+				trunk_w_mult = 0.5
+				canopy_h_mult = 0.55
+				canopy_w_mult = 0.85
+				canopy_tint_extra = 0.12
+				trunk_tint = Color(0.46, 0.37, 0.24)
+			TerrainGen.TreeSpecies.MANGROVE:
+				canopy_h_mult = 1.1
+				canopy_w_mult = 1.25
+				trunk_tint = Color(0.28, 0.24, 0.18)
+				canopy_tint_extra = -0.08
+			TerrainGen.TreeSpecies.DEAD_SNAG:
+				bare = true
+				trunk_tint = Color(0.5, 0.47, 0.44)
+			TerrainGen.TreeSpecies.BAOBAB:
+				trunk_w_mult = 2.6
+				trunk_tint = Color(0.45, 0.34, 0.24)
+				canopy_w_mult = 1.35
+				canopy_tint_extra = 0.04
 		var take_node: bool = not batched and node_left > 0 \
 			and (not pdir_known or up.angle_to(_last_player_dir) <= TREE_NODE_ANG)
 		if take_node:
@@ -1649,35 +1815,70 @@ func _apply_tree_sites(face: int, sites: Array, patch_node: Node3D) -> Array:
 			name_idx += 1
 			var trunk := MeshInstance3D.new()
 			var tmesh := CylinderMesh.new()
-			tmesh.top_radius = 0.14
-			tmesh.bottom_radius = 0.22
+			tmesh.top_radius = 0.14 * (trunk_w_mult if trunk_w_mult >= 1.0 else 1.0)
+			tmesh.bottom_radius = 0.22 * trunk_w_mult
 			tmesh.height = s["trunk_h"]
 			var tmat := StandardMaterial3D.new()
-			tmat.albedo_color = Color(0.36, 0.26, 0.17)
+			tmat.albedo_color = trunk_tint
 			tmat.roughness = 1.0
 			tmesh.material = tmat
 			trunk.mesh = tmesh
 			trunk.position = Vector3(0, s["trunk_h"] * 0.5, 0)
 			tree.add_child(trunk)
-			var canopy := MeshInstance3D.new()
-			var cmesh := SphereMesh.new()
-			cmesh.radius = s["crown"]
-			cmesh.height = s["crown"] * 1.8
-			var cmat := StandardMaterial3D.new()
-			cmat.albedo_color = Color(s["tint_r"], s["gval"], 0.16)
-			cmat.roughness = 1.0
-			cmesh.material = cmat
-			canopy.mesh = cmesh
-			canopy.position = Vector3(0, s["trunk_h"] + s["crown"] * 0.55, 0)
-			tree.add_child(canopy)
+			if not bare:
+				var canopy := MeshInstance3D.new()
+				var cmesh := SphereMesh.new()
+				cmesh.radius = s["crown"] * canopy_w_mult
+				cmesh.height = s["crown"] * canopy_h_mult
+				var cmat := StandardMaterial3D.new()
+				cmat.albedo_color = Color(
+					clampf(s["tint_r"] + canopy_tint_extra, 0.0, 0.6),
+					clampf(s["gval"] + canopy_tint_extra * 0.5, 0.1, 0.7), 0.16)
+				cmat.roughness = 1.0
+				cmesh.material = cmat
+				canopy.mesh = cmesh
+				canopy.position = Vector3(0, s["trunk_h"] + s["crown"] * canopy_h_mult * 0.35, 0)
+				tree.add_child(canopy)
 			tree.position = s["pos"]
 			tree.basis = tree_basis
+			# THE VINE LAW (v7): wood-creeper threads hang from the wet
+			# bands' canopies -- JUNGLE dense (2..4 hangs), FOREST sparse
+			# (0..2), SWAMP mossy (1..3). Pure paint: no collider, no
+			# harvest tag; the twin batched far-face path skips vines
+			# (the horizon can't afford threads). Each vine is a thin
+			# tapered cylinder chained down the canopy's rim by yaw.
+			var site_bid: int = TerrainGen.climate_biome_id(s["dir"], world_seed)
+			var vine_n: int = 0
+			if site_bid == TerrainGen.BiomeId.JUNGLE:
+				vine_n = 2 + (name_idx % 3)
+			elif site_bid == TerrainGen.BiomeId.FOREST:
+				vine_n = name_idx % 3
+			elif site_bid == TerrainGen.BiomeId.SWAMP:
+				vine_n = 1 + (name_idx % 3)
+			if not bare and vine_n > 0:
+				var canopy_rim: float = s["trunk_h"] + s["crown"] * canopy_h_mult * 0.35
+				var vine_top: Vector3 = Vector3(0, canopy_rim, 0)
+				for kv in range(vine_n):
+					var hang := MeshInstance3D.new()
+					var hang_m := CylinderMesh.new()
+					hang_m.top_radius = 0.035
+					hang_m.bottom_radius = 0.012
+					hang_m.height = s["crown"] * 0.9 + 0.3
+					var hang_mat := StandardMaterial3D.new()
+					hang_mat.albedo_color = Color(0.24, 0.40, 0.20)
+					hang_mat.roughness = 1.0
+					hang_m.material = hang_mat
+					hang.mesh = hang_m
+					var vang: float = TAU * float(kv) / float(vine_n) + 0.4
+					hang.position = vine_top + Vector3(cos(vang) * s["crown"] * canopy_w_mult * 0.55, -hang_m.height * 0.5, sin(vang) * s["crown"] * canopy_w_mult * 0.55)
+					tree.add_child(hang)
 			patch_node.add_child(tree)
 			nodes_out.append(tree)
 		else:
 			var tpose: Transform3D = Transform3D(tree_basis, s["pos"])
-			batch_xforms.append(tpose * Transform3D(Basis.IDENTITY.scaled(Vector3(1, s["trunk_h"], 1)), Vector3(0, s["trunk_h"] * 0.5, 0)))
-			canopy_batch_xforms.append(tpose * Transform3D(Basis.IDENTITY.scaled(Vector3(s["crown"], s["crown"] * 1.8, s["crown"])), Vector3(0, s["trunk_h"] + s["crown"] * 0.55, 0)))
+			batch_xforms.append(tpose * Transform3D(Basis.IDENTITY.scaled(Vector3(trunk_w_mult, s["trunk_h"], trunk_w_mult)), Vector3(0, s["trunk_h"] * 0.5, 0)))
+			if not bare:
+				canopy_batch_xforms.append(tpose * Transform3D(Basis.IDENTITY.scaled(Vector3(s["crown"] * canopy_w_mult, s["crown"] * canopy_h_mult, s["crown"] * canopy_w_mult)), Vector3(0, s["trunk_h"] + s["crown"] * canopy_h_mult * 0.35, 0)))
 	# -- Flush the batch (far faces AND near overflow) ------------------
 	if batch_xforms.size() > 0:
 		var cu := CylinderMesh.new()
@@ -1724,6 +1925,8 @@ const _DPROP_CATTAIL: int = 1
 const _DPROP_BUSH: int = 2
 const _DPROP_TUFT: int = 3
 const _DPROP_FLOWER: int = 4
+const _DPROP_MUSHROOM: int = 5   # v7: fungal cap (swamp/forest/jungle)
+const _DPROP_MYECLIUM: int = 6   # v7: glowing mycelium patch (same bands)
 
 func _derive_detail_sites(face: int) -> Array:
 	var sites: Array = []
@@ -1776,6 +1979,18 @@ func _derive_detail_sites(face: int) -> Array:
 			and meadow_roll < 0.10
 		var is_bush_kept: bool = meadow and not is_flower and meadow_roll > 0.82
 		var is_tuft: bool = meadow and not is_flower and not is_bush_kept
+		# THE FUNGAL TIER (v7, mycelial-sync law): the wet+dark bands
+		# carry mushrooms and glowing mycelium patches -- a drum-roll
+		# after the meadow roll keeps the draw order stable: in the
+		# fungal bands ~14% of sites grow a cap cluster and ~8% a
+		# mycelium patch (the sum never crowds out all bush sites,
+		# the roll order stays untouched).
+		var fungal: bool = bid == TerrainGen.BiomeId.SWAMP \
+			or bid == TerrainGen.BiomeId.FOREST or bid == TerrainGen.BiomeId.JUNGLE \
+			or bid == TerrainGen.BiomeId.TAIGA
+		var fungal_roll: float = rng.randf()
+		var is_mushroom: bool = fungal and fungal_roll < 0.14
+		var is_mycelium: bool = fungal and not is_mushroom and fungal_roll < 0.22
 		var rec := {"i": i, "dir": dir, "kind": -1}
 		if is_tuft:
 			rec["kind"] = _DPROP_TUFT
@@ -1790,6 +2005,20 @@ func _derive_detail_sites(face: int) -> Array:
 			rec["r_h"] = rng.randf_range(0.055, 0.105)
 			rec["pal"] = rng.randi() % _bloom_palette().size()
 			rec["yaw"] = rng.randf_range(0.0, TAU)
+			spawned += 1
+		elif is_mushroom:
+			rec["kind"] = _DPROP_MUSHROOM
+			rec["cap_r"] = rng.randf_range(0.10, 0.30)
+			rec["stem_h"] = rng.randf_range(0.18, 0.55)
+			rec["pal"] = rng.randi() % 4  # fungal palette (apply twin)
+			rec["pos"] = _tangent_patch_local(dir, patch_center, scaled + base_h)
+			rec["yaw"] = rng.randf_range(0.0, TAU)
+			spawned += 1
+		elif is_mycelium:
+			rec["kind"] = _DPROP_MYECLIUM
+			rec["patch_r"] = rng.randf_range(0.5, 1.3)
+			rec["hue"] = rng.randf()  # pale violet <-> teal (apply twin)
+			rec["pos"] = _tangent_patch_local(dir, patch_center, scaled + base_h + 0.03)
 			spawned += 1
 		elif is_ore:
 			rec["kind"] = _DPROP_ORE
@@ -1856,6 +2085,71 @@ func _apply_detail_sites(face: int, sites: Array, patch_node: Node3D) -> void:
 			var east_f: Vector3 = (hint_f - up_f * hint_f.dot(up_f)).normalized()
 			bloom.basis = Basis(east_f, up_f, east_f.cross(up_f)).rotated(up_f, rec["yaw"])
 			patch_node.add_child(bloom)
+		elif int(rec["kind"]) == _DPROP_MUSHROOM:
+			# THE FUNGAL BUILD (v7): a stem + broad cap, one of four
+			# palette tints (blush, honey, ivory, violet-rimmed); a
+			# clay beach never grows one (the meadow keeps the blooms,
+			# the fungal bands keep the caps). Pure paint -- no
+			# harvest registration (the fungal harvest rides the
+			# same law as the bush: only what a quest asks for).
+			var fungi := Node3D.new()
+			fungi.name = "Mushroom%d" % i
+			fungi.position = rec["pos"]
+			var pal_idx: int = int(rec["pal"])
+			var fungal_c: Color = [
+				Color(0.70, 0.30, 0.36),
+				Color(0.72, 0.54, 0.28),
+				Color(0.80, 0.78, 0.70),
+				Color(0.55, 0.36, 0.62),
+			][pal_idx]
+			var cpp_stem := MeshInstance3D.new()
+			var sm_sh := CylinderMesh.new()
+			var stem_h_m: float = float(rec["stem_h"])
+			sm_sh.top_radius = 0.035
+			sm_sh.bottom_radius = 0.055
+			sm_sh.height = stem_h_m
+			var stem_mat := StandardMaterial3D.new()
+			stem_mat.albedo_color = Color(0.78, 0.74, 0.66)
+			stem_mat.roughness = 1.0
+			cpp_stem.mesh = sm_sh
+			cpp_stem.material_override = stem_mat
+			cpp_stem.position = Vector3(0.0, stem_h_m * 0.5, 0.0)
+			fungi.add_child(cpp_stem)
+			var cpp_cap := MeshInstance3D.new()
+			var hm_sh := SphereMesh.new()
+			var cap_r_m: float = float(rec["cap_r"])
+			hm_sh.radius = cap_r_m
+			hm_sh.height = cap_r_m * 0.9  # squat cap, not a full ball
+			var cap_mat := StandardMaterial3D.new()
+			cap_mat.albedo_color = fungal_c
+			cap_mat.roughness = 0.8
+			cpp_cap.mesh = hm_sh
+			cpp_cap.material_override = cap_mat
+			cpp_cap.position = Vector3(0.0, stem_h_m + cap_r_m * 0.2, 0.0)
+			fungi.add_child(cpp_cap)
+			var up_m: Vector3 = dir
+			var hint_m: Vector3 = Vector3(0, 1, 0) if abs(up_m.dot(Vector3(0, 1, 0))) < 0.999 else Vector3(1, 0, 0)
+			var east_m: Vector3 = (hint_m - up_m * hint_m.dot(up_m)).normalized()
+			fungi.basis = Basis(east_m, up_m, east_m.cross(up_m)).rotated(up_m, float(rec["yaw"]))
+			patch_node.add_child(fungi)
+		elif int(rec["kind"]) == _DPROP_MYECLIUM:
+			var patch_n := MeshInstance3D.new()
+			var pm_p := SphereMesh.new()
+			var pr_m: float = float(rec["patch_r"])
+			pm_p.radius = pr_m
+			pm_p.height = pr_m * 0.12  # a pancake on the ground
+			var mat_p := StandardMaterial3D.new()
+			mat_p.roughness = 0.55
+			var pv: float = float(rec["hue"])
+			mat_p.albedo_color = Color(0.5 + 0.2 * pv, 0.3 + 0.1 * pv, 0.6 + 0.2 * (1.0 - pv))
+			mat_p.emission_enabled = true
+			mat_p.emission = Color(0.42, 0.22, 0.55).lerp(Color(0.20, 0.55, 0.50), pv)
+			mat_p.emission_energy_multiplier = 1.2
+			patch_n.mesh = pm_p
+			patch_n.material_override = mat_p
+			patch_n.name = "Mycelium%d" % i
+			patch_n.position = rec["pos"]
+			patch_node.add_child(patch_n)
 		elif int(rec["kind"]) == _DPROP_ORE:
 			var prop_o := MeshInstance3D.new()
 			var om := SphereMesh.new()
