@@ -49,8 +49,14 @@ prerender · Cloudflare Pages.
 2. **Build settings**:
    - Build command: `npm run build`
    - Output directory: `dist`
-3. **Node version**: set `NODE_VERSION` = `20` (Pages default is
-   fine, but pin it — the bracket toolchain assumes 20+).
+3. **Node + Bun versions** (pin both — Pages auto-detection lags):
+   - `NODE_VERSION` = `20` (the toolchain assumes 20+; Pages may
+     detect Node 22, also fine — pin it either way so upgrades
+     can't surprise the build).
+   - `BUN_VERSION` = `1.4.2` (Pages may detect bun 1.2.x, which
+     cannot read our `bun.lock` — lockfileVersion 2 — and dies on
+     `bun install --frozen-lockfile` with "Unknown lockfile
+     version". This bit the first real deploy on 2026-10-19.)
 4. **Environment variables** (Settings → Environment):
    Both are optional at build time but degrade the product when
    unset (see §3). They are **public-derived hashes**, not secrets
