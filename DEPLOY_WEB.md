@@ -62,8 +62,18 @@ First production deploy is live off this exact recipe.
    |---|---|---|
    | `BUN_VERSION` | `1.4.2` | **Required.** Pages auto-detects bun 1.2.x, which cannot read our `bun.lock` (lockfileVersion 2) and dies on `bun install --frozen-lockfile` with "Unknown lockfile version" — this broke the first deploy on 2026-10-19. Set it in the wizard and the problem never occurs. |
    | `NODE_VERSION` | `20` | Recommended pin. Pages detects Node 22 today, which also works, but pin it so future runtime bumps can't surprise the toolchain. |
-   | `VITE_GAME_PASSWORD_SHA` | sha256 hex of your play key | Optional at build time; unset = /play always rejects (fail-closed "coming soon" wall). |
-   | `VITE_ADMIN_PASSWORD_SHA` | sha256 hex of your operator pass | Optional at build time; unset = /admin gate shows "not configured" and rejects. |
+   | `VITE_GAME_PASSWORD_SHA` | sha256 hex of your play key — **plain-text var, not secret** | Optional at build time; unset = /play always rejects (fail-closed "coming soon" wall). |
+   | `VITE_ADMIN_PASSWORD_SHA` | sha256 hex of your operator pass — **plain-text var, not secret** | Optional at build time; unset = /admin gate shows "not configured" and rejects. |
+
+   Both gate hashes go in as plain-text (text) vars, never "secret":
+   they are SHA-256 digests, not passwords, and any `VITE_*` var is
+   inlined into the public client bundle by Vite anyway, so the hex is
+   public no matter which type you pick. Secret vars in the CF
+   dashboard are write-only (you can't view them later without
+   overwriting), which you'd regret the first time you need to rotate
+   or copy the hash. Source the hash from a ≥ 20-char random
+   passphrase: the digest ships in the bundle, so a short password
+   could be brute-forced offline against it.
 
 4. **Deploy**. First deploy must be triggered from the dashboard
    ("Create deployment"); later pushes to `main` auto-deploy.
