@@ -118,19 +118,41 @@ R2, same URL, zero client changes. Setup, four steps:
    Add binding → R2 bucket → variable name `R2_GAME_WASM`, bucket
    `synmergia-client`. Do it for BOTH Production and Preview
    environments, or the Preview deploys 503 on /game/game.wasm.
-3. **Upload the engine once per export** —
+3. **Upload / automate** — pick per environment:
+
+   **One-time manual (the fast path):**
 
    ```bash
-   npm run r2:put:wasm
-   # = wrangler r2 object put synmergia-client/game.wasm
-   #     --file web/game.wasm --content-type application/wasm
+   npm run r2:put
+   # = wrangler r2 object put synmergia-client/game.wasm --file web/game.wasm
+   #   + game.pck the same way (two npm scripts: r2:put:wasm / r2:put:pck)
    ```
 
-   First run does `npx wrangler login` in a browser; everything after
-   is one command, and it only ever runs when you re-export the Godot
-   template (the same rare event that changes `web/game.wasm` at all).
-   CI never touches R2 — the pipeline only re-packs game.pck, which at
-   5.8 MB is far under the cap and stays a build-time asset.
+   **Non-interactive (no browser login):** generate a custom API token
+   (Dashboard → My Profile → API Tokens → Create Token → Custom) with
+   **Account → Workers R2 Storage → Edit** and **Account → Cloudflare
+   Pages → Edit**, then run with it in the environment:
+
+   ```bash
+   CLOUDFLARE_API_TOKEN=<token> CLOUDFLARE_ACCOUNT_ID=<id> npm run r2:put
+   ```
+
+   Wrangler prefers the env token over its saved login (Wrangler system
+   environment variables doc), so this is fully headless.
+
+   **Automated (CI does it forever):** `web-ci.yml` pushes both files to
+   R2 on every push to `main` via the `CLOUDFLARE_API_TOKEN` /
+   `CLOUDFLARE_ACCOUNT_ID` repo secrets. Add those two secrets
+   (Settings → Secrets and variables → Actions) and from then on the
+   wasm/pck are kept fresh on every content push — no maintainer CLI
+   ever again. First run does `npx --yes wrangler` and needs nothing
+   interactive; no tokens in the repo, ever.
+
+   Upload cadence: the engine wasm never changes except on a Godot
+   export-template bump (rare); game.pck changes on every content push
+   and CI owns that mirror. After the migration (game.pck lives in R2
+   too — see below), the commit-back file keeps flowing to the repo as
+   well; trimming that flow is a later cleanup, not required now.
 4. **Redeploy** — push to `main` (or trigger from the dashboard).
 
 Verify after deploy:
@@ -146,18 +168,38 @@ Plumbing (all committed):
   same cache law as `_headers` (wasm = 1-day TTL; boot anchors keep a
   re-export honest), 404 with the upload command if the object is
   missing, 503 with the fix if the binding isn't wired.
+- `functions/game/game.pck.js` — same shape for the content pack, plus
+  the bundled-dist fallback (warm standby, `no-store` when used) so a
+  cold bucket can never 404 the client.
 - `vite.config.ts` copy plugin — files over the cap are excluded from
   `dist/game/` (logged + noted in `dist/game/_oversize.txt`), so the
-  validation error cannot recur as the project grows. **When
-  `game.pck` someday crosses 25 MiB**, copy the pattern: a second
-  function at `functions/game/game.pck.js` (key `game.pck` in the
-  same bucket) and either rebuild the pck-in-CI pipeline to upload it
-  or start pushing packs manually.
+  validation error cannot recur as the project grows. **game.pck does
+  NOT hit this cap today** (5.8 MB), so it still ships in the bundle
+  and R2 is sourced from CI/local, not from the vite build.
 
 Also filed as the known alternative (not chosen): Godot's
 size-optimized Web export template could shrink the wasm under 25 MiB
 with zero infra — traded against engine performance in a 3D open
 world, so R2 won.
+
+**game.pck also lives in R2 now (2026-10-19 migration).** Same URL,
+`/game/game.pck`, so the loader URL is untouched. Serving order:
+R2 object first, then the bundled `dist/game/game.pck` copy (warm
+standby — a cold bucket can never 404 the whole client). The pack is
+content-addressed by its `?v=<sha256>` which still ships as the tiny
+tracked `game.pck.hash`, so the cache law is unchanged. Why migrate
+now: CI commit-backs were growing the repo ~6 MB per content change,
+and the pack will cross 25 MiB someday — this decouples it.
+
+### CORS: not needed for this architecture
+
+The R2 bucket never serves a browser directly — access is via the
+Pages Function binding only, and the browser fetches
+`synmergia.creadev.org/game/game.{wasm,pck}` same-origin. No CORS
+policy belongs on the bucket; leave the dashboard CORS field empty
+(it only applies to direct r2.dev / presigned URLs). COEP `require-corp`
+likewise only governs cross-origin subresources, and these are same-
+origin.
 
 ### Custom domain
 

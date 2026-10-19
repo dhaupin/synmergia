@@ -159,6 +159,28 @@ jobs:
             echo "Pushed refreshed pck as $(git rev-parse --short HEAD)"
           fi
 
+      # R2 sync: push the fresh engine binary + pack into the bucket
+      # Pages Functions serve from (functions/game/*.js, DEPLOY_WEB.md
+      # §2 "Oversize assets"). Runs on push-to-main when the token
+      # secret is present; skips cleanly otherwise — the wasm is the
+      # tracked copy (push path never recompiles it, PRD 3.3) and the
+      # pck is both committed back here AND mirrored to R2, so the
+      # site stays current without a maintainer behind a CLI.
+      # No credentials leaks: keys live only in repo secrets /
+      # CLOUDFLARE_API_TOKEN, never echoed.
+      - name: Sync art to R2 (push to main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.CLOUDFLARE_API_TOKEN != ''
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "CLOUDFLARE_API_TOKEN not set — skipping R2 sync (wasm/pck still served by fallback paths)."
+            exit 0
+          fi
+          npx --yes wrangler r2 object put synmergia-client/game.wasm --file web/game.wasm --remote --content-type application/wasm
+          npx --yes wrangler r2 object put synmergia-client/game.pck --file web/game.pck --remote --content-type application/octet-stream
+
       - name: Optional Full Test Suite
         if: ${{ github.event.inputs.run_full_suite == 'true' }}
         run: |

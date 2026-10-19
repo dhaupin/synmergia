@@ -12,7 +12,9 @@
     "lint": "tsc --noEmit",
     "preview": "vite preview --port 3000",
     "preview:with-bridges": "node scripts/start-bridges.js && vite preview --port 3000",
-    "r2:put:wasm": "npx --yes wrangler r2 object put synmergia-client/game.wasm --file web/game.wasm --remote --content-type application/wasm"
+    "r2:put:wasm": "npx --yes wrangler r2 object put synmergia-client/game.wasm --file web/game.wasm --remote --content-type application/wasm",
+    "r2:put:pck": "npx --yes wrangler r2 object put synmergia-client/game.pck --file web/game.pck --remote --content-type application/octet-stream",
+    "r2:put": "npm run r2:put:wasm && npm run r2:put:pck"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",
