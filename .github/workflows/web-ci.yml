@@ -38,7 +38,11 @@ env:
 jobs:
   validate-and-pack:
     name: Validate & Export Web PCK
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest began migrating to Ubuntu 26 on 2026-10-19
+    # (see the workflow annotation); a floating runner tag lets that
+    # migration silently break the import/export toolchain. Pin until
+    # a deliberate upgrade wants to move it forward.
+    runs-on: ubuntu-24.04
     # Historical note: the old value was 3 minutes and every run died at
     # the syntax-check step, because a fresh checkout re-imports the whole
     # project inside the first engine invocation. The .godot/ cache below
