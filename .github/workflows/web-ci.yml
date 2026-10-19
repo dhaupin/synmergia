@@ -205,8 +205,16 @@ jobs:
           godot --headless --path game/ --export-release "Web" "../builds/web-shell/game.html"
           ls -lh web/ builds/web-shell/
 
+      # Storage-quota law: artifact upload is PR/dispatch ONLY. Push
+      # runs are redundant here — the pck is committed back to the repo
+      # by the step above, and the game.wasm in a push artifact is just
+      # the stale tracked copy (full wasm export never runs on push, per
+      # PRD 3.3). Thirty-eight ~18 MB push artifacts breached the 500 MB
+      # storage quota and every run since has died at this step; the
+      # churn (retention-days) cannot delete faster than busy-week pushes
+      # fill. Short retention + few uploads keeps the accounting honest.
       - name: Upload Web Game Artifact
-        if: always()
+        if: github.event_name != 'push'
         uses: actions/upload-artifact@v7
         with:
           name: synmergia-web-game
@@ -217,5 +225,5 @@ jobs:
             web/game.png
             web/game.audio.worklet.js
             web/game.audio.position.worklet.js
-          retention-days: 7
+          retention-days: 3
           if-no-files-found: warn
