@@ -1,0 +1,67 @@
+name: Housekeeping — Artifact Cleanup
+
+# One-shot (dispatch-only) janitor: the 2026-10 storage-quota breach
+# left ~38 ~18 MB `synmergia-web-game` artifacts stranded on old runs
+# (upload was push-every-run before ab2580f). The workspace integration
+# token cannot delete artifacts (403 "Resource not accessible by
+# integration"), but the Actions GITHUB_TOKEN with `actions: write`
+# can. Run this from the Actions tab (Run workflow) to reclaim the
+# store; it is a no-op when the quota page is already clean.
+
+on:
+  workflow_dispatch:
+
+# Only one janitor at a time.
+concurrency:
+  group: artifact-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    timeout-minutes: 10
+    steps:
+      - name: Delete artifacts & report freed storage
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          usage() {
+            gh api "repos/$REPO/actions/artifacts" \
+              --method GET -H 'Accept: application/vnd.github+json' \
+              | jq -r '"live=\(.total_count) bytes=\(.artifacts | map(.size_in_bytes) | add // 0)"'
+          }
+
+          before=$(usage)
+          echo "BEFORE: $before"
+
+          deleted=0
+          # Paginate fresh before each pass: deleting shifts the pages.
+          while : ; do
+            ids=$(gh api "repos/$REPO/actions/artifacts?per_page=100" --paginate \
+              --jq '.artifacts[] | select(.expired == false) | .id' || true)
+            [ -z "$ids" ] && break
+            for id in $ids; do
+              if gh api -X DELETE "repos/$REPO/actions/artifacts/$id" 2>/dev/null; then
+                deleted=$((deleted+1))
+              else
+                # Deletion surfaced mid-batch or the artifact expired in
+                # place; do not loop forever on refresh flaps.
+                gh api "repos/$REPO/actions/artifacts/$id" >/dev/null 2>&1 || true
+              fi
+            done
+          done
+
+          after=$(gh api "repos/$REPO/actions/artifacts" \
+            --jq '"live=\(.total_count) bytes=\(.artifacts | map(.size_in_bytes) | add // 0)"')
+          echo "AFTER:  $after"
+          echo "DELETED: $deleted artifacts"
+
+          before_bytes=$(echo "$before" | grep -o 'bytes=[0-9]*' | cut -d= -f2)
+          after_bytes=$(echo "$after"  | grep -o 'bytes=[0-9]*' | cut -d= -f2)
+          freed=$(( before_bytes - after_bytes ))
+          echo "FREED: $((freed / 1048576)) MB (quota cap 500 MB)"
