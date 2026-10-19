@@ -42,27 +42,34 @@ prerender · Cloudflare Pages.
 
 ---
 
-## 2. Cloudflare Pages setup (the web path you'll actually use)
+## 2. Cloudflare Pages setup (verified working 2026-10-19)
+
+First production deploy is live off this exact recipe.
 
 1. **Connect the repo** — Pages → Create project → Git →
    `dhaupin/synmergia`, production branch `main`.
-2. **Build settings**:
+2. **Build settings** (set during project creation — the setup
+   wizard has fields for both):
    - Build command: `npm run build`
    - Output directory: `dist`
-3. **Node + Bun versions** (pin both — Pages auto-detection lags):
-   - `NODE_VERSION` = `20` (the toolchain assumes 20+; Pages may
-     detect Node 22, also fine — pin it either way so upgrades
-     can't surprise the build).
-   - `BUN_VERSION` = `1.4.2` (Pages may detect bun 1.2.x, which
-     cannot read our `bun.lock` — lockfileVersion 2 — and dies on
-     `bun install --frozen-lockfile` with "Unknown lockfile
-     version". This bit the first real deploy on 2026-10-19.)
-4. **Environment variables** (Settings → Environment):
-   Both are optional at build time but degrade the product when
-   unset (see §3). They are **public-derived hashes**, not secrets
-   in the traditional sense — a static bundle cannot hide them.
-5. **Deploy**. First deploy must be triggered from the dashboard
+   - Root directory: `/` (repo root — leave the default; the site is
+     a top-level Vite project, not a subdirectory build)
+3. **Environment variables** — add these **during setup** in the
+   wizard's Environment variables section (or Settings → Environment
+   later; both Production and Preview get the same set):
+
+   | Variable | Value | Why |
+   |---|---|---|
+   | `BUN_VERSION` | `1.4.2` | **Required.** Pages auto-detects bun 1.2.x, which cannot read our `bun.lock` (lockfileVersion 2) and dies on `bun install --frozen-lockfile` with "Unknown lockfile version" — this broke the first deploy on 2026-10-19. Set it in the wizard and the problem never occurs. |
+   | `NODE_VERSION` | `20` | Recommended pin. Pages detects Node 22 today, which also works, but pin it so future runtime bumps can't surprise the toolchain. |
+   | `VITE_GAME_PASSWORD_SHA` | sha256 hex of your play key | Optional at build time; unset = /play always rejects (fail-closed "coming soon" wall). |
+   | `VITE_ADMIN_PASSWORD_SHA` | sha256 hex of your operator pass | Optional at build time; unset = /admin gate shows "not configured" and rejects. |
+
+4. **Deploy**. First deploy must be triggered from the dashboard
    ("Create deployment"); later pushes to `main` auto-deploy.
+5. **WAF rate rules** (post-deploy, dashboard → Security → WAF):
+   add the two gate rate-limit rules from **§5 below** — locking the
+   door before anyone finds it is cheaper than reacting.
 
 Why this is safe to build on a free CI: the heavy artifact (the
 46 MB wasm bundle) is committed in-repo (`web/`), so a Pages build
