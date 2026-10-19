@@ -6361,12 +6361,25 @@ sunset renders, threaded boot OK). Four field grievances filed --
 these are PLAYER-VISIBLE now that the site is live, priority up:
 
 - FIELD-1 trees sparse: ground reads mostly bare dark-green from
-  spawn view. First hypotheses: (a) prop-density threshold tuned for
-  the editor camera, not boot-cam FOV; (b) biome weights near spawn
-  favor the bare class (probe_biodiversity_v7 census exists -- extend
-  it to sweep the SPAWN face specifically); (c) GLB tree variants
-  fail on web export so fallback canopy dies (probe_biodiversity_v7
-  counts bare_snags -- check the web build's variant survival).
+  spawn view. 2026-10-19 evening evidence (headless census,
+  probe_biodiversity_v7): **live_faces=4, trees=26, scree=0,
+  mushrooms=0, mycelium=0, vines=0, bare_snags=0** -- the whole
+  scatter/ecosystem layer places ZERO objects on the globe boot, and
+  only the boot-neighborhood faces stream for a standing avatar.
+  Updated reading: the player's "empty flat world" is the 4-patch
+  boot set over the bare far-shell (the water/ground fallback beyond
+  streamed faces), NOT a rogue planar scene (project.godot
+  shape=spherical confirmed; GameManager picks globe_world). Three
+  candidate root causes, in priority order: (1) scatter layers gated
+  behind something the web boot never satisfies (a service flag, a
+  biome-weight gate at spawn coords, or an OCEAN-only guard);
+  instrument probe_prop_density at the exact spawn face coords;
+  (2) stream budget/starvation keeps live faces at 4 on 2-core
+  mobiles so the visible "planet" IS just a shell (instrument
+  st.pending_derive() over the first 60 s); (3) village exists and is
+  positionally CORRECT (probe_starter_village 19/19 PASS headless,
+  plaza h=28.0 == the live ground read) but renders small/dark at
+  distance -- a lighting/LOD/culling question, not placement.
 - FIELD-2 houses identical + same spots: deterministic seed = same
   village layout every session, which is BY DESIGN for quest-anchored
   structures, but the player expectation is that DECORATIVE scatter
