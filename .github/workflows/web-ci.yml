@@ -169,10 +169,11 @@ jobs:
       # No credentials leaks: keys live only in repo secrets /
       # CLOUDFLARE_API_TOKEN, never echoed.
       - name: Sync art to R2 (push to main)
-        # secrets context is legal in step-level if (env context is not
-        # visible here for the step's own env block), and secrets and
-        # vars are the documented way to gate on "token exists".
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.CLOUDFLARE_API_TOKEN != ''
+        # Step-level if gets github/vars/needs contexts only — neither
+        # env nor secrets is legal here (secrets in a step if made
+        # GitHub reject the workflow before it started, killing every
+        # run at 0s). Existence of the token is checked inside the
+        # run block below, which is the only place it's readable.
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
