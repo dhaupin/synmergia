@@ -1,0 +1,80 @@
+/**
+ * ssr.config.js — prerender config (prestruct law).
+ *
+ * `path` values become dist/<path>/index.html + sitemap entries after
+ * `npm run build`. Keeping the route list HERE (not in code) is the
+ * prestruct contract: adding a page is a config change, and the
+ * prerender script renders every entry even if the router crashes —
+ * pages without meta stay clean of stale tags.
+ */
+export default {
+  siteUrl: 'https://synmergia.creadev.org',
+  siteName: 'Synmergia',
+  author: 'dhaupin',
+  tagline: 'A free and open source spherical-world MMORPG',
+  ogImage: '', // set when a hero screenshot ships (art/screenshots/)
+  // appLayoutPath: '/src/AppLayout.tsx', // prerender default already matches
+
+  routes: [
+    {
+      path: '/',
+      priority: '1.0',
+      changefreq: 'weekly',
+      meta: {
+        title: 'Synmergia | A free and open source spherical-world MMORPG',
+        description:
+          'Plays in your browser. A hand-built planet with streamed terrain, living villages, real weather events, and honest worldbuilding. Free and open source.',
+      },
+    },
+    {
+      path: '/play',
+      priority: '0.9',
+      changefreq: 'weekly',
+      meta: {
+        title: 'Play Synmergia in your browser',
+        description:
+          'The WASM client loads in this tab — Godot 4.7 compiled for the web with threaded terrain workers. No account, no download, no install.',
+      },
+    },
+    {
+      path: '/privacy',
+      priority: '0.4',
+      changefreq: 'yearly',
+      meta: {
+        title: 'Privacy | Synmergia',
+        description:
+          'Synmergia collects nothing: no accounts, no analytics, no tracking. Local saves only, stored on your own device.',
+      },
+    },
+    {
+      path: '/terms',
+      priority: '0.4',
+      changefreq: 'yearly',
+      meta: {
+        title: 'Terms of Use | Synmergia',
+        description:
+          'Plain-language terms for the free, open-source Synmergia project and its website.',
+      },
+    },
+    // Admin: restricted operator tooling. noindex is enforced in the
+    // prerender script for any path starting with /admin — listed here
+    // only so the gate page itself is rendered in dist/admin/ (waLL
+    // page, never the dashboard).
+    {
+      path: '/admin',
+      priority: '0.1',
+      changefreq: 'yearly',
+      noindex: true,
+      meta: {
+        title: 'Operator Access | Synmergia',
+        description: 'Restricted operator tooling.',
+      },
+    },
+  ],
+
+  notFound: {
+    heading: "This page doesn't exist",
+    body: "The planet's faces are numbered and this isn't one of them. Head back to the homelands.",
+    primaryCta: { label: 'Back to the homelands', href: '/' },
+  },
+};

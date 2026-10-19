@@ -64,11 +64,11 @@ function copyGodotWebToDist(): Plugin {
       // production deploys lost the engine unless this runs. Ship the
       // whole web/ directory as-is.
       const srcDir = path.resolve(process.cwd(), 'web');
-      const destDir = path.resolve(process.cwd(), 'dist', 'web');
+      const destDir = path.resolve(process.cwd(), 'dist', 'game');
       if (!fs.existsSync(srcDir)) return;
       fs.cpSync(srcDir, destDir, { recursive: true });
       // eslint-disable-next-line no-console
-      console.log(`[copy-godot-web] web/ -> dist/web/ (${fs.readdirSync(destDir).length} entries)`);
+      console.log(`[copy-godot-web] web/ -> dist/game/ (${fs.readdirSync(destDir).length} entries)`);
     },
   };
 }
@@ -88,9 +88,14 @@ function copyGodotWebToDist(): Plugin {
 //   - game.wasm gets a 1-day TTL: the engine binary only changes on a
 //     Godot export bump, and the no-cache shell always re-anchors it.
 function godotWebRequestHandler(req: any, res: any, next: any): void {
+  // Single-domain law: the site is served at /, the raw game client at
+  // /game/ (no second subdomain, no cross-origin COOP/COEP friction for
+  // SharedArrayBuffer). /web/ keeps working for old bookmarks.
   const url = req.url ? req.url.split('?')[0] : '';
-  if (url === '/web' || url.startsWith('/web/')) {
-    const subPath = url.replace(/^\/web\/?/, '') || 'index.html';
+  const isGame = url === '/game' || url.startsWith('/game/');
+  const isWeb = url === '/web' || url.startsWith('/web/');
+  if (isGame || isWeb) {
+    const subPath = url.replace(/^\/(game|web)\/?/, '') || 'index.html';
     const filePath = path.resolve(process.cwd(), 'web', subPath);
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
       const ext = path.extname(filePath);

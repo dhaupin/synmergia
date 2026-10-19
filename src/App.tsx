@@ -1,35 +1,56 @@
-import React, { useState, useEffect } from 'react';
-import { PortalHeader, PortalMode } from './components/PortalHeader';
-import { GodotClientView } from './components/wasm/GodotClientView';
-import { AdminDashboardView } from './components/admin/AdminDashboardView';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  useLocation,
+} from 'react-router-dom';
+import { useEffect } from 'react';
 
-// Synmergia Web Portal — two surfaces only (wasm-first workflow):
-//   1. Godot WASM: the real game client, served from /web/.
-//   2. Admin & Ops: bridge-backed GM/monitoring tooling.
-// The legacy 2D companion client (GameCanvas + WebSocket mirror +
-// bridge telemetry) was removed as tech debt; the bridge service stays
-// because the admin dashboard is the one honest consumer of it.
-export default function App() {
-  const [portalMode, setPortalMode] = useState<PortalMode>('wasm');
-  const [crossOriginIsolated, setCrossOriginIsolated] = useState<boolean>(false);
+import SiteLayout from './components/SiteLayout';
+import LanderPage from './pages/LanderPage';
+import PlayPage from './pages/PlayPage';
+import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
+import NotFoundPage from './pages/NotFoundPage';
+import AdminGate from './pages/AdminGate';
 
+// ===== SSR-safe layer (imports cleanly under the prerender's
+// StaticRouter; no BrowserRouter inside) =====
+
+function ScrollToTop() {
+  const location = useLocation();
   useEffect(() => {
-    setCrossOriginIsolated(typeof window !== 'undefined' && Boolean(window.crossOriginIsolated));
-  }, []);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+    }
+  }, [location.pathname]);
+  return null;
+}
 
+export function AppRoutes() {
   return (
-    <div
-      id="synmergia-root"
-      className="relative w-screen h-screen overflow-hidden bg-slate-950 font-sans select-none flex flex-col"
-    >
-      <PortalHeader
-        currentMode={portalMode}
-        onSelectMode={setPortalMode}
-        crossOriginIsolated={crossOriginIsolated}
-      />
+    <>
+      <ScrollToTop />
+      <Routes>
+        <Route element={<SiteLayout />}>
+          <Route path="/" element={<LanderPage />} />
+          <Route path="/play" element={<PlayPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/admin" element={<AdminGate />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+      </Routes>
+    </>
+  );
+}
 
-      {portalMode === 'wasm' && <GodotClientView />}
-      {portalMode === 'admin' && <AdminDashboardView />}
-    </div>
+// ===== Client entry: BrowserRouter lives only in the browser. =====
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
   );
 }

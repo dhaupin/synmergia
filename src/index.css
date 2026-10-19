@@ -1,27 +1,78 @@
 @import "tailwindcss";
 
-@layer base {
-  body {
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  }
-  
-  h1, h2, h3, .font-fantasy {
-    font-family: 'Cinzel', serif;
-  }
+@theme inline {
+  --font-display: 'Cinzel', serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
 }
 
-/* Custom scrollbars for MMORPG theme */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Synmergia web tokens (Nocturne law): the vant-axolotl "Bolete"
+   architecture (light/dark token SWAP on <html>.dark via @theme
+   inline) re-voiced for Synmergia — this game is nocturne-first, so
+   dark is the paper default and .light on <html> swaps to the pale
+   parchment set. Amber stays the accent in both. */
+:root {
+  --paper: #0b0e14;
+  --surface: #11151f;
+  --ink: #e6e2d8;
+  --ink-soft: #9aa3b2;
+  --accent: #e8b64c;
+  --accent-deep: #b98a2f;
+  --line: #232a3a;
+  --moss: #7db691;
+  --err: #e07752;
 }
-::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+.light {
+  --paper: #f5f1e8;
+  --surface: #fdfaf4;
+  --ink: #2b241a;
+  --ink-soft: #6d6152;
+  --accent: #a9701e;
+  --accent-deep: #7c4f11;
+  --line: #e0d6c4;
+  --moss: #4b7a58;
+  --err: #a63d1c;
 }
-::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.5);
-  border-radius: 3px;
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-accent: var(--accent);
+  --color-accent-deep: var(--accent-deep);
+  --color-line: var(--line);
+  --color-moss: var(--moss);
+  --color-err: var(--err);
 }
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.8);
+
+html {
+  background: var(--paper);
 }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, .font-display {
+  font-family: 'Cinzel', serif;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* MMORPG scrollbars, tokenized */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: color-mix(in srgb, var(--surface) 60%, transparent); }
+::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--accent) 35%, transparent); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--accent) 60%, transparent); }
+
+/* Pre-island fallback (prestruct law): crawlers/prerendered HTML may
+   carry placeholder screens the client replaces with live React. */
+pre-island:not(:defined) { display: block; }

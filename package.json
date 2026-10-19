@@ -7,7 +7,7 @@
     "dev": "vite --host 0.0.0.0 --port 3000",
     "sync:data": "tsx scripts/sync_godot_data.ts",
     "smoke:3d": "sh ./scripts/blender_smoke_test.sh",
-    "build": "npm run sync:data && tsc && vite build",
+    "build": "npm run sync:data && tsc && vite build && node scripts/prerender.js",
     "build:web": "npm run sync:data && tsc && vite build",
     "lint": "tsc --noEmit",
     "preview": "vite preview --port 3000",
@@ -18,7 +18,8 @@
     "lucide-react": "^1.16.0",
     "motion": "^12.4.7",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.23.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.9",

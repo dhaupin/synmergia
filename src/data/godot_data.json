@@ -1,5 +1,5 @@
 {
-  "lastSyncedAt": "2026-10-11T20:36:00.664Z",
+  "lastSyncedAt": "2026-10-19T16:03:42.801Z",
   "counts": {
     "classes": 39,
     "weapons": 2,
@@ -8,18 +8,18 @@
     "enemies": 8,
     "zones": 11,
     "skills": 163,
-    "quests": 9,
+    "quests": 10,
     "buffs": 0,
     "factions": 4,
     "achievements": 32,
     "titles": 12,
     "species": 3,
-    "dialogues": 3,
+    "dialogues": 6,
     "currencies": 4,
     "mounts": 11,
     "vehicles": 3,
-    "resources": 9,
-    "items": 3,
+    "resources": 11,
+    "items": 7,
     "accessories": 6,
     "recipes": 3
   },
@@ -3106,7 +3106,7 @@
         "_extResource": "1"
       },
       "id": "zone_starter_plains",
-      "display_name": "Starter Plains",
+      "display_name": "Meadowhaven",
       "description": "A peaceful meadow where new adventurers begin their journey. Safe from PvP.",
       "pvp_mode": 0,
       "level_requirement": 1,
@@ -8070,6 +8070,53 @@
       "_sourceFile": "game/data/quests/quest_herb_gathering.tres",
       "_scriptClass": "QuestData"
     },
+    "quest_intro_core_npcs": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "quest_intro_core_npcs",
+      "display_name": "Meet the People Doing the Work",
+      "description": "Introduce yourself to the core NPCs and get a feel for what each one actually handles.",
+      "quest_type": 1,
+      "difficulty": 0,
+      "giver_npc_id": "npc_blacksmith_village",
+      "turn_in_npc_id": "npc_blacksmith_village",
+      "auto_complete": true,
+      "min_level": 1,
+      "xp_reward": 250,
+      "gold_reward": 25,
+      "objectives": [
+        {
+          "id": "meet_blacksmith",
+          "type": 5,
+          "target": "npc_blacksmith_village",
+          "count": 1,
+          "optional": false,
+          "description": "Talk to the village blacksmith"
+        },
+        {
+          "id": "meet_academy",
+          "type": 5,
+          "target": "npc_skill_academy_capital",
+          "count": 1,
+          "optional": true,
+          "description": "Speak with the skill academy instructor"
+        },
+        {
+          "id": "meet_store",
+          "type": 5,
+          "target": "npc_merchant_general",
+          "count": 1,
+          "optional": true,
+          "description": "Speak with the general merchant"
+        }
+      ],
+      "rewards": [],
+      "next_quest_id": "",
+      "previous_quest_id": "",
+      "_sourceFile": "game/data/quests/quest_intro_core_npcs.tres",
+      "_scriptClass": "QuestData"
+    },
     "quest_listen_to_the_deep": {
       "script": {
         "_extResource": "1"
@@ -9652,6 +9699,17 @@
     }
   },
   "dialogues": {
+    "blacksmith_village_intro": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "blacksmith_village_intro",
+      "npc_id": "npc_blacksmith_village",
+      "display_name": "Village Smithy",
+      "nodes": "[\n{\n\"speaker\": \"Village Smithy\",\n\"text\": \"You’re the first new face I’ve seen all cycle. Come close — let’s have a proper word before the forge gets crowded.\",\n\"choices\": [\n{\"text\": \"I didn’t come for talk. I came for work.\", \"next_node\": 1},\n{\"text\": \"You look like the sort of person who knows what’s going on around here.\", \"next_node\": 2}\n]",
+      "_sourceFile": "game/data/dialogues/blacksmith_village_intro.tres",
+      "_scriptClass": "DialogueData"
+    },
     "deep_warden_greeting": {
       "script": {
         "_extResource": "1"
@@ -9672,6 +9730,28 @@
       "display_name": "Merchant Greeting",
       "nodes": "[\n{\n\"speaker\": \"Merchant\",\n\"text\": \"Welcome to my shop! I carry only the finest goods — weapons, armor, potions. Take a look around.\",\n\"choices\": [\n{\"text\": \"Show me your wares.\", \"next_node\": 1},\n{\"text\": \"Just passing through. Farewell.\", \"next_node\": -1}\n]",
       "_sourceFile": "game/data/dialogues/merchant_greeting.tres",
+      "_scriptClass": "DialogueData"
+    },
+    "sundered_ferry_talk": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "sundered_ferry_talk",
+      "npc_id": "npc_ferryman_sundered",
+      "display_name": "Old Brack, the Ferryman",
+      "nodes": "[\n{\n\"speaker\": \"Old Brack\",\n\"text\": \"Tide's turning. You crossing, or just gawking at the wreck? The barque runs the strait six sailings a day -- moor pin to the seaward buoy and back. Two coin if you'd rather I row you out of schedule.\",\n\"choices\": [\n{\"text\": \"Tell me about the wreck shoal.\", \"next_node\": 1},\n{\"text\": \"What happened to the crossing?\", \"next_node\": 2},\n{\"text\": \"Any work going?\", \"next_node\": 3},\n{\"text\": \"Farewell.\", \"next_node\": -1}\n]",
+      "_sourceFile": "game/data/dialogues/sundered_ferry_talk.tres",
+      "_scriptClass": "DialogueData"
+    },
+    "sundered_salvor_talk": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "sundered_salvor_talk",
+      "npc_id": "npc_salvor_wreck",
+      "display_name": "Mag the Salvor",
+      "nodes": "[\n{\n\"speaker\": \"Mag\",\n\"text\": \"You'll be wanting rope, boots, and nerve. The shoal takes all three. I mark what the tide gives back and file what it keeps -- the good stuff is still in the barque's hold, under the wet.\",\n\"choices\": [\n{\"text\": \"The barque's hold is full?\", \"next_node\": 1},\n{\"text\": \"What do you sell?\", \"next_node\": 2},\n{\"text\": \"Any work going?\", \"next_node\": 3},\n{\"text\": \"Farewell.\", \"next_node\": -1}\n]",
+      "_sourceFile": "game/data/dialogues/sundered_salvor_talk.tres",
       "_scriptClass": "DialogueData"
     },
     "village_elder_greeting": {
@@ -10122,7 +10202,7 @@
       },
       "id": "veh_haven_ferry",
       "display_name": "Haven Ferry",
-      "description": "A flat-bellied barge poled by two patient oxen and one patient ferrymaster. Runs the coastal shallows between the village docks and Nexus Central's harbor.",
+      "description": "A flat-bellied barge poled by two patient oxen and one patient ferrymaster. She runs the bay crossing between the village harbor and the Capitol pier -- eight cast-offs a day, and the bay is the honest time it takes.",
       "icon_path": "res://icons/vehicles/ferry.png",
       "model_path": "",
       "kind": 1,
@@ -10136,7 +10216,7 @@
       "cost": 0,
       "route_gateways": [
         "waypoint_village_center",
-        "waypoint_nexus_central"
+        "waypoint_capitol_pier"
       ],
       "soulbound": false,
       "ferries_per_day": 8,
@@ -10239,6 +10319,43 @@
       "buy_price": 5,
       "required_level": 0,
       "_sourceFile": "game/data/resources/res_iron_ore.tres",
+      "_scriptClass": "Item"
+    },
+    "res_mooncap": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_mooncap",
+      "display_name": "Mooncap",
+      "description": "A pale mycelial cap, cool to the touch and always faintly damp. The groves of the wandering belt carry them; alchemists and bowmen prize the broth.",
+      "icon_path": "res://icons/resources/mooncap.png",
+      "item_category": 4,
+      "rarity": 2,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 12,
+      "buy_price": 30,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_mooncap.tres",
+      "_scriptClass": "Item"
+    },
+    "res_moonpetal": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_moonpetal",
+      "display_name": "Moonpetal Flower",
+      "description": "A pale five-petaled bloom that opens after dusk in the meadows. The alchemist pays for the fresh ones -- day-old petals are just salad.",
+      "icon_path": "res://icons/resources/moonpetal.png",
+      "item_category": 4,
+      "rarity": 1,
+      "equip_slot": 0,
+      "stack_size": 50,
+      "sell_price": 4,
+      "buy_price": 8,
+      "required_level": 0,
+      "weight": 0.05,
+      "_sourceFile": "game/data/resources/res_moonpetal.tres",
       "_scriptClass": "Item"
     },
     "res_ore_golden": {
@@ -10428,6 +10545,80 @@
       "buy_price": 0,
       "weight": 0.01,
       "_sourceFile": "game/data/items/item_quest_sealed_writ.tres",
+      "_scriptClass": "Item"
+    },
+    "item_scrap_lumber": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "item_scrap_lumber",
+      "display_name": "Scrap Lumber",
+      "description": "Drift-sanded planks the strait beat loose off the first barque. Sound heartwood under the salt -- the forge-minders pay for salvaged stock.",
+      "icon_path": "res://icons/items/scrap_lumber.png",
+      "item_category": 4,
+      "rarity": 0,
+      "stack_size": 50,
+      "buy_price": 3,
+      "sell_price": 1,
+      "weight": 0.4,
+      "_sourceFile": "game/data/items/item_scrap_lumber.tres",
+      "_scriptClass": "Item"
+    },
+    "item_sealed_crate": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "item_sealed_crate",
+      "display_name": "Sealed Crate",
+      "description": "Mag's chalk-marked freight, coastal-lashed but chamber-dry. Don't ask what's inside -- the stamp says the crew gets first look, and Brack's crew reads stamps before labels.",
+      "icon_path": "res://icons/items/sealed_crate.png",
+      "item_category": 8,
+      "rarity": 1,
+      "equip_slot": 0,
+      "stack_size": 3,
+      "sell_price": 2,
+      "buy_price": 0,
+      "is_quest_item": true,
+      "quest_id": "quest_shoal_freight",
+      "keep_after_turn_in": false,
+      "usable_during_quest_only": true,
+      "required_level": 0,
+      "weight": 2,
+      "_sourceFile": "game/data/items/item_sealed_crate.tres",
+      "_scriptClass": "Item"
+    },
+    "item_skiff_ticket": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "item_skiff_ticket",
+      "display_name": "Chartered Skiff Ticket",
+      "description": "A punched chit good for one out-of-schedule crossing at 2.5x speed. Old Brack sells them when the tide and your patience disagree. The wake must be yours first -- the sea makes you row it once.",
+      "icon_path": "res://icons/items/skiff_ticket.png",
+      "item_category": 8,
+      "rarity": 1,
+      "stack_size": 10,
+      "buy_price": 25,
+      "sell_price": 5,
+      "weight": 0.01,
+      "_sourceFile": "game/data/items/item_skiff_ticket.tres",
+      "_scriptClass": "Item"
+    },
+    "item_strait_charm": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "item_strait_charm",
+      "display_name": "Strait Charm",
+      "description": "A knot of barque rope sealed in pitch, sold at the moor for a coin. The ferryfolk say the sea keeps count of who wears one. It keeps no stat; it keeps hope.",
+      "icon_path": "res://icons/items/strait_charm.png",
+      "item_category": 8,
+      "rarity": 1,
+      "stack_size": 1,
+      "buy_price": 2,
+      "sell_price": 0,
+      "weight": 0.05,
+      "_sourceFile": "game/data/items/item_strait_charm.tres",
       "_scriptClass": "Item"
     }
   },
