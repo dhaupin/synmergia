@@ -64,4 +64,3 @@ if [ "$fails" != "0" ]; then
 fi
 echo "EXIT 0"
 exit 0
-## R2 trigger marker (2026-10-19): token perm test, no behavior change
