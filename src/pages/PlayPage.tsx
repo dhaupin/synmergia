@@ -1,14 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 import { Maximize2, RotateCw, AlertCircle } from 'lucide-react';
+import GateScreen from '../components/GateScreen';
 
-// Play page: the raw web client (web/) is served under /game/ on the
+// Game lock (pre-launch law): the raw client at /game/ is not public
+// yet — /play frames it only for key-holders until launch. Sharing a
+// link before launch does nothing; the gate sits in front. The same
+// machinery backs /admin, and the Cloudflare WAF rate rule in DEPLOY.md
+// is the durable wall behind this friction.
+
+// Play frame: the raw web client (web/) is served under /game/ on the
 // same origin (single-domain law: one domain, zero cross-origin COOP/
 // COEP friction for SharedArrayBuffer threads). Vite dev serves the
 // /game path via the static middleware; production hosts copy
 // dist/web -> /game at deploy.
 const GAME_BASE = '/game/';
+const GAME_HASH =
+  (import.meta.env.VITE_GAME_PASSWORD_SHA as string | undefined)?.toLowerCase() || '';
 
-export default function PlayPage() {
+function GameFrame() {
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -105,5 +114,19 @@ export default function PlayPage() {
         when cross-origin isolation is active on this origin.
       </p>
     </div>
+  );
+}
+
+export default function PlayPage() {
+  return (
+    <GateScreen
+      sessionKey="syn_play_ok"
+      gateHash={GAME_HASH}
+      envVarName="VITE_GAME_PASSWORD_SHA"
+      headline="Synmergia is almost ready"
+      blurb="The world is booting up — early players only. Got a key? Let yourself in:"
+    >
+      <GameFrame />
+    </GateScreen>
   );
 }

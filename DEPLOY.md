@@ -1,7 +1,13 @@
 # Synmergia — Deployment Guide
 
-> **Status:** v1 — Development/Staging ready. Production guidance marked where applicable.
-> **Last updated:** 2026-09-15
+> **Status:** v2 — Development/Staging ready. Production guidance marked where applicable.
+> **Last updated:** 2026-10-19
+>
+> **Scope note (2026-10 split):** this file now covers the **game
+> server** (Docker: Godot headless + bridges + Postgres) and the
+> legacy nginx front. The **website + browser game client**
+> (Cloudflare Pages, `/game/` serving law, access gates, WAF rules)
+> has its own focused guide: [DEPLOY_WEB.md](./DEPLOY_WEB.md).
 
 ---
 
@@ -829,19 +835,23 @@ Synmergia includes an integrated web client portal with dual-client hosting, sta
 
 ```
 Client Browser
- ├── Portal Header (mode switcher)
- ├── React 2D Canvas Client (fast companion & exploration)
- ├── Godot 4.7.2 WASM Client (/web) -> connects via WebSocket (port 9000)
- └── Admin & GM Dashboard (live sidecars: srv/pg-bridge, srv/redis-bridge)
+ ├── Site (src/, Cloudflare Pages) — lander, legal, /play, gated /admin
+ ├── Godot 4.7.2 WASM Client (/game/) — the raw client, framed by /play
+ └── Bridges (srv/pg-bridge, srv/redis-bridge) — loopback, proxied
 ```
 
+The former React 2D companion client was removed in the 2026-10
+src slim-down; the WASM client is the sole game surface, per the
+wasm-first law.
+
 ### 1. Mandatory Isolation Headers (COOP / COEP)
-Godot 4.7.2 WebAssembly requires `SharedArrayBuffer` for multithreading. Any server hosting `/web` must provide:
+Godot 4.7.2 WebAssembly requires `SharedArrayBuffer` for multithreading. Any server hosting `/game/` must provide:
 ```http
 Cross-Origin-Opener-Policy: same-origin
 Cross-Origin-Embedder-Policy: require-corp
 ```
-In local Vite development and production reverse proxy (`vite.config.ts` and Nginx), these headers are configured automatically.
+In local Vite development and production these headers are configured automatically — `vite.config.ts` (dev/preview) and `public/_headers` (Cloudflare Pages). For nginx-based hosts,
+add `[add_header](https://nginx.org/en/docs/http/ngx_http_headers_module.html)` equivalents in the `/game/ location block.
 
 ### 2. Static Data Bridge Synchronization
 Static game definitions (classes, species, items, quests, zones) defined in Godot `.tres` resources are synced into the Web Portal with:

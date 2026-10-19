@@ -1,0 +1,28 @@
+# Cloudflare Pages headers (applied over the deployed dist/ tree).
+# COOP/COEP are the threads law: Godot's wasm workers need
+# SharedArrayBuffer, which requires cross-origin isolation on every
+# document — the root document, /game/*, all of it.
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+
+# Pack cache law (mirrors the dev/preview handlers in vite.config.ts):
+# the content-addressed pack (game.pck?v=<sha256>) is immutable — one
+# cache entry per content build, never re-validated; the plain-named
+# binaries are the legacy alias and get a day; the freshness anchors
+# (index.html, game.pck.hash) always revalidate so a new CI pack is
+# picked up on the next reload.
+/game/game.pck
+  Cache-Control: public, max-age=86400
+
+/game/game.wasm
+  Cache-Control: public, max-age=86400
+
+/game/game.pck.hash
+  Cache-Control: no-cache
+
+/index.html
+  Cache-Control: no-cache
+
+/game/index.html
+  Cache-Control: no-cache
