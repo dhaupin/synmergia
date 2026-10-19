@@ -1047,6 +1047,60 @@ func _band_color(lift: float, sea: float) -> Color:
 	return c
 
 
+## ===== THE SHARED PROP MESH LAW (the prop-byte follow-up) =====
+## The honest audit found the live set's real memory driver: every
+## prop built its OWN primitive mesh (identical sphere/cylinder
+## geometries at continuously random sizes -- the VERTEX DATA is the
+## same shape at every size). The registry shares ONE resource per
+## quantized size class: riddling to 1/64 m steps gives <=8 mm slop
+## (sub-glitch at every prop scale the walk sees) while the vertex
+## buffer count drops from "per prop" to "per distinct size".
+##
+## CENSUS LAW: spheres keep their EXACT aspect -- the height derives
+## from the QUANTIZED radius, so the 2.0x rock law and the per-species
+## canopy ratios never drift (the biodiversity census pins h/r). The
+## quantization is a MESH-RESOURCE decision only: rng laws, node
+## positions, and placements are untouched, so sync and async content
+## stays identical and every prop keeps its name-resolvable census.
+## Registry is MAIN-THREAD-ONLY state: prop nodes are built in fresh
+## spawns and the deferred appliers, never in a worker.
+var _prop_mesh_registry := {}  # kind@dims -> shared PrimitiveMesh
+
+func _q64(x: float) -> float:
+	return float(int(round(x * 64.0))) / 64.0
+
+
+## radius quantized; height = radius x the exact multiplier (the
+## census's h/r law rides the q64 radius, un-drifted).
+func _shared_prop_sphere(radius: float, height_mult: float) -> SphereMesh:
+	var r_q: float = _q64(radius)
+	var h: float = r_q * height_mult
+	var key: String = "s@%d@%d" % [int(round(r_q * 64.0)), int(round(height_mult * 4096.0))]
+	var hit = _prop_mesh_registry.get(key)
+	if hit != null:
+		return hit
+	var sm := SphereMesh.new()
+	sm.radius = r_q
+	sm.height = h
+	_prop_mesh_registry[key] = sm
+	return sm
+
+
+## Cylinders carry no census ratio pins: every dim quantizes onto its
+## own 1/64 bucket (the stored height matches its key bucket).
+func _shared_prop_cyl(top_r: float, bottom_r: float, height: float) -> CylinderMesh:
+	var key: String = "c@%d@%d@%d" % [int(round(top_r * 64.0)), int(round(bottom_r * 64.0)), int(round(height * 64.0))]
+	var hit = _prop_mesh_registry.get(key)
+	if hit != null:
+		return hit
+	var cm := CylinderMesh.new()
+	cm.top_radius = _q64(top_r)
+	cm.bottom_radius = _q64(bottom_r)
+	cm.height = _q64(height)
+	_prop_mesh_registry[key] = cm
+	return cm
+
+
 ## Seeded rocks + trees + boulders for one face: deterministic
 ## content (S7), parented under the patch node so unload is free.
 ## TERRAIN ARC (v2):
@@ -1097,14 +1151,15 @@ func _spawn_rocks(face: int) -> void:
 			TerrainGen.BiomeId.SWAMP:
 				rock_col = Color(0.36, 0.40, 0.30)
 		var rmi := MeshInstance3D.new()
-		var rmesh := SphereMesh.new()
-		rmesh.radius = TerrainGen.ROCK_RADIUS * s.scale
-		rmesh.height = rmesh.radius * 2.0
+		# THE SHARED PROP MESH LAW: a registry entry, not a per-prop
+		# resource. The tint rides the INSTANCE (a material set on a
+		# shared mesh would restyle the whole size class).
+		var rock_geo_r: float = TerrainGen.ROCK_RADIUS * s.scale
+		rmi.mesh = _shared_prop_sphere(rock_geo_r, 2.0)
 		var rmat := StandardMaterial3D.new()
 		rmat.albedo_color = rock_col
 		rmat.roughness = 1.0
-		rmesh.material = rmat
-		rmi.mesh = rmesh
+		rmi.material_override = rmat
 		# Radial placement: the rock rides its own direction at (scaled
 		# + terrain), ROCKS EXCLUDING their own walk-over cap (walk_height
 		# would double-count it). At prototype scale (terrain 0) this
@@ -1137,14 +1192,12 @@ func _spawn_rocks(face: int) -> void:
 					(TerrainGen.ROCK_RADIUS * s.scale * (1.25 + 0.4 * scree_rng.randf())) / maxf(rock_r, 1.0) \
 					+ scree_rng.randf_range(0.0, 0.03))
 				var sr := MeshInstance3D.new()
-				var srm := SphereMesh.new()
-				srm.radius = TerrainGen.ROCK_RADIUS * scree_rng.randf_range(0.22, 0.45)
-				srm.height = srm.radius * 2.0
+				var scree_r: float = TerrainGen.ROCK_RADIUS * scree_rng.randf_range(0.22, 0.45)
+				sr.mesh = _shared_prop_sphere(scree_r, 2.0)
 				var srm_mat := StandardMaterial3D.new()
 				srm_mat.albedo_color = rock_col.darkened(0.25)
 				srm_mat.roughness = 1.0
-				srm.material = srm_mat
-				sr.mesh = srm
+				sr.material_override = srm_mat
 				sr.name = "Scree%d_%d" % [nodes.size(), k]
 				sr.position = _tangent_patch_local(s_dir, patch_center, rock_r + TerrainGen.ROCK_EMBED * 0.4)
 				patch_node.add_child(sr)
@@ -1185,14 +1238,11 @@ func _spawn_boulders(face: int, patch_node: Node3D) -> void:
 		if base_h < sea - 0.6:
 			continue  # boulders are land content (for now)
 		var bmi := MeshInstance3D.new()
-		var bmesh := SphereMesh.new()
-		bmesh.radius = s.radius
-		bmesh.height = s.radius * 1.7  # squat, not a perfect ball
+		bmi.mesh = _shared_prop_sphere(s.radius, 1.7)  # squat, not a perfect ball
 		var bmat := StandardMaterial3D.new()
 		bmat.albedo_color = Color(0.40, 0.38, 0.37)
 		bmat.roughness = 1.0
-		bmesh.material = bmat
-		bmi.mesh = bmesh
+		bmi.material_override = bmat
 		bmi.name = "Boulder%d" % nodes.size()
 		# Sink the squat ellipsoid by ~1/3 radius: a believable embed
 		# whose visible top is 1.13*radius above the ground (center sits
@@ -1228,11 +1278,8 @@ func _spawn_boulders(face: int, patch_node: Node3D) -> void:
 			var rim_dir: Vector3 = s.dir.rotated(rim_axis, \
 				(s.radius * 0.95) / maxf(bdir_r, 1.0) + rng.randf_range(0.0, 0.02))
 			var crmi := MeshInstance3D.new()
-			var crm := SphereMesh.new()
-			crm.radius = TerrainGen.ROCK_RADIUS
-			crm.height = crm.radius * 2.0
-			crm.material = bmat
-			crmi.mesh = crm
+			crmi.mesh = _shared_prop_sphere(TerrainGen.ROCK_RADIUS, 2.0)
+			crmi.material_override = bmat
 			crmi.position = _tangent_patch_local(rim_dir, patch_center, bdir_r + TerrainGen.ROCK_EMBED)
 			patch_node.add_child(crmi)
 	_patch_boulders[face] = nodes
@@ -1396,26 +1443,20 @@ func _spawn_trees(face: int, patch_node: Node3D) -> void:
 		var tree := Node3D.new()
 		tree.name = "Tree%d" % tree_name_idx
 		var trunk := MeshInstance3D.new()
-		var tmesh := CylinderMesh.new()
-		tmesh.top_radius = trunk_radius_top
-		tmesh.bottom_radius = trunk_radius_bottom
-		tmesh.height = trunk_height
+		trunk.mesh = _shared_prop_cyl(trunk_radius_top, trunk_radius_bottom, trunk_height)
 		var tmat := StandardMaterial3D.new()
 		tmat.albedo_color = trunk_tint
 		tmat.roughness = 1.0
-		tmesh.material = tmat
-		trunk.mesh = tmesh
+		trunk.material_override = tmat
 		trunk.position = Vector3(0, trunk_height * 0.5, 0)
 		tree.add_child(trunk)
 		var canopy := MeshInstance3D.new()
-		var cmesh := SphereMesh.new()
-		cmesh.radius = canopy_crown
-		cmesh.height = canopy_h
+		# aspect = crown x 1.8 like today; the sphere helper keeps h/r EXACT
+		canopy.mesh = _shared_prop_sphere(canopy_crown, 1.8)
 		var cmat := StandardMaterial3D.new()
 		cmat.albedo_color = canopy_tint
 		cmat.roughness = 1.0
-		cmesh.material = cmat
-		canopy.mesh = cmesh
+		canopy.material_override = cmat
 		canopy.position = Vector3(0, trunk_height + canopy_crown * 0.55, 0)
 		tree.add_child(canopy)
 		# Radial placement riding the displaced ground: the walk-surface
@@ -1435,13 +1476,11 @@ func _spawn_trees(face: int, patch_node: Node3D) -> void:
 	# -- Flush the batch (far faces) ------------------------------------
 	if batch_xforms.size() > 0:
 		# TRUNKS
-		var cu := CylinderMesh.new()
-		cu.top_radius = 0.14
-		cu.bottom_radius = 0.22
-		cu.height = 1.0  # unit: per-instance scale stretches it
 		var tmesh2 := MultiMesh.new()
 		tmesh2.transform_format = MultiMesh.TRANSFORM_3D
-		tmesh2.mesh = cu # Godot: multimesh.mesh takes the source mesh directly
+		# Unit trunk: per-instance scale stretches it (shared, taken from
+		# the registry so every face's batch reuses one buffer).
+		tmesh2.mesh = _shared_prop_cyl(0.14, 0.22, 1.0) # Godot: multimesh.mesh takes the source mesh directly
 		tmesh2.instance_count = batch_xforms.size()
 		for t in range(batch_xforms.size()):
 			tmesh2.set_instance_transform(t, batch_xforms[t])
@@ -1454,12 +1493,9 @@ func _spawn_trees(face: int, patch_node: Node3D) -> void:
 		tmi.material_override = tmt
 		patch_node.add_child(tmi)
 		# CANOPIES (billboard-style: cheap sphere batch, shared mat)
-		var sm := SphereMesh.new()
-		sm.radius = 1.0  # unit: per-instance scale = crown
-		sm.height = 1.0
 		var mmesh2 := MultiMesh.new()
 		mmesh2.transform_format = MultiMesh.TRANSFORM_3D
-		mmesh2.mesh = sm
+		mmesh2.mesh = _shared_prop_sphere(1.0, 1.0)  # unit: per-instance scale = crown
 		mmesh2.instance_count = canopy_batch_xforms.size()
 		for t in range(canopy_batch_xforms.size()):
 			mmesh2.set_instance_transform(t, canopy_batch_xforms[t])
@@ -1667,20 +1703,13 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 			bloom.name = "Flower%d" % i
 			bloom.position = _tangent_patch_local(dir, patch_center, scaled + base_h)
 			var stem := MeshInstance3D.new()
-			var cm_fl: CylinderMesh = CylinderMesh.new()
 			var stem_h: float = rng.randf_range(0.20, 0.38)
-			cm_fl.top_radius = 0.02
-			cm_fl.bottom_radius = 0.03
-			cm_fl.height = stem_h
-			stem.mesh = cm_fl
+			stem.mesh = _shared_prop_cyl(0.02, 0.03, stem_h)
 			stem.material_override = _bloom_stem_material()
 			stem.position = Vector3(0.0, stem_h * 0.5, 0.0)
 			var head := MeshInstance3D.new()
-			var hm_fl := SphereMesh.new()
 			var r_h: float = rng.randf_range(0.055, 0.105)
-			hm_fl.radius = r_h
-			hm_fl.height = r_h * 1.3
-			head.mesh = hm_fl
+			head.mesh = _shared_prop_sphere(r_h, 1.3)
 			head.material_override = _bloom_head_material(rng.randi() % _bloom_palette().size())
 			head.position = Vector3(0.0, stem_h + r_h * 0.25, 0.0)
 			bloom.add_child(stem)
@@ -1705,28 +1734,21 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 				Color(0.80, 0.78, 0.70),
 				Color(0.55, 0.36, 0.62),
 			][pal_idx_s]
-			var sm_s := CylinderMesh.new()
-			sm_s.top_radius = 0.035
-			sm_s.bottom_radius = 0.055
 			var stem_h_s: float = rng.randf_range(0.18, 0.55)
-			sm_s.height = stem_h_s
 			var stem_mat_s := StandardMaterial3D.new()
 			stem_mat_s.albedo_color = Color(0.78, 0.74, 0.66)
 			stem_mat_s.roughness = 1.0
 			var stem_node := MeshInstance3D.new()
-			stem_node.mesh = sm_s
+			stem_node.mesh = _shared_prop_cyl(0.035, 0.055, stem_h_s)
 			stem_node.material_override = stem_mat_s
 			stem_node.position = Vector3(0.0, stem_h_s * 0.5, 0.0)
 			fungi_s.add_child(stem_node)
-			var cap_m := SphereMesh.new()
 			var cap_r_s: float = rng.randf_range(0.10, 0.30)
-			cap_m.radius = cap_r_s
-			cap_m.height = cap_r_s * 0.9
 			var cap_mat_s := StandardMaterial3D.new()
 			cap_mat_s.albedo_color = fungal_c_s
 			cap_mat_s.roughness = 0.8
 			var cap_node := MeshInstance3D.new()
-			cap_node.mesh = cap_m
+			cap_node.mesh = _shared_prop_sphere(cap_r_s, 0.9)
 			cap_node.material_override = cap_mat_s
 			cap_node.position = Vector3(0.0, stem_h_s + cap_r_s * 0.2, 0.0)
 			fungi_s.add_child(cap_node)
@@ -1740,11 +1762,9 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 			spawned += 1
 			continue
 		if is_mycelium:
-			var patch_s := MeshInstance3D.new()
-			var pm_s := SphereMesh.new()
 			var pr_s: float = rng.randf_range(0.5, 1.3)
-			pm_s.radius = pr_s
-			pm_s.height = pr_s * 0.12
+			var patch_s := MeshInstance3D.new()
+			patch_s.mesh = _shared_prop_sphere(pr_s, 0.12)
 			var mat_s := StandardMaterial3D.new()
 			mat_s.roughness = 0.55
 			var pv_s: float = rng.randf()
@@ -1752,7 +1772,6 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 			mat_s.emission_enabled = true
 			mat_s.emission = Color(0.42, 0.22, 0.55).lerp(Color(0.20, 0.55, 0.50), pv_s)
 			mat_s.emission_energy_multiplier = 1.2
-			patch_s.mesh = pm_s
 			patch_s.material_override = mat_s
 			patch_s.name = "Mycelium%d" % i
 			patch_s.position = _tangent_patch_local(dir, patch_center, scaled + base_h + 0.03)
@@ -1764,11 +1783,8 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 			# band carries the mine. A dark boulder-chunk, registered as
 			# an iron-ore gather node (the gather->forge leg below the
 			# visual: what you SEE is what you can harvest).
-			var om := SphereMesh.new()
 			var r_o: float = rng.randf_range(0.35, 0.7)
-			om.radius = r_o
-			om.height = r_o * 1.6
-			mesh = om
+			mesh = _shared_prop_sphere(r_o, 1.6)
 			mat.albedo_color = Color(0.35, 0.33, 0.36)
 			prop.mesh = mesh
 			prop.material_override = mat
@@ -1780,11 +1796,8 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 			continue
 		if is_cattail:
 			# Reed: a thin dark-green cylinder with a brown head.
-			var cm := CylinderMesh.new()
-			cm.top_radius = 0.03
-			cm.bottom_radius = 0.05
-			cm.height = rng.randf_range(0.9, 1.4)
-			mesh = cm
+			var h_c: float = rng.randf_range(0.9, 1.4)
+			mesh = _shared_prop_cyl(0.03, 0.05, h_c)
 			mat.albedo_color = Color(0.30, 0.38, 0.20)
 			prop.position = _tangent_patch_local(dir, patch_center, scaled + base_h)
 			prop.mesh = mesh
@@ -1797,11 +1810,8 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 			prop.position = _tangent_patch_local(dir, patch_center, scaled + base_h + 0.05)
 		else:
 			# Bush: a squat green sphere.
-			var bm := SphereMesh.new()
 			var r_b: float = rng.randf_range(0.4, 0.9)
-			bm.radius = r_b
-			bm.height = r_b * 1.4
-			mesh = bm
+			mesh = _shared_prop_sphere(r_b, 1.4)
 			mat.albedo_color = Color(0.22 + 0.1 * rng.randf(), 0.42 + 0.1 * rng.randf(), 0.18)
 			prop.mesh = mesh
 			prop.material_override = mat
@@ -2065,29 +2075,23 @@ func _apply_tree_sites(face: int, sites: Array, patch_node: Node3D) -> Array:
 			tree.name = "Tree%d" % name_idx  # census/collider law: name-resolvable
 			name_idx += 1
 			var trunk := MeshInstance3D.new()
-			var tmesh := CylinderMesh.new()
-			tmesh.top_radius = 0.14 * (trunk_w_mult if trunk_w_mult >= 1.0 else 1.0)
-			tmesh.bottom_radius = 0.22 * trunk_w_mult
-			tmesh.height = s["trunk_h"]
+			trunk.mesh = _shared_prop_cyl(0.14 * (trunk_w_mult if trunk_w_mult >= 1.0 else 1.0), 0.22 * trunk_w_mult, s["trunk_h"])
 			var tmat := StandardMaterial3D.new()
 			tmat.albedo_color = trunk_tint
 			tmat.roughness = 1.0
-			tmesh.material = tmat
-			trunk.mesh = tmesh
+			trunk.material_override = tmat
 			trunk.position = Vector3(0, s["trunk_h"] * 0.5, 0)
 			tree.add_child(trunk)
 			if not bare:
 				var canopy := MeshInstance3D.new()
-				var cmesh := SphereMesh.new()
-				cmesh.radius = s["crown"] * canopy_w_mult
-				cmesh.height = s["crown"] * canopy_h_mult
+				# Same species dims; the aspect rides the helper (h/r law kept).
+				canopy.mesh = _shared_prop_sphere(s["crown"] * canopy_w_mult, canopy_h_mult / canopy_w_mult)
 				var cmat := StandardMaterial3D.new()
 				cmat.albedo_color = Color(
 					clampf(s["tint_r"] + canopy_tint_extra, 0.0, 0.6),
 					clampf(s["gval"] + canopy_tint_extra * 0.5, 0.1, 0.7), 0.16)
 				cmat.roughness = 1.0
-				cmesh.material = cmat
-				canopy.mesh = cmesh
+				canopy.material_override = cmat
 				canopy.position = Vector3(0, s["trunk_h"] + s["crown"] * canopy_h_mult * 0.35, 0)
 				tree.add_child(canopy)
 			tree.position = s["pos"]
@@ -2111,17 +2115,14 @@ func _apply_tree_sites(face: int, sites: Array, patch_node: Node3D) -> Array:
 				var vine_top: Vector3 = Vector3(0, canopy_rim, 0)
 				for kv in range(vine_n):
 					var hang := MeshInstance3D.new()
-					var hang_m := CylinderMesh.new()
-					hang_m.top_radius = 0.035
-					hang_m.bottom_radius = 0.012
-					hang_m.height = s["crown"] * 0.9 + 0.3
+					var hang_len: float = s["crown"] * 0.9 + 0.3
+					hang.mesh = _shared_prop_cyl(0.035, 0.012, hang_len)
 					var hang_mat := StandardMaterial3D.new()
 					hang_mat.albedo_color = Color(0.24, 0.40, 0.20)
 					hang_mat.roughness = 1.0
-					hang_m.material = hang_mat
-					hang.mesh = hang_m
+					hang.material_override = hang_mat
 					var vang: float = TAU * float(kv) / float(vine_n) + 0.4
-					hang.position = vine_top + Vector3(cos(vang) * s["crown"] * canopy_w_mult * 0.55, -hang_m.height * 0.5, sin(vang) * s["crown"] * canopy_w_mult * 0.55)
+					hang.position = vine_top + Vector3(cos(vang) * s["crown"] * canopy_w_mult * 0.55, -hang_len * 0.5, sin(vang) * s["crown"] * canopy_w_mult * 0.55)
 					tree.add_child(hang)
 			patch_node.add_child(tree)
 			nodes_out.append(tree)
@@ -2132,13 +2133,9 @@ func _apply_tree_sites(face: int, sites: Array, patch_node: Node3D) -> Array:
 				canopy_batch_xforms.append(tpose * Transform3D(Basis.IDENTITY.scaled(Vector3(s["crown"] * canopy_w_mult, s["crown"] * canopy_h_mult, s["crown"] * canopy_w_mult)), Vector3(0, s["trunk_h"] + s["crown"] * canopy_h_mult * 0.35, 0)))
 	# -- Flush the batch (far faces AND near overflow) ------------------
 	if batch_xforms.size() > 0:
-		var cu := CylinderMesh.new()
-		cu.top_radius = 0.14
-		cu.bottom_radius = 0.22
-		cu.height = 1.0  # unit: per-instance scale stretches it
 		var tmesh2 := MultiMesh.new()
 		tmesh2.transform_format = MultiMesh.TRANSFORM_3D
-		tmesh2.mesh = cu
+		tmesh2.mesh = _shared_prop_cyl(0.14, 0.22, 1.0)  # unit: per-instance scale stretches it
 		tmesh2.instance_count = batch_xforms.size()
 		for t in range(batch_xforms.size()):
 			tmesh2.set_instance_transform(t, batch_xforms[t])
@@ -2150,12 +2147,9 @@ func _apply_tree_sites(face: int, sites: Array, patch_node: Node3D) -> Array:
 		tmt.roughness = 1.0
 		tmi.material_override = tmt
 		patch_node.add_child(tmi)
-		var sm := SphereMesh.new()
-		sm.radius = 1.0
-		sm.height = 1.0
 		var mmesh2 := MultiMesh.new()
 		mmesh2.transform_format = MultiMesh.TRANSFORM_3D
-		mmesh2.mesh = sm
+		mmesh2.mesh = _shared_prop_sphere(1.0, 1.0)
 		mmesh2.instance_count = canopy_batch_xforms.size()
 		for t in range(canopy_batch_xforms.size()):
 			mmesh2.set_instance_transform(t, canopy_batch_xforms[t])
@@ -2313,20 +2307,13 @@ func _apply_detail_sites(face: int, sites: Array, patch_node: Node3D) -> void:
 			bloom.name = "Flower%d" % i
 			bloom.position = rec["pos"]
 			var stem := MeshInstance3D.new()
-			var cm_fl := CylinderMesh.new()
 			var stem_h: float = float(rec["stem_h"])
-			cm_fl.top_radius = 0.02
-			cm_fl.bottom_radius = 0.03
-			cm_fl.height = stem_h
-			stem.mesh = cm_fl
+			stem.mesh = _shared_prop_cyl(0.02, 0.03, stem_h)
 			stem.material_override = _bloom_stem_material()
 			stem.position = Vector3(0.0, stem_h * 0.5, 0.0)
 			var head := MeshInstance3D.new()
-			var hm_fl := SphereMesh.new()
 			var r_h: float = float(rec["r_h"])
-			hm_fl.radius = r_h
-			hm_fl.height = r_h * 1.3
-			head.mesh = hm_fl
+			head.mesh = _shared_prop_sphere(r_h, 1.3)
 			head.material_override = _bloom_head_material(int(rec["pal"]))
 			head.position = Vector3(0.0, stem_h + r_h * 0.25, 0.0)
 			bloom.add_child(stem)
@@ -2354,27 +2341,20 @@ func _apply_detail_sites(face: int, sites: Array, patch_node: Node3D) -> void:
 				Color(0.55, 0.36, 0.62),
 			][pal_idx]
 			var cpp_stem := MeshInstance3D.new()
-			var sm_sh := CylinderMesh.new()
 			var stem_h_m: float = float(rec["stem_h"])
-			sm_sh.top_radius = 0.035
-			sm_sh.bottom_radius = 0.055
-			sm_sh.height = stem_h_m
 			var stem_mat := StandardMaterial3D.new()
 			stem_mat.albedo_color = Color(0.78, 0.74, 0.66)
 			stem_mat.roughness = 1.0
-			cpp_stem.mesh = sm_sh
+			cpp_stem.mesh = _shared_prop_cyl(0.035, 0.055, stem_h_m)
 			cpp_stem.material_override = stem_mat
 			cpp_stem.position = Vector3(0.0, stem_h_m * 0.5, 0.0)
 			fungi.add_child(cpp_stem)
 			var cpp_cap := MeshInstance3D.new()
-			var hm_sh := SphereMesh.new()
 			var cap_r_m: float = float(rec["cap_r"])
-			hm_sh.radius = cap_r_m
-			hm_sh.height = cap_r_m * 0.9  # squat cap, not a full ball
 			var cap_mat := StandardMaterial3D.new()
 			cap_mat.albedo_color = fungal_c
 			cap_mat.roughness = 0.8
-			cpp_cap.mesh = hm_sh
+			cpp_cap.mesh = _shared_prop_sphere(cap_r_m, 0.9)  # squat cap, not a full ball
 			cpp_cap.material_override = cap_mat
 			cpp_cap.position = Vector3(0.0, stem_h_m + cap_r_m * 0.2, 0.0)
 			fungi.add_child(cpp_cap)
@@ -2391,10 +2371,7 @@ func _apply_detail_sites(face: int, sites: Array, patch_node: Node3D) -> void:
 			_register_harvest_node(face, i, "res_mooncap", dir, 240.0)
 		elif int(rec["kind"]) == _DPROP_MYECLIUM:
 			var patch_n := MeshInstance3D.new()
-			var pm_p := SphereMesh.new()
 			var pr_m: float = float(rec["patch_r"])
-			pm_p.radius = pr_m
-			pm_p.height = pr_m * 0.12  # a pancake on the ground
 			var mat_p := StandardMaterial3D.new()
 			mat_p.roughness = 0.55
 			var pv: float = float(rec["hue"])
@@ -2402,21 +2379,18 @@ func _apply_detail_sites(face: int, sites: Array, patch_node: Node3D) -> void:
 			mat_p.emission_enabled = true
 			mat_p.emission = Color(0.42, 0.22, 0.55).lerp(Color(0.20, 0.55, 0.50), pv)
 			mat_p.emission_energy_multiplier = 1.2
-			patch_n.mesh = pm_p
+			patch_n.mesh = _shared_prop_sphere(pr_m, 0.12)  # a pancake on the ground
 			patch_n.material_override = mat_p
 			patch_n.name = "Mycelium%d" % i
 			patch_n.position = rec["pos"]
 			patch_node.add_child(patch_n)
 		elif int(rec["kind"]) == _DPROP_ORE:
 			var prop_o := MeshInstance3D.new()
-			var om := SphereMesh.new()
 			var r_o: float = float(rec["r_o"])
-			om.radius = r_o
-			om.height = r_o * 1.6
 			var mat_o := StandardMaterial3D.new()
 			mat_o.roughness = 1.0
 			mat_o.albedo_color = Color(0.35, 0.33, 0.36)
-			prop_o.mesh = om
+			prop_o.mesh = _shared_prop_sphere(r_o, 1.6)
 			prop_o.material_override = mat_o
 			prop_o.name = "Ore%d" % i
 			prop_o.position = rec["pos"]
@@ -2424,14 +2398,10 @@ func _apply_detail_sites(face: int, sites: Array, patch_node: Node3D) -> void:
 			_register_harvest_node(face, i, "res_iron_ore", dir, 90.0)
 		elif int(rec["kind"]) == _DPROP_CATTAIL:
 			var prop_c := MeshInstance3D.new()
-			var cm := CylinderMesh.new()
-			cm.top_radius = 0.03
-			cm.bottom_radius = 0.05
-			cm.height = float(rec["h"])
 			var mat_c := StandardMaterial3D.new()
 			mat_c.roughness = 1.0
 			mat_c.albedo_color = Color(0.30, 0.38, 0.20)
-			prop_c.mesh = cm
+			prop_c.mesh = _shared_prop_cyl(0.03, 0.05, float(rec["h"]))
 			prop_c.material_override = mat_c
 			prop_c.name = "Cattail%d" % i
 			prop_c.position = rec["pos"]
@@ -2444,14 +2414,11 @@ func _apply_detail_sites(face: int, sites: Array, patch_node: Node3D) -> void:
 			# Bush: a squat green sphere (the gather law rides the apply
 			# pass -- service registration is a main-thread side effect).
 			var prop_b := MeshInstance3D.new()
-			var bm := SphereMesh.new()
 			var r_b: float = float(rec["r_b"])
-			bm.radius = r_b
-			bm.height = r_b * 1.4
 			var mat_b := StandardMaterial3D.new()
 			mat_b.roughness = 1.0
 			mat_b.albedo_color = Color(rec["tint_r"], rec["tint_g"], 0.18)
-			prop_b.mesh = bm
+			prop_b.mesh = _shared_prop_sphere(r_b, 1.4)
 			prop_b.material_override = mat_b
 			prop_b.name = "Bush%d" % i
 			prop_b.position = rec["pos"]
@@ -2607,8 +2574,9 @@ func _apply_grass_field(grass: Dictionary, patch_node: Node3D) -> void:
 	var gm := MultiMesh.new()
 	gm.transform_format = MultiMesh.TRANSFORM_3D
 	gm.mesh = _tuft_mesh()
-	gm.instance_count = xforms.size()
+	# use_colors must flip while instance_count is still 0 (engine law).
 	gm.use_colors = true
+	gm.instance_count = xforms.size()
 	var majority: int = -1
 	var tally := {}  # biome id -> instance count (the majority's material)
 	for t in range(xforms.size()):
@@ -2871,6 +2839,16 @@ var _mesh_mutex := Mutex.new()
 var _mesh_jobs := {}       # face -> true while a derive is in flight
 var _mesh_results := {}    # face -> {"lvl": int, "data": Dictionary}
 var _mesh_threads := {}    # face -> Thread (reaped in the applier)
+## The lane ledger (per-job derive wall): the >=4-core projection's
+## input -- see mesh_lane_stats() and bench_coldboot_wall.
+var _mesh_lane_jobs := 0
+var _mesh_lane_ms := 0
+var _mesh_lane_ms_max := 0
+
+## Lane accounting for the boot-wall bench: jobs derived, total and
+## largest worker derive wall in ms.
+func mesh_lane_stats() -> Dictionary:
+	return {"jobs": _mesh_lane_jobs, "ms": _mesh_lane_ms, "max_ms": _mesh_lane_ms_max}
 
 ## Threading gate: same criteria as the prop lane (the LOD terrain
 ## walk only; the prototype's flat shell keeps the sync law). The
@@ -2910,10 +2888,15 @@ func _kick_mesh_derivation(face: int, use_lvl: int) -> void:
 func _mesh_derive_job(face: int, use_lvl: int) -> void:
 	# Runs OFF the main thread. PURE derive only (the whole reason the
 	# split above exists); the result crosses the mutex; the erection
-	# is queued back to the main thread.
+	# is queued back to the main thread. The derive wall is recorded
+	# per job -- the >=4-core projection model's input (see
+	# bench_coldboot_wall: on a contended 2-core host it OVERSTATES
+	# serial work; on real hardware it is the per-face CPU price).
+	var t_ms: int = Time.get_ticks_msec()
 	var data: Dictionary = _derive_mesh_data(face, use_lvl)
+	var job_ms: int = Time.get_ticks_msec() - t_ms
 	_mesh_mutex.lock()
-	_mesh_results[face] = {"lvl": use_lvl, "data": data}
+	_mesh_results[face] = {"lvl": use_lvl, "data": data, "ms": job_ms}
 	_mesh_mutex.unlock()
 	Callable(self, "_apply_derived_mesh").call_deferred(face)
 
@@ -2931,6 +2914,12 @@ func _apply_derived_mesh(face: int) -> void:
 	if packed == null:
 		_mesh_jobs.erase(face)
 		return
+	# THE LANE LEDGER: per-job derive wall accumulates here (the
+	# projection model's raw material -- which face took which).
+	var job_ms: int = int(packed.get("ms", 0))
+	_mesh_lane_jobs += 1
+	_mesh_lane_ms += job_ms
+	_mesh_lane_ms_max = maxi(_mesh_lane_ms_max, job_ms)
 	var use_lvl: int = int(packed["lvl"])
 	# THE STALE-LEVEL LAW: the demand may have moved while the lane
 	# was in flight. A stale result is never WASTED -- the node is

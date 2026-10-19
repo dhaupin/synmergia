@@ -54,5 +54,25 @@ func _run() -> void:
 	# worker contention) lives OUTSIDE this number.
 	print("LANE=%s BOOT_WALL_MS=%d STREAMER_MS=%d STEADY_FRAMES=%d STEADY_MS=%d FACES_BOOT=%d FACES_STEADY=%d TRIS=%d" \
 		% ["ASYNC" if lanes_on else "SYNC", wall, st.last_update_ms, drained, steady_ms, faces_boot, faces_steady, st.triangle_count()])
+	# THE >=4-CORE PROJECTION (a MODEL, explicitly not a measurement):
+	# the sync law pays 4 serial cold builds; the lane law pays the
+	# boot face synchronously and the 3 neighbors on the workers. On
+	# this 2-core container the worker walls are contention-inflated
+	# (~2x), so the projection is an UPPER bound on serial work. On a
+	# C-core host the projected boot mesh wall is
+	#   t_face + (sum of neighbor derives) / (C - 1)
+	# with t_face proxied by the lane's largest single derive (same
+	# content class as the boot face). The REAL number is one
+	# ASYNC_MESH=on call on such hardware.
+	if lanes_on:
+		var ls: Dictionary = st.mesh_lane_stats()
+		var t_face: float = float(ls.max_ms)
+		var neighbor_ms: float = maxf(0.0, float(ls.ms) - t_face)
+		var jobs: int = int(ls.jobs)
+		if jobs > 0:
+			for c in [4, 8]:
+				var proj: float = t_face + neighbor_ms / float(maxi(c - 1, 1))
+				print("PROJECTION C=%d BOOT_MESH_MS=%.0f (upper-bound model; worker walls on this host sum=%.0f ms over %d jobs, max=%.0f)" \
+					% [c, proj, float(ls.ms), jobs, t_face])
 	globe.queue_free()
 	quit(0)
