@@ -281,7 +281,31 @@ that won't set COOP/COEP cannot serve the threaded client.
 
 ## 5. Rate limiting / QoS against gate brute-force
 
-Cloudflare (free plan) → Security → WAF → **Rate limiting rules**:
+**Cost decision (2026-10-19): the Cloudflare WAF rate-limiting
+product is a paid line item and is deliberately OFF.** The defense
+that applies instead is layered, free, and already in place:
+
+1. **Client gate cooldown** (`src/lib/gate.ts`): 5 s doubling → 5 min
+   cap per page load — the primary friction for humans and naive
+   scripts. This is the graceful fallback when nothing else is on:
+   gates are pure client-side compares of a bundled hash, so a
+   server limiter can never make the gate UI stricter anyway.
+2. **In-Function per-IP limiter** (`functions/rate-limiter.js`, wired
+   into both `game.wasm.js` and `game.pck.js`): the multi-MB streaming
+   endpoints rate-limit themselves loosely per IP (wasm 30/min, pck
+   60/min), fail-open on any limiter error, and never buffer. Sized
+   so real page loads can never trip it; it stops bandwidth bleeds,
+   not determined attackers (same honest threat model as §3). Workers
+   isolates are ephemeral, so the window is approximate per colo —
+   good enough for QoS, not a security boundary.
+3. **Loopback-bound bridges** (see main DEPLOY.md): admin/persistence
+   endpoints are only reachable behind the Pages proxy with origin
+   checks; the web layer never exposes them directly.
+
+If the paid WAF is turned on later, it slots in as layer 4; nothing
+in the Functions changes. Skip the dashboard rules until then.
+
+**WAF rules paste-ready (for the day they get bought):**
 
 ```
 Name:      synmergia-gate-bruteforce
@@ -294,11 +318,6 @@ Action:    Block for 10 minutes
 
 Notes:
 - These thresholds assume humans + bots, tuned for a solo operator.
-- The static gate does not make server requests per attempt, so the
-  *effective* lever is the client retry-cooldown in
-  `src/lib/gate.ts` (5 s doubling → 5 min cap, per page load) — the
-  WAF rule is the defense-in-depth layer for scripted abuse that
-  skips the UI.
 - The itch.io port has its own rate machinery (they throttle page
   loads natively); no extra rule needed for that surface.
 
@@ -308,8 +327,8 @@ Notes:
 
 - [x] `VITE_GAME_PASSWORD_SHA` set in Pages prod env (2026-10-19)
 - [x] `VITE_ADMIN_PASSWORD_SHA` set in Pages prod env (2026-10-19)
-- [ ] WAF rate rules active for `/admin` and `/play` (§5, paste-ready
-      values below — the one remaining dashboard task)
+- [x] In-Function QoS on the R2 streaming endpoints (rate-limiter.js,
+      wired 2026-10-19) — no paid WAF needed
 - [x] `_headers` deployed (COOP/COEP verified live 2026-10-19)
 - [x] `/game/game.pck.hash` live and equal to the tracked file
       (verified byte-equal at deploy; CI re-anchors on every push)

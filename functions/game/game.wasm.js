@@ -15,7 +15,14 @@
 //
 // Byte range: Godot's loader can issue Range requests on the engine;
 // parse the header and hand R2 the proper {offset,length|suffix}.
+//
+// QoS law (WAF-off fallback): the paid WAF rate rules are OFF, so this
+// Function rate-limits per IP itself (see ../rate-limiter.js) — tuned
+// loose enough that a page load + Godot's Range retries can never trip
+// it, tight enough that bandwidth-bleed scripts stop. Fail-open.
+import { RateLimiter, rateGate } from "../rate-limiter.js";
 const ONE_DAY = 86400;
+const WASM_LIMIT = new RateLimiter({ maxRequests: 30, windowMs: 60000 });
 
 function parseRange(header) {
 	const m = /^bytes=(\d*)-(\d*)$/.exec(header || "");
@@ -30,6 +37,9 @@ function parseRange(header) {
 }
 
 export const onRequest = async (ctx) => {
+	const throttled = rateGate(WASM_LIMIT, ctx.request, "game.wasm");
+	if (throttled) return throttled;
+
 	const bucket = ctx.env.R2_GAME_WASM;
 	if (!bucket) {
 		return new Response(

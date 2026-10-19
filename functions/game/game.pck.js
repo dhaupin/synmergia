@@ -19,7 +19,12 @@
 // the shell still fetches game.pck?v=<hash>. This function ignores
 // the query for R2 lookup (the cache key) but honors it for edge
 // caching semantics per the worker prior-art in web/worker.js.
+//
+// QoS law (WAF-off fallback): same per-IP limiter as the wasm
+// Function (../rate-limiter.js) — sized for solo play; fail-open.
+import { RateLimiter, rateGate } from "../rate-limiter.js";
 const ONE_DAY = 86400;
+const PCK_LIMIT = new RateLimiter({ maxRequests: 60, windowMs: 60000 });
 
 function parseRange(header) {
 	const m = /^bytes=(\d*)-(\d*)$/.exec(header || "");
@@ -34,6 +39,9 @@ function parseRange(header) {
 }
 
 export const onRequest = async (ctx) => {
+	const throttled = rateGate(PCK_LIMIT, ctx.request, "game.pck");
+	if (throttled) return throttled;
+
 	const bucket = ctx.env.R2_GAME_WASM;
 
 	if (bucket) {
