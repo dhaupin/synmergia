@@ -58,4 +58,12 @@ func _run() -> void:
 	var end_mb: float = _mem_mb()
 	print("RAM_PEAK=%.0f MB  RAM_END=%.0f MB  WALK_DELTA=%+.1f MB" % [peak, end_mb, end_mb - baseline])
 	print("RING_FINAL_SIZE=%d (bound 24)" % st._mesh_cache_order.size())
+	# v9: quit with live worker lanes RACES the engine's script teardown
+	# (the mid-flight calls log phantom SCRIPT ERRORs -- shutdown noise,
+	# never an accounting error). The verdicts above are printed; this
+	# is only the clean-exit drain so a battery run reads residue-free.
+	var drain: int = 0
+	while st.pending_derive() > 0 and drain < 1800:
+		await root.get_tree().physics_frame
+		drain += 1
 	quit(0)

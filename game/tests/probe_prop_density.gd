@@ -50,9 +50,11 @@ func _run() -> void:
 			print("BOOT_MS_after", _i + 1, "physics=", Time.get_ticks_msec() - t0)
 	# THE ASYNC PROP LAW (v6): trees/details/grass derive on worker
 	# threads; the census waits for the pending derive jobs to drain
-	# (bounded) before counting.
+	# (bounded) before counting. v9: the MESH lane rides the same
+	# drain (pending_derive covers both) -- the neighbor patches land
+	# off-thread now, and the census reads a steady world.
 	var waited := 0
-	while _globe.get("streamer")._prop_pending() > 0 and waited < 1200:
+	while _globe.get("streamer").pending_derive() > 0 and waited < 1200:
 		await root.get_tree().physics_frame
 		waited += 1
 	print("PENDING_DRAINED_after=", waited + 90, " frames, tmsec=", Time.get_ticks_msec() - t0)

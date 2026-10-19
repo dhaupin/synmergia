@@ -31,7 +31,10 @@ func _run() -> void:
 		await root.get_tree().physics_frame
 	var streamer = _globe.get("streamer")
 	var waited := 0
-	while streamer._prop_pending() > 0 and waited < 600:
+	# v9: pending_derive covers BOTH async lanes (mesh + prop) -- the
+	# neighbor patches land off-thread now, so the census waits on
+	# them too before counting.
+	while streamer.pending_derive() > 0 and waited < 600:
 		await root.get_tree().physics_frame
 		waited += 1
 	var n_faces := 0

@@ -30,6 +30,13 @@ func _run() -> void:
 		await root.get_tree().physics_frame
 
 	var streamer = _globe.get("streamer")
+	# v9 MESH THREAD: the neighbor patches derive off-thread; the gap
+	# census compares the DRAWN surface's full near-band, so it waits
+	# (bounded) for both async lanes before reading meshes.
+	var drainage := 0
+	while streamer.pending_derive() > 0 and drainage < 1800:
+		await root.get_tree().physics_frame
+		drainage += 1
 	var player = _globe.get("player")
 	var planet_center: Vector3 = _globe.get("planet_center")
 	var radius_pl: float = _globe.get("planet_radius")

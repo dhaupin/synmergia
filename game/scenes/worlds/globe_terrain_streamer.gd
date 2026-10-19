@@ -72,6 +72,9 @@ var radius: float = 100.0
 var target_patch_edge: float = 7.0
 
 var current_face: int = -1
+## Bench metric (cumulative ms spent inside update() -- the boot
+## bench isolates the mesh law from the fixed non-mesh boot block).
+var last_update_ms: int = 0
 var parent: Node3D
 ## World seed bytes for deterministic content (TerrainGen).
 var world_seed: PackedByteArray = PackedByteArray()
@@ -207,12 +210,16 @@ func update(player_pos: Vector3) -> Dictionary:
 	# player.global_position - planet_center). Planet-relative coords
 	# are invariant under floating-origin shifts, so face addressing
 	# never sees the shift at all.
+	# The bench metric: the streamer's OWN wall time per call (the
+	# boot's non-mesh block -- villages, HUD, GLBs -- is not this).
+	var _t_ms: int = Time.get_ticks_msec()
 	var f: int = FacePatches.face_for_position(player_pos, radius)
 	var player_dir: Vector3 = player_pos.normalized()  # the NEAR law's direction (not the face center)
 	_last_player_dir = player_dir
 	var lod_changed: Array = []
 	if f == current_face:
 		_lod_enforce(player_dir, lod_changed)
+		last_update_ms += Time.get_ticks_msec() - _t_ms
 		return {"face": f, "loaded": lod_changed, "unloaded": [], "active": _patches.keys()}
 	var old: int = current_face
 	current_face = f
@@ -225,8 +232,18 @@ func update(player_pos: Vector3) -> Dictionary:
 	var unloaded: Array = []
 	for face in want:
 		if not _patches.has(face):
-			_load_patch(face, _demanded_level(face, player_dir, int(_patch_lvl.get(face, -1))))
-			loaded.append(face)
+			var dem: int = _demanded_level(face, player_dir, int(_patch_lvl.get(face, -1)))
+			# v9 MESH THREAD: the boot's OWN face installs SYNC (the walk
+			# pad's ground is underfoot in this frame); the 3 non-current
+			# faces derive on the worker lanes and install as they land,
+			# so the cold boot wall pays ONE cold build, not four.
+			# Threadless/prototype hosts collapse to the sync law.
+			if face == f or not _mesh_async():
+				_load_patch(face, dem)
+				loaded.append(face)
+			else:
+				_kick_mesh_derivation(face, dem)
+				loaded.append(face)
 	_lod_enforce(player_dir, loaded)
 	for face in _patches.keys():
 		if not want.has(face):
@@ -234,6 +251,7 @@ func update(player_pos: Vector3) -> Dictionary:
 			unloaded.append(face)
 	if old >= 0:
 		face_changed.emit(old, f)
+	last_update_ms += Time.get_ticks_msec() - _t_ms
 	return {"face": f, "loaded": loaded, "unloaded": unloaded, "active": _patches.keys()}
 
 
@@ -343,6 +361,14 @@ func _lod_enforce(player_dir: Vector3, out_loaded: Array) -> void:
 		var cur: int = int(_patch_lvl.get(face, -1))
 		var want_lvl: int = _demanded_level(face, player_dir, cur)
 		if want_lvl != cur:
+			# v9 MESH THREAD: a live patch's level change rides the worker
+			# lane when it owns a prop holder (the hot graft at apply
+			# time -- the old node stays underfoot until the swap). The
+			# current-face and threadless laws keep the sync rebuild.
+			if _mesh_async() and _prop_holders.has(face):
+				_kick_mesh_derivation(face, want_lvl)
+				out_loaded.append(face)
+				continue
 			# THE PERF-LEG STASH: the demoting/re-promoting node's built
 			# geometry lands in the (face, level) ring before the
 			# rebuild runs, so the ping-pong climb-back is a graft,
@@ -450,6 +476,11 @@ func _hot_reload(face: int, use_lvl: int) -> bool:
 		at.add_child(fresh)
 		fresh.global_transform = old_mi.global_transform if old_mi.is_inside_tree() else fresh.global_transform
 	_patches[face] = fresh
+	if fresh.has_meta("tris"):
+		# v9 bookkeeping fix: the fresh node carries its tris meta; the
+		# old hot path left _patch_tris at the OLD level's count.
+		_patch_tris[face] = int(fresh.get_meta("tris"))
+		fresh.remove_meta("tris")
 	old_mi.queue_free()
 	return true
 
@@ -462,11 +493,33 @@ func _props_move(face: int, new_mesh_node: MeshInstance3D) -> Node3D:
 
 ## Build the patch mesh at a level (the pure geometry; no props, no
 ## bookkeeping). The full _load_patch now delegates here + spawns.
+## ===== THE MESH DERIVE / ERECT SPLIT (v9 threading) ============
+## ONE geometry law, TWO lanes. The derive (corner sweep + tint
+## surface + skirts + water + deck arrays) is a PURE function of
+## (face, level, seed, law): it touches no streamer dict -- so it
+## runs on a worker thread exactly like the v6 prop derive. The
+## ERECTION (ArrayMesh attach, face materials, overrides, meta) has
+## node/dict laws only the main thread may touch, so it stays there.
+## The sync path is derive+erect back to back: the SAME bytes whichever
+## lane ran (a worker-built patch installs identical to a synchronously
+## built one -- which is what makes the warm ring and the hot graft
+## safe across both). Terrain reads ride the LOCKED sector caches,
+## shared with the prop derive legs.
+##
+## Sync callers (boot's own face, the warm-ring stock misses, benches)
+## keep the exact old signature; async callers go
+## _kick -> _derive_mesh_data (worker) -> _apply_derived_mesh (main).
 func _build_mesh(face: int, use_lvl: int) -> MeshInstance3D:
 	## One face's MESH at a level (geometry + skirts; no props, no
 	## bookkeeping). Returns a node NOT yet in the tree -- the caller
 	## decides its parent (cold spawn vs hot swap).
 	_patch_lvl[face] = use_lvl
+	return _erect_mesh(face, use_lvl, _derive_mesh_data(face, use_lvl))
+
+
+## The PURE derive: everything about the patch's geometry that does
+## not touch a streamer dict. Worker-legal by construction.
+func _derive_mesh_data(face: int, use_lvl: int) -> Dictionary:
 	var fv: PackedInt32Array = FacePatches.face_vertices(face)
 	var tile_r: float = radius + TILE_LIFT
 	var center: Vector3 = FacePatches.face_center(face) * tile_r
@@ -550,7 +603,7 @@ func _build_mesh(face: int, use_lvl: int) -> MeshInstance3D:
 		## dimming all in one law); the prototype (terrain off) keeps the
 		## S7 face tints. Slope comes from the height cache: gradient of
 		## the two nearest sampled neighbors.
-			var col: Color = _tint_for(face)
+			var col: Color = _tint_for_pure(face)
 			if terrain_on:
 				# Slope: read from the fused per-corner cache (dict-only
 				# after the corner fusion above).
@@ -561,21 +614,7 @@ func _build_mesh(face: int, use_lvl: int) -> MeshInstance3D:
 			# Planar UVs wrapped to [0,1) (the round-12 web law).
 			st.set_uv(Vector2(fposmod(v.x * 0.0015, 1.0), fposmod(v.z * 0.0015, 1.0)))
 			st.add_vertex(d_abs * r_abs - center)
-	var mesh: ArrayMesh = st.commit()
-
-	var mi := MeshInstance3D.new()
-	mi.mesh = mesh
-	mi.name = "Patch%d" % face
-	var mat: StandardMaterial3D = _patch_mats.get(face)
-	if mat == null:
-		mat = StandardMaterial3D.new()
-		mat.vertex_color_use_as_albedo = true
-		mat.roughness = 0.95
-		mat.albedo_texture = _make_checker_texture()
-		mat.uv1_scale = Vector3(1, 1, 1)
-		_patch_mats[face] = mat
-	mi.set_surface_override_material(0, mat)
-	mi.position = center
+	var main_arrays: Array = st.commit_to_arrays()
 
 	# -- Skirts (the T-junction repair, TAPERED) --------------------------
 	# Border edges = triangle edges used by exactly ONE triangle. The
@@ -636,7 +675,7 @@ func _build_mesh(face: int, use_lvl: int) -> MeshInstance3D:
 		var v1: Vector3 = sd1 * sr1 - center
 		var v0d: Vector3 = sd0 * (sr0 - depth) - center
 		var v1d: Vector3 = sd1 * (sr1 - depth) - center
-		var c0: Color = _tint_for(face)
+		var c0: Color = _tint_for_pure(face)
 		if terrain_on:
 			## v3 CLIMATE ARC (slice 2): the skirt's top color rides the
 		## SAME biome vertex law (its bottom fades dark like today).
@@ -649,24 +688,71 @@ func _build_mesh(face: int, use_lvl: int) -> MeshInstance3D:
 		st2.set_normal(sd1); st2.set_color(c0d); st2.add_vertex(v1d)
 		st2.set_normal(sd0); st2.set_color(c0d); st2.add_vertex(v0d)
 		skirt_tris += 2
-	_patch_skirt_tris[face] = skirt_tris
+	# The skirt arrays pass through as-is when the border existed.
+	var skirt_arrays: Variant = null
 	if skirt_tris > 0:
 		var skirt_mesh: ArrayMesh = st2.commit()
-		mi.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, skirt_mesh.surface_get_arrays(0))
+		skirt_arrays = skirt_mesh.surface_get_arrays(0)
+
+	## v3 HYDROLOGY (slice 3): the WATER SURFACE surfaces under the
+	## gated table law and v7's road deck both derive as pure arrays
+	## here; the erection adds them to the node later.
+	var water_d: Dictionary = _derive_water(face, verts, center, dir_h)
+	var deck_d: Dictionary = _derive_deck(face, center)
+	return {
+		"center": center,
+		"tris": verts.size(),
+		"main_arrays": main_arrays,
+		"skirt_arrays": skirt_arrays,
+		"skirt_tris": skirt_tris,
+		"water_arrays": water_d.get("arrays"),
+		"water_tris": int(water_d.get("tris", 0)),
+		"deck_arrays": deck_d.get("arrays"),
+		"deck_quads": int(deck_d.get("quads", 0)),
+	}
+
+
+## The ERECTION (main-thread half): builds MeshInstance3D from the
+## derive result. All streamer-dict and material/object laws live
+## HERE. Called by the sync path AND the async applier -- one node
+## law, two lanes. NOTE: it does NOT stamp _patch_lvl -- the stale
+## branches erect nodes whose level must not overwrite the LIVE
+## stamp; callers stamp explicitly (_build_mesh, the applier swap).
+func _erect_mesh(face: int, use_lvl: int, d: Dictionary) -> MeshInstance3D:
+	_patch_skirt_tris[face] = int(d["skirt_tris"])
+	_patch_water_tris[face] = int(d["water_tris"])
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, d["main_arrays"])
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.name = "Patch%d" % face
+	var mat: StandardMaterial3D = _patch_mats.get(face)
+	if mat == null:
+		mat = StandardMaterial3D.new()
+		mat.vertex_color_use_as_albedo = true
+		mat.roughness = 0.95
+		mat.albedo_texture = _make_checker_texture()
+		mat.uv1_scale = Vector3(1, 1, 1)
+		_patch_mats[face] = mat
+	mi.set_surface_override_material(0, mat)
+	mi.position = d["center"]
+	if d["skirt_arrays"] != null:
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, d["skirt_arrays"])
 		mi.set_surface_override_material(1, _skirt_material(face))
-	## v3 HYDROLOGY (slice 3): the WATER SURFACE (surface 2) -- the
-	## standing-water law the height law holds (gated table over carved
-	## bed), tiled at the patch's own tile triangulation; vertices ABOVE
-	## water are dropped (no sheet over dry land). -1e9 dirs are dry:
-	## the quad collapses out of the surface.
-	var water_tris: int = _water_surface(face, mi, verts, center, dir_h)
-	_patch_water_tris[face] = water_tris
-	# THE RAISED ROAD DECK (v7 polish, surface 3): the real cartway --
-	# a quad ribbon per road node at the carved law's own bed/deck
-	# height (the walk law and the planks agree exactly).
-	var deck_quads: int = _raised_road_deck(face, mi, center)
-	mi.set_meta("deck_quads", deck_quads)
-	mi.set_meta("tris", verts.size())
+	if d["water_arrays"] != null:
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, d["water_arrays"])
+		var wmat := StandardMaterial3D.new()
+		wmat.albedo_color = Color(0.24, 0.42, 0.50)
+		wmat.roughness = 0.1
+		mi.set_surface_override_material(2, wmat)
+	if d["deck_arrays"] != null:
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, d["deck_arrays"])
+		var dmat := StandardMaterial3D.new()
+		dmat.albedo_color = DECK_PLANK_COLOR
+		dmat.roughness = 0.95
+		mi.set_surface_override_material(3, dmat)
+	mi.set_meta("deck_quads", int(d["deck_quads"]))
+	mi.set_meta("tris", int(d["tris"]))
 	return mi
 
 
@@ -679,8 +765,28 @@ func _build_mesh(face: int, use_lvl: int) -> MeshInstance3D:
 ## underwater patch floor + a slightly-too-small pond reads better
 ## than paper-thin sheets). Returns water tri count (probe/debug).
 func _water_surface(face: int, mi: MeshInstance3D, verts: Array, center: Vector3, dir_h: Dictionary) -> int:
+	# SYNC COMPAT WRAPPER: the derive phase now lives in _derive_water
+	# (pure, worker-legal); this keeps the old surface-on-a-node shape
+	# for any caller of the pre-split signature. Same tables, same
+	# law (the erection of the water surface + its material rides the
+	# caller, exactly as before).
+	var d: Dictionary = _derive_water(face, verts, center, dir_h)
+	if d.get("arrays") == null:
+		return 0
+	mi.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, d["arrays"])
+	var wmat := StandardMaterial3D.new()
+	wmat.albedo_color = Color(0.24, 0.42, 0.50)
+	wmat.roughness = 0.1
+	mi.set_surface_override_material(2, wmat)
+	return int(d["tris"])
+
+
+## The PURE water derive: the same standing-water law, packaged as a
+## result dict. No node, no dict writes -- worker-legal.
+func _derive_water(face: int, verts: Array, center: Vector3, dir_h: Dictionary) -> Dictionary:
+	var empty := {"arrays": null, "tris": 0}
 	if not terrain_on:
-		return 0  # prototype: the shell owns water (no standing lakes yet)
+		return empty  # prototype: the shell owns water (no standing lakes yet)
 	var t_r: float = radius + TILE_LIFT
 	var st_w := SurfaceTool.new()
 	st_w.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -735,12 +841,8 @@ func _water_surface(face: int, mi: MeshInstance3D, verts: Array, center: Vector3
 		# the arrays, so every sheet since slice 3 died at this line
 		# (the engine's Object-to-Array complaint). commit_to_arrays()
 		# hands over the actual primitive arrays.
-		mi.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, st_w.commit_to_arrays())
-		var wmat := StandardMaterial3D.new()
-		wmat.albedo_color = Color(0.24, 0.42, 0.50)
-		wmat.roughness = 0.1
-		mi.set_surface_override_material(2, wmat)
-	return water_tris
+		return {"arrays": st_w.commit_to_arrays(), "tris": water_tris}
+	return empty
 
 
 ## THE RAISED ROAD DECK (v7 polish): the deck segments the carved
@@ -757,8 +859,25 @@ const DECK_RIBBON_HALF: float = 0.0032  # ~64 m cartway half-width (arc)
 const DECK_PLANK_COLOR := Color(0.44, 0.33, 0.22)
 
 func _raised_road_deck(face: int, mi: MeshInstance3D, center: Vector3) -> int:
-	if not terrain_on:
+	# SYNC COMPAT WRAPPER: the derive phase lives in _derive_deck
+	# (pure, worker-legal); this keeps the old surface-on-a-node shape
+	# for the pre-split signature (same ribbon law, same counts).
+	var d: Dictionary = _derive_deck(face, center)
+	if d.get("arrays") == null:
 		return 0
+	mi.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, d["arrays"])
+	var dmat := StandardMaterial3D.new()
+	dmat.albedo_color = DECK_PLANK_COLOR
+	dmat.roughness = 0.95
+	mi.set_surface_override_material(3, dmat)
+	return int(d["quads"])
+
+
+## The PURE deck derive: the ribbon law as arrays. No node writes.
+func _derive_deck(face: int, center: Vector3) -> Dictionary:
+	var empty := {"arrays": null, "quads": 0}
+	if not terrain_on:
+		return empty
 	var spec: TerrainGen.RoadSpec = TerrainGen.road_spec_cached(world_seed)
 	var path: PackedVector3Array = spec.path
 	var t_r: float = radius + TILE_LIFT
@@ -801,12 +920,8 @@ func _raised_road_deck(face: int, mi: MeshInstance3D, center: Vector3) -> int:
 			st.add_vertex(p)
 		quads += 1
 	if quads > 0:
-		mi.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, st.commit_to_arrays())
-		var dmat := StandardMaterial3D.new()
-		dmat.albedo_color = DECK_PLANK_COLOR
-		dmat.roughness = 0.95
-		mi.set_surface_override_material(3, dmat)
-	return quads
+		return {"arrays": st.commit_to_arrays(), "quads": quads}
+	return empty
 
 
 ## Emit ONE water triangle for tile `tri` at radius (tile_r + t_h)
@@ -842,6 +957,14 @@ func _load_patch(face: int, level: int = -1) -> void:
 	# instead of holding the planet. The stock rewrites the
 	# bookkeeping like _hot_reload does.
 	var mi: MeshInstance3D = _mesh_cache_stock(face, use_lvl)
+	_install_loaded_mesh(face, use_lvl, mi)
+
+
+## The install tail shared by the COLD path (fresh mesh node straight
+## into the tree) and the v9 ASYNC APPLIER (a worker-derived mesh
+## landing while the walk moved on): bookkeeping, walk law closure,
+## prop holder + spawns. One install law, both lanes.
+func _install_loaded_mesh(face: int, use_lvl: int, mi: MeshInstance3D) -> void:
 	parent.add_child(mi)
 	_patches[face] = mi
 	if mi.has_meta("tris"):
@@ -2649,12 +2772,14 @@ func _mesh_cache_key(face: int, lvl: int) -> String:
 
 ## Offer a built mesh node to the cache. Records its level (the
 ## builder's stamp), detaches it from the tree, and frees evicted
-## ring tails at the bound.
-func _mesh_cache_stash(face: int, mi: MeshInstance3D) -> void:
+## ring tails at the bound. `lvl_hint` lets the ASYNC applier bank a
+## stale-level node WITHOUT touching the live `_patch_lvl` stamp (the
+## live node's level is the truth; the banked node carries its own).
+func _mesh_cache_stash(face: int, mi: MeshInstance3D, lvl_hint: int = -1) -> void:
 	if mi == null or not is_instance_valid(mi):
 		return
 	_mesh_cache_epoch_valid()
-	var lvl: int = int(_patch_lvl.get(face, -1))
+	var lvl: int = lvl_hint if lvl_hint >= 0 else int(_patch_lvl.get(face, -1))
 	if lvl < 0:
 		mi.queue_free()
 		return  # half-built: nothing stockable
@@ -2715,14 +2840,158 @@ func _mesh_cache_stock(face: int, use_lvl: int) -> MeshInstance3D:
 			if holder_ok and holder2.get_parent() != null \
 					and holder2.get_parent() != mi2:
 				holder2.get_parent().remove_child(holder2)
-			if holder_ok:
-				mi2.add_child(holder2)
+			if holder_ok and holder2.get_parent() != mi2:
+				mi2.add_child(holder2)  # already grafted: re-add is an engine ERROR
 			_prop_holders[face] = holder2 if holder_ok else null
 			_patch_tris[face] = int(entry.get("patch_tris", 0))
 			_patch_skirt_tris[face] = int(entry.get("skirt_tris", 0))
 			_patch_mats[face] = _patch_mats.get(face)  # untouched on hit
 			return mi2
 	return _build_mesh(face, use_lvl)
+
+
+## ===== THE MESH THREAD (v9: the cold-build lane, mirror of v6) =====
+## The mesh pass at the planet scale costs SECONDS per face (the
+## fused sweep's unique-corner field evals); the sync lane made the
+## boot pay FOUR of them back to back on the main thread. This lane
+## DERIVES off-thread and ERECTS in a main-thread applier, so the
+## streaming walk and the LOD promote/demote swaps never hitch.
+##
+## THE WORKER LAW (the v6 prop lane's, restated for mesh): the thread
+## touches NO mutable streamer state -- every dict write, node law,
+## and material creation lives in _erect_mesh/_install_loaded_mesh on
+## the main thread. Terrain reads ride the LOCKED sector caches.
+## Results cross the mutex; the errection is call_deferred'd.
+##
+## THE LANE LAW: the boot's OWN face stays SYNC (cold install, ground
+## underfoot immediately); every other face (boot neighbors, non-
+## current level changes, stream-ins) rides the lane. Threadless/
+## prototype hosts collapse to the sync law by _mesh_async().
+var _mesh_mutex := Mutex.new()
+var _mesh_jobs := {}       # face -> true while a derive is in flight
+var _mesh_results := {}    # face -> {"lvl": int, "data": Dictionary}
+var _mesh_threads := {}    # face -> Thread (reaped in the applier)
+
+## Threading gate: same criteria as the prop lane (the LOD terrain
+## walk only; the prototype's flat shell keeps the sync law). The
+## `synmergia/world/async_mesh` setting (default true) exists for the
+## A/B boot-wall bench -- an off flip collapses every caller to the
+## sync law in the same process.
+func _mesh_async() -> bool:
+	var gate: bool = true
+	if ProjectSettings.has_setting("synmergia/world/async_mesh"):
+		gate = bool(ProjectSettings.get_setting("synmergia/world/async_mesh"))
+	return gate and lod_on and terrain_on
+
+## Probe/test + HUD surface: mesh derives still in flight.
+func _mesh_pending() -> int:
+	return _mesh_threads.size()
+
+
+## THE PROBE DRAIN (both async lanes): one number for the census
+## probes' wait loops -- mesh + prop derives. A probe that boots the
+## planet and then counts props/meshes waits on THIS, not on physics
+## frame counts; a steady census needs a steady world.
+func pending_derive() -> int:
+	return _mesh_threads.size() + _prop_threads.size()
+
+func _kick_mesh_derivation(face: int, use_lvl: int) -> void:
+	_mesh_mutex.lock()
+	var busy: bool = _mesh_jobs.has(face) or _mesh_results.has(face)
+	if not busy:
+		_mesh_jobs[face] = true
+	_mesh_mutex.unlock()
+	if busy:
+		return  # already deriving (the guard survives a face revisit)
+	var t := Thread.new()
+	_mesh_threads[face] = t
+	t.start(Callable(self, "_mesh_derive_job").bind(face, use_lvl), Thread.PRIORITY_LOW)
+
+func _mesh_derive_job(face: int, use_lvl: int) -> void:
+	# Runs OFF the main thread. PURE derive only (the whole reason the
+	# split above exists); the result crosses the mutex; the erection
+	# is queued back to the main thread.
+	var data: Dictionary = _derive_mesh_data(face, use_lvl)
+	_mesh_mutex.lock()
+	_mesh_results[face] = {"lvl": use_lvl, "data": data}
+	_mesh_mutex.unlock()
+	Callable(self, "_apply_derived_mesh").call_deferred(face)
+
+## The mesh applier (main thread): erects the derived arrays and
+## installs/swaps/stashes by what the walk law wants NOW.
+func _apply_derived_mesh(face: int) -> void:
+	var th = _mesh_threads.get(face)
+	_mesh_mutex.lock()
+	var packed = _mesh_results.get(face)
+	_mesh_results.erase(face)
+	_mesh_mutex.unlock()
+	if th != null:
+		th.wait_to_finish()  # the job has returned by the time the deferral fires
+		_mesh_threads.erase(face)
+	if packed == null:
+		_mesh_jobs.erase(face)
+		return
+	var use_lvl: int = int(packed["lvl"])
+	# THE STALE-LEVEL LAW: the demand may have moved while the lane
+	# was in flight. A stale result is never WASTED -- the node is
+	# erected and banked into the warm ring at its built level (the
+	# demand eventually re-matches: the graft, not a re-derive). The
+	# LIVE node's bookkeeping is untouched (its own level is truth).
+	var live_lvl: int = int(_patch_lvl.get(face, -1)) if _patches.has(face) else -1
+	var demanded: int = _demanded_level(face, _last_player_dir, live_lvl)
+	if _patches.has(face):
+		if demanded != use_lvl:
+			# Stale hot result: bank it, keep the live node; the next
+			# _lod_enforce tick re-kicks at the demanded level.
+			var stale_mi: MeshInstance3D = _erect_mesh(face, use_lvl, packed["data"])
+			_mesh_cache_stash(face, stale_mi, use_lvl)
+			_mesh_jobs.erase(face)
+			return
+		# THE HOT SWAP: rebuild ONLY the mesh node; the prop holder
+		# grafts across (the v6/v8 hot law, async flavor). Stash the
+		# OLD built geometry first (the ring law), then swap.
+		var old_mi: MeshInstance3D = _patches.get(face)
+		if old_mi != null and is_instance_valid(old_mi):
+			_mesh_cache_stash(face, old_mi)
+		var fresh: MeshInstance3D = _erect_mesh(face, use_lvl, packed["data"])
+		_props_move(face, fresh)
+		var at: Node = old_mi.get_parent() if old_mi != null and is_instance_valid(old_mi) else parent
+		if old_mi != null and is_instance_valid(old_mi) and at != null:
+			at.add_child(fresh)
+			fresh.global_transform = old_mi.global_transform if old_mi.is_inside_tree() else fresh.global_transform
+		else:
+			parent.add_child(fresh)
+		_patches[face] = fresh
+		if fresh.has_meta("tris"):
+			_patch_tris[face] = int(fresh.get_meta("tris"))
+			fresh.remove_meta("tris")
+		_patch_lvl[face] = use_lvl
+		if old_mi != null and is_instance_valid(old_mi):
+			old_mi.queue_free()
+		patch_loaded.emit(face)
+	else:
+		# COLD LANDING: install only if the face is still WANTED (the
+		# walk's current set: the player's face or one of its 3 edge
+		# neighbors); otherwise bank the node into the ring for the
+		# eventual revisit -- never resurrect an unloaded face.
+		var want_face: bool = current_face >= 0 \
+			and (current_face == face \
+				or FacePatches.neighbors(current_face).has(face))
+		if demanded != use_lvl or not want_face:
+			var stale_cold: MeshInstance3D = _erect_mesh(face, use_lvl, packed["data"])
+			_mesh_cache_stash(face, stale_cold, use_lvl)
+			_mesh_jobs.erase(face)
+			return
+		# THE RING GRAFT ON A COLD LANDING: the revisit flows stock the
+		# ring first (the stash+swap legs) -- the lane honors it by
+		# consuming the stocked node when one exists; the worker's
+		# fresh derive only fills the miss. Same content by the same
+		# law, so a stocked graft and a worker erect are identical.
+		if _mesh_cache.has(_mesh_cache_key(face, use_lvl)):
+			_install_loaded_mesh(face, use_lvl, _mesh_cache_stock(face, use_lvl))
+		else:
+			_install_loaded_mesh(face, use_lvl, _erect_mesh(face, use_lvl, packed["data"]))
+	_mesh_jobs.erase(face)
 
 
 ## The currently-live per-patch LOD levels (debug/HUD surface).
@@ -2802,9 +3071,16 @@ func _subdivide(a: Vector3, b: Vector3, c: Vector3, depth: int, out: Array) -> v
 
 ## Deterministic per-face tint (visible patch boundaries for streaming
 ## verification; subtle enough to read as natural ground variation).
+## v9 split: the PURE form has no dict access -- it is the worker's
+## tint (identical math); the dict form is the main-thread memo of
+## the same law (call-site speed only, no behavior change).
 func _tint_for(face: int) -> Color:
 	if not _face_tints.has(face):
-		var h: float = float((face * 2654435761) % 997) / 997.0
-		var k: float = 0.85 + 0.3 * h
-		_face_tints[face] = Color(0.32 * k, 0.55 * k, 0.35 * k)
+		_face_tints[face] = _tint_for_pure(face)
 	return _face_tints[face]
+
+
+func _tint_for_pure(face: int) -> Color:
+	var h: float = float((face * 2654435761) % 997) / 997.0
+	var k: float = 0.85 + 0.3 * h
+	return Color(0.32 * k, 0.55 * k, 0.35 * k)
