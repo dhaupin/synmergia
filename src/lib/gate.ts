@@ -36,16 +36,28 @@ export const sha256 = (ascii: string): string => {
       const s1 = rightRotate(w[i - 2], 17) ^ rightRotate(w[i - 2], 19) ^ (w[i - 2] >>> 10);
       w[i] = (w[i - 16] + s0 + w[i - 7] + s1) >>> 0;
     }
+    // Working vars are COPIES of the state, not the state itself. The
+    // pre-fix code compressed straight into H and never folded the
+    // initial state back, so it returned the raw working vars instead
+    // of (working vars + state) — every digest was wrong, and the
+    // gate could never match a standard sha256 hex (caught by the
+    // empty-string vector: gate gave 79a6dddb…, real is e3b0c442…).
+    let a = H[0], b = H[1], c = H[2], d = H[3];
+    let e = H[4], f = H[5], g = H[6], h = H[7];
     for (let i = 0; i < 64; i++) {
-      const S1 = rightRotate(H[4], 6) ^ rightRotate(H[4], 11) ^ rightRotate(H[4], 25);
-      const ch = (H[4] & H[5]) ^ (~H[4] & H[6]);
-      const t1 = (H[7] + S1 + ch + k[i] + w[i]) >>> 0;
-      const S0 = rightRotate(H[0], 2) ^ rightRotate(H[0], 13) ^ rightRotate(H[0], 22);
-      const maj = (H[0] & H[1]) ^ (H[0] & H[2]) ^ (H[1] & H[2]);
+      const S1 = rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25);
+      const ch = (e & f) ^ (~e & g);
+      const t1 = (h + S1 + ch + k[i] + w[i]) >>> 0;
+      const S0 = rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22);
+      const maj = (a & b) ^ (a & c) ^ (b & c);
       const t2 = (S0 + maj) >>> 0;
-      H[7] = H[6]; H[6] = H[5]; H[5] = H[4]; H[4] = (H[3] + t1) >>> 0;
-      H[3] = H[2]; H[2] = H[1]; H[1] = H[0]; H[0] = (t1 + t2) >>> 0;
+      h = g; g = f; f = e; e = (d + t1) >>> 0;
+      d = c; c = b; b = a; a = (t1 + t2) >>> 0;
     }
+    H[0] = (H[0] + a) >>> 0; H[1] = (H[1] + b) >>> 0;
+    H[2] = (H[2] + c) >>> 0; H[3] = (H[3] + d) >>> 0;
+    H[4] = (H[4] + e) >>> 0; H[5] = (H[5] + f) >>> 0;
+    H[6] = (H[6] + g) >>> 0; H[7] = (H[7] + h) >>> 0;
   }
   return H.map((x) => ('00000000' + ((x >>> 0).toString(16))).slice(-8)).join('');
 };
