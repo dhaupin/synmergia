@@ -1171,14 +1171,102 @@ func _spawn_trees(face: int, patch_node: Node3D) -> void:
 		patch_node.add_child(cmi)
 
 
-## Biome detail props (slice 4, step B): bushes and cattails BY BIOME
-## -- SWAMP grows cattails (reeds) at its wet sites, GRASSLAND/FOREST
-## grow bushes, SHORE grows none (spray zone), and everything past the
-## parse bands stays bare. The PROP BUDGET: this patch's level rides
-## the LOD budget law -- NEAR (base level): budget up to 6 details;
-## one dropped level: 2; drops past that (or LOD off at far faces):
-## NOTHING (the biome-colored ground does the work, so the far patch
-## never pays its detail pass).
+## THE GRASS + BLOOM TIER (v5 detail): the meadow's ground furniture.
+## The tuft is ONE shared three-blade ArrayMesh (vertex-graded green
+## base -> sun-tipped blades), one draw per tuft, no collider -- the
+## vertex-color "grass expression" underneath stays the far-view
+## carpet, the tufts are the near-view flesh. A bloom is a stem + a
+## saturated head (four-color shared palette) on grassland only: the
+## pretty law the owner asked for, budget-priced.
+var _tuft_mesh_res: Mesh = null
+var _tuft_mat_res: StandardMaterial3D = null
+var _bloom_mats_res: Array = []
+
+func _tuft_mesh() -> Mesh:
+	if _tuft_mesh_res != null:
+		return _tuft_mesh_res
+	var st := SurfaceTool.new()
+	var base_col := Color(0.38, 0.50, 0.24)
+	var tip_col := Color(0.66, 0.72, 0.34)
+	for b in range(3):
+		var ang: float = TAU * float(b) / 3.0
+		var bx: float = cos(ang)
+		var bz: float = sin(ang)
+		var wide: float = 0.085
+		var lean: float = 0.13
+		var tip: float = 0.55 + 0.12 * float(b) * 0.0  # uniform blade height; scale varies per node
+		var a := Vector3(bx * wide, 0.0, bz * wide)
+		var c := Vector3(bx * -wide, 0.0, bz * -wide)
+		var t := Vector3(bx * lean, 0.55, bz * lean)
+		st.set_color(base_col)
+		st.add_vertex(a)
+		st.set_color(base_col)
+		st.add_vertex(c)
+		st.set_color(tip_col)
+		st.add_vertex(t)
+	_tuft_mesh_res = st.commit()
+	return _tuft_mesh_res
+
+func _tuft_material() -> StandardMaterial3D:
+	if _tuft_mat_res != null:
+		return _tuft_mat_res
+	var m := StandardMaterial3D.new()
+	m.vertex_color_use_as_albedo = true
+	m.roughness = 1.0
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_tuft_mat_res = m
+	return m
+
+## The bloom palette (shared; per-flower the node just picks one).
+static func _bloom_palette() -> Array:
+	if _bloom_palette_cache.is_empty():
+		_bloom_palette_cache = [
+			Color(0.86, 0.44, 0.58),
+			Color(0.92, 0.75, 0.32),
+			Color(0.93, 0.93, 0.86),
+			Color(0.55, 0.50, 0.90),
+		]
+	return _bloom_palette_cache
+
+static var _bloom_palette_cache: Array = []
+var _bloom_stem_mat_res: StandardMaterial3D = null
+
+func _bloom_stem_material() -> StandardMaterial3D:
+	if _bloom_stem_mat_res != null:
+		return _bloom_stem_mat_res
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.32, 0.48, 0.22)
+	m.roughness = 1.0
+	_bloom_stem_mat_res = m
+	return m
+
+## The shared tuft helpers (one cached mesh + material for ALL tufts:
+## per-tuft variance rides the node transform: scale splay + yaw).
+
+var _bloom_head_mats_res: Array = []
+
+func _bloom_head_material(idx: int) -> StandardMaterial3D:
+	var palette: Array = _bloom_palette()
+	if _bloom_head_mats_res.size() != palette.size():
+		_bloom_head_mats_res.resize(0)
+		for pal_col in palette:
+			var gm := StandardMaterial3D.new()
+			gm.albedo_color = pal_col
+			gm.roughness = 0.85
+			_bloom_head_mats_res.append(gm)
+	return _bloom_head_mats_res[clampi(idx, 0, palette.size() - 1)]
+
+## Biome detail props (slice 4, step B): the GROUND FURNITURE law --
+## bushes and cattails BY BIOME -- SWAMP grows cattails (reeds) at its
+## wet sites, GRASSLAND/FOREST grow bushes, SHORE grows none (spray
+## zone), and everything past the parse bands stays bare -- plus the
+## v5 GRASS TIER: the meadow bands pay tufts (grassland mostly tuft,
+## bush ~18%, bloom ~10%; dry bands a straggle), so the starter
+## country reads lived-in ground instead of flat vertex paint. The
+## PROP BUDGET: this patch's level rides the LOD budget law --
+## NEAR (base level): budget 18; one dropped level: 4; drops past
+## that (or LOD off at far faces): NOTHING (the biome-colored ground
+## does the work, so the far patch never pays its detail pass).
 func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 	if not terrain_on:
 		return  # prototype keeps its S7 set
@@ -1187,7 +1275,7 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 	var drop: int = base_lvl - lvl
 	if drop >= 2:
 		return  # FAR: no detail pass at all (the budget law)
-	var budget: int = 6 if drop <= 0 else 2  # NEAR: 6, MID: 2
+	var budget: int = 18 if drop <= 0 else 4  # NEAR: 18, MID: 4
 	var bytes: PackedByteArray = TerrainGen.face_seed_bytes(world_seed, face)
 	var acc: int = 0
 	for b in bytes:
@@ -1199,30 +1287,100 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 	var scaled: float = radius + TILE_LIFT
 	var sea: float = TerrainGen.sea_level(world_seed)
 	var spawned := 0
-	for i in range(10):
+	for i in range(48):
 		if spawned >= budget:
 			return
 		var v: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
 		var v2: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
 		var dir: Vector3 = (FacePatches.face_center(face) * 0.25 + v * 0.35 + v2 * 0.40).normalized()
+		# THE BOOT GROVE PULL (the detail tier's own copy): the meadow
+		# furniture dresses the belt the player walks, not the far side
+		# of the face (the tree law above carries the pressed counterpart).
+		if FacePatches.face_center(face).angle_to(TerrainGen.SPAWN_CENTER) \
+				< TerrainGen.HOMELAND_ANGULAR_REACH:
+			dir = dir.slerp(TerrainGen.SPAWN_CENTER, 0.62)
 		var base_h: float = _prop_ground_h(face, dir)
 		if base_h < sea - 0.2:
 			continue  # no props in the water band
 		var bid: int = TerrainGen.climate_biome_id(dir, world_seed)
 		var is_cattail: bool = bid == TerrainGen.BiomeId.SWAMP
-		var is_bush: bool = bid == TerrainGen.BiomeId.GRASSLAND \
-			or bid == TerrainGen.BiomeId.FOREST or bid == TerrainGen.BiomeId.TAIGA \
+		# THE MEADOW SET (v5 grass tier): the grass-family bands -- the
+		# homeland belt is grassland, savanna/steppe/taiga straggle.
+		var meadow: bool = bid == TerrainGen.BiomeId.GRASSLAND \
+			or bid == TerrainGen.BiomeId.SAVANNA or bid == TerrainGen.BiomeId.STEPPE \
+			or bid == TerrainGen.BiomeId.TAIGA
+		var is_bush: bool = bid == TerrainGen.BiomeId.FOREST \
 			or bid == TerrainGen.BiomeId.ALPINE_MEADOW \
-			or bid == TerrainGen.BiomeId.JUNGLE or bid == TerrainGen.BiomeId.SAVANNA \
-			or bid == TerrainGen.BiomeId.STEPPE
+			or bid == TerrainGen.BiomeId.JUNGLE
 		var is_ore: bool = bid == TerrainGen.BiomeId.ALPINE or bid == TerrainGen.BiomeId.TUNDRA \
 			or bid == TerrainGen.BiomeId.BADLANDS
-		if not is_cattail and not is_bush and not is_ore:
+		if not is_cattail and not is_bush and not is_ore and not meadow:
 			continue  # beach/ocean/water bands stay bare (FOREST/TUNDRA/ALPINE carry the ore)
+		# THE KIND ROLL (deterministic): one draw per site decides the
+			# meadow mix -- tufts ~72%, shrubs ~18%, blooms ~10% (grassland
+			# only; the dry bands never bloom, the forest bands never tuft).
+		var meadow_roll: float = rng.randf()
+		var is_flower: bool = meadow and bid == TerrainGen.BiomeId.GRASSLAND \
+			and meadow_roll < 0.10
+		var is_bush_kept: bool = meadow and not is_flower and meadow_roll > 0.82
+		var is_tuft: bool = meadow and not is_flower and not is_bush_kept
 		var prop := MeshInstance3D.new()
 		var mesh: Mesh
 		var mat := StandardMaterial3D.new()
 		mat.roughness = 1.0
+		if is_tuft:
+			# THE TUFT LAW (v5 grass tier): ONE shared three-blade mesh,
+			# vertex-graded (dark base -> sun-tipped), one draw each, no
+			# collider (the walk law treats grass as ground, not prop).
+			# Per-tuft variance rides the node transform: yaw + a gentle
+			# scale splay. Meshes below a cap read decorative at 0.5 m --
+			# exactly the detail band the budget law pays for.
+			prop.mesh = _tuft_mesh()
+			prop.material_override = _tuft_material()
+			prop.name = "Tuft%d" % i
+			prop.position = _tangent_patch_local(dir, patch_center, scaled + base_h)
+			var up_t: Vector3 = dir
+			var hint_t: Vector3 = Vector3(0, 1, 0) if abs(up_t.dot(Vector3(0, 1, 0))) < 0.999 else Vector3(1, 0, 0)
+			var east_t: Vector3 = (hint_t - up_t * hint_t.dot(up_t)).normalized()
+			prop.basis = Basis(east_t, up_t, east_t.cross(up_t)).rotated(up_t, rng.randf_range(0.0, TAU))
+			prop.scale = Vector3.ONE * rng.randf_range(0.7, 1.6)
+			patch_node.add_child(prop)
+			spawned += 1
+			continue
+		if is_flower:
+			# THE BLOOM LAW (the pretty tier): a stem + a saturated head
+			# from the shared four-color palette. Pure paint -- no
+			# harvest registration (the meadow keeps its herb law on
+			# ALPINE_MEADOW bushes only).
+			var bloom := Node3D.new()
+			bloom.name = "Flower%d" % i
+			bloom.position = _tangent_patch_local(dir, patch_center, scaled + base_h)
+			var stem := MeshInstance3D.new()
+			var cm_fl: CylinderMesh = CylinderMesh.new()
+			var stem_h: float = rng.randf_range(0.20, 0.38)
+			cm_fl.top_radius = 0.02
+			cm_fl.bottom_radius = 0.03
+			cm_fl.height = stem_h
+			stem.mesh = cm_fl
+			stem.material_override = _bloom_stem_material()
+			stem.position = Vector3(0.0, stem_h * 0.5, 0.0)
+			var head := MeshInstance3D.new()
+			var hm_fl := SphereMesh.new()
+			var r_h: float = rng.randf_range(0.055, 0.105)
+			hm_fl.radius = r_h
+			hm_fl.height = r_h * 1.3
+			head.mesh = hm_fl
+			head.material_override = _bloom_head_material(rng.randi() % _bloom_palette().size())
+			head.position = Vector3(0.0, stem_h + r_h * 0.25, 0.0)
+			bloom.add_child(stem)
+			bloom.add_child(head)
+			var up_f: Vector3 = dir
+			var hint_f: Vector3 = Vector3(0, 1, 0) if abs(up_f.dot(Vector3(0, 1, 0))) < 0.999 else Vector3(1, 0, 0)
+			var east_f: Vector3 = (hint_f - up_f * hint_f.dot(up_f)).normalized()
+			bloom.basis = Basis(east_f, up_f, east_f.cross(up_f)).rotated(up_f, rng.randf_range(0.0, TAU))
+			patch_node.add_child(bloom)
+			spawned += 1
+			continue
 		if is_ore:
 			# ORE VEIN (prd-gathering build order 2): the mountain/tundra
 			# band carries the mine. A dark boulder-chunk, registered as
