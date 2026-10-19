@@ -306,14 +306,28 @@ Notes:
 
 ## 6. Pre-launch checklist
 
-- [ ] `VITE_GAME_PASSWORD_SHA` set in Pages prod env
-- [ ] `VITE_ADMIN_PASSWORD_SHA` set in Pages prod env
-- [ ] WAF rate rules active for `/admin` and `/play`
-- [ ] `_headers` deployed (curl -sI the /game/index.html URL and
-      check for `cross-origin-opener-policy`)
-- [ ] `/game/game.pck.hash` live and equal to the tracked file
+- [x] `VITE_GAME_PASSWORD_SHA` set in Pages prod env (2026-10-19)
+- [x] `VITE_ADMIN_PASSWORD_SHA` set in Pages prod env (2026-10-19)
+- [ ] WAF rate rules active for `/admin` and `/play` (§5, paste-ready
+      values below — the one remaining dashboard task)
+- [x] `_headers` deployed (COOP/COEP verified live 2026-10-19)
+- [x] `/game/game.pck.hash` live and equal to the tracked file
+      (verified byte-equal at deploy; CI re-anchors on every push)
+- [x] R2 objects live: wasm + pck stream via Functions, CI-synced
 - [ ] In-game truth line shows a hash, not `dev`
 - [ ] External ports (itch.io) updated from latest `dist/game/`
+
+### Parked decisions (do not lose these)
+
+1. **Admin backend transport** — when the site's /admin dashboard
+   needs real data: keep the game-server bridges host-local (site
+   stays pure-static, dashboard reads nothing live) vs. a Pages
+   Function proxy to the game server's bridge endpoints. Not urgent
+   until the dashboard wants live state.
+2. **Commit-back trim** — game.pck is mirrored to R2 by CI AND still
+   committed back to the repo (~6 MB per content change). Once the
+   R2 path has soak time, consider dropping the commit-back and
+   making R2 the only home (requires the CI secrets to stay present).
 
 ---
 
