@@ -854,17 +854,23 @@ func _spawn_rocks(face: int) -> void:
 		nodes.append(rmi)
 	if terrain_on:
 		_spawn_boulders(face, patch_node)
-	_spawn_trees(face, patch_node)
-	_spawn_detail_props(face, patch_node)
+	# TREES / DETAILS / GRASS: the derive-heavy laws ride the worker
+	# thread when the terrain arc is on (web boot law -- the mesh pass
+	# never stalls on thousands of site reads); threadless hosts take
+	# the sync path. The collider pass moved into the appliers (the
+	# tree build may finish frames later than this call).
+	if _prop_async():
+		_kick_prop_derivation(face)
+	else:
+		if terrain_on:
+			_prop_register_freight(face)
+		_spawn_trees(face, patch_node)
+		_spawn_detail_props(face, patch_node)
+		_spawn_grass_field(face, patch_node)
+		for tree in patch_node.get_children():
+			if tree is Node3D and str(tree.name).begins_with("Tree"):
+				PropCollider.attach_trunk(tree)
 	_patch_rocks[face] = nodes
-	# One-law collision (play-day: "stuff shouldn't be walk-through"):
-	# tree TRUNKS block movement and join the climbable group so the
-	# climb law can grab them. Canopies stay intangible (walking under
-	# a crown must not feel like a ceiling). Bodies are tree children,
-	# so streamed-out faces drop theirs for free.
-	for tree in patch_node.get_children():
-		if tree is Node3D and str(tree.name).begins_with("Tree"):
-			PropCollider.attach_trunk(tree)
 
 
 ## Big climbable boulders (terrain arc): PropCollider-carried, so they
@@ -1445,6 +1451,559 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 		patch_node.add_child(prop)
 		spawned += 1
 
+
+## ===== THE PROP DERIVE / APPLY SPLIT (v6 threading) ============
+## _spawn_trees/_spawn_detail_props keep their SYNC bodies (one-shot
+## cold spawns, probes, and any threadless host run them today). The
+## web boot path kicks the derivation to a background thread so the
+## mesh pass never stalls on thousands of site reads. The derive
+## pair below MIRRORS the sync law rng-for-rng (same site formulas,
+## same draw order) so async content equals sync content on every
+## machine -- edits to one copy must edit the other (the parity IS
+## the determinism law of this split).
+##
+## THE WORKER LAW: the thread touches NO mutable streamer state.
+## Ground reads bypass the patch-walk dictionary with the closure's
+## own pure law (terrain + rock-top provider, both on the LOCKED
+## sector caches); rng chains are job-local; results cross back via
+## the mutex; every node build happens on the main thread in the
+## deferred apply.
+var _prop_mutex := Mutex.new()
+var _prop_jobs := {}     # face -> true while a derive is in flight
+var _prop_results := {}  # face -> packed derive arrays (set in thread)
+var _prop_threads := {}  # face -> Thread (reaped in the apply pass)
+
+## Threading gate: the terrain arc's content only (the prototype's
+## S7 greenery keeps the sync path -- cheap and law-pinned).
+func _prop_async() -> bool:
+	return lod_on and terrain_on
+
+## Probe/test surface: jobs still deriving in flight.
+func _prop_pending() -> int:
+	return _prop_threads.size()
+
+func _kick_prop_derivation(face: int) -> void:
+	_prop_mutex.lock()
+	var busy: bool = _prop_jobs.has(face) or _prop_results.has(face)
+	_prop_mutex.unlock()
+	if busy:
+		return  # already deriving (the guard survives a face revisit)
+	_prop_jobs[face] = true
+	if terrain_on:
+		# The strait freight is a service registration (main-thread
+		# side effect) -- it stays on the caller, not the worker.
+		_prop_register_freight(face)
+	var t := Thread.new()
+	_prop_threads[face] = t
+	t.start(Callable(self, "_prop_derive_job").bind(face), Thread.PRIORITY_LOW)
+
+func _prop_register_freight(face: int) -> void:
+	_register_strait_freight(face, FacePatches.face_center(face).normalized(), world_seed)
+
+func _prop_derive_job(face: int) -> void:
+	# Runs OFF the main thread. Pure derive only; the packed result
+	# crosses the mutex; the apply is queued back to the main thread.
+	var packed := {
+		"trees": _derive_tree_sites(face),
+		"details": _derive_detail_sites(face),
+		"grass": _derive_grass_field(face),
+	}
+	_prop_mutex.lock()
+	_prop_results[face] = packed
+	_prop_mutex.unlock()
+	Callable(self, "_apply_derived_props").call_deferred(face)
+
+func _apply_derived_props(face: int) -> void:
+	var th = _prop_threads.get(face)
+	_prop_mutex.lock()
+	var packed = _prop_results.get(face)
+	_prop_results.erase(face)
+	_prop_mutex.unlock()
+	if th != null:
+		th.wait_to_finish()  # the job has returned by the time the deferral fires
+		_prop_threads.erase(face)
+	if packed == null:
+		return
+	if not _patches.has(face) or _patches[face] == null:
+		# Streamed out mid-derive: drop the content (a revisit re-kicks).
+		_prop_jobs.erase(face)
+		return
+	var patch_node: Node3D = _prop_holder(face, _patches[face])
+	var tree_nodes: Array = _apply_tree_sites(face, packed["trees"], patch_node)
+	_apply_detail_sites(face, packed["details"], patch_node)
+	_apply_grass_field(packed["grass"], patch_node)
+	# The collider law (moved from _spawn_rocks -- the tree build is
+	# async now, so the new node trees carry it in this pass):
+	# trunk bodies block + join the climbable group; canopies stay
+	# intangible (walking under a crown must not feel like a ceiling).
+	for tree in tree_nodes:
+		PropCollider.attach_trunk(tree)
+	_prop_jobs.erase(face)
+
+func _prop_site_ground_h(dir: Vector3, face: int) -> float:
+	# THE THREAD-SAFE GROUND READ: the patch-walk closure's body,
+	# without the dictionary touch (both laws are pure on the locked
+	# sector caches).
+	var base: float = TerrainGen.terrain_height(dir, world_seed) if terrain_on else 0.0
+	return base + TerrainGen.rock_top_height(dir, world_seed, face, radius)
+
+## --- tree derive / apply (mirrors _spawn_trees rng-for-rng) ------
+func _derive_tree_sites(face: int) -> Array:
+	var sites: Array = []
+	var bytes: PackedByteArray = TerrainGen.face_seed_bytes(world_seed, face)
+	var acc: int = 0
+	for b in bytes:
+		acc = (acc * 131 + b) % 9007199254740991
+	var rng := RandomNumberGenerator.new()
+	rng.seed = acc
+	var count: int = rng.randi_range(4, 8)
+	# THE DENSITY LAW (mirror: see _spawn_trees for the band ladder).
+	if terrain_on:
+		var cbid: int = TerrainGen.climate_biome_id(FacePatches.face_center(face).normalized(), world_seed)
+		if cbid == TerrainGen.BiomeId.FOREST or cbid == TerrainGen.BiomeId.TAIGA \
+			or cbid == TerrainGen.BiomeId.JUNGLE:
+			count = rng.randi_range(1400, 2100)
+		elif cbid == TerrainGen.BiomeId.SWAMP:
+			count = rng.randi_range(300, 460)
+		elif cbid == TerrainGen.BiomeId.GRASSLAND:
+			count = rng.randi_range(2200, 3000)
+		elif cbid == TerrainGen.BiomeId.SAVANNA:
+			count = rng.randi_range(400, 640)
+		elif cbid == TerrainGen.BiomeId.SHORE:
+			count = rng.randi_range(400, 640)
+		elif cbid == TerrainGen.BiomeId.DESERT or cbid == TerrainGen.BiomeId.TUNDRA \
+				or cbid == TerrainGen.BiomeId.STEPPE or cbid == TerrainGen.BiomeId.BADLANDS:
+			count = rng.randi_range(80, 140)
+		else:
+			count = rng.randi_range(12, 24)  # alpine / lake / ocean center: site floor
+	var verts: PackedInt32Array = FacePatches.face_vertices(face)
+	var patch_center: Vector3 = FacePatches.face_center(face) * (radius + TILE_LIFT)
+	var scaled: float = radius + TILE_LIFT
+	var sea: float = TerrainGen.sea_level(world_seed)
+	for i in range(count):
+		var v: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
+		var v2: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
+		var dir: Vector3 = (FacePatches.face_center(face) * 0.25 + v * 0.35 + v2 * 0.40).normalized()
+		# THE BOOT GROVE PULL (grid the sync law rides; see it above).
+		if FacePatches.face_center(face).angle_to(TerrainGen.SPAWN_CENTER) \
+				< TerrainGen.HOMELAND_ANGULAR_REACH:
+			dir = dir.slerp(TerrainGen.SPAWN_CENTER, 0.62)
+		var base_h: float = _prop_site_ground_h(dir, face)
+		if terrain_on and base_h < sea - 0.6:
+			continue
+		if terrain_on:
+			var bid: int = TerrainGen.climate_biome_id(dir, world_seed)
+			var draw: float = rng.randf()
+			if bid == TerrainGen.BiomeId.FOREST or bid == TerrainGen.BiomeId.TAIGA \
+					or bid == TerrainGen.BiomeId.JUNGLE:
+				pass  # always grows
+			elif bid == TerrainGen.BiomeId.SWAMP:
+				if draw > 0.5:
+					continue
+			elif bid == TerrainGen.BiomeId.GRASSLAND:
+				if draw > 0.4:
+					continue
+			elif bid == TerrainGen.BiomeId.SHORE:
+				if draw > 0.25:
+					continue
+			elif bid == TerrainGen.BiomeId.SAVANNA:
+				if draw > 0.3:
+					continue
+			else:
+				continue  # desert / steppe / badlands / tundra / alpine / water: no trees
+		var trunk_h: float = rng.randf_range(1.8, 3.2)
+		var crown: float = rng.randf_range(1.1, 2.0)
+		var gval: float = 0.3 + 0.14 * rng.randf()
+		var tint_r: float = 0.18 + 0.06 * rng.randf()
+		var yaw: float = rng.randf_range(0.0, TAU)
+		sites.append({
+			"dir": dir, "pos": _tangent_patch_local(dir, patch_center, scaled + base_h),
+			"trunk_h": trunk_h, "crown": crown, "tint_r": tint_r, "gval": gval, "yaw": yaw,
+		})
+	return sites
+
+func _apply_tree_sites(face: int, sites: Array, patch_node: Node3D) -> Array:
+	var lvl: int = int(_patch_lvl.get(face, -1))
+	var base_lvl: int = _level_for_edge()
+	var batched: bool = lod_on and terrain_on and lvl != -1 and lvl != base_lvl
+	var node_left: int = NODE_TREE_CAP
+	var pdir_known: bool = _last_player_dir != Vector3.ZERO
+	var nodes_out: Array = []
+	var batch_xforms: Array = []
+	var canopy_batch_xforms: Array = []
+	var name_idx: int = 0
+	for s in sites:
+		var up: Vector3 = s["dir"]
+		var hint := Vector3(0, 1, 0)
+		if abs(up.dot(hint)) > 0.999:
+			hint = Vector3(0, 0, -1)
+		var east: Vector3 = (hint - up * hint.dot(up)).normalized()
+		var north: Vector3 = east.cross(up)
+		var tree_basis := Basis(east, up, north).rotated(up, s["yaw"])
+		var take_node: bool = not batched and node_left > 0 \
+			and (not pdir_known or up.angle_to(_last_player_dir) <= TREE_NODE_ANG)
+		if take_node:
+			node_left -= 1
+			var tree := Node3D.new()
+			tree.name = "Tree%d" % name_idx  # census/collider law: name-resolvable
+			name_idx += 1
+			var trunk := MeshInstance3D.new()
+			var tmesh := CylinderMesh.new()
+			tmesh.top_radius = 0.14
+			tmesh.bottom_radius = 0.22
+			tmesh.height = s["trunk_h"]
+			var tmat := StandardMaterial3D.new()
+			tmat.albedo_color = Color(0.36, 0.26, 0.17)
+			tmat.roughness = 1.0
+			tmesh.material = tmat
+			trunk.mesh = tmesh
+			trunk.position = Vector3(0, s["trunk_h"] * 0.5, 0)
+			tree.add_child(trunk)
+			var canopy := MeshInstance3D.new()
+			var cmesh := SphereMesh.new()
+			cmesh.radius = s["crown"]
+			cmesh.height = s["crown"] * 1.8
+			var cmat := StandardMaterial3D.new()
+			cmat.albedo_color = Color(s["tint_r"], s["gval"], 0.16)
+			cmat.roughness = 1.0
+			cmesh.material = cmat
+			canopy.mesh = cmesh
+			canopy.position = Vector3(0, s["trunk_h"] + s["crown"] * 0.55, 0)
+			tree.add_child(canopy)
+			tree.position = s["pos"]
+			tree.basis = tree_basis
+			patch_node.add_child(tree)
+			nodes_out.append(tree)
+		else:
+			var tpose: Transform3D = Transform3D(tree_basis, s["pos"])
+			batch_xforms.append(tpose * Transform3D(Basis.IDENTITY.scaled(Vector3(1, s["trunk_h"], 1)), Vector3(0, s["trunk_h"] * 0.5, 0)))
+			canopy_batch_xforms.append(tpose * Transform3D(Basis.IDENTITY.scaled(Vector3(s["crown"], s["crown"] * 1.8, s["crown"])), Vector3(0, s["trunk_h"] + s["crown"] * 0.55, 0)))
+	# -- Flush the batch (far faces AND near overflow) ------------------
+	if batch_xforms.size() > 0:
+		var cu := CylinderMesh.new()
+		cu.top_radius = 0.14
+		cu.bottom_radius = 0.22
+		cu.height = 1.0  # unit: per-instance scale stretches it
+		var tmesh2 := MultiMesh.new()
+		tmesh2.transform_format = MultiMesh.TRANSFORM_3D
+		tmesh2.mesh = cu
+		tmesh2.instance_count = batch_xforms.size()
+		for t in range(batch_xforms.size()):
+			tmesh2.set_instance_transform(t, batch_xforms[t])
+		var tmi := MultiMeshInstance3D.new()
+		tmi.name = "BatchedTrunks"
+		tmi.multimesh = tmesh2
+		var tmt := StandardMaterial3D.new()
+		tmt.albedo_color = Color(0.36, 0.26, 0.17)
+		tmt.roughness = 1.0
+		tmi.material_override = tmt
+		patch_node.add_child(tmi)
+		var sm := SphereMesh.new()
+		sm.radius = 1.0
+		sm.height = 1.0
+		var mmesh2 := MultiMesh.new()
+		mmesh2.transform_format = MultiMesh.TRANSFORM_3D
+		mmesh2.mesh = sm
+		mmesh2.instance_count = canopy_batch_xforms.size()
+		for t in range(canopy_batch_xforms.size()):
+			mmesh2.set_instance_transform(t, canopy_batch_xforms[t])
+		var cmi := MultiMeshInstance3D.new()
+		cmi.name = "BatchedCanopies"
+		cmi.multimesh = mmesh2
+		var cmt := StandardMaterial3D.new()
+		cmt.albedo_color = Color(0.22, 0.42, 0.18)
+		cmt.roughness = 1.0
+		cmi.material_override = cmt
+		patch_node.add_child(cmi)
+	return nodes_out
+
+## --- detail derive / apply (mirrors _spawn_detail_props rng-for-rng)
+## Kind codes: 0 ore, 1 cattail, 2 bush, 3 tuft, 4 flower.
+const _DPROP_ORE: int = 0
+const _DPROP_CATTAIL: int = 1
+const _DPROP_BUSH: int = 2
+const _DPROP_TUFT: int = 3
+const _DPROP_FLOWER: int = 4
+
+func _derive_detail_sites(face: int) -> Array:
+	var sites: Array = []
+	var lvl: int = int(_patch_lvl.get(face, 99))
+	# THE BUDGET LAW is level-derived (pure per face -- not a viewer
+	# read), so the derive phase can pay it.
+	var base_lvl: int = _level_for_edge()
+	var drop: int = base_lvl - lvl
+	if drop >= 2:
+		return sites  # FAR: no detail pass at all (the budget law)
+	var budget: int = 18 if drop <= 0 else 4  # NEAR: 18, MID: 4
+	var bytes: PackedByteArray = TerrainGen.face_seed_bytes(world_seed, face)
+	var acc: int = 0
+	for b in bytes:
+		acc = (acc * 256 + b) % 9007199254740991
+	var rng := RandomNumberGenerator.new()
+	rng.seed = acc + 777  # independent stream (never reshuffles rocks)
+	var verts: PackedInt32Array = FacePatches.face_vertices(face)
+	var patch_center: Vector3 = FacePatches.face_center(face) * (radius + TILE_LIFT)
+	var scaled: float = radius + TILE_LIFT
+	var sea: float = TerrainGen.sea_level(world_seed)
+	var spawned: int = 0
+	for i in range(48):
+		if spawned >= budget:
+			return sites
+		var v: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
+		var v2: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
+		var dir: Vector3 = (FacePatches.face_center(face) * 0.25 + v * 0.35 + v2 * 0.40).normalized()
+		# THE BOOT GROVE PULL (the detail tier's own copy, sync law above).
+		if FacePatches.face_center(face).angle_to(TerrainGen.SPAWN_CENTER) \
+				< TerrainGen.HOMELAND_ANGULAR_REACH:
+			dir = dir.slerp(TerrainGen.SPAWN_CENTER, 0.62)
+		var base_h: float = _prop_site_ground_h(dir, face)
+		if base_h < sea - 0.2:
+			continue  # no props in the water band
+		var bid: int = TerrainGen.climate_biome_id(dir, world_seed)
+		var is_cattail: bool = bid == TerrainGen.BiomeId.SWAMP
+		var meadow: bool = bid == TerrainGen.BiomeId.GRASSLAND \
+				or bid == TerrainGen.BiomeId.SAVANNA or bid == TerrainGen.BiomeId.STEPPE \
+				or bid == TerrainGen.BiomeId.TAIGA
+		var is_bush: bool = bid == TerrainGen.BiomeId.FOREST \
+			or bid == TerrainGen.BiomeId.ALPINE_MEADOW \
+			or bid == TerrainGen.BiomeId.JUNGLE
+		var is_ore: bool = bid == TerrainGen.BiomeId.ALPINE or bid == TerrainGen.BiomeId.TUNDRA \
+			or bid == TerrainGen.BiomeId.BADLANDS
+		if not is_cattail and not is_bush and not is_ore and not meadow:
+			continue  # beach/ocean/water bands stay bare
+		var meadow_roll: float = rng.randf()
+		var is_flower: bool = meadow and bid == TerrainGen.BiomeId.GRASSLAND \
+			and meadow_roll < 0.10
+		var is_bush_kept: bool = meadow and not is_flower and meadow_roll > 0.82
+		var is_tuft: bool = meadow and not is_flower and not is_bush_kept
+		var rec := {"i": i, "dir": dir, "kind": -1}
+		if is_tuft:
+			rec["kind"] = _DPROP_TUFT
+			rec["pos"] = _tangent_patch_local(dir, patch_center, scaled + base_h)
+			rec["yaw"] = rng.randf_range(0.0, TAU)
+			rec["scale"] = rng.randf_range(0.7, 1.6)
+			spawned += 1
+		elif is_flower:
+			rec["kind"] = _DPROP_FLOWER
+			rec["pos"] = _tangent_patch_local(dir, patch_center, scaled + base_h)
+			rec["stem_h"] = rng.randf_range(0.20, 0.38)
+			rec["r_h"] = rng.randf_range(0.055, 0.105)
+			rec["pal"] = rng.randi() % _bloom_palette().size()
+			rec["yaw"] = rng.randf_range(0.0, TAU)
+			spawned += 1
+		elif is_ore:
+			rec["kind"] = _DPROP_ORE
+			rec["r_o"] = rng.randf_range(0.35, 0.7)
+			rec["pos"] = _tangent_patch_local(dir, patch_center, scaled + base_h + rec["r_o"] * 0.2)
+			spawned += 1
+		elif is_cattail:
+			rec["kind"] = _DPROP_CATTAIL
+			rec["h"] = rng.randf_range(0.9, 1.4)
+			rec["pos"] = _tangent_patch_local(dir, patch_center, scaled + base_h + 0.05)
+			spawned += 1
+		else:
+			rec["kind"] = _DPROP_BUSH
+			rec["r_b"] = rng.randf_range(0.4, 0.9)
+			rec["tint_r"] = 0.22 + 0.1 * rng.randf()
+			rec["tint_g"] = 0.42 + 0.1 * rng.randf()
+			rec["pos"] = _tangent_patch_local(dir, patch_center, scaled + base_h + rec["r_b"] * 0.25)
+			spawned += 1
+		sites.append(rec)
+	return sites
+
+func _apply_detail_sites(face: int, sites: Array, patch_node: Node3D) -> void:
+	for rec in sites:
+		var i: int = int(rec["i"])
+		var dir: Vector3 = rec["dir"]
+		if int(rec["kind"]) == _DPROP_TUFT:
+			# THE TUFT LAW (v5 grass tier -- see the sync twin above).
+			var prop := MeshInstance3D.new()
+			prop.mesh = _tuft_mesh()
+			prop.material_override = _tuft_material()
+			prop.name = "Tuft%d" % i
+			prop.position = rec["pos"]
+			var up_t: Vector3 = dir
+			var hint_t: Vector3 = Vector3(0, 1, 0) if abs(up_t.dot(Vector3(0, 1, 0))) < 0.999 else Vector3(1, 0, 0)
+			var east_t: Vector3 = (hint_t - up_t * hint_t.dot(up_t)).normalized()
+			prop.basis = Basis(east_t, up_t, east_t.cross(up_t)).rotated(up_t, rec["yaw"])
+			prop.scale = Vector3.ONE * float(rec["scale"])
+			patch_node.add_child(prop)
+		elif int(rec["kind"]) == _DPROP_FLOWER:
+			var bloom := Node3D.new()
+			bloom.name = "Flower%d" % i
+			bloom.position = rec["pos"]
+			var stem := MeshInstance3D.new()
+			var cm_fl := CylinderMesh.new()
+			var stem_h: float = float(rec["stem_h"])
+			cm_fl.top_radius = 0.02
+			cm_fl.bottom_radius = 0.03
+			cm_fl.height = stem_h
+			stem.mesh = cm_fl
+			stem.material_override = _bloom_stem_material()
+			stem.position = Vector3(0.0, stem_h * 0.5, 0.0)
+			var head := MeshInstance3D.new()
+			var hm_fl := SphereMesh.new()
+			var r_h: float = float(rec["r_h"])
+			hm_fl.radius = r_h
+			hm_fl.height = r_h * 1.3
+			head.mesh = hm_fl
+			head.material_override = _bloom_head_material(int(rec["pal"]))
+			head.position = Vector3(0.0, stem_h + r_h * 0.25, 0.0)
+			bloom.add_child(stem)
+			bloom.add_child(head)
+			var up_f: Vector3 = dir
+			var hint_f: Vector3 = Vector3(0, 1, 0) if abs(up_f.dot(Vector3(0, 1, 0))) < 0.999 else Vector3(1, 0, 0)
+			var east_f: Vector3 = (hint_f - up_f * hint_f.dot(up_f)).normalized()
+			bloom.basis = Basis(east_f, up_f, east_f.cross(up_f)).rotated(up_f, rec["yaw"])
+			patch_node.add_child(bloom)
+		elif int(rec["kind"]) == _DPROP_ORE:
+			var prop_o := MeshInstance3D.new()
+			var om := SphereMesh.new()
+			var r_o: float = float(rec["r_o"])
+			om.radius = r_o
+			om.height = r_o * 1.6
+			var mat_o := StandardMaterial3D.new()
+			mat_o.roughness = 1.0
+			mat_o.albedo_color = Color(0.35, 0.33, 0.36)
+			prop_o.mesh = om
+			prop_o.material_override = mat_o
+			prop_o.name = "Ore%d" % i
+			prop_o.position = rec["pos"]
+			patch_node.add_child(prop_o)
+			_register_harvest_node(face, i, "res_iron_ore", dir, 90.0)
+		elif int(rec["kind"]) == _DPROP_CATTAIL:
+			var prop_c := MeshInstance3D.new()
+			var cm := CylinderMesh.new()
+			cm.top_radius = 0.03
+			cm.bottom_radius = 0.05
+			cm.height = float(rec["h"])
+			var mat_c := StandardMaterial3D.new()
+			mat_c.roughness = 1.0
+			mat_c.albedo_color = Color(0.30, 0.38, 0.20)
+			prop_c.mesh = cm
+			prop_c.material_override = mat_c
+			prop_c.name = "Cattail%d" % i
+			prop_c.position = rec["pos"]
+			var up_c: Vector3 = dir
+			var hint_c: Vector3 = Vector3(0, 1, 0) if abs(up_c.dot(Vector3(0, 1, 0))) < 0.999 else Vector3(1, 0, 0)
+			var east_c: Vector3 = (hint_c - up_c * hint_c.dot(up_c)).normalized()
+			prop_c.basis = Basis(east_c, up_c, east_c.cross(up_c))
+			patch_node.add_child(prop_c)
+		else:
+			# Bush: a squat green sphere (the gather law rides the apply
+			# pass -- service registration is a main-thread side effect).
+			var prop_b := MeshInstance3D.new()
+			var bm := SphereMesh.new()
+			var r_b: float = float(rec["r_b"])
+			bm.radius = r_b
+			bm.height = r_b * 1.4
+			var mat_b := StandardMaterial3D.new()
+			mat_b.roughness = 1.0
+			mat_b.albedo_color = Color(rec["tint_r"], rec["tint_g"], 0.18)
+			prop_b.mesh = bm
+			prop_b.material_override = mat_b
+			prop_b.name = "Bush%d" % i
+			prop_b.position = rec["pos"]
+			patch_node.add_child(prop_b)
+			var bush_item := "res_iron_ore"
+			var bid_recheck: int = TerrainGen.climate_biome_id(dir, world_seed)
+			if bid_recheck == TerrainGen.BiomeId.ALPINE_MEADOW:
+				bush_item = "res_moonpetal"  # the meadow's herb law
+			_register_harvest_node(face, i, bush_item, dir, 45.0)
+
+## --- THE GRASS FIELD (the dense meadow law) ----------------------
+## One MultiMesh of blade clumps per grassland face: a handful of
+## seed-derived ANCHORS on the meadow (barycentric + the grove pull,
+## plaza skirted), each scattering ~40 clump instances in a small
+## ground ring. The anchors pay the terrain reads; their blades REUSE
+## the anchor height (slope slop is sub-meter in a ~7 m ring -- far
+## below the mesh tile's own span). ~40 instances per anchor x ~20
+## anchors = near 900 clumps in ONE draw per face: the spaced tufts
+## become a proper meadow without ever paying thousands of mesh
+## nodes.
+const GRASS_ANCHORS: int = 22
+const GRASS_BLADES_PER: int = 40
+const GRASS_RING: float = 0.00035  # ~7 m ground arc at the 20 km scale
+
+func _derive_grass_field(face: int) -> Dictionary:
+	if not terrain_on:
+		return {}  # prototype keeps its S7 set
+	var center: Vector3 = FacePatches.face_center(face)
+	var cbid: int = TerrainGen.climate_biome_id(center.normalized(), world_seed)
+	# THE FIELD GATE (the measured fix): the boot faces resolve
+	# shore/lake CENTERS while hosting big grassland slivers -- the
+	# center-band test alone left the homeland field-bare. The gate
+	# accepts the meadow band OR any homeland-reach face; each anchor
+	# still verifies grassland itself (no field in the cove/sea slivers).
+	if cbid != TerrainGen.BiomeId.GRASSLAND \
+			and center.angle_to(TerrainGen.SPAWN_CENTER) >= TerrainGen.HOMELAND_ANGULAR_REACH:
+		return {}  # the field law: meadow faces (or the homeland set)
+	var bytes: PackedByteArray = TerrainGen.face_seed_bytes(world_seed, face)
+	var acc: int = 0
+	for b in bytes:
+		acc = (acc * 256 + b) % 9007199254740991
+	var rng := RandomNumberGenerator.new()
+	rng.seed = acc + 555  # independent stream (never reshuffles trees)
+	var verts: PackedInt32Array = FacePatches.face_vertices(face)
+	var patch_center: Vector3 = center * (radius + TILE_LIFT)
+	var scaled: float = radius + TILE_LIFT
+	var sea: float = TerrainGen.sea_level(world_seed)
+	var xforms: Array = []
+	var tang_a: Vector3 = Vector3(0, 1, 0).cross(center).normalized()
+	for a in range(GRASS_ANCHORS):
+		var v: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
+		var v2: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
+		var dir: Vector3 = (center * 0.25 + v * 0.35 + v2 * 0.40).normalized()
+		if center.angle_to(TerrainGen.SPAWN_CENTER) < TerrainGen.HOMELAND_ANGULAR_REACH:
+			dir = dir.slerp(TerrainGen.SPAWN_CENTER, 0.62)
+		# THE PLAZA SKIRT: the boot clearing stays law-tidy -- the field
+		# nudges out of the spawn-clear ring rather than skipping the
+		# anchor (the meadow keeps its anchor count near the boot).
+		if dir.angle_to(TerrainGen.SPAWN_CENTER) < TerrainGen.SPAWN_CLEAR_ANG:
+			dir = dir.slerp(TerrainGen.SPAWN_CENTER, -0.04)
+		var base_h: float = _prop_site_ground_h(dir, face)
+		if base_h < sea - 0.2:
+			continue
+		if TerrainGen.climate_biome_id(dir, world_seed) != TerrainGen.BiomeId.GRASSLAND:
+			continue
+		var arot: float = rng.randf_range(0.0, TAU)
+		for k in range(GRASS_BLADES_PER):
+			var kfrac: float = TAU * float(k) / float(GRASS_BLADES_PER)
+			var brad: float = GRASS_RING * (0.35 + 0.65 * rng.randf())
+			var jang: float = arot + kfrac + rng.randf_range(-0.05, 0.05)
+			var blade_dir: Vector3 = dir.rotated(tang_a, cos(jang) * brad)
+			blade_dir = blade_dir.rotated(center.cross(dir).normalized(), sin(jang) * brad)
+			var bpos: Vector3 = _tangent_patch_local(blade_dir, patch_center, scaled + base_h)
+			var up_b: Vector3 = blade_dir
+			var hint_b: Vector3 = Vector3(0, 1, 0)
+			if abs(up_b.dot(hint_b)) > 0.999:
+				hint_b = Vector3(0, 0, -1)
+			var east_b: Vector3 = (hint_b - up_b * hint_b.dot(up_b)).normalized()
+			var scl: float = 0.6 + 0.9 * rng.randf()
+			var pose: Transform3D = Transform3D(
+				Basis(east_b, up_b, east_b.cross(up_b)).rotated(up_b, rng.randf_range(0.0, TAU)).scaled(Vector3(scl, scl, scl)), bpos)
+			xforms.append(pose)
+	return {"xforms": xforms}
+
+func _apply_grass_field(grass: Dictionary, patch_node: Node3D) -> void:
+	var xforms: Array = grass.get("xforms", [])
+	if xforms.is_empty():
+		return
+	var gm := MultiMesh.new()
+	gm.transform_format = MultiMesh.TRANSFORM_3D
+	gm.mesh = _tuft_mesh()
+	gm.instance_count = xforms.size()
+	for t in range(xforms.size()):
+		gm.set_instance_transform(t, xforms[t])
+	var gmi := MultiMeshInstance3D.new()
+	gmi.name = "GrassField"
+	gmi.multimesh = gm
+	gmi.material_override = _tuft_material()
+	patch_node.add_child(gmi)
+
+## The sync fallback path (threadless hosts / one-shot offenders).
+func _spawn_grass_field(face: int, patch_node: Node3D) -> void:
+	_apply_grass_field(_derive_grass_field(face), patch_node)
 
 ## Register the drawn prop as a live HarvestService node (prd-
 ## gathering build order 2: seed-derived placement, one placement law

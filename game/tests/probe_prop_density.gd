@@ -48,6 +48,14 @@ func _run() -> void:
 		await root.get_tree().physics_frame
 		if _i % 10 == 9:
 			print("BOOT_MS_after", _i + 1, "physics=", Time.get_ticks_msec() - t0)
+	# THE ASYNC PROP LAW (v6): trees/details/grass derive on worker
+	# threads; the census waits for the pending derive jobs to drain
+	# (bounded) before counting.
+	var waited := 0
+	while _globe.get("streamer")._prop_pending() > 0 and waited < 1200:
+		await root.get_tree().physics_frame
+		waited += 1
+	print("PENDING_DRAINED_after=", waited + 90, " frames, tmsec=", Time.get_ticks_msec() - t0)
 
 	var streamer = _globe.get("streamer")
 	var player = _globe.get("player")
@@ -78,6 +86,14 @@ func _run() -> void:
 		var name_samples: Array = []
 		for ch in holder.get_children():
 			if ch is CollisionObject3D or not (ch is Node3D):
+				continue
+			# THE GRASS FIELD (v6 meadow law): one MultiMesh per face --
+			# the blade mass is its instance_count (count as detail).
+			if String(ch.name).begins_with("GrassField"):
+				var gmm = ch.get("multimesh")
+				if gmm != null:
+					per["detail"] = int(per["detail"]) + int(gmm.instance_count)
+					total["detail"] = int(total["detail"]) + int(gmm.instance_count)
 				continue
 			if name_samples.size() < 10:
 				name_samples.append(String(ch.name))

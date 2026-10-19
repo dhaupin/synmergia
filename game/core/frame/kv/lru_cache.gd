@@ -15,30 +15,48 @@ var _prev: Dictionary = {}   # key -> predecessor key ("" marks the head)
 var _next: Dictionary = {}   # key -> successor key ("" marks the tail)
 var _head: String = ""       # most-recently-used
 var _tail: String = ""       # least-recently-used
+## THE THREAD LAW (v5): prop derivation now runs on a background
+## thread while the main thread streams mesh -- both write THIS cache
+## via the terrain law. One coarse lock on every accessor keeps the
+## intrusive list intact (Godot Dictionary/Array mutation is not
+## thread-safe). Uncontended fast path, so the cost is tiny at the
+## mesh pass's hit rate; contention only happens while a derive job
+## is in flight, which is exactly the situation the lock exists for.
 
 func _init(max_size: int = 256) -> void:
 	_max_size = max(1, max_size)
 
+var _lock := Mutex.new()
+
 ## 4.7.2 strictness: get/set collide with native Object members and fail to
 ## parse as class members. Canonical accessors are get_value/set_value.
 func get_value(key: String) -> Variant:
-	if not _data.has(key):
-		return null
-	_move_to_front(key)
-	return _data[key]
+	_lock.lock()
+	var out: Variant = null
+	if _data.has(key):
+		_move_to_front(key)
+		out = _data[key]
+	_lock.unlock()
+	return out
 
 func set_value(key: String, value: Variant) -> void:
+	_lock.lock()
 	if _data.has(key):
 		_data[key] = value
 		_move_to_front(key)
+		_lock.unlock()
 		return
 	_data[key] = value
 	_push_front(key)
 	if _data.size() > _max_size:
 		_evict_lru()
+	_lock.unlock()
 
 func has(key: String) -> bool:
-	return _data.has(key)
+	_lock.lock()
+	var out: bool = _data.has(key)
+	_lock.unlock()
+	return out
 
 func delete(key: String) -> bool:
 	if not _data.has(key):
@@ -48,17 +66,22 @@ func delete(key: String) -> bool:
 	return true
 
 func size() -> int:
-	return _data.size()
+	_lock.lock()
+	var out: int = _data.size()
+	_lock.unlock()
+	return out
 
 func max_size() -> int:
 	return _max_size
 
 func clear() -> void:
+	_lock.lock()
 	_data.clear()
 	_prev.clear()
 	_next.clear()
 	_head = ""
 	_tail = ""
+	_lock.unlock()
 
 ## Emptiness test that does not depend on key values (a "" key is legal):
 ## every linked key has an entry in BOTH _prev and _next, so if either
