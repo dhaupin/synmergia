@@ -6360,12 +6360,25 @@ The gates + engine serving verified by a human login (passwords work,
 sunset renders, threaded boot OK). Four field grievances filed --
 these are PLAYER-VISIBLE now that the site is live, priority up:
 
-- FIELD-1 trees sparse: ground reads mostly bare dark-green from
-  spawn view. 2026-10-19 evening evidence (headless census,
-  probe_biodiversity_v7): **live_faces=4, trees=26, scree=0,
-  mushrooms=0, mycelium=0, vines=0, bare_snags=0** -- the whole
-  scatter/ecosystem layer places ZERO objects on the globe boot, and
-  only the boot-neighborhood faces stream for a standing avatar.
+- FIELD-1 (BISECTION CLOSED 2026-10-19 late): the biodiversity layer
+  is NOT math-only -- the placer lives and works. probe_prop_density
+  on the current tree: face16/18 (lvl 7) derive "detail: 778" sites
+  each (1556 detail + 186 trees + 69 rocks total), all riding the
+  batch MultiMesh paint. The gap is two DENSITY laws, not a missing
+  system: (a) the tree tier got the visibility density raise (the
+  comment block at globe_terrain_streamer.gd L38: hundreds of sites
+  per face via batch paint), but the GROUND FURNITURE tier
+  (_derive_detail_sites / _spawn_detail_props) still pays the old
+  budget law -- budget 18 NEAR / 4 MID per face over ~250 km2 per
+  face, 48 site tries -- so grass/rocks/mushrooms/scree land meters-
+  sparse: NEAREST node prop to the boot = 2,127 m (probe's distance
+  row). At eye height that is empty ground in every direction.
+  (b) the boot stream window is 4 faces, so the visible set is one
+  face's worth of that sparse budget. FIX DIRECTION (matches the
+  shipped tree law): give the detail tier the same real-geometry
+  density (hundreds of sites/face via the batch paint it already
+  uses), sized by the NODE caps for colliders only. The math is
+  proven; the budget constant is the bug.
   Updated reading: the player's "empty flat world" is the 4-patch
   boot set over the bare far-shell (the water/ground fallback beyond
   streamed faces), NOT a rogue planar scene (project.godot
