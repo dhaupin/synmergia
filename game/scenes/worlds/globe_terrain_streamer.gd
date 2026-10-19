@@ -32,6 +32,22 @@ const PropCollider = preload("res://entities/prop_collider.gd")
 ## Mirrored by globe_world.STREAMER_TILE_LIFT (spawn / snap / pad).
 const TILE_LIFT: float = 0.52
 
+## THE VISIBILITY DENSITY RAISE (the visibility fix for the play-day
+## report "I haven't seen trees or rocks on the starter plains"): the
+## old scatter paid its sites once per FACE, but at the 20 km planet
+## scale one face spans ~250 km2 -- 8-13 tree-sites over 250 km2 put
+## the nearest prop ~6.4 km from the boot (measured by
+## tests/probe_prop_density.gd), so the starter plains read bare.
+## Tree site counts now carry the face's real geometry (hundreds of
+## sites), cheap because the batch MultiMesh path absorbs the mass.
+## TREE_NODE_ANG bounds the band around the player direction where a
+## tree is a REAL Node3D with a trunk collider (the walk/climb law);
+## NODE_TREE_CAP bounds how many node trees one face may place even
+## there (draw-call ceiling), so every other site rides the batch
+## paint -- horizon detail, no collider.
+const TREE_NODE_ANG: float = 0.12   # ~2.4 km ground arc at the 20 km scale
+const NODE_TREE_CAP: int = 24       # collided node-tree ceiling per face
+
 ## WATER (terrain arc): at planet scale the scene paints a water shell
 ## at the terrain sea line. Patches below the waterline dim to a wet
 ## seabed tint (foreshortening cheat: the shell renders the water
@@ -154,6 +170,12 @@ var _patch_water_tris := {}  # int face -> int (surface-2 tri count, v3 slice 3)
 ## (colliders, climb groups, and services keyed on those bodies never
 ## notice the swap).
 var _prop_holders := {}  # int face -> Node3D
+var _last_player_dir := Vector3.ZERO  # the tree node/batch split's viewer read (zero until first _update_stream)
+## Last known player direction (the NEAR law's own read): the tree
+## node/batch split below asks where the VIEWER is, so the collided
+## trees cluster where the player can actually reach them. Zero until
+## the first _update_stream (cold namespace: all sites go node path
+## under the cap, the old pre-split behavior).
 ## The skirt material (same vertex-color albedo, cull DISABLED -- the
 ## strip's outward winding is ambiguous along the three border arcs;
 ## a double-sided strip is airtight whatever order the endpoints sit
@@ -186,6 +208,7 @@ func update(player_pos: Vector3) -> Dictionary:
 	# never sees the shift at all.
 	var f: int = FacePatches.face_for_position(player_pos, radius)
 	var player_dir: Vector3 = player_pos.normalized()  # the NEAR law's direction (not the face center)
+	_last_player_dir = player_dir
 	var lod_changed: Array = []
 	if f == current_face:
 		_lod_enforce(player_dir, lod_changed)
@@ -827,6 +850,7 @@ func _spawn_rocks(face: int) -> void:
 		rmi.position = _tangent_patch_local(s.dir, patch_center, rock_r + TerrainGen.ROCK_EMBED)
 		rmi.rotation.y = s.yaw
 		patch_node.add_child(rmi)
+		rmi.name = "Rock%d" % nodes.size()  # census/debug law: every prop stays name-resolvable
 		nodes.append(rmi)
 	if terrain_on:
 		_spawn_boulders(face, patch_node)
@@ -936,6 +960,8 @@ func _spawn_trees(face: int, patch_node: Node3D) -> void:
 	var lvl: int = int(_patch_lvl.get(face, -1))
 	var base: int = _level_for_edge()
 	var batched: bool = lod_on and terrain_on and lvl != -1 and lvl != base
+	var node_left: int = NODE_TREE_CAP
+	var pdir_known: bool = _last_player_dir != Vector3.ZERO
 	var bytes: PackedByteArray = TerrainGen.face_seed_bytes(world_seed, face)
 	var acc: int = 0
 	for b in bytes:
@@ -954,21 +980,21 @@ func _spawn_trees(face: int, patch_node: Node3D) -> void:
 	if terrain_on:
 		var cbid: int = TerrainGen.climate_biome_id(FacePatches.face_center(face).normalized(), world_seed)
 		if cbid == TerrainGen.BiomeId.FOREST or cbid == TerrainGen.BiomeId.TAIGA \
-				or cbid == TerrainGen.BiomeId.JUNGLE:
-			count = rng.randi_range(14, 22)
+			or cbid == TerrainGen.BiomeId.JUNGLE:
+			count = rng.randi_range(1400, 2100)
 		elif cbid == TerrainGen.BiomeId.SWAMP:
-			count = rng.randi_range(9, 14)
+			count = rng.randi_range(300, 460)
 		elif cbid == TerrainGen.BiomeId.GRASSLAND:
-			count = rng.randi_range(8, 13)
+			count = rng.randi_range(2200, 3000)
 		elif cbid == TerrainGen.BiomeId.SAVANNA:
-			count = rng.randi_range(6, 9)
+			count = rng.randi_range(400, 640)
 		elif cbid == TerrainGen.BiomeId.SHORE:
-			count = rng.randi_range(4, 8)
+			count = rng.randi_range(400, 640)
 		elif cbid == TerrainGen.BiomeId.DESERT or cbid == TerrainGen.BiomeId.TUNDRA \
 				or cbid == TerrainGen.BiomeId.STEPPE or cbid == TerrainGen.BiomeId.BADLANDS:
-			count = rng.randi_range(1, 3)
+			count = rng.randi_range(80, 140)
 		else:
-			count = rng.randi_range(0, 2)  # alpine / lake / ocean: past the line
+			count = rng.randi_range(12, 24)  # alpine / lake / ocean center: site floor
 	var verts: PackedInt32Array = FacePatches.face_vertices(face)
 	# Scaled patch offset (matches _load_patch), for patch-local trees.
 	var patch_center: Vector3 = FacePatches.face_center(face) * (radius + TILE_LIFT)
@@ -985,7 +1011,16 @@ func _spawn_trees(face: int, patch_node: Node3D) -> void:
 	var canopy_batch_xforms: Array = []
 	for i in range(count):
 		var v: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
-		var dir: Vector3 = (FacePatches.face_center(face) * 0.55 + v * 0.45).normalized()
+		var v2: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
+		var dir: Vector3 = (FacePatches.face_center(face) * 0.25 + v * 0.35 + v2 * 0.40).normalized()
+		# THE BOOT GROVE PULL (v4): inside the homeland reach the tree
+		# site rotates 62% along the surface toward the boot, so the
+		# starter country carries a WALKABLE grove (the belt census
+		# measured zero trees inside 2.1 km while 55 sat just past the
+		# rim). SPAWN_CENTER is a world constant, so the law stays pure.
+		if FacePatches.face_center(face).angle_to(TerrainGen.SPAWN_CENTER) \
+				< TerrainGen.HOMELAND_ANGULAR_REACH:
+			dir = dir.slerp(TerrainGen.SPAWN_CENTER, 0.62)
 		var base_h: float = _prop_ground_h(face, dir)
 		# WATER SKIP (terrain arc only; the prototype keeps its S7
 		# greenery untouched). THE TREE LINE IS THE BIOME now (the
@@ -1031,8 +1066,12 @@ func _spawn_trees(face: int, patch_node: Node3D) -> void:
 		var canopy_tint := Color(0.18 + 0.06 * rng.randf(), g, 0.16)
 		var canopy_crown: float = crown
 		var canopy_h: float = crown * 1.8
-		if batched:
-			# BATCHED (far face): accumulate the same deterministic tree
+		var take_node: bool = not batched and node_left > 0 \
+			and (not pdir_known or dir.angle_to(_last_player_dir) <= TREE_NODE_ANG)
+		if take_node:
+			node_left -= 1
+		if not take_node:
+			# BATCHED (far face AND near overflow): accumulate the same deterministic tree
 			# into a MultiMesh transform instead of a Node3D. The tree
 			# pose math (radial placement + radial-up basis) is shared:
 			# compute the tree-local origin/orientation first, then use
@@ -1092,7 +1131,7 @@ func _spawn_trees(face: int, patch_node: Node3D) -> void:
 		tree.basis = Basis(east, up, north).rotated(up, rng.randf_range(0.0, TAU))
 		patch_node.add_child(tree)
 	# -- Flush the batch (far faces) ------------------------------------
-	if batched and batch_xforms.size() > 0:
+	if batch_xforms.size() > 0:
 		# TRUNKS
 		var cu := CylinderMesh.new()
 		cu.top_radius = 0.14
@@ -1164,7 +1203,8 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 		if spawned >= budget:
 			return
 		var v: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
-		var dir: Vector3 = (FacePatches.face_center(face) * 0.5 + v * 0.5).normalized()
+		var v2: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
+		var dir: Vector3 = (FacePatches.face_center(face) * 0.25 + v * 0.35 + v2 * 0.40).normalized()
 		var base_h: float = _prop_ground_h(face, dir)
 		if base_h < sea - 0.2:
 			continue  # no props in the water band

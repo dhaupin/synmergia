@@ -54,7 +54,13 @@ static var _river_spec_cache = LRU_CACHE.new(8)
 ## heightfield + boulders join the world (all rocks/trees re-derive).
 ## v3: climate + hydrology join (biome ids/weights re-derive; the
 ## height law stays BIT-IDENTICAL -- see the v3 contract below).
-const RULESET_VERSION: String = "terrain_v3"
+## v4: THE VISIBILITY DENSITY RAISE (the play-day report measured
+## tests/probe_prop_density.gd: the nearest prop to the boot was
+## ~6.4 km over a ~251 km2 face): scatter counts now carry the face's
+## real geometry (rock specs 6..10, boulders 2..3, tree site ladder
+## in the streamer's _spawn_trees). Prop content re-derives; the
+## height law is BIT-IDENTICAL through the v3->v4 move.
+const RULESET_VERSION: String = "terrain_v4"
 
 ## Project default world seed (dev). Shards override per-shard later.
 const DEFAULT_WORLD_SEED: String = "saltcrown-isle-4"
@@ -84,7 +90,16 @@ const RING_T_HI: float = 0.55
 ## THE HOMELAND PLAINS LAW: inside this angle of the boot the hot
 ## dry/tropical bands yield to GRASSLAND (temperate coastal starter
 ## plains by the town; water/shore/swamp laws outrank as always).
-const HOMELAND_PLAINS_ANG: float = 0.12
+## v4 VISIBILITY EXTENSION (the density raise, the play-day report
+## measured by tests/bench_site_deriv.gd + tests/probe_prop_density.gd):
+## at 0.12 rad (2.4 km) the "starter plains" belt was SMALLER than the
+## boot's own face corner -- the ground 3-10 km out resolved by raw
+## latitude heat (desert/steppe/savanna bands), so the site-level
+## species law drew no tree far or near and the plains read bare.
+## 0.30 rad = ~6 km keeps the belt a real starter plains (the village,
+## the boot, and the visible meadow country), while the dome edge
+## (0.70 rad) still carries the authored variety bands.
+const HOMELAND_PLAINS_ANG: float = 0.30
 ## Hard ceiling on the ground law: nothing grows above this.
 const TERRAIN_MAX: float = 560.0
 ## The sea line above the base surface. Per-seed in a narrow band so
@@ -634,9 +649,30 @@ static func _sculpt_and_spawn(d: Vector3, h_in: float, sea: float, island_floor:
 ## Rock specs for a face. Pure function of the seed: a fresh RNG is
 ## seeded from the face's derived bytes every call, so any process on
 ## any machine derives identical content. Dirs too close to the spawn
-## shore are RE-DRAWN (never dropped: the count contract 2..5 holds)
-## so no walk-over cap ever covers the spawn plaza.
+## shore are RE-DRAWN (never dropped: the count contract 20..34 holds)
+## so no walk-over cap ever covers the spawn plaza, and WATER draws
+## re-roll the same way -- rocks belong on dry ground (they skipped at
+## draw time put them all in the bay on wet-side faces). v4 DENSITY:
+## the count carries the face's real ground footprint (~251 km2 at the
+## 20 km scale) -- 2..5 rocks put the nearest stone kilometers off.
+## v4 SITE COVERAGE (the corner-face fix): the old 70/30
+## center/corner draws hug the cell CENTROID -- the boot sits in a
+## near-face corner, and the whole visible boot arc went prop-bare
+## (measured by tests/probe_prop_density). The draw is BARYCENTRIC
+## now (center 0.25 + two corner verts 0.35/0.40): the sites cover
+## the whole Voronoi cell evenly, boot corners included. The convex
+## mix of the cell's four points cannot leave the cell, and the
+## spawn-clear/water redraws below stay the guards.
+## THE HOT-PATH CACHE: the walk-over provider calls this EVERY walk
+## step, so the array memoizes per (world seed, face) on the
+## LRU_CACHE primitive (bounds evict, capacity 64 faces -- the
+## streamed set + its neighbors live well inside).
+static var _rock_specs_cache = LRU_CACHE.new(64)
 static func rock_specs(world_seed: PackedByteArray, face: int) -> Array:
+	var ckey: String = str(world_seed) + "/" + str(face)
+	var cached = _rock_specs_cache.get_value(ckey)
+	if cached != null:
+		return cached
 	var bytes: PackedByteArray = face_seed_bytes(world_seed, face)
 	# Fold the 32 seed bytes into one 64-bit RNG seed.
 	var acc: int = 0
@@ -645,35 +681,52 @@ static func rock_specs(world_seed: PackedByteArray, face: int) -> Array:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = acc
 
-	var count: int = rng.randi_range(2, 5)
+	var count: int = rng.randi_range(20, 34)
 	var center: Vector3 = Faces.face_center(face)
 
 	var specs: Array = []
 	for i in range(count):
-		# Direction: jitter from the face center toward a random corner
-		# vertex (70/30 stays well inside the Voronoi cell). Re-draw
-		# spawn-adjacent draws (bounded: at most 4 redraws, then the
+		# Direction: BARYCENTRIC draw (v4 site coverage law -- see the
+		# header block: center 0.25 + two corner verts 0.35/0.40, so
+		# sites cover the whole Voronoi cell, boot corners included).
+		# Spawn-adjacent draws (bounded: at most 4 redraws, then the
 		# last draw stands -- deterministic on every machine).
 		var verts: PackedInt32Array = Faces.face_vertices(face)
 		var v: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
-		var dir: Vector3 = (center * 0.7 + v * 0.3).normalized()
+		var v2: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
+		var dir: Vector3 = (center * 0.25 + v * 0.35 + v2 * 0.40).normalized()
 		for _try in range(4):
 			if dir.angle_to(SPAWN_CENTER) >= SPAWN_CLEAR_ANG:
 				break
 			v = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
-			dir = (center * 0.7 + v * 0.3).normalized()
+			v2 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
+			dir = (center * 0.25 + v * 0.35 + v2 * 0.40).normalized()
+		# THE DRY REDRAW (v4): a rock whose draw landed underwater re-rolls
+		# the same way the spawn-clear redraw does -- bounded, so on an
+		# all-water roll the last draw stands (deterministic; the site
+		# pass still water-skips it, but a wet-side face never loses its
+		# stones to the bay).
+		var sea_rock: float = sea_level(world_seed)
+		for _try in range(6):
+			if terrain_height(dir, world_seed) >= sea_rock - 0.6:
+				break
+			v = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
+			v2 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
+			dir = (center * 0.25 + v * 0.35 + v2 * 0.40).normalized()
 		var spec := RockSpec.new()
 		spec.dir = dir
 		spec.scale = rng.randf_range(1.0, 2.2)
 		spec.yaw = rng.randf_range(0.0, TAU)
 		specs.append(spec)
+	_rock_specs_cache.set_value(ckey, specs)
 	return specs
 
 
-## Boulder specs: 1-2 per face -- the VARIETY LAW is universal: any
+## Boulder specs: 2-3 per face (v4 density: 1-2 left the homelands
+## with one climbable boulder per hundreds of km2 at the planet
+## scale) -- the VARIETY LAW is universal: any
 ## streamed set (a face + its 3 neighbors) always carries climbing
-## content, so the guarantee is every face, not a lucky subset. A
-## 10 km face with one or two big rocks is sparse. Same seed
+## content, so the guarantee is every face, not a lucky subset. Same seed
 ## discipline as rocks (independent derived stream, so adding
 ## boulders never reshuffles the rocks). Spawn-adjacent draws are
 ## re-rolled.
@@ -686,18 +739,31 @@ static func boulder_specs(world_seed: PackedByteArray, face: int) -> Array:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = acc
 
-	var count: int = 1 + rng.randi_range(0, 1)
+	var count: int = 2 + rng.randi_range(0, 1)
 	var center: Vector3 = Faces.face_center(face)
 	var specs: Array = []
 	for i in range(count):
 		var verts: PackedInt32Array = Faces.face_vertices(face)
 		var v: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
-		var dir: Vector3 = (center * 0.6 + v * 0.4).normalized()
+		var v2b: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
+		var dir: Vector3 = (center * 0.25 + v * 0.35 + v2b * 0.40).normalized()
 		for _try in range(4):
 			if dir.angle_to(SPAWN_CENTER) >= SPAWN_CLEAR_ANG:
 				break
 			v = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
-			dir = (center * 0.6 + v * 0.4).normalized()
+			v2b = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
+			dir = (center * 0.25 + v * 0.35 + v2b * 0.40).normalized()
+		# THE DRY REDRAW (v4, same bounded law as the rocks): a boulder
+		# draw landing in the water keeps its climbable count on dry
+		# ground wherever the face holds any.
+		var sea_b: float = sea_level(world_seed)
+		for _try in range(6):
+			if terrain_height(dir, world_seed) >= sea_b - 0.6:
+				break
+			v = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
+			v2b = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
+			dir = (center * 0.25 + v * 0.35 + v2b * 0.40).normalized()
+
 		var spec := BoulderSpec.new()
 		spec.dir = dir
 		spec.radius = rng.randf_range(3.5, 6.5)
@@ -893,6 +959,15 @@ static func climate_biome_at(d: Vector3, world_seed: PackedByteArray, height: fl
 	# climate_swamp_wetness). Bridge decks outrank the marsh too.
 	if m > SWAMP_T and bridge <= 0.4 and climate_swamp_wetness(d, world_seed, height, surface) > 0.5:
 		return BiomeId.SWAMP
+	# THE HOMELAND PLAINS LAW (v4 extension): the boot's belt yields
+	# to GRASSLAND outright once the water/freezes/swamp outrankers
+	# have had their say (they returned above). The old placement
+	# AFTER the green ladder only rescued jungle/savanna splits -- the
+	# dry ladder (badlands/desert/steppe) resolved bare starter
+	# country INSIDE the belt, so the plains read bare no matter how
+	# the density asked (measured: tests/bench_site_deriv, face 18).
+	if d.angle_to(SPAWN_CENTER) < HOMELAND_PLAINS_ANG:
+		return BiomeId.GRASSLAND
 	# THE SWING LADDER (variety): broken country -> desert -> steppe.
 	# Badlands first: dry-warm rare broken country on its OWN erosion
 	# gate (independent-stream discipline - adding the gate never
@@ -917,11 +992,9 @@ static func climate_biome_at(d: Vector3, world_seed: PackedByteArray, height: fl
 		warm_id = BiomeId.SAVANNA
 	elif m > 0.55:
 		warm_id = BiomeId.FOREST if t > ALPINE_T else BiomeId.TAIGA
-	# THE HOMELAND PLAINS LAW: the boot view resolves GRASSLAND - the
-	# hot dry/tropical bands yield inside the ring (water/shore/swamp
-	# laws outranked as always; they returned above).
-	if warm_id != BiomeId.GRASSLAND and d.angle_to(SPAWN_CENTER) < HOMELAND_PLAINS_ANG:
-		return BiomeId.GRASSLAND
+	# (the homeland plains yield fires ABOVE the dry ladder now: the
+	# boot belt is grassland once water/freezes/swamp have had their
+	# say, so no redundant rescue sits here anymore).
 	return warm_id
 
 
@@ -1345,6 +1418,20 @@ static func _hydro_gates(d: Vector3, world_seed: PackedByteArray) -> Vector2:
 	# planet's standing water into a spawn-hugging halo.
 	var ang_spawn: float = d.angle_to(SPAWN_CENTER)
 	var suppress: float = 1.0 - smoothstep(Hydro.SUPPRESS_IN, Hydro.SUPPRESS_OUT, ang_spawn)
+	# THE BELT DRY LAW (v4, the visibility raise's hydrology half): the
+	# apron's dry floor extends across the whole homeland plains belt
+	# (HOMELAND_PLAINS_ANG) EXCEPT the authored cove bearing -- the
+	# starter country reads meadow, not marsh. Measured
+	# (tests/probe_tree_law_census): face 18's centroid + 133 of face
+	# 16's plantable sites stood inside the water table's fill (LAKE
+	# bands) within walking distance of the boot, so the species law
+	# drew nothing -- the plaza's own suppress bracket (0.05..0.075)
+	# stopped short of the belt. The cove window above stays its own
+	# authored sea (the vista law outranks the belt).
+	var cove_w2: float = _cove_window(d)
+	if cove_w2 < 0.05:
+		var belt: float = 1.0 - smoothstep(HOMELAND_PLAINS_ANG * 0.9, HOMELAND_PLAINS_ANG * 1.08, ang_spawn)
+		suppress = maxf(suppress, belt)
 	return Vector2(gate, suppress)
 
 

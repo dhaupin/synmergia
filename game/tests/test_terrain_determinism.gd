@@ -71,18 +71,20 @@ func _test_face_and_seed_sensitivity() -> bool:
 	return true
 
 
-## Every face derives 2-5 rocks with unit directions.
+## Every face derives 20-34 rocks with unit directions (v4 density:
+## the old 2-5 put the nearest stone kilometers off at the planet
+## scale; the count contract carries the face's real footprint).
 func _test_all_faces_derive() -> bool:
 	var g = _gen()
 	var seed_b: PackedByteArray = g.world_seed_bytes()
 	var total := 0
 	for f in range(20):
 		var specs: Array = g.rock_specs(seed_b, f)
-		assert(specs.size() >= 2 and specs.size() <= 5)
+		assert(specs.size() >= 20 and specs.size() <= 34)
 		total += specs.size()
 		for s in specs:
 			assert(abs(s.dir.length() - 1.0) < 0.001)
-	assert(total >= 40 and total <= 100)
+	assert(total >= 400 and total <= 680)
 	return true
 
 
