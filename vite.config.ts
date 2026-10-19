@@ -76,12 +76,35 @@ function copyGodotWebToDist(): Plugin {
       // The Godot WASM client lives in web/ (index.html + game.js +
       // game.pck + workers). Vite only copies public/ into dist/, so
       // production deploys lost the engine unless this runs. Ship the
-      // whole web/ directory as-is.
+      // whole web/ directory as-is... except files beyond Cloudflare
+      // Pages' 25 MiB per-file asset cap (validated after build; a
+      // 38 MB game.wasm rejected the whole deploy 2026-10-19). Those
+      // are streamed from R2 by the Pages Functions in functions/game/
+      // instead — same URL, no client change.
       const srcDir = path.resolve(process.cwd(), 'web');
       const destDir = path.resolve(process.cwd(), 'dist', 'game');
       if (!fs.existsSync(srcDir)) return;
+      const MAX_FILE = 25 * 1024 * 1024; // Pages per-file cap, inclusive
       fs.cpSync(srcDir, destDir, { recursive: true });
-      // eslint-disable-next-line no-console
+      const excluded: string[] = [];
+      const audit = (dir: string) => {
+        for (const f of fs.readdirSync(dir)) {
+          const p = path.join(dir, f);
+          if (fs.statSync(p).isDirectory()) {
+            audit(p);
+          } else if (fs.statSync(p).size > MAX_FILE) {
+            excluded.push(path.relative(destDir, p) + ' (' + (fs.statSync(p).size / 1048576).toFixed(1) + ' MiB)');
+            fs.rmSync(p);
+          }
+        }
+      };
+      audit(destDir);
+      for (const name of excluded) {
+        console.log(`[copy-godot-web] EXCLUDED >25MiB: ${name} -> served from R2 via functions/game/`);
+      }
+      if (excluded.length > 0) {
+        fs.writeFileSync(path.join(destDir, '_oversize.txt'), excluded.join('\n') + '\n');
+      }
       console.log(`[copy-godot-web] web/ -> dist/game/ (${fs.readdirSync(destDir).length} entries)`);
     },
   };

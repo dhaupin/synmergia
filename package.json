@@ -11,7 +11,8 @@
     "build:web": "npm run sync:data && tsc && vite build",
     "lint": "tsc --noEmit",
     "preview": "vite preview --port 3000",
-    "preview:with-bridges": "node scripts/start-bridges.js && vite preview --port 3000"
+    "preview:with-bridges": "node scripts/start-bridges.js && vite preview --port 3000",
+    "r2:put:wasm": "wrangler r2 object put synmergia-client/game.wasm --file web/game.wasm --remote --content-type application/wasm"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",

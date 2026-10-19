@@ -93,9 +93,73 @@ Dashboard → Custom domains → `synmergia.creadev.org`. The
 `_headers` file (see §4) deploys with the bundle, so isolation
 headers arrive with the domain automatically.
 
----
+### Oversize assets: game.wasm lives in R2 (required)
 
-## 3. Access gates (`/play` + `/admin`)
+Cloudflare Pages caps a Pages site at **25 MiB per file** — no plan
+override exists, and Workers static assets cap identically (Pages
+limits doc: developers.cloudflare.com/pages/platform/limits). Our
+Godot engine binary (`web/game.wasm`, ~38 MB) cannot ship in the
+bundle, so the 2026-10-19 deploy died at asset validation:
+
+```
+✘ [ERROR] Error: Pages only supports files up to 25 MiB in size
+  game/game.wasm is 37 MiB in size
+```
+
+The fix is the documented pattern (Pages + R2 tutorial:
+developers.cloudflare.com/pages/tutorials/use-r2-as-static-asset-
+storage-for-pages): a Pages Function streams the object straight from
+R2, same URL, zero client changes. Setup, four steps:
+
+1. **Create the bucket** — Dashboard → R2 → Create bucket → name
+   `synmergia-client`, location Auto. No public access needed; the
+   binding is private.
+2. **Bind it** — synmergia-web Pages project → Settings → Bindings →
+   Add binding → R2 bucket → variable name `R2_GAME_WASM`, bucket
+   `synmergia-client`. Do it for BOTH Production and Preview
+   environments, or the Preview deploys 503 on /game/game.wasm.
+3. **Upload the engine once per export** —
+
+   ```bash
+   npm run r2:put:wasm
+   # = wrangler r2 object put synmergia-client/game.wasm
+   #     --file web/game.wasm --content-type application/wasm
+   ```
+
+   First run does `npx wrangler login` in a browser; everything after
+   is one command, and it only ever runs when you re-export the Godot
+   template (the same rare event that changes `web/game.wasm` at all).
+   CI never touches R2 — the pipeline only re-packs game.pck, which at
+   5.8 MB is far under the cap and stays a build-time asset.
+4. **Redeploy** — push to `main` (or trigger from the dashboard).
+
+Verify after deploy:
+
+```bash
+curl -sI https://<site>/game/game.wasm | head
+# 200, Content-Type: application/wasm, ~38 MB Content-Length
+```
+
+Plumbing (all committed):
+
+- `functions/game/game.wasm.js` — the streamer: Range pass-through,
+  same cache law as `_headers` (wasm = 1-day TTL; boot anchors keep a
+  re-export honest), 404 with the upload command if the object is
+  missing, 503 with the fix if the binding isn't wired.
+- `vite.config.ts` copy plugin — files over the cap are excluded from
+  `dist/game/` (logged + noted in `dist/game/_oversize.txt`), so the
+  validation error cannot recur as the project grows. **When
+  `game.pck` someday crosses 25 MiB**, copy the pattern: a second
+  function at `functions/game/game.pck.js` (key `game.pck` in the
+  same bucket) and either rebuild the pck-in-CI pipeline to upload it
+  or start pushing packs manually.
+
+Also filed as the known alternative (not chosen): Godot's
+size-optimized Web export template could shrink the wasm under 25 MiB
+with zero infra — traded against engine performance in a 3D open
+world, so R2 won.
+
+### Custom domain
 
 Both gated routes share one mechanism (`src/lib/gate.ts` +
 `src/components/GateScreen.tsx`): a password field whose sha256 is
