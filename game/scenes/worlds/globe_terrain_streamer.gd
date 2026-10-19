@@ -486,10 +486,53 @@ func _build_mesh(face: int, use_lvl: int) -> MeshInstance3D:
 	# globe direction, so shared tile corners read identical heights
 	# (no border cracks).
 	var dir_h := {}  # Vector3 (quantized globe dir) -> displaced radius
+	# THE SLOPE CACHE (the fusion's second half): the gradient math
+	# also runs once per UNIQUE key; the tint pass picks up its vertex
+	# slope from here.
+	var dir_slope := {}  # Vector3 (quantized globe dir) -> slope seed [0,1]
 	var sea: float = TerrainGen.sea_level(world_seed)
+	## THE CORNER FUSION (perf leg v8.2): one sweep over the UNIQUE
+	## quantized corners populates dir_h with the corner's height AND
+	## its three slope-neighbor heights, BEFORE the triangle walk --
+	## the tint pass below never calls terrain_height, it only reads
+	## dict keys. The old inline law re-built the same corner→neighbor
+	## pairs per RAW triangle corner (49,152 raw to ~8,358 unique);
+	## the fused sweep does ~4 height fields per UNIQUE corner
+	## (deduped), and a quantized neighbor key that collides with a
+	## neighboring corner rides the same dict entry.
+	if terrain_on:
+		for tri in verts:
+			for i in range(3):
+				var vc: Vector3 = tri[i]
+				var dc: Vector3 = (vc + center).normalized()
+				var kc: Vector3 = (dc * 4096.0).floor()
+				if not dir_h.has(kc):
+					dir_h[kc] = tile_r + TerrainGen.terrain_height(dc, world_seed)
+				# THE NEIGHBOR SWEEP IS NOT SKIPPED: a corner whose own
+				# height was populated as an earlier corner's neighbor
+				# STILL owns its three slope-neighbors (the tint pass
+				# reads dir_h[nkey] at EVERY corner; skipping the sweep
+				# for aliased corners leaves holes the build dies on).
+				for n_vec in [Vector3(1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, 1)]:
+					var nd: Vector3 = (dc + n_vec * 0.0012).normalized()
+					var nkey: Vector3 = (nd * 4096.0).floor()
+					if not dir_h.has(nkey):
+						dir_h[nkey] = tile_r + TerrainGen.terrain_height(nd, world_seed)
+				# THE SLOPE FUSION (once per UNIQUE corner): the gradient
+				# runs here, against the fully populated dir_h, so the
+				# triangle walk below just reads dict keys.
+				if not dir_slope.has(kc):
+					var h_here_f: float = float(dir_h[kc]) - tile_r
+					var grad_f: float = 0.0
+					for n_vec in [Vector3(1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, 1)]:
+						var nd_f: Vector3 = (dc + n_vec * 0.0012).normalized()
+						var nkey_f: Vector3 = (nd_f * 4096.0).floor()
+						grad_f = maxf(grad_f, absf((float(dir_h[nkey_f]) - tile_r) - h_here_f))
+					dir_slope[kc] = clampf(grad_f / 1.8, 0.0, 1.0)
 	## v3 CLIMATE ARC (slice 2): slope for the color law -- the local
-	## height gradient per vertex (from the quantized neighbors of the
-	## same cache) maps radially to a [0, 1] steep factor.
+	## height gradient per vertex. THE FUSED PASS: slopes derive from
+	## the QUANTIZED key reads (the pre-pass above populated them), so
+	## the tint pass is dict-only.
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for tri in verts:
@@ -497,10 +540,9 @@ func _build_mesh(face: int, use_lvl: int) -> MeshInstance3D:
 			var v: Vector3 = tri[i]
 			var d_abs: Vector3 = (v + center).normalized()
 			var r_abs: float = tile_r
+			# THE CORNER KEY (hoisted: both terrain blocks read it).
+			var key: Vector3 = (d_abs * 4096.0).floor()
 			if terrain_on:
-				var key: Vector3 = (d_abs * 4096.0).floor()
-				if not dir_h.has(key):
-					dir_h[key] = tile_r + TerrainGen.terrain_height(d_abs, world_seed)
 				r_abs = dir_h[key]
 			st.set_normal(d_abs)
 			## v3 CLIMATE ARC (slice 2): the BIOME palette owns the terrain-
@@ -510,20 +552,10 @@ func _build_mesh(face: int, use_lvl: int) -> MeshInstance3D:
 		## the two nearest sampled neighbors.
 			var col: Color = _tint_for(face)
 			if terrain_on:
-				# Slope: compare vs radial neighbors in the cache.
-				var step_m: float = tile_r * 0.0012
-				var slope_seed: float = 0.0
+				# Slope: read from the fused per-corner cache (dict-only
+				# after the corner fusion above).
 				var h_here: float = r_abs - tile_r
-				var grad: float = 0.0
-				for n_vec in [Vector3(1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, 1)]:
-					var nd: Vector3 = (d_abs + n_vec * 0.0012).normalized()
-					var nkey: Vector3 = (nd * 4096.0).floor()
-					var nh: float = 0.0
-					if not dir_h.has(nkey):
-						dir_h[nkey] = tile_r + TerrainGen.terrain_height(nd, world_seed)
-					nh = float(dir_h[nkey]) - tile_r
-					grad = maxf(grad, absf(nh - h_here))
-				slope_seed = clampf(grad / 1.8, 0.0, 1.0)
+				var slope_seed: float = dir_slope[key]
 				col = TerrainGen.vertex_color(d_abs, world_seed, h_here, slope_seed)
 			st.set_color(col)
 			# Planar UVs wrapped to [0,1) (the round-12 web law).
