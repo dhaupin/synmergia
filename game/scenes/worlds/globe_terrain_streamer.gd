@@ -26,6 +26,7 @@ const TerrainGen = preload("res://scenes/worlds/terrain_gen.gd")
 ## One-law prop collision + climbable registration (play-day:
 ## "stuff shouldn't be walk-through"). RefCounted helper, no autoload.
 const PropCollider = preload("res://entities/prop_collider.gd")
+const MESH_CACHE = preload("res://core/frame/kv/lru_cache.gd")
 
 ## Tiles render just above the scene's visual sphere shell (which sits
 ## at radius + SKIN_THICKNESS = +0.5) so they never hide inside it.
@@ -342,6 +343,11 @@ func _lod_enforce(player_dir: Vector3, out_loaded: Array) -> void:
 		var cur: int = int(_patch_lvl.get(face, -1))
 		var want_lvl: int = _demanded_level(face, player_dir, cur)
 		if want_lvl != cur:
+			# THE PERF-LEG STASH: the demoting/re-promoting node's built
+			# geometry lands in the (face, level) ring before the
+			# rebuild runs, so the ping-pong climb-back is a graft,
+			# not a corner re-derivation.
+			_mesh_cache_stash(face, _patches.get(face))
 			# HOT PATH: level changes rebuild ONLY the mesh; the prop
 			# holder (rocks/trees/boulders/colliders) grafts across
 			# corpse-free. The cold path (full spawn) only fires when the
@@ -426,6 +432,11 @@ func _hot_reload(face: int, use_lvl: int) -> bool:
 	if old_mi == null or not is_instance_valid(old_mi):
 		_prop_holders.erase(face)
 		return false
+	# THE PERF-LEG STASH: the old level's built geometry lands in the
+	# (face, level) ring before its replacement builds, so a level
+	# ping-pong never re-derives corners for content this machine
+	# already built this session.
+	_mesh_cache_stash(face, old_mi)
 	var fresh := _build_mesh(face, use_lvl)
 	# Re-parent the holder (props + colliders) corpse-free: the rock
 	# positions ride the ANALYTIC law, so they are identical on the
@@ -790,11 +801,21 @@ func _load_patch(face: int, level: int = -1) -> void:
 	if _hot_reload(face, use_lvl):
 		patch_loaded.emit(face)
 		return
-	var mi := _build_mesh(face, use_lvl)
+	# THE WARM-MESH CACHE (the perf-leg law): a face's BUILT MESH NODE
+	# (geometry + skirts + deck) is kept on a bounded ring keyed
+	# (face, level) when it streams out or demotes, and re-stocked
+	# wholesale on the revisit. The heavy mesh pass (corner derivation
+	# + subdivision + vertex tint) never runs twice for the same
+	# content; the ring bounds memory so the walk evicts the tail
+	# instead of holding the planet. The stock rewrites the
+	# bookkeeping like _hot_reload does.
+	var mi: MeshInstance3D = _mesh_cache_stock(face, use_lvl)
 	parent.add_child(mi)
 	_patches[face] = mi
-	_patch_tris[face] = int(mi.get_meta("tris"))
-	mi.remove_meta("tris")
+	if mi.has_meta("tris"):
+		_patch_tris[face] = int(mi.get_meta("tris"))
+		mi.remove_meta("tris")
+	_patch_lvl[face] = use_lvl
 	# Terrain arc: the per-face walk law (level-INDEPENDENT: the
 	# closure reads the analytic heightfield, so the hot swap never
 	# rewrites it -- physics and visuals hold one ground law through
@@ -1312,6 +1333,7 @@ func _tuft_mesh() -> Mesh:
 	if _tuft_mesh_res != null:
 		return _tuft_mesh_res
 	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var base_col := Color(0.38, 0.50, 0.24)
 	var tip_col := Color(0.66, 0.72, 0.34)
 	for b in range(3):
@@ -2524,7 +2546,13 @@ func visible_patch_count() -> int:
 func _unload_patch(face: int) -> void:
 	var mi: MeshInstance3D = _patches.get(face)
 	if mi and is_instance_valid(mi):
-		mi.queue_free()
+		# THE WARM-MESH STASH (the perf-leg law): before freeing, offer
+		# the built mesh node to the (face, level) LRU -- the walk law
+		# re-stocks on the revisit without a rebuild. The node is
+		# detached from the tree but ALIVE; its next stock re-grafts
+		# it. Cache miss/overflow is invisible: the node frees as
+		# before and the next load re-derives (see _mesh_cache_stock).
+		_mesh_cache_stash(face, mi)
 	_patches.erase(face)
 	_patch_tris.erase(face)
 	_patch_rocks.erase(face)
@@ -2536,6 +2564,113 @@ func _unload_patch(face: int) -> void:
 	_skirt_mats.erase(face)
 	_prop_holders.erase(face)
 	patch_unloaded.emit(face)
+
+
+## ===== THE WARM-MESH CACHE (perf leg v8: the built-patch reuse) ===
+## A face's built MeshInstance3D is EXPENSIVE (corner derivation rides
+## the terrain field; at level 7 that's ~8.4k unique corners + ~17k
+## slope reads per face, each ~350 us cold) and the streaming walk
+## legitimately rebuilds the SAME geometry when a face unloads and
+## revisits, or demotes and re-promotes. The cache keeps the BUILT
+## NODE per (face, level) in a bounded ring; a stash on unload/demote
+## and a stock on load turn those rebuilds into grafts.
+##
+## THE DETERMINISM LAW: the node is a pure product of (face, level,
+## seed, terrain-law version), so a stock and a fresh build agree
+## bit-for-bit. A law change invalidates by construction: the terrain
+## reinstall seam clears terrain caches AND this cache (same body).
+##
+## THE LIFECYCLE LAW: a stashed node is DETACHED from the tree but
+## alive under the cache's strong reference; eviction queue_free()s
+## the detached node (no leak, no corpse in the tree). A re-stash of
+## the same key frees the old held node. The prop holder grafts back
+## onto a stocked node; the stock rewrites the bookkeeping exactly
+## like _hot_reload does. The caller add_child()s the stocked node.
+##
+## BOUNDS: 24 entries -- the streamed set + neighbors + margin fit;
+## a planet sweep evicts the tail honestly.
+const MESH_CACHE_MAX: int = 24
+
+var _mesh_cache: Dictionary = {}   # key -> entry (ring storage)
+var _mesh_cache_order: Array = []  # key ring, MRU first
+
+func _mesh_cache_key(face: int, lvl: int) -> String:
+	return "%d@%d" % [face, lvl]
+
+## Offer a built mesh node to the cache. Records its level (the
+## builder's stamp), detaches it from the tree, and frees evicted
+## ring tails at the bound.
+func _mesh_cache_stash(face: int, mi: MeshInstance3D) -> void:
+	if mi == null or not is_instance_valid(mi):
+		return
+	var lvl: int = int(_patch_lvl.get(face, -1))
+	if lvl < 0:
+		mi.queue_free()
+		return  # half-built: nothing stockable
+	var key: String = _mesh_cache_key(face, lvl)
+	if _mesh_cache.has(key):
+		# Same-key re-stash: the held node dies (fresh content won).
+		var old = _mesh_cache[key].get("mi")
+		_mesh_cache_order.erase(key)
+		if old != null and is_instance_valid(old):
+			old.queue_free()
+	_mesh_cache[key] = {
+		"mi": mi,
+		"holder": _prop_holders.get(face),
+		"patch_tris": int(_patch_tris.get(face, 0)),
+		"skirt_tris": int(_patch_skirt_tris.get(face, 0)),
+	}
+	_mesh_cache_order.push_front(key)
+	if mi.get_parent() != null:
+		mi.get_parent().remove_child(mi)
+	while _mesh_cache_order.size() > MESH_CACHE_MAX:
+		var evict: String = _mesh_cache_order.pop_back()
+		var e = _mesh_cache.get(evict)
+		_mesh_cache.erase(evict)
+		if e != null and is_instance_valid(e.get("mi")):
+			e["mi"].queue_free()
+
+## THE SEAM HOOK: the terrain backend install/uninstall seam flushes
+## the warm-mesh ring too -- the cached nodes are products of the OLD
+## law, so a law change must not stock them anywhere. The streamer
+## wires this from globe_world (the ring lives on the instance, not
+## the class).
+func _mesh_cache_flush() -> void:
+	for key in _mesh_cache_order.duplicate():
+		var e = _mesh_cache.get(key)
+		if e != null and is_instance_valid(e.get("mi")):
+			e["mi"].queue_free()
+	_mesh_cache.clear()
+	_mesh_cache_order.clear()
+
+## Stock a face's mesh: a cache hit grafts the node back (with its
+## prop holder) and rewrites the bookkeeping exactly like
+## _hot_reload; a miss builds fresh. The hit is CONSUMED (no
+## double-stock beach). Returns the ready node; the caller
+## add_child()s it. NOTE on a miss: _patch_tris is set by the caller
+## from the builder's meta (the existing law); the walk closure and
+## holder wiring stay the caller's job (same as always).
+func _mesh_cache_stock(face: int, use_lvl: int) -> MeshInstance3D:
+	var key: String = _mesh_cache_key(face, use_lvl)
+	var entry = _mesh_cache.get(key)
+	if entry != null:
+		_mesh_cache.erase(key)
+		_mesh_cache_order.erase(key)
+		var mi2: MeshInstance3D = entry.get("mi")
+		if mi2 != null and is_instance_valid(mi2):
+			var holder2 = entry.get("holder")
+			var holder_ok: bool = holder2 != null and is_instance_valid(holder2)
+			if holder_ok and holder2.get_parent() != null \
+					and holder2.get_parent() != mi2:
+				holder2.get_parent().remove_child(holder2)
+			if holder_ok:
+				mi2.add_child(holder2)
+			_prop_holders[face] = holder2 if holder_ok else null
+			_patch_tris[face] = int(entry.get("patch_tris", 0))
+			_patch_skirt_tris[face] = int(entry.get("skirt_tris", 0))
+			_patch_mats[face] = _patch_mats.get(face)  # untouched on hit
+			return mi2
+	return _build_mesh(face, use_lvl)
 
 
 ## The currently-live per-patch LOD levels (debug/HUD surface).

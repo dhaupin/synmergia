@@ -176,6 +176,12 @@ func _install_world_backend() -> void:
 	var backend_script = load(script_path)
 	var Gen = load("res://scenes/worlds/terrain_gen.gd")
 	Gen.install_terrain_backend(Callable(backend_script, "field"))
+	# THE WARM-MESH FLUSH (perf leg): the cached built patches are
+	# products of the OLD law -- under a new backend they are wrong,
+	# so the ring dies with the terrain caches (one seam, one clear).
+	var streamer = get("streamer")
+	if streamer != null and streamer.has_method("_mesh_cache_flush"):
+		streamer._mesh_cache_flush()
 	_log_backend("info", "authored terrain backend '%s' installed for world '%s' (the strait is real)" % [ids, wd.id])
 
 
