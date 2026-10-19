@@ -6355,6 +6355,43 @@ peak_height_scan) remain in game/debug.
   bout-flow probe ALL PASS (the entity effect-stack change runs the
   combat paths); lint runner 36/0 x5 suites.
 
+## 2026-10-19: FIRST LIVE-PLAYER FIELD REPORT (creadev.org, mobile Chromium)
+The gates + engine serving verified by a human login (passwords work,
+sunset renders, threaded boot OK). Four field grievances filed --
+these are PLAYER-VISIBLE now that the site is live, priority up:
+
+- FIELD-1 trees sparse: ground reads mostly bare dark-green from
+  spawn view. First hypotheses: (a) prop-density threshold tuned for
+  the editor camera, not boot-cam FOV; (b) biome weights near spawn
+  favor the bare class (probe_biodiversity_v7 census exists -- extend
+  it to sweep the SPAWN face specifically); (c) GLB tree variants
+  fail on web export so fallback canopy dies (probe_biodiversity_v7
+  counts bare_snags -- check the web build's variant survival).
+- FIELD-2 houses identical + same spots: deterministic seed = same
+  village layout every session, which is BY DESIGN for quest-anchored
+  structures, but the player expectation is that DECORATIVE scatter
+  recombines per session. Split the scatter law: anchored slice
+  (village core, dock, quest anchors) stays seed-fixed; decorative
+  slice (some trees, rocks, minor scatter) gets a per-boot offset
+  sourced from cosmic_entropy. Houses-in-same-spots is then CORRECT
+  behavior made explainable, and the sameness complaint reduces to
+  the decorative layer.
+- FIELD-3 floating props + height-plane seams: scatter likely samples
+  one height field while the rendered mesh derives another (async-lane
+  ordering), leaving props proud of the surface; seams at patch
+  borders where adjacent faces disagree at LOD edges. Probes exist:
+  probe_walk_mesh_gap (skirt-gap census) + probe_prop_density --
+  extend both to assert prop-ground contact within tolerance and
+  zero T-junction gaps at the spawn face's boot LOD.
+- FIELD-4 (reported dead): /play fullscreen button no-op on mobile
+  Chromium. PlayPage silently ate the rejection, missed the webkit
+  prefix, and lacked iframe allowFullScreen -- the icon also vanished
+  on a second tap (optimistic state, no fullscreenchange listener).
+  Fixed same day in the web layer: vendor-prefix handler, the error
+  surfaced as an inline toast instead of a dead click, state sourced
+  from fullscreenchange, allowFullScreen on the iframe. No game-side
+  change; needs a mobile retest after deploy.
+
 ## 2026-10-14 (turn 27): THE SUBAGENT BOARD + THE WHITESPACE SWEEP COMPLETES
 - THE BOARD (labs/subagent-tasks.md): the Solar Pro 4 handoff queue --
   five markdown-only tasks (NPC voice/dialogue, quest briefs, the

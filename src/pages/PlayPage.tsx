@@ -21,6 +21,7 @@ function GameFrame() {
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fsError, setFsError] = useState('');
   const [missing, setMissing] = useState<null | { title: string; body: string }>(null);
 
   useEffect(() => {
@@ -40,6 +41,18 @@ function GameFrame() {
       });
   }, []);
 
+  useEffect(() => {
+    // Truth from the browser, not optimistic state — a fullscreen
+    // attempt that gets denied must not flip the button into exit mode
+    // (the stuck-page state where the expand icon vanishes but the
+    // browser never entered fullscreen).
+    const onChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
   const handleReload = () => {
     if (iframeRef.current) {
       iframeRef.current.src = `${GAME_BASE}index.html?t=${Date.now()}`;
@@ -47,11 +60,35 @@ function GameFrame() {
   };
 
   const handleToggleFullscreen = () => {
-    if (!containerRef.current) return;
+    const el = containerRef.current;
+    if (!el) return;
     if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+      // Vendor prefixes: Safari still ships webkitRequestFullscreen and
+      // does not recognize the unprefixed call on some versions —
+      // without them the button silently does nothing on iOS/mobile
+      // Safari (the reported dead button). WebKit also honors the
+      // legacy allowFullScreen attribute, set on the iframe below.
+      const request =
+        el.requestFullscreen ||
+        (el as HTMLDivElement & { webkitRequestFullscreen?: () => Promise<void> })
+          .webkitRequestFullscreen;
+      if (!request) {
+        setFsError('Fullscreen is not available in this browser.');
+        return;
+      }
+      request.call(el).then(
+        () => setFsError(''),
+        (err) => {
+          // Surface WHY instead of the silent dead click.
+          const reason =
+            err?.name === 'NotAllowedError'
+              ? 'The browser blocked fullscreen (tap once more or allow it in site settings).'
+              : `Fullscreen failed: ${err?.name || 'unknown error'}`;
+          setFsError(reason);
+        },
+      );
     } else {
-      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+      document.exitFullscreen().catch(() => {});
     }
   };
 
@@ -68,6 +105,7 @@ function GameFrame() {
           title="Synmergia — Godot Web Client"
           className="w-full h-full border-0 absolute inset-0"
           allow="cross-origin-isolated; autoplay; fullscreen; gamepad"
+          allowFullScreen
         />
 
         {/* Control chrome: the two actions that matter */}
@@ -89,6 +127,11 @@ function GameFrame() {
             {isFullscreen ? null : <Maximize2 className="w-4 h-4" />}
           </button>
         </div>
+        {fsError && (
+          <div className="absolute top-12 right-2 z-30 max-w-[16rem] rounded bg-surface/95 border border-line px-3 py-1.5 text-xs text-ink-soft">
+            {fsError}
+          </div>
+        )}
 
         {missing && (
           <div className="absolute inset-0 bg-paper/95 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-20">
