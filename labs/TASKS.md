@@ -6794,5 +6794,46 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
   actor law gives the t, the walk surface does not move; (c) the
   on-device acceptance stands (board at dawn, watch the crossing,
   and catch her on the pans moor by midmorning).
+- WORLD-DRESSING v13 (2026-10-20, the FIELD-2 split): nature's
+  decorative slice recombines with the session; the anchored slice
+  never moves.
+  1. THE REPORT (FIELD-2, 2026-10-19): the seed makes houses AND
+     scatter identical every session -- correct for quest-anchored
+     structures (same spots BY DESIGN), not for decoration; the
+     board named the split: anchored slice seed-fixed, decorative
+     slice recombining.
+  2. THE SPLIT LAW (globe_terrain_streamer.gd): a SESSION SALT (the
+     Concord boot day) rides ONLY the decorative chains -- the tree
+     canopies (both rng-for-rng twins: the sync reads the member,
+     the worker law reads the BOUND salt the kick carries) and the
+     grass fields (single path, one salt site). The DETAIL chain is
+     deliberately salt-immune: every kind of it is harvest-backed
+     (ore veins, mooncaps, the anchor stencil kinds) and the
+     harvest respawn ledger would drift if its sites recombined.
+     The rock chains stay seed-fixed too: boulders carry the
+     climb/walk law, and the grand vista is a COUNTRY, not a
+     stage-set. Two boots on one day agree position-for-position
+     (determinism inside a session); a new day re-mixes the
+     canopy (recombination between sessions).
+  3. RECEIPTS (exit-0 headless, dev_temp/probes/field2_salt_probe
+     .gd, the 20 km boot): trees saltA vs saltB derive DIFFERENT
+     canopies (recombine claim), same-salt derive REPEATS bit-for
+     -bit (in-session determinism), detail chain stable=700 sites
+     under cross-salt derivation (the anchor law), live boot salt
+     = the actual Concord day (20746) -- the boot arms. pans
+     trio + dock-caller receipts re-held on the same salt build;
+     gate lints 25/0 + 36/0.
+  4. THE NEW PROBE LAW: dev_temp/probes/field2_salt_probe.gd is the
+     standing receipt for the split -- any future chain that wants
+     the salt answers it: decorative chains differ across salts,
+     anchor chains do not.
+  LIMITS + NEXT: (a) the tree/rock synthesis count ladders are
+  salt-INDEPENDENT (counts from band + face seed) so the band map
+  census law stands across sessions (the positions re-mix, the
+  density does not); (b) decorative salt at DAY granularity is the
+  plan's own granularity -- a second salt knob (per-boot) would
+  violate the in-session probe/replay law, a per-hour one would
+  remix mid-session; (c) S14.6 and the ferrymaster pin still
+  stand from v12.
 
 

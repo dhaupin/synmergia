@@ -197,6 +197,23 @@ func configure(p_radius: float, p_target_edge: float, p_parent: Node3D) -> void:
 	parent = p_parent
 	world_seed = TerrainGen.world_seed_bytes()
 	terrain_on = false
+	# THE FIELD-2 SPLIT (the decorative slice's salt): anchored culture
+	# (village core, docks, quest anchors, the harvest-backed detail
+	# kinds) derives from the WORLD SEED forever -- the test/probe
+	# laws pin it. The DECORATIVE slice (tree canopies, grass fields)
+	# mixes a SESSION SALT -- the Concord day the boot runs on -- so
+	# nature recombines between sessions the way the field report
+	# expects, while every session is internally deterministic (the
+	# rng-for-rng twin laws apply the SAME salt, day-granularity: two
+	# boots on one day agree position-for-position).
+	_decor_salt = int(Time.get_unix_time_from_system()) / 86400
+
+
+## DECORATIVE BANDS ONLY (see the configure() split note): the salt
+## must NEVER ride the detail chain (the ore/mooncap/anchor kinds
+## derive from the world seed alone) or the harvest respawn ledger
+## drifts across sessions.
+var _decor_salt: int = 0
 
 
 ## Call every physics frame with the player position. Loads the
@@ -1316,7 +1333,10 @@ func _spawn_trees(face: int, patch_node: Node3D) -> void:
 	for b in bytes:
 		acc = (acc * 131 + b) % 9007199254740991
 	var rng := RandomNumberGenerator.new()
-	rng.seed = acc
+	# THE DECO SALT (the FIELD-2 split, sync twin): the decorative
+	# canopy chain recombines per session (see configure()); every
+	# other rng input stays the world seed's own.
+	rng.seed = (acc + _decor_salt) % 9007199254740991
 	var count: int = rng.randi_range(4, 8)
 	# THE DENSITY LAW (the owner's order: tree density per variety
 	# band): the face's own biome scales the site ask -- canopies
@@ -1985,18 +2005,18 @@ func _kick_prop_derivation(face: int) -> void:
 		_prop_register_freight(face)
 	var t := Thread.new()
 	_prop_threads[face] = t
-	t.start(Callable(self, "_prop_derive_job").bind(face), Thread.PRIORITY_LOW)
+	t.start(Callable(self, "_prop_derive_job").bind(face, _decor_salt), Thread.PRIORITY_LOW)
 
 func _prop_register_freight(face: int) -> void:
 	_register_strait_freight(face, FacePatches.face_center(face).normalized(), world_seed)
 
-func _prop_derive_job(face: int) -> void:
+func _prop_derive_job(face: int, salt: int = 0) -> void:
 	# Runs OFF the main thread. Pure derive only; the packed result
 	# crosses the mutex; the apply is queued back to the main thread.
 	var packed := {
-		"trees": _derive_tree_sites(face),
+		"trees": _derive_tree_sites(face, salt),
 		"details": _derive_detail_sites(face),
-		"grass": _derive_grass_field(face),
+		"grass": _derive_grass_field(face, salt),
 	}
 	_prop_mutex.lock()
 	_prop_results[face] = packed
@@ -2038,14 +2058,18 @@ func _prop_site_ground_h(dir: Vector3, face: int) -> float:
 	return base + TerrainGen.rock_top_height(dir, world_seed, face, radius)
 
 ## --- tree derive / apply (mirrors _spawn_trees rng-for-rng) ------
-func _derive_tree_sites(face: int) -> Array:
+func _derive_tree_sites(face: int, salt: int = 0) -> Array:
 	var sites: Array = []
 	var bytes: PackedByteArray = TerrainGen.face_seed_bytes(world_seed, face)
 	var acc: int = 0
 	for b in bytes:
 		acc = (acc * 131 + b) % 9007199254740991
 	var rng := RandomNumberGenerator.new()
-	rng.seed = acc
+	# THE DECO SALT (the FIELD-2 split, derive twin): the decorative
+	# canopy chain recombines per session (see configure()); the
+	# worker reads the BOUND salt (no member touch off-thread) and
+	# every other rng input stays the world seed's own.
+	rng.seed = (acc + salt) % 9007199254740991
 	var count: int = rng.randi_range(4, 8)
 	# THE DENSITY LAW (mirror: see _spawn_trees for the band ladder).
 	if terrain_on:
@@ -2822,7 +2846,7 @@ static func _grass_scale_range(bid: int) -> Vector2:
 		10: return Vector2(0.4, 0.95)  # alpine: hunker
 		_: return Vector2(0.6, 1.5)    # homeland default
 
-func _derive_grass_field(face: int) -> Dictionary:
+func _derive_grass_field(face: int, salt: int = 0) -> Dictionary:
 	if not terrain_on:
 		return {}  # prototype keeps its S7 set
 	var center: Vector3 = FacePatches.face_center(face)
@@ -2840,7 +2864,7 @@ func _derive_grass_field(face: int) -> Dictionary:
 	for b in bytes:
 		acc = (acc * 256 + b) % 9007199254740991
 	var rng := RandomNumberGenerator.new()
-	rng.seed = acc + 555  # independent stream (never reshuffles trees)
+	rng.seed = (acc + 555 + salt) % 9007199254740991  # independent stream + the deco salt (never reshuffles trees)
 	var verts: PackedInt32Array = FacePatches.face_vertices(face)
 	var patch_center: Vector3 = center * (radius + TILE_LIFT)
 	var scaled: float = radius + TILE_LIFT
@@ -2944,7 +2968,7 @@ func _apply_grass_field(grass: Dictionary, patch_node: Node3D) -> void:
 
 ## The sync fallback path (threadless hosts / one-shot offenders).
 func _spawn_grass_field(face: int, patch_node: Node3D) -> void:
-	_apply_grass_field(_derive_grass_field(face), patch_node)
+	_apply_grass_field(_derive_grass_field(face, _decor_salt), patch_node)
 
 ## Register the drawn prop as a live HarvestService node (prd-
 ## gathering build order 2: seed-derived placement, one placement law
