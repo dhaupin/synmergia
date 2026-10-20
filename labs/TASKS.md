@@ -6603,3 +6603,51 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
   WARNs remaining (raw grep count 0); every trim line-preserving;
   hud-widget test 0 FAIL, test_progress_persistence exit 0 on the
   edited UI and persistence files; globe/audio tests unchanged.
+
+- WORLD-DRESSING v11 (2026-10-20, the SUN PANS day): the desert
+  island exists, dresses, and is reachable.
+  1. THE ATOLL (terrain law, face 12): a ~1 km island in the
+     open ocean -- DESERT salt-pan core to ~+160 m BADLANDS
+     volcanic walls, a SHORE beach ring, open ocean around.
+     Hydrology basins are EXCLUDED inside the atoll cone (a
+     desert holds no lakes) and the pans core carries a
+     temperature-lapse exemption so the hole keeps its desert
+     heat at altitude instead of re-solving steppe. The
+     dedicated radial pass in tests/diag_biome_map.gd walks the
+     cone bearing and receipts the gradient.
+  2. THE ASK LADDER FIX (the zero-desert kill): face 12 is an
+     OCEAN-center face, its band ask back-resolved to 0, and the
+     homeland gate bailed BEFORE the scatter ever rolled -- so
+     even with the authored neck (all four scatter twins pour
+     pans-reachable faces' attempts through the atoll cone,
+     slerp 0.955-0.985) the island derived ZERO detail sites.
+     Fix: DESERT joins _DETAIL_BUDGETS at 200 (same tier as
+     TUNDRA/BADLANDS); _face_band_ask already appends the pans
+     bearing, so the bearing face now pays the atoll's ask in
+     BOTH detail twins.
+  3. RECEIPTS (exit-0 headless, tests/diag_detail_kinds.gd at the
+     20 km boot): travel census gains DESERT id=5 (172 dry-tuft
+     sites -- the pans core's straw field) and BADLANDS id=16
+     (13 boulder-ore veins + 12 rust tufts -- the volcanic rim);
+     the ladder entry also unlocked the world's other dry
+     pockets (id=15 bush/tuft). Boot faces unchanged-health
+     (16: tuft 515/flower 71/bush 114; 18: 342/57/81), FIELD-3
+     numbers identical to v10 (the audit's instance-transform
+     false-frames stand foreclosed; live batch anchors stay
+     seat-level: wp0 radial 0.52 m).
+  4. THE ZONE + GATEWAY PAIR (authored, no code): data/zones/
+     zone_sun_pans.tres (DESERT climate zone, the "far country")
+     + data/gateways/waypoint_sun_pans.tres (WAYPOINT pin,
+     starter_plains -> sun_pans, two-way, amber glow). World
+     Service's authored-gateway seam registers both verbatim;
+     dev_temp/probes/pans_pair_probe.gd receipts it: GATEWAY to
+     _zone=zone_sun_pans type=1, ZONE name="The Sun Pans",
+     PAIR-OK.
+  LIMITS + NEXT: (a) the pans gateway has no model_path (the
+     generic waypoint art renders) -- a monolith/obelisk piece is
+     the art follow-up; (b) the ferry route list still reads the
+     harbor pins -- adding the pans bearing to the ferry loop is
+     the travel follow-up if walk-up teleport proves too sterile;
+     (c) the on-device walk (sail bearing NE off the homeland,
+     land on the beach, read the straw field against the rust
+     rim) is the visual acceptance.

@@ -1362,6 +1362,15 @@ func _spawn_trees(face: int, patch_node: Node3D) -> void:
 		var v: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
 		var v2: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
 		var dir: Vector3 = (FacePatches.face_center(face) * 0.25 + v * 0.35 + v2 * 0.40).normalized()
+		# THE AUTHORED NECK (v11): the Sun Pans atoll is a small island
+		# inside a giant face -- the raw barycentric scatter misses it
+		# for a lifetime of attempts. A pans-bearing face pours ALL its
+		# detail attempts through the atoll's cone (the tight splay
+		# keeps the rim ring and beach covered); the rest of the face
+		# is empty ocean and correctly stays bare.
+		if FacePatches.face_center(face).angle_to(TerrainGen.sun_pans_dir()) \
+				<= _face_reach(face) + TerrainGen.SUN_PANS_ANG:
+			dir = dir.slerp(TerrainGen.sun_pans_dir(), rng.randf_range(0.955, 0.985))
 		# THE BOOT GROVE PULL (v4): inside the homeland reach the tree
 		# site rotates 62% along the surface toward the boot, so the
 		# starter country carries a WALKABLE grove (the belt census
@@ -1653,6 +1662,15 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 		var v: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
 		var v2: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
 		var dir: Vector3 = (FacePatches.face_center(face) * 0.25 + v * 0.35 + v2 * 0.40).normalized()
+		# THE AUTHORED NECK (v11): the Sun Pans atoll is a small island
+		# inside a giant face -- the raw barycentric scatter misses it
+		# for a lifetime of attempts. A pans-bearing face pours ALL its
+		# detail attempts through the atoll's cone (the tight splay
+		# keeps the rim ring and beach covered); the rest of the face
+		# is empty ocean and correctly stays bare.
+		if FacePatches.face_center(face).angle_to(TerrainGen.sun_pans_dir()) \
+				<= _face_reach(face) + TerrainGen.SUN_PANS_ANG:
+			dir = dir.slerp(TerrainGen.sun_pans_dir(), rng.randf_range(0.955, 0.985))
 		# THE BOOT GROVE PULL (v8 tightened, sync twin -- see the
 		# derive law above): 0.88 leaves the boot belt,
 		# not a 4-5 km drag.
@@ -2056,6 +2074,15 @@ func _derive_tree_sites(face: int) -> Array:
 		var v: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
 		var v2: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
 		var dir: Vector3 = (FacePatches.face_center(face) * 0.25 + v * 0.35 + v2 * 0.40).normalized()
+		# THE AUTHORED NECK (v11): the Sun Pans atoll is a small island
+		# inside a giant face -- the raw barycentric scatter misses it
+		# for a lifetime of attempts. A pans-bearing face pours ALL its
+		# detail attempts through the atoll's cone (the tight splay
+		# keeps the rim ring and beach covered); the rest of the face
+		# is empty ocean and correctly stays bare.
+		if FacePatches.face_center(face).angle_to(TerrainGen.sun_pans_dir()) \
+				<= _face_reach(face) + TerrainGen.SUN_PANS_ANG:
+			dir = dir.slerp(TerrainGen.sun_pans_dir(), rng.randf_range(0.955, 0.985))
 		# THE BOOT GROVE PULL (grid the sync law rides; see it above).
 		if FacePatches.face_center(face).angle_to(TerrainGen.SPAWN_CENTER) \
 				< TerrainGen.HOMELAND_ANGULAR_REACH:
@@ -2280,6 +2307,12 @@ func _face_band_ask(face: int) -> int:
 	for vi in range(3):
 		asks.append(Icosahedral.VERTICES[verts[vi]].normalized())
 		asks.append((center + Icosahedral.VERTICES[verts[vi]].normalized()).normalized())
+	# THE AUTHORED CONTENT (v11): the Sun Pans atoll's own bands are
+	# far smaller than the face's sample grid -- the bearing face pays
+	# the atoll's band ask so the desert island dresses + renders.
+	var pans: Vector3 = TerrainGen.sun_pans_dir()
+	if center.angle_to(pans) <= _face_reach(face) + TerrainGen.SUN_PANS_ANG:
+		asks.append(pans)
 	var best: int = 0
 	for d in asks:
 		var a: int = int(_DETAIL_BUDGETS.get(TerrainGen.climate_biome_id(d, world_seed), 0))
@@ -2310,6 +2343,11 @@ const _DETAIL_BUDGETS := {
 	TerrainGen.BiomeId.ALPINE: 200,
 	TerrainGen.BiomeId.TUNDRA: 200,
 	TerrainGen.BiomeId.BADLANDS: 200,
+	# THE DESERT LADDER (v11): the Sun Pans atoll's core band -- the
+	# ask ladder missed it, so the island-bearing face's ask
+	# back-resolved to 0 and the budget gate bailed before the
+	# scatter ever rolled. Same tier as the other dry bands.
+	TerrainGen.BiomeId.DESERT: 200,
 	TerrainGen.BiomeId.SHORE: 160,
 }
 
@@ -2364,6 +2402,15 @@ func _derive_detail_sites(face: int) -> Array:
 		var v: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
 		var v2: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
 		var dir: Vector3 = (FacePatches.face_center(face) * 0.25 + v * 0.35 + v2 * 0.40).normalized()
+		# THE AUTHORED NECK (v11): the Sun Pans atoll is a small island
+		# inside a giant face -- the raw barycentric scatter misses it
+		# for a lifetime of attempts. A pans-bearing face pours ALL its
+		# detail attempts through the atoll's cone (the tight splay
+		# keeps the rim ring and beach covered); the rest of the face
+		# is empty ocean and correctly stays bare.
+		if FacePatches.face_center(face).angle_to(TerrainGen.sun_pans_dir()) \
+				<= _face_reach(face) + TerrainGen.SUN_PANS_ANG:
+			dir = dir.slerp(TerrainGen.sun_pans_dir(), rng.randf_range(0.955, 0.985))
 		# THE BOOT GROVE PULL (v8 tightened): the homeland-reach faces
 		# CONCENTRATE their furniture near the boot belt, not just drag
 		# it toward it. At planet scale a face spans ~0.6 rad; the old

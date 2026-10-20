@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="ZoneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/zone_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "zone_sun_pans"
+world_id = "main"
+display_name = "The Sun Pans"
+description = "A desert atoll far across the sea: broken badlands rise into a ring of volcanic walls around a dry salt-pan core, and grass holds the outer bank. The Concord's charts mark it as the far country -- a climate the homeland never grows. No main-world law applies: its zone id is all it claims."
+pvp_mode = 0
+level_requirement = 1
+max_level = 999
+allowed_factions = []
+blocked_species = []
+respawn_at_bind = true
+respawn_timer = 8.0
+bounds = null
+zone_center = Vector3(0, 0, 0)
+zone_radius = 300.0
+ambient_light_color = Color(0.78, 0.72, 0.52, 1)
+ambient_light_energy = 1.08
+environment_path = "res://environments/day_01.tres"
+has_weather = true
+weather_type = "clear"
+spawn_points = [Vector3(0, 0, 0)]

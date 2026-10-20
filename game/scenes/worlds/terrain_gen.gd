@@ -231,6 +231,43 @@ static func cove_axis() -> Vector3:
 		+ north * (mid * sin(rad))).normalized()
 	return dir.normalized()
 
+## THE SUN PANS (v11, the authored desert atoll): the water law never
+## co-locates hot+dry on this seed (the globe scan measured ZERO
+## desert bands), so the desert rides an AUTHORED feature: a small
+## volcanic atoll on the face-12 bearing (the scan's warmest deep-
+## ocean face: t=0.65, m=0.62, barely any land). The land dome + the
+## climate pocket resolve DESERT at the core; the fade rings out
+## through the dry ladder to the wetter coast -- desert -> savanna ->
+## shore, all riding the existing dressing laws (straw tints, shells,
+## wrack, ore). Pure functions of the direction: mesh, walk, biome,
+## and dressing all read the same law. GM discovery: far-side ocean
+## bearing, glide-reachable from the homeland islands.
+const SUN_PANS_HEAT: float = 0.08   # the volcanic lift over face-12's base heat
+const SUN_PANS_DRY: float = 0.48    # the pans wring the air out
+const SUN_PANS_ANG: float = 0.028   # ~560 m island radius at the planet scale
+
+static func sun_pans_dir() -> Vector3:
+	return preload("res://core/frame/math/icosahedral_faces.gd").face_center(12).normalized()
+
+## The pans' climate factor (0..1): 1 on the pan core, smoothstep
+## falloff to the beach rim.
+static func sun_pans_factor(d: Vector3) -> float:
+	var ang: float = d.normalized().angle_to(sun_pans_dir())
+	if ang >= SUN_PANS_ANG:
+		return 0.0
+	var t: float = 1.0 - ang / SUN_PANS_ANG
+	return 1.0 if t >= 0.7 else smoothstep(0.0, 0.7, t)
+
+## The pans' LAND dome (0..1): the same plateau-then-coast law the
+## homeland dome uses, so the noise carve keeps a coast and the skirt
+## floor keeps the ring dry.
+static func _sun_pans_island(d: Vector3) -> float:
+	var ang: float = d.normalized().angle_to(sun_pans_dir())
+	if ang >= SUN_PANS_ANG:
+		return 0.0
+	var t: float = ang / SUN_PANS_ANG
+	return 1.0 if t <= 0.55 else smoothstep(1.0, 0.55, t)
+
 ## THE CAPITOL PLAZA DIRECTION: the city strand anchor ON the flat
 ## ring (the monolith + city props ride it).
 static func capitol_dir() -> Vector3:
@@ -390,11 +427,15 @@ static func _land_mass(d: Vector3, salt: int) -> float:
 	var detail: float = 0.65 * _vnoise(d, salt + 1, 5.0) + 0.35 * _vnoise(d, salt + 2, 11.0)
 	var noise_land: float = clampf(band * (base * 1.15 + detail * 0.45 - 0.68), 0.0, 1.0)
 	var dome: float = _homeland(d)
-	if dome <= 0.0:
-		return noise_land
-	# The dome wins, minus the bay-carving detail (floored so the
-	# neighborhood always stays dry land).
-	return clampf(maxf(noise_land, maxf(dome * 0.95 - detail * 0.35, dome * 0.42)), 0.0, 1.0)
+	if dome > 0.0:
+		return clampf(maxf(noise_land, maxf(dome * 0.95 - detail * 0.35, dome * 0.42)), 0.0, 1.0)
+	# THE SUN PANS ISLAND (v11): the authored desert atoll pays the
+	# same max-law the homeland dome pays (noise still carves the
+	# coast, the skirt floor keeps the ring dry).
+	var pans: float = _sun_pans_island(d)
+	if pans > 0.0:
+		return clampf(maxf(noise_land, maxf(pans * 0.95 - detail * 0.35, pans * 0.42)), 0.0, 1.0)
+	return noise_land
 
 
 ## THE SEA BIAS NOTE (the oceanify calibration): the world's land
@@ -926,8 +967,15 @@ static func climate_temperature(d: Vector3, world_seed: PackedByteArray) -> floa
 	var salt: int = _seed_salt(world_seed, "climate_temp")
 	var jitter: float = (_vnoise(d, salt, 4.0) - 0.5) * 0.18
 	var h: float = terrain_height(d, world_seed)
-	var lapse: float = clampf(h, 0.0, TEMP_LAPSE_CEIL) / TEMP_LAPSE_CEIL * TEMP_LAPSE_RATE
-	var out: float = clampf(t + jitter - lapse, 0.0, 1.0)
+	# THE SUN PANS HEAT (v11): the atoll's volcanic lift PLUS the lapse
+	# exemption -- the base latitude heat at the pans' ocean already
+	# clears the desert line (the scan measured t=0.65 at the face),
+	# and the pocket keeps ~85% of its ground-level heat at the crest,
+	# so the salt pans read DESERT and the skirt keeps the ring.
+	var pans_f: float = sun_pans_factor(d)
+	var lapse: float = clampf(h, 0.0, TEMP_LAPSE_CEIL) / TEMP_LAPSE_CEIL \
+		* TEMP_LAPSE_RATE * (1.0 - 0.85 * pans_f)
+	var out: float = clampf(t + jitter - lapse + SUN_PANS_HEAT * pans_f, 0.0, 1.0)
 	_temperature_cache.set_value(d, world_seed, out)
 	# Note: by construction the output is clamped finite, so the
 	# poison guard can never trip here; set_value's bool is ignored.
@@ -958,6 +1006,10 @@ static func climate_moisture_field(d: Vector3, world_seed: PackedByteArray) -> f
 	d = d.normalized()
 	var salt: int = _seed_salt(world_seed, "climate_moist")
 	var m: float = 0.62 * _vnoise(d, salt, MOIST_FREQ_COARSE) + 0.38 * _vnoise(d, salt + 1, MOIST_FREQ_FINE)
+	# THE SUN PANS DRY (v11): the atoll wrings the air out -- the pans
+	# resolve DESERT at the core, the fade rings out through the dry
+	# ladder to the wetter coast.
+	m -= SUN_PANS_DRY * sun_pans_factor(d)
 	var land: float = _land_mass(d, _seed_salt(world_seed, "terrain"))
 	if land <= OCEAN_LAND_LINE:
 		return clampf(m * 0.4 + 0.5, 0.0, 1.0)  # sea air is moist
@@ -1031,7 +1083,11 @@ static func climate_biome_at(d: Vector3, world_seed: PackedByteArray, height: fl
 	# gate (independent-stream discipline - adding the gate never
 	# reshuffles the other fields). Then the dry warmth desert, then
 	# the mild semi-arid steppe (mild + below the reachable cut).
-	if m < BADLANDS_M and t > BADLANDS_T and erosion_field(d, world_seed) >= EROSION_T:
+	# THE SUN PANS CORE (v11): the atoll's pan floors resolve DESERT
+	# outright -- the erosion gate keeps its hold only on the skirt,
+	# so the island reads true salt pans inside a broken-country ring.
+	if m < BADLANDS_M and t > BADLANDS_T and erosion_field(d, world_seed) >= EROSION_T \
+			and sun_pans_factor(d) < 0.55:
 		return BiomeId.BADLANDS
 	if m < DRY_T and t > 0.55:
 		return BiomeId.DESERT
@@ -1449,6 +1505,12 @@ static func water_table_raw(d: Vector3, world_seed: PackedByteArray) -> float:
 ## (the boot plaza + apron stay dry). Both factors continuous.
 static func _hydro_gates(d: Vector3, world_seed: PackedByteArray) -> Vector2:
 	d = d.normalized()
+	# THE SUN PANS EXCLUSION (v11): a desert atoll holds no basins --
+	# the district gate dies over the pans, so the carve never presses
+	# a lake into dry ground and the standing-water law never fills
+	# the salt pans.
+	if sun_pans_factor(d) > 0.0:
+		return Vector2(0.0, 0.0)
 	var salt: int = _seed_salt(world_seed, "hydro_table")
 	var cell: float = _vnoise(d, salt, 2.0)
 	var gate: float = smoothstep(Hydro.BASIN_T, Hydro.BASIN_T + 0.05, cell) \
