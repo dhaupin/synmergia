@@ -6505,6 +6505,56 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
      sampled bands are all water stay bare (correct: no props in
      the surf); (c) the phone retest (fullscreen + fresh density +
      mushroom walk) is the visual acceptance.
+- WORLD-DRESSING v10 (2026-10-19 end, the beach session):
+  1. THE GLOBE SCAN (tests/diag_biome_map.gd, 6,000-sample fibonacci
+     sphere): this seed's planet is 79.0% OCEAN_DEEP, 11.4% SHORE,
+     3.0% LAKE, 2.0% GRASSLAND, 1.5% JUNGLE, 0.7% FOREST, 0.5%
+     TUNDRA, 0.3% each ALPINE/ALPINE_MEADOW/BADLANDS, 0.2% RIVER,
+     0.1% STEPPE -- and ZERO DESERT bands anywhere (the world law's
+     outcome, not a dressing bug): the dry-straw law is exercised
+     end-to-end by the BADLANDS bands inside the homeland faces, and
+     a future seed with desert pans picks the law up for free.
+     The homeland faces (16/18) carry nearly every land band = the
+     planet's main landmass; faces 8/9 are the shore-heavy islands.
+  2. THE BEACH LAW (new _DPROP_SHELL=7 / _DPROP_WRACK=8): the shore
+     band rendered NOTHING before -- 11.4% of the globe. Shore sites
+     now split ~60% shells (pale half-buried seams) / ~17% kelp
+     wrack (brown squat balls) / rest bare sand. SHORE joins the
+     band-ask ladder (160). BOTH rng-for-rng twins + both appliers
+     carry identical laws (census receipt buckets).
+  3. THE RIVER LAW: the cattail band test now takes RIVER banks.
+  4. THE CATCH-ALL FIX (census-caught, fixed in-session): the derive
+     chain's else-bush branch swallowed shore bare-sand sites (bush
+     95 in the beach bucket) and the guard tightening then ate the
+     meadow shrubs (bush 0 in the homeland bucket). Final law: the
+     bush branch takes bush BANDS or the meadow's bush_kept shrubs;
+     unclaimed sites append nothing (THE CLAIM LAW -- rec kind
+     stays -1 and is dropped at the tail).
+  5. THE DRESSING MATRIX (travel-census receipt, per-site band
+     buckets -- what a GM arriving in each band SEES):
+     id=2  SHORE: shell 258 + wrack 57
+     id=9  GRASSLAND: tuft 857 + flower 128 + bush 195
+     id=13 JUNGLE: bush 95 + mushroom 11 + mycelium 12
+     plus the shipped gates: FOREST/TAIGA/JUNGLE trees (1400-2100
+     ask) + bushes + fungal, SWAMP cattails + fungal, SAVANNA/STEPPE
+     straw-tint tufts, TUNDRA/ALPINE/BADLANDS frost/sedge/rust brush
+     + ore, RIVER cattails, SHORE shells/wrack. OCEAN/LAKE carry the
+     water shell (ocean service). DESERT: zero bands on this seed.
+  6. VERIFICATION (exit-0 headless): probe_prop_density boot belt
+     unchanged (<=600 m detail=75, TOTALS 2,828); census buckets
+     clean (no bush in the beach bucket, shrubs restored in the
+     homeland bucket); determinism exit-0; lint 36/0;
+     bench_coldboot_wall v10 93.4 s vs 90.9 s baseline -- within the
+     host's run-to-run spread (86.6..90.9 across the v8/v9 runs;
+     the added beach draws ride the same derive pool), flagged for
+     the next bench run to confirm the trend.
+  VISUAL LIMITS: the beach shells/wrack and the mushroom walk are
+  ON-DEVICE acceptance; the drowned-island faces (8/9) dress only on
+  their coast bands -- the deep-water interior correctly stays bare.
+- FIELD-2 houses identical + same spots: deterministic seed = same
+  village layout every session, which is BY DESIGN for quest-anchored
+  structures, but the player expectation is that DECORATIVE scatter
+  recombines per session. Split the scatter law: anchored slice
   (village core, dock, quest anchors) stays seed-fixed; decorative
   slice (some trees, rocks, minor scatter) gets a per-boot offset
   sourced from cosmic_entropy. Houses-in-same-spots is then CORRECT

@@ -147,7 +147,7 @@ func _run() -> void:
 
 
 func _looks_detail(base: String) -> bool:
-	for pre in ["Cattail", "Ore", "Bush", "Tuft", "Flower", "Reed", "Detail"]:
+	for pre in ["Cattail", "Ore", "Bush", "Tuft", "Flower", "Reed", "Detail", "Shell", "Wrack"]:
 		if base.begins_with(pre):
 			return true
 	return false

@@ -16,7 +16,7 @@ extends SceneTree
 const GLOBE_SCENE := "res://scenes/worlds/globe_world.tscn"
 const RADIUS_SETTING := "synmergia/world/planet_radius"
 const RADIUS := 20000.0
-const KIND_NAMES := {0: "ore", 1: "cattail", 2: "bush", 3: "tuft", 4: "flower", 5: "mushroom", 6: "mycelium"}
+const KIND_NAMES := {0: "ore", 1: "cattail", 2: "bush", 3: "tuft", 4: "flower", 5: "mushroom", 6: "mycelium", 7: "shell", 8: "wrack"}
 const FacePatches = preload("res://core/frame/math/icosahedral_faces.gd")
 const TerrainGen = preload("res://scenes/worlds/terrain_gen.gd")
 

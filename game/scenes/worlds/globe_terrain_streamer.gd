@@ -1663,7 +1663,8 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 		if base_h < sea - 0.2:
 			continue  # no props in the water band
 		var bid: int = TerrainGen.climate_biome_id(dir, world_seed)
-		var is_cattail: bool = bid == TerrainGen.BiomeId.SWAMP
+		var is_cattail: bool = bid == TerrainGen.BiomeId.SWAMP \
+			or bid == TerrainGen.BiomeId.RIVER  # the river banks carry the reeds too (v10)
 		# THE MEADOW SET (v5 grass tier): the grass-family bands -- the
 		# homeland belt is grassland, savanna/steppe/taiga straggle.
 		var meadow: bool = bid == TerrainGen.BiomeId.GRASSLAND \
@@ -1677,7 +1678,9 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 		# THE DRY RANGE LAW (v9, sync twin -- see the derive law above):
 		# the range bands carry dry brush (straw/frost/rust tufts).
 		var is_dry_band: bool = bid == TerrainGen.BiomeId.DESERT or is_ore
-		if not is_cattail and not is_bush and not is_dry_band and not meadow:
+		var is_shore: bool = bid == TerrainGen.BiomeId.SHORE  # the beach law's band gate
+		if not is_cattail and not is_bush and not is_dry_band and not meadow \
+				and not is_shore:
 			continue  # beach/ocean/water bands stay bare (FOREST/TUNDRA/ALPINE carry the ore)
 		# THE KIND ROLL (deterministic): one draw per site decides the
 			# meadow mix -- tufts ~72%, shrubs ~18%, blooms ~10% (grassland
@@ -1700,6 +1703,18 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 		# the rest keeps the boulder-ore vein. Own draw: the
 		# rng-for-rng twin law carries the same draw in both paths.
 		var is_dry_tuft: bool = is_dry_band and rng.randf() < 0.55
+		# THE BEACH LAW (v10): the shore band is the planet's ring of
+		# contact -- the beach map scan measures 11.4% of the globe's
+		# surface and it rendered NOTHING before. Shore sites split:
+		# ~60% shells (pale half-buried seams), ~17% kelp wrack (brown
+		# squat balls), the rest bare sand. Own draws: the rng-for-rng
+		# twin law carries the same two draws in both paths.
+		var is_shell: bool = false
+		var is_wrack: bool = false
+		if is_shore:
+			var shore_roll: float = rng.randf()
+			is_shell = shore_roll < 0.60
+			is_wrack = not is_shell and shore_roll < 0.77
 		var prop := MeshInstance3D.new()
 		var mesh: Mesh
 		var mat := StandardMaterial3D.new()
@@ -1838,6 +1853,34 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 			spawned += 1
 			patch_node.add_child(prop)
 			continue
+		if is_shell:
+			# THE SHELL (v10 beach law, sync twin -- see the derive rec):
+			# a small pale seam half-buried -- pure paint.
+			var rs_s: float = rng.randf_range(0.05, 0.12)
+			prop.mesh = _shared_prop_sphere(rs_s, 1.3)
+			mat.albedo_color = Color(0.90, 0.86, 0.79)
+			mat.roughness = 0.55
+			prop.material_override = mat
+			prop.name = "Shell%d" % i
+			prop.position = _tangent_patch_local(dir, patch_center, scaled + base_h + rs_s * 0.35)
+			patch_node.add_child(prop)
+			spawned += 1
+			continue
+		if is_wrack:
+			# THE WRACK LAW (v10 beach law, sync twin): the kelp ball,
+			# the beach's spoor line -- brown splay.
+			var rw_s: float = rng.randf_range(0.25, 0.55)
+			var wd_s: float = rng.randf()
+			prop.mesh = _shared_prop_sphere(rw_s, 1.4)
+			mat.albedo_color = Color(0.20 + 0.06 * wd_s, 0.28 + 0.05 * wd_s, 0.24)
+			mat.roughness = 1.0
+			prop.material_override = mat
+			prop.name = "Wrack%d" % i
+			prop.basis = Basis()
+			prop.position = _tangent_patch_local(dir, patch_center, scaled + base_h + rw_s * 0.25)
+			patch_node.add_child(prop)
+			spawned += 1
+			continue
 		if is_cattail:
 			# Reed: a thin dark-green cylinder with a brown head.
 			var h_c: float = rng.randf_range(0.9, 1.4)
@@ -1852,8 +1895,9 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 			var east_c: Vector3 = (hint_c - up_c * hint_c.dot(up_c)).normalized()
 			prop.basis = Basis(east_c, up_c, east_c.cross(up_c))
 			prop.position = _tangent_patch_local(dir, patch_center, scaled + base_h + 0.05)
-		else:
-			# Bush: a squat green sphere.
+		if not is_bush and not is_bush_kept:
+			continue  # shore bare sand + any unclaimed band: no prop (v10)
+		# Bush: a squat green sphere.
 			var r_b: float = rng.randf_range(0.4, 0.9)
 			mesh = _shared_prop_sphere(r_b, 1.4)
 			mat.albedo_color = Color(0.22 + 0.1 * rng.randf(), 0.42 + 0.1 * rng.randf(), 0.18)
@@ -2218,6 +2262,8 @@ const _DPROP_TUFT: int = 3
 const _DPROP_FLOWER: int = 4
 const _DPROP_MUSHROOM: int = 5   # v7: fungal cap (swamp/forest/jungle)
 const _DPROP_MYECLIUM: int = 6   # v7: glowing mycelium patch (same bands)
+const _DPROP_SHELL: int = 7     # v10: beach shell seam (SHORE band)
+const _DPROP_WRACK: int = 8     # v10: kelp wrack ball (SHORE band)
 
 ## THE FACE BAND ASK (v9, the travel law): "when a biome is there and
 ## a player gets to it, it renders" -- so a face pays what its
@@ -2264,6 +2310,7 @@ const _DETAIL_BUDGETS := {
 	TerrainGen.BiomeId.ALPINE: 200,
 	TerrainGen.BiomeId.TUNDRA: 200,
 	TerrainGen.BiomeId.BADLANDS: 200,
+	TerrainGen.BiomeId.SHORE: 160,
 }
 
 func _derive_detail_sites(face: int) -> Array:
@@ -2332,7 +2379,8 @@ func _derive_detail_sites(face: int) -> Array:
 		if base_h < sea - 0.2:
 			continue  # no props in the water band
 		var bid: int = TerrainGen.climate_biome_id(dir, world_seed)
-		var is_cattail: bool = bid == TerrainGen.BiomeId.SWAMP
+		var is_cattail: bool = bid == TerrainGen.BiomeId.SWAMP \
+			or bid == TerrainGen.BiomeId.RIVER  # the river banks carry the reeds too (v10)
 		var meadow: bool = bid == TerrainGen.BiomeId.GRASSLAND \
 				or bid == TerrainGen.BiomeId.SAVANNA or bid == TerrainGen.BiomeId.STEPPE \
 				or bid == TerrainGen.BiomeId.TAIGA
@@ -2345,7 +2393,9 @@ func _derive_detail_sites(face: int) -> Array:
 		# ALPINE/TUNDRA/BADLANDS) are not stone-only any more -- the
 		# range carries dry brush now (straw/frost/rust tufts).
 		var is_dry_band: bool = bid == TerrainGen.BiomeId.DESERT or is_ore
-		if not is_cattail and not is_bush and not is_dry_band and not meadow:
+		var is_shore: bool = bid == TerrainGen.BiomeId.SHORE  # the beach law's band gate
+		if not is_cattail and not is_bush and not is_dry_band and not meadow \
+				and not is_shore:
 			continue  # beach/ocean/water bands stay bare
 		var meadow_roll: float = rng.randf()
 		var is_flower: bool = meadow and bid == TerrainGen.BiomeId.GRASSLAND \
@@ -2369,6 +2419,18 @@ func _derive_detail_sites(face: int) -> Array:
 		# the rest keeps the boulder-ore vein. Own draw: the
 		# rng-for-rng twin law carries the same draw in both paths.
 		var is_dry_tuft: bool = is_dry_band and rng.randf() < 0.55
+		# THE BEACH LAW (v10): the shore band is the planet's ring of
+		# contact -- the beach map scan measures 11.4% of the globe's
+		# surface and it rendered NOTHING before. Shore sites split:
+		# ~60% shells (pale half-buried seams), ~17% kelp wrack (brown
+		# squat balls), the rest bare sand. Own draws: the rng-for-rng
+		# twin law carries the same two draws in both paths.
+		var is_shell: bool = false
+		var is_wrack: bool = false
+		if is_shore:
+			var shore_roll: float = rng.randf()
+			is_shell = shore_roll < 0.60
+			is_wrack = not is_shell and shore_roll < 0.77
 		var rec := {"i": i, "dir": dir, "kind": -1, "bid": bid}  # every kind carries its band
 		if is_tuft:
 			rec["kind"] = _DPROP_TUFT
@@ -2414,19 +2476,41 @@ func _derive_detail_sites(face: int) -> Array:
 			rec["r_o"] = rng.randf_range(0.35, 0.7)
 			rec["pos"] = _tangent_patch_local(dir, patch_center, scaled + base_h + rec["r_o"] * 0.2)
 			spawned += 1
+		elif is_shell:
+			# THE SHELL REC (v10 beach law): a small pale seam
+			# half-buried -- pure paint, no collider, no harvest (the
+			# beach keeps its walk-pretty law).
+			rec["kind"] = _DPROP_SHELL
+			rec["r_s"] = rng.randf_range(0.05, 0.12)
+			rec["pos"] = _tangent_patch_local(dir, patch_center, scaled + base_h + rec["r_s"] * 0.35)
+			spawned += 1
+		elif is_wrack:
+			# THE WRACK REC (v10 beach law): the kelp ball, the beach's
+			# spoor line -- brown splay, same squat-ball build as the
+			# bush tier.
+			rec["kind"] = _DPROP_WRACK
+			rec["r_w"] = rng.randf_range(0.25, 0.55)
+			rec["tint"] = rng.randf()
+			rec["pos"] = _tangent_patch_local(dir, patch_center, scaled + base_h + rec["r_w"] * 0.25)
+			spawned += 1
 		elif is_cattail:
 			rec["kind"] = _DPROP_CATTAIL
 			rec["h"] = rng.randf_range(0.9, 1.4)
 			rec["pos"] = _tangent_patch_local(dir, patch_center, scaled + base_h + 0.05)
 			spawned += 1
-		else:
+		elif is_bush or is_bush_kept:
+			# THE BUSH REC (v10): the catch-all is no longer a catch-all
+			# -- the beach law lets bare-sand shore sites fall through
+			# every branch, and only the bush BANDS (or the meadow's
+			# bush_kept shrubs) grow a bush.
 			rec["kind"] = _DPROP_BUSH
 			rec["r_b"] = rng.randf_range(0.4, 0.9)
 			rec["tint_r"] = 0.22 + 0.1 * rng.randf()
 			rec["tint_g"] = 0.42 + 0.1 * rng.randf()
 			rec["pos"] = _tangent_patch_local(dir, patch_center, scaled + base_h + rec["r_b"] * 0.25)
 			spawned += 1
-		sites.append(rec)
+		if rec["kind"] != -1:
+			sites.append(rec)  # THE CLAIM LAW (v10): bare-sand sites append nothing
 	return sites
 
 func _apply_detail_sites(face: int, sites: Array, patch_node: Node3D) -> void:
@@ -2543,6 +2627,29 @@ func _apply_detail_sites(face: int, sites: Array, patch_node: Node3D) -> void:
 			prop_o.position = rec["pos"]
 			patch_node.add_child(prop_o)
 			_register_harvest_node(face, i, "res_iron_ore", dir, 90.0)
+		elif int(rec["kind"]) == _DPROP_SHELL:
+			var prop_sh := MeshInstance3D.new()
+			var r_sh: float = float(rec["r_s"])
+			var mat_sh := StandardMaterial3D.new()
+			mat_sh.albedo_color = Color(0.90, 0.86, 0.79)
+			mat_sh.roughness = 0.55
+			prop_sh.mesh = _shared_prop_sphere(r_sh, 1.3)
+			prop_sh.material_override = mat_sh
+			prop_sh.name = "Shell%d" % i
+			prop_sh.position = rec["pos"]
+			patch_node.add_child(prop_sh)
+		elif int(rec["kind"]) == _DPROP_WRACK:
+			var prop_wr := MeshInstance3D.new()
+			var r_wr: float = float(rec["r_w"])
+			var wd_a: float = float(rec["tint"])
+			var mat_wr := StandardMaterial3D.new()
+			mat_wr.albedo_color = Color(0.20 + 0.06 * wd_a, 0.28 + 0.05 * wd_a, 0.24)
+			mat_wr.roughness = 1.0
+			prop_wr.mesh = _shared_prop_sphere(r_wr, 1.4)
+			prop_wr.material_override = mat_wr
+			prop_wr.name = "Wrack%d" % i
+			prop_wr.position = rec["pos"]
+			patch_node.add_child(prop_wr)
 		elif int(rec["kind"]) == _DPROP_CATTAIL:
 			var prop_c := MeshInstance3D.new()
 			var mat_c := StandardMaterial3D.new()
@@ -2557,7 +2664,7 @@ func _apply_detail_sites(face: int, sites: Array, patch_node: Node3D) -> void:
 			var east_c: Vector3 = (hint_c - up_c * hint_c.dot(up_c)).normalized()
 			prop_c.basis = Basis(east_c, up_c, east_c.cross(up_c))
 			patch_node.add_child(prop_c)
-		else:
+		elif int(rec["kind"]) == _DPROP_BUSH:
 			# Bush: a squat green sphere (the gather law rides the apply
 			# pass -- service registration is a main-thread side effect).
 			var prop_b := MeshInstance3D.new()
