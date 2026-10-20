@@ -6446,10 +6446,65 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
   2 km of MID land still reads sparse; watch for a follow-up budget
   for those two faces; (c) the mobile fullscreen + density retest on
   device is the acceptance verdict.
-- FIELD-2 houses identical + same spots: deterministic seed = same
-  village layout every session, which is BY DESIGN for quest-anchored
-  structures, but the player expectation is that DECORATIVE scatter
-  recombines per session. Split the scatter law: anchored slice
+- FIELD-SESSION v9 (2026-10-19 late, follow-up to the FIELD-1 fix):
+  "fill it all -- when a biome is there and a player gets to it, it
+  renders" -- commit-after-receipts on main (see the commit log):
+  1. THE FLOOR BAND (the MID-gap fix): the LOD ladder is binary
+     (base=7 or floor=5), so the v8 bake's `drop>=2 -> return` left
+     EVERY floor face (the boot window's other slots + every horizon
+     interior) completely bare -- the "land past the belt is empty"
+     report. Floor faces now pay 1/8 of the band ask (batch-heavy:
+     the tuft mass is one MultiMesh) instead of zero; drop-1 (a live
+     demote in flight) pays a quarter. All three rng-for-rng paths
+     edited identically (derive / sync / appliers).
+  2. THE FACE BAND ASK (the travel law): "when a biome is there and
+     a player gets to it, it renders" -- the ladder now resolves the
+     asks from the face's CONTAINED bands (7 pure climate reads:
+     center + 3 verts + 3 edge midpoints, max ask wins), not the
+     center band alone. The travel census caught the center-band
+     fallacy AGAIN at planet scale: forest/swamp slivers inside
+     lake-center faces derived EMPTY on the center-band read.
+  3. THE DRY RANGE LAW: desert + the ALPINE/TUNDRA/BADLANDS bands
+     are not stone-only any more -- ~55% of their sites grow a
+     hunkered dry tuft (scale 0.4-0.9) with the band's own tint
+     (DESERT hot dead straw / TUNDRA frost / BADLANDS rust / ALPINE
+     summit sedge added to GRASS_TINTS); the rest keep the
+     boulder-ore vein. The batch material is the MAJORITY band's
+     tint (the per-field species law both appliers carry).
+  4. RECEIPTS (exit-0 headless): probe_prop_density unchanged
+     quality on the boot belt (<=600 m detail=75, <=1,200 m 77,
+     <=2,400 m 171; TOTALS 2,828) -- the tile-raise hold. The TRAVEL
+     CENSUS (tests/diag_detail_kinds.gd, per-site band buckets):
+     jungle faces (id=13) now derive bush 94 + MUSHROOM 11 +
+     MYCELIUM 5 -- the fungal bands produce caps + glow patches for
+     GM travel; homeland grassland carries tuft 857 / flower 128 /
+     bush 195. bench_coldboot_wall v9 88.2 s vs the 90.9 s
+     baseline -- no regression (worker sum 161k vs 171k).
+  5. FIELD-3 CLOSURE STATUS (the sit-on-ground law): the numeric
+     audit now measures RADIAL OVER/UNDER THE SURFACE against
+     planet_center (the world is re-rooted near the player; older
+     attempts measured planet-frame lengths from the origin, which
+     is why every earlier pass reported absurd ~19.8 km values for
+     ALL kinds). Result: ALL 373 node props (flowers/bushes) seat
+     within +/-1 m of the analytic surface -- the pos law
+     (_tangent_patch_local) and the parent frame are PROVEN for
+     node props. Batch-BLADE read-back is foreclosed on this
+     engine build: MultiMesh.get_instance_transform returns the
+     identity after the buffer is committed to the rendering
+     server (fresh-before-upload reads returned varied data;
+     post-upload reads return zeros -- both regimes reproduced in
+     one run; the diag prints the receipt artifacts). The tuft
+     instances ride the SAME rec positions the nodes carry and
+     the instance basis adds only yaw/scale (no position law), so
+     they inherit the proven law by construction; the on-device
+     visual pass remains the batch's acceptance.
+  LIMITS + NEXT: (a) the desert straws need a desert-band FACE on
+     this seed to prove end-to-end -- the travel census found
+     fungal + homeland bands; a GM character-scan of other seeds can
+     verify the dry-straw tint renders; (b) floor-band faces whose
+     sampled bands are all water stay bare (correct: no props in
+     the surf); (c) the phone retest (fullscreen + fresh density +
+     mushroom walk) is the visual acceptance.
   (village core, dock, quest anchors) stays seed-fixed; decorative
   slice (some trees, rocks, minor scatter) gets a per-boot offset
   sourced from cosmic_entropy. Houses-in-same-spots is then CORRECT

@@ -1602,21 +1602,24 @@ func _bloom_head_material(idx: int) -> StandardMaterial3D:
 ## v5 GRASS TIER: the meadow bands pay tufts (grassland mostly tuft,
 ## bush ~18%, bloom ~10%; dry bands a straggle), so the starter
 ## country reads lived-in ground instead of flat vertex paint. The
-## PROP BUDGET: this patch's level rides the LOD budget law --
-## NEAR (base level): budget 18; one dropped level: 4; drops past
-## that (or LOD off at far faces): NOTHING (the biome-colored ground
-## does the work, so the far patch never pays its detail pass).
+## PROP BUDGET (v9): the patch's level rides the LOD tier law --
+## NEAR (base level): the full band ask; one dropped level: a quarter;
+## the floor band (drop 2, the LOD_FLOOR_LEVEL set): an eighth,
+## batch-heavy (the tuft mass is one MultiMesh per face); past that:
+## NOTHING (the biome-colored ground does the work, so the far patch
+## never pays its detail pass).
 func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 	if not terrain_on:
 		return  # prototype keeps its S7 set
 	var lvl: int = int(_patch_lvl.get(face, 99))
 	var base_lvl: int = _level_for_edge()
 	var drop: int = base_lvl - lvl
-	if drop >= 2:
+	if drop >= 3:
 		return  # FAR: no detail pass at all (the budget law)
+	# THE FLOOR BAND (v9, sync twin -- see the derive law above): the
+	# drop-2 floor faces pay a reduced ask instead of nothing.
 	# THE REAL-GEOMETRY BUDGET (v8, sync twin of the derive law above).
-	var budget_full: int = int(_DETAIL_BUDGETS\
-		.get(TerrainGen.climate_biome_id(FacePatches.face_center(face).normalized(), world_seed), 0))
+	var budget_full: int = _face_band_ask(face)
 	# THE LADDER GATE (sync twin -- see the derive law above): the
 	# homeland-reach faces pay the GRASSLAND ask even when their center
 	# resolves a bare shore/lake band.
@@ -1625,7 +1628,12 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 				>= TerrainGen.HOMELAND_ANGULAR_REACH:
 			return  # beach/ocean/water center faces stay bare
 		budget_full = int(_DETAIL_BUDGETS.get(TerrainGen.BiomeId.GRASSLAND, 0))
-	var budget: int = budget_full if drop <= 0 else int(budget_full / 4)  # NEAR: full, MID: quarter
+	# THE TIER ASK (v9): NEAR faces pay the full ask; drop-1 (a live
+	# demote in flight) pays a quarter; the floor band pays 1/8 -- the
+	# tuft mass is MultiMesh-batched, so a floor face's dressing costs
+	# ~1 draw + a couple dozen nodes instead of zero.
+	var mid_div: int = 4 if drop == 1 else 8
+	var budget: int = budget_full if drop <= 0 else int(budget_full / mid_div)  # NEAR: full, floor: 1/8
 	var bytes: PackedByteArray = TerrainGen.face_seed_bytes(world_seed, face)
 	var acc: int = 0
 	for b in bytes:
@@ -1638,6 +1646,7 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 	var sea: float = TerrainGen.sea_level(world_seed)
 	var spawned := 0
 	var tuft_xforms: Array = []  # THE TUFT BATCH: one MultiMesh paints the field
+	var tuft_bids: Array = []  # the batch material is the MAJORITY band's tint
 	for i in range(budget * 2):  # 2x the ask absorbs the water/bare rejects
 		if spawned >= budget:
 			break  # the tuft-batch flush runs after the loop
@@ -1665,7 +1674,10 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 			or bid == TerrainGen.BiomeId.JUNGLE
 		var is_ore: bool = bid == TerrainGen.BiomeId.ALPINE or bid == TerrainGen.BiomeId.TUNDRA \
 			or bid == TerrainGen.BiomeId.BADLANDS
-		if not is_cattail and not is_bush and not is_ore and not meadow:
+		# THE DRY RANGE LAW (v9, sync twin -- see the derive law above):
+		# the range bands carry dry brush (straw/frost/rust tufts).
+		var is_dry_band: bool = bid == TerrainGen.BiomeId.DESERT or is_ore
+		if not is_cattail and not is_bush and not is_dry_band and not meadow:
 			continue  # beach/ocean/water bands stay bare (FOREST/TUNDRA/ALPINE carry the ore)
 		# THE KIND ROLL (deterministic): one draw per site decides the
 			# meadow mix -- tufts ~72%, shrubs ~18%, blooms ~10% (grassland
@@ -1683,6 +1695,11 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 		var fungal_roll: float = rng.randf()
 		var is_mushroom: bool = fungal and fungal_roll < 0.14
 		var is_mycelium: bool = fungal and not is_mushroom and fungal_roll < 0.22
+		# THE DRY RANGE ROLL (v9): one draw per dry site splits the
+		# range's ask -- ~55% dry brush (the straw/frost/rust tuft),
+		# the rest keeps the boulder-ore vein. Own draw: the
+		# rng-for-rng twin law carries the same draw in both paths.
+		var is_dry_tuft: bool = is_dry_band and rng.randf() < 0.55
 		var prop := MeshInstance3D.new()
 		var mesh: Mesh
 		var mat := StandardMaterial3D.new()
@@ -1703,6 +1720,7 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 			var tscl: float = rng.randf_range(0.7, 1.6)
 			tuft_xforms.append(Transform3D(
 				Basis(east_t, up_t, east_t.cross(up_t)).rotated(up_t, tyaw).scaled(Vector3.ONE * tscl), tpos))
+			tuft_bids.append(bid)
 			spawned += 1
 			continue
 		if is_flower:
@@ -1789,6 +1807,21 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 			patch_node.add_child(patch_s)
 			spawned += 1
 			continue
+		if is_dry_tuft:
+			# THE DRY BRUSH (v9, sync twin -- see the derive law above):
+			# the range band's dry tuft, the hunker scale, the band's
+			# own tint via the batch majority law.
+			var dpos: Vector3 = _tangent_patch_local(dir, patch_center, scaled + base_h)
+			var up_d: Vector3 = dir
+			var hint_d: Vector3 = Vector3(0, 1, 0) if abs(up_d.dot(Vector3(0, 1, 0))) < 0.999 else Vector3(1, 0, 0)
+			var east_d: Vector3 = (hint_d - up_d * hint_d.dot(up_d)).normalized()
+			var dyaw: float = rng.randf_range(0.0, TAU)
+			var dscl: float = rng.randf_range(0.4, 0.9)
+			tuft_xforms.append(Transform3D(
+				Basis(east_d, up_d, east_d.cross(up_d)).rotated(up_d, dyaw).scaled(Vector3.ONE * dscl), dpos))
+			tuft_bids.append(bid)
+			spawned += 1
+			continue
 		if is_ore:
 			# ORE VEIN (prd-gathering build order 2): the mountain/tundra
 			# band carries the mine. A dark boulder-chunk, registered as
@@ -1844,7 +1877,7 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 		patch_node.add_child(prop)
 		spawned += 1
 	# THE TUFT BATCH FLUSH: the deferred MultiMesh painter.
-	_apply_tuft_batch(tuft_xforms, patch_node)
+	_apply_tuft_batch(tuft_xforms, tuft_bids, patch_node)
 
 
 ## ===== THE PROP DERIVE / APPLY SPLIT (v6 threading) ============
@@ -2186,16 +2219,39 @@ const _DPROP_FLOWER: int = 4
 const _DPROP_MUSHROOM: int = 5   # v7: fungal cap (swamp/forest/jungle)
 const _DPROP_MYECLIUM: int = 6   # v7: glowing mycelium patch (same bands)
 
+## THE FACE BAND ASK (v9, the travel law): "when a biome is there and
+## a player gets to it, it renders" -- so a face pays what its
+## CONTAINED bands need, not just its center band. The travel census
+## proved the center-band read starves sliver-dressed faces (forest
+## swamps/desert pans inside lake-center faces derived EMPTY). Seven
+## pure climate reads (center + 3 verts + 3 edge midpoints) resolve
+## the face's band set; the ask is the MAX ladder entry the bands
+## carry. Thread-safe: climate reads are pure (the worker law).
+func _face_band_ask(face: int) -> int:
+	var center: Vector3 = FacePatches.face_center(face).normalized()
+	var verts: PackedInt32Array = FacePatches.face_vertices(face)
+	var asks: Array = [center]
+	for vi in range(3):
+		asks.append(Icosahedral.VERTICES[verts[vi]].normalized())
+		asks.append((center + Icosahedral.VERTICES[verts[vi]].normalized()).normalized())
+	var best: int = 0
+	for d in asks:
+		var a: int = int(_DETAIL_BUDGETS.get(TerrainGen.climate_biome_id(d, world_seed), 0))
+		if a > best:
+			best = a
+	return best
+
+
 ## THE DETAIL DENSITY LADDER (v8, FIELD-1 closure): the real-geometry
 ## port of the tree-tier law. A streamed icosahedral face is ~21 km of
 ## ground at the planet scale, so the old 18/4 one-size budget starved
 ## whole boot walks (probe_prop_density on the shipped tree: ZERO props
-## within 600 m of spawn, nearest node 2127 m). The ladder reads the
-## face CENTER's biome (the same quantized climate read the tree tier
-## scales with) and pays band-appropriate attempt pools. NEAR faces pay
-## the full ask; MID faces a quarter; FAR stays skip. Tufts (the ~72%
-## meadow mass) are MultiMesh-batched (THE TUFT BATCH LAW) so the
-## raise is paid in instance counts, not scene nodes.
+## within 600 m of spawn, nearest node 2127 m). The ladder pays
+## band-appropriate attempt pools (see THE FACE BAND ASK for how a
+## face's ask is resolved: the max its contained bands carry). NEAR
+## faces pay the full ask; MID faces a quarter; FAR stays skip. Tufts
+## (the ~72% meadow mass) are MultiMesh-batched (THE TUFT BATCH LAW)
+## so the raise is paid in instance counts, not scene nodes.
 const _DETAIL_BUDGETS := {
 	TerrainGen.BiomeId.GRASSLAND: 700,
 	TerrainGen.BiomeId.SAVANNA: 420,
@@ -2217,12 +2273,16 @@ func _derive_detail_sites(face: int) -> Array:
 	# read), so the derive phase can pay it.
 	var base_lvl: int = _level_for_edge()
 	var drop: int = base_lvl - lvl
-	if drop >= 2:
+	if drop >= 3:
 		return sites  # FAR: no detail pass at all (the budget law)
+	# THE FLOOR BAND (v9): the LOD ladder is binary (base or floor
+	# level), so the old drop>=2 kill left the floor-band faces (the
+	# boot window's other slots + every horizon interior) COMPLETELY
+	# bare -- the "land past the belt is empty" report. The floor band
+	# now pays a reduced, batch-heavy ask instead of zero.
 	# THE REAL-GEOMETRY BUDGET (v8): the ladder reads the face CENTER's
 	# band -- a 21 km face pays a real-face count, not 18 sites.
-	var budget_full: int = int(_DETAIL_BUDGETS\
-		.get(TerrainGen.climate_biome_id(FacePatches.face_center(face).normalized(), world_seed), 0))
+	var budget_full: int = _face_band_ask(face)
 	# THE LADDER GATE (the galaxy-tier mirror of the FIELD GATE lesson):
 	# the boot faces resolve shore/lake CENTERS while hosting the
 	# homeland's grassland slivers -- a bare center-band read would
@@ -2234,7 +2294,12 @@ func _derive_detail_sites(face: int) -> Array:
 				>= TerrainGen.HOMELAND_ANGULAR_REACH:
 			return sites  # beach/ocean/water center faces stay bare
 		budget_full = int(_DETAIL_BUDGETS.get(TerrainGen.BiomeId.GRASSLAND, 0))
-	var budget: int = budget_full if drop <= 0 else int(budget_full / 4)  # NEAR: full, MID: quarter
+	# THE TIER ASK (v9): NEAR faces pay the full ask; drop-1 (a live
+	# demote in flight) pays a quarter; the floor band pays 1/8 -- the
+	# tuft mass is MultiMesh-batched, so a floor face's dressing costs
+	# ~1 draw + a couple dozen nodes instead of zero.
+	var mid_div: int = 4 if drop == 1 else 8
+	var budget: int = budget_full if drop <= 0 else int(budget_full / mid_div)  # NEAR: full, floor: 1/8
 	var bytes: PackedByteArray = TerrainGen.face_seed_bytes(world_seed, face)
 	var acc: int = 0
 	for b in bytes:
@@ -2276,7 +2341,11 @@ func _derive_detail_sites(face: int) -> Array:
 			or bid == TerrainGen.BiomeId.JUNGLE
 		var is_ore: bool = bid == TerrainGen.BiomeId.ALPINE or bid == TerrainGen.BiomeId.TUNDRA \
 			or bid == TerrainGen.BiomeId.BADLANDS
-		if not is_cattail and not is_bush and not is_ore and not meadow:
+		# THE DRY RANGE LAW (v9): the range bands (desert + the ladder's
+		# ALPINE/TUNDRA/BADLANDS) are not stone-only any more -- the
+		# range carries dry brush now (straw/frost/rust tufts).
+		var is_dry_band: bool = bid == TerrainGen.BiomeId.DESERT or is_ore
+		if not is_cattail and not is_bush and not is_dry_band and not meadow:
 			continue  # beach/ocean/water bands stay bare
 		var meadow_roll: float = rng.randf()
 		var is_flower: bool = meadow and bid == TerrainGen.BiomeId.GRASSLAND \
@@ -2295,12 +2364,18 @@ func _derive_detail_sites(face: int) -> Array:
 		var fungal_roll: float = rng.randf()
 		var is_mushroom: bool = fungal and fungal_roll < 0.14
 		var is_mycelium: bool = fungal and not is_mushroom and fungal_roll < 0.22
-		var rec := {"i": i, "dir": dir, "kind": -1}
+		# THE DRY RANGE ROLL (v9): one draw per dry site splits the
+		# range's ask -- ~55% dry brush (the straw/frost/rust tuft),
+		# the rest keeps the boulder-ore vein. Own draw: the
+		# rng-for-rng twin law carries the same draw in both paths.
+		var is_dry_tuft: bool = is_dry_band and rng.randf() < 0.55
+		var rec := {"i": i, "dir": dir, "kind": -1, "bid": bid}  # every kind carries its band
 		if is_tuft:
 			rec["kind"] = _DPROP_TUFT
 			rec["pos"] = _tangent_patch_local(dir, patch_center, scaled + base_h)
 			rec["yaw"] = rng.randf_range(0.0, TAU)
 			rec["scale"] = rng.randf_range(0.7, 1.6)
+			rec["bid"] = bid  # the batch tint rides the majority band
 			spawned += 1
 		elif is_flower:
 			rec["kind"] = _DPROP_FLOWER
@@ -2324,6 +2399,16 @@ func _derive_detail_sites(face: int) -> Array:
 			rec["hue"] = rng.randf()  # pale violet <-> teal (apply twin)
 			rec["pos"] = _tangent_patch_local(dir, patch_center, scaled + base_h + 0.03)
 			spawned += 1
+		elif is_dry_tuft:
+			# THE DRY BRUSH REC (v9): the range band's dry tuft -- the
+			# same tuft family, the hunker scale, the band's own tint
+			# (straw/frost/rust) carried by the batch's majority law.
+			rec["kind"] = _DPROP_TUFT
+			rec["pos"] = _tangent_patch_local(dir, patch_center, scaled + base_h)
+			rec["yaw"] = rng.randf_range(0.0, TAU)
+			rec["scale"] = rng.randf_range(0.4, 0.9)  # the dry hunker law
+			rec["bid"] = bid
+			spawned += 1
 		elif is_ore:
 			rec["kind"] = _DPROP_ORE
 			rec["r_o"] = rng.randf_range(0.35, 0.7)
@@ -2346,14 +2431,16 @@ func _derive_detail_sites(face: int) -> Array:
 
 func _apply_detail_sites(face: int, sites: Array, patch_node: Node3D) -> void:
 	var tuft_xforms: Array = []  # THE TUFT BATCH: one MultiMesh paints the field
+	var tuft_bids: Array = []  # the batch material is the MAJORITY band's tint
 	for rec in sites:
 		var i: int = int(rec["i"])
 		var dir: Vector3 = rec["dir"]
 		if int(rec["kind"]) == _DPROP_TUFT:
-			# THE TUFT LAW (v8 batched -- the grass-field paint law):
-			# one shared MultiMesh paints the face's whole tuft field
-			# (the flush below); per-tuft variance rides the instance
-			# transform. No node per blade.
+			# THE TUFT LAW (v9 tinted batch -- the grass-field paint
+			# law): one shared MultiMesh paints the face's whole tuft
+			# field (the flush below); per-tuft variance rides the
+			# instance transform and the batch material is the MAJORITY
+			# band's tint. No node per blade.
 			var up_t: Vector3 = dir
 			var hint_t: Vector3 = Vector3(0, 1, 0) if abs(up_t.dot(Vector3(0, 1, 0))) < 0.999 else Vector3(1, 0, 0)
 			var east_t: Vector3 = (hint_t - up_t * hint_t.dot(up_t)).normalized()
@@ -2361,6 +2448,7 @@ func _apply_detail_sites(face: int, sites: Array, patch_node: Node3D) -> void:
 			tuft_xforms.append(Transform3D(
 				Basis(east_t, up_t, east_t.cross(up_t)).rotated(up_t, float(rec["yaw"])).scaled(Vector3.ONE * tscl),
 				rec["pos"]))
+			tuft_bids.append(int(rec.get("bid", -1)))
 		elif int(rec["kind"]) == _DPROP_FLOWER:
 			var bloom := Node3D.new()
 			bloom.name = "Flower%d" % i
@@ -2488,7 +2576,7 @@ func _apply_detail_sites(face: int, sites: Array, patch_node: Node3D) -> void:
 				bush_item = "res_moonpetal"  # the meadow's herb law
 			_register_harvest_node(face, i, bush_item, dir, 45.0)
 	# THE TUFT BATCH FLUSH (v8): one MultiMesh paints the face's tuft field.
-	_apply_tuft_batch(tuft_xforms, patch_node)
+	_apply_tuft_batch(tuft_xforms, tuft_bids, patch_node)
 
 
 ## THE TUFT BATCH LAW (both appliers): the face's collected tuft
@@ -2496,7 +2584,7 @@ func _apply_detail_sites(face: int, sites: Array, patch_node: Node3D) -> void:
 ## call -- reusing the shared tuft mesh + material. Same paint law as
 ## the grass field: the raised budget buys blade instances, NOT
 ## scene nodes. No collider (grass is ground, not prop).
-func _apply_tuft_batch(xforms: Array, patch_node: Node3D) -> void:
+func _apply_tuft_batch(xforms: Array, bids: Array, patch_node: Node3D) -> void:
 	if xforms.is_empty():
 		return
 	var gm := MultiMesh.new()
@@ -2508,7 +2596,21 @@ func _apply_tuft_batch(xforms: Array, patch_node: Node3D) -> void:
 	var gmi := MultiMeshInstance3D.new()
 	gmi.name = "DetailTuftBatch"
 	gmi.multimesh = gm
-	gmi.material_override = _tuft_material()
+	# THE MAJORITY TINT LAW (v9): a face may carry meadow AND dry-range
+	# tufts; the batch material is the MAJORITY band's tint (the same
+	# per-field species law the grass field pays) -- desert faces read
+	# hot dead straw, tundra frost, badlands rust.
+	var majority: int = -1
+	var tally := {}
+	for t in range(bids.size()):
+		var bid: int = int(bids[t])
+		tally[bid] = int(tally.get(bid, 0)) + 1
+		if int(tally[bid]) > int(tally.get(majority, 0)):
+			majority = bid
+	if majority >= 0:
+		gmi.material_override = _grass_material_for(majority)
+	else:
+		gmi.material_override = _tuft_material()
 	patch_node.add_child(gmi)
 
 ## --- THE GRASS FIELD (the dense meadow law) ----------------------
@@ -2537,6 +2639,10 @@ const GRASS_TINTS := {
 	15: Color(1.0, 0.95, 0.68),     # STEPPE: pale wheat
 	7: Color(0.72, 0.9, 1.0),       # TAIGA: cool blue-green
 	10: Color(0.82, 0.94, 1.0),     # ALPINE_MEADOW: frost rim
+	5: Color(1.0, 0.90, 0.55),      # DESERT: hot dead straw
+	4: Color(0.80, 0.92, 0.86),     # TUNDRA: frost pale
+	16: Color(0.88, 0.70, 0.55),    # BADLANDS: rust dry brush
+	3: Color(0.85, 0.90, 0.95),     # ALPINE: summit sedge
 }
 static var _grass_tint_mats := {}  # biome id -> StandardMaterial3D
 
