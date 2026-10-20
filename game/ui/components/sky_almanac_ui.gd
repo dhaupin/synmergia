@@ -443,24 +443,27 @@ func _refresh_sailing_page(day: int) -> void:
 		none.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
 		_sail_rows.add_child(none)
 		return
-	var ferry: Dictionary = ferries[0]
-	var route_row := Label.new()
-	route_row.text = "%s: %s (%d cast-offs a day)" % [str(ferry["name"]), str(ferry["route"]), int(ferry["per_day"])]
-	route_row.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
-	_sail_rows.add_child(route_row)
-	var cross_row := Label.new()
-	cross_row.text = "The crossing takes %.0f minutes -- the current does the rowing." % [float(ferry["cross_h"]) * 60.0]
-	cross_row.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
-	_sail_rows.add_child(cross_row)
-	var dep: Dictionary = ferry["dep"]
-	var dep_row := Label.new()
-	if bool(dep.get("departing", false)):
-		dep_row.text = "CASTING OFF NOW -- be on the dock."
-		dep_row.add_theme_color_override("font_color", UIStyles.COLORS.success)
-	else:
-		dep_row.text = "Next cast-off: Day %d, %.2f h into the day (%.1f h from now)." % [day + int(dep.get("day_offset", 0)), float(dep.get("hour", 0.0)), float(dep.get("in_h", 0.0))]
-		dep_row.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
-	_sail_rows.add_child(dep_row)
+	# EVERY scheduled vessel gets its own block (the Pans Runner
+	# taught the page its lesson: one row per ferry, the scan order
+	# never decides which run exists for the chart).
+	for ferry in ferries:
+		var route_row := Label.new()
+		route_row.text = "%s: %s (%d cast-offs a day)" % [str(ferry["name"]), str(ferry["route"]), int(ferry["per_day"])]
+		route_row.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
+		_sail_rows.add_child(route_row)
+		var cross_row := Label.new()
+		cross_row.text = "The crossing takes %.0f minutes -- the current does the rowing." % [float(ferry["cross_h"]) * 60.0]
+		cross_row.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+		_sail_rows.add_child(cross_row)
+		var dep: Dictionary = ferry["dep"]
+		var dep_row := Label.new()
+		if bool(dep.get("departing", false)):
+			dep_row.text = "CASTING OFF NOW -- be on the dock."
+			dep_row.add_theme_color_override("font_color", UIStyles.COLORS.success)
+		else:
+			dep_row.text = "Next cast-off: Day %d, %.2f h into the day (%.1f h from now)." % [day + int(dep.get("day_offset", 0)), float(dep.get("hour", 0.0)), float(dep.get("in_h", 0.0))]
+			dep_row.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
+		_sail_rows.add_child(dep_row)
 	var law_row := Label.new()
 	law_row.text = "The first ride always takes the water. After that, the wake remembers you."
 	law_row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

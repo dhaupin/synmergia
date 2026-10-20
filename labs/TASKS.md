@@ -6682,3 +6682,45 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
      page reads the same closed form) -- a UI receipt is open;
      (c) the on-device acceptance stands: sail NE off the homeland,
      land on the beach, read the straw field against the rust rim.
+- WORLD-DRESSING v11c (2026-10-20, the pans art trio): the three
+  named follow-ups land together.
+  1. THE VESSEL MESH (entities/ferry_vessel.gd): the Pans Runner is
+     a node in the world now -- lateen hull, deck, hold tent, spar +
+     canvas, Concord stern lantern (emissive), built in the
+     engine-ban box dialect. The ride law (place(t)) walks the
+     pier<->pans great-circle lane; at sea the hull floats ON the
+     sea line (walk_surface_h returns the SEABED at ocean dirs, so
+     the sea level clamps it back up); the berthed end rides the
+     pier deck face. The globe wires a 1 s tick that reads
+     FerrySchedule.crossing_in_progress and drives t -- in port the
+     boat berths at the pier's water face, at sea it visibly rides
+     the lane (the deck motion law stays virtual, S14.6).
+  2. THE MONOLITH (entities/pans_monolith.gd): the pans waypoint's
+     own art -- sunbaked obelisk (pale sandstone, scorched banding,
+     bronze capstone) + guidestone cairns + the mooring flank (two
+     posts standing where the Runner ties off). Placement rides
+     sun_pans_dir on the same authored-install frame the capitol
+     carries, one collider belt.
+  3. THE SAILING PAGE (ui/components/sky_almanac_ui.gd): the page
+     rendered ferries[0] only -- with the Pans Runner in the scan
+     the chart showed one vessel of two. Now EVERY scheduled ferry
+     gets its own block (name/route, crossing minutes, next
+     cast-off); the tide-table-blank law stays.
+  RECEIPTS (exit-0 headless, dev_temp/probes/pans_builds_probe.gd,
+  booting the 20 km planet): monolith on the pans bearing
+  (angle 0.0000 rad), runner berthed at the pier end (angle 0.0000,
+  h 30.2, pier-ward), sailing rows carry BOTH vessels
+  (haven=true pans=true, 13 rows). The old document W11b live-
+  stream receipt re-held after the art lands (face12 loaded=true,
+  holder Bush 2 / Ore 13 / DetailTuftBatch 185). Gate lints:
+  naming 25/0, runner 36/0. ERROR-ATTRIBUTION LESSON: the 6
+  SCRIPT ERRORs per headless boot (Nonexistent function '' in base
+  Vector3/RefCounted streamer, get_ticks_msec on null) reproduce
+  on PRE-EDIT main (stash test) -- deferred worker noise the
+  headless dummy renderer already ships; not this round's.
+  LIMITS + NEXT: (a) the pier berth collision needs an on-device
+  pass (the berthed hull's keel may clip the pier head boards --
+  berth lift is a constant, tune visually); (b) the arrival end
+  (pans moor) never shows the boat -- the in-port law pier-berths
+  unconditionally; alternating berths needs the ride ledger
+  (S14.6); (c) the on-device acceptance stands (v11b c).

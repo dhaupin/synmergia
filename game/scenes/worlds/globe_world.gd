@@ -137,6 +137,8 @@ func _ready() -> void:
 	_build_arena_gateway()
 	_build_starter_village()
 	_build_capitol_monolith()
+	_build_pans_monolith()
+	_build_pans_ferry()
 	_build_town_npcs()
 	_build_player()
 	_setup_ambience()
@@ -813,6 +815,74 @@ func _build_capitol_monolith() -> void:
 
 var starter_village: Node3D = null
 var capitol_monolith: Node3D = null
+var pans_monolith: Node3D = null
+var pans_ferry_vessel: Node3D = null
+
+
+const FERRY_VESSEL_LAW = preload("res://entities/ferry_vessel.gd")
+
+## THE PANS MONOLITH (the far country's marker): the Sun Pans
+## waypoint's own installation -- a sunbaked obelisk + mooring flank
+## standing on the atoll's outer bank, riding the same authored
+## install frame the capitol carries. The gateway pin
+## (data/gateways/waypoint_sun_pans.tres) registers the walk-up law;
+## this is the ART the pin points at.
+func _build_pans_monolith() -> void:
+	var PM: GDScript = load("res://entities/pans_monolith.gd")
+	pans_monolith = PM.build(world_root, planet_radius, STREAMER_TILE_LIFT, \
+		Callable(streamer, "walk_surface_h"))
+
+
+## THE PANS RUNNER (S14.5's boat): the vessel physically rides the
+## harbor pier <-> Sun Pans lane. The route + schedule are closed
+## form (FerrySchedule off the Concord epoch -- the same math the
+## almanac's sailing page and FerryService read); a one-second timer
+## tick drives the ride law: berthed at the pier in port, visibly at
+## sea during a crossing (the deck motion law is still virtual --
+## S14.6 carries riders).
+func _build_pans_ferry() -> void:
+	var FS = get_node_or_null("/root/FerryService")
+	var FV: GDScript = load("res://entities/ferry_vessel.gd")
+	var Gen = load("res://scenes/worlds/terrain_gen.gd")
+	var sea: float = Gen.sea_level(streamer.world_seed) if streamer else 0.0
+	pans_ferry_vessel = FV.build(world_root, planet_radius, STREAMER_TILE_LIFT, \
+		Callable(streamer, "walk_surface_h"), sea)
+	var logb = get_node_or_null("/root/GameLog")
+	if FS == null:
+		if logb:
+			logb.warn("GlobeWorld: FerryService absent -- the Pans Runner stays berthed")
+		return
+	var ferry = FS.call("get_ferry", "veh_pans_ferry")
+	if ferry == null:
+		if logb:
+			logb.warn("GlobeWorld: veh_pans_ferry not loaded -- the Pans Runner stays berthed")
+		return
+	var tick := Timer.new()
+	tick.wait_time = 1.0
+	tick.autostart = true
+	tick.timeout.connect(_pans_ferry_tick.bind(int(ferry.ferries_per_day), \
+		float(ferry.first_departure_hour), float(ferry.crossing_hours)))
+	add_child(tick)
+
+
+## The ride law's tick: where on the lane is the boat NOW? At sea the
+## schedule's crossing clock drives t (elapsed/crossing); in port it
+## berths at the pier (t=0). The boat returns unseen between
+## sailings -- the arrival end rides the last seen position until
+## the next tick.
+func _pans_ferry_tick(per_day: int, first_h: float, cross_h: float) -> void:
+	if pans_ferry_vessel == null:
+		return
+	var Schedule = load("res://core/frame/srv/ferry_schedule.gd")
+	var epoch: float = SignService.sky_epoch_days() if SignService else \
+		float(Time.get_unix_time_from_system()) / 86400.0
+	var c: Dictionary = Schedule.crossing_in_progress(per_day, first_h, cross_h, epoch)
+	if c.is_empty():
+		# In port: the runner berths at the pier's water face.
+		FERRY_VESSEL_LAW.place(pans_ferry_vessel, 0.0)
+		return
+	var t: float = clampf(1.0 - float(c["remaining_h"]) / maxf(cross_h, 0.001), 0.05, 0.95)
+	FERRY_VESSEL_LAW.place(pans_ferry_vessel, t)
 
 
 ## THE TOWN ROSTERS (the owner's turn-15 law: "the starter village
