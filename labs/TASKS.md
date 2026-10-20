@@ -6835,5 +6835,44 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
   violate the in-session probe/replay law, a per-hour one would
   remix mid-session; (c) S14.6 and the ferrymaster pin still
   stand from v12.
+- WORLD-DRESSING v14 (2026-10-20, the wildflower session): the
+  meadow gets its FIELDS, not sprinkles.
+  1. THE GAP: the v5 bloom law gave grassland a flat 10% bloom
+     sprinkle -- every meadow read the same thin scattering, no
+     patch ever read as a field.
+  2. THE WILDFLOWER DRIFT (terrain_gen.gd, pure): two value-noise
+     octaves on the site direction at a ~50 m patch scale
+     (FLDRIFT_SALT, no rng draw -- the twin draw counts stay),
+     sharpened so only strong cells form drifts. The bloom gate is
+     0.10 + 0.40 x drift -- a strong cell carries up to ~50% of its
+     sites in bloom, open meadow keeps the sprinkle. THE DRIFT
+     SPECIES law: the palette rides the drift band (one kind per
+     patch, a rare intruder from the SAME single randi() draw), so
+     each field reads as one wildflower kind handing off to the
+     next. THE BLOOM NODE CAP (150/face, both twins) is the perf
+     law: the raise is paid by the ceiling, the budget never
+     explodes. Grassland only -- every other band is bit-identical
+     (the travel census proves it).
+  3. RECEIPTS (exit-0 headless): the drift field sweeps 0.000-1.000
+     with a 33% strong-cell share over the sampled tangent grid
+     (a real patch field, not a blanket, not a flat field) --
+     probes/wildflower_drift_probe.gd; species mapping stable;
+     face 16 blooms at the node ceiling: 150 flowers vs the old 71
+     (face 18: 57 -> 150); travel census homeland grassland = 300
+     blooms / 981 sites with every other band unchanged; FIELD-3
+     coherently redistributed (float 515 -> 416 with the tuft
+     batch down 515 -> 416; the audit checks 1180 unchanged). The
+     GrassField shift 760 -> 840 is the v13 DAY SALT (v11 receipts
+     predate it; stable within the day). Gate lints 25/0 + 36/0.
+  LIMITS + NEXT: (a) the drift is seed-pure (landscape shape, not a
+     session slice) -- the flowers ride the salt-immune detail
+     chain by the harvest-ledger law (v13 host law; a pure-paint
+     batch ride is the perf follow-up if the node cap chokes an
+     on-device pass); (b) SAVANNA/TAIGA stay on the sprinkle law
+     (grassland-only drift; extending is a one-gate edit + census
+     run when a player reports a meadow that wants them); (c) the
+     on-device acceptance stands: walk the homeland at bloom time
+     and read the patch-to-patch species handoff.
+
 
 

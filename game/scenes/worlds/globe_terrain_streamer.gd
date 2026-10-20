@@ -48,6 +48,7 @@ const TILE_LIFT: float = 0.52
 ## paint -- horizon detail, no collider.
 const TREE_NODE_ANG: float = 0.12   # ~2.4 km ground arc at the 20 km scale
 const NODE_TREE_CAP: int = 24       # collided node-tree ceiling per face
+const BLOOM_NODE_CAP: int = 150     # the wildflower drift's per-face node ceiling (v14)
 
 ## WATER (terrain arc): at planet scale the scene paints a water shell
 ## at the terrain sea line. Patches below the waterline dim to a wet
@@ -1674,6 +1675,7 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 	var scaled: float = radius + TILE_LIFT
 	var sea: float = TerrainGen.sea_level(world_seed)
 	var spawned := 0
+	var bloom_count: int = 0  # THE WILDFLOWER DRIFT's node ceiling (v14)
 	var tuft_xforms: Array = []  # THE TUFT BATCH: one MultiMesh paints the field
 	var tuft_bids: Array = []  # the batch material is the MAJORITY band's tint
 	for i in range(budget * 2):  # 2x the ask absorbs the water/bare rejects
@@ -1722,10 +1724,22 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 			continue  # beach/ocean/water bands stay bare (FOREST/TUNDRA/ALPINE carry the ore)
 		# THE KIND ROLL (deterministic): one draw per site decides the
 			# meadow mix -- tufts ~72%, shrubs ~18%, blooms ~10% (grassland
-			# only; the dry bands never bloom, the forest bands never tuft).
+			# only; the dry bands never bloom, the forest bands never tuft).		var meadow_roll: float = rng.randf()
 		var meadow_roll: float = rng.randf()
+		# THE WILDFLOWER DRIFT (v14): the meadow's bloom gate rides the
+		# land's own drift signal -- a PURE read (no rng draw, the twin
+		# draw counts hold) -- so a strong cell carries up to ~50% of its
+		# sites in bloom while the open meadow keeps the v5 sprinkle.
+		var flower_gate: float = 0.10
+		if meadow and bid == TerrainGen.BiomeId.GRASSLAND:
+			flower_gate = 0.10 + 0.40 * TerrainGen.wildflower_drift(dir)
 		var is_flower: bool = meadow and bid == TerrainGen.BiomeId.GRASSLAND \
-			and meadow_roll < 0.10
+				and meadow_roll < flower_gate
+		# THE BLOOM NODE CAP (the perf law): the raise is paid by the
+		# per-face node ceiling -- past it the site stays meadow (the
+		# field stops growing, the budget does not explode).
+		if is_flower and bloom_count >= BLOOM_NODE_CAP:
+			is_flower = false
 		var is_bush_kept: bool = meadow and not is_flower and meadow_roll > 0.82
 		var is_tuft: bool = meadow and not is_flower and not is_bush_kept
 		# THE FUNGAL TIER (v7): the sync twin of the derive law above.
@@ -1777,6 +1791,7 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 			spawned += 1
 			continue
 		if is_flower:
+			bloom_count += 1
 			# THE BLOOM LAW (the pretty tier): a stem + a saturated head
 			# from the shared four-color palette. Pure paint -- no
 			# harvest registration (the meadow keeps its herb law on
@@ -1792,7 +1807,12 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 			var head := MeshInstance3D.new()
 			var r_h: float = rng.randf_range(0.055, 0.105)
 			head.mesh = _shared_prop_sphere(r_h, 1.3)
-			head.material_override = _bloom_head_material(rng.randi() % _bloom_palette().size())
+			# THE DRIFT SPECIES (v14): the palette rides the drift band -- a
+			# patch blooms as ONE wildflower kind, with a rare intruder (the
+			# same single randi() draw, so the twin draw counts hold).
+			var species: int = int(TerrainGen.wildflower_drift(dir) * 7.0) % _bloom_palette().size()
+			var pal: int = species if (rng.randi() % 6) != 0 else (species + 1) % _bloom_palette().size()
+			head.material_override = _bloom_head_material(pal)
 			head.position = Vector3(0.0, stem_h + r_h * 0.25, 0.0)
 			bloom.add_child(stem)
 			bloom.add_child(head)
@@ -2420,6 +2440,7 @@ func _derive_detail_sites(face: int) -> Array:
 	var scaled: float = radius + TILE_LIFT
 	var sea: float = TerrainGen.sea_level(world_seed)
 	var spawned: int = 0
+	var bloom_count: int = 0  # THE WILDFLOWER DRIFT's node ceiling (v14)
 	for i in range(budget * 2):  # 2x the ask absorbs the water/bare rejects
 		if spawned >= budget:
 			break
@@ -2467,10 +2488,22 @@ func _derive_detail_sites(face: int) -> Array:
 		var is_shore: bool = bid == TerrainGen.BiomeId.SHORE  # the beach law's band gate
 		if not is_cattail and not is_bush and not is_dry_band and not meadow \
 				and not is_shore:
-			continue  # beach/ocean/water bands stay bare
+			continue  # beach/ocean/water bands stay bare		var meadow_roll: float = rng.randf()
 		var meadow_roll: float = rng.randf()
+		# THE WILDFLOWER DRIFT (v14): the meadow's bloom gate rides the
+		# land's own drift signal -- a PURE read (no rng draw, the twin
+		# draw counts hold) -- so a strong cell carries up to ~50% of its
+		# sites in bloom while the open meadow keeps the v5 sprinkle.
+		var flower_gate: float = 0.10
+		if meadow and bid == TerrainGen.BiomeId.GRASSLAND:
+			flower_gate = 0.10 + 0.40 * TerrainGen.wildflower_drift(dir)
 		var is_flower: bool = meadow and bid == TerrainGen.BiomeId.GRASSLAND \
-			and meadow_roll < 0.10
+				and meadow_roll < flower_gate
+		# THE BLOOM NODE CAP (the perf law): the raise is paid by the
+		# per-face node ceiling -- past it the site stays meadow (the
+		# field stops growing, the budget does not explode).
+		if is_flower and bloom_count >= BLOOM_NODE_CAP:
+			is_flower = false
 		var is_bush_kept: bool = meadow and not is_flower and meadow_roll > 0.82
 		var is_tuft: bool = meadow and not is_flower and not is_bush_kept
 		# THE FUNGAL TIER (v7, mycelial-sync law): the wet+dark bands
@@ -2511,11 +2544,16 @@ func _derive_detail_sites(face: int) -> Array:
 			rec["bid"] = bid  # the batch tint rides the majority band
 			spawned += 1
 		elif is_flower:
+			bloom_count += 1
 			rec["kind"] = _DPROP_FLOWER
 			rec["pos"] = _tangent_patch_local(dir, patch_center, scaled + base_h)
 			rec["stem_h"] = rng.randf_range(0.20, 0.38)
 			rec["r_h"] = rng.randf_range(0.055, 0.105)
-			rec["pal"] = rng.randi() % _bloom_palette().size()
+			# THE DRIFT SPECIES (the sync twin): the palette rides the drift
+			# band -- one kind per patch, a rare intruder (the same single
+			# randi() draw, so the twin draw counts hold).
+			var species: int = int(TerrainGen.wildflower_drift(dir) * 7.0) % _bloom_palette().size()
+			rec["pal"] = species if (rng.randi() % 6) != 0 else (species + 1) % _bloom_palette().size()
 			rec["yaw"] = rng.randf_range(0.0, TAU)
 			spawned += 1
 		elif is_mushroom:

@@ -393,6 +393,25 @@ static func _cell_hash(cell: Vector3i, salt: int) -> float:
 ## Trilinear value noise on the direction cube (continuous everywhere;
 ## per-octave wavelength fits inside a lattice cell, so no seam law is
 ## needed at this fidelity). freq = lattice cells per radius.
+## THE WILDFLOWER DRIFT (the meadow's patch law): a pure signal in
+## [0, 1] on the site direction -- two value-noise octaves at a meadow
+## patch scale (~50 m cells at the planet scale), sharpened so only the
+## strong cells form drifts and a high fraction of sites inside them
+## bloom. THE MEADOW LAW readers (the streamer's rng-for-rng twins)
+## raise the bloom draw gate by this member and weight the palette to
+## the drift band -- a patch reads as ONE wildflower kind, then hands
+## off to the next: real fields of wildflowers, not sprinkles. Pure
+## reads, no stamping, no rng draw (the twin laws' draw counts stay
+## untouched), and the field is of the LAND: seed-deterministic, like
+## the pans' own name.
+const FLDRIFT_SALT: int = 2879
+static func wildflower_drift(d: Vector3) -> float:
+	var base: float = _vnoise(d, FLDRIFT_SALT, 2600.0)
+	var fine: float = _vnoise(d, FLDRIFT_SALT + 1, 6800.0)
+	var n: float = base * 0.62 + fine * 0.38
+	return clampf((n - 0.42) / 0.28, 0.0, 1.0)
+
+
 static func _vnoise(d: Vector3, salt: int, freq: float) -> float:
 	var p: Vector3 = d * freq
 	var c: Vector3i = Vector3i(floori(p.x), floori(p.y), floori(p.z))
