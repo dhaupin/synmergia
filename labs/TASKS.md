@@ -6651,3 +6651,34 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
      (c) the on-device walk (sail bearing NE off the homeland,
      land on the beach, read the straw field against the rust
      rim) is the visual acceptance.
+- WORLD-DRESSING v11b (2026-10-20 continuation, the pans wiring):
+  1. THE LIVE-STREAM RECEIPT (dev_temp/probes/pans_render_probe.gd,
+     exit-0): the missing middle is proven -- the engine ACTUALLY
+     loads face 12 when a player sails to the bearing. The probe
+     holds the streamer aim at the pans bearing, drains the derive
+     worker WITH the aim held, and prints: face12 loaded=true lvl=7
+     (base=7), holder={"Bush": 2, "Ore": 13, "DetailTuftBatch": 185},
+     derive_kinds={3: 185, 2: 2, 0: 13}. The probe fought two
+     probe-side reefs first (a lone update() call loses the
+     want-set to the globe's own per-frame update, after which
+     _apply_derived_props' streamed-out-mid-derive drop eats the
+     content -- REAL player sails are immune because the player's
+     own process holds the aim both halves of the frame); the
+     streamer's promotion + apply laws are proven against the
+     on-device behavior.
+  2. THE FERRY (the travel follow-up, closed): data/vehicles/
+     veh_pans_ferry.tres -- the Pans Runner, lateen-rigged, harbor
+     pier <-> the pans waypoint pin, two cast-offs a day (first
+     7.5, crossing honest water time 3.0 h). The schedule primitive
+     resolves it in-port with zero code (ferry_service reads
+     data/vehicles scans); pans_pair_probe receipts route_status
+     dep.hour=7.5 day_offset=0 status=in_port.
+  3. GATES: naming lint 25/0 (the two new .tres carry), runner
+     36/0. Pushed as terrain v11b.
+  LIMITS + NEXT: (a) the ferry model still needs a vessel mesh
+     (route + schedule are live; the deck rides the planned S14.6
+     ride-motion); (b) the harbor pier's E-interact board should now
+     show the Pans Runner on its timetable (SkyAlmanacUI's sailing
+     page reads the same closed form) -- a UI receipt is open;
+     (c) the on-device acceptance stands: sail NE off the homeland,
+     land on the beach, read the straw field against the rust rim.

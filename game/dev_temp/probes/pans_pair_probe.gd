@@ -36,5 +36,21 @@ func _run() -> void:
 		quit(1)
 		return
 	print("ZONE id=", zone.id, " name=", zone.display_name, " center=", zone.zone_center)
+	# THE FERRY RECEIPT: the Pans Runner must load from data/vehicles
+	# and resolve a real schedule (two cast-offs a day, harbor pier
+	# <-> the palms bearing the pans waypoint pin).
+	var fs = root.get_node_or_null("FerryService")
+	if fs == null:
+		print("PAIR-MISS FerryService autoload absent")
+		quit(1)
+		return
+	fs.call("ensure_loaded")
+	var veh = fs.call("get_ferry", "veh_pans_ferry")
+	if veh == null:
+		print("PAIR-MISS ferry veh_pans_ferry not loaded")
+		quit(1)
+		return
+	var st: Dictionary = fs.call("route_status", "veh_pans_ferry")
+	print("FERRY veh_pans_ferry name=", veh.display_name, " route=", str(veh.route_gateways), " status=", str(st))
 	print("PAIR-OK")
 	quit(0)
