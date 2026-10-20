@@ -80,5 +80,30 @@ func _run() -> void:
 		print("PANS-BUILD-MISS the Pans Runner is invisible on the sailing page")
 		quit(1)
 		return
+	# 4) THE HARBOR CALLERS LAW: a dock opened for the capitol pier
+	#    pin fronts BOTH lines -- the Haven Ferry by scan order, and
+	#    after a switch press, the Pans Runner (the pin's second
+	#    caller). Broad failures are misses; missing cycles are a
+	#    miss too.
+	var DockPanel = load("res://ui/components/ferry_dock_ui.gd").new()
+	root.add_child(DockPanel)
+	await root.get_tree().process_frame
+	DockPanel.pin_gateway_id = "waypoint_capitol_pier"
+	DockPanel.open_for_player("probe_pier")
+	await root.get_tree().process_frame
+	var first_route: String = str(DockPanel._route_row.text)
+	print("PANS-BUILD dock first caller=", first_route)
+	if not ("Haven Ferry" in first_route):
+		print("PANS-BUILD-MISS the pier's first caller is not the Haven Ferry")
+		quit(1)
+		return
+	DockPanel._on_cycle_pressed()
+	await root.get_tree().process_frame
+	var second_route: String = str(DockPanel._route_row.text)
+	print("PANS-BUILD dock second caller=", second_route)
+	if not ("Pans Runner" in second_route):
+		print("PANS-BUILD-MISS the Pans Runner is unboardable at the pier")
+		quit(1)
+		return
 	print("PANS-BUILD-OK")
 	quit(0)

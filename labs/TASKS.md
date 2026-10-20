@@ -6717,10 +6717,43 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
   SCRIPT ERRORs per headless boot (Nonexistent function '' in base
   Vector3/RefCounted streamer, get_ticks_msec on null) reproduce
   on PRE-EDIT main (stash test) -- deferred worker noise the
-  headless dummy renderer already ships; not this round's.
-  LIMITS + NEXT: (a) the pier berth collision needs an on-device
-  pass (the berthed hull's keel may clip the pier head boards --
-  berth lift is a constant, tune visually); (b) the arrival end
-  (pans moor) never shows the boat -- the in-port law pier-berths
-  unconditionally; alternating berths needs the ride ledger
-  (S14.6); (c) the on-device acceptance stands (v11b c).
+  headless dummy renderer already ships; not this round's.  LIMITS + NEXT: (a) the pier berth collision needs an on-device
+     pass (the berthed hull's keel may clip the pier head boards --
+     berth lift is a constant, tune visually); (b) the arrival end
+     (pans moor) never shows the boat -- the in-port law pier-berths
+     unconditionally; alternating berths needs the ride ledger
+     (S14.6); (c) the on-device acceptance stands (v11b c).
+- WORLD-DRESSING v11d (2026-10-20, the gaps round): the dock-via-pin
+  callers law (the audit SWEEP's catch).
+  1. THE GAP: player_controller._open_nearby_ship_dock pinned the
+     dock panel through _dock_vehicle_for_pin -- FIRST vehicle whose
+     route names the pin. The capitol pier fronts TWO lines now
+     (Haven Ferry + Pans Runner), so the E-interact walk-up always
+     docked the Haven Ferry: the Pans Runner's pier end was
+     UNSCHEDULED and UNBOARDABLE from the walk-up, even with its
+     schedule live on the almanac page.
+  2. THE FIX (no pin-to-boat table): FerryDockUI gains
+     pin_gateway_id -- the dock resolves its callers from the
+     VEHICLES' own route data (FerryService truth), picks the
+     explicit vehicle_id first (back-compat), then the pin's caller
+     cycle. A shared harbor pin grows the "Also calling: <line> --
+     switch" button; every press re-reads that line's OWN schedule,
+     wake ledger and boarding window. Explicitly-set vehicle_id
+     docks (the moor-side barque law) keep pinning verbatim.
+  3. RECEIPTS (exit-0 headless, pans_builds_probe extended, the
+     20 km boot): dock first caller=Haven Ferry (8 cast-offs),
+     one cycle press -> second caller=Pans Runner (2 cast-offs);
+     the trio receipts re-held (monolith 0.0000 rad, runner berthed
+     pier-ward, sailing rows BOTH vessels). Gate lints: naming
+     25/0, runner 36/0. The pre-existing PlayerManager/GameLog
+     check-only blind spot again tripped on player_controller --
+     stash-tested pre-existing (the real boot compiles it; the
+     extended probe IS that boot).
+  LIMITS + NEXT (the next round's board): (a) the berth-clip visual
+     tune stands (v11c a); (b) alternating berths (the pans-side
+     moor showing the boat) wants the S14.6 ride ledger; (c) the
+     npc_entity dock door (the ferrymaster offering) still opens
+     with NO pin -- it inherits the first-caller default, which is
+     correct for the harbor NPC but gets the pin law for free the
+     day its world anchor carries one.
+

@@ -1349,7 +1349,11 @@ func _open_nearby_ship_dock() -> void:
 		mm.open_menu("dock")
 	var dock_panel = mm.get_panel_node("dock") if mm else null
 	if dock_panel != null and dock_panel.has_method("open_for_player"):
-		dock_panel.vehicle_id = _dock_vehicle_for_pin(str(gw.id))
+		# THE PIN LAW (the harbor callers law): the dock resolves its
+		# lines from the PIN's own data truth -- a shared harbor pin
+		# fronts every route naming it (the capitol pier carries two
+		# lines now; the dock cycles them). No pin-to-boat table.
+		dock_panel.pin_gateway_id = str(gw.id)
 		dock_panel.open_for_player(entity_id if entity_id != "" else str(player_id))
 
 ## The vessel a dock pin fronts: the ferry whose ROUTE names the pin

@@ -42,10 +42,20 @@ var _clock_row: Label
 var _wake_row: Label
 var _board_btn: Button
 var _skiff_btn: Button
+var _cycle_btn: Button
 ## The vessel THIS dock calls at (set by the caller; empty = the first
-## scheduled ferry). A dock is tied to a shoreline, so the moor-side
-## dock names the barque -- not "whatever dict order says".
+## scheduled ferry or, with a pin set, the pin's first caller). A
+## dock is tied to a shoreline, so the moor-side dock names the
+## barque -- not "whatever dict order says".
 var vehicle_id: String = ""
+## THE PIN LAW (the callers-at-this-harbor law): the gateway pin the
+## dock was opened for. A harbor pin can front MANY lines (the
+## capitol pier carries the Haven Ferry AND the Pans Runner) -- the
+## callers resolve from the VEHICLES' own route data (no pin table
+## to drift), and the current/p:set cycle button fronts each in turn.
+var pin_gateway_id: String = ""
+var _picked_caller: int = 0
+var _pin_last: String = ""
 
 var _ferry_service = null
 
@@ -63,6 +73,51 @@ func open_for_player(player_id: String) -> void:
 		open(player_id)
 	else:
 		_player_id = player_id
+		refresh()
+
+
+## The harbor's callers: every scheduled ferry whose ROUTE names this
+## dock's pin (the vehicles' own data truth; an unpinned dock keeps
+## the empty list).
+func _pin_callers() -> Array:
+	if _ferry_service == null or pin_gateway_id.is_empty() \
+			or _ferry_service._ferries.is_empty():
+		return []
+	if _pin_last != pin_gateway_id:
+		_pin_last = pin_gateway_id
+		_picked_caller = 0
+	var out: Array = []
+	var ferries: Dictionary = _ferry_service._ferries
+	for vid in ferries.keys():
+		var v = ferries[vid]
+		if v != null and v.route_gateways != null \
+				and pin_gateway_id in v.route_gateways:
+			out.append(str(vid))
+	return out
+
+
+## The vessel the dock fronts right now: an explicit vehicle_id wins
+## (back-compat), then the pin's picked caller, then the first
+## scheduled ferry (the v0 default).
+func _active_vid() -> String:
+	if vehicle_id != "" and _ferry_service != null \
+			and _ferry_service._ferries.has(vehicle_id):
+		return vehicle_id
+	var callers := _pin_callers()
+	if not callers.is_empty():
+		return str(callers[_picked_caller % callers.size()])
+	if _ferry_service != null and not _ferry_service._ferries.is_empty():
+		return str(_ferry_service._ferries.keys()[0])
+	return ""
+
+
+## The line switch: the picked caller steps to the next one and the
+## panel re-reads (schedule, wake ledger, boarding window -- every
+## row is that line's own truth).
+func _on_cycle_pressed() -> void:
+	var callers := _pin_callers()
+	if callers.size() > 1:
+		_picked_caller = (_picked_caller + 1) % callers.size()
 		refresh()
 
 func _setup_content() -> void:
@@ -89,6 +144,11 @@ func _setup_content() -> void:
 	_board_btn.text = "Board the Ferry"
 	_board_btn.pressed.connect(_on_board_pressed)
 	main.add_child(_board_btn)
+	_cycle_btn = Button.new()
+	_cycle_btn.name = "CycleButton"
+	_cycle_btn.text = "Also calling here"
+	_cycle_btn.pressed.connect(_on_cycle_pressed)
+	main.add_child(_cycle_btn)
 	_skiff_btn = Button.new()
 	_skiff_btn.name = "SkiffButton"
 	_skiff_btn.text = "Charter the Skiff"
@@ -121,14 +181,27 @@ func refresh() -> void:
 			_board_btn.visible = false
 		if _skiff_btn != null:
 			_skiff_btn.visible = false
+		if _cycle_btn != null:
+			_cycle_btn.visible = false
 		return
-	# This dock's vessel: the caller pins it (a shoreline knows its
-	# boat); empty = the first scheduled ferry (v0 default).
-	var vid := vehicle_id
+	# The dock fronts its data-truth vessel (see _active_vid). The
+	# cycle button fronts the shared-harbor lines (a pin with more
+	# than one caller shows every line's own schedule in turn).
+	var vid: String = _active_vid()
 	if vid.is_empty():
 		vid = str(vessel_ids[0])
-	if not ferries.has(vid):
-		vid = str(vessel_ids[0])
+	var callers: Array = _pin_callers()
+	if _cycle_btn != null:
+		if callers.size() > 1:
+			var nxt: String = str(callers[(_picked_caller + 1) % callers.size()])
+			var nv = ferries.get(nxt)
+			if nv != null:
+				_cycle_btn.text = "Also calling: %s -- switch line" % str(nv.display_name)
+				_cycle_btn.visible = true
+			else:
+				_cycle_btn.visible = false
+		else:
+			_cycle_btn.visible = false
 	var v = ferries[vid]
 	_route_row.text = "%s: %s -> %s (%d cast-offs a day)" % [
 		str(v.display_name), str(v.route_gateways[0]), str(v.route_gateways[1]),
@@ -167,7 +240,7 @@ func _on_board_pressed() -> void:
 	var player_id: String = _player_id if not _player_id.is_empty() else _local_player_id()
 	if player_id.is_empty():
 		return
-	var vid := vehicle_id if _ferry_service._ferries.has(vehicle_id) else (str(_ferry_service._ferries.keys()[0]) if not _ferry_service._ferries.is_empty() else "")
+	var vid: String = _active_vid()
 	if vid.is_empty():
 		return
 	var answer: Dictionary = _ferry_service.board_ferry(player_id, vid)
@@ -187,7 +260,7 @@ func _on_skiff_pressed() -> void:
 	var player_id: String = _player_id if not _player_id.is_empty() else _local_player_id()
 	if player_id.is_empty():
 		return
-	var vid := vehicle_id if _ferry_service._ferries.has(vehicle_id) else (str(_ferry_service._ferries.keys()[0]) if not _ferry_service._ferries.is_empty() else "")
+	var vid: String = _active_vid()
 	if vid.is_empty():
 		return
 	var answer: Dictionary = _ferry_service.charter_skiff(player_id, vid)
