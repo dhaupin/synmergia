@@ -865,24 +865,19 @@ func _build_pans_ferry() -> void:
 	add_child(tick)
 
 
-## The ride law's tick: where on the lane is the boat NOW? At sea the
-## schedule's crossing clock drives t (elapsed/crossing); in port it
-## berths at the pier (t=0). The boat returns unseen between
-## sailings -- the arrival end rides the last seen position until
-## the next tick.
+## The ride law's tick: FerrySchedule.vessel_t is the ONE law -- the
+## closed-form berth alternation. Mid-crossing it rides the crossing
+## clock (mirrored on the return run); in port the boat WAITS at the
+## next cast-off's origin, so the boarding end always has her and the
+## pans moor visibly holds her between sailings (the boat never
+## teleport-returns unseen).
 func _pans_ferry_tick(per_day: int, first_h: float, cross_h: float) -> void:
 	if pans_ferry_vessel == null:
 		return
 	var Schedule = load("res://core/frame/srv/ferry_schedule.gd")
 	var epoch: float = SignService.sky_epoch_days() if SignService else \
 		float(Time.get_unix_time_from_system()) / 86400.0
-	var c: Dictionary = Schedule.crossing_in_progress(per_day, first_h, cross_h, epoch)
-	if c.is_empty():
-		# In port: the runner berths at the pier's water face.
-		FERRY_VESSEL_LAW.place(pans_ferry_vessel, 0.0)
-		return
-	var t: float = clampf(1.0 - float(c["remaining_h"]) / maxf(cross_h, 0.001), 0.05, 0.95)
-	FERRY_VESSEL_LAW.place(pans_ferry_vessel, t)
+	FERRY_VESSEL_LAW.place(pans_ferry_vessel, Schedule.vessel_t(per_day, first_h, cross_h, epoch))
 
 
 ## THE TOWN ROSTERS (the owner's turn-15 law: "the starter village

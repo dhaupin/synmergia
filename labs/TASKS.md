@@ -6756,4 +6756,43 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
      with NO pin -- it inherits the first-caller default, which is
      correct for the harbor NPC but gets the pin law for free the
      day its world anchor carries one.
+- WORLD-DRESSING v12 (2026-10-20, the berth round): the two boarded
+  vessel follow-ups land as one law + one tune.
+  1. THE BERTH-CLIP TUNE (entities/ferry_vessel.gd): the numeric
+     model said the spawned-old 1.7 berth lift left the keel (origin
+     - 0.55) 2.5 cm over the pier-head deck top (walk + 1.125 = head
+     origin 0.85 + plate 0.15 + half-plate 0.125) -- a guaranteed
+     clip under any walk-law wave. PIER_BERTH_LIFT is now 2.0; the
+     receipt asserts >= 0.2 m air: measured 0.32 m.
+  2. THE BERTH ALTERNATION (core/frame/srv/ferry_schedule.gd gets
+     vessel_t, the ONE-law home): a closed-form lane-t for any
+     instant -- cast-offs alternate direction (even k sails
+     pier->pans, odd k pans->pier), mid-crossing the boat rides the
+     crossing clock mirrored, and IN PORT she WAITS at the next
+     cast-off's ORIGIN: the boarding end always has the boat when
+     its cast-off nears, the pans moor visibly holds her between
+     sailings, and she never teleport-returns unseen. The globe's
+     1 s tick now calls vessel_t directly (the v11b/v11c hand-rolled
+     in-port branch is gone). S14.6's deck-ride law reads the same
+     t whenever it lands.
+  3. THE PAN MOOR (the far end's berth): the lift law grew its
+     t >= 0.98 band (PAN_MOOR_LIFT 0.9 -- beached lightly at the
+     moor flank's bank line), so the arrived boat reads as a tied
+     off runner, not a mid-lane floater frozen at 0.95.
+  4. RECEIPTS (exit-0 headless, pans_builds_probe extended, the
+     20 km boot): keel clearance 0.32 m; berth timeline at
+     synthetic Concord days: pre=0.00 mid1=0.50 moor=1.00 mid2
+     =0.50 dawn=0.00 (the overnight boundary exercises the d-1
+     index branch); the trio + dock-caller receipts re-held
+     (monolith 0.0000 rad, runner pier-ward, both vessels on the
+     chart and on the pier's caller cycle). Schedule contract:
+     tests/probe_ferry.gd exit-0 (35 checks) -- the additive
+     vessel_t broke none. Gate lints 25/0 + 36/0.
+  LIMITS + NEXT: (a) the ferrymaster NPC dock door stands pinless
+  (v11d c) until its offering carries a world anchor; (b) the
+  deck-RIDE (standing on the moving hull) is exactly S14.6 -- the
+  actor law gives the t, the walk surface does not move; (c) the
+  on-device acceptance stands (board at dawn, watch the crossing,
+  and catch her on the pans moor by midmorning).
+
 

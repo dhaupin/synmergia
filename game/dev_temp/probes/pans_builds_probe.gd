@@ -105,5 +105,39 @@ func _run() -> void:
 		print("PANS-BUILD-MISS the Pans Runner is unboardable at the pier")
 		quit(1)
 		return
+	# 5) THE BERTH-CLEARANCE TUNE (the numeric clip receipt): the
+	#    berthed keel bottoms at the berth origin - 0.55 (the 1.1 m
+	#    belly box); the pier head's deck top rides at walk + 1.125
+	#    (head origin 0.85 + plate at +0.15 + half-plate 0.125). The
+	#    clearance is a LIVE-MODEL number: the constants must leave
+	#    at least 0.2 m of air over the boards.
+	var FV = load("res://entities/ferry_vessel.gd")
+	var keel_clear: float = float(FV.PIER_BERTH_LIFT) - 0.55 - 1.125
+	print("PANS-BUILD keel clearance over pier boards=%.2f m" % keel_clear)
+	if keel_clear < 0.2:
+		print("PANS-BUILD-MISS the berthed hull clips the pier head")
+		quit(1)
+		return
+	# 6) THE BERTH ALTERNATION (the pure schedule timeline): the
+	#    vessel_t law at synthetic Concord epochs -- pre-dawn her at
+	#    the pier (t=0, first cast-off even), mid leg-1 she is mid-lane
+	#    (t=0.5), arrived at the pans moor before the 19.5 leg (t=1),
+	#    mid leg-2 mirrored (t=0.5), and the overnight sleep leaves her
+	#    at the pier for dawn (t=0). One derivation, the boot's tick
+	#    and any future deck law read the same numbers.
+	var Sched = preload("res://core/frame/srv/ferry_schedule.gd")
+	var base_day := 12000.0
+	var t_pre: float = Sched.vessel_t(2, 7.5, 3.0, base_day + 5.0 / 24.0)
+	var t_mid1: float = Sched.vessel_t(2, 7.5, 3.0, base_day + 9.0 / 24.0)
+	var t_moor: float = Sched.vessel_t(2, 7.5, 3.0, base_day + 15.0 / 24.0)
+	var t_mid2: float = Sched.vessel_t(2, 7.5, 3.0, base_day + 21.0 / 24.0)
+	var t_dawn: float = Sched.vessel_t(2, 7.5, 3.0, base_day + 1.0 + 2.0 / 24.0)
+	print("PANS-BUILD berths pre=%.2f mid1=%.2f moor=%.2f mid2=%.2f dawn=%.2f" % [t_pre, t_mid1, t_moor, t_mid2, t_dawn])
+	if absf(t_pre) > 0.01 or absf(t_moor - 1.0) > 0.01 \
+			or absf(t_mid1 - 0.5) > 0.02 or absf(t_mid2 - 0.5) > 0.02 \
+			or absf(t_dawn) > 0.01:
+		print("PANS-BUILD-MISS the berth alternation law is off its timeline")
+		quit(1)
+		return
 	print("PANS-BUILD-OK")
 	quit(0)

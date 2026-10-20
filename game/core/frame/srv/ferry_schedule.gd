@@ -101,3 +101,49 @@ static func crossing_in_progress(per_day: int, first_h: float, cross_h: float, e
 ## skiff divides by its speed multiplier before calling this).
 static func crossing_seconds(cross_h: float) -> float:
 	return maxf(cross_h, 0.0) * 3600.0
+
+
+## VESSEL-T LAW (the berth alternation, the visible boat's answer):
+## where ON ITS ROUTE the boat sits at any instant, as the lane
+## parameter t (0 = the route's first port, 1 = the last). Cast-offs
+## alternate direction: even k sails first->last, odd k last->first.
+## Mid-crossing the boat rides the crossing clock (mirrored on the
+## return run); in port it WAITS at the next departure's ORIGIN -- so
+## the boarding end always has the boat when its cast-off nears, BOTH
+## harbors get their share of her between sailings, and the far moor
+## visibly holds her (the v11d follow-up: the boat never teleport-
+## returns unseen). Pure, one derivation -- the globe's tick is the
+## reader today; a future deck-ride law (S14.6) reads the same t.
+## Returns 0.0 for a schedule-less call (no timetable = berthed start).
+static func vessel_t(per_day: int, first_h: float, cross_h: float, epoch_days: float) -> float:
+	var hours := departure_hours(per_day, first_h)
+	if hours.is_empty() or per_day <= 0:
+		return 0.0
+	var day: int = int(floor(epoch_days))
+	var now_abs: float = epoch_days * 24.0
+	# The latest absolute departure (today's or yesterday's -- an
+	# overnight crossing belongs to yesterday's index, the audit-18
+	# lesson carries).
+	var last_k: int = -1
+	var last_dep_abs: float = -1.0e18
+	for d_off in [0, 1]:
+		var d: int = day - d_off
+		for i in range(per_day - 1, -1, -1):
+			var dep_abs: float = float(d) * 24.0 + hours[i]
+			if dep_abs <= now_abs and dep_abs > last_dep_abs:
+				last_dep_abs = dep_abs
+				last_k = d * per_day + i
+	if last_k >= 0:
+		var elapsed: float = now_abs - last_dep_abs
+		if elapsed > 0.0 and elapsed < cross_h:
+			var frac: float = clampf(elapsed / maxf(cross_h, 0.001), 0.0, 1.0)
+			return frac if last_k % 2 == 0 else 1.0 - frac
+	# In port: the boat waits at the NEXT departure's origin (the
+	# boarding end always has the boat; the alternation law).
+	var frac_h: float = fposmod(epoch_days, 1.0) * 24.0
+	var k_next: int = (day + 1) * per_day
+	for i in range(per_day):
+		if frac_h < hours[i]:
+			k_next = day * per_day + i
+			break
+	return 0.0 if k_next % 2 == 0 else 1.0

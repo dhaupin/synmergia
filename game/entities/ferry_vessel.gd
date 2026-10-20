@@ -36,9 +36,18 @@ const PAN_MOOR_STEP: float = 0.004
 # The hull draft: the float height ABOVE the water line.
 const FLOAT_LIFT: float = 0.45
 
-# The pier berth: enough lift for the hull's keel to clear the pier
-# head's deck face (the head deck sits at walk + 0.85).
-const PIER_BERTH_LIFT: float = 1.7
+# The pier berth (the clip tune, v12): the hull's keel bottoms at the
+# berth origin MINUS 0.55 (the 1.1 m belly box), and the pier head's
+# deck top rides at walk + 1.125 (the head origin lift 0.85 + its
+# plate at +0.15 with half-thickness 0.125) -- so the lift must stay
+# at or past 1.675 + a walking margin (the old 1.7 left 2.5 cm: the
+# berthed hull clipped the boards at every wave of the walk law).
+const PIER_BERTH_LIFT: float = 2.0
+
+# The pans moor (the far end's berth, v12): the runner ties off at
+# the mooring flank in the shallows -- beached lightly, keel just at
+# the bank line.
+const PAN_MOOR_LIFT: float = 0.9
 
 
 ## Route dirs (precomputed once): [pier_dir, pans_moor_dir].
@@ -122,7 +131,11 @@ static func place(vessel: Node3D, t: float) -> void:
 	# THE LIFT LAW: the hull floats at the SEA line (never the seabed);
 	# at the pier start the berth rides the pier berth lift.
 	var walk: float = float(walk_surface_h.call(dir))
-	var lift_extra: float = PIER_BERTH_LIFT if t <= 0.02 else FLOAT_LIFT
+	var lift_extra: float = FLOAT_LIFT
+	if t <= 0.02:
+		lift_extra = PIER_BERTH_LIFT
+	elif t >= 0.98:
+		lift_extra = PAN_MOOR_LIFT
 	var r: float = radius + surface_lift + maxf(walk, sea) + lift_extra
 	vessel.position = dir * r
 	# THE FRAME: up = radial; the bay model's forward (+Z, where the
