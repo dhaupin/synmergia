@@ -6873,6 +6873,24 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
      run when a player reports a meadow that wants them); (c) the
      on-device acceptance stands: walk the homeland at bloom time
      and read the patch-to-patch species handoff.
+  4. THE v14 RE-VERIFICATION (2026-10-23, second pass, same receipts):
+     wildflower_drift_probe exit-0 (DRIFT-OK: field 0.000-1.000,
+     147/441 strong cells = 33%, species stable=2, face16 live
+     flowers 150 vs the v5 71); diag_detail_kinds census exit-0
+     (band 9 grassland = 300 flower / 662 tuft / 218 bush, EVERY
+     other band zero flower -- the spread is grassland-only by
+     census, not by gate alone; face16/18 both at the 150 cap,
+     FIELD-3 folds intact). Lint suite 36/0 exit 0. Editor wart
+     fixed in the streamer: two comment lines carried glued dead
+     text (a doubled meadow_roll tail) -- comment-only, the real
+     statements were intact; probe + lints re-run after. KNOWN
+     BENIGN: the drift probe's own log shows 2-3 SCRIPT ERRORs at
+     teardown (globe_terrain_streamer.gd:588/595/3303, empty-callable
+     / Time-singleton races while the mesh worker thread is still
+     running at exit); probe_globe_world runs the same HEAD code
+     with zero SCRIPT ERRORs and the drift probe exits 0 with
+     correct counts, so this is teardown noise in that probe's
+     longer streaming session, not a wildflower regression.
 
 
 

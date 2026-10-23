@@ -1724,7 +1724,7 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 			continue  # beach/ocean/water bands stay bare (FOREST/TUNDRA/ALPINE carry the ore)
 		# THE KIND ROLL (deterministic): one draw per site decides the
 			# meadow mix -- tufts ~72%, shrubs ~18%, blooms ~10% (grassland
-			# only; the dry bands never bloom, the forest bands never tuft).		var meadow_roll: float = rng.randf()
+			# only; the dry bands never bloom, the forest bands never tuft).
 		var meadow_roll: float = rng.randf()
 		# THE WILDFLOWER DRIFT (v14): the meadow's bloom gate rides the
 		# land's own drift signal -- a PURE read (no rng draw, the twin
@@ -2488,7 +2488,7 @@ func _derive_detail_sites(face: int) -> Array:
 		var is_shore: bool = bid == TerrainGen.BiomeId.SHORE  # the beach law's band gate
 		if not is_cattail and not is_bush and not is_dry_band and not meadow \
 				and not is_shore:
-			continue  # beach/ocean/water bands stay bare		var meadow_roll: float = rng.randf()
+			continue  # beach/ocean/water bands stay bare
 		var meadow_roll: float = rng.randf()
 		# THE WILDFLOWER DRIFT (v14): the meadow's bloom gate rides the
 		# land's own drift signal -- a PURE read (no rng draw, the twin
