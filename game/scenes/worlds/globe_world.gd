@@ -864,6 +864,9 @@ func _build_pans_ferry() -> void:
 	if ferry.route_gateways != null and ferry.route_gateways.size() >= 2:
 		_wake_pier_gateway = str(ferry.route_gateways[0])
 		_wake_pans_gateway = str(ferry.route_gateways[ferry.route_gateways.size() - 1])
+	# THE WAKE WARP (tier 3): the world owns the placement -- listen
+	# for validated warps and put the local body ashore.
+	FS.connect("wake_warped", _execute_wake_warp)
 	var tick := Timer.new()
 	tick.wait_time = 1.0
 	tick.autostart = true
@@ -933,6 +936,50 @@ func _wake_credit_deck_riders(t: float) -> void:
 				continue
 			_deck_wake_seen[id] = str(pid)
 	_deck_wake_last_t = t
+
+
+## THE WAKE WARP (tier 3): the world owns the placement. Only the
+## LOCAL body moves (a foreign player id is a warning, never a
+## yank); the landing is the destination pin's own spot: the pier
+## head's deck top at the pier gateway, the moor bank at the pans
+## gateway. World-root-local coords converted through the root's
+## global transform -- the floating origin law handled once.
+func _execute_wake_warp(player_id: String, vehicle_id: String, gateway_id: String) -> void:
+	var logb = get_node_or_null("/root/GameLog")
+	if player == null:
+		return
+	if str(player.entity_id) != str(player_id):
+		if logb:
+			logb.warn("GlobeWorld: wake warp ignored for non-local body %s" % player_id)
+		return
+	var local: Vector3 = _wake_landing(gateway_id)
+	if local == Vector3.INF:
+		if logb:
+			logb.warn("GlobeWorld: wake warp has no landing for %s" % gateway_id)
+		return
+	player.global_position = world_root.global_transform * local
+	player.velocity = Vector3.ZERO
+	if logb:
+		logb.info("GlobeWorld: the wake carries %s ashore at %s" % [player_id, gateway_id])
+
+
+## The landing spot (WORLD-ROOT-LOCAL) for a wake-warp gateway: the
+## vessel law's own lane dirs keep both ends one derivation; walk
+## height comes from the streamer's single ground law.
+func _wake_landing(gateway_id: String) -> Vector3:
+	var lane: Array = FERRY_VESSEL_LAW.lane_dirs()
+	var dir: Vector3
+	var stand_extra: float
+	if gateway_id == _wake_pier_gateway:
+		dir = lane[0]
+		stand_extra = 1.125 + 0.95  # the pier head deck top + body center
+	elif gateway_id == _wake_pans_gateway:
+		dir = lane[1]
+		stand_extra = 0.6 + 0.95    # the moor bank + body center
+	else:
+		return Vector3.INF
+	var walk: float = float(streamer.walk_surface_h(dir.normalized())) if streamer else 0.0
+	return dir.normalized() * (planet_radius + walk + stand_extra)
 
 
 ## THE TOWN ROSTERS (the owner's turn-15 law: "the starter village

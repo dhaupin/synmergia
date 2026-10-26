@@ -6990,3 +6990,52 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
      water time); (c) the on-device acceptance stands: stand a
      full crossing, watch the landfall toast, fish the skiff
      chit out of the vendor after 3 wakes.
+- WORLD-DRESSING v17 (2026-10-26, the DOCK-WARP TIER: the wake's
+  return -- tier 3 lands).
+  1. THE GAP: the wake was a number. Three rides never bought
+     anything: no UI, no travel, no tier.
+  2. THE SEAM (FerryService.warp_wake + wake_warped signal): the
+     service VALIDATES ONLY -- vessel exists, the gateway is one of
+     the route's OWN ports (off-route refuses), the wake is known
+     (WAKE_KNOWN_RIDES rounds the gate). The world owns the
+     physical placement (the signal is the seam -- no node work in
+     the service).
+  3. THE DOCK ROW (FerryDockUI): the warp row reads the SAME
+     ledger -- a known sailor sees "Wake Warp to <far port>" and
+     the press travels through the service gate (the answer is
+     spoken ok/refused, never swallowed); a stranger sees the
+     count ("0/3 crossings -- not yet") disabled. The destination
+     is the route's other end relative to the dock's own pin (the
+     vehicle's data, never a pin table); a pinless dock renders no
+     warp row (it cannot state a departure). THE OPEN REFRESH:
+     _on_open() now re-reads the rows -- rows built at _ready
+     predate the caller's pin/vehicle assignment (probe-caught
+     stale row on the fresh-open path).
+  4. THE GLOBE PLACEMENT (globe_world._execute_wake_warp +
+     _wake_landing): only the LOCAL body moves (a foreign player
+     id is a warning, never a yank); the landing is the
+     destination pin's own spot -- the pier head deck top
+     (walk + 1.125 + body center) at the pier gateway, the moor
+     bank at the pans gateway -- lane dirs from the vessel law's
+     ONE derivation, walk height from the streamer's single
+     ground law; world-root-local coords converted through the
+     root's global transform (the floating origin handled once).
+  5. RECEIPTS (exit-0 headless, the 20 km boot):
+     deck_ride_probe now holds the full chain in ONE run -- piece
+     colliders 4, rigid carry 0.0005 m deck-local drift over the
+     1309.7 m park step, anchor clear on step-off, wake seam
+     rides=1, the warp gate (refused early, refused off-route,
+     fired at three wakes), and the dock row (a stranger reads
+     0/3 disabled; the sailor's press fires travel #2). Gate:
+     probe_ferry + frame/srv/test_ferry_schedule + naming lint
+     PASS; lint suite 36/0; pans trio re-held (monolith/runner/
+     sailing/dock-caller/keel/berths all unchanged).
+  LIMITS + NEXT: (a) the warp is free today -- the wake IS the
+     ticket by law (the schedule already priced the discipline:
+     three honest crossings first); a gold stamp on top is a
+     one-line change if the owner wants a second gate; (b) zone
+     routing at the landing rides the walk's own zone-entry
+     detection (no explicit zone teleport -- the globe's zone
+     procs are position-driven); (c) on-device acceptance: stand
+     at the pier dock, press Wake Warp at 3 wakes, land on the
+     pier head (or the pans moor) standing.

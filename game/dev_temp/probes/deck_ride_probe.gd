@@ -16,6 +16,10 @@ const RADIUS_SETTING := "synmergia/world/planet_radius"
 const RADIUS := 20000.0
 
 var _globe: Node
+var _warped: Array = []
+
+func _on_warped(player_id, vehicle_id, gateway_id) -> void:
+	_warped.append(str(gateway_id))
 
 func _init() -> void:
 	call_deferred("_run")
@@ -127,6 +131,65 @@ func _run() -> void:
 			print("RIDE-MISS the deck wake seam did not pay one ride")
 			quit(1)
 			return
+		# THE DOCK-WARP TIER: the wake gates, the route names the ports,
+		# unknown ports refuse. Three wakes teach the sea your name.
+		fs.wake_warped.connect(_on_warped)
+		var early: Dictionary = fs.call("warp_wake", "probe_warper", "veh_pans_ferry", "waypoint_sun_pans")
+		if bool(early.get("ok", true)):
+			print("RIDE-MISS the wake warp opened without any rides")
+			quit(1)
+			return
+		var off_port: Dictionary = fs.call("record_deck_wake", "probe_warper", "veh_pans_ferry", "waypoint_capitol_pier")
+		var _r2: Dictionary = fs.call("record_deck_wake", "probe_warper", "veh_pans_ferry", "waypoint_capitol_pier")
+		var _r3: Dictionary = fs.call("record_deck_wake", "probe_warper", "veh_pans_ferry", "waypoint_capitol_pier")
+		var off: Dictionary = fs.call("warp_wake", "probe_warper", "veh_pans_ferry", "waypoint_village_center")
+		if bool(off.get("ok", true)):
+			print("RIDE-MISS the wake warp traveled to an off-route port")
+			quit(1)
+			return
+		var warp: Dictionary = fs.call("warp_wake", "probe_warper", "veh_pans_ferry", "waypoint_sun_pans")
+		if not bool(warp.get("ok", false)) or _warped != ["waypoint_sun_pans"]:
+			print("RIDE-MISS the wake warp did not fire at three wakes (res=%s warped=%s)" % [str(warp), str(_warped)])
+			quit(1)
+			return
+		print("RIDE wake warp gate ok (refused early, refused off-route, fired at 3)")
+		# THE DOCK ROW: the warp row reads the SAME ledger -- a known
+		# sailor's press pines the row; a stranger reads the count.
+		var DockPanel = load("res://ui/components/ferry_dock_ui.gd").new()
+		root.add_child(DockPanel)
+		await root.get_tree().process_frame
+		DockPanel.pin_gateway_id = "waypoint_capitol_pier"
+		DockPanel.vehicle_id = "veh_pans_ferry"
+		DockPanel.open_for_player("probe_nowarp")
+		await root.get_tree().process_frame
+		var wb = DockPanel.get("_warp_btn")
+		if wb == null or not wb.visible:
+			print("RIDE-MISS the dock's wake-warp row is missing (btn=%s vis=%s)" % [str(wb if wb == null else wb.visible), str(wb == null)])
+			quit(1)
+			return
+		var wb_text: String = str(wb.text)
+		if not bool(wb.disabled):
+			print("RIDE-MISS the stranger's warp row is pressable without wakes")
+			quit(1)
+			return
+		if not ("0/3" in wb_text):
+			print("RIDE-MISS the stranger's warp row reads the wrong count (%s)" % wb_text)
+			quit(1)
+			return
+		DockPanel.open_for_player("probe_warper")
+		await root.get_tree().process_frame
+		var wb_text2: String = str(wb.text)
+		if not ("Warp to waypoint_sun_pans" in wb_text2):
+			print("RIDE-MISS the sailor's warp row does not name the far port (%s)" % wb_text2)
+			quit(1)
+			return
+		DockPanel._on_warp_pressed()
+		await root.get_tree().process_frame
+		if _warped.size() != 2:
+			print("RIDE-MISS the dock's warp press did not fire the travel (warped=%s)" % str(_warped))
+			quit(1)
+			return
+		print("RIDE dock warp row travels at the press")
 	else:
 		print("RIDE wake seam absent (no FerryService) -- skipped")
 	print("RIDE-OK")

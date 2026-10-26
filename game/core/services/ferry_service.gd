@@ -41,6 +41,11 @@ signal ferry_departed(vehicle_id: String, from_port: String, to_port: String, ri
 signal ferry_arrived(vehicle_id: String, at_port: String, riders: Array)
 signal rider_boarded(player_id: String, vehicle_id: String, skiff: bool)
 signal rider_arrived(player_id: String, vehicle_id: String, at_port: String)
+## THE DOCK-WARP TIER (tier 3): the wake lets a sailor step between
+## a route's ports. The service VALIDATES ONLY -- the physical
+## placement is the world's (the globe listens and repositions the
+## body at the destination pin's landing).
+signal wake_warped(player_id: String, vehicle_id: String, gateway_id: String)
 
 ## vehicle_id -> VehicleData (scheduled ferries only).
 var _ferries: Dictionary = {}
@@ -362,6 +367,24 @@ func record_deck_wake(player_id: String, vehicle_id: String, port_id: String) ->
 			{"vehicle_id": vehicle_id, "port": port_id}, \
 			player_id)
 	return {"ok": true, "rides": rides_recorded(player_id, vehicle_id)}
+
+
+## THE DOCK-WARP TIER (tier 3, the wake's return): ride a route
+## WAKE_KNOWN_RIDES times and the wake lets you STEP between its
+## ports at the dock -- no tide, no ticket. The service validates
+## only (vessel, port membership, the wake itself); the world owns
+## the physical placement (the globe's wake_warped listener). A
+## refusal always says why (the dock surfaces it, never swallows).
+func warp_wake(player_id: String, vehicle_id: String, gateway_id: String) -> Dictionary:
+	var v = _ferries.get(vehicle_id)
+	if v == null:
+		return {"ok": false, "reason": "no such vessel"}
+	if v.route_gateways == null or not (gateway_id in v.route_gateways):
+		return {"ok": false, "reason": "no such port on this route"}
+	if not wake_is_known(player_id, vehicle_id):
+		return {"ok": false, "reason": "the wake is not yours yet -- ride the route %d crossings" % WAKE_KNOWN_RIDES}
+	wake_warped.emit(player_id, vehicle_id, gateway_id)
+	return {"ok": true, "at": gateway_id, "vehicle": vehicle_id}
 
 
 ## -- Wake persistence (a DictStore, the adapter-layer way: one key

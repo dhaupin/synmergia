@@ -43,6 +43,7 @@ var _wake_row: Label
 var _board_btn: Button
 var _skiff_btn: Button
 var _cycle_btn: Button
+var _warp_btn: Button
 ## The vessel THIS dock calls at (set by the caller; empty = the first
 ## scheduled ferry or, with a pin set, the pin's first caller). A
 ## dock is tied to a shoreline, so the moor-side dock names the
@@ -74,6 +75,12 @@ func open_for_player(player_id: String) -> void:
 	else:
 		_player_id = player_id
 		refresh()
+
+## THE OPEN REFRESH: the opener path must re-read the rows too --
+## rows built at _ready predate the caller's pin/vehicle assignment
+## (the probe caught a stale wake-warp row on the fresh-open path).
+func _on_open() -> void:
+	refresh()
 
 
 ## The harbor's callers: every scheduled ferry whose ROUTE names this
@@ -154,6 +161,11 @@ func _setup_content() -> void:
 	_skiff_btn.text = "Charter the Skiff"
 	_skiff_btn.pressed.connect(_on_skiff_pressed)
 	main.add_child(_skiff_btn)
+	_warp_btn = Button.new()
+	_warp_btn.name = "WakeWarpButton"
+	_warp_btn.text = "Wake Warp"
+	_warp_btn.pressed.connect(_on_warp_pressed)
+	main.add_child(_warp_btn)
 	_status_label = Label.new()
 	_status_label.name = "StatusRow"
 	_status_label.text = ""
@@ -232,6 +244,7 @@ func refresh() -> void:
 	if _skiff_btn != null:
 		_skiff_btn.visible = true
 		_skiff_btn.text = "Charter the Skiff (ticket, else %d gold)" % int(_ferry_service.DEFAULT_SKIFF_TICKET)
+	_refresh_warp_row(player_id, vid, v)
 
 func _on_board_pressed() -> void:
 	_ferry_service = _ferry_svc()
@@ -266,6 +279,74 @@ func _on_skiff_pressed() -> void:
 	var answer: Dictionary = _ferry_service.charter_skiff(player_id, vid)
 	if bool(answer.get("ok", false)) and bool(answer.get("skiff", false)):
 		_speak_ok("The skiff is yours -- 2.5x the crossing.")
+	else:
+		_speak_refusal(str(answer.get("reason", "refused")))
+	refresh()
+
+
+## THE DOCK-WARP ROW: the wake's return. Visible only when the wake
+## is KNOWN on this line (ride the route the gate's count first) and
+## the dock fronts a REAL pin (a pinless dock cannot state a
+## departure). The destination is the route's other end (the
+## vehicle's own data, not a pin table).
+func _refresh_warp_row(player_id: String, vid: String, v) -> void:
+	if _warp_btn == null:
+		return
+	_warp_btn.visible = false
+	if _ferry_service == null or vid.is_empty() or v == null:
+		return
+	if not _ferry_service.has_method("warp_wake") \
+			or not _ferry_service.has_method("wake_is_known"):
+		return
+	var gateways: Array = v.route_gateways
+	if gateways == null or gateways.size() < 2:
+		return
+	var from_pin: String = pin_gateway_id
+	if from_pin.is_empty() or not (from_pin in gateways):
+		return
+	var target: String = ""
+	for gw in gateways:
+		if str(gw) != from_pin:
+			target = str(gw)
+			break
+	if target.is_empty():
+		return
+	if bool(_ferry_service.wake_is_known(player_id, vid)):
+		_warp_btn.visible = true
+		_warp_btn.disabled = false
+		_warp_btn.text = "Wake Warp to %s (the sea keeps count)" % target
+	else:
+		var rides_n: int = _ferry_service.rides_recorded(player_id, vid)
+		_warp_btn.visible = true
+		_warp_btn.disabled = true
+		_warp_btn.text = "Wake Warp (%d/%d crossings -- not yet)" % [rides_n, int(_ferry_service.WAKE_KNOWN_RIDES)]
+
+func _on_warp_pressed() -> void:
+	_ferry_service = _ferry_svc()
+	if _ferry_service == null:
+		return
+	var player_id: String = _player_id if not _player_id.is_empty() else _local_player_id()
+	if player_id.is_empty():
+		return
+	var vid: String = _active_vid()
+	if vid.is_empty():
+		return
+	var v = _ferry_service._ferries.get(vid)
+	if v == null:
+		return
+	var gateways: Array = v.route_gateways
+	if gateways == null or pin_gateway_id.is_empty() or not (pin_gateway_id in gateways):
+		return
+	var target: String = ""
+	for gw in gateways:
+		if str(gw) != pin_gateway_id:
+			target = str(gw)
+			break
+	if target.is_empty():
+		return
+	var answer: Dictionary = _ferry_service.warp_wake(player_id, vid, target)
+	if bool(answer.get("ok", false)):
+		_speak_ok("The wake carries you across to %s." % str(answer.get("at", target)))
 	else:
 		_speak_refusal(str(answer.get("reason", "refused")))
 	refresh()
