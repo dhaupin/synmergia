@@ -817,9 +817,12 @@ var starter_village: Node3D = null
 var capitol_monolith: Node3D = null
 var pans_monolith: Node3D = null
 var pans_ferry_vessel: Node3D = null
+var pier_beacon: Node3D = null
+var moor_guide: Node3D = null
 
 
 const FERRY_VESSEL_LAW = preload("res://entities/ferry_vessel.gd")
+const HARBOR_LIGHTS = preload("res://entities/harbor_lights.gd")
 
 ## THE PANS MONOLITH (the far country's marker): the Sun Pans
 ## waypoint's own installation -- a sunbaked obelisk + mooring flank
@@ -867,6 +870,17 @@ func _build_pans_ferry() -> void:
 	# THE WAKE WARP (tier 3): the world owns the placement -- listen
 	# for validated warps and put the local body ashore.
 	FS.connect("wake_warped", _execute_wake_warp)
+	# THE HARBOR LIGHTS (the coast's answer to the stern lantern): a
+	# caged beacon beside the pier head and a moor ember guide at the
+	# pans bank. Both landings ride the SAME night law
+	# (HarborLights.place_night) off the epoch this tick already
+	# holds -- lit dusk to dawn, dark to the sun.
+	var lane: Array = FERRY_VESSEL_LAW.lane_dirs()
+	var HLB = load("res://entities/harbor_lights.gd")
+	pier_beacon = HLB.build_pier_beacon(world_root, planet_radius, STREAMER_TILE_LIFT, \
+		Callable(streamer, "walk_surface_h"), lane[0], sea)
+	moor_guide = HLB.build_moor_guide(world_root, planet_radius, STREAMER_TILE_LIFT, \
+		Callable(streamer, "walk_surface_h"), lane[1], sea)
 	var tick := Timer.new()
 	tick.wait_time = 1.0
 	tick.autostart = true
@@ -892,6 +906,9 @@ func _pans_ferry_tick(per_day: int, first_h: float, cross_h: float) -> void:
 	var t: float = Schedule.vessel_t(per_day, first_h, cross_h, epoch)
 	FERRY_VESSEL_LAW.place(pans_ferry_vessel, t)
 	_wake_credit_deck_riders(t)
+	# THE HARBOR LIGHTS: the night law's tick (same epoch, one sky).
+	HARBOR_LIGHTS.place_night(pier_beacon, epoch)
+	HARBOR_LIGHTS.place_night(moor_guide, epoch)
 
 
 ## THE DECK WAKE (S14.6): the tick glue. Riders standing on the deck

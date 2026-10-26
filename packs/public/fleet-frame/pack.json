@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "name": "fleet-frame",
+  "description": "Frame primitives: co-located NSC-9/KV/srv tests (no autoload, no class_name). Generated from scripts/godot_test_runner.sh DEFAULT_SET -- do not hand-edit; run scripts/gen_fleet_packs.mjs.",
+  "version": "1.0.0",
+  "entry": "main.mjs"
+}

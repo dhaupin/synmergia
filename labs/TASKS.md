@@ -7039,3 +7039,59 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
      procs are position-driven); (c) on-device acceptance: stand
      at the pier dock, press Wake Warp at 3 wakes, land on the
      pier head (or the pans moor) standing.
+- WORLD-DRESSING v18 (2026-10-26, the HARBOR LIGHTS + the fleet
+  packs.
+  1. THE HARBOR LIGHTS (entities/harbor_lights.gd, the two-end
+     light law S14.8): the v11 stern lantern settled the BOAT's
+     light; the beach never answered. Now BOTH landings carry one:
+     the PierBeacon -- a stone column + caged amber lamp one flank
+     step off the vessel law's pier dir (the same 0.004 beat the
+     moor uses) -- and the MoorGuide -- a flat guide stone at the
+     pans bank with the warm ember panel carved on the seaward
+     face. THE NIGHT LAW: place_night(node, epoch) flips the lamp
+     truth off the CONCORD SKY CLOCK (the same epoch the berth
+     clock holds) -- lit from DUSK_H (18.0) through DAWN_H (6.0),
+     dark to the sun, edges honest (dusk itself wakes, dawn itself
+     sleeps). THE SEA CLAMP rides the vessel law (a light stands
+     in the shallows, never under them: base = max(walk, sea)).
+     The globe's ferry tick calls place_night for both lights
+     every second with the epoch it already holds (1 s cadence,
+     no new timer). One tangent frame serves both lands (up =
+     radial, forward = the spawn projection -- the vessel law's
+     Basis(side, up, forward) shape). PropColliders attached (both
+     prop-solid, climbable).
+  2. RECEIPTS (exit-0 headless, the 20 km boot): NEW
+     dev_temp/probes/harbor_lights_probe.gd -- LIGHT-OK: beacon on
+     the pier flank (0.0040 rad, h 28.5), guide on the moor flank
+     (0.0040 rad, h 122.8), the night law's band edges measured
+     on synthetic epochs (noon dark / dusk lit / midnight lit /
+     dawn dark), and the boat's berth DISPLACED NOT ONE STEP
+     (runner 0.0000 rad). Gate: probe_ferry + ferry schedule
+     contract + naming lint PASS; lint suite 36/0; pans trio
+     re-held; deck-ride chain RIDE-OK on the same build (the
+     lights build alongside without disturbing the law).
+  3. THE FLEET PACKS (packs/public/, the packstruct@1 spec): the
+     runner drift class hit US in the deck round (a DEFAULT_SET
+     name with no test file); dhaupin/packstruct formalizes the
+     author-time refusal. NEW scripts/gen_fleet_packs.mjs -- the
+     packs are GENERATED from the runner's own DEFAULT_SET
+     (bucketing rules are first-match, a renamed bucket prunes its
+     own stale dir, non-generated dirs never touched): 8 family
+     packs (fleet-frame 16, terrain-globe 28, concord-services 17,
+     arena-bouts 13, combat-movement 10, social-instances 9,
+     world-ticks 3, ocean-ferry 5) = 101 tests carried, ZERO
+     unfiled. Each pack: pack.json (schemaVersion 1, kebab name ==
+     dir, dotted version, entry) + main.mjs (default export: the
+     family line + the exact runner command). `npx packstruct
+     lint packs/ --deep` exit 0 (8 probed, 8 ids censused). LESSON:
+     the generator reads the DEFAULT_SET ITSELF, so the pack index
+     cannot claim a test the runner does not carry -- the missing-
+     entry class dies at generation, not at CI.
+  LIMITS + NEXT: (a) the beacon's lamp is a Material flip, not a
+     real light node (no light pass for the headless renderer; an
+     OmniLight3D on-device glow is a one-line add if the owner
+     wants bloom); (b) the packstruct lens stays OFF CI for now --
+     wiring `npx packstruct lint packs/` into web-ci.yml is the
+     owner's call; (c) on-device acceptance: stand the pier at
+     dusk and watch the caged lamp wake; sail the crossing; land
+     on the moor into the ember's reach.

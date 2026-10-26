@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "name": "concord-services",
+  "description": "The Skyward Concord: sky clock, the Chronicle, mysteries, blessings, audio and weather. Generated from scripts/godot_test_runner.sh DEFAULT_SET -- do not hand-edit; run scripts/gen_fleet_packs.mjs.",
+  "version": "1.0.0",
+  "entry": "main.mjs"
+}
