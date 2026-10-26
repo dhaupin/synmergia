@@ -857,6 +857,13 @@ func _build_pans_ferry() -> void:
 		if logb:
 			logb.warn("GlobeWorld: veh_pans_ferry not loaded -- the Pans Runner stays berthed")
 		return
+	# THE DECK WAKE IDENTITY: the vehicle's own route data names the
+	# two ports (stamped once at the boot read; the raw .tres stays
+	# the one truth -- no magic strings here).
+	_wake_vehicle_id = str(ferry.id)
+	if ferry.route_gateways != null and ferry.route_gateways.size() >= 2:
+		_wake_pier_gateway = str(ferry.route_gateways[0])
+		_wake_pans_gateway = str(ferry.route_gateways[ferry.route_gateways.size() - 1])
 	var tick := Timer.new()
 	tick.wait_time = 1.0
 	tick.autostart = true
@@ -870,14 +877,62 @@ func _build_pans_ferry() -> void:
 ## clock (mirrored on the return run); in port the boat WAITS at the
 ## next cast-off's origin, so the boarding end always has her and the
 ## pans moor visibly holds her between sailings (the boat never
-## teleport-returns unseen).
+## teleport-returns unseen). After the carry, the DECK WAKE glue: a
+## body who stood the sea ticks earns the wake when the boat next
+## berths (the same ledger the dock path pays).
 func _pans_ferry_tick(per_day: int, first_h: float, cross_h: float) -> void:
 	if pans_ferry_vessel == null:
 		return
 	var Schedule = load("res://core/frame/srv/ferry_schedule.gd")
 	var epoch: float = SignService.sky_epoch_days() if SignService else \
 		float(Time.get_unix_time_from_system()) / 86400.0
-	FERRY_VESSEL_LAW.place(pans_ferry_vessel, Schedule.vessel_t(per_day, first_h, cross_h, epoch))
+	var t: float = Schedule.vessel_t(per_day, first_h, cross_h, epoch)
+	FERRY_VESSEL_LAW.place(pans_ferry_vessel, t)
+	_wake_credit_deck_riders(t)
+
+
+## THE DECK WAKE (S14.6): the tick glue. Riders standing on the deck
+## are marked on every SEA tick (the carry law's roster); the tick
+## AFTER a sea tick that lands on a berth credits every marked player
+## ONCE through FerryService.record_deck_wake. A pier-standing idle
+## between cast-offs never earns (no sea tick preceded); a step-off
+## before the berth never earns (never marked at the berthing tick).
+## Identity comes from the VEHICLE'S OWN ROUTE DATA (stamped at the
+## boot read; the fallback vehicle id is the pans runner's).
+const WAKE_FALLBACK_VEHICLE := "veh_pans_ferry"
+var _wake_vehicle_id: String = WAKE_FALLBACK_VEHICLE
+var _wake_pier_gateway: String = "waypoint_capitol_pier"
+var _wake_pans_gateway: String = "waypoint_sun_pans"
+var _deck_wake_seen: Dictionary = {}
+var _deck_wake_last_t: float = -1.0
+
+func _wake_credit_deck_riders(t: float) -> void:
+	var fs = get_node_or_null("/root/FerryService")
+	if fs == null or not fs.has_method("record_deck_wake"):
+		return
+	var sea_before: bool = _deck_wake_last_t > 0.02 and _deck_wake_last_t < 0.98
+	if sea_before:
+		var end_id: String = _wake_pier_gateway if t <= 0.5 else _wake_pans_gateway
+		for id in _deck_wake_seen:
+			fs.call("record_deck_wake", str(_deck_wake_seen[id]), _wake_vehicle_id, end_id)
+		_deck_wake_seen.clear()
+	var at_sea: bool = t > 0.02 and t < 0.98
+	if at_sea:
+		var roster: Dictionary = pans_ferry_vessel.get_meta("ride_roster") \
+			if pans_ferry_vessel.has_meta("ride_roster") else {}
+		for id in roster:
+			var b: Node = instance_from_id(id)
+			if b == null or not is_instance_valid(b):
+				continue
+			# Players ride as physics bodies; NPC rosters (# carried
+			# code-moved Entities) are never credited -- no purse.
+			if not (b is CharacterBody3D):
+				continue
+			var pid = b.get("entity_id")
+			if pid == null or str(pid) == "":
+				continue
+			_deck_wake_seen[id] = str(pid)
+	_deck_wake_last_t = t
 
 
 ## THE TOWN ROSTERS (the owner's turn-15 law: "the starter village

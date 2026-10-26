@@ -116,5 +116,18 @@ func _run() -> void:
 		quit(1)
 		return
 	rider.queue_free()
+	# 4) THE DECK WAKE SEAM: the ledger pays the standing crossing (the
+	#    same ride count the dock path records at arrival).
+	var fs = root.get_node_or_null("/root/FerryService")
+	if fs != null and fs.has_method("record_deck_wake"):
+		var res: Dictionary = fs.call("record_deck_wake", "probe_deck_rider", "veh_pans_ferry", "waypoint_sun_pans")
+		var rides_n: int = int(fs.call("rides_recorded", "probe_deck_rider", "veh_pans_ferry"))
+		print("RIDE wake seam ok=%s rides=%d" % [str(bool(res.get("ok", false))), rides_n])
+		if not bool(res.get("ok", false)) or rides_n != 1:
+			print("RIDE-MISS the deck wake seam did not pay one ride")
+			quit(1)
+			return
+	else:
+		print("RIDE wake seam absent (no FerryService) -- skipped")
 	print("RIDE-OK")
 	quit(0)

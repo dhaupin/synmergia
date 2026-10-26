@@ -6956,3 +6956,37 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
      not yet credit a DECK ride -- the ride-ledger credit is the
      next round; (c) the on-device acceptance stands: dock at dawn,
      hop aboard, and stand the crossing.
+- WORLD-DRESSING v16 (2026-10-26, the WAKE-LEDGER CREDIT: the deck
+  ride pays like the dock path).
+  1. THE GAP (v15's named next): a player who STOOD a crossing on
+     the deck earned no wake -- the ledger only counted the session
+     dock's arrival; the skiff's first-crossing gate read her as a
+     first-time sailor still.
+  2. THE SEAM (FerryService.record_deck_wake): one call, ONE ride:
+     the ledger credits (the same _record_wake, persisted), a
+     legend refused if the manifest already owns the rider (the
+     dock path keeps its priority), and a ZONE_CHANGED landfall
+     toast ("the wake remembers a sailor") named from _port truth.
+  3. THE TICK GLUE (globe_world._wake_credit_deck_riders): riders
+     standing on the deck are marked every SEA tick (the carry
+     law's ride roster; players only -- physics bodies with an
+     entity_id, code-moved NPC rosters never carry a purse); the
+     next tick that lands on a BERTH credits every marked player
+     ONCE and clears the marks. A pier-standing idle never earns
+     (no sea tick preceded); a step-off before the berth never
+     earns. Port-side identity is stamped AT THE BOOT READ from
+     the vehicle's own route_gateways (no magic strings).
+  4. RECEIPTS: deck_ride_probe extended -- wake seam ok=true
+     rides=1 under the existing RIDE-OK (4 piece colliders, rigid
+     carry 0.0005 m deck-local drift, anchor clear on step-off);
+     probe_ferry + frame/srv/test_ferry_schedule + naming lint
+     PASS; lint suite 36/0.
+  LIMITS + NEXT: (a) the glue marks per-TICK, the tick is 1 s --
+     a body who boards and steps off within one sea tick earns
+     nothing (the honest side of the tradeoff); (b) the skiff /
+     dock-warp tiers now see deck-wake credit for FREE (the wake
+     IS the gate) -- a wake-farm via repeated deck standing is
+     bounded by the schedule itself (2 crossings a day, honest
+     water time); (c) the on-device acceptance stands: stand a
+     full crossing, watch the landfall toast, fish the skiff
+     chit out of the vendor after 3 wakes.

@@ -17,9 +17,10 @@
 ##
 ## The riding book is authoritative session truth (like the swim
 ## book): a rider moves with the vessel, and a rider who logs out
-## misses the boat. Sailing position follows the v0 path contract:
-## positions are the ports, the deck is virtual (planned ride-motion
-## is S14.6+; the ride time is honest already).
+## misses the boat. The v0 path contract: the DOCK path teleports the
+## manifest port-to-port at arrival. The physical deck is S14.6 (the
+## vessel carries who stands on her); its riders pay the same wake
+## through record_deck_wake.
 ##
 ## Autoload: NO class_name (AGENTS rule). Registered after
 ## OceanService (reads volumes for the route's lane) in project.godot.
@@ -166,8 +167,8 @@ func can_board(player_id: String, vehicle_id: String) -> Dictionary:
 
 ## Board the ferry (tier 1, free -- the owner's open question
 ## resolves to free rides + priced skiff). Inside the boarding window
-## only; the manifest is server truth. Ride motion (the moving deck)
-## is S14.6+; the RIDE TIME is honest already.
+## only; the manifest is server truth. The physical deck ride is
+## S14.6 (the globe's vessel carries who stands there).
 func board_ferry(player_id: String, vehicle_id: String) -> Dictionary:
 	var gate := can_board(player_id, vehicle_id)
 	if not bool(gate["ok"]):
@@ -331,16 +332,36 @@ func _record_wake(player_id: String, vehicle_id: String) -> void:
 
 
 func rides_recorded(player_id: String, vehicle_id: String) -> int:
-	return int(_wake_ledger.get(_wake_key(player_id, vehicle_id), 0))
-
-
-## The dock-warp tier's gate (tier 3, S14.6+ UI): the wake is known
+	return int(_wake_ledger.get(_wake_key(player_id, vehicle_id), 0))	## The dock-warp tier's gate (tier 3, S14.6+ UI): the wake is known
 ## once the route has carried this player WAKE_KNOWN_RIDES rides.
 const WAKE_KNOWN_RIDES: int = 3
 
 
 func wake_is_known(player_id: String, vehicle_id: String) -> bool:
 	return rides_recorded(player_id, vehicle_id) >= WAKE_KNOWN_RIDES
+
+
+## THE DECK WAKE (S14.6): a player who STANDS a crossing physically
+## earns the same ledger credit the dock path pays at arrival. The
+## globe's tick calls this ONCE per ride per rider, at the berthing
+## tick -- marking is the tick glue's job, this is the ledger's.
+func record_deck_wake(player_id: String, vehicle_id: String, port_id: String) -> Dictionary:
+	var v = _ferries.get(vehicle_id)
+	if v == null:
+		return {"ok": false, "reason": "no such vessel"}
+	if _manifests[vehicle_id].has(player_id):
+		return {"ok": false, "reason": "already aboard (the manifest owns the wake)"}
+	_record_wake(player_id, vehicle_id)
+	var port = _port(port_id)
+	var port_name: String = str(port["name"]) if port != null else port_id
+	if NotificationService != null:
+		NotificationService.notify(NotifKind.ZONE_CHANGED, \
+			"You stood the crossing and the wake remembers a sailor. Landfall at %s." % port_name, \
+			"FerryService", \
+			"ferry:deck:%s:%s" % [player_id, vehicle_id], \
+			{"vehicle_id": vehicle_id, "port": port_id}, \
+			player_id)
+	return {"ok": true, "rides": rides_recorded(player_id, vehicle_id)}
 
 
 ## -- Wake persistence (a DictStore, the adapter-layer way: one key
