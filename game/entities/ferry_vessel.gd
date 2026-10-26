@@ -1,19 +1,26 @@
-## FerryVessel -- the Pans Runner (S14.5's missing boat). The route +
+## FerryVessel -- the Pans Runner (S14.5's missing boat, S14.6's ride).
+## The route +
 ## schedule are live server truth (data/vehicles/veh_pans_ferry.tres
-## through FerrySchedule's closed form); the deck motion law is still
-## virtual (S14.6 carries riders), but the VESSEL now physically rides
-## the lane:
+## through FerrySchedule's closed form); the VESSEL physically rides
+## the lane AND carries who stands on her deck:
 ##
 ##   - build() stands the hull from plain authored primitives (timber
 ##     hull + deck, hold tent, lateen mast + yard + canvas, stern
 ##     lantern) -- the engine-ban dialect (no combustion, wind and
-##     water only);
+##     water only); the hull collides in PIECES the way the pier
+##     plates do (the deck walkable, the belly + hold solid, a thin
+##     mast blocker) so the deck is STANDABLE for the ride;
 ##   - place(t) rides the pier<->pans lane: t=0 berthed at the capitol
 ##     pier's water face, t=1 floating off the pans mooring flank; in
 ##     between the hull floats ON the sea line (the ocean is the water
 ##     law's own surface; walk_surface_h at sea dirs returns the
 ##     seabed, so the sea level clamps it back up) and the vessel's
-##     frame points along the travel tangent, bow toward the pans leg.
+##     frame points along the travel tangent, bow toward the pans leg;
+##   - THE DECK RIDE (S14.6): whoever stands on the deck panel rides
+##     the hull's delta -- place() finds the riders BEFORE the hull
+##     moves, then re-weaves each through the old->new transform, and
+##     every carried body carries the "deck_rides" anchor meta (the
+##     player's snap law honors it; the roster clears it on step-off).
 ##
 ## The pier-end dir mirrors entities/capitol_monolith.gd's pier law
 ## (the capitol bearing walked seaward around the same south axis) so
@@ -50,6 +57,21 @@ const PIER_BERTH_LIFT: float = 2.0
 const PAN_MOOR_LIFT: float = 0.9
 
 
+# THE DECK RIDE (S14.6): where a rider's CENTER must sit (vessel-
+# local) to be carried, around the deck panel's mid-deck line. The
+# deck top is local y 0.94 (the 0.85 panel lift + half plate); a
+# body standing there centers ~0.9-1.2 m above its feet, so the
+# band spans the deck top through the hold-tent roof (standing on
+# the tent also rides -- a body does not fall off a tent mid-lane).
+const DECK_RIDE_SYM: Vector3 = Vector3(0.0, 1.15, 0.0)
+const DECK_RIDE_HALF: Vector3 = Vector3(1.7, 1.85, 5.4)
+
+# The anchor meta the carry law stamps on every carried body (the
+# player's snap law honors it: the terrain radial home never pulls
+# a body whose ground is a moving hull).
+const RIDER_ANCHOR: String = "deck_rides"
+
+
 ## Route dirs (precomputed once): [pier_dir, pans_moor_dir].
 static func lane_dirs() -> Array:
 	var cap_dir: Vector3 = TerrainGen.capitol_plaza_dir()
@@ -82,14 +104,33 @@ static func build(parent: Node3D, planet_radius: float, surface_lift: float,
 
 	# THE HULL: a lean lateen runner in the box dialect -- flat
 	# belly + rising bow/stern prisms + deck panels + hold tent.
-	_box(vessel, Vector3(0, 0.0, 0), Vector3(3.2, 1.1, 9.0), _HULL)
-	_prism(vessel, Vector3(0, 0.55, 5.1), Vector3(3.0, 1.4, 2.2), _HULL)  # the bow
-	_prism(vessel, Vector3(0, 0.55, -5.1), Vector3(3.0, 1.4, 2.0), _HULL)  # the stern
-	_box(vessel, Vector3(0, 0.85, 0), Vector3(3.0, 0.18, 9.6), _DECK)
-	_box(vessel, Vector3(0, 1.8, -1.6), Vector3(2.6, 1.5, 3.4), _CANVAS)  # the hold tent
-	_box(vessel, Vector3(0, 3.8, 0.4), Vector3(0.16, 6.4, 0.16), _MAST)  # the mast
+	# THE PIECE-COLLIDER LAW (the deck ride): the old one-belt attach
+	# boxed the WHOLE vessel (mast + rig included), so its top face
+	# rode ~7 m up and the deck below was unreachable -- nobody could
+	# ever stand a ride. The hull now collides in PIECES the way the
+	# pier plates do: the walkable deck panel, the solid belly + hold,
+	# and a thin mast blocker; the hanging rig stays uncollided.
+	var hull := Node3D.new()
+	hull.name = "Hull"
+	vessel.add_child(hull)
+	_box(hull, Vector3(0, 0.0, 0), Vector3(3.2, 1.1, 9.0), _HULL)
+	_prism(hull, Vector3(0, 0.55, 5.1), Vector3(3.0, 1.4, 2.2), _HULL)  # the bow
+	_prism(hull, Vector3(0, 0.55, -5.1), Vector3(3.0, 1.4, 2.0), _HULL)  # the stern
+	var deck_panel := Node3D.new()
+	deck_panel.name = "DeckPanel"
+	vessel.add_child(deck_panel)
+	_box(deck_panel, Vector3(0, 0.85, 0), Vector3(3.0, 0.18, 9.6), _DECK)
+	var hold := Node3D.new()
+	hold.name = "Hold"
+	vessel.add_child(hold)
+	_box(hold, Vector3(0, 1.8, -1.6), Vector3(2.6, 1.5, 3.4), _CANVAS)  # the hold tent
+	var mast_block := Node3D.new()
+	mast_block.name = "MastBlock"
+	vessel.add_child(mast_block)
+	_box(mast_block, Vector3(0, 3.8, 0.4), Vector3(0.16, 6.4, 0.16), _MAST)  # the mast
 	# THE LATEEN RIG: the long spar canted off vertical; the canvas a
-	# slim panel flying under the spar.
+	# slim panel flying under the spar. DECORATIVE by law (no
+	# collider): rigging is how it hangs, not a wall.
 	var yard := Node3D.new()
 	yard.name = "LateenYard"
 	yard.position = Vector3(0, 5.6, 0.4)
@@ -108,10 +149,18 @@ static func build(parent: Node3D, planet_radius: float, surface_lift: float,
 	lamp.position = Vector3(0, 1.7, -5.4)
 	vessel.add_child(lamp)
 
-	# THE BERTH COLLIDER: the moored boat is a dock face walk-up
-	# (board the pier head onto the deck); the whole vessel carries
-	# one belt (the walk/climb law attaches at boot, in-tree).
-	PropCollider.attach(vessel)
+	# THE BERTH COLLIDERS (the piece law): the moored boat is a dock
+	# face walk-up AND a standable deck: the deck panel is the
+	# walkable surface, the belly + hold block like any prop, a thin
+	# blocker stands in the mast line. Each joins the climbable group
+	# (the deck is climbable out of the water), and the piece bodies
+	# feed the "colliders" meta the ride query excludes.
+	var excl: Array[RID] = []
+	for piece in [hull, deck_panel, hold, mast_block]:
+		var pb: StaticBody3D = PropCollider.attach(piece)
+		if pb != null:
+			excl.append(pb.get_rid())
+	vessel.set_meta("colliders", excl)
 
 	place(vessel, 0.0)
 	return vessel
@@ -119,7 +168,16 @@ static func build(parent: Node3D, planet_radius: float, surface_lift: float,
 
 ## RIDE LAW: t in [0, 1] walks the lane pier -> pans. At sea the hull
 ## floats on the sea line; at the pier end it rides the berth lift.
+## THE DECK RIDE: place() finds the riders ON the deck BEFORE the
+## hull moves (they are local to the old frame), then re-weaves each
+## through the old->new transform -- one law, any caller, so a
+## carried rider and the hull never disagree (the globe's 1 s tick
+## is the caller today; the closed-form t is the only input). The
+## carried roster keeps the "deck_rides" anchor live while a body
+## stands on her and CLEARS it the tick after they step off.
 static func place(vessel: Node3D, t: float) -> void:
+	var riders: Array = _deck_riders(vessel)
+	var old_xform: Transform3D = vessel.global_transform
 	var walk_surface_h: Callable = vessel.get_meta("walk")
 	var lane_a: Vector3 = vessel.get_meta("lane_a")
 	var lane_b: Vector3 = vessel.get_meta("lane_b")
@@ -149,6 +207,80 @@ static func place(vessel: Node3D, t: float) -> void:
 	tangent = tangent.normalized()
 	var side: Vector3 = up.cross(tangent).normalized()
 	vessel.basis = Basis(side, up, tangent)
+	_carry_riders(vessel, riders, old_xform)
+
+
+## THE CARRY: each rider's old position is a point of the OLD frame;
+## pulled through the old->new transform, they stand where the deck
+## carried them. Anchor meta live while they stand, cleared on the
+## first tick after a step-off (the roster vs the fresh detection).
+static func _carry_riders(vessel: Node3D, riders: Array, old_xform: Transform3D) -> void:
+	var new_xform: Transform3D = vessel.global_transform
+	var kept: Dictionary = {}
+	for b in riders:
+		if b == null or not is_instance_valid(b):
+			continue
+		var local: Vector3 = old_xform.affine_inverse() * b.global_position
+		b.global_position = new_xform * local
+		b.set_meta(RIDER_ANCHOR, vessel)
+		kept[b.get_instance_id()] = true
+	var roster: Dictionary = {}
+	if vessel.has_meta("ride_roster"):
+		roster = vessel.get_meta("ride_roster")
+	for id_old in roster:
+		if kept.has(id_old):
+			continue
+		var gone: Node = instance_from_id(id_old)
+		if gone != null and is_instance_valid(gone) and gone.has_meta(RIDER_ANCHOR):
+			var anchor = gone.get_meta(RIDER_ANCHOR)
+			# Only THIS vessel's anchor clears (a future second vessel
+			# never steals another's rider).
+			if anchor == vessel:
+				gone.remove_meta(RIDER_ANCHOR)
+	vessel.set_meta("ride_roster", kept)
+
+
+## The riders standing on the deck panel RIGHT NOW (vessel-local
+## center box). Two legs, same box law: players ride as real physics
+## bodies (space shape-query, the vessel's own piece colliders
+## excluded); Entity bodies (NPCs, guards, enemies) are code-moved
+## and carry no physics shape, so they come off the entity roster
+## when the service is live (defensive: script-mode probes may mount
+## none). Nothing outside the box ever rides.
+static func _deck_riders(vessel: Node3D) -> Array:
+	if vessel == null or not is_instance_valid(vessel) or not vessel.is_inside_tree():
+		return []
+	var out: Array = []
+	var space := vessel.get_world_3d().direct_space_state
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(2.0 * DECK_RIDE_HALF.x, 2.0 * DECK_RIDE_HALF.y, 2.0 * DECK_RIDE_HALF.z)
+	var q := PhysicsShapeQueryParameters3D.new()
+	q.shape = shape
+	q.transform = vessel.global_transform * Transform3D(Basis(), DECK_RIDE_SYM)
+	q.collide_with_bodies = true
+	q.collide_with_areas = false
+	q.collision_mask = 0xffffffff
+	if vessel.has_meta("colliders"):
+		q.exclude = vessel.get_meta("colliders")
+	for h in space.intersect_shape(q, 32):
+		var c = h.get("collider")
+		if c is CharacterBody3D and _in_deck_box(vessel, c):
+			out.append(c)
+	var es = vessel.get_tree().root.get_node_or_null("EntityService")
+	if es != null and es.has_method("get_entities_in_radius"):
+		var EntityScript = load("res://core/entities/entity.gd")
+		for etype in [EntityScript.EntityType.PLAYER, EntityScript.EntityType.NPC, EntityScript.EntityType.ENEMY]:
+			for e in es.get_entities_in_radius(vessel.global_position, 12.0, etype):
+				if e != null and is_instance_valid(e) and (e is Node3D) and not out.has(e) and _in_deck_box(vessel, e):
+					out.append(e)
+	return out
+
+
+## The vessel-local box test every candidate rider must pass.
+static func _in_deck_box(vessel: Node3D, body: Node3D) -> bool:
+	var local: Vector3 = vessel.global_transform.affine_inverse() * body.global_position
+	var d: Vector3 = (local - DECK_RIDE_SYM).abs()
+	return d.x <= DECK_RIDE_HALF.x and d.y <= DECK_RIDE_HALF.y and d.z <= DECK_RIDE_HALF.z
 
 
 static func _box(parent: Node3D, pos: Vector3, size: Vector3, mat: Material) -> MeshInstance3D:

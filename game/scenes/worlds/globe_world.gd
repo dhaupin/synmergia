@@ -838,8 +838,8 @@ func _build_pans_monolith() -> void:
 ## form (FerrySchedule off the Concord epoch -- the same math the
 ## almanac's sailing page and FerryService read); a one-second timer
 ## tick drives the ride law: berthed at the pier in port, visibly at
-## sea during a crossing (the deck motion law is still virtual --
-## S14.6 carries riders).
+## sea during a crossing -- and whoever stands on her deck rides the
+## lane with her (the S14.6 carry, one law in place()).
 func _build_pans_ferry() -> void:
 	var FS = get_node_or_null("/root/FerryService")
 	var FV: GDScript = load("res://entities/ferry_vessel.gd")

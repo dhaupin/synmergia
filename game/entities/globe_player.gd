@@ -973,6 +973,17 @@ func _physics_process(delta: float) -> void:
 	_validate_movement()
 	path_walked += global_position.distance_to(before)
 
+	# THE DECK RIDE (S14.6): while a carried deck anchor holds (the
+	# vessel's ride law stamps it and clears it the tick after a
+	# step-off), the terrain radial home owns nothing -- the deck
+	# panel IS the ground this frame (physics' own floor contact;
+	# the snap would re-home the body to the SEABED law mid-sea,
+	# which is what made standing on a moving hull impossible).
+	if has_meta("deck_rides"):
+		var deck = get_meta("deck_rides")
+		if deck != null and is_instance_valid(deck):
+			snap_enabled = false
+
 	# Snap to the surface: cancel residual radial drift so the body
 	# rides the surface exactly (probe asserts this stays true). The
 	# snap provider (rock tops, S7) lifts the target ride height.

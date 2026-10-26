@@ -6894,3 +6894,65 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
 
 
 
+- WORLD-DRESSING v15 (2026-10-26, the DECK RIDE: the standing limits
+  from v12/v14 all named it -- the actor law gives the t, the walk
+  surface does not move; now the deck rides).
+  1. THE GAP: the v11-v14 boat was visible but UNTOUCHABLE -- the
+     one-belt PropCollider attach boxed the WHOLE hull (mast + rig
+     included), so its body's top face rode ~7 m up and the deck
+     under it was unreachable; nobody could stand a ride.
+  2. THE PIECE-COLLIDER LAW (ferry_vessel.build): the hull collides
+     in PIECES the way the pier plates do -- a walkable DeckPanel
+     (top = the deck surface, local y ~0.94), a solid Hull belly +
+     Hold tent, a thin MastBlock in the mast line; the hanging rig
+     stays decorative (no collider). Each piece joins the climbable
+     group (the deck is climbable out of the water) and feeds the
+     "colliders" meta the ride query excludes.
+  3. THE RIDE LAW (ferry_vessel.place, ONE law any caller): riders
+     are found ON the deck BEFORE the hull moves (vessel-local box
+     DECK_RIDE_SYM/HALF; two legs -- players as real physics bodies
+     via the space shape-query, code-moved Entity bodies off
+     EntityService when live), then each is re-woven through the
+     old->new transform -- deck-local geometry is PRESERVED (the
+     rider keeps her exact deck spot while the hull runs the lane).
+     Carried bodies carry the "deck_rides" anchor meta; the ride
+     roster clears it the tick after a step-off (only THIS vessel's
+     anchor clears).
+  4. THE SNAP LAW (globe_player): while the anchor holds, the
+     terrain radial home owns NOTHING -- the snap would re-home a
+     deck rider to the SEABED law mid-sea (which is what made
+     standing on a moving hull impossible); the physics' own floor
+     contact on the deck panel is the ground. Anticheat reads
+     velocity, not positions: a carried standing rider is passive
+     displacement (the current-drift precedent), no report path.
+  5. RECEIPTS (exit-0 headless, the 20 km boot): NEW
+     dev_temp/probes/deck_ride_probe.gd -- 4 piece colliders under
+     the runner; park 0.10 -> place 0.13 runs the hull 1309.7 m
+     while the deck-rider keeps 0.0005 m of deck-local drift (the
+     rigid carry); the anchor lives while standing and CLEARS on
+     the step-off (RIDE-OK). Gate: probe_ferry PASS, the
+     frame/srv/test_ferry_schedule contract PASS (the additive
+     place() broke none), lint suite 36/0, naming lint PASS;
+     pans_builds_probe re-held on the same build (monolith 0.0000
+     rad, runner berthed pier-ward 0.0000 h 30.5, sailing rows both
+     vessels, dock caller cycle both lines, keel 0.32 m, the berth
+     alternation timeline pre=0.00 mid1/mid2=0.50 moor=1.00
+     dawn=0.00).
+  6. LESSONS: (a) the parse-time preload poison bit the probe
+     script FIRST -- ferry_vessel preloads terrain_gen, whose
+     script-mode reload fails; the probe load()-s the vessel law
+     AFTER boot (the test_load lesson, again); (b) a fresh
+     sandbox's .godot cache lacks the global script-class cache --
+     every class_name resolves as "not declared" until one headless
+     --import pass builds it (the 150 parse errors were one root
+     cause); (c) receipts that compare GLOBAL deltas drift with the
+     floating origin's reroot between reads -- deck-local
+     invariance is what riding means, assert THAT.
+  LIMITS + NEXT: (a) the board is a hop/climb (the deck top sits
+     ~1.8 m over the pier head at the v12 berth tune); a plank or a
+     dock-side step is the visual follow-up if a player balks;
+     (b) the session dock (FerryDockUI board path) still teleports
+     at the ports (the v0 contract stands) and the wake ledger does
+     not yet credit a DECK ride -- the ride-ledger credit is the
+     next round; (c) the on-device acceptance stands: dock at dawn,
+     hop aboard, and stand the crossing.
