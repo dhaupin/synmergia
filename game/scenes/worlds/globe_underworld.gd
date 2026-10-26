@@ -64,6 +64,7 @@ func _ready() -> void:
 	_build_interior_sky()
 	_build_deep_light()
 	_build_camp()
+	_build_cistern()
 	_build_ascent_gate()
 	_build_return_gate()
 	GameLog.info("GlobeUnderworld: conjured (the Deep Root; radius %.0f m, the strata remember the sun)" % planet_radius)
@@ -183,6 +184,9 @@ func _process(_delta: float) -> void:
 	if _strata_light != null:
 		var e := 0.35 + 0.25 * _glow_tide_phase()
 		_strata_light.light_energy = e
+	## The cistern rides the same tide: the pool drinks at dawn.
+	if _cistern_water_mat != null:
+		_cistern_water_mat.emission_energy_multiplier = cistern_glow(_glow_tide_phase())
 
 
 ## Glow tide phase in [0, 1): one cycle per Synmergia day, phase 0 at
@@ -216,8 +220,123 @@ func _build_deep_light() -> void:
 ## The Deep Root camp (S15.3): a strata-lit shelf with a hearth, the
 ## keeper, and the shaft-head. Coordinates are world_root-local (the
 ## globe is conjured at origin, so local == planet-relative).
+
 const CAMP_HEAD_POS: Vector3 = Vector3(0, 2000.0, 0)
 const GLOW_SHARD_COUNT: int = 14
+
+var _cistern_water_mat: StandardMaterial3D = null
+
+
+## THE GLOW CISTERN (S15.5): the catch-dish at the camp shelf -- the
+## "pool gets the glow" beat. Water is DATA (the ocean_ id law): the
+## physics body lives in data/oceans/ocean_deep_root_pool.tres (a
+## LOCAL pool declaration; a dished pool near a globe's surface is
+## not radial-from-planet-center truth), and this function only builds
+## the STONE the dish holds:
+##
+##   slab  -- the basin bottom ON the walk line (the dish's rock)
+##   ring  -- 7 tall wall arcs (top 3.2 m up, no fence-hop out)
+##   bench -- the sheave bench on the rim's low side, topping 0.3 m
+##            over the water: the one honest way out (a hop from the
+##            pool clears it; no climb mesh, no glitch exit).
+
+
+## Build all the cistern stone. Piece seats are planet-relative X/Z
+## (12 m from the camp head) with ABSOLUTE local Y (world_root local
+## == planet coords for a globe conjured at origin), so data law
+## (surface 2002.4 / floor 2000.0) and stone land on the same numbers.
+func _build_cistern() -> void:
+	var jug := Node3D.new()
+	jug.name = "GlowCistern"
+	world_root.add_child(jug)
+	var seat_xz: Vector3 = Vector3(12.0, 0.0, 0.0)
+	var floor_top: float = planet_radius		# slab top == the walk line
+	var water_y: float = floor_top + 2.4		# the cistern's 2.4 m jug (the data law)
+	var rim_top: float = floor_top + 3.2			# walls tower 3.2 m: no fence-hop out
+	var ledge_top: float = water_y + 0.3			# the sheave bench tops 0.3 over the water
+	var inner_r: float = 3.4						# the dish's interior radius
+	var ring_r: float = inner_r + 0.4				# wall mid-radius (0.8 band)
+	# --- the basin slab (the dish's bottom: standable stone) ---
+	var slab := MeshInstance3D.new()
+	var slab_mesh := CylinderMesh.new()
+	slab_mesh.top_radius = inner_r
+	slab_mesh.bottom_radius = inner_r + 0.4
+	slab_mesh.height = 0.4
+	slab.mesh = slab_mesh
+	slab.name = "CisternSlab"
+	slab.position = seat_xz + Vector3(0, floor_top - 0.2, 0)
+	var stone := StandardMaterial3D.new()
+	stone.albedo_color = Color(0.11, 0.1, 0.12)
+	stone.roughness = 1.0
+	slab_mesh.material = stone
+	_cistern_piece(jug, slab)
+	# --- the ring: 8 seats, 7 tall walls + 1 low sheave bench ---
+	var wall_len: float = TAU * ring_r / 8.0 + 0.12
+	var wall_h: float = rim_top - floor_top + 0.4
+	var ledge_h: float = ledge_top - floor_top + 0.2
+	for i in range(8):
+		var a := TAU * float(i) / 8.0
+		var piece := MeshInstance3D.new()
+		var mesh := BoxMesh.new()
+		# X is the radial band (0.8 wide: faces at 3.4/4.2); Z the
+		# tangent seat; rotation -a turns each seat to its arc.
+		if i != 0:
+			mesh.size = Vector3(0.8, wall_h, wall_len)
+			piece.position = seat_xz + Vector3(cos(a) * ring_r, floor_top + wall_h / 2.0 - 0.2, sin(a) * ring_r)
+			piece.name = "CisternWall_%d" % i
+			var wall_mat := StandardMaterial3D.new()
+			wall_mat.albedo_color = Color(0.12, 0.11, 0.13)
+			wall_mat.roughness = 1.0
+			mesh.material = wall_mat
+		else:
+			mesh.size = Vector3(0.8, ledge_h, wall_len)
+			piece.position = seat_xz + Vector3(cos(a) * ring_r, floor_top + ledge_h / 2.0 - 0.2, sin(a) * ring_r)
+			piece.name = "CisternBench"
+			var bench_mat := StandardMaterial3D.new()
+			bench_mat.albedo_color = Color(0.14, 0.13, 0.15)
+			bench_mat.roughness = 1.0
+			mesh.material = bench_mat
+		piece.mesh = mesh
+		piece.rotation.y = -a
+		_cistern_piece(jug, piece)
+	# --- the glow-water disc: one translucent shell, physics in DATA ---
+	var water := MeshInstance3D.new()
+	var water_mesh := CylinderMesh.new()
+	water_mesh.top_radius = inner_r
+	water_mesh.bottom_radius = inner_r
+	water_mesh.height = 0.3
+	water.mesh = water_mesh
+	water.name = "CisternWater"
+	water.position = seat_xz + Vector3(0, water_y, 0)
+	water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var wmat := StandardMaterial3D.new()
+	wmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	wmat.albedo_color = Color(0.16, 0.42, 0.44, 0.66)
+	wmat.roughness = 0.15
+	wmat.emission_enabled = true
+	wmat.emission = Color(0.3, 0.85, 0.6)
+	wmat.emission_energy_multiplier = cistern_glow(_glow_tide_phase())
+	water_mesh.material = wmat
+	_cistern_water_mat = wmat
+	# NO collider on the water: the swim law reads the OceanVolume, the
+	# disc is only the renderer's paint (one ground truth law).
+	jug.add_child(water)
+	GameLog.info("GlobeUnderworld: the Glow Cistern caught tide at %.1f m (the pool gets the glow)" % water_y)
+
+
+## Piece-collider wrapper: every cistern stone joints the attach law.
+func _cistern_piece(jug: Node3D, stone: MeshInstance3D) -> void:
+	jug.add_child(stone)
+	PropCollider.attach(stone)
+
+
+## THE GLOW LAW (one number, one truth): the water's emission energy
+## is a pure function of the tide phase -- high at the surface dawn
+## (phase 0), dimmest a half-day later (phase 0.5). Static so
+## probes read the law without booting the globe.
+static func cistern_glow(phase: float) -> float:
+	return 0.45 + 0.55 * (0.5 + 0.5 * cos(TAU * phase))
+
 
 
 func _build_camp() -> void:

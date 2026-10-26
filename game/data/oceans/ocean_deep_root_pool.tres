@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="OceanVolume" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/ocean_volume.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "ocean_deep_root_pool"
+display_name = "The Glow Cistern"
+surface_height = 2002.4
+floor_is_radial = false
+floor_center = Vector3(12, 2002.4, 0)
+floor_radius = 3.4
+floor_y = 2000.0
+max_depth = 4.0
+current_direction = Vector3(0, 0, 0)
+current_strength = 0.0
+pressure_per_meter = 0.0
+salinity = 1.0
+ambient_fog_color = Color(0.08, 0.28, 0.3, 1)
+ambient_fog_density = 0.02
+ambient_sounds = Array[String](["ocean_lap"])
+lore = "The Deep Root's own water: the Concord cistern at the camp shelf catches the glow tide high and keeps it sweet. The Warden calls it the pool that remembers the surface. Nothing lives in it -- nothing has ever tried. Swim it once and the strata glow holds your outline longer than it should."
