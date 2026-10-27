@@ -38,6 +38,15 @@ const BEACON_FLANK_STEP: float = 0.004
 const BEACON_TOTAL_H: float = 6.4
 const GUIDE_TOTAL_H: float = 1.8
 
+# THE DUSK-READ PASS (the two lights must read AT dusk, not only in
+# night's black): a lit lamp carries a small warm halo light -- the
+# caged lamp breathes it at sea, the ember panel pools it low on the
+# sand. Two halos total, tied to the same NIGHT LAW flip, so the
+# light budget never grows beyond the two ends it serves.
+const HALO_COLOR: Color = Color(1.0, 0.78, 0.42)
+const HALO_RANGE_M: float = 9.0
+const LAMP_ENERGY_LIT: float = 1.8
+
 
 ## Route dirs come from the vessel law's ONE derivation (lane_dirs)
 ## so the lights, the boat and the arrival pins share their worlds.
@@ -78,6 +87,7 @@ static func build_pier_beacon(parent: Node3D, planet_radius: float, surface_lift
 	_box(node, Vector3(0, 4.85, 0), Vector3(2.3, 0.15, 2.3), _FINIAL)
 	var lamp := _lamp(node, Vector3(0, 4.35, 0), 0.34)
 	node.set_meta("lamp", lamp.material_override)
+	node.set_meta("halo", _halo(node, Vector3(0, 4.35, 0)))
 	PropCollider.attach(node)
 	return node
 
@@ -108,6 +118,7 @@ static func build_moor_guide(parent: Node3D, planet_radius: float, surface_lift:
 	_box(node, Vector3(0, 0.7, 0.35), Vector3(0.9, 0.8, 0.12), ember_mat)
 	_box(node, Vector3(0, 1.55, -0.1), Vector3(1.2, 0.15, 0.9), _FINIAL)
 	node.set_meta("lamp", ember_mat)
+	node.set_meta("halo", _halo(node, Vector3(0, 0.7, 0.5)))
 	PropCollider.attach(node)
 	return node
 
@@ -126,13 +137,18 @@ static func place_night(node: Node3D, epoch_days: float) -> void:
 
 
 ## The lamp flip: emission ON/OFF on the carried material (the truth
-## the lamp mesh renders). The door-void stays stone; the metal cap
-## is static.
+## the lamp mesh renders) + the halo light rides the same flip (the
+## dusk-read law: the lamp READS at dusk -- a bright face alone dies
+## against the fresnel of a lit horizon). The door-void stays stone;
+## the metal cap is static.
 static func set_lit(node: Node3D, lit: bool) -> void:
 	var mat = node.get_meta("lamp")
 	if mat == null or not is_instance_valid(mat):
 		return
 	mat.emission_enabled = lit
+	var halo = node.get_meta("halo")
+	if halo != null and is_instance_valid(halo):
+		halo.visible = lit
 
 
 ## The tangent frame: up = radial, forward = the projection of the
@@ -190,6 +206,23 @@ static func _make_mat(c: Color, rough: float) -> StandardMaterial3D:
 static func _make_lamp() -> StandardMaterial3D:
 	var m := _make_mat(Color(1.0, 0.75, 0.35), 0.4)
 	# DARK at build time by law (the dawn build is not a lit lamp --
-	# the NIGHT LAW owns the flip, not the builder).
+	# the NIGHT LAW owns the flip, not the builder). The LIT energy is
+	# set here so the dusk flip pops (a 1.0 face is a dim ember against
+	# the fresnel of a lit horizon).
 	m.emission_enabled = false
+	m.emission_energy_multiplier = LAMP_ENERGY_LIT
 	return m
+
+
+## The warm halo light: small reach, ties to the NIGHT LAW flip via
+## set_lit (visible false at build -- a dawn-built light must sleep).
+static func _halo(parent: Node3D, pos: Vector3) -> OmniLight3D:
+	var halo := OmniLight3D.new()
+	halo.light_color = HALO_COLOR
+	halo.omni_range = HALO_RANGE_M
+	halo.light_energy = 1.4
+	halo.shadow_enabled = false
+	halo.position = pos
+	halo.visible = false
+	parent.add_child(halo)
+	return halo

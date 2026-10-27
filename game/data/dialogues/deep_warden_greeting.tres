@@ -38,6 +38,7 @@ nodes = [
 		"speaker": "Deep Warden",
 		"text": "Listen, then. Stand still at the shelf's edge and really listen -- the deep hums when you give it an ear. The old keepers called it tuning yourself to the Root. Do that, and I will know you heard it.",
 		"choices": [
+			{"text": "What is that glow past the camp?", "next_node": 5},
 			{"text": "On it.", "next_node": -1},
 			{"text": "Back to the camp.", "next_node": 0}
 		]
@@ -47,6 +48,23 @@ nodes = [
 		"text": "The Warden smiles. The glow tide crests, and for one breath the whole wall is ember-bright. Whatever this place is, it is not empty.",
 		"choices": [
 			{"text": "Farewell.", "next_node": -1}
+		]
+	},
+	{
+		"speaker": "Deep Warden",
+		"text": "That is the Glow Cistern -- the catch-dish the glow tide pours into. The wall drinks the tide, the dish holds what the wall spills, and the water remembers every body it covers. A crossing is a count. Get one honest wet crossing -- rim to rim, halfway out the sheave bench on the low side -- and the count has your name in it.",
+		"choices": [
+			{"text": "How is the water?", "next_node": 6},
+			{"text": "I will swim it.", "next_node": -1},
+			{"text": "Back to the camp.", "next_node": 0}
+		]
+	},
+	{
+		"speaker": "Deep Warden",
+		"text": "Gentle, warm as a hearthstone that never cooled. The dish is stone, the water is shallow, and the pressure is nothing -- the deep ocean's teeth are on the far side of the world, not here. The only rule is honesty: you go in, the pool covers you, you climb out by the bench. That is the whole crossing.",
+		"choices": [
+			{"text": "Then I will swim it.", "next_node": -1},
+			{"text": "Back to the camp.", "next_node": 0}
 		]
 	}
 ]

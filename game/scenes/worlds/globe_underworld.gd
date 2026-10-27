@@ -65,6 +65,7 @@ func _ready() -> void:
 	_build_deep_light()
 	_build_camp()
 	_build_cistern()
+	_build_wilds()
 	_build_ascent_gate()
 	_build_return_gate()
 	GameLog.info("GlobeUnderworld: conjured (the Deep Root; radius %.0f m, the strata remember the sun)" % planet_radius)
@@ -78,7 +79,7 @@ func receive_visitor(body: Node) -> void:
 		return
 	var pid: String = str(body.get("entity_id"))
 	if pid != "" and not _visitors.has(pid):
-		_visitors[pid] = true
+		_visitors[pid] = body
 		_track_visitor(body)
 	if body.has_method("bind_to_world"):
 		body.bind_to_world(WORLD_ID)
@@ -104,6 +105,9 @@ func release_visitor(body: Node) -> void:
 	var pid: String = str(body.get("entity_id"))
 	if pid != "":
 		_visitors.erase(pid)
+		var ocean = get_node_or_null("/root/OceanService")
+		if ocean != null:
+			ocean.forget_swimmer(pid)
 	if _visitors.is_empty():
 		GameLog.info("GlobeUnderworld: last visitor gone -- the Deep Root folds back into derivation")
 		queue_free()
@@ -184,9 +188,29 @@ func _process(_delta: float) -> void:
 	if _strata_light != null:
 		var e := 0.35 + 0.25 * _glow_tide_phase()
 		_strata_light.light_energy = e
-	## The cistern rides the same tide: the pool drinks at dawn.
+	## The cistern rides the same tide: the pool drinks at dawn, and the
+	## stone's glow veins brighten with it (the dusk-read law: in a
+	## world whose noon is a dark shelf, the shape must carry its own
+	## light or it disappears at the low part of the tide).
 	if _cistern_water_mat != null:
-		_cistern_water_mat.emission_energy_multiplier = cistern_glow(_glow_tide_phase())
+		var tide := cistern_glow(_glow_tide_phase())
+		_cistern_water_mat.emission_energy_multiplier = tide
+	if _cistern_stone_mat != null:
+		_cistern_stone_mat.emission_energy_multiplier = 0.18 * cistern_glow(_glow_tide_phase())
+	## THE SWIM DELIVERY (the cistern's law, live): bodies the underworld
+	## hosts tick through OceanService so the pool's water is REAL -- the
+	## breath clock, the bands, and the water_entered credit signal
+	## (QuestService's swim bridge reads it for the Warden's quest).
+	## Positions are world_root-local (the volume data's planet truth).
+	if not _visitors.is_empty():
+		var ocean = get_node_or_null("/root/OceanService")
+		if ocean != null:
+			for pid in _visitors:
+				var body = _visitors[pid]
+				if body == null or not is_instance_valid(body):
+					continue
+				ocean.tick_swimmer(str(pid), \
+					body.global_position - world_root.global_position, _delta)
 
 
 ## Glow tide phase in [0, 1): one cycle per Synmergia day, phase 0 at
@@ -225,6 +249,17 @@ const CAMP_HEAD_POS: Vector3 = Vector3(0, 2000.0, 0)
 const GLOW_SHARD_COUNT: int = 14
 
 var _cistern_water_mat: StandardMaterial3D = null
+var _cistern_stone_mat: StandardMaterial3D = null
+
+# THE DUSK-READ PALETTE (the cistern stone law): one shared vein-lit
+# wall material builds the whole ring (the glow law rides it per
+# frame), the slab is the darker basin rock, and the BENCH is the
+# one brightest stone -- the exit reads as an exit, not as another
+# block in the dark.
+const STONE_WALL_ALBEDO: Color = Color(0.17, 0.15, 0.19)
+const STONE_WALL_VEINS: Color = Color(0.35, 0.8, 0.55)
+const STONE_SLAB_ALBEDO: Color = Color(0.12, 0.11, 0.14)
+const STONE_BENCH_ALBEDO: Color = Color(0.3, 0.27, 0.33)
 
 
 ## THE GLOW CISTERN (S15.5): the catch-dish at the camp shelf -- the
@@ -241,6 +276,10 @@ var _cistern_water_mat: StandardMaterial3D = null
 ##            pool clears it; no climb mesh, no glitch exit).
 
 
+### One vein-lit stone material (the dusk-read pass): dark basalt whose
+## glow veins ride the tide. The bench keeps its own brighter albedo
+## (the exit reads as an exit) -- the wall/ring material is created by
+## _build_cistern and stored on _cistern_stone_mat.
 ## Build all the cistern stone. Piece seats are planet-relative X/Z
 ## (12 m from the camp head) with ABSOLUTE local Y (world_root local
 ## == planet coords for a globe conjured at origin), so data law
@@ -256,6 +295,11 @@ func _build_cistern() -> void:
 	var ledge_top: float = water_y + 0.3			# the sheave bench tops 0.3 over the water
 	var inner_r: float = 3.4						# the dish's interior radius
 	var ring_r: float = inner_r + 0.4				# wall mid-radius (0.8 band)
+	# THE SHARED VEIN WALL: one vein-lit material for the whole ring --
+	# the glow law feeds it per frame. Local var so the global mat var
+	# is only assigned once and freed with the globe.
+	var wall_mat := _cistern_wall_material()
+	_cistern_stone_mat = wall_mat		# the _process glow rider reads it
 	# --- the basin slab (the dish's bottom: standable stone) ---
 	var slab := MeshInstance3D.new()
 	var slab_mesh := CylinderMesh.new()
@@ -265,10 +309,7 @@ func _build_cistern() -> void:
 	slab.mesh = slab_mesh
 	slab.name = "CisternSlab"
 	slab.position = seat_xz + Vector3(0, floor_top - 0.2, 0)
-	var stone := StandardMaterial3D.new()
-	stone.albedo_color = Color(0.11, 0.1, 0.12)
-	stone.roughness = 1.0
-	slab_mesh.material = stone
+	slab_mesh.material = _cistern_slab_material()
 	_cistern_piece(jug, slab)
 	# --- the ring: 8 seats, 7 tall walls + 1 low sheave bench ---
 	var wall_len: float = TAU * ring_r / 8.0 + 0.12
@@ -284,17 +325,14 @@ func _build_cistern() -> void:
 			mesh.size = Vector3(0.8, wall_h, wall_len)
 			piece.position = seat_xz + Vector3(cos(a) * ring_r, floor_top + wall_h / 2.0 - 0.2, sin(a) * ring_r)
 			piece.name = "CisternWall_%d" % i
-			var wall_mat := StandardMaterial3D.new()
-			wall_mat.albedo_color = Color(0.12, 0.11, 0.13)
-			wall_mat.roughness = 1.0
 			mesh.material = wall_mat
 		else:
 			mesh.size = Vector3(0.8, ledge_h, wall_len)
 			piece.position = seat_xz + Vector3(cos(a) * ring_r, floor_top + ledge_h / 2.0 - 0.2, sin(a) * ring_r)
 			piece.name = "CisternBench"
-			var bench_mat := StandardMaterial3D.new()
-			bench_mat.albedo_color = Color(0.14, 0.13, 0.15)
-			bench_mat.roughness = 1.0
+			# THE BENCH: the one bright stone (the exit reads as an
+			# exit -- a still-dark bench hides in the glow's cast).
+			var bench_mat := _cistern_bench_material()
 			mesh.material = bench_mat
 		piece.mesh = mesh
 		piece.rotation.y = -a
@@ -328,6 +366,242 @@ func _build_cistern() -> void:
 func _cistern_piece(jug: Node3D, stone: MeshInstance3D) -> void:
 	jug.add_child(stone)
 	PropCollider.attach(stone)
+
+
+# ---- THE DEEP WILDS (S15.6, the underworld's first biome law) -------
+# Five bands walk outward from the camp shelf, each its own scatter
+# family: crags (the ring ridge), dead trees (the grove), mycelium
+# (the glow field), stalagmites (the spike runs), odd grasses (the
+# dark meadow). Every position is a PURE function of its index (a
+# golden-ratio spindle, the same discipline the camp shards use):
+# no seed, no RNG, so the Deep Root re-derives byte-identical.
+#
+# Collider law: stones stand (PropCollider), grass and mycelium do
+# not (the walk-over law) -- a ballroom of colliders in the dark is
+# how you lose a player.
+const WILDS_INNER_M: float = 16.0
+const WILDS_OUTER_M: float = 70.0
+const STONE_VEINS: Color = Color(0.35, 0.8, 0.55)
+
+## The wilds seat in world_root-local planet coords: the walk line.
+func _wilds_surface() -> float:
+	return planet_radius
+
+
+## Deterministic scramble in [0, 1): pure arithmetic on the index
+## (the spindle discipline: same input, same drift, every boot).
+static func _wilds_drift(i: int, salt: float) -> float:
+	return fposmod(sin(float(i) * 12.9898 + salt * 78.233) * 43758.5453, 1.0)
+
+
+func _build_wilds() -> void:
+	var wilds := Node3D.new()
+	wilds.name = "DeepWilds"
+	world_root.add_child(wilds)
+	var ground: float = _wilds_surface()
+	_build_crag_ring(wilds, ground)
+	_build_dead_grove(wilds, ground)
+	_build_mycelium_field(wilds, ground)
+	_build_stalagmite_runs(wilds, ground)
+	_build_odd_grasses(wilds, ground)
+	GameLog.info("GlobeUnderworld: the Deep Wilds dress the shelf (five bands, deterministic)")
+
+
+## THE CRAG RING: big dark rock prisms leaning against the glow. The
+## camp's two gates get a hard keep-clear (a crag never walls the
+## arrival in).
+func _build_crag_ring(wilds: Node3D, ground: float) -> void:
+	var crag_mat := StandardMaterial3D.new()
+	crag_mat.albedo_color = Color(0.14, 0.12, 0.16)
+	crag_mat.roughness = 1.0
+	var vein_mat := StandardMaterial3D.new()
+	vein_mat.albedo_color = Color(0.2, 0.18, 0.23)
+	vein_mat.emission_enabled = true
+	vein_mat.emission = STONE_VEINS
+	vein_mat.emission_energy_multiplier = 0.5
+	for i in range(12):
+		var a: float = TAU * float(i) / 12.0 + 0.27
+		var rad: float = WILDS_INNER_M + 6.0 + 8.0 * _wilds_drift(i, 1.0)
+		var seat := CAMP_HEAD_POS + Vector3(cos(a) * rad, 0.0, sin(a) * rad)
+		# The two gates and the cistern keep their aprons clear.
+		if seat.distance_to(CAMP_HEAD_POS + Vector3(4.0, 0.0, 4.0)) < 6.0 \
+				or seat.distance_to(CAMP_HEAD_POS + Vector3(-4.0, 0.0, 4.0)) < 6.0 \
+				or (Vector3(seat.x, 0.0, seat.z) - Vector3(12.0, 0.0, 0.0)).length() < 8.0:
+			continue
+		var crag := MeshInstance3D.new()
+		var prism := PrismMesh.new()
+		var h: float = 3.0 + 4.0 * _wilds_drift(i, 2.0)
+		prism.size = Vector3(2.0 + 2.0 * _wilds_drift(i, 3.0), h, 2.0 + 2.0 * _wilds_drift(i, 4.0))
+		prism.material = vein_mat if i % 3 == 0 else crag_mat
+		crag.mesh = prism
+		crag.name = "DeepCrag_%d" % i
+		crag.position = seat + Vector3(0, ground - 0.4 + h * 0.35, 0)
+		crag.rotation = Vector3(0.08 * _wilds_drift(i, 5.0) - 0.04, a, 0.06 * _wilds_drift(i, 6.0) - 0.03)
+		wilds.add_child(crag)
+		PropCollider.attach(crag)
+
+
+## THE DEAD GROVE: charcoal trunks and bare branch forks -- the green
+## world's bones pointing at the strata (no leaves: the Deep Root has
+## no light to feed them).
+func _build_dead_grove(wilds: Node3D, ground: float) -> void:
+	var bark_mat := StandardMaterial3D.new()
+	bark_mat.albedo_color = Color(0.16, 0.13, 0.11)
+	bark_mat.roughness = 1.0
+	for i in range(7):
+		var a: float = TAU * float(i) / 7.0 + 2.1
+		var rad: float = 34.0 + 14.0 * _wilds_drift(i, 11.0)
+		var seat := CAMP_HEAD_POS + Vector3(cos(a) * rad, 0.0, sin(a) * rad)
+		var h: float = 5.0 + 3.0 * _wilds_drift(i, 12.0)
+		var trunk := MeshInstance3D.new()
+		var cyl := CylinderMesh.new()
+		cyl.top_radius = 0.18
+		cyl.bottom_radius = 0.42
+		cyl.height = h
+		cyl.material = bark_mat
+		trunk.mesh = cyl
+		trunk.name = "DeadTrunk_%d" % i
+		trunk.position = seat + Vector3(0, ground + h * 0.5, 0)
+		trunk.rotation = Vector3(0.05 * _wilds_drift(i, 13.0) - 0.025, a, 0.09 * _wilds_drift(i, 14.0) - 0.045)
+		wilds.add_child(trunk)
+		PropCollider.attach(trunk)
+		# One bare fork: two thin boxes splintering off the crown.
+		for f in range(2):
+			var fork := MeshInstance3D.new()
+			var bm := BoxMesh.new()
+			bm.size = Vector3(0.12, 1.6 + 0.8 * _wilds_drift(i, 15.0 + float(f)), 0.12)
+			bm.material = bark_mat
+			fork.mesh = bm
+			fork.position = trunk.position + Vector3(0.3 * (f + 1), h * 0.42, 0.25 * (f + 1))
+			fork.rotation = Vector3(0.5 - 0.25 * f, a + 0.7 * f, -0.4 + 0.3 * f)
+			wilds.add_child(fork)
+
+
+## THE MYCELIUM FIELD: low glow caps pooled between the crags -- the
+## underworld's understory light (the strata feeds the shelf and the
+## fungi answer). No collider (walk-over paint).
+func _build_mycelium_field(wilds: Node3D, ground: float) -> void:
+	var cap_mat := StandardMaterial3D.new()
+	cap_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	cap_mat.albedo_color = Color(0.45, 0.6, 0.5, 0.85)
+	cap_mat.emission_enabled = true
+	cap_mat.emission = Color(0.25, 0.75, 0.65)
+	cap_mat.emission_energy_multiplier = 0.8
+	for i in range(9):
+		var a: float = TAU * float(i) / 9.0 + 0.9
+		var rad: float = 22.0 + 40.0 * _wilds_drift(i, 21.0)
+		var seat := CAMP_HEAD_POS + Vector3(cos(a) * rad, 0.0, sin(a) * rad)
+		var host := Node3D.new()
+		host.name = "MyceliumClump_%d" % i
+		host.position = seat
+		wilds.add_child(host)
+		for c in range(3):
+			var cap := MeshInstance3D.new()
+			var dome := SphereMesh.new()
+			dome.radius = 0.35 + 0.3 * _wilds_drift(i * 4 + c, 22.0)
+			dome.height = dome.radius * 0.7
+			dome.material = cap_mat
+			cap.mesh = dome
+			var offset := Vector3(1.6 * _wilds_drift(i * 7 + c, 23.0) - 0.8, 0.0, 1.6 * _wilds_drift(i * 9 + c, 24.0) - 0.8)
+			cap.position = offset + Vector3(0, ground + dome.height * 0.35, 0)
+			cap.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			host.add_child(cap)
+
+
+## THE STALAGMITE RUNS: pale stone spikes growing where the shell
+## sweats. Short runs in sheltered lanes, PropCollider so a spike is
+## a wall you climb, not a shrub you push through.
+func _build_stalagmite_runs(wilds: Node3D, ground: float) -> void:
+	var spike_mat := StandardMaterial3D.new()
+	spike_mat.albedo_color = Color(0.5, 0.48, 0.45)
+	spike_mat.roughness = 0.8
+	for i in range(14):
+		var a: float = TAU * float(i) / 14.0 + 1.57
+		var rad: float = 18.0 + 46.0 * _wilds_drift(i, 31.0)
+		var seat := CAMP_HEAD_POS + Vector3(cos(a) * rad, 0.0, sin(a) * rad)
+		var h: float = 0.9 + 2.2 * _wilds_drift(i, 32.0)
+		var spike := MeshInstance3D.new()
+		var prism := PrismMesh.new()
+		prism.size = Vector3(0.7 + 0.3 * _wilds_drift(i, 33.0), h, 0.7 + 0.3 * _wilds_drift(i, 34.0))
+		prism.material = spike_mat
+		spike.mesh = prism
+		spike.name = "Stalagmite_%d" % i
+		# A stalagmite grows UP: the prism's point is down, so the
+		# spike body rides pi on X (the point becomes the base).
+		spike.position = seat + Vector3(0, ground + h * 0.5 - h * 0.33, 0)
+		spike.rotation = Vector3(PI, 0.0, 0.0)
+		wilds.add_child(spike)
+		PropCollider.attach(spike)
+
+
+## THE ODD GRASSES: thin luminous blades scattered through every band
+## (the dark meadow: the Deep Root's one honest soft edge). Paint
+## only -- the walk-over law says grass never blocks a foot.
+func _build_odd_grasses(wilds: Node3D, ground: float) -> void:
+	var blade_mat := StandardMaterial3D.new()
+	blade_mat.albedo_color = Color(0.4, 0.62, 0.42)
+	blade_mat.emission_enabled = true
+	blade_mat.emission = Color(0.35, 0.8, 0.55)
+	blade_mat.emission_energy_multiplier = 0.7
+	for i in range(36):
+		var a: float = TAU * float(i) / 36.0 + 0.13
+		var rad: float = WILDS_INNER_M + (WILDS_OUTER_M - WILDS_INNER_M) * _wilds_drift(i, 41.0)
+		var seat := CAMP_HEAD_POS + Vector3(cos(a) * rad, 0.0, sin(a) * rad)
+		var tuft := Node3D.new()
+		tuft.name = "WildGrass_%d" % i
+		tuft.position = seat
+		wilds.add_child(tuft)
+		for b in range(3):
+			var blade := MeshInstance3D.new()
+			var bm := BoxMesh.new()
+			bm.size = Vector3(0.05, 0.4 + 0.5 * _wilds_drift(i * 3 + b, 42.0), 0.05)
+			bm.material = blade_mat
+			blade.mesh = bm
+			blade.position = Vector3(0.22 * _wilds_drift(i * 5 + b, 43.0) - 0.11, ground + bm.size.y * 0.5, 0.22 * _wilds_drift(i * 11 + b, 44.0) - 0.11)
+			blade.rotation = Vector3(0.6 * _wilds_drift(i * 13 + b, 45.0) - 0.3, 2.0, 0.6 * _wilds_drift(i * 17 + b, 46.0) - 0.3)
+			blade.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			tuft.add_child(blade)
+
+
+## THE VEIN WALL material (the dusk-read pass): dark basalt carrying
+## faint glow veins whose energy rides the tide per frame (see
+## _process). One shared instance: the ring looks like ONE built wall,
+## and the rider touches one material.
+func _cistern_wall_material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = STONE_WALL_ALBEDO
+	m.roughness = 0.95
+	m.emission_enabled = true
+	m.emission = STONE_WALL_VEINS
+	m.emission_energy_multiplier = 0.18 * cistern_glow(_glow_tide_phase())
+	return m
+
+
+## The basin slab: darker rock (the dish reads as carved-in, the pool
+## seen THROUGH its rim), a whisper of the veins so it never goes
+## flat black at the low tide.
+func _cistern_slab_material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = STONE_SLAB_ALBEDO
+	m.roughness = 1.0
+	m.emission_enabled = true
+	m.emission = STONE_WALL_VEINS
+	m.emission_energy_multiplier = 0.05
+	return m
+
+
+## The sheave bench: the brightest stone, with a faint warm ember
+## light (WAYFINDING law: the one honest exit says so aloud -- the
+## cistern has no other opening worth a jump). Way out bench emission
+## is static: it is a place, not a clock.
+func _cistern_bench_material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = STONE_BENCH_ALBEDO
+	m.roughness = 0.85
+	m.emission_enabled = true
+	m.emission = Color(0.9, 0.7, 0.4)
+	m.emission_energy_multiplier = 0.25
+	return m
 
 
 ## THE GLOW LAW (one number, one truth): the water's emission energy

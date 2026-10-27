@@ -7096,3 +7096,62 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
      dusk and watch the caged lamp wake; sail the crossing; land
      on the moor into the ember's reach.
 - WORLD-DRESSING v19: THE GLOW CISTERN S15.5 SHIPPED -- the Deep Root's catch-dish at the camp shelf ("the pool gets the glow"): water is DATA (data/oceans/ocean_deep_root_pool.tres: LOCAL pool declaration, floor on the walk line 2000.0, surface 2002.4, reach 3.4 m, gentle pressure 0.0); the stone is built by globe_underworld._build_cistern (basin slab at the walk line, 7 tall rim arcs topping 3.2 m no-fence-hop, ONE sheave bench on the ring's low side topping 0.3 m over the water = the one honest exit, hop-from-water law; piece seats planet-relative X/Z with ABSOLUTE local Y -- the first cut double-added CAMP_HEAD_POS.y and mis-sized the wall band, fixed); PropCollider piece-collider law on every stone, NO collider on the water disc (the swim law reads the OceanVolume, the disc is only paint). The glow law rides the SAME concord tide: static cistern_glow(phase) (0.45-1.0 cos band, high at surface dawn) fed to the water's emission in _process next to the strata light -- pure function, no drift. Receipts: dev_temp/probes/cistern_probe.gd CISTERN-OK (data: LOCAL floor/gentle; claims: standing ON the dish reads 1.40 m swim depth > WADING_DEPTH_M 1.2, shelf-out DRY unclaimed, mid-air negative, in-stone -1 sentinel; stone: 1+7+1 named pieces, bench 2002.7 < wall 2003.4, exit step 0.30 over the water; glow: g(0)=1.0 > g(0.5)=0.45 and the runtime material rider matched the formula AT the live phase 0.618). Re-holds: probe_underworld 42 PASS (the camp/gates/sky/quest loop untouched), probe_ocean 44 PASS (the LOCAL claim law reads the new pool cleanly beside the moon crater pool), naming lint PASS, lint suite 36/0, packstruct --deep 8 packs green (dev_temp probes stay ad hoc like pans/harbor precedent -- no DEFAULT_SET drift). Headless gate-law note: script-mode preloads of game scripts fail compile if they name autoloads (GameLog/InventoryService register after parse) -- runtime load() only, the probe_underworld pattern; also lint's /tmp Godot binary dies on restore, GODOT=$(command -v godot) bash tests/lint/run_all.sh.
+- WORLD-DRESSING v20: THE WARDEN OWES THE CISTERN (S15.6, the story
+     beat + the dusk-read + the first wilds) SHIPPED in three cuts.
+  1. THE SWIM BEAT: OceanService gains the swim credit signal
+     (`water_entered(body_id, volume_id)`, emitted ONCE per dry -> wet
+     entry; the `_wet_by` book holds the credited volume so per-frame
+     ticks never double-credit, cross-volume moves emit fresh,
+     forget_swimmer clears) + QuestData.ObjectiveType.SWIM. The
+     underworld is the LIVE DELIVERY: `_visitors[pid]` now holds the
+     body node and globe_underworld._process ticks every visitor
+     through OceanService in world_root-local coords (the globe owns
+     its water the same way it owns its zone credit -- no
+     globe_player physics surgery). QuestService bridges it deferred
+     (OceanService is a later autoload; the insight-bridge pattern)
+     into the new SWIM objective, credited by volume id verbatim.
+     DATA: quest_cross_the_cistern.tres (SWIM ocean_deep_root_pool +
+     TALK turn-in to the Warden; previous_quest_id chain from
+     quest_listen_to_the_deep via next_quest_id, npc includes carry
+     it), deep_warden_greeting.tres gains the cistern branch (nodes
+     5-6: the dish lore + the honest-crossing rules, hearthstone-warm
+     water, the bench way out), npc_deep_warden includes lists it.
+     Receipts: tests/test_quest_swim_bridge.gd 10/0 (bridge connect
+     after deferred flush, .tres shape verbatim targets, accept ->
+     one tick credits 1/1, 10 more frames do not over-tick, a
+     different volume (Haven Shelf) stays dry of the count, TALK
+     closes the quest COMPLETE) + probe_underworld gains G2: the
+     LIVING globe (the walker teleported into the dish + ONE
+     underworld _process frame = the SWIM objective completes
+     through the real autoload bridge). underworld probe now 44 PASS.
+  2. THE DUSK-READ PASS (the two new stones read at their dark
+     hour): cistern stone law -- one SHARED vein-lit wall material
+     (STONE_WALL_ALBEDO 0.17/0.15/0.19 + STONE_WALL_VEINS emission
+     0.35/0.8/0.55 whose energy rides the tide per frame, 0.18x), a
+     darker basin slab (wilder whisper 0.05), and the BENCH as the
+     one brightest stone with a static warm ember (0.25 -- the exit
+     reads as an exit, a place not a clock); harbor lights -- the
+     lamp material pops at LAMP_ENERGY_LIT 1.8 AND carries a small
+     warm halo OmniLight3D (HALO_RANGE 9 m, floor'd visible=false at
+     build) toggled by the SAME set_lit flip (two halos total; the
+     probe's NIGHT LAW asserts stay green).
+  3. THE DEEP WILDS (S15.6, the underworld's first biome law):
+     globe_underworld._build_wilds scatters FIVE bands off the camp
+     shelf, every seat a pure function of its index
+     (_wilds_drift golden-spindle; no seed, no RNG -- re-derived
+     byte-identical): crag ring (12 leaning prisms, vein-lit every
+     third, crag 24-34 m, apron keeps 6 m gate clears + 8 m dish
+     clear), dead grove (7 charcoal trunks 34-48 m + bare forks),
+     mycelium field (9 clumps x 3 glow caps, no collider), stalagmite
+     runs (14 pale spikes 0.9-3.1 m, pi-flip growth), odd grasses (36
+     tufts x 3 luminous blades, no collider). Collider law: stones
+     stand (PropCollider), paint walks over. Receipts:
+     dev_temp/probes/wilds_probe.gd WILDS-OK (family counts 12/7/9/
+     14/36, stones collidered paint bare, aprons clear, second
+     conjured globe byte-identical).
+  GATES: ocean probe 44 PASS, underworld 44 PASS (incl. live swim
+     bridge), cistern CISTERN-OK, harbor LIGHT-OK, naming lint 25/0,
+     lint suite 36/0 (GODOT override), packstruct --deep 8 packs
+     green. NEXT: lava rivers (the "maybe?" stays open -- parked as
+     the underworld's own water frame, data first), underworld biomes
+     as DATA bands (zone-style declarations), the Artifact Gate piece.

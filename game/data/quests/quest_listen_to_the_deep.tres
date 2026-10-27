@@ -17,5 +17,6 @@ objectives = [{"id": "hear_the_deep", "type": 4, "target": "zone_deep_root_camp"
 rewards = [{"type": "gold", "id": "", "quantity": 60}, {"type": "experience", "id": "", "quantity": 120}]
 gold_reward = 60
 xp_reward = 120
+next_quest_id = "quest_cross_the_cistern"
 icon_path = ""
 map_marker = "explore"

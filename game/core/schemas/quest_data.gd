@@ -36,6 +36,7 @@ enum ObjectiveType {
 	REACH_LEVEL,    # Reach certain level
 	ACHIEVE_STEP,   # Progress in achievement
 	RECORD_INSIGHT, # Record a sky insight (Skyward Concord, prd-psy.md)
+	SWIM,           # Swim a declared ocean volume (prd-ocean-depths)
 }
 
 ## Difficulty

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "quest_cross_the_cistern"
+display_name = "Cross the Cistern"
+description = "The Deep Warden bids you swim the Glow Cistern, dish to dish: one honest wet crossing that the pool remembers, and the Warden's count of the glow tide gains a swimmer."
+quest_type = 1
+difficulty = 0
+giver_npc_id = "npc_deep_warden"
+turn_in_npc_id = "npc_deep_warden"
+min_level = 1
+max_level = 30
+previous_quest_id = "quest_listen_to_the_deep"
+objectives = [{"id": "swim_the_pool", "type": 12, "target": "ocean_deep_root_pool", "count": 1}, {"id": "tell_the_warden", "type": 5, "target": "npc_deep_warden", "count": 1}]
+rewards = [{"type": "gold", "id": "", "quantity": 80}, {"type": "experience", "id": "", "quantity": 150}]
+gold_reward = 80
+xp_reward = 150
+icon_path = ""
+map_marker = "explore"

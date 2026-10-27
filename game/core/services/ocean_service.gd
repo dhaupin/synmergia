@@ -219,9 +219,21 @@ func effective_current(pos: Vector3, current_immune: bool = false) -> Vector3:
 
 ## ---- S14.2: the swim driver -------------------------------------------------
 
+## THE SWIM CREDIT SIGNAL (the cistern's law): emitted ONCE per body
+## when tick_swimmer moves it from dry into a wet volume, carrying the
+## ocean volume's data id verbatim. Quest targets author the same
+## id ("ocean_" prefix) -- the same one-id credit law the zone bridge
+## keeps (one truth in and out of the water; the bridge in
+## QuestService reads it).
+signal water_entered(body_id: String, volume_id: String)
+
 ## Per-body swim state (the below-the-waterline twin of the glider
 ## book). Bodies without a book never tick water physics.
 var _swimmers: Dictionary = {}   # body_id -> SwimState
+
+## The credit book: body_id -> the volume id it was last credited in
+## ("" = dry). tick_swimmer writes it; forget_swimmer clears it.
+var _wet_by: Dictionary = {}
 
 
 ## Tick one body's water truth: reads the sampler and the volume's
@@ -243,9 +255,23 @@ func tick_swimmer(body_id: String, pos: Vector3, delta: float, breather_grace_m:
 		_swimmers[body_id] = s
 	var total_grace: float = maxf(breather_grace_m, 0.0) + maxf(mount_grace_m, 0.0)
 	if v == null:
+		# Dry bookkeeping: clear the credit flag so the next entry
+		# re-emits (a body that leaves re-enters, that is a new 1-count
+		# objective tick; the quest law re-validates the target).
+		if str(_wet_by.get(body_id, "")) != "":
+			_wet_by[body_id] = ""
 		s.tick(delta, depth if depth < 0.0 else -1.0, 1.0, 1.0, 0.0, total_grace, crush_bonus_m)
 		return {"state": s.state, "depth": depth, "band": OceanVolumeScript.DepthBand.DRY, \
 			"current": Vector3.ZERO, "breath": s.breath, "pressure": s.pressure, "drowning_s": s.drowning_s}
+	# The dry -> wet transition is the ONE world event per entry: the
+	# per-frame tick itself carries NO credit (a pool crossing is 1,
+	# not 60). The book holds the volume id so a cross-volume move
+	# (one pool's water to another's) also emits a fresh credit for
+	# the new target volume.
+	var pool_id: String = str(v.id)
+	if str(_wet_by.get(body_id, "")) != pool_id:
+		_wet_by[body_id] = pool_id
+		water_entered.emit(body_id, pool_id)
 	var squeeze_line: float = float(v.max_depth) - OceanVolumeScript.NATURAL_PRESSURE_FREE_M
 	if squeeze_line < 0.0:
 		squeeze_line = float(v.max_depth)
@@ -264,6 +290,7 @@ func swim_state(body_id: String):
 ## Forget a body (logout, death -- the book never holds the dead).
 func forget_swimmer(body_id: String) -> void:
 	_swimmers.erase(body_id)
+	_wet_by.erase(body_id)
 
 
 ## ---- S14.4: the breather (gear owns air, the profile owns speed) -----------

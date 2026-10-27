@@ -238,6 +238,33 @@ func _run() -> void:
 					ok = _check("both objectives closed the quest (COMPLETE)", \
 						int(st2.get("state", -1)) == complete_state) and ok
 
+	# ---------- G2. The cistern swim credits LIVE (S15.6) -------------
+	# The underworld's own _process ticks its visitors through
+	# OceanService; the water_entered signal runs the real QuestService
+	# swim bridge. Walk the walker INTO the dish and let one frame
+	# deliver the credit -- no probe hand-ticks, the globe owns its
+	# water the way it owns its zones.
+	if globe != null and walker != null:
+		var QuestService2 = root_node.get_node_or_null("QuestService")
+		if QuestService2 != null:
+			QuestService2.load_player_quests("deep_walker")
+			var accepted2: bool = QuestService2.accept_quest("deep_walker", "quest_cross_the_cistern")
+			ok = _check("quest_cross_the_cistern accepts for the walker", accepted2) and ok
+			if accepted2 and is_instance_valid(walker):
+				# Into the dish: the cistern's seat is 12 m from the camp
+				# head; water floor 2000.0, surface 2002.4 (the data law).
+				var cook_xz: Vector3 = Vector3(12, 0, 0)
+				walker.global_position = globe.get("world_root").global_position \
+					+ cook_xz + Vector3(0, 2000.8, 0)
+				# One underworld frame: the swim delivery runs.
+				globe._process(1.0 / 60.0)
+				var swam_done := false
+				var swim_prog: Dictionary = QuestService2.get_quest_progress("deep_walker", "quest_cross_the_cistern")
+				for o in (swim_prog.get("objectives", []) as Array):
+					if str(o.get("id")) == "swim_the_pool" and bool(o.get("completed")):
+						swam_done = true
+				ok = _check("one frame in the dish credits the crossing (live swim bridge)", swam_done) and ok
+
 	# ---------- H. Fold-back ------------------------------------------
 	if globe != null and walker != null:
 		globe.release_visitor(walker)

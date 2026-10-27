@@ -49,8 +49,11 @@ func _ready() -> void:
 	_connect_combat_event_bridges()
 	_connect_lore_event_bridges()
 	# Insight bridge + daily reset need SignService (a LATER autoload,
-	# the _ready null-instance trap) -- defer both past the boot.
+	# the _ready null-instance trap) -- defer both past the boot. The
+	# swim bridge reads OceanService (also later in the autoload list):
+	# same deferral, one pattern.
 	call_deferred("_connect_insight_bridge")
+	call_deferred("_connect_swim_bridge")
 	call_deferred("_maybe_reset_dailies")
 	var reset_timer := Timer.new()
 	reset_timer.wait_time = 60.0
@@ -67,6 +70,25 @@ func _connect_insight_bridge() -> void:
 	if SignService != null and SignService.has_signal("insight_recorded") \
 			and not SignService.insight_recorded.is_connected(_on_insight_recorded):
 		SignService.insight_recorded.connect(_on_insight_recorded)
+
+
+## The swim credit bridge (the cistern's law, prd-ocean-depths):
+## OceanService emits water_entered exactly once per dry -> wet entry
+## with the ocean volume's data id; quest objectives target the
+## ocean_ id verbatim. OceanService is a LATER autoload, so the
+## connect is deferred like the insight bridge; has_signal makes the
+## bridge optional (old pack contexts without the signal skip it).
+func _connect_swim_bridge() -> void:
+	var ocean = get_node_or_null("/root/OceanService")
+	if ocean != null and ocean.has_signal("water_entered") \
+			and not ocean.water_entered.is_connected(_on_water_entered_for_quest):
+		ocean.water_entered.connect(_on_water_entered_for_quest)
+
+
+func _on_water_entered_for_quest(body_id: String, volume_id: String) -> void:
+	if str(body_id).is_empty() or str(volume_id).is_empty():
+		return
+	update_quest_progress(str(body_id), QuestData.ObjectiveType.SWIM, str(volume_id), 1)
 
 
 func _on_insight_recorded(player_id: String, _sign_id: String, _window_index: int) -> void:
@@ -621,6 +643,8 @@ func get_quest_objectives_text(player_id: String, quest_id: String) -> Array:
 				text = "Talk to %s" % _esc(target)
 			QuestData.ObjectiveType.EXPLORE:
 				text = "Explore %s" % _esc(target)
+			QuestData.ObjectiveType.SWIM:
+				text = "Swim %s: %d/%d" % [_esc(target), current, required]
 			QuestData.ObjectiveType.RECORD_INSIGHT:
 				text = "Watch the sky: %d/%d" % [current, required]
 			_:
