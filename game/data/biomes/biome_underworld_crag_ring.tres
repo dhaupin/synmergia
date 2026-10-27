@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="BiomeBand" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/biome_band.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "biome_underworld_crag_ring"
+display_name = "The Crag Ring"
+world_id = "underworld"
+family = 0
+radius_inner_m = 22.0
+radius_outer_m = 34.0
+angular_offset = 0.27
+count = 12
+sub_count = 1
+collider_mode = "stone"
+palette_dark = Color(0.14, 0.12, 0.16, 1)
+palette_accent = Color(0.2, 0.18, 0.23, 1)
+palette_emission = Color(0.35, 0.8, 0.55, 1)
+emission_energy = 0.5
+clearance_m = 6.0
+lore = "The ring ridge: twelve leaning slabs the shell dropped on its own doorstep. One in three carries veins the strata lights, so the ring reads even when the tide sleeps. Every third leaning slab keeps a stone-sweet swerve away from the camp's two gates."

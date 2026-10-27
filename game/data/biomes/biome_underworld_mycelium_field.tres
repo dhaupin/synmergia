@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="BiomeBand" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/biome_band.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "biome_underworld_mycelium_field"
+display_name = "The Mycelium Field"
+world_id = "underworld"
+family = 2
+radius_inner_m = 22.0
+radius_outer_m = 62.0
+angular_offset = 0.9
+count = 9
+sub_count = 3
+collider_mode = "paint"
+palette_dark = Color(0.45, 0.6, 0.5, 0.85)
+palette_accent = Color(0.45, 0.6, 0.5, 0.85)
+palette_emission = Color(0.25, 0.75, 0.65, 1)
+emission_energy = 0.8
+clearance_m = 0.0
+lore = "The understory light: nine clumps of glow caps pooled between the crags. The strata feeds the shelf and the fungi answer -- a body walking the field steps over the glow, never through it, and the caps never block a boot."

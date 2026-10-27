@@ -262,6 +262,7 @@ func tick_swimmer(body_id: String, pos: Vector3, delta: float, breather_grace_m:
 			_wet_by[body_id] = ""
 		s.tick(delta, depth if depth < 0.0 else -1.0, 1.0, 1.0, 0.0, total_grace, crush_bonus_m)
 		return {"state": s.state, "depth": depth, "band": OceanVolumeScript.DepthBand.DRY, \
+			"liquid": OceanVolumeScript.Liquid.WATER, "burn_dps": 0.0, \
 			"current": Vector3.ZERO, "breath": s.breath, "pressure": s.pressure, "drowning_s": s.drowning_s}
 	# The dry -> wet transition is the ONE world event per entry: the
 	# per-frame tick itself carries NO credit (a pool crossing is 1,
@@ -278,6 +279,7 @@ func tick_swimmer(body_id: String, pos: Vector3, delta: float, breather_grace_m:
 	var state: int = s.tick(delta, depth, squeeze_line, float(v.max_depth), \
 		float(v.pressure_per_meter), total_grace, crush_bonus_m)
 	return {"state": state, "depth": depth, "band": v.band_for(depth, total_grace, crush_bonus_m), \
+		"liquid": v.liquid, "burn_dps": float(v.burn_dps), \
 		"current": _volume_current(pos, v), "breath": s.breath, "pressure": s.pressure, \
 		"drowning_s": s.drowning_s}
 

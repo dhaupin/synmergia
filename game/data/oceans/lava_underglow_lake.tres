@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="OceanVolume" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/ocean_volume.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "lava_underglow_lake"
+display_name = "The Underglow Lake"
+surface_height = 1999.6
+floor_is_radial = false
+floor_center = Vector3(-26, 1999.6, 20)
+floor_radius = 9.0
+floor_y = 1997.8
+max_depth = 4.0
+current_direction = Vector3(0.25, 0, 0.25)
+current_strength = 0.35
+pressure_per_meter = 0.0
+liquid = 1
+burn_dps = 8.0
+salinity = 0.0
+ambient_fog_color = Color(0.4, 0.12, 0.03, 1)
+ambient_fog_density = 0.03
+ambient_sounds = Array[String](["ocean_deep"])
+lore = "The Deep Root's own fire: a slow lake of strata-melt that pools where the shell sweats magma. The Warden does not count its crossings. It drifts a palm's width east every clock -- the lake licks the wall in the same direction the glow tide runs. Nothing lives in it and nothing ever crossed twice."

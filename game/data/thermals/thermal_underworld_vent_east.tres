@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ThermalUpdraft" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/thermal_updraft.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "thermal_underworld_vent_east"
+display_name = "The East Stack"
+world_id = "underworld"
+kind = 0
+activation = 0
+zone_id = "zone_deep_root_camp"
+position = Vector3(24, 2000, -14)
+radius = 9.0
+column_height = 70.0
+strength = 0.55
+launch_speed = 26.0
+feeds_thermal_id = ""
+lore = "A crack in the shell that breathes upward always: the Deep Root's standing column. The wing folk circle it the way surface fliers ride the Concord lift -- the underworld's air answered the roof fell and never stopped asking why."

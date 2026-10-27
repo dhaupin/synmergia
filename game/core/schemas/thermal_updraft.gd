@@ -29,6 +29,11 @@ enum Activation {
 @export var kind: Kind = Kind.THERMAL
 @export var activation: Activation = Activation.ALWAYS
 @export var zone_id: String = ""
+## Which world owns the column ("" = the surface lands). Conjured
+## globe realms hand out updrafts at world-local coordinates; the
+## field keeps ownership explicit so a planar sampler and an
+## underworld column can share one book without collision ambiguity.
+@export var world_id: String = ""
 ## World-space center of the column/launch volume.
 @export var position: Vector3 = Vector3.ZERO
 ## Radius of influence (m).

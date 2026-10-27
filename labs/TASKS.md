@@ -7155,3 +7155,62 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
      green. NEXT: lava rivers (the "maybe?" stays open -- parked as
      the underworld's own water frame, data first), underworld biomes
      as DATA bands (zone-style declarations), the Artifact Gate piece.
+- WORLD-DRESSING v21: THE UNDERWORLD'S WORLD-COMMONS (S15.7, lava +
+     biomes + the commons other worlds have) SHIPPED in one wave.
+  1. LAVA AS WATER-FRAME: OceanVolume gains
+     Liquid.WATER/LAVA + burn_dps (the same sampler, the same bands,
+     only the lake bites; tick_swimmer's return now carries liquid +
+     burn_dps + current under one shape). DATA: data/oceans/
+     lava_underglow_lake.tres (LOCAL pool at the camp's south-east
+     keep: surface 1999.6, floor 1997.8, reach 9 m, current drift
+     0.35 m/s toward the east, LAVA 8 dps). globe_underworld
+     _build_lava_lake: 8-arc curb ring (0.55 m step-over curb, honest
+     choice-shaped exit) + one self-lit molten disc whose emission
+     pulses 1.1-1.5 with the SAME tide (the _process lava rider). THE
+     BURN LAW (live): the underworld's visitor tick accrues burn in
+     whole digits through a _burn_pool debt book (the first cut lost
+     the fractional debt each frame -- the probe caught it; the debt
+     books every frame now), and leaving the lake is free.
+  2. FORMAL BIOME-BAND DATA: new schema core/schemas/biome_band.gd
+     (world_id / family CRAG|DEAD_TREE|MYCELIUM|STALAGMITE|GRASS /
+     radius span / angular_offset / count / sub_count / collider_mode
+     stone|paint / palette trio / emission_energy / clearance) +
+     data/biomes/biome_underworld_*.tres x5 (crag ring 12, dead grove
+     7x2 forks, mycelium 9x3 caps, stalagmites 14, dark meadow 36x3
+     blades). The wilds builders now READ the declarations (count/
+     radii/palette/keeps-clear) and fall back to literals only when a
+     declaration is missing -- wilds changes are data edits from
+     here. WILDS-OK re-held byte-identical on the data-driven path.
+  3. THE COMMONS (roads/trails, currents, weather, gliding, airflow,
+     the Ascent's thrower): _build_trail lays 32 walk-over plates in
+     two legs (camp -> cistern -> the lake overlook which stops 4 m
+     short of the melt); the lava lake declares a real current the
+     visitor tick pushes bodies by (half-strength drift while wet);
+     ThermalUpdraft gains world_id (ownership explicit: an underworld
+     column and a planar sampler share one book), data/thermals/
+     underworld_vent_east + vent_flow (always-on standing columns)
+     and thermal_ascent_thrower (Kind.thermal LAUNCHER, activation
+     RITUAL, feeds the East Stack -- the Ascent-door artifact beat:
+     asleep until the shard's ritual wakes it, then it HURLS with a
+     real anticheat launch ticket through the ONE ThermalService
+     sample path); the underworld _process now carries visitors
+     through ThermalService.sample (lift into velocity.y, glide-tick
+     feed) -- the underworld's airflow is real. THE WEATHER LAW:
+     weather_mist(phase) static closed form (0.055 thick at the low
+     tide, 0.02 whisper at the crest) fed to the WorldEnvironment fog
+     per frame -- strata mist as the underworld's weather, one clock.
+  Receipts: dev_temp/probes/deep_commons_probe.gd COMMONS-OK (18:
+     lava data + claim + wading + liquid/burn per tick, live burn ~8
+     dps dry-is-free, vent carries + column truth + thrower
+     sleep/wake/HURLS with rite-book cleanup, mist band + live fog
+     feed, trail 32 plates/2 legs/starts at camp, five bands whose
+     counts ride the data). Gates: underworld 44 / ocean 44 /
+     CISTERN-OK / WILDS-OK / swim bridge 10/0 / naming lint 25/0 /
+     lint 36/0 / packs 8 green.
+  LIMITS + NEXT: lava rivers-as-channels (long segments) beyond the
+     lake; ThermalService world-filter is coordinate-honest today
+     (underworld columns live at world-local y ~2000); underworld
+     launch table + glider HUD reads nothing underworld-specific yet
+     (the air answer lives in the tick); on-device: stand at the lake
+     overlook at the low tide (mist thick, melt surly), step the
+     curb, take the burn, ride the East Stack into the wing.

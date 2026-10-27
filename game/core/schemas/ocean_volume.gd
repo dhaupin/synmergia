@@ -37,6 +37,15 @@ enum DepthBand {
 	CRUSH,     ## below max_depth: fast drain -- the ocean saying no
 }
 
+## The liquid's body: WATER is the standard swim law; LAVA is the
+## underworld's own frame (the same sampler, the same bands -- a body
+## in lava "swims" the way it swims, only the lake bites). Molten
+## water is still water-as-data; the teeth live on the volume.
+enum Liquid {
+	WATER,
+	LAVA,
+}
+
 @export var id: String = ""
 @export var display_name: String = ""
 ## The waterline (world Y). The renderer paints up to here; physics
@@ -77,6 +86,13 @@ enum DepthBand {
 ## Salinity 0..1: 0 = the dead lakes (swimmable, no currents,
 ## nothing lives there); future: buoyancy flavor.
 @export var salinity: float = 1.0
+## The liquid body (WATER default). LAVA volumes declare burn_dps:
+## the underworld's rivers and lakes are water-frame truth, not a
+## second sampler -- the bands read the same, and the lake BURNS.
+@export var liquid: Liquid = Liquid.WATER
+## Damage per second a body takes while standing or swimming in a
+## LAVA volume (0.0 for WATER; a body at depth never touches fire).
+@export var burn_dps: float = 0.0
 ## The look (renderer reads; physics ignores).
 @export var ambient_fog_color: Color = Color(0.1, 0.3, 0.45)
 @export var ambient_fog_density: float = 0.02

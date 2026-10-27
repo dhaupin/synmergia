@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ThermalUpdraft" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/thermal_updraft.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "thermal_underworld_vent_flow"
+display_name = "The Flow Vein"
+world_id = "underworld"
+kind = 0
+activation = 0
+zone_id = "zone_deep_root_camp"
+position = Vector3(-20, 2000, 28)
+radius = 8.0
+column_height = 60.0
+strength = 0.45
+launch_speed = 26.0
+feeds_thermal_id = ""
+lore = "The gentle vein: a smaller crack that exhales over the mycelium field. The Warden says the flow vein is the underworld's own breath -- slow, patient, and waking nobody."

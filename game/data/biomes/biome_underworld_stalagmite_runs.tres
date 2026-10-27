@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="BiomeBand" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/biome_band.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "biome_underworld_stalagmite_runs"
+display_name = "The Stalagmite Runs"
+world_id = "underworld"
+family = 3
+radius_inner_m = 18.0
+radius_outer_m = 64.0
+angular_offset = 1.57
+count = 14
+sub_count = 1
+collider_mode = "stone"
+palette_dark = Color(0.5, 0.48, 0.45, 1)
+palette_accent = Color(0.5, 0.48, 0.45, 1)
+palette_emission = Color(0.35, 0.8, 0.55, 1)
+emission_energy = 0.0
+clearance_m = 0.0
+lore = "Where the shell sweats, pale stone grows slow and patient: fourteen spikes in sheltered lanes. Each stands as a wall a climber can own, not a shrub a body pushes through -- the shell's patience is PropCollider law."

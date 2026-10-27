@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ThermalUpdraft" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/thermal_updraft.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "thermal_ascent_thrower"
+display_name = "The Ascent Thrower"
+world_id = "underworld"
+kind = 1
+activation = 1
+zone_id = "zone_deep_root_camp"
+position = Vector3(4, 2000, 4)
+radius = 5.0
+column_height = 90.0
+strength = 0.0
+launch_speed = 30.0
+feeds_thermal_id = "thermal_underworld_vent_east"
+lore = "The ancients built one door out of the Deep Root and one throw up to it: a stone ring by the Ascent that hurls a wake rider into the deep dark, where the wings catch the East Stack and ride the wall's own currents. It sleeps until the shard says the mystery moves -- the underworld's launcher, dormant like every other piece of the old machine (prd-mystery land)."

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="BiomeBand" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/biome_band.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "biome_underworld_odd_grasses"
+display_name = "The Dark Meadow"
+world_id = "underworld"
+family = 4
+radius_inner_m = 16.0
+radius_outer_m = 70.0
+angular_offset = 0.13
+count = 36
+sub_count = 3
+collider_mode = "paint"
+palette_dark = Color(0.4, 0.62, 0.42, 1)
+palette_accent = Color(0.4, 0.62, 0.42, 1)
+palette_emission = Color(0.35, 0.8, 0.55, 1)
+emission_energy = 0.7
+clearance_m = 0.0
+lore = "The Deep Root's one honest soft edge: odd luminous grasses scattered through every band, thin as needles and gentle as a promise. The dark meadow has no other purpose than to be walked through -- grass never blocks a foot."

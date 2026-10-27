@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="BiomeBand" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/biome_band.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "biome_underworld_dead_grove"
+display_name = "The Dead Grove"
+world_id = "underworld"
+family = 1
+radius_inner_m = 34.0
+radius_outer_m = 48.0
+angular_offset = 2.1
+count = 7
+sub_count = 2
+collider_mode = "stone"
+palette_dark = Color(0.16, 0.13, 0.11, 1)
+palette_accent = Color(0.16, 0.13, 0.11, 1)
+palette_emission = Color(0.35, 0.8, 0.55, 1)
+emission_energy = 0.0
+clearance_m = 0.0
+lore = "The green world's bones: seven charcoal trunks standing where a forest once had a claim. The Deep Root keeps them bare -- no light under the strata feeds leaves, and the Warden finds bare forks more honest than fake color."

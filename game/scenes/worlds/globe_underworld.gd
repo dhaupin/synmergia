@@ -31,6 +31,7 @@ const PLAYER_SKIN: float = 1.0
 const GLOW_TIDE_PERIOD_DAYS: float = 1.0
 
 const WorldRegistryScript = preload("res://core/frame/srv/world_registry.gd")
+const ResourceScan = preload("res://core/frame/srv/resource_scan.gd")
 
 var world_root: Node3D
 var planet_center: Vector3 = Vector3.ZERO
@@ -65,6 +66,8 @@ func _ready() -> void:
 	_build_deep_light()
 	_build_camp()
 	_build_cistern()
+	_build_lava_lake()
+	_build_trail()
 	_build_wilds()
 	_build_ascent_gate()
 	_build_return_gate()
@@ -197,6 +200,15 @@ func _process(_delta: float) -> void:
 		_cistern_water_mat.emission_energy_multiplier = tide
 	if _cistern_stone_mat != null:
 		_cistern_stone_mat.emission_energy_multiplier = 0.18 * cistern_glow(_glow_tide_phase())
+	## The lava lake burns with its own steady pulse riding the same
+	## tide (the underworld's one clock, honest: the melt licks
+	## brightest at the crest, surliest at the low tide).
+	if _lava_mat != null:
+		_lava_mat.emission_energy_multiplier = 1.1 + 0.4 * cistern_glow(_glow_tide_phase())
+	## THE WEATHER LAW: the strata mist density is the same closed
+	## form, read per frame (no accumulation, no drift).
+	if _world_env != null:
+		_world_env.fog_density = weather_mist(_glow_tide_phase())
 	## THE SWIM DELIVERY (the cistern's law, live): bodies the underworld
 	## hosts tick through OceanService so the pool's water is REAL -- the
 	## breath clock, the bands, and the water_entered credit signal
@@ -204,13 +216,54 @@ func _process(_delta: float) -> void:
 	## Positions are world_root-local (the volume data's planet truth).
 	if not _visitors.is_empty():
 		var ocean = get_node_or_null("/root/OceanService")
+		var thermo = get_node_or_null("/root/ThermalService")
 		if ocean != null:
 			for pid in _visitors:
 				var body = _visitors[pid]
 				if body == null or not is_instance_valid(body):
 					continue
-				ocean.tick_swimmer(str(pid), \
-					body.global_position - world_root.global_position, _delta)
+				var local: Vector3 = body.global_position - world_root.global_position
+				var r: Dictionary = ocean.tick_swimmer(str(pid), local, _delta)
+				# THE BURN LAW: a lava volume bites in WHOLE digits. The
+				# accrual pool rounds the dirty float flow so a body dips
+				# for damage honestly and leaves for free.
+				var burn: float = float(r.get("burn_dps", 0.0))
+				if burn > 0.0 and int(r.get("band", 0)) != 0:  # band 0 = DRY
+					var owe: float = float(_burn_pool.get(pid, 0.0)) + burn * _delta
+					if owe >= 1.0:
+						var hit := int(floorf(owe))
+						if body.has_method("take_damage"):
+							body.take_damage(hit, null, "burn")
+						owe -= float(hit)
+					# The debt BOOKS every frame (a fractional owe must
+					# survive across frames or the melt never draws its
+					# blood -- the one-frame reset bug the probe caught).
+					_burn_pool[pid] = owe
+				# THE CURRENT DRIFT: declared lava currents push the body
+				# a gentle half-strength while it stands IN the liquid
+				# (the ford pull law, water-frame flavor).
+				var drift: Vector3 = r.get("current", Vector3.ZERO)
+				if drift.length_squared() > 0.00001 and "velocity" in body:
+					body.velocity += drift * _delta * 0.5
+				# THE AIRFLOW LAW: the underworld answers the updraft books
+				# -- vents carry; the Ascent thrower HURLS (the launch
+				# ticket rides the same sample so a throw is never a hack).
+				if thermo != null:
+					var lift: float = float(thermo.sample(local, str(pid)))
+					if lift > 0.0 and "velocity" in body:
+						body.velocity.y += lift * _delta
+						thermo.record_glide_tick(str(pid), 0.0, \
+							local.y - _wilds_surface())
+
+
+## THE STRATA MIST (the underworld's weather law): warm fog density
+## as a pure closed form of the tide -- thick as the wall rests,
+## a whisper when the glow crest floods in. static so probes read the
+## band without booting the globe.
+static func weather_mist(phase: float) -> float:
+	var tide_norm: float = (cistern_glow(phase) - cistern_glow(0.5)) \
+		/ (cistern_glow(0.0) - cistern_glow(0.5))
+	return clampf(0.055 - 0.035 * tide_norm, 0.02, 0.055)
 
 
 ## Glow tide phase in [0, 1): one cycle per Synmergia day, phase 0 at
@@ -237,8 +290,16 @@ func _build_deep_light() -> void:
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	e.ambient_light_color = Color(0.25, 0.2, 0.16)
 	e.ambient_light_energy = 0.5
+	# THE STRATA MIST (the underworld's weather): warm fog that rides
+	# the glow tide -- the wall rests, the mist thickens (the law in
+	# _weather_mist). One clock, no second timer.
+	e.fog_enabled = true
+	e.fog_light_color = Color(0.35, 0.2, 0.14)
+	e.fog_density = weather_mist(0.0)
+	e.fog_sky_affect = 0.0
 	add_child(env)
 	env.environment = e
+	_world_env = e
 
 
 ## The Deep Root camp (S15.3): a strata-lit shelf with a hearth, the
@@ -250,6 +311,13 @@ const GLOW_SHARD_COUNT: int = 14
 
 var _cistern_water_mat: StandardMaterial3D = null
 var _cistern_stone_mat: StandardMaterial3D = null
+var _lava_mat: StandardMaterial3D = null
+var _world_env: Environment = null
+## Books for the underworld's live chemistry: burn pools (body -> the
+## floating accrual a lava dip pays out in whole damage ticks) and
+## the loaded biome-band declarations (resource id -> BiomeBand).
+var _burn_pool: Dictionary = {}
+var _bands: Dictionary = {}
 
 # THE DUSK-READ PALETTE (the cistern stone law): one shared vein-lit
 # wall material builds the whole ring (the glow law rides it per
@@ -376,12 +444,21 @@ func _cistern_piece(jug: Node3D, stone: MeshInstance3D) -> void:
 # golden-ratio spindle, the same discipline the camp shards use):
 # no seed, no RNG, so the Deep Root re-derives byte-identical.
 #
+# THE BAND LAW (biome data): the five bands are DECLARATIONS in
+# data/biomes/ (BiomeBand schema, world_id underworld) -- the
+# builders read count/radii/palette/colliders from the data and only
+# fall back to these literals when a declaration is missing. Changes
+# to the wilds are data edits, never code edits.
+#
 # Collider law: stones stand (PropCollider), grass and mycelium do
 # not (the walk-over law) -- a ballroom of colliders in the dark is
 # how you lose a player.
 const WILDS_INNER_M: float = 16.0
 const WILDS_OUTER_M: float = 70.0
 const STONE_VEINS: Color = Color(0.35, 0.8, 0.55)
+
+## THE LAKE SEAT: the Underglow Lake sits southeast of the cistern.
+const LAVA_LAKE_SEAT: Vector3 = Vector3(-26, 0, 20)
 
 ## The wilds seat in world_root-local planet coords: the walk line.
 func _wilds_surface() -> float:
@@ -404,28 +481,86 @@ func _build_wilds() -> void:
 	_build_mycelium_field(wilds, ground)
 	_build_stalagmite_runs(wilds, ground)
 	_build_odd_grasses(wilds, ground)
-	GameLog.info("GlobeUnderworld: the Deep Wilds dress the shelf (five bands, deterministic)")
+	GameLog.info("GlobeUnderworld: the Deep Wilds dress the shelf (%d bands, deterministic)" % _wire_bands().size())
+
+
+## THE BAND BOOK (data law, the biome_band schema): loads
+## data/biomes/*.tres and keeps only this world's declarations.
+## Idempotent; the family builders read count/radii/palette from it
+## and fall back to literals when a declaration is missing.
+func _wire_bands() -> Dictionary:
+	if not _bands.is_empty():
+		return _bands
+	# Property-contract check rather than an `is BandScript` type test:
+	# a runtime-loaded schema variable cannot serve as a type (the
+	# script-mode lesson), and the declaration's own fields are the
+	# contract the builders already depend on.
+	for p in ResourceScan.list_resources("res://data/biomes"):
+		var b: Resource = load(p)
+		if b == null or not ("world_id" in b) or not ("family" in b):
+			continue
+		if str(b.world_id) != WORLD_ID:
+			continue
+		_bands[str(b.id)] = b
+	return _bands
+
+
+## The band the family builder reads (null-safe; a missing .tres
+## falls back to the builder's literals -- no silent degenerate).
+func _band(id: String):
+	return _wire_bands().get(id)
+
+
+## Band palette resolves: null band (missing declaration) keeps the
+## literal the builder names.
+func _band_dark(band, fallback: Color) -> Color:
+	return band.palette_dark if band != null else fallback
+
+
+func _band_accent(band, fallback: Color) -> Color:
+	return band.palette_accent if band != null else fallback
+
+
+func _band_emission(band, fallback: Color) -> Color:
+	return band.palette_emission if band != null else fallback
+
+
+func _band_energy(band, fallback: float) -> float:
+	return float(band.emission_energy) if band != null else fallback
+
+
+## The band's seat radius: a pure spindle drift lerped across the
+## declaration's span (one input, one truth, re-derived identical).
+static func _band_span(drift: float, inner: float, outer: float) -> float:
+	return inner + (outer - inner) * drift
 
 
 ## THE CRAG RING: big dark rock prisms leaning against the glow. The
-## camp's two gates get a hard keep-clear (a crag never walls the
-## arrival in).
+## band declaration (biome_underworld_crag_ring) owns the count,
+## span, palette, and keeps-clear; the apron law says a crag never
+## walls the arrival in.
 func _build_crag_ring(wilds: Node3D, ground: float) -> void:
+	var band = _band("biome_underworld_crag_ring")
 	var crag_mat := StandardMaterial3D.new()
-	crag_mat.albedo_color = Color(0.14, 0.12, 0.16)
+	crag_mat.albedo_color = _band_dark(band, Color(0.14, 0.12, 0.16))
 	crag_mat.roughness = 1.0
 	var vein_mat := StandardMaterial3D.new()
-	vein_mat.albedo_color = Color(0.2, 0.18, 0.23)
+	vein_mat.albedo_color = _band_accent(band, Color(0.2, 0.18, 0.23))
 	vein_mat.emission_enabled = true
-	vein_mat.emission = STONE_VEINS
-	vein_mat.emission_energy_multiplier = 0.5
-	for i in range(12):
-		var a: float = TAU * float(i) / 12.0 + 0.27
-		var rad: float = WILDS_INNER_M + 6.0 + 8.0 * _wilds_drift(i, 1.0)
+	vein_mat.emission = _band_emission(band, STONE_VEINS)
+	vein_mat.emission_energy_multiplier = _band_energy(band, 0.5)
+	var total: int = 12 if band == null else band.seat_count()
+	var inner: float = 22.0 if band == null else band.radius_inner_m
+	var outer: float = 34.0 if band == null else band.radius_outer_m
+	var phase: float = 0.27 if band == null else band.angular_offset
+	var apron: float = 6.0 if band == null else maxf(band.clearance_m, 0.01)
+	for i in range(total):
+		var a: float = TAU * float(i) / float(total) + phase
+		var rad: float = _band_span(_wilds_drift(i, 1.0), inner, outer)
 		var seat := CAMP_HEAD_POS + Vector3(cos(a) * rad, 0.0, sin(a) * rad)
 		# The two gates and the cistern keep their aprons clear.
-		if seat.distance_to(CAMP_HEAD_POS + Vector3(4.0, 0.0, 4.0)) < 6.0 \
-				or seat.distance_to(CAMP_HEAD_POS + Vector3(-4.0, 0.0, 4.0)) < 6.0 \
+		if seat.distance_to(CAMP_HEAD_POS + Vector3(4.0, 0.0, 4.0)) < apron \
+				or seat.distance_to(CAMP_HEAD_POS + Vector3(-4.0, 0.0, 4.0)) < apron \
 				or (Vector3(seat.x, 0.0, seat.z) - Vector3(12.0, 0.0, 0.0)).length() < 8.0:
 			continue
 		var crag := MeshInstance3D.new()
@@ -441,16 +576,21 @@ func _build_crag_ring(wilds: Node3D, ground: float) -> void:
 		PropCollider.attach(crag)
 
 
-## THE DEAD GROVE: charcoal trunks and bare branch forks -- the green
-## world's bones pointing at the strata (no leaves: the Deep Root has
-## no light to feed them).
+## THE DEAD GROVE: charcoal trunks and bare branch forks -- the band
+## declaration owns the count, span, palette, and the fork count.
 func _build_dead_grove(wilds: Node3D, ground: float) -> void:
+	var band = _band("biome_underworld_dead_grove")
 	var bark_mat := StandardMaterial3D.new()
-	bark_mat.albedo_color = Color(0.16, 0.13, 0.11)
+	bark_mat.albedo_color = _band_dark(band, Color(0.16, 0.13, 0.11))
 	bark_mat.roughness = 1.0
-	for i in range(7):
-		var a: float = TAU * float(i) / 7.0 + 2.1
-		var rad: float = 34.0 + 14.0 * _wilds_drift(i, 11.0)
+	var total: int = 7 if band == null else band.seat_count()
+	var forks: int = 2 if band == null else maxi(band.sub_count, 0)
+	var inner: float = 34.0 if band == null else band.radius_inner_m
+	var outer: float = 48.0 if band == null else band.radius_outer_m
+	var phase: float = 2.1 if band == null else band.angular_offset
+	for i in range(total):
+		var a: float = TAU * float(i) / float(total) + phase
+		var rad: float = _band_span(_wilds_drift(i, 11.0), inner, outer)
 		var seat := CAMP_HEAD_POS + Vector3(cos(a) * rad, 0.0, sin(a) * rad)
 		var h: float = 5.0 + 3.0 * _wilds_drift(i, 12.0)
 		var trunk := MeshInstance3D.new()
@@ -465,8 +605,8 @@ func _build_dead_grove(wilds: Node3D, ground: float) -> void:
 		trunk.rotation = Vector3(0.05 * _wilds_drift(i, 13.0) - 0.025, a, 0.09 * _wilds_drift(i, 14.0) - 0.045)
 		wilds.add_child(trunk)
 		PropCollider.attach(trunk)
-		# One bare fork: two thin boxes splintering off the crown.
-		for f in range(2):
+		#a bare fork per sub_count: thin boxes splintering off the crown.
+		for f in range(forks):
 			var fork := MeshInstance3D.new()
 			var bm := BoxMesh.new()
 			bm.size = Vector3(0.12, 1.6 + 0.8 * _wilds_drift(i, 15.0 + float(f)), 0.12)
@@ -478,24 +618,32 @@ func _build_dead_grove(wilds: Node3D, ground: float) -> void:
 
 
 ## THE MYCELIUM FIELD: low glow caps pooled between the crags -- the
-## underworld's understory light (the strata feeds the shelf and the
-## fungi answer). No collider (walk-over paint).
+## band declaration owns count, span, palette, and the cap count per
+## seat. Walk-over paint: the caps never block a boot.
 func _build_mycelium_field(wilds: Node3D, ground: float) -> void:
+	var band = _band("biome_underworld_mycelium_field")
+	var base: Color = _band_dark(band, Color(0.45, 0.6, 0.5))
+	base.a = 0.85
 	var cap_mat := StandardMaterial3D.new()
 	cap_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	cap_mat.albedo_color = Color(0.45, 0.6, 0.5, 0.85)
+	cap_mat.albedo_color = base
 	cap_mat.emission_enabled = true
-	cap_mat.emission = Color(0.25, 0.75, 0.65)
-	cap_mat.emission_energy_multiplier = 0.8
-	for i in range(9):
-		var a: float = TAU * float(i) / 9.0 + 0.9
-		var rad: float = 22.0 + 40.0 * _wilds_drift(i, 21.0)
+	cap_mat.emission = _band_emission(band, Color(0.25, 0.75, 0.65))
+	cap_mat.emission_energy_multiplier = _band_energy(band, 0.8)
+	var total: int = 9 if band == null else band.seat_count()
+	var caps: int = 3 if band == null else maxi(band.sub_count, 1)
+	var inner: float = 22.0 if band == null else band.radius_inner_m
+	var outer: float = 62.0 if band == null else band.radius_outer_m
+	var phase: float = 0.9 if band == null else band.angular_offset
+	for i in range(total):
+		var a: float = TAU * float(i) / float(total) + phase
+		var rad: float = _band_span(_wilds_drift(i, 21.0), inner, outer)
 		var seat := CAMP_HEAD_POS + Vector3(cos(a) * rad, 0.0, sin(a) * rad)
 		var host := Node3D.new()
 		host.name = "MyceliumClump_%d" % i
 		host.position = seat
 		wilds.add_child(host)
-		for c in range(3):
+		for c in range(caps):
 			var cap := MeshInstance3D.new()
 			var dome := SphereMesh.new()
 			dome.radius = 0.35 + 0.3 * _wilds_drift(i * 4 + c, 22.0)
@@ -509,15 +657,20 @@ func _build_mycelium_field(wilds: Node3D, ground: float) -> void:
 
 
 ## THE STALAGMITE RUNS: pale stone spikes growing where the shell
-## sweats. Short runs in sheltered lanes, PropCollider so a spike is
-## a wall you climb, not a shrub you push through.
+## sweats -- the band declaration owns count, span, palette; each
+## spike is a wall you climb (PropCollider), never a shrub you push.
 func _build_stalagmite_runs(wilds: Node3D, ground: float) -> void:
+	var band = _band("biome_underworld_stalagmite_runs")
 	var spike_mat := StandardMaterial3D.new()
-	spike_mat.albedo_color = Color(0.5, 0.48, 0.45)
+	spike_mat.albedo_color = _band_dark(band, Color(0.5, 0.48, 0.45))
 	spike_mat.roughness = 0.8
-	for i in range(14):
-		var a: float = TAU * float(i) / 14.0 + 1.57
-		var rad: float = 18.0 + 46.0 * _wilds_drift(i, 31.0)
+	var total: int = 14 if band == null else band.seat_count()
+	var inner: float = 18.0 if band == null else band.radius_inner_m
+	var outer: float = 64.0 if band == null else band.radius_outer_m
+	var phase: float = 1.57 if band == null else band.angular_offset
+	for i in range(total):
+		var a: float = TAU * float(i) / float(total) + phase
+		var rad: float = _band_span(_wilds_drift(i, 31.0), inner, outer)
 		var seat := CAMP_HEAD_POS + Vector3(cos(a) * rad, 0.0, sin(a) * rad)
 		var h: float = 0.9 + 2.2 * _wilds_drift(i, 32.0)
 		var spike := MeshInstance3D.new()
@@ -534,24 +687,30 @@ func _build_stalagmite_runs(wilds: Node3D, ground: float) -> void:
 		PropCollider.attach(spike)
 
 
-## THE ODD GRASSES: thin luminous blades scattered through every band
-## (the dark meadow: the Deep Root's one honest soft edge). Paint
-## only -- the walk-over law says grass never blocks a foot.
+## THE ODD GRASSES: thin luminous blades across every band (the dark
+## meadow, the band declaration owns count, span, palette, and blade
+## count per tuft). Paint only: grass never blocks a foot.
 func _build_odd_grasses(wilds: Node3D, ground: float) -> void:
+	var band = _band("biome_underworld_odd_grasses")
 	var blade_mat := StandardMaterial3D.new()
-	blade_mat.albedo_color = Color(0.4, 0.62, 0.42)
+	blade_mat.albedo_color = _band_dark(band, Color(0.4, 0.62, 0.42))
 	blade_mat.emission_enabled = true
-	blade_mat.emission = Color(0.35, 0.8, 0.55)
-	blade_mat.emission_energy_multiplier = 0.7
-	for i in range(36):
-		var a: float = TAU * float(i) / 36.0 + 0.13
-		var rad: float = WILDS_INNER_M + (WILDS_OUTER_M - WILDS_INNER_M) * _wilds_drift(i, 41.0)
+	blade_mat.emission = _band_emission(band, Color(0.35, 0.8, 0.55))
+	blade_mat.emission_energy_multiplier = _band_energy(band, 0.7)
+	var total: int = 36 if band == null else band.seat_count()
+	var blades: int = 3 if band == null else maxi(band.sub_count, 1)
+	var inner: float = WILDS_INNER_M if band == null else band.radius_inner_m
+	var outer: float = WILDS_OUTER_M if band == null else band.radius_outer_m
+	var phase: float = 0.13 if band == null else band.angular_offset
+	for i in range(total):
+		var a: float = TAU * float(i) / float(total) + phase
+		var rad: float = _band_span(_wilds_drift(i, 41.0), inner, outer)
 		var seat := CAMP_HEAD_POS + Vector3(cos(a) * rad, 0.0, sin(a) * rad)
 		var tuft := Node3D.new()
 		tuft.name = "WildGrass_%d" % i
 		tuft.position = seat
 		wilds.add_child(tuft)
-		for b in range(3):
+		for b in range(blades):
 			var blade := MeshInstance3D.new()
 			var bm := BoxMesh.new()
 			bm.size = Vector3(0.05, 0.4 + 0.5 * _wilds_drift(i * 3 + b, 42.0), 0.05)
@@ -776,6 +935,107 @@ func _build_return_gate() -> void:
 	_return_gate.set("dev_hatch", true)
 	_return_gate.position = CAMP_HEAD_POS + Vector3(-4.0, 0.0, 4.0)
 	world_root.add_child(_return_gate)
+
+
+## THE UNDERGLOW LAKE (S15.7, lava's turn in the water frame): where
+## the shell sweats magma. Water is DATA (data/oceans/
+## lava_underglow_lake.tres: LOCAL pool, surface 1999.6, floor
+## 1997.8, current drift east, LAVA 8 dps); this builder places the
+## STONE (a low curb ring -- step-over-able, honest) and the MOLTEN
+## disc (paint; physics stays in the volume).
+func _build_lava_lake() -> void:
+	var cald := Node3D.new()
+	cald.name = "UnderglowLake"
+	world_root.add_child(cald)
+	var ground: float = _wilds_surface()
+	var seat: Vector3 = CAMP_HEAD_POS + LAVA_LAKE_SEAT
+	var surface_y: float = ground - 0.4		# the melt line (data law 1999.6)
+	var rim_top: float = ground + 0.55		# a curb you step over, never climb
+	var inner_r: float = 9.0						# the lake's reach (the data law)
+	var ring_r: float = inner_r + 0.5
+	# THE CURB: 8 low arcs; stepping over the rim is a step, not a
+	# climb (the lava bite is choice-shaped, not gate-shaped).
+	var curb_len: float = TAU * ring_r / 8.0 + 0.2
+	var curb_h: float = rim_top - (surface_y + 0.6)
+	for i in range(8):
+		var a: float = TAU * float(i) / 8.0 + 0.35
+		var curb := MeshInstance3D.new()
+		var mesh := BoxMesh.new()
+		mesh.size = Vector3(0.9, curb_h, curb_len)
+		# THE SHARED VEIN WALL carries the curb too (one stone law).
+		mesh.material = _cistern_wall_material()
+		curb.mesh = mesh
+		curb.name = "LakeCurb_%d" % i
+		curb.position = seat + Vector3(cos(a) * ring_r, surface_y + 0.6 + curb_h * 0.5, sin(a) * ring_r)
+		curb.rotation.y = -a
+		cald.add_child(curb)
+		PropCollider.attach(curb)
+	# THE MELT: one self-lit disc, emission riding the tide per frame
+	# (see _process's lava rider). NO collider on the liquid: the swim
+	# law reads the OceanVolume; the disc is only paint.
+	var melt := MeshInstance3D.new()
+	var melt_mesh := CylinderMesh.new()
+	melt_mesh.top_radius = inner_r
+	melt_mesh.bottom_radius = inner_r + 0.6
+	melt_mesh.height = 0.5
+	melt.mesh = melt_mesh
+	melt.name = "LakeMelt"
+	melt.position = seat + Vector3(0, surface_y + 0.25, 0)
+	melt.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var lmat := StandardMaterial3D.new()
+	lmat.albedo_color = Color(0.55, 0.12, 0.02)
+	lmat.roughness = 0.35
+	lmat.emission_enabled = true
+	lmat.emission = Color(1.0, 0.35, 0.03)
+	lmat.emission_energy_multiplier = 1.1 + 0.4 * cistern_glow(_glow_tide_phase())
+	melt_mesh.material = lmat
+	_lava_mat = lmat
+	cald.add_child(melt)
+	GameLog.info("GlobeUnderworld: the Underglow Lake pools at (%.0f, %.0f) -- the melt licks east" % [seat.x, seat.z])
+
+
+## THE DEEP TRAIL (the underworld's roads): flat stone plates the
+## walk line -- one leg camp -> cistern, one leg cistern -> the
+## lake overlook (which stops four meters short of the curb: nobody
+## stumbles into the melt by accident). Plates are walk-over paint
+## (flat stone, no colliders), pure index math, byte-stable.
+func _build_trail() -> void:
+	var path := Node3D.new()
+	path.name = "DeepTrail"
+	world_root.add_child(path)
+	var ground: float = _wilds_surface()
+	var plate_mat := StandardMaterial3D.new()
+	plate_mat.albedo_color = Color(0.2, 0.18, 0.21)
+	plate_mat.roughness = 0.9
+	plate_mat.emission_enabled = true
+	plate_mat.emission = STONE_VEINS
+	plate_mat.emission_energy_multiplier = 0.08
+	var cistern_seat: Vector3 = CAMP_HEAD_POS + Vector3(12.0, 0.0, 0.0)
+	var lake_overlook: Vector3 = CAMP_HEAD_POS + LAVA_LAKE_SEAT \
+		+ (Vector3(26.0, 0.0, -20.0).normalized() * 13.0)
+	var legs := [cistern_seat + Vector3(2.4, 0.0, 1.2), lake_overlook]
+	var leg_t := 0
+	for leg in legs:
+		leg_t += 1
+		var steps: int = 16
+		for i in range(steps):
+			var t: float = float(i) / float(steps)
+			var stop: Vector3 = (leg as Vector3) + Vector3(0, 0, 0)
+			var start: Vector3 = CAMP_HEAD_POS if leg_t == 1 \
+				else (legs[0] as Vector3)
+			var seat: Vector3 = start.lerp(stop, t)
+			var plate := MeshInstance3D.new()
+			var mesh := CylinderMesh.new()
+			mesh.top_radius = 0.9 + 0.18 * _wilds_drift(i * 3 + leg_t, 51.0)
+			mesh.bottom_radius = mesh.top_radius + 0.2
+			mesh.height = 0.14
+			mesh.material = plate_mat
+			plate.mesh = mesh
+			plate.name = "TrailPlate_%d_%d" % [leg_t, i]
+			plate.position = seat + Vector3(0, ground + 0.07, 0)
+			plate.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			path.add_child(plate)
+	GameLog.info("GlobeUnderworld: the Deep Trail lays its two legs (camp to cistern to the lake overlook)")
 
 
 func _moon_data():
