@@ -812,6 +812,59 @@ func update_targetable_node(entity_id: String, new_node: Node) -> void:
 func get_targetable(entity_id: String) -> Dictionary:
 	return _targetables.get(entity_id, {})
 
+## Nearest registered targetable of one of EXACT entity types, within
+## max_range of from_position. THE WALK-UP resolver the Interact
+## action (E / ACT button / menu) uses: it answers "what is directly
+## beside me that I could press a button at", independent of the
+## camera ray. Live nodes report their transform; registry positions
+## cover static targetables. Returns a ready TargetInfo (node,
+## npc_data ingested for NPCs) or null.
+func get_nearest_targetable_by_types(from_position: Vector3,
+		types: Array[int], max_range: float) -> TargetInfo:
+	var best_data: Dictionary = {}
+	var best_d := max_range
+	for entity_id in _targetables:
+		var data: Dictionary = _targetables[entity_id]
+		if not types.has(int(data.get("entity_type", 0))):
+			continue
+		# UNTYPED read: a despawned targetable sits in the registry as a
+		# freed reference, and a Node-typed assignment of a freed
+		# instance errors before any guard can run. The validity check
+		# below then skips it.
+		var node = data.get("node", null)
+		if node == null or not is_instance_valid(node):
+			continue
+		var pos: Vector3 = data.get("position", Vector3.ZERO)
+		if node is Node3D:
+			pos = (node as Node3D).global_position
+		var d := from_position.distance_to(pos)
+		if d < best_d:
+			best_d = d
+			best_data = {"id": entity_id, "data": data, "position": pos}
+	if best_data.is_empty():
+		return null
+	var data: Dictionary = best_data["data"]
+	var info := TargetInfo.new()
+	info.id = str(best_data["id"])
+	info.schema_id = str(data.get("schema_id", ""))
+	info.entity_type = int(data.get("entity_type", 0))
+	info.display_name = str(data.get("name", info.id))
+	info.position = best_data["position"]
+	info.world_position = best_data["position"]
+	info.node = null
+	var reg_node = data.get("node", null)
+	if reg_node != null and is_instance_valid(reg_node):
+		info.node = reg_node
+	var schema: Variant = get_schema(info.schema_id)
+	if schema:
+		info.actions = schema.available_actions
+		info.highlight_color = schema.highlight_color
+		info.highlight_size = schema.highlight_size
+	if info.entity_type == Entity.EntityType.NPC and info.node != null \
+			and "npc_data" in info.node:
+		info.npc_data = info.node.npc_data
+	return info
+
 ## Get all targetables of a type
 func get_targetables_by_type(entity_type: int) -> Array:
 	var results = []

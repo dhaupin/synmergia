@@ -594,7 +594,7 @@ func _on_interaction_long_press(position: Vector2) -> void:
 	if camera:
 		var target_info: Variant = _tm().raycast_from_touch(position, camera)
 		if target_info:
-			_show_target_context_menu(target_info)
+			_show_target_context_menu(target_info, position)
 
 ## Handle action triggers from _il()
 func _on_interaction_action(action_name: String) -> void:
@@ -626,45 +626,56 @@ func _target_self() -> void:
 	)
 	is_targeting = false  # Self-target doesn't enable targeting mode
 
-## Show target context menu
-func _show_target_context_menu(target_info: _tm_script.TargetInfo) -> void:
+## Show target context menu. `at` positions the menu explicitly (the
+## Interact path centers it on the viewport so touch/gamepad presses
+## -- no live mouse cursor -- still land the menu on screen); the
+## default keeps the long-press raycast behavior at the cursor.
+func _show_target_context_menu(target_info: _tm_script.TargetInfo, at := Vector2(-1.0, -1.0)) -> void:
 	match target_info.entity_type:
 		Entity.EntityType.PLAYER:
-			_show_player_context_menu(target_info)
+			_show_player_context_menu(target_info, at)
 		Entity.EntityType.NPC:
-			_show_npc_context_menu(target_info)
+			_show_npc_context_menu(target_info, at)
 		Entity.EntityType.LOOT:
-			_show_loot_context_menu(target_info)
+			_show_loot_context_menu(target_info, at)
 		Entity.EntityType.TELEPORT:
-			_show_gateway_context_menu(target_info)
+			_show_gateway_context_menu(target_info, at)
 
-func _show_npc_context_menu(target_info: _tm_script.TargetInfo) -> void:
+func _menu_pos(at: Vector2) -> Vector2:
+	# The Interact path passes no cursor: center the menu so it opens
+	# in the middle of the screen instead of a stale touch corner.
+	var pos := get_viewport().get_visible_rect().size * 0.5
+	if at.x >= 0.0:
+		pos = at
+	return pos
+
+func _show_npc_context_menu(target_info: _tm_script.TargetInfo, at := Vector2(-1.0, -1.0)) -> void:
 	if not _action_menu:
 		_action_menu = ActionMenu.new()
 		add_child(_action_menu)
 		_action_menu.action_selected.connect(_on_context_action)
-	_action_menu.show_menu(get_viewport().get_mouse_position(), target_info.id, target_info.entity_type, target_info.npc_data)
+	_action_menu.show_menu(_menu_pos(at), target_info.id, target_info.entity_type, target_info.npc_data)
 
-func _show_loot_context_menu(target_info: _tm_script.TargetInfo) -> void:
+func _show_loot_context_menu(target_info: _tm_script.TargetInfo, at := Vector2(-1.0, -1.0)) -> void:
 	if not _action_menu:
 		_action_menu = ActionMenu.new()
 		add_child(_action_menu)
 		_action_menu.action_selected.connect(_on_context_action)
-	_action_menu.show_menu(get_viewport().get_mouse_position(), target_info.id, target_info.entity_type)
+	_action_menu.show_menu(_menu_pos(at), target_info.id, target_info.entity_type)
 
-func _show_gateway_context_menu(target_info: _tm_script.TargetInfo) -> void:
+func _show_gateway_context_menu(target_info: _tm_script.TargetInfo, at := Vector2(-1.0, -1.0)) -> void:
 	if not _action_menu:
 		_action_menu = ActionMenu.new()
 		add_child(_action_menu)
 		_action_menu.action_selected.connect(_on_context_action)
-	_action_menu.show_menu(get_viewport().get_mouse_position(), target_info.id, target_info.entity_type)
+	_action_menu.show_menu(_menu_pos(at), target_info.id, target_info.entity_type)
 
-func _show_player_context_menu(target_info) -> void:
+func _show_player_context_menu(target_info, at := Vector2(-1.0, -1.0)) -> void:
 	if not _action_menu:
 		_action_menu = ActionMenu.new()
 		add_child(_action_menu)
 		_action_menu.action_selected.connect(_on_context_action)
-	_action_menu.show_menu(get_viewport().get_mouse_position(), target_info.id, target_info.entity_type)
+	_action_menu.show_menu(_menu_pos(at), target_info.id, target_info.entity_type)
 
 func _on_context_action(action_id: String, target_id: String) -> void:
 	match action_id:
@@ -1267,6 +1278,41 @@ func _on_player_input(action: String, pressed: bool) -> void:
 				var slot := int(action.replace("ability_", "")) - 1
 				use_skill(slot)
 
+## THE INTERACT MENU (the missing loop beat): walk up to an NPC or a
+## gate, press E / ACT / left-click -- the press TARGETS the nearest
+## interactable still in range (a live Tab target in range wins) and
+## opens ITS action menu centered on the screen. Picks up the whole
+## context fan-out the long-press menu already drives, so a gate
+## enters and the NPC offers Talk/Quests/Trade/Blacksmith from one
+## consistent resolve. Returns true when a menu opened.
+func _try_target_context_interact() -> bool:
+	var tm := _tm()
+	if tm == null:
+		return false
+	var types: Array[int] = [Entity.EntityType.NPC, Entity.EntityType.TELEPORT]
+	var info = tm.get_nearest_targetable_by_types(global_position, types, INTERACT_MENU_RANGE)
+	var cur = tm.get_current_target()
+	if cur != null and types.has(cur.entity_type):
+		# A live Tab/quick target in range outranks the nearest scan --
+		# the player SAID who they meant.
+		if is_instance_valid(cur.node) and cur.node is Node3D \
+				and global_position.distance_to((cur.node as Node3D).global_position) <= INTERACT_MENU_RANGE:
+			if "npc_data" in cur.node:
+				cur.npc_data = cur.node.npc_data
+			info = cur
+	if info == null:
+		return false
+	if cur == null or cur.id != info.id:
+		tm.set_target(
+			info.id, info.schema_id, info.display_name, info.world_position,
+			info.node, info.entity_type, info.metadata)
+		info = tm.get_current_target()
+	is_targeting = true
+	_show_target_context_menu(info)
+	return true
+
+const INTERACT_MENU_RANGE := 6.0
+
 ## Interact (E / F / gamepad A / right-click): pick up the nearest
 ## ground drop in range, else use a nearby PLACED station (the
 ## walk-up-and-press law: DwellingService.resolve_nearby_station is
@@ -1280,6 +1326,11 @@ func _try_interact() -> void:
 		var picked: Array = _ground_loot().try_pickup(self)
 		if not picked.is_empty():
 			return
+	# THE ACTION MENU first for NPCs/gates in arm's reach: this is the
+	# walk-up-and-press loop beat the long-press raycast never carried
+	# (no cursor needed -- near-est-in-range resolve + centered menu).
+	if _try_target_context_interact():
+		return
 	if _use_nearby_placed_station():
 		return
 	_open_nearby_ship_dock()

@@ -7255,3 +7255,38 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
   GATES after the audit wave: AUDIT-OK (42), COMMONS-OK (18),
      underworld 44, ocean 44, CISTERN-OK, WILDS-OK, LIGHT-OK, swim
      bridge 10/0, naming lint 25/0, lint 36/0, packs 8 green.
+- INTERACTION v23: THE TARGET-ACTION LOOP SHIPPED -- the missing game-
+     loop beat (walk up to an NPC/gate, press action, interact) is now
+     WIRED END TO END. Pipeline truth: E (keybind "interact" via
+     InputManager.player_input), the touch ACT button (VirtualJoystick
+     button_pressed -> _on_virtual_button_pressed -> the same
+     player_input), and desktop left-click all converge on
+     PlayerController._on_player_input -> _try_interact -- but
+     _try_interact only knew loot/stations/ankhs/doors, and NPC/gate
+     menus were trapped behind the long-press RAYCAST (a camera
+     cursor). Built the walk-up resolver:
+       * TargetingManager.get_nearest_targetable_by_types(from, types,
+         max_range): registry scan over EXACT entity types (NPC,
+         TELEPORT), live Node3D transforms, freed-node skip (untyped
+         read first -- a Node-TYPED read of a freed instance errors
+         before any guard), npc_data ingested into the TargetInfo.
+       * PlayerController._try_target_context_interact(): an IN-RANGE
+         live target (Tab/F2 result) outranks the nearest scan (the
+         player SAID who they meant); otherwise nearest-in-6m;
+         sets the target through the ONE tm.set_target path (history +
+         highlight + tooltip all stay true) and opens the context menu
+         CENTERED (no cursor needed). Long-press keeps cursor truth
+         (the _show_*_context_menu family now takes an optional `at`).
+       * _try_interact order: ground loot first (unchanged), NPC/gate
+         action menu second (NEW), placed stations/ankhs after.
+     RECEIPT: tests/test_interaction_pipeline.gd gained the loop cases
+     via an ASYNC runner (the world boot registers the player ~2 s
+     after the NPC spawn, so the runner waits for the player, then
+     drives NPC / gate / range stages): menu opens on the press edge,
+     NPC targeted by proximity + full offering menu (Talk/Trade/
+     Quests/Bank/Skill Academy/Blacksmith/Craft), dungeon-portal gate
+     targeted + Enter offered, 40 m out opens NOTHING and targets
+     NOTHING, 0 script errors. 19 passed / 2 failed -- the 2 are the
+     PRE-EXISTING headless guest-click journey failures (confirmed
+     identical on stash; the test's documented runner is xvfb-run).
+  GATES: interact loop 9/9 new checks, lint 36/0, naming 25/0.

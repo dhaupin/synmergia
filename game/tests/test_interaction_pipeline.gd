@@ -43,7 +43,8 @@ func _initialize() -> void:
 		[7.8, _c_ground_loot],
 		[8.6, _c_targeting],
 		[9.4, _c_context_menu_items],
-		[10.2, _c_summary],
+		[10.2, _c_interact_runner],
+		[22.0, _c_summary],
 	]
 
 func _ok(label: String, cond: bool, detail: String = "") -> void:
@@ -307,6 +308,157 @@ func _c_context_menu_items() -> void:
 	_ok("menu shows Talk for dialogue NPC", has_talk, "(items=%s)" % str(item_texts))
 	menu_instance.close()
 	menu_instance.queue_free()
+
+## THE WALK-UP-AND-PRESS LOOP runner. The world boot is ASYNC (player
+## registration lands a couple of seconds after the NPC spawn, see the
+## round-22 audit), so the three cases wait for the player BEFORE the
+## presses fire instead of trusting a fixed schedule gap.
+var _interact_ran := false
+
+func _c_interact_runner() -> void:
+	if _interact_ran:
+		return
+	_interact_ran = true
+	var waited := 0.0
+	while _player() == null and waited < 8.0:
+		await process_frame
+		waited += 1.0 / 60.0
+	if _player() == null:
+		_ok("player booted for the interact run", false)
+		return
+	await _c_interact_menu_npc()
+	await _c_interact_menu_gate()
+	await _c_interact_range()
+
+## THE WALK-UP-AND-PRESS LOOP (E / ACT button -> menu): put the player
+## beside an NPC, fire the REAL _on_player_input path the E key and
+## the touch ACT button both converge on, and expect the nearest NPC
+## targeted + ITS action menu shown centered (no cursor needed).
+func _c_interact_menu_npc() -> void:
+	print("--- interact: walk up to NPC, press action ---")
+	var player := _player()
+	var tm := root.get_node_or_null("TargetingManager")
+	if player == null or tm == null:
+		_ok("player + TargetingManager present", false)
+		return
+	var npcs := _npcs_with_offering("dialogue")
+	if npcs.is_empty():
+		_ok("dialogue NPC available", false)
+		return
+	var npc: Node = npcs[0]
+	tm.clear_target()
+	# Stand IN range, beside the NPC (the walk-up part of the loop).
+	player.global_position = _npc_ground_pos(npc) + Vector3(1.5, 0, 0)
+	var before_menu: Node = player.get("_action_menu")
+	if before_menu != null and is_instance_valid(before_menu):
+		before_menu.hide()
+
+	# The shared press path: both E (player_input) and the ACT button
+	# land here. Fire the handler exactly as InputManager routes it
+	# (press edge, then the release edge a real button sends).
+	player._on_player_input("interact", true)
+	player._on_player_input("interact", false)
+	await process_frame
+	await process_frame
+
+	var menu: Node = player.get("_action_menu")
+	_ok("action menu opened via interact", menu != null and is_instance_valid(menu) and menu.visible)
+	var cur = tm.get_current_target()
+	_ok("NPC targeted by proximity", cur != null and str(cur.id) == str(npc.entity_id),
+		"(target=%s npc=%s)" % [str(cur.id if cur else "none"), str(npc.entity_id)])
+	var texts: Array = []
+	if menu != null and is_instance_valid(menu):
+		for btn in menu._item_buttons:
+			texts.append(str(btn.text))
+	var has_talk := false
+	for txt in texts:
+		if str(txt).contains("Talk"):
+			has_talk = true
+	_ok("menu offers Talk for the NPC", has_talk, "(items=%s)" % str(texts))
+	if menu != null and is_instance_valid(menu):
+		menu.hide()
+
+## A gate (registered TELEPORT targetable, e.g. the dungeon portal in
+## this scene) opens its Enter menu through the same resolve.
+func _c_interact_menu_gate() -> void:
+	print("--- interact: walk up to a gate, press action ---")
+	var player := _player()
+	var tm := root.get_node_or_null("TargetingManager")
+	if player == null or tm == null:
+		_ok("player + TargetingManager present", false)
+		return
+	var gates: Array = tm.get_targetables_by_type(32)  # Entity.EntityType.TELEPORT
+	if gates.is_empty():
+		_ok("gateway targetable present in scene", false)
+		return
+	var node: Node = tm.get_targetable(str(gates[0])).get("node", null)
+	if node == null or not is_instance_valid(node):
+		_ok("gateway node valid", false)
+		return
+	tm.clear_target()
+	player.global_position = (node as Node3D).global_position + Vector3(2.0, 0, 0)
+	var menu: Node = player.get("_action_menu")
+	if menu != null and is_instance_valid(menu):
+		menu.hide()
+
+	player._on_player_input("interact", true)
+	player._on_player_input("interact", false)
+	await process_frame
+	await process_frame
+
+	var cur = tm.get_current_target()
+	_ok("gate targeted by proximity", cur != null and str(cur.id) == str(gates[0]),
+		"(target=%s gate=%s)" % [str(cur.id if cur else "none"), str(gates[0])])
+	menu = player.get("_action_menu")
+	_ok("gate action menu opened", menu != null and is_instance_valid(menu) and menu.visible)
+	var texts: Array = []
+	if menu != null and is_instance_valid(menu):
+		for btn in menu._item_buttons:
+			texts.append(str(btn.text))
+	var has_enter := false
+	for txt in texts:
+		if str(txt).contains("Enter"):
+			has_enter = true
+	_ok("menu offers Enter for the gate", has_enter, "(items=%s)" % str(texts))
+	# Choose Enter? NO: a real activation warps the zone -- the menu
+	# itself is the beat under test. Close and leave the world intact.
+	if menu != null and is_instance_valid(menu):
+		menu.hide()
+	tm.clear_target()
+
+## Out of range: the resolver must NOT menu (or target) anything.
+func _c_interact_range() -> void:
+	print("--- interact: range respected ---")
+	var player := _player()
+	var tm := root.get_node_or_null("TargetingManager")
+	if player == null or tm == null:
+		_ok("player + TargetingManager present", false)
+		return
+	var npcs := _npcs_with_offering("dialogue")
+	if npcs.is_empty():
+		_ok("dialogue NPC available", false)
+		return
+	var npc: Node = npcs[0]
+	tm.clear_target()
+	var menu: Node = player.get("_action_menu")
+	if menu != null and is_instance_valid(menu):
+		menu.hide()
+
+	# 40 m out: beyond the 6 m interact arm.
+	player.global_position = _npc_ground_pos(npc) + Vector3(40, 0, 0)
+	player._try_interact()
+	await process_frame
+	await process_frame
+
+	menu = player.get("_action_menu")
+	var shown: bool = menu != null and is_instance_valid(menu) and menu.visible
+	_ok("out-of-range press opens no menu", not shown)
+	var cur = tm.get_current_target()
+	_ok("out-of-range press sets no target", cur == null or str(cur.id) == "")
+
+## NPCs anchor on the walk line; drop the probe onto their own Y.
+func _npc_ground_pos(npc: Node) -> Vector3:
+	return (npc as Node3D).global_position if npc is Node3D else Vector3.ZERO
 
 func _c_summary() -> void:
 	print("=== INTERACTION SUMMARY: %d passed, %d failed ===" % [_pass, _fail])
