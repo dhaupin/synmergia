@@ -7322,3 +7322,38 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
      The only stderr left in the run is the guest-click first-slam
      retry [DEBUG] line (click #2 succeeds; not a check).
   GATES: pipeline 27/0 x2 (exit 0), lint 36/0, naming 25/0.
+- LOOPS v25: THE GUEST-CLICK NOISE + THE UNWIRED-LOOPS CRAWL --
+     (a) the "first guest-click [FAIL] retry" was never a failure:
+     login.gd emitted TWO DebugOverlay.log_click markers per click
+     (entry false + post-dispatch true) so every SUCCESSFUL login
+     printed "[FAIL]..[OK]" noise. One honest log per click now:
+     [OK] after dispatch, [FAIL] only on a real dead end (validation
+     failure / service unavailable). (b) THE CRAWL (same method as
+     targeting): UI dead ends -- the player-target-menu "report"
+     action only GameLog'd (now routes through PlayerReporter.
+     submit_report ABUSE with the menu target, same path the admin
+     shell uses, so alerts + webhooks fire); trade add-item blindly
+     added the FIRST bag slot (now a real ItemList picker: one row
+     per tradeable slot with stack + rarity, callback-driven
+     AcceptDialog so cancel can not strand a suspended await);
+     vault_service GUILD/ACCOUNT vaults dead-ended on TODO helpers
+     returning "" (now wired: guild id via GuildService.
+     get_player_guild()["id"], account id via AccountService.
+     get_account_by_character()["id"]); close_vault fired a FALSE
+     vault_opened on close (removed -- zero listeners ever read it);
+     quest_service.accept-gate skipped min_level (the helper existed;
+     the 11 playable quests are all min_level 1, gate now enforced)
+     and the per-player load/save dead-ended in db-stubs (now wired
+     to the boot loader's living DictStore KV path quest:player:<id>
+     -- quest state survives a reload through the public API too;
+     stubs deleted). (c) THE SOLID BACKLOG (logged, not fixed):
+     188 service signals never fired AND/OR never have listeners
+     (notification/telemetry wallpaper -- a multi-round wire-up);
+     vent connector GET TODO + NetworkManager.disconnect TODO are
+     server/connector infra. All "stub" hits elsewhere are
+     duck-typing comments, not dead code. GATES: pipeline 27/0 exit
+     0 with zero script errors (also caught + fixed a _gamelog
+     casing typo that broke the vault autoload compile -- 9 script
+     errors on the intermediate run, clean after), lint 36/0, naming
+     25/0, quest gates all exit 0 (availability/daily/explore/swim),
+     login flow exit 0.

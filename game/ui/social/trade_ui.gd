@@ -452,12 +452,35 @@ func _get_available_items(inv) -> Array:
 	return available
 
 func _show_item_selection_dialog(items: Array) -> void:
-	# TODO: full item-picker popup (ItemList). For now add the first
-	# available item directly so the add-item button stays functional.
-	if items.is_empty():
-		show_notification("No items available to trade")
-		return
-	var entry: Dictionary = items[0]
+	# Item-picker popup: one row per tradeable bag slot (name, stack,
+	# rarity); OK adds the selected item. Same AcceptDialog idiom as
+	# the gold dialog, callback-driven so cancel can not strand a
+	# suspended handler.
+	var dialog := AcceptDialog.new()
+	dialog.title = "Add Item to Trade"
+	var list := ItemList.new()
+	list.custom_minimum_size = Vector2(340, 240)
+	for i in range(items.size()):
+		var item = items[i].get("item")
+		var label: String = str(item.get("display_name", str(item.get("id", "item")))) if item else "item"
+		var qty: String = str(item.get("quantity", 1)) if item and "quantity" in item else "1"
+		var rarity: String = str(item.get("rarity", "")) if item and "rarity" in item else ""
+		list.add_item("%s (x%s)%s" % [label, qty, "" if rarity == "" else " [%s]" % rarity])
+		list.set_item_metadata(i, i)
+	dialog.add_child(list)
+	add_child(dialog)
+	dialog.confirmed.connect(func() -> void:
+		var sel: Array = list.get_selected_items()
+		if not sel.is_empty():
+			_add_picker_item(items[int(sel[0])])
+		dialog.queue_free()
+	)
+	dialog.canceled.connect(func() -> void:
+		dialog.queue_free()
+	)
+	dialog.popup_centered()
+
+func _add_picker_item(entry: Dictionary) -> void:
 	var slot_idx: int = entry.get("slot", -1)
 	var item = entry.get("item")
 	if slot_idx < 0 or item == null or not _tradeservice():

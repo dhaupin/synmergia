@@ -263,31 +263,26 @@ func _on_item_picked_up_for_quest(entity, item) -> void:
 ## ============================================================================
 
 func load_player_quests(player_id: String) -> void:
-	# Try to load from database, fall back to empty state
-	var saved: Dictionary = _load_quests_from_db(player_id)
-	if saved.is_empty():
+	# The boot loader (_load_player_quests) reads the shared KV through
+	# the DictStore with the quest:player:<id> key; the former db-stub
+	# load returned {} and DISCARDED synced quest state. Read the same
+	# living path per-player (a db-backed specialization stays a
+	# later contract -- the adapter layer remains the only storage).
+	var store := DictStore.new()
+	var raw: Variant = store.get_value(_kv_prefix + player_id)
+	if raw is Dictionary and not (raw as Dictionary).is_empty():
+		_player_quests[player_id] = raw
+		_available_quests[player_id] = _get_available_quest_ids(player_id)
+	else:
 		_player_quests[player_id] = {}
 		_available_quests[player_id] = []
-	else:
-		_player_quests[player_id] = saved
-		_available_quests[player_id] = _get_available_quest_ids(player_id)
 	GameLog.debug("QuestService: Loaded quests for %s" % player_id)
 
-func _load_quests_from_db(player_id: String) -> Dictionary:
-	# TODO: Replace with actual database query
-	# Expected: SELECT quest_id, state, objectives, accepted_at, rewarded_at FROM player_quests WHERE player_id = ?
-	# For now, return empty to use in-memory storage
-	return {}
-
 func save_player_quests(player_id: String) -> void:
-	# TODO: Persist to database
-	# Expected: INSERT INTO player_quests (player_id, quest_id, state, objectives, accepted_at, rewarded_at)
-	#          ON CONFLICT (player_id, quest_id) DO UPDATE SET ...
-	_sync_quests_to_db(player_id, _player_quests.get(player_id, {}))
-
-func _sync_quests_to_db(player_id: String, quests: Dictionary) -> void:
-	# Stub for database persistence
-	pass
+	# The boot path's writer: the "sync to database" stub swallowed
+	# the call, so per-player quest state silently never persisted.
+	# Same KV the boot loader reads.
+	_persist_player_quests(player_id)
 
 func _get_available_quest_ids(player_id: String) -> Array:
 	# Return quest IDs that the player can accept
@@ -390,12 +385,12 @@ func check_quest_availability(player_id: String, quest_id: String) -> Dictionary
 			result.reason = "Already completed"
 			return result
 
-	# Check level requirements
-	# TODO: Get player level
-	# var player_level := _get_player_level(player_id)
-	# if player_level < quest.min_level:
-	#	result.reason = "Level too low (need %d)" % quest.min_level
-	#	return result
+	# Check level requirements (the helper exists and drives the
+	# availability roster already; the gate was left commented there).
+	var player_level := _get_player_level(player_id)
+	if player_level < quest.min_level:
+		result.reason = "Level too low (need %d)" % quest.min_level
+		return result
 
 	result.available = true
 	return result

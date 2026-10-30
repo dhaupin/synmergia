@@ -147,8 +147,10 @@ func open_vault(player_id: String, vault_type: VaultType) -> Dictionary:
 	return {}
 
 func close_vault(player_id: String, vault_type: VaultType) -> void:
-	# TODO: Save vault state to database
-	vault_opened.emit(player_id, vault_type)
+	# Close bookkeeping only: nothing tracks open vault sessions, and
+	# the old code emitted vault_opened here (a false unlock signal).
+	if _gamelog():
+		_gamelog().debug("VaultService: %s closed %s vault" % [player_id, str(vault_type)])
 
 ## ============================================================================
 ## ITEM OPERATIONS
@@ -524,11 +526,15 @@ func _find_stackable_slot(vault: Dictionary, item_id: String, max_stack: int) ->
 	return -1
 
 func _get_player_guild_id(player_id: String) -> String:
-	# TODO: Get from GuildService
+	if GuildService and GuildService.has_method("get_player_guild"):
+		var guild: Dictionary = GuildService.get_player_guild(player_id)
+		return str(guild.get("id", ""))
 	return ""
 
 func _get_player_account_id(player_id: String) -> String:
-	# TODO: Get from AccountService
+	if AccountService and AccountService.has_method("get_account_by_character"):
+		var account: Dictionary = AccountService.get_account_by_character(player_id)
+		return str(account.get("id", ""))
 	return ""
 
 func _deduct_player_gold(player_id: String, amount: int) -> bool:

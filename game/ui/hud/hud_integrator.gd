@@ -676,8 +676,15 @@ func _on_action_selected(action_id: String, target_id: String) -> void:
 			if GuildService:
 				GuildService.invite_player(my_id, target_id)
 		"report":
-			# TODO: Open report dialog
-			GameLog.info("Report action: %s" % target_id)
+			# Player-facing report loop: the admin shell reports through
+			# PlayerReporter (which alerts + webhooks); the target-menu
+			# action dead-ended in a log line. Same path, menu-driven.
+			if PlayerReporter and PlayerReporter.has_method("submit_report"):
+				PlayerReporter.submit_report(my_id, PlayerReporter.ReportType.ABUSE, {
+					"target": target_id,
+					"reason": "Reported from the player target menu",
+				})
+				GameLog.info("Report action: %s" % target_id)
 
 
 func _open_character_inspect(target_id: String) -> void:

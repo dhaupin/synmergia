@@ -63,8 +63,6 @@ func _set_mode(mode: int) -> void:
 
 func _on_login_pressed() -> void:
 	# print removed: print("[LOGIN] LoginButton pressed, mode=%d user='%s'" % [_mode, _username.text])
-	if DebugOverlay:
-		DebugOverlay.log_click("LoginButton", "login", false)
 	if _mode == Mode.REGISTER:
 		_set_mode(Mode.LOGIN)
 		return
@@ -72,9 +70,13 @@ func _on_login_pressed() -> void:
 	var p := _password.text
 	if u.strip_edges() == "":
 	# print removed: print("[LOGIN] LoginButton -> no username, error shown")
+		if DebugOverlay:
+			DebugOverlay.log_click("LoginButton", "login", false)
 		_show_error("Enter a username")
 		return
 	if not LoginService:
+		if DebugOverlay:
+			DebugOverlay.log_click("LoginButton", "login", false)
 		_show_error("LoginService unavailable")
 		return
 	# print removed: print("[LOGIN] LoginButton -> calling LoginService.login('%s', ***)" % u)
@@ -84,8 +86,6 @@ func _on_login_pressed() -> void:
 
 func _on_register_pressed() -> void:
 	# print removed: print("[LOGIN] RegisterButton pressed, mode=%d" % _mode)
-	if DebugOverlay:
-		DebugOverlay.log_click("RegisterButton", "toggle_mode", false)
 	if _mode == Mode.LOGIN:
 		_set_mode(Mode.REGISTER)
 		return
@@ -93,12 +93,18 @@ func _on_register_pressed() -> void:
 	var p := _password.text
 	var dn := _display_name.text if _display_name else ""
 	if u.strip_edges() == "":
+		if DebugOverlay:
+			DebugOverlay.log_click("RegisterButton", "register", false)
 		_show_error("Enter a username")
 		return
 	if p.length() < 6:
+		if DebugOverlay:
+			DebugOverlay.log_click("RegisterButton", "register", false)
 		_show_error("Password must be at least 6 characters")
 		return
 	if not LoginService:
+		if DebugOverlay:
+			DebugOverlay.log_click("RegisterButton", "register", false)
 		_show_error("LoginService unavailable")
 		return
 	LoginService.register(u, p, dn)
@@ -107,9 +113,9 @@ func _on_register_pressed() -> void:
 
 func _on_guest_pressed() -> void:
 	# print removed: print("[LOGIN] GuestButton pressed")
-	if DebugOverlay:
-		DebugOverlay.log_click("GuestButton", "guest_login", false)
 	if not LoginService:
+		if DebugOverlay:
+			DebugOverlay.log_click("GuestButton", "guest_login", false)
 		_show_error("LoginService unavailable")
 		return
 	LoginService.login_as_guest()
