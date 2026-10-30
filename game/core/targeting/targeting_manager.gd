@@ -249,6 +249,33 @@ func _ready() -> void:
 		_schema_cache.size(), _actions.size()
 	])
 
+## THE RING FOLLOWS A MOVING TARGET. The highlight mesh is seated ONCE
+## at set_target time; a walking enemy (or riding player) would leave
+## the circle behind at the old spot forever, since neither
+## update_targetable_position nor update_highlight has a caller. Each
+## frame, if the current target rides a live Node3D, re-seat the ring
+## at its feet (+0.05, the same law _update_3d_highlight uses); when
+## the transform has not moved (or no clear/highlight state changed)
+## the pass is a no-op, so it costs a few reads.
+func _process(_delta: float) -> void:
+	var cur: TargetInfo = _current_target
+	if cur == null:
+		return
+	if _highlight_node == null or not is_instance_valid(_highlight_node) \
+			or not _highlight_node.visible:
+		return
+	## UnTyped read first: the tracked node may be despawned mid-target
+	## (see get_nearest_targetable_by_types), and a Node-typed read of
+	## a freed instance errors before the guard can run.
+	var ride = cur.node
+	if ride == null or not is_instance_valid(ride) or not (ride is Node3D):
+		return
+	var p: Vector3 = (ride as Node3D).global_position
+	var seat := Vector3(p.x, p.y + 0.05, p.z)
+	if _highlight_node.global_position.distance_to(seat) < 0.01:
+		return
+	_highlight_node.global_position = seat
+
 func _connect_eventbus() -> void:
 	var hub := _hub()
 	if hub:

@@ -7290,3 +7290,35 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
      PRE-EXISTING headless guest-click journey failures (confirmed
      identical on stash; the test's documented runner is xvfb-run).
   GATES: interact loop 9/9 new checks, lint 36/0, naming 25/0.
+- TARGETING v24: THE CRAWL + THE RING TRACKER + THE HEADLESS TRUTH --
+     "is targeting really everywhere and is there a visual?" CRAWL
+     VERDICT: every consumer routes through the ONE TargetingManager
+     chain: SpawnService registers everything it spawns (enemies, NPCs,
+     loot) and unregisters on despawn; world_playable registers the
+     player; Tab/F2 cycle + left-click camera raycast + F2-nearest all
+     land in _tm().set_target; the ActionMenu talks targets;
+     hud_integrator binds target_acquired/cleared/updated to the
+     TargetFrame + BossHealthBar; target_tooltip reads the current
+     target; party_frames click-targets through set_target; a11y
+     Service re-points the GM target through the same set_target; USE
+     SKILL casts at get_current_target().node -- combat included. ONE
+     HOLE the crawl caught: the visual target ring (pulsing emissive
+     circle mesh "Highlights/TargetingHighlight", seated +0.05 under
+     the target at set-time, hidden on clear) NEVER RE-SEATS --
+     update_targetable_position and update_highlight have ZERO callers,
+     so a walking enemy left the circle behind forever. FIXED:
+     TargetingManager._process now re-seats the ring from the LIVE
+     ride node every frame it moves (no-op cost otherwise; untyped
+     ride read keeps freed-instance reads legal). THE HEADLESS TRUTH:
+     the "2 pre-existing" pipeline failures were never environmental --
+     they were SCHEDULING drift (the async world boot registers the
+     player ~2 s AFTER the fixed 5.0/6.2 slots fire). _await_player
+     (bounded 5 s) now gates the catalog/dialog/quest/vendor checks and
+     the dialog case re-resolves a LIVE NPC if one despawned during the
+     wait (freed-instance property read caught by the run). Plus 3 NEW
+     ring checks: ring exists + visible on target, seated under the NPC
+     (<1.5 m), hidden after clear. FINAL STATE: interaction pipeline
+     27 passed / 0 failed, exit 0, ZERO script errors, twice stable.
+     The only stderr left in the run is the guest-click first-slam
+     retry [DEBUG] line (click #2 succeeds; not a check).
+  GATES: pipeline 27/0 x2 (exit 0), lint 36/0, naming 25/0.

@@ -117,6 +117,19 @@ func _npcs_with_offering(offering_type: String) -> Array:
 			found.append(npc)
 	return found
 
+## BOUNDED PLAYER WAIT: the world boot is ASYNC and registers the
+## player a couple of seconds after the NPC spawn lands (every headless
+## log shows "player registered as ..." arriving AFTER the spawn
+## flurry), so fixed schedule slots can fire before the player exists.
+## Await the boot (up to max_wait seconds) instead of trusting the
+## slot -- the same law the interact runner uses.
+func _await_player(max_wait: float) -> Variant:
+	var waited := 0.0
+	while _player() == null and waited < max_wait:
+		await process_frame
+		waited += 1.0 / 60.0
+	return _player()
+
 ## ------------------------------------------------------------------ cases
 
 func _c_npc_catalog() -> void:
@@ -124,7 +137,8 @@ func _c_npc_catalog() -> void:
 	_ok("elder NPC spawned with dialogue offering", not _npcs_with_offering("dialogue").is_empty())
 	_ok("vendor NPC spawned with vendor offering", not _npcs_with_offering("vendor").is_empty())
 	_ok("quest NPC spawned with quest offering", not _npcs_with_offering("quest").is_empty())
-	_ok("player present in world", _player() != null)
+	var p = await _await_player(5.0)
+	_ok("player present in world", p != null)
 
 func _c_dialog_via_context_action() -> void:
 	print("--- NPC dialog via context action ---")
@@ -133,7 +147,7 @@ func _c_dialog_via_context_action() -> void:
 		_ok("dialogue NPC available", false)
 		return
 	var npc: Node = npcs[0]
-	var player := _player()
+	var player: Variant = await _await_player(5.0)
 	if player == null:
 		_ok("player available for dialog", false)
 		return
@@ -149,6 +163,17 @@ func _c_dialog_via_context_action() -> void:
 
 	var ds := root.get_node_or_null("DialogService")
 	_ok("DialogService autoload exists", ds != null)
+
+	# The NPC may have despawned during the boot wait (the spawn
+	# service cycles its roster); re-resolve a LIVE dialogue NPC. The
+	# catalog already proved one exists at care-taking time.
+	if npc == null or not (is_instance_valid(npc) and "entity_id" in npc):
+		var live := _npcs_with_offering("dialogue")
+		if not live.is_empty():
+			npc = live[0]
+	if npc == null or not is_instance_valid(npc):
+		_ok("dialogue NPC still live after the boot wait", false)
+		return
 
 	# Drive the REAL context action, not the service directly.
 	if not player.has_method("_on_context_action"):
@@ -174,7 +199,7 @@ func _c_quest_via_context_action() -> void:
 		_ok("quest NPC available", false)
 		return
 	var npc: Node = npcs[0]
-	var player := _player()
+	var player: Variant = await _await_player(5.0)
 	if player == null:
 		_ok("player available for quests", false)
 		return
@@ -207,8 +232,9 @@ func _c_vendor_via_context_action() -> void:
 		_ok("vendor NPC available", false)
 		return
 	var npc: Node = npcs[0]
-	var player := _player()
-	if player == current_scene and player == null:
+	var player: Variant = await _await_player(5.0)
+	if player == null:
+		_ok("player available for vendor", false)
 		return
 
 	# The vendor branch needs _current_target_info to route the NPC trade
@@ -375,6 +401,17 @@ func _c_interact_menu_npc() -> void:
 		if str(txt).contains("Talk"):
 			has_talk = true
 	_ok("menu offers Talk for the NPC", has_talk, "(items=%s)" % str(texts))
+	# THE VISUAL TARGET INDICATOR: set_target seated the pulsing ring
+	# mesh at the NPC's feet ("Highlights/TargetingHighlight"). Assert
+	# the mesh truth headless: node alive, visible, and re-seated ON
+	# the NPC transform (the _process tracker keeps it there).
+	var ring := root.find_child("TargetingHighlight", true, false)
+	_ok("target ring exists and is visible", ring != null and tm.is_highlight_visible())
+	await process_frame
+	var ring_pos_ok := false
+	if ring != null and ring is Node3D:
+		ring_pos_ok = (ring as Node3D).global_position.distance_to(_npc_ground_pos(npc)) < 1.5
+	_ok("target ring seated under the NPC", ring_pos_ok)
 	if menu != null and is_instance_valid(menu):
 		menu.hide()
 
@@ -455,6 +492,8 @@ func _c_interact_range() -> void:
 	_ok("out-of-range press opens no menu", not shown)
 	var cur = tm.get_current_target()
 	_ok("out-of-range press sets no target", cur == null or str(cur.id) == "")
+	tm.clear_target()
+	_ok("target ring hidden after clear", not tm.is_highlight_visible())
 
 ## NPCs anchor on the walk line; drop the probe onto their own Y.
 func _npc_ground_pos(npc: Node) -> Vector3:
