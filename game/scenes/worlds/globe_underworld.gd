@@ -949,14 +949,30 @@ func _build_lava_lake() -> void:
 	world_root.add_child(cald)
 	var ground: float = _wilds_surface()
 	var seat: Vector3 = CAMP_HEAD_POS + LAVA_LAKE_SEAT
-	var surface_y: float = ground - 0.4		# the melt line (data law 1999.6)
-	var rim_top: float = ground + 0.55		# a curb you step over, never climb
-	var inner_r: float = 9.0						# the lake's reach (the data law)
+	# THE BASEMENT SLAB: the dish's rock ON the walk line (the same
+	# dialect the cistern uses -- a real body STANDS here, never
+	# inside the shell). The melt rides 1.2 m above it (the data law).
+	var floor_top: float = ground							# slab top == the walk line
+	var surface_y: float = ground + 1.2					# the melt line (data law)
+	var rim_top: float = surface_y + 0.55				# a curb you step over, never climb
+	var inner_r: float = 9.0									# the lake's reach (the data law)
 	var ring_r: float = inner_r + 0.5
+	# THE BASIN: a standable stone floor under the melt (piece law).
+	var basin := MeshInstance3D.new()
+	var basin_mesh := CylinderMesh.new()
+	basin_mesh.top_radius = inner_r
+	basin_mesh.bottom_radius = inner_r + 0.6
+	basin_mesh.height = 0.4
+	basin.mesh = basin_mesh
+	basin.name = "LakeBasin"
+	basin.position = seat + Vector3(0, floor_top - 0.2, 0)
+	basin_mesh.material = _cistern_slab_material()
+	cald.add_child(basin)
+	PropCollider.attach(basin)
 	# THE CURB: 8 low arcs; stepping over the rim is a step, not a
 	# climb (the lava bite is choice-shaped, not gate-shaped).
 	var curb_len: float = TAU * ring_r / 8.0 + 0.2
-	var curb_h: float = rim_top - (surface_y + 0.6)
+	var curb_h: float = rim_top - floor_top + 0.2
 	for i in range(8):
 		var a: float = TAU * float(i) / 8.0 + 0.35
 		var curb := MeshInstance3D.new()
@@ -966,7 +982,7 @@ func _build_lava_lake() -> void:
 		mesh.material = _cistern_wall_material()
 		curb.mesh = mesh
 		curb.name = "LakeCurb_%d" % i
-		curb.position = seat + Vector3(cos(a) * ring_r, surface_y + 0.6 + curb_h * 0.5, sin(a) * ring_r)
+		curb.position = seat + Vector3(cos(a) * ring_r, floor_top - 0.2 + curb_h * 0.5, sin(a) * ring_r)
 		curb.rotation.y = -a
 		cald.add_child(curb)
 		PropCollider.attach(curb)
@@ -976,11 +992,11 @@ func _build_lava_lake() -> void:
 	var melt := MeshInstance3D.new()
 	var melt_mesh := CylinderMesh.new()
 	melt_mesh.top_radius = inner_r
-	melt_mesh.bottom_radius = inner_r + 0.6
+	melt_mesh.bottom_radius = inner_r
 	melt_mesh.height = 0.5
 	melt.mesh = melt_mesh
 	melt.name = "LakeMelt"
-	melt.position = seat + Vector3(0, surface_y + 0.25, 0)
+	melt.position = seat + Vector3(0, surface_y - 0.25, 0)
 	melt.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var lmat := StandardMaterial3D.new()
 	lmat.albedo_color = Color(0.55, 0.12, 0.02)
@@ -991,7 +1007,7 @@ func _build_lava_lake() -> void:
 	melt_mesh.material = lmat
 	_lava_mat = lmat
 	cald.add_child(melt)
-	GameLog.info("GlobeUnderworld: the Underglow Lake pools at (%.0f, %.0f) -- the melt licks east" % [seat.x, seat.z])
+	GameLog.info("GlobeUnderworld: the Underglow Lake pools at (%.0f, %.0f), melt %.1f -- the melt licks east" % [seat.x, seat.z, surface_y])
 
 
 ## THE DEEP TRAIL (the underworld's roads): flat stone plates the

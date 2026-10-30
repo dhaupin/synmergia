@@ -64,9 +64,9 @@ func _run() -> void:
 	_check("lake_data", str(lake.id) == "lava_underglow_lake" and int(lake.liquid) == int(VolumeScript.Liquid.LAVA) \
 		and float(lake.burn_dps) > 0.0, "burn=%.1f" % float(lake.burn_dps))
 	_check("lake_gentle_pressure", float(lake.pressure_per_meter) == 0.0)
-	var in_lake := Vector3(-26, 1999.0, 20)
+	var in_lake := Vector3(-26, 2001.0, 20)
 	var depth: float = svc.sample_depth(in_lake)
-	_check("lake_claim", depth > 0.0 and absf(depth - 0.6) < 0.15, "depth=%.2f" % depth)
+	_check("lake_claim", depth > 0.0 and absf(depth - 0.2) < 0.15, "depth=%.2f" % depth)
 	_check("lake_wading", svc.band_at(in_lake) != VolumeScript.DepthBand.DRY)
 	# The cistern stays WATER (the lava bite is the lake's alone).
 	var pool = svc.get_volume("ocean_deep_root_pool")
@@ -94,7 +94,7 @@ func _run() -> void:
 	# 2) THE BURN LAW (live): park IN the lake, run frames, watch the
 	#    accrual pay out in whole digits.
 	(under.get("_visitors") as Dictionary)["commons_probe_body"] = body
-	body.global_position = wr.global_position + Vector3(-26, 1999.0, 20)
+	body.global_position = wr.global_position + Vector3(-26, 2001.0, 20)
 	var before: int = body.hit_points
 	for _i in range(60):
 		under._process(1.0 / 60.0)

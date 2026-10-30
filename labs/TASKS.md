@@ -7214,3 +7214,44 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
      (the air answer lives in the tick); on-device: stand at the lake
      overlook at the low tide (mist thick, melt surly), step the
      curb, take the burn, ride the East Stack into the wing.
+- WORLD-DRESSING v22: THE FUNCTIONAL AUDIT (render_audit) -- "all the
+     recent builds actually exist in the game" proven on live boots.
+     dev_temp/probes/render_audit.gd: A) the MAIN WORLD at 20 km
+     (PierBeacon + MoorGuide built stone/cap/lamp, halos wired, the
+     NIGHT LAW asserted on the boot's own materials [noon epoch
+     fraction 0.5 sleeps, 0.75 wakes], the Pans Runner placed with
+     DeckPanel + MastBlock collidered); B) the UNDERWORLD through the
+     REAL seam (ScopeService.enter_world_scope swap, receive_visitor
+     camp landing at skin+0.4, cistern pieces + collider law + the
+     vein-wall material, wilds families + law, UnderglowLake curb +
+     melt rider, the trail's 32 plates, Warden + zone, thermal
+     columns booked, the East Stack carries, the woken thrower HURLS,
+     strata mist fed live, the swim quest accepts + credits live, a
+     real CharacterBody body takes the BURN and dry ground is free,
+     fold-back); C) the RENDER FACTS (256 underworld MeshInstance3D
+     all carrying real meshes -- zero bare; light census; headless
+     honesty: node/material truth is the ceiling, the pixel pass
+     stays on-device).
+  AUDIT-CAUGHT FIXES: (1) the lava lake's first geometry sat BELOW
+     the walk shell (data surface 1999.6 / floor 1997.8 ~ a body on
+     the walk line read DRY over the melt) -- rebuilt to the
+     cistern's walk-line dialect: basin slab ON the walk line
+     (collidered), melt surface 2001.2 (1.2 m of melt), curb topping
+     0.55 over the surface; data .tres re-declared (surface 2001.2,
+     floor 2000.0), WALK-IN WADING burn preserved; deep_commons seats
+     re-based (18/18 again). (2) audit-side: the light census scanned
+     world_root and read zero (the strata light hangs beside it --
+     now counts the globe root), the night-law epoch used base+0.75
+     from a half-day base (fraction math), the burn seat sat at the
+     old 1999 line.
+  KNOWN SCRIPT-MODE NOISE (pre-existing, all boots lean): the deep
+     derive chain in headless boots emits "Nonexistent function/
+     null value" spew (terrain streamer/tint/river spec/road overrides
+     -- confirmed identical in the pre-existing harbor probe boot);
+     the audit gates on node/material law truth, not on the degraded
+     derive path's stderr. On-device acceptance remains: walk the
+     trail, step the curb, take the burn, ride the thrower, watch the
+     halos wake at dusk.
+  GATES after the audit wave: AUDIT-OK (42), COMMONS-OK (18),
+     underworld 44, ocean 44, CISTERN-OK, WILDS-OK, LIGHT-OK, swim
+     bridge 10/0, naming lint 25/0, lint 36/0, packs 8 green.

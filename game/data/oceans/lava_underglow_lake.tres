@@ -6,11 +6,11 @@
 script = ExtResource("1")
 id = "lava_underglow_lake"
 display_name = "The Underglow Lake"
-surface_height = 1999.6
+surface_height = 2001.2
 floor_is_radial = false
-floor_center = Vector3(-26, 1999.6, 20)
+floor_center = Vector3(-26, 2001.2, 20)
 floor_radius = 9.0
-floor_y = 1997.8
+floor_y = 2000.0
 max_depth = 4.0
 current_direction = Vector3(0.25, 0, 0.25)
 current_strength = 0.35
