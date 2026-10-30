@@ -275,6 +275,13 @@ func _process(_delta: float) -> void:
 	if _highlight_node.global_position.distance_to(seat) < 0.01:
 		return
 	_highlight_node.global_position = seat
+	## The consumers (target_frame, target_tooltip, hud_integrator --
+	## all connected since the targeting round) refresh only on
+	## target_updated, and nothing ever emitted it. Fire it exactly on
+	## the frame the target physically moved; no-op frames stay silent.
+	cur.position = p
+	cur.world_position = p
+	target_updated.emit(cur)
 
 func _connect_eventbus() -> void:
 	var hub := _hub()
@@ -717,6 +724,11 @@ func set_target(entity_id: String, schema_id: String, display_name: String = "",
 
 	if previous:
 		target_cleared.emit(previous)
+		if previous.entity_type != entity_type:
+			## target_type_changed had zero emitters while
+			## target_tooltip listened for it -- the type row of the
+			## tooltip never appeared. Fire on the type flip.
+			target_type_changed.emit(entity_type)
 
 	target_acquired.emit(new_target)
 
@@ -827,6 +839,9 @@ func update_targetable_position(entity_id: String, new_position: Vector3) -> voi
 		_current_target.position = new_position
 		_current_target.world_position = new_position
 		_update_3d_highlight(_current_target)
+		## Same consumer law: a registry-position update on the active
+		## target is a target_updated frame (public API callers).
+		target_updated.emit(_current_target)
 
 ## Update a targetable's node reference (e.g., after scene change)
 func update_targetable_node(entity_id: String, new_node: Node) -> void:

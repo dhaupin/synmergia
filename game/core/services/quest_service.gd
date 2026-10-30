@@ -113,12 +113,24 @@ func _maybe_reset_dailies() -> void:
 		var reset := 0
 		for quest_id in quests.keys():
 			var state: Dictionary = quests[quest_id]
-			if int(state.get("state", -1)) != QuestData.QuestState.REWARDED:
-				continue
+			var qstate := int(state.get("state", -1))
 			var qdata = state.get("data")
 			if qdata == null or not ("quest_type" in qdata):
 				continue
 			if int(qdata.quest_type) != QuestData.QuestType.DAILY:
+				continue
+			## Two boundary lives: REWARDED erases so the daily can be
+			## earned again (the original fix), and an IN_PROGRESS daily
+			## EXPIRES at dawn -- quest_failed had a listener state and
+			## zero emitters, while stale half-done dailies dangled
+			## across days. Erase keeps the catalog path identical to
+			## the REWARDED reset.
+			if qstate == QuestData.QuestState.IN_PROGRESS:
+				quests.erase(quest_id)
+				reset += 1
+				quest_failed.emit(str(player_id), quest_id, "Daily expired at the sky dawn")
+				continue
+			if qstate != QuestData.QuestState.REWARDED:
 				continue
 			quests.erase(quest_id)
 			reset += 1
@@ -463,6 +475,10 @@ func abandon_quest(player_id: String, quest_id: String) -> bool:
 	# Remove quest
 	player_data.erase(quest_id)
 	_persist_player_quests(player_id)
+	## The HUD quest tracker listens on quest_updated for its refresh;
+	## abandoning left the line on screen forever. Announce the state
+	## change so the tracker drops it in the same tick.
+	quest_updated.emit(player_id, quest_id, "", 0)
 	GameLog.info("QuestService: %s abandoned quest %s" % [player_id, quest_id])
 	return true
 

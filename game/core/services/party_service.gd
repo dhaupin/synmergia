@@ -206,6 +206,7 @@ func accept_invite(to_id: String) -> bool:
 				_persist_party(party_id)
 
 				player_joined_party.emit(party_id, to_id)
+				party_member_updated.emit(party_id, to_id)
 				party_invite_accepted.emit(from_id, to_id)
 				GameLog.info("PartyService: %s joined party %s" % [to_id, party_id])
 				return true
@@ -253,6 +254,7 @@ func leave_party(player_id: String) -> bool:
 			return true
 
 	player_left_party.emit(party_id, player_id, "Left party")
+	party_member_updated.emit(party_id, player_id)
 	GameLog.info("PartyService: %s left party %s" % [player_id, party_id])
 
 		# Check if party should be disbanded
@@ -278,6 +280,7 @@ func kick_player(leader_id: String, target_id: String) -> bool:
 	party["members"].erase(target_id)
 	_player_parties.erase(target_id)
 	player_left_party.emit(party_id, target_id, "Kicked by leader")
+	party_member_updated.emit(party_id, target_id)
 	GameLog.info("PartyService: Kicked %s from party %s" % [target_id, party_id])
 
 	# Frame-level dispatch. PLAYER_WARNED -> ALERT + NORMAL. The kicked

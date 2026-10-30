@@ -166,13 +166,27 @@ func _close_session() -> void:
 	_session_id = ""
 
 func _on_poll() -> void:
-	# Poll for actions
+	# Poll for pending actions. The old stub was `pass`: the poll timer
+	# ticked forever and nothing was ever fetched, so a connected Vant
+	# agent only ever received actions that piggybacked on an
+	# observation POST. The response reuses _on_http_request_completed
+	# -> _parse_vant_response (shape: {"action": {...}}). Busy guard:
+	# this HTTPRequest node is shared with send_observation, and Godot
+	# rejects a request while one is in flight.
 	if not is_connected():
 		return
+	if _http_request == null or _http_request.busy:
+		return
 
-	# TODO: GET request to /api/action endpoint
-	# var response = await _get_actions()
-	pass
+	var headers := []
+	if api_key != "":
+		headers.append("Authorization: Bearer " + api_key)
+
+	_http_request.request(
+		vant_api_url + "/api/action",
+		headers,
+		HTTPClient.METHOD_GET
+	)
 
 func _on_http_request_completed(result: int, response_code: int, headers: Array, body: PackedByteArray) -> void:
 	if response_code != 200:

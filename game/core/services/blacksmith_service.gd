@@ -106,15 +106,22 @@ func repair_item(player_id: String, inventory, equip_slot: int) -> Dictionary:
 	var item = inventory.get_equipped_item(equip_slot)
 
 	if item == null:
+		## repair_failed had listeners (blacksmith_ui + hud_services)
+		## but zero emitters -- every failure was a silent dict. Fire
+		## each honest failure so the HUD toast path lives.
+		repair_failed.emit(player_id, "No item in that slot")
 		return {"success": false, "reason": "No item in that slot"}
 
 	if item.max_durability <= 0:
+		item_too_broken.emit(player_id, str(item.id))
 		return {"success": false, "reason": "Item cannot be repaired"}
 
 	if not item.can_repair:
+		item_too_broken.emit(player_id, str(item.id))
 		return {"success": false, "reason": "Item cannot be repaired"}
 
 	if not item.is_broken() and item.current_durability >= item.max_durability:
+		repair_failed.emit(player_id, "Item is already fully repaired")
 		return {"success": false, "reason": "Item is already fully repaired"}
 
 	var cost := calculate_repair_cost(item)
@@ -122,6 +129,7 @@ func repair_item(player_id: String, inventory, equip_slot: int) -> Dictionary:
 	# Check if player has enough gold
 	var player_gold: int = int(inventory.get_gold())
 	if player_gold < cost:
+		repair_failed.emit(player_id, "Not enough gold")
 		return {"success": false, "reason": "Not enough gold", "cost": cost, "has": player_gold}
 
 	# Deduct gold and repair
@@ -144,11 +152,19 @@ func repair_all_equipped(player_id: String, inventory, apply_discount: bool = tr
 	# Filter to only items that need repair
 	var items_needing_repair: Array = []
 	for item in items:
-		if item and item.max_durability > 0 and item.can_repair:
+		if item and item.max_durability > 0:
+			if not item.can_repair:
+				## The old filter required can_repair, so nothing
+				## broken-but-unrepairable ever surfaced here; now it
+				## announces itself and is skipped like before.
+				if item.is_broken():
+					item_too_broken.emit(player_id, str(item.id))
+				continue
 			if item.is_broken() or item.current_durability < item.max_durability:
 				items_needing_repair.append(item)
 
 	if items_needing_repair.size() == 0:
+		repair_failed.emit(player_id, "No items need repair")
 		return {"success": false, "reason": "No items need repair"}
 
 	var cost := calculate_bulk_repair_cost(items_needing_repair, apply_discount)
@@ -156,6 +172,7 @@ func repair_all_equipped(player_id: String, inventory, apply_discount: bool = tr
 	# Check if player has enough gold
 	var player_gold: int = int(inventory.get_gold())
 	if player_gold < cost:
+		repair_failed.emit(player_id, "Not enough gold")
 		return {"success": false, "reason": "Not enough gold", "cost": cost, "has": player_gold}
 
 	# Deduct gold and repair all

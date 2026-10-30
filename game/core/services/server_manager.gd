@@ -293,17 +293,13 @@ func kick_player(entity_id: String, reason: String = "You have been disconnected
 			entity_id
 		)
 
-	# TODO(server): wire the actual disconnect once NetworkManager exposes
-	# kick_player / disconnect_peer and PlayerManager has a player-registry
-	# query. Today the underlying chain (PlayerManager.has_player /
-	# PlayerManager.get_player_info / NetworkManager.kick_player) does not
-	# exist, so the toast layer is correct but the peer is not actually
-	# disconnected. Tracked separately from this PR.
-	if PlayerManager and PlayerManager.has_method("has_player") and PlayerManager.has_player(entity_id):
-		var info = PlayerManager.get_player_info(entity_id)
-		var peer_id: int = info.get("peer_id", -1)
-		if peer_id > 0 and NetworkManager and NetworkManager.has_method("kick_player"):
-			NetworkManager.kick_player(peer_id, reason)
+	# The disconnect is REAL now: NetworkManager grew
+	# kick_player_by_character_id (graceful maintenance RPC, then a
+	# forced peer close). The old TODO's guessed chain
+	# (PlayerManager.has_player/get_player_info + kick_player) truly
+	# did not exist; this path is the one that shipped.
+	if NetworkManager and NetworkManager.has_method("kick_player_by_character_id"):
+		NetworkManager.kick_player_by_character_id(entity_id, reason)
 
 ## Kick all players (for maintenance/shutdown)
 func kick_all_players(reason: String = "Server is shutting down") -> void:

@@ -580,6 +580,11 @@ func _execute_pending_respawn(player) -> void:
 	# A revive that completed while the timed respawn was pending wins
 	# (HealthComponent is alive again; nothing to respawn).
 	if not hc.is_dead():
+		## respawn_canceled had listeners (respawn_ui_manager + the HUD)
+		## and zero emitters: when a healer beat the timer, the death
+		## screen kept its countdown until another event came along.
+		## The pending UI cycle is now explicitly canceled.
+		respawn_canceled.emit(player, "Revive completed first")
 		return
 	var position: Vector3 = _get_default_respawn_position(player)
 	var mode: RespawnMode = _mode_of(player)

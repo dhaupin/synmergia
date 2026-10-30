@@ -309,7 +309,14 @@ func _select_slot(index: int) -> void:
 	_selected_slot = index
 	_set_slot_selected(index, true)
 
+	## item_selected was declared beside item_used/item_dropped (both
+	## emitted) but selection itself never announced anything. Fire it
+	## so slot-selection panels can listen the same way they do for
+	## use/drop.
 	var comp: InventoryComponent = _get_inventory_component()
+	var sel_item: Item = comp.get_item(index) if (index < comp.get_inventory_count()) else null
+	item_selected.emit(index, sel_item.id if sel_item else "")
+
 	if not _info_label:
 		return
 	if comp and index < comp.get_inventory_count():

@@ -380,7 +380,18 @@ func confirm_trade(trade_id: String, player_id: String) -> bool:
 
 	# Check if both confirmed
 	if trade["player1_confirmed"] and trade["player2_confirmed"]:
-		return await _complete_trade(trade_id)
+		## The anti-scam leg was built (start/cancel/tick/complete + the
+		## UI tick listener) but confirm_trade completed the exchange on
+		## the first double-confirmation, so the whole countdown phase
+		## never ran. First double-confirm starts the 3s window; the
+		## ticking helper owns completion. A second confirm while the
+		## window is live must NOT shortcut it (the in-flight timer
+		## decides), and a cancel erases the trade entry -- the helper
+		## re-fetches every tick and stands down on erase.
+		if not trade.has("countdown_started"):
+			start_confirmation_countdown(trade_id)
+			_run_confirmation_countdown(trade_id)
+		return true
 
 	return true
 
@@ -771,6 +782,34 @@ func start_confirmation_countdown(trade_id: String) -> bool:
 	confirmation_countdown_started.emit(trade_id, _confirmation_countdown_seconds)
 	GameLog.info("TradeService: Countdown started for trade %s" % trade_id)
 	return true
+
+## Drive the confirmation countdown to completion. Fired once from
+## confirm_trade when both flags land; ticks once per second through
+## the wall, emits confirmation_countdown_tick (trade_ui's listener
+## renders the seconds), then confirmation_countdown_complete and the
+## real exchange. Every step re-fetches the trade: a cancel, expiry
+## or force-cancel erases the entry and this helper stands down.
+func _run_confirmation_countdown(trade_id: String) -> void:
+	var trade: Dictionary = _active_trades.get(trade_id)
+	if trade == null:
+		return
+	var remaining: float = _get_countdown_remaining(trade)
+	while remaining > 0.0:
+		var wait: float = minf(1.0, remaining)
+		await get_tree().create_timer(wait).timeout
+		trade = _active_trades.get(trade_id)
+		if trade == null or not trade.has("countdown_started"):
+			return
+		remaining = _get_countdown_remaining(trade)
+		if remaining > 0.0:
+			confirmation_countdown_tick.emit(trade_id, remaining)
+	trade = _active_trades.get(trade_id)
+	if trade == null or not trade.has("countdown_started"):
+		return
+	trade.erase("countdown_started")
+	trade.erase("countdown_seconds")
+	confirmation_countdown_complete.emit(trade_id)
+	await _complete_trade(trade_id)
 
 ## Cancel confirmation countdown
 func cancel_confirmation_countdown(trade_id: String, player_id: String) -> bool:

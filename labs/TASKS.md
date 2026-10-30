@@ -7357,3 +7357,70 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
      errors on the intermediate run, clean after), lint 36/0, naming
      25/0, quest gates all exit 0 (availability/daily/explore/swim),
      login flow exit 0.
+- LOOPS v26: THE SIGNAL-BACKLOG ROUND -- the honest census first:
+     a corrected scanner (the two earlier passes both had regex
+     blindspots: Godot-4 obj.signal.connect style THEN the char-class
+     ban on dots) puts the real backlog at 680 declared signals =
+     259 OK / 335 VOID (fired, unheard) / 78 DEAD (never fired) / 8
+     NEWIRE (heard, never fired) -- NOT 188. DYNAMIC EMIT/CONNECT
+     CAVEAT: string-built emissions (_hub_emit callv-style) and
+     name-keyed UI connect maps (trade_ui, guild_ui, party_ui) are
+     invisible to grep -- ground_loot_picked_up was a NEWIRE false
+     positive through _hub_emit, and some VOID rows are likewise
+     alive. Fixes this round: (1) DELETED the dead event-catalog
+     layer -- core/events/{combat,entity,inventory,system}_events.gd
+     (4 files, ~66 signals) were class_name'd but not autoloaded and
+     referenced by nothing but the auto class cache (verified: no
+     preload/load/tscn refs); EventHub remains the one live hub.
+     (2) All real NEWIRE loops closed: TargetingManager.target_updated
+     now fires ON the frame the ring physically re-seats (cur
+     position/world_position refreshed too; was listener-built with
+     zero emitters) + target_type_changed on the type flip in
+     set_target (tooltip's type row could never appear); blacksmith
+     repair_failed/item_too_broken emit at every honest failure leg
+     incl. the bulk path (the old filter required can_repair so
+     unrepairable-broken could never surface -- unreachable branch
+     restructured); quest_failed fires when an IN_PROGRESS daily
+     EXPIRES at the sky dawn (the reset helper only cleared REWARDED;
+     dailies dangling across days) and abandon_quest emits
+     quest_updated so the HUD tracker drops the line; respawn_canceled
+     fires when a revive wins the race against the pending timer
+     (death-screen countdown could linger); InventoryUI
+     item_selected fires on slot select (sibling of use/drop which
+     already emitted). (3) BUILT missing live loops: the trade
+     anti-scam countdown was FULLY BUILT BUT DORMANT (both-confirmed
+     completed instantly; start/cancel/tick/complete + trade_ui's
+     tick listener sat dead) -- confirm_trade now starts the 3s
+     window once, _run_confirmation_countdown ticks seconds + emits
+     tick/complete + completes the exchange, re-fetching the trade
+     every beat so a cancel/force-cancel stands it down; a repeat
+     confirm during the window cannot shortcut it. GuildService
+     invite loop was HALF-BUILT: invites created + persisted then
+     UNREACHABLE (no accept/decline/expire endpoints; guild_ui
+     called get_pending_invites which did not exist; accepted/declined
+     listeners wired in guild_ui with zero emitters; _persist_invite
+     indexed the invite dict by player_id although it is keyed by
+     invite_id so invite writes were dead) -- added get_pending_invites/
+     accept_guild_invite/decline_guild_invite (RECRUIT, notifier to
+     the inviter, persistence fixed to the invite_id key +
+     _persist_invite_erase twin) and a throttled 30s sweep emitting
+     guild/alliance_invite_expired for both families. party_member_updated
+     emits at join/leave/kick (party_ui's generic refresh listener
+     existed). (4) INFRA TODOs landed: server_manager kick uses the
+     REAL chain NetworkManager.kick_player_by_character_id (graceful
+     RPC then forced peer close) -- the Todo's guessed PlayerManager
+     chain never existed; VantConnector._on_poll now GETs
+     /api/action (busy-guarded, shared HTTPRequest with observe --
+     the pass-stub meant polls ticked forever and fetched nothing).
+     (5) NOT fabricated (no-void law): every remaining candidate
+     (channel_settings_changed, cooldown_tick, container_opened --
+     which has NO open-endpoint to emit from, npc_spawned, zone
+     instance trio, notification_queued, skill_missed, attack_hit,
+     threat_overflow, item_bound, bag_locked, badge_earned,
+     state_exited, controller pair, observation_ready,
+     instance_contract_changed, xp_shared, character_confirmed,
+     waypoint_clicked) has ZERO listeners -- emitting would only
+     convert DEAD to VOID wallpaper; they are the design contract
+     surface, logged. GATES: pipeline 27/0 exit 0 zero script errors,
+     lint 36/0, naming 25/0, login + quest gates + ground loot all
+     exit 0.

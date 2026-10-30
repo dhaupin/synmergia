@@ -122,6 +122,10 @@ func init_account_vault(account_id: String) -> void:
 ## ============================================================================
 
 func open_vault(player_id: String, vault_type: VaultType) -> Dictionary:
+	## vault_opened stays un-emitted on purpose: bank_ui opens vaults
+	## directly (no vault_opened listener exists anywhere), so an emit
+	## here would only convert DEAD to VOID -- recorded in labs/TASKS.md
+	## as a designed-unconsumed contract instead.
 	match vault_type:
 		VaultType.PERSONAL:
 			if not _personal_vaults.has(player_id):

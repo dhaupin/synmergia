@@ -318,6 +318,105 @@ func accept_application(approver_id: String, applicant_id: String) -> bool:
 		# Add to guild
 	return _add_member(guild_id, applicant_id, GuildRank.RECRUIT)
 
+## Pending guild invites for one guild. guild_ui._refresh_pending called
+## this method before it existed -- the invite browser could never
+## render. Rows carry player_name (ids are display names here).
+func get_pending_invites(guild_id: String) -> Array:
+	var out: Array = []
+	for invite_id in _pending_guild_invites.keys():
+		var inv: Dictionary = _pending_guild_invites[invite_id]
+		if str(inv.get("guild_id", "")) != guild_id:
+			continue
+		out.append({
+		"id": str(invite_id),
+		"player_id": str(inv.get("to_id", "")),
+		"player_name": str(inv.get("to_id", "")),
+		"from_id": str(inv.get("from_id", "")),
+		"expires_at": float(inv.get("expires_at", 0.0))
+		})
+	return out
+
+## Accept a pending guild invite by id. closes the half-built invite
+## loop: invites were created, persisted, and then unreachable -- no
+## accept/decline endpoint existed and guild_ui's connect map for
+## guild_invite_accepted/declined fired into a stop sign.
+func accept_guild_invite(invite_id: String, player_id: String) -> bool:
+	var inv: Dictionary = _pending_guild_invites.get(invite_id, {})
+	if inv.is_empty():
+		return false
+	if str(inv.get("to_id", "")) != player_id:
+		return false
+	if _player_guilds.has(player_id):
+		_pending_guild_invites.erase(invite_id)
+		_persist_invite_erase(invite_id)
+		return false
+
+	var guild_id: String = str(inv.get("guild_id", ""))
+	var inviter_id: String = str(inv.get("from_id", ""))
+	_pending_guild_invites.erase(invite_id)
+	_persist_invite_erase(invite_id)
+
+	if not _add_member(guild_id, player_id, GuildRank.RECRUIT):
+		return false
+
+	guild_invite_accepted.emit(guild_id, inviter_id, player_id)
+	_notify_player(inviter_id, "%s accepted your guild invite." % player_id, NotifKind.SECURITY_BLOCKED, "invite_acc_%s" % invite_id)
+	GameLog.info("GuildService: %s accepted invite %s into %s" % [player_id, invite_id, guild_id])
+	return true
+
+## Decline a pending guild invite by id.
+func decline_guild_invite(invite_id: String, player_id: String) -> bool:
+	var inv: Dictionary = _pending_guild_invites.get(invite_id, {})
+	if inv.is_empty():
+		return false
+	if str(inv.get("to_id", "")) != player_id:
+		return false
+
+	var guild_id: String = str(inv.get("guild_id", ""))
+	var inviter_id: String = str(inv.get("from_id", ""))
+	_pending_guild_invites.erase(invite_id)
+	_persist_invite_erase(invite_id)
+
+	guild_invite_declined.emit(guild_id, inviter_id, player_id)
+	_notify_player(inviter_id, "%s declined your guild invite." % player_id, NotifKind.SECURITY_BLOCKED, "invite_dec_%s" % invite_id)
+	GameLog.info("GuildService: %s declined invite %s" % [player_id, invite_id])
+	return true
+
+## Expire sweep for BOTH invite families. Nothing swept before, so
+## expired rows sat in memory and the store forever; now both lanes
+## clear and announce through their *_expired signals (guild_ui's
+## connect map listens on the guild one).
+func _sweep_expired_invites() -> void:
+	var now := Time.get_unix_time_from_system()
+	for invite_id in _pending_guild_invites.keys().duplicate():
+		var inv: Dictionary = _pending_guild_invites[invite_id]
+		if float(inv.get("expires_at", 0.0)) <= now:
+			var guild_id: String = str(inv.get("guild_id", ""))
+			var to_id: String = str(inv.get("to_id", ""))
+			_pending_guild_invites.erase(invite_id)
+			_persist_invite_erase(invite_id)
+			guild_invite_expired.emit(guild_id, to_id)
+	for invite_id in _pending_alliance_invites.keys().duplicate():
+		var inv: Dictionary = _pending_alliance_invites[invite_id]
+		if float(inv.get("expires_at", 0.0)) <= now:
+			var alliance_id: String = str(inv.get("alliance_id", ""))
+			var to_guild_id: String = str(inv.get("to_guild_id", ""))
+			_pending_alliance_invites.erase(invite_id)
+			alliance_invite_expired.emit(alliance_id, to_guild_id)
+
+## Throttled sweater: the invite families are tiny, so a half-minute
+## cadence is plenty (GameLog.debug, never per-frame spam).
+var _invite_sweep_accum: float = 0.0
+
+func _process(delta: float) -> void:
+	_invite_sweep_accum += delta
+	if _invite_sweep_accum < 30.0:
+		return
+	_invite_sweep_accum = 0.0
+	if _pending_guild_invites.is_empty() and _pending_alliance_invites.is_empty():
+		return
+	_sweep_expired_invites()
+
 ## Add member to guild
 func _add_member(guild_id: String, player_id: String, rank: GuildRank) -> bool:
 	var guild : Dictionary = _guilds.get(guild_id)
@@ -839,12 +938,20 @@ func _persist_guild(guild_id: String) -> void:
 	else:
 		store.erase(_kv_prefix + guild_id)
 
-func _persist_invite(player_id: String) -> void:
+## Persist one invite row. The old body indexed _pending_guild_invites
+## by player_id, but the dict is keyed by invite_id, so the row never
+## matched and invite writes silently did nothing. Keyed by invite_id
+## now, matching persist_all's store layout.
+func _persist_invite(invite_id: String) -> void:
 	var store := DictStore.new()
-	if _pending_guild_invites.has(player_id):
-		store.set_kv("guild:invite:" + player_id, _pending_guild_invites[player_id])
-	else:
-		store.erase("guild:invite:" + player_id)
+	if _pending_guild_invites.has(invite_id):
+		store.set_kv("guild:invite:" + invite_id, _pending_guild_invites[invite_id])
+
+## Erase a persisted invite row when its live row dies (accept,
+## decline, expire). Same kv lane as _persist_invite / persist_all.
+func _persist_invite_erase(invite_id: String) -> void:
+	var store := DictStore.new()
+	store.erase("guild:invite:" + invite_id)
 
 
 func persist_all() -> void:
