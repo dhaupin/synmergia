@@ -11,7 +11,8 @@ enum CurrencyKind {
 	TOKEN,        # Elite/seasonal token, usually soulbound, capped
 	FAVOR,        # Faction reputation currency (vendor unlocks)
 	EVENT,        # Limited-time event currency
-	BLACK_MARKET  # Undocumented scrip; vendors that accept it are rare
+	BLACK_MARKET, # Undocumented scrip; vendors that accept it are rare
+	PREMIUM       # Real-money currency (concord sigils); never minted from gold
 }
 
 @export var id: String = ""
@@ -20,6 +21,9 @@ enum CurrencyKind {
 @export var icon_path: String = ""
 
 ## REGULAR for the default wallet currency; one REGULAR currency expected.
+## PREMIUM currencies are the real-money kind: they only ever enter the
+## wallet through the PremiumShop's payment-provider seam, never from
+## gold conversion (convertible_from_gold must stay false on the tres).
 @export var kind: CurrencyKind = CurrencyKind.REGULAR
 
 ## Exchange rate against the default wallet currency: how many units of

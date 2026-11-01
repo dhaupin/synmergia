@@ -153,6 +153,9 @@ func _filter_npc_actions(actions: Array, npc_data: NPCData) -> Array:
 			"blacksmith":
 				if _npc_has_offering_type(npc_data, "service", "blacksmith"):
 					filtered.append(action)
+			"premium":
+				if _npc_has_offering_type(npc_data, "service", "PremiumShopService"):
+					filtered.append(action)
 			"craft":
 				if npc_data.get_crafting_station() >= 0:
 					filtered.append(action)
@@ -249,6 +252,7 @@ func _get_actions_for_type(target_type: int) -> Array:
 				{"id": "bank", "text": "Bank", "icon": ""},
 				{"id": "skill_academy", "text": "Skill Academy", "icon": ""},
 				{"id": "blacksmith", "text": "Blacksmith", "icon": ""},
+				{"id": "premium", "text": "Sigil Vault", "icon": ""},
 				{"id": "craft", "text": "Craft", "icon": ""},
 			]
 		Entity.EntityType.LOOT:

@@ -111,6 +111,7 @@ func _prompt_for_offering(offering: Resource) -> String:
 		match offering.service_id:
 			"BlacksmithService":    return "[E] Talk to Blacksmith"
 			"SkillAcademyService":   return "[E] Open Skill Academy"
+			"PremiumShopService":    return "[E] Open Sigil Vault"
 			"BankService":           return "[E] Access Bank"
 			"TavernService":         return "[E] Enter Tavern"
 			"ReforgeService":        return "[E] Open Reforge"
@@ -237,6 +238,13 @@ func _dispatch_service(offering: Resource, player: Entity) -> void:
 		"SkillAcademyService":
 			if PlayerManager:
 				PlayerManager.open_skill_academy_ui(player_id, npc_data)
+
+		"PremiumShopService":
+			# The premium vault rides the MenuManager registry (the
+			# same law as the smithy: service gate + walk-away close).
+			if MenuManager:
+				var npc_pos := global_position if is_instance_valid(self) else Vector3.ZERO
+				MenuManager.open_menu("premium", npc_pos)
 
 		"BankService":
 			if MenuManager:

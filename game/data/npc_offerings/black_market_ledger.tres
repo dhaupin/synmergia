@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="NPCOffering" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/npc_offering.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+type = "vendor"
+display_name = "Underdeck Stock"
+stock_mode = "by_item_id"
+catalog_items = [{
+"item_id": "acc_ring_first_light",
+"qty": 1,
+"price_override": 3,
+"currency_id": "currency_concord_sigil"
+}, {
+"item_id": "acc_cloak_wanderer",
+"qty": 1,
+"price_override": 2,
+"currency_id": "currency_concord_sigil"
+}, {
+"item_id": "item_ancient_coin",
+"qty": 1,
+"price_override": 40,
+"currency_id": "currency_junker_scrip"
+}, {
+"item_id": "item_strait_charm",
+"qty": 1,
+"price_override": 65,
+"currency_id": "currency_junker_scrip"
+}, {
+"item_id": "item_skiff_ticket",
+"qty": 1,
+"price_override": 30,
+"currency_id": "currency_junker_scrip"
+}]
+price_multiplier = 1.0
+unlimited_stock = true
+stock_qty = 99
+buy_categories = [1, 3]

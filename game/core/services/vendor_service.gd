@@ -68,7 +68,8 @@ func get_catalog(offering, npc_data) -> Array[Dictionary]:
 			"item": item,
 			"price": price,
 			"stock": stock,
-			"unlimited": offering.unlimited_stock
+			"unlimited": offering.unlimited_stock,
+			"currency": _entry_currency(item, offering)
 		})
 	return result
 
@@ -101,6 +102,19 @@ func get_sellable_items(player_id: String, offering, npc_data) -> Array[Dictiona
 	return result
 
 
+## The currency a catalog entry is priced in ("" = the default wallet
+## / gold). The black-market ledger prices its wares in junker scrip
+## and concord sigils; every other vendor keeps gold.
+func _entry_currency(item: Item, offering) -> String:
+	var cid := ""
+	if "catalog_items" in offering and offering.catalog_items != null:
+		for entry: Dictionary in offering.catalog_items:
+			if str(entry.get("item_id", "")) == item.id:
+				cid = str(entry.get("currency_id", ""))
+				break
+	return cid
+
+
 ## Buy an item from the vendor.
 ## Returns {success: bool, message: String, item: Item}
 func buy_item(player_id: String, offering, npc_data, item_id: String, qty: int) -> Dictionary:
@@ -122,10 +136,21 @@ func buy_item(player_id: String, offering, npc_data, item_id: String, qty: int) 
 		if remaining < qty:
 			return _fail("Not enough stock (only %d remaining)" % remaining)
 
-	# Verify player can afford it
-	var gold: int = _get_player_gold(player_id)
-	if gold < price:
-		return _fail("Not enough gold (need %d, have %d)" % [price, gold])
+	# Currency + affordability: catalog entries carry their own purse
+	# ("" = gold). The ONE ledger (InventoryComponent) owns every
+	# balance either way; the gold path rides remove_gold, every other
+	# currency rides remove_currency. The check-then-spend pair keeps
+	# the afford message honest per currency.
+	var cid: String = _entry_currency(item, offering)
+	var inv_check: InventoryComponent = _get_player_inventory(player_id)
+	var balance: int = inv_check.get_currency_amount(cid) if inv_check != null else 0
+	var is_gold: bool = cid.is_empty() or cid == "currency_gold"
+	if balance < price:
+		if is_gold:
+			return _fail("Not enough gold (need %d, have %d)" % [price, balance])
+		var cd = _data_svc().get_currency(cid) if _data_svc() and _data_svc().has_method("get_currency") else null
+		var label: String = str(cd.display_name) if cd != null and "display_name" in cd else cid
+		return _fail("Not enough %s (need %d, have %d)" % [label, price, balance])
 
 	# Verify player has inventory space
 	var inv: InventoryComponent = _get_player_inventory(player_id)
@@ -134,7 +159,11 @@ func buy_item(player_id: String, offering, npc_data, item_id: String, qty: int) 
 		return _fail("Inventory full")
 
 	# Execute transaction
-	_remove_player_gold(player_id, price)
+	if is_gold:
+		_remove_player_gold(player_id, price)
+	elif inv != null:
+		if not inv.remove_currency(cid, price):
+			return _fail("Could not take the payment (ledger refused)")
 	_add_item_to_player_inventory(player_id, item, qty)
 
 	# Decrement stock

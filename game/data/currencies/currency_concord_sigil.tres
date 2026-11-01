@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CurrencyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/currency_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "currency_concord_sigil"
+display_name = "Concord Sigil"
+description = "A pressed sigil of the Concord itself, stamped where no reclaim forge reaches. The deep-stall ledger and the premium vault price their impossible wares in these; no coin purse ever mints one."
+icon_path = "res://icons/currency/concord_sigil.png"
+kind = 5
+gold_per_unit = 5000.0
+convertible_to_gold = false
+convertible_from_gold = false
+wallet_cap = 0
+dropped_on_death = false
+faction_id = ""
+soulbound = true
+sort_order = 5

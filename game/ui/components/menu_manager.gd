@@ -53,6 +53,7 @@ var _trade_panel: Control
 var _container_panel: Control
 var _ignore_panel: Control
 var _channel_panel: Control
+var _premium_panel: Control
 
 var _admin_panel: Control
 var _sky_almanac_panel: Control
@@ -333,6 +334,14 @@ func _initialize_panels() -> void:
 	_channel_panel.z_index = 500
 	add_child(_channel_panel)
 	_channel_panel.panel_closed.connect(_on_panel_closed.bind("channels"))
+
+	# Premium vault panel (Concord Sigils; opens from the underdeck
+	# fixer's premium-service offering or the service-gated funnel).
+	_premium_panel = preload("res://ui/components/premium_shop_ui.gd").new()
+	_premium_panel.name = "PremiumShopUI"
+	_premium_panel.z_index = 500
+	add_child(_premium_panel)
+	_premium_panel.panel_closed.connect(_on_panel_closed.bind("premium"))
 
 	# Sky Almanac panel (Skyward Concord; V key)
 	_sky_almanac_panel = load("res://ui/components/sky_almanac_ui.gd").new()
@@ -640,6 +649,8 @@ func _open_menu_internal(menu_name: String, npc_pos: Vector3 = Vector3.ZERO) -> 
 		return
 	if menu_name == "skill_academy" and not _service_gate(npc_pos, "SkillAcademyService", "skill academy"):
 		return
+	if menu_name == "premium" and not _service_gate(npc_pos, "PremiumShopService", "sigil vault"):
+		return
 	# Attach the walk-away close when opened from an NPC's action menu
 	# (the blacksmith/academy law; MENU-panel flavor for the vault).
 	if menu_name == "bank" and npc_pos != Vector3.ZERO \
@@ -648,7 +659,7 @@ func _open_menu_internal(menu_name: String, npc_pos: Vector3 = Vector3.ZERO) -> 
 	# The blacksmith/academy law (staging note): the walk-away close
 	# also owns the smithy and the trainer when opened from their NPC's
 	# action menu.
-	if npc_pos != Vector3.ZERO and (menu_name == "blacksmith" or menu_name == "skill_academy") \
+	if npc_pos != Vector3.ZERO and (menu_name == "blacksmith" or menu_name == "skill_academy" or menu_name == "premium") \
 			and "set_npc_proximity" in panel:
 		panel.call("set_npc_proximity", npc_pos)
 
@@ -1092,6 +1103,7 @@ func _get_panel(menu_name: String) -> Control:
 		"container": return _container_panel
 		"ignore": return _ignore_panel
 		"channels": return _channel_panel
+		"premium": return _premium_panel
 		"sky_almanac": return _sky_almanac_panel
 		"chronicle": return _chronicle_panel
 		"lobby": return _lobby_panel

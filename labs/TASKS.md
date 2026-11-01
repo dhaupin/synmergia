@@ -7694,3 +7694,47 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
      list: enemy/threat combat telemetry, the zone-instance trio,
      npc_spawned (entity_spawned covers), observation_ready,
      instance_contract_changed, notification_queued.
+
+## 2026-11-01 -- PREMIUM WALLET ROUND (the one purse + the real-money seam)
+The owner asked for three things and this round shipped all three:
+1. THE SPLIT WALLETS ARE UNIFIED. InventoryComponent is THE wallet per
+   player: get_currency_amount/add_currency/remove_currency take "" and
+   "currency_gold" into the gold legs, everything else rides the R46
+   ledger (catalog gate + caps). PlayerController.gold is now a synced
+   MIRROR: the property setter turns every direct write (progress
+   restore "gold = N", horde share math, dwelling field-math) into a
+   REAL purse delta, add_gold delegates to the mounted component (one
+   voice), the _ready adoption step resyncs from a boot-restored bag,
+   and the purse's gold_changed drives the mirror back. PlayerManager
+   gold stays the silent persistence mirror (documented, unchanged).
+2. MULTI-CURRENCY + PREMIUM. CurrencyKind.PREMIUM + Concord Sigils
+   (data/currencies/currency_concord_sigil.tres; kind 5, soulbound,
+   never convertible, gold_per_unit 5000). The UNDERDECK FIXER (new
+   NPC in Nexus Central's capitol strand frame + zone roster) sells
+   ledger goods: sigil-priced accessories + scrip-priced coins/charms
+   and skiffs. VendorService learned per-entry currency (catalog rows
+   carry "currency"; buy_item affords/pays through the unified ledger
+   with per-currency refuse messages); ShopUI quotes them properly.
+   The non-gold ledger found its voice: hud binder binds
+   comp.currency_changed -> +N/-N <display_name> rows (restores never
+   emit, so no seeding law needed); the bag header now carries a live
+   ledger strip beside the gold label (comp.get_currency_ids()).
+3. THE PAYMENT PLUGIN SEAM (no processor wired, structure only).
+   core/economy/: PaymentProvider (base contract; statuses
+   pending/complete/cancelled/refused), ManualPaymentProvider (buyer-
+   real checkout; money moves ONLY through fulfill_purchase() -- the
+   operator seam an adapter replaces), PaymentProviderRegistry (board
+   by id; re-register REPLACES = swap law; seeds manual default).
+   PremiumShopService (VendorService singleton dialect) owns the board
+   (registry() -- no static-call quirks), opens/cancels orders, and
+   grants sigils ONLY on provider-complete via the ledger (ONE grant
+   leg, kind-validated, closed once). PremiumShopUI = MenuManager
+   "premium" panel (service-gated law: NPC proximity + walk-away
+   close) reachable via the fixer's action-menu "Sigil Vault" or the
+   [E] Open Sigil Vault prompt; live balance, processor name, SKUs,
+   pending order + cancel.
+Receipt: tests/test_premium_shop_loop.gd exit 0 six legs. GATES:
+pipeline exit 0 zero script errors, lint 36/0, naming 25/0, all prior
+receipts exit 0. NEXT: the true-void survivors -- threat telemetry,
+zone instance trio, npc_spawned, observation_ready,
+instance_contract_changed, notification_queued.

@@ -419,6 +419,13 @@ func _bind_player_wallet_feedback() -> void:
 		if comp.has_signal("item_equipped") \
 				and not comp.item_equipped.is_connected(_on_item_equipped_changed):
 			comp.item_equipped.connect(_on_item_equipped_changed)
+		# Non-gold currency voice (the ONE ledger's other currencies):
+		# scrip, favor, sigils. The signal carries signed deltas and
+		# only fires through the ledger API (restores are silent), so
+		# every emit is a REAL movement -- no seeding needed.
+		if comp.has_signal("currency_changed") \
+				and not comp.currency_changed.is_connected(_on_component_currency_changed):
+			comp.currency_changed.connect(_on_component_currency_changed)
 
 func _wallet_row(delta: int, ever_seen: bool) -> void:
 	if not ever_seen or _combat_log == null or _combat_log.has_method("add_message") != true:
@@ -437,6 +444,28 @@ func _on_component_gold_changed(delta: int) -> void:
 	# The component's signal carries the SIGNED delta directly.
 	_comp_gold_seen = _comp_gold_seen + delta
 	_wallet_row(delta, true)
+
+func _on_component_currency_changed(currency_id: String, delta: int) -> void:
+	if _combat_log == null or not _combat_log.has_method("add_message"):
+		return
+	if delta == 0 or currency_id == "" or currency_id == "currency_gold":
+		# Gold rides its own leg (gold_listener above); the ledger's
+		# gold routing never double-speaks.
+		return
+	var label := _currency_display_name(currency_id)
+	if delta > 0:
+		_combat_log.call("add_message", "+%d %s" % [delta, label], _combat_log.EntryType.LOOT)
+	else:
+		_combat_log.call("add_message", "-%d %s" % [-delta, label], _combat_log.EntryType.SYSTEM)
+
+## DataService display_name for a currency id (the bare id as fallback).
+func _currency_display_name(currency_id: String) -> String:
+	var ds := get_node_or_null("/root/DataService")
+	if ds != null and ds.has_method("get_currency"):
+		var cd = ds.get_currency(currency_id)
+		if cd != null and "display_name" in cd and str(cd.display_name) != "":
+			return str(cd.display_name)
+	return currency_id
 
 func _on_item_equipped_changed(item, slot_name: String, equipped: bool) -> void:
 	if _combat_log == null or not _combat_log.has_method("add_message"):

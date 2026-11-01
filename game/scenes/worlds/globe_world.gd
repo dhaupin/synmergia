@@ -1022,6 +1022,7 @@ const CAPITOL_NPC_BATCH: Array = [
 	# npc_id, bearing_deg (capitol strand frame), reach_rad
 	["npc_armory_capital", 60.0, 0.005],
 	["npc_skill_academy_capital", -120.0, 0.005],
+	["npc_black_market_fixer", -30.0, 0.007],
 	["npc_banker_capital", 0.0, 0.007],
 	["npc_blacksmith_capital", 95.0, 0.006],
 	["npc_merchant_capital", 25.0, 0.006],

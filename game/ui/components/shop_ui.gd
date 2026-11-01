@@ -389,7 +389,16 @@ func _refresh_info() -> void:
 	var total: int = price * qty
 
 	if _selected_type == Tab.BUY:
-		_info_label.text = "%s -- %d gold each (total: %d)" % [name, price, total]
+		# Non-gold catalog entries (the ledger wares: junker scrip,
+		# concord sigils) price BY the entry's own currency and quote the
+		# purse spend through the unified ledger's get_currency_amount.
+		var cid := str(entry.get("currency", ""))
+		if cid.is_empty() or cid == "currency_gold":
+			_info_label.text = "%s -- %d gold each (total: %d)" % [name, price, total]
+		else:
+			var label := _currency_label(cid)
+			var have := _wallet_balance(cid)
+			_info_label.text = "%s -- %d %s each (you have %d, total: %d)" % [name, price, label, have, total]
 	else:
 		var owned: int = entry.get("quantity") if entry.has("quantity") else 1
 		_info_label.text = "%s -- %d gold each (you have %d, total: %d)" % [name, price, owned, total]
@@ -404,10 +413,32 @@ func _refresh_gold() -> void:
 	if inv_service:
 		# InventoryService is an autoload instance; call get_gold on it
 		# directly (there is no .singleton() accessor on the script).
-		var gold: int = inv_service.get_gold(_player_id)
+		# The ONE purse: gold is the default currency id on the wallet.
+		var gold: int = _wallet_balance("")
 		_gold_label.text = str(gold)
 	else:
 		_gold_label.text = "0"
+
+## The unified ledger's balance for any currency ("" = gold).
+func _wallet_balance(cid: String) -> int:
+	var tree := Engine.get_main_loop() as SceneTree
+	var inv_service := tree.root.get_node_or_null(NodePath("InventoryService")) if tree and tree.root else null
+	if inv_service == null or not inv_service.has_method("get_inventory"):
+		return 0
+	var inv = inv_service.get_inventory(_player_id)
+	if inv == null or not is_instance_valid(inv) or not inv.has_method("get_currency_amount"):
+		return 0
+	return int(inv.get_currency_amount(cid))
+
+## DataService display_name for a currency id (the id itself as fallback).
+func _currency_label(cid: String) -> String:
+	var tree := Engine.get_main_loop() as SceneTree
+	var data_service := tree.root.get_node_or_null(NodePath("DataService")) if tree and tree.root else null
+	if data_service != null and data_service.has_method("get_currency"):
+		var cd = data_service.get_currency(cid)
+		if cd != null and "display_name" in cd and str(cd.display_name) != "":
+			return str(cd.display_name)
+	return cid
 
 
 ## ============================================================================

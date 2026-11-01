@@ -16,6 +16,7 @@ var _slots: Array = []
 var _selected_slot: int = -1
 var _info_label: Label
 var _gold_label: Label
+var _ledger_label: Label
 
 signal item_selected(slot_index: int, item_id: String)
 signal item_used(slot_index: int, item_id: String)
@@ -171,6 +172,14 @@ func _setup_header() -> void:
 	_gold_label.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
 	header.add_child(_gold_label)
 
+	# The ledger strip: every non-gold currency the purse holds, live
+	# (scrip, favor, sigils). Gold keeps its own label above.
+	_ledger_label = Label.new()
+	_ledger_label.text = ""
+	_ledger_label.name = "LedgerLabel"
+	_ledger_label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	header.add_child(_ledger_label)
+
 	var close_btn := Button.new()
 	close_btn.text = "X"
 	close_btn.focus_mode = Control.FOCUS_ALL
@@ -210,16 +219,45 @@ func _refresh_inventory() -> void:
 	for i in range(mini(items.size(), _slots.size())):
 		_set_slot_item(i, items[i])
 
+	if comp and comp.has_signal("currency_changed") \
+			and not comp.currency_changed.is_connected(_on_ledger_changed):
+		comp.currency_changed.connect(_on_ledger_changed)
+
 	if _gold_label:
 		var gold: int = 0
 		if comp:
 			gold = comp.get_gold()
 		_gold_label.text = "Gold: %d" % gold
+	_refresh_ledger_line()
 
 func _on_gold_changed(_amount: int) -> void:
 	var comp: InventoryComponent = _get_inventory_component()
 	if _gold_label:
 		_gold_label.text = "Gold: %d" % int(comp.get_gold() if comp else 0)
+
+func _on_ledger_changed(_currency_id: String, _delta: int) -> void:
+	_refresh_ledger_line()
+
+## The ledger strip reads the ONE purse's held ids through the live
+## component; only currencies actually held render.
+func _refresh_ledger_line() -> void:
+	if _ledger_label == null:
+		return
+	var comp: InventoryComponent = _get_inventory_component()
+	if comp == null or not comp.has_method("get_currency_ids"):
+		_ledger_label.text = ""
+		return
+	var parts: Array[String] = []
+	var ds := get_node_or_null("/root/DataService")
+	for cid: String in comp.call("get_currency_ids"):
+		var amount := int(comp.call("get_currency_amount", cid))
+		var label := cid
+		if ds != null and ds.has_method("get_currency"):
+			var cd = ds.get_currency(cid)
+			if cd != null and "display_name" in cd and str(cd.display_name) != "":
+				label = str(cd.display_name)
+		parts.append("%s %d" % [label, amount])
+	_ledger_label.text = " - ".join(parts)
 
 func _get_inventory_component() -> InventoryComponent:
 	var svc := _inv_svc()

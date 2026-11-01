@@ -534,6 +534,14 @@ func _ready() -> void:
 			inventory_component = _existing_bag
 		else:
 			inv_svc.register_inventory(_inv_id, inventory_component)
+	# THE ONE PURSE mirror: the adopted bag may already carry a
+	# boot-restored wallet, so the mirror follows the purse from this
+	# frame on (silently; the PURSE emits the rows).
+		_wallet_swallow = true
+		gold = int(inventory_component.get_gold())
+		_wallet_swallow = false
+	if inventory_component != null and not inventory_component.gold_changed.is_connected(_on_component_gold_changed_mirror):
+		inventory_component.gold_changed.connect(_on_component_gold_changed_mirror)
 
 	# Duck-typed respawn fields RespawnService/Ankh read (CharacterBody3D
 	# has none of them natively; Ankh.bind_player sets respawn_ankh_id).
@@ -724,6 +732,15 @@ func _on_context_action(action_id: String, target_id: String) -> void:
 		"blacksmith":
 			_open_blacksmith_ui()
 			_attach_npc_panel_proximity(_blacksmith_ui, target_id)
+		"premium":
+			# The vault rides the MenuManager registry (banker law:
+			# gates + the walk-away close attach to the NPC position).
+			if _mmgr():
+				var vault_pos: Vector3 = Vector3.ZERO
+				if _current_target_info and _current_target_info.id == target_id \
+						and _current_target_info.entity_type == Entity.EntityType.NPC:
+					vault_pos = _current_target_info.world_position
+				_mmgr().open_menu("premium", vault_pos)
 		"craft":
 			_open_workbench_ui()
 		"character_stats":
@@ -1676,7 +1693,46 @@ func get_crit_multiplier() -> float:
 
 var experience: int = 0
 var experience_to_next_level: int = 1000
-var gold: int = 0
+# THE ONE PURSE (unified wallet law): the mounted InventoryComponent is
+# the authoritative wallet for this player; `gold` is its synced mirror
+# (persistence, HUD, and duck-typed payers read it). Direct writes to
+# `gold` (restore, horde shares, dwelling spends) convert into REAL
+# deltas in the component purse, so every payment speaks through the
+# ONE wallet-voice lane instead of a silent field write.
+var _wallet_swallow: bool = false
+
+var gold: int = 0:
+	set(value):
+		var v := maxi(0, int(value))
+		if _wallet_swallow:
+			gold = v
+			return
+		var comp: Variant = null
+		if "inventory_component" in self:
+			comp = self.get("inventory_component")
+		if comp != null and is_instance_valid(comp) and comp.has_method("add_gold"):
+			var current := int(comp.get_gold())
+			if v > current:
+				comp.add_gold(v - current)
+				_wallet_swallow = true
+				gold = int(comp.get_gold())
+				_wallet_swallow = false
+				return
+			if v < current and comp.has_method("remove_gold"):
+				if comp.remove_gold(current - v):
+					_wallet_swallow = true
+					gold = int(comp.get_gold())
+					_wallet_swallow = false
+					return
+				# The purse refused (fresh body adopted a richer bag,
+				# then a stale restore wanted less). Keep the mirror in
+				# sync with the truth the purse holds.
+			_wallet_swallow = true
+			gold = int(comp.get_gold()) if comp != null and is_instance_valid(comp) else v
+			_wallet_swallow = false
+			return
+		gold = v
+		gold_changed.emit(v)
 
 # Respawn cycle state parked here by RespawnService between the death
 # signal and the delayed respawn execution. Declared on the node because
@@ -1729,8 +1785,59 @@ func add_experience(amount: int) -> void:
 func add_gold(amount: int) -> void:
 	if amount <= 0:
 		return
+	# THE ONE PURSE: when the component wallet is mounted, it is the
+	# authoritative purse and its gold_changed is the ONE speak lane --
+	# the mirror just follows (no duplicate node emit). Standalone
+	# bodies (probes, unmounted stubs) keep their own voice.
+	var comp: Variant = null
+	if "inventory_component" in self:
+		comp = self.get("inventory_component")
+	if comp != null and is_instance_valid(comp) and comp.has_method("add_gold"):
+		comp.add_gold(amount)
+		return
 	gold += amount
 	gold_changed.emit(gold)
+
+## Duck-typed currency surface (the ONE purse for every currency).
+## Prefer the component when mounted; standalone bodies keep an
+## honest zero (never invent balance).
+func get_currency_amount(currency_id: String) -> int:
+	var comp: Variant = null
+	if "inventory_component" in self:
+		comp = self.get("inventory_component")
+	if comp != null and is_instance_valid(comp) and comp.has_method("get_currency_amount"):
+		return int(comp.get_currency_amount(currency_id))
+	return 0
+
+func add_currency(currency_id: String, amount: int) -> bool:
+	var comp: Variant = null
+	if "inventory_component" in self:
+		comp = self.get("inventory_component")
+	if comp != null and is_instance_valid(comp) and comp.has_method("add_currency"):
+		return bool(comp.add_currency(currency_id, amount))
+	return false
+
+func remove_currency(currency_id: String, amount: int) -> bool:
+	var comp: Variant = null
+	if "inventory_component" in self:
+		comp = self.get("inventory_component")
+	if comp != null and is_instance_valid(comp) and comp.has_method("remove_currency"):
+		return bool(comp.remove_currency(currency_id, amount))
+	return false
+
+## Mirror-sync leg: the component purse was paid/spent through a path
+## that does not touch the node (vendors, restores into the adopted
+## bag, vault transfers). Keep `gold` equal to the truth the purse
+## holds -- silently; the PURSE emits the roster rows.
+func _on_component_gold_changed_mirror(_delta: int) -> void:
+	var comp: Variant = null
+	if "inventory_component" in self:
+		comp = self.get("inventory_component")
+	if comp == null or not is_instance_valid(comp):
+		return
+	_wallet_swallow = true
+	gold = int(comp.get_gold())
+	_wallet_swallow = false
 
 func get_stat(stat_name: String) -> int:
 	return int(stats.get(stat_name, 0))
