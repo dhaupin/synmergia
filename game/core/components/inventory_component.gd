@@ -15,6 +15,7 @@ signal item_swapped(slot1: int, slot2: int)
 signal item_bound(item: Item, bind_type: String)	# Emitted when item becomes bound (bind_type: "pickup", "equip", "soulbound")
 signal inventory_full()
 signal gold_changed(amount: int)
+signal item_equipped(item, equip_slot: String, equipped: bool)
 signal currency_changed(currency_id: String, amount: int)
 
 # Weight / Encumbrance
@@ -317,6 +318,10 @@ func equip_item(inventory_slot: int) -> bool:
 
 	item_swapped.emit(inventory_slot, equip_slot)
 
+	# The equip voice: the catalog ghost item_equipped earns its emit
+	# here, on the real equip endpoints (hud rows read it).
+	item_equipped.emit(item, _equip_slot_name(equip_slot), true)
+
 	# Apply equipment stats
 	_apply_equipment_stats()
 
@@ -332,6 +337,7 @@ func unequip_item(equip_slot: int) -> bool:
 		return false
 
 	_equipment[equip_slot] = null
+	item_equipped.emit(item, _equip_slot_name(equip_slot), false)
 	_apply_equipment_stats()
 	return true
 
@@ -347,8 +353,17 @@ func get_all_equipment() -> Dictionary:
 ## (used by full-loot drops where the ground copy is the only copy).
 func clear_equipment_slot(equip_slot: int) -> void:
 	if _equipment.has(equip_slot) and _equipment[equip_slot] != null:
+		var lost_item: Item = _equipment[equip_slot]
 		_equipment[equip_slot] = null
+		# A full-loot strip is still an unequip the player should see.
+		item_equipped.emit(lost_item, _equip_slot_name(equip_slot), false)
 		_apply_equipment_stats()
+
+## Display name for an EquipSlot enum value (signal payloads carry the
+## readable slot, not the ordinal -- rows and consumers never decode).
+func _equip_slot_name(slot: int) -> String:
+	var names := Item.EquipSlot.keys()
+	return names[slot].to_lower() if slot >= 0 and slot < names.size() else "slot_%d" % slot
 
 ## Get all equipped items as array
 func get_all_equipped_items() -> Array:

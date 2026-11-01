@@ -219,6 +219,13 @@ func _connect_all() -> void:
 	# surface through the skill_hit/skill_resolved bridge.
 	_bind_player_combat_feedback.call_deferred()
 
+	# The wallet rows: two honest wallets carry the local player's
+	# money (the node's own wallet pays kills/ground loot; the
+	# mounted InventoryComponent takes vendor/vault spends). Their
+	# gold_changed signals had no player-facing consumer -- the rows
+	# land in CombatLog (gains ride the LOOT family, spends System).
+	_bind_player_wallet_feedback.call_deferred()
+
 	# (Boss arrivals need no hud bridge: boss_spawned was removed for
 	# the no-void law -- the NotificationService bridge over
 	# EventHub.entity_spawned already announces world bosses with the
@@ -378,6 +385,69 @@ func _on_combat_entered() -> void:
 
 func _on_combat_exited() -> void:
 	_combat_state_row("You have left combat.")
+
+## ---- Wallet rows (the local player's two honest wallets) ----------
+
+var _node_gold_seen: int = -1
+var _comp_gold_seen: int = -1
+
+func _bind_player_wallet_feedback() -> void:
+	var player: Node = null
+	var pm := get_node_or_null("/root/PlayerManager")
+	if pm != null:
+		var lp: Variant = pm.get("local_player")
+		if lp != null and is_instance_valid(lp):
+			player = lp
+	if player == null:
+		return
+	# The node wallet (kills, ground loot, dwelling spends). It
+	# carries the running TOTAL, so seed the seen-value to stay quiet
+	# through hydration and speak only in real deltas. Per-leg guards:
+	# a rebind must not skip the component legs below.
+	if not player.gold_changed.is_connected(_on_node_gold_changed):
+		_node_gold_seen = int(player.gold) if "gold" in player else -1
+		player.gold_changed.connect(_on_node_gold_changed)
+	# The component wallet (vendors, vault, ferry, blacksmith) and
+	# its equipped voice.
+	var comp: Variant = null
+	if "inventory_component" in player:
+		comp = player.get("inventory_component")
+	if comp != null and is_instance_valid(comp):
+		if not comp.gold_changed.is_connected(_on_component_gold_changed):
+			_comp_gold_seen = comp.get_gold()
+			comp.gold_changed.connect(_on_component_gold_changed)
+		if comp.has_signal("item_equipped") \
+				and not comp.item_equipped.is_connected(_on_item_equipped_changed):
+			comp.item_equipped.connect(_on_item_equipped_changed)
+
+func _wallet_row(delta: int, ever_seen: bool) -> void:
+	if not ever_seen or _combat_log == null or _combat_log.has_method("add_message") != true:
+		return
+	if delta > 0:
+		_combat_log.call("add_message", "+%d gold" % delta, _combat_log.EntryType.LOOT)
+	elif delta < 0:
+		_combat_log.call("add_message", "-%d gold" % -delta, _combat_log.EntryType.SYSTEM)
+
+func _on_node_gold_changed(total: int) -> void:
+	var previous := _node_gold_seen
+	_node_gold_seen = total
+	_wallet_row(total - previous, previous >= 0)
+
+func _on_component_gold_changed(delta: int) -> void:
+	# The component's signal carries the SIGNED delta directly.
+	_comp_gold_seen = _comp_gold_seen + delta
+	_wallet_row(delta, true)
+
+func _on_item_equipped_changed(item, slot_name: String, equipped: bool) -> void:
+	if _combat_log == null or not _combat_log.has_method("add_message"):
+		return
+	var label: String = "an item"
+	if item != null and "display_name" in item:
+		var s := str(item.get("display_name"))
+		if not s.is_empty():
+			label = s
+	var verb := "equip" if bool(equipped) else "unequip"
+	_combat_log.call("add_message", "You %s %s (%s)." % [verb, label, slot_name], _combat_log.EntryType.SYSTEM)
 
 func _on_container_opened(key: String, container_type: int) -> void:
 	if _mm == null:

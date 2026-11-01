@@ -137,6 +137,11 @@ func _setup_panel() -> void:
 	drop_btn.pressed.connect(_on_drop_item)
 	btn_row.add_child(drop_btn)
 
+	# The header (title + Gold label + close X) was BORN ORPHANED:
+	# _setup_header existed with zero callers, so the bag shipped with
+	# no close button and the gold total never rendered anywhere.
+	_setup_header()
+
 func _setup_header() -> void:
 	var panel := get_panel()
 	if not panel:
@@ -193,6 +198,12 @@ func _refresh_inventory() -> void:
 			if item:
 				items.append(item)
 
+	# Live gold: an open bag follows the wallet. Before this bind the
+	# Gold label only refreshed on slots/gold_transferred, so vendor
+	# spends and loot pays left an open panel saying "Gold: 0".
+	if comp and not comp.gold_changed.is_connected(_on_gold_changed):
+		comp.gold_changed.connect(_on_gold_changed)
+
 	for slot in _slots:
 		_clear_slot(slot)
 
@@ -204,6 +215,11 @@ func _refresh_inventory() -> void:
 		if comp:
 			gold = comp.get_gold()
 		_gold_label.text = "Gold: %d" % gold
+
+func _on_gold_changed(_amount: int) -> void:
+	var comp: InventoryComponent = _get_inventory_component()
+	if _gold_label:
+		_gold_label.text = "Gold: %d" % int(comp.get_gold() if comp else 0)
 
 func _get_inventory_component() -> InventoryComponent:
 	var svc := _inv_svc()

@@ -7645,3 +7645,52 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
      exit 0 zero script errors, lint 36/0, naming 25/0, new receipt +
      login + map-ping + fresh-kit + ignore-book + channel-mute +
      daily + acts all exit 0.
+- LOOPS v31: THE ECONOMY ROUND (the true-void cluster audit paid in rows):
+     the audit showed the "dead economy ghosts" were only census
+     artifacts: gold_gained/gold_spent/xp_gained/item_equipped live
+     ONLY in the capture-layer core/events/{entity,inventory}_events
+     (hub-referenced for diagnostics, per v30). THE REAL MONEY
+     MACHINERY WAS NEVER VOID -- it was TWIN-VOICED AND INVISIBLE:
+     two honest wallets move the local player's gold (the NODE wallet
+     -- PlayerController.gold -- paid by kill rewards/ground
+     loot/horde/dwellings; the COMPONENT wallet -- the mounted
+     InventoryComponent._gold -- spent by vendors/blacksmith/vault/
+     ferry/transfers) and each already emitted gold_changed to
+     essentially nothing (blacksmith_ui was the single consumer;
+     PlayerManager.gold stays the silent persistence mirror the
+     boot-restore writes -- unchanged, documented). SHIPPED: hud_
+     integrator._bind_player_wallet_feedback (deferred, local-player
+     seam, per-leg guards so a rebind cannot skip the component legs)
+     binds BOTH wallets into CombatLog rows -- node wallet speaks in
+     paid deltas with seen-total seeding (hydration re-emits stay
+     quiet), component wallet rides its signed deltas (+N loot rows /
+     -N system rows), and the NEW item_equipped voice (item,
+     slot_name, equipped: bool) lands "You equip Iron Sword
+     (off_hand)." rows. InventoryComponent earns the equip voice on
+     its REAL endpoints: equip_item/unequip_item emit, and
+     clear_equipment_slot (full-loot strips) counts as an unequip the
+     player sees; _equip_slot_name reads Item.EquipSlot.keys() (the
+     sword's tres really declares equip_slot = 8 = off_hand --
+     flagged, not changed). InventoryUI got its GOLD LABEL LIVE: the
+     label only refreshed on rows/item_transferred so an open bag
+     said "Gold: 0" through every spend (receipt leg 5 catches it);
+     DRIVE-BY CAUGHT: inventory_ui._setup_header was BORN ORPHANED
+     (zero callers) -- the bag shipped with no title, NO close X, and
+     the gold total never rendered anywhere; the call sits at the end
+     of _setup_panel now. Receipt tests/test_economy_wallet_rows.gd
+     exit 0 six legs (binder no-crash, dual-wallet seed, hydration
+     quiet + +45 delta rows, vendor +50/-25 rows, equip/unequip/
+     strip rows via wep_iron_sword through the REAL bag, open-bag
+     label follows the wallet -- probe rides open() not a bare
+     private refresh). Script-mode lore added: a bare Node gains NO
+     properties from set() -- probe wallets declare them in a tiny
+     dynamic script (signal + gold + inventory_component). Split-
+     wallet debt persists by design: node gold and component gold
+     are separate sums until a unification decision; the rows are
+     per-wallet honest, no fake unified display. GATES: pipeline
+     exit 0 zero script errors, lint 36/0, naming 25/0, economy +
+     combat-sense + login + map-ping + fresh-kit + ignore-book +
+     channel-mute receipts all exit 0. NEXT from the true-void
+     list: enemy/threat combat telemetry, the zone-instance trio,
+     npc_spawned (entity_spawned covers), observation_ready,
+     instance_contract_changed, notification_queued.
