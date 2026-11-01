@@ -7769,3 +7769,28 @@ Every survivor from the census's true-void scan got its honest end:
 Receipt: tests/test_true_void_survivors.gd exit 0 five legs, zero
 SCRIPT ERROR. GATES: pipeline exit 0 zero script errors, lint 36/0,
 naming 25/0, all prior receipts exit 0.
+
+## 2026-11-01 -- BLACK MARKET GAMBLE + PAYMENT ARMOR ROUND
+1. THE DEEP ROLLS: the fixer is a gambler -- roll_deep debits real
+   sigils from the ONE purse and lands ONE weighted draw out of REAL
+   LootTable pools (loot_black_market_tide 3 sigils / depths 12 with
+   rarity_boost 2.0). Server-only math (client sends a roll_id),
+   grant-through-DataService, failed grant refunds, roll_granted +
+   audit lines, QoS gate BEFORE the debit, honest named refusals.
+   Pools grow by appending entries as the gear catalog grows (receipt
+   refuses phantom SKUs).
+2. THE WEBHOOK ARMOR (defense in depth): WebhookPaymentProvider --
+   env secret never in repo + fail-closed, HMAC-SHA256 over raw
+   bytes, 5-min freshness window, order-binding to its own pending
+   order, server-side sigil accounting, one-time completion with
+   honest duplicate refusals. Service grant re-validates kind/amount.
+3. REBOOT LAW: premium open orders persist via DictStore
+   ("premium:order:" -- hydrate on _init, persist on open, erase on
+   close). Adapters re-register at boot.
+4. PANEL: Deep Rolls rows under the SKU board (cost, pool tooltip,
+   Roll buttons, notifications, live refresh).
+Receipt: tests/test_black_market_gamble.gd exit 0 six legs. GATES:
+pipeline exit 0 zero script errors, lint 36/0, naming 25/0, receipts
+(gamble/premium/economy/true-void/combat/progress/kill/login) exit 0.
+NEXT: real processor wiring behind handle_webhook, sigil-sink catalog
+expansion, census/gaps rounds continue.

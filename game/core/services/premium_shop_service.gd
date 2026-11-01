@@ -45,8 +45,32 @@ signal purchase_failed(player_id: String, sku_id: String, reason: String)
 ## complete/cancelled), so the panel refreshes on truth.
 signal purchase_state_changed(player_id: String, purchase_id: String, status: String)
 
-## player_id -> {purchase_id, sku_id, provider_id}
+## player_id -> {purchase_id, sku_id, provider_id}. REBOOT LAW: open
+## orders ride the DictStore KV door (chat book pattern), so a reboot
+## hydrates them back -- a checkout mid-flight survives the process
+## and can still be fulfilled honestly after.
 var _open_orders := {}
+const KV_ORDER_PREFIX := "premium:order:"
+
+func _init() -> void:
+	_hydrate_orders()
+
+func _hydrate_orders() -> void:
+	var store := DictStore.new()
+	for key in store.all_keys():
+		if not key.begins_with(KV_ORDER_PREFIX):
+			continue
+		var order = store.get_value(key)
+		if order is Dictionary and not order.is_empty():
+			_open_orders[key.substr(KV_ORDER_PREFIX.length())] = order
+
+func _persist_open_order(player_id: String) -> void:
+	var store := DictStore.new()
+	var order: Dictionary = _open_orders.get(player_id, {})
+	if order.is_empty():
+		store.erase(KV_ORDER_PREFIX + player_id)
+	else:
+		store.set_value(KV_ORDER_PREFIX + player_id, order)
 
 ## The plugin board (lazy; seeded with the manual processor).
 var _board = null
@@ -117,6 +141,7 @@ func begin_purchase(player_id: String, sku_id: String) -> Dictionary:
 			"sku_id": sku_id,
 			"provider_id": provider.get_id(),
 		}
+		_persist_open_order(player_id)
 		purchase_state_changed.emit(player_id, str(result.get("purchase_id", "")), "pending")
 		return {"success": true, "value": str(result.get("message", "Checkout opened."))}
 	# Any other provider status is an honest refusal to place on record.
@@ -189,6 +214,7 @@ func _close_order(player_id: String) -> void:
 	if not order.is_empty():
 		purchase_state_changed.emit(player_id, str(order.get("purchase_id", "")), "closed")
 	_open_orders.erase(player_id)
+	_persist_open_order(player_id)
 
 ## The ONE grant leg. Validates the currency (kind PREMIUM in
 ## DataService truth), the SKU's sigil figure, then credits through the

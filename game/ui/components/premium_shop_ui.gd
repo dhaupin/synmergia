@@ -13,12 +13,14 @@ extends "res://ui/components/ui_panel.gd"
 class_name PremiumShopUI
 
 const PremiumShopServiceScript = preload("res://core/services/premium_shop_service.gd")
+const BlackMarketServiceScript = preload("res://core/services/black_market_service.gd")
 const NotifKindScript = preload("res://core/notifications/notification_kind.gd")
 
 ## Build-once content refs (inside the base Panel/Main shell).
 var _rows_box: VBoxContainer
 var _status_label: Label
 var _sigil_label: Label
+var _rolls_box: VBoxContainer
 
 func _setup_panel() -> void:
 	set_panel_size(Vector2(460, 520))
@@ -49,10 +51,14 @@ func _ensure_content() -> void:
 		_rows_box = VBoxContainer.new()
 		_rows_box.name = "Rows"
 		main.add_child(_rows_box)
+		_rolls_box = VBoxContainer.new()
+		_rolls_box.name = "RollsBox"
+		main.add_child(_rolls_box)
 	else:
 		_sigil_label = main.get_node("Sigils") as Label
 		_status_label = main.get_node("Status") as Label
 		_rows_box = main.get_node("Rows") as VBoxContainer
+		_rolls_box = main.get_node("RollsBox") as VBoxContainer
 	_watch_service()
 
 ## The service is a runtime singleton (not an autoload): refresh rides
@@ -100,6 +106,7 @@ func _refresh() -> void:
 	_status_label.text = "Checkout answers to: %s" % shop.get_provider_display_name()
 	for sku in shop.get_skus(player_id):
 		_add_sku_row(shop, player_id, sku)
+	_refresh_rolls(player_id)
 
 func _unused(_x) -> void:
 	pass
@@ -152,6 +159,65 @@ func _notify_checkout(result: Dictionary) -> void:
 		str(result.get("value", "Checkout opened.")),
 		"PremiumShopUI",
 		"premium_checkout",
+		{},
+		_player_id_for_toast()
+	)
+
+## THE DEEP ROLLS: the fixer's gamble surface rides into the same
+## panel (sigils in, one weighted draw out of a real LootTable). The
+## client sends only a roll_id; weights, item ids and amounts all stay
+## server truth in BlackMarketService.
+func _refresh_rolls(player_id: String) -> void:
+	if _rolls_box == null:
+		return
+	for child in _rolls_box.get_children():
+		child.queue_free()
+	var market = BlackMarketServiceScript.singleton()
+	if market == null or not is_instance_valid(market):
+		var absent := Label.new()
+		absent.text = "The deep rolls are closed (market unavailable)."
+		_rolls_box.add_child(absent)
+		return
+	if not market.roll_granted.is_connected(_on_roll_refresh):
+		market.roll_granted.connect(_on_roll_refresh)
+	for option in market.get_roll_options():
+		_add_roll_row(market, player_id, option)
+
+func _add_roll_row(market, player_id: String, option: Dictionary) -> void:
+	var row := PanelContainer.new()
+	var hbox := HBoxContainer.new()
+	row.add_child(hbox)
+	var name_label := Label.new()
+	name_label.text = "%s - %d sigils" % [str(option.get("label", "?")), int(option.get("sigils", 0))]
+	name_label.tooltip_text = str(option.get("description", ""))
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hbox.add_child(name_label)
+	var roll := Button.new()
+	roll.text = "Roll"
+	roll.pressed.connect(func():
+		var result: Dictionary = market.roll_deep(player_id, str(option.get("roll_id", "")))
+		_notify_roll(result)
+		var shop = PremiumShopServiceScript.singleton()
+		if shop != null:
+			_refresh())
+	hbox.add_child(roll)
+	_rolls_box.add_child(row)
+
+func _on_roll_refresh(_player_id: String, _roll_id: String, _item_id: String, _rarity: String) -> void:
+	var shop = PremiumShopServiceScript.singleton()
+	if shop != null:
+		_refresh()
+
+func _notify_roll(result: Dictionary) -> void:
+	var ns := get_node_or_null("/root/NotificationService")
+	if ns == null:
+		return
+	var NotifKind = NotifKindScript.NotifKind
+	ns.notify(
+		NotifKind.CUSTOM,
+		str(result.get("message", "")),
+		"BlackMarketUI",
+		"black_market_roll",
 		{},
 		_player_id_for_toast()
 	)

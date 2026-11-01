@@ -1,0 +1,74 @@
+[gd_resource type="Resource" script_class="LootTable" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/loot_table.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "loot_black_market_tide"
+name = "Fixer's Tide Pull"
+description = "The Underdeck Fixer's cheap tide-pull: 3 sigils rides the shallow wash where odds still breathe. Documented shape: append real entries here and the roll honors them."
+level = 5
+min_items_dropped = 1
+max_items_dropped = 1
+base_drop_chance = 1.0
+entries = [{
+"item_id": "potion_health_small",
+"min_quantity": 1,
+"max_quantity": 2,
+"drop_rate": 1.0,
+"rarity_weight": 7.0,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "item_ancient_coin",
+"min_quantity": 1,
+"max_quantity": 3,
+"drop_rate": 1.0,
+"rarity_weight": 6.0,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "potion_soul_gem",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 1.0,
+"rarity_weight": 4.0,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "wep_wooden_bow",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 1.0,
+"rarity_weight": 3.0,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "acc_cloak_wanderer",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 1.0,
+"rarity_weight": 2.0,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "arm_leather_chest",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 1.0,
+"rarity_weight": 2.0,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "arm_shield_haven_wall",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 1.0,
+"rarity_weight": 1.0,
+"is_guaranteed": false,
+"conditions": []
+}]
+auto_loot = false
+share_loot = false
+need_before_greed = false
+currency_drops = []
