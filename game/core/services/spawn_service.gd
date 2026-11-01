@@ -128,10 +128,12 @@ class SpawnPoint:
 
 ## SpawnService-specific signals for spawn-point-aware listeners
 ## These complement the unified EventHub.entity_spawned with spawn-point context
+## (boss_spawned was removed: the arrival announcement already rides
+## the NotificationService bridge over entity_spawned and the signal
+## had no other listener.)
 signal spawn_point_registered(spawn_point: Dictionary)
 signal enemy_spawned(entity, spawn_point_id: String, metadata: SpawnMetadata)
 signal enemy_despawned(entity, spawn_point_id: String, metadata: SpawnMetadata)
-signal boss_spawned(entity, boss_name: String, metadata: SpawnMetadata)
 signal npc_spawned(npc, npc_id: String, metadata: SpawnMetadata)
 signal spawn_point_cleared(spawn_point_id: String)
 signal world_boss_schedule_started(schedule_id: String, config: Dictionary)
@@ -633,11 +635,13 @@ func spawn_boss(
 	var zone_manager = ZoneManager
 	if zone_manager:
 		var zone = zone_manager.get_zone(zone_id)
-		if zone:
-			zone_manager.entity_enter_zone(boss, zone)
+		if zone:				zone_manager.entity_enter_zone(boss, zone)
 
-	# Emit service-specific signal with spawn context
-	boss_spawned.emit(boss, boss.display_name, metadata)
+	# NO-VOID: boss_spawned (declared, zero listeners) was removed --
+	# the arrival announcement already rides the NotificationService
+	# bridge over EventHub.entity_spawned (metadata carries the
+	# enabled flag + server-wide scope; see the gate below). A second
+	# signal lane with no consumer would only have repeated the voice.
 	GameLog.info("SpawnService: Spawned BOSS %s at %s" % [boss.display_name, str(position)])
 
 	# Notification is now handled by NotificationService listening to EventHub.entity_spawned

@@ -212,6 +212,19 @@ func _connect_all() -> void:
 	# service law (deferred: the map control mounts with the HUD).
 	_bind_map_ping.call_deferred()
 
+	# The cast-sense rows: the player's own CombatComponent broadcasts
+	# its honest lifecycle (cast starts, cast completions, channel
+	# ends, combat enter/exit) with zero listeners -- the rows land in
+	# CombatLog. Player-local on purpose: nearby enemies already
+	# surface through the skill_hit/skill_resolved bridge.
+	_bind_player_combat_feedback.call_deferred()
+
+	# (Boss arrivals need no hud bridge: boss_spawned was removed for
+	# the no-void law -- the NotificationService bridge over
+	# EventHub.entity_spawned already announces world bosses with the
+	# metadata's server-wide scope; a hud listener would double the
+	# voice.)
+
 
 ## WeatherEventService signals -> SkyTotem. The service owns the
 ## authoritative close time: it pushes the mystery id + seconds at
@@ -308,6 +321,63 @@ func _route_map_ping(pos: Vector3, quest_label: String) -> void:
 	var wp_id := str(wp.get("id", "")) if wp is Dictionary else ""
 	if wp_id != "" and wsvc.has_method("activate_waypoint"):
 		wsvc.activate_waypoint(player_id, wp_id)
+
+## ---- Cast-sense rows (the player's own CombatComponent) -----------
+
+func _bind_player_combat_feedback() -> void:
+	var player: Node = null
+	var pm := get_node_or_null("/root/PlayerManager")
+	if pm != null:
+		var lp: Variant = pm.get("local_player")
+		if lp != null and is_instance_valid(lp):
+			player = lp
+	if player == null:
+		return
+	var comp: Variant = player.get("combat_component") if "combat_component" in player else null
+	if comp == null or not is_instance_valid(comp):
+		return
+	if comp.cast_started.is_connected(_on_cast_started):
+		return
+	comp.cast_started.connect(_on_cast_started)
+	comp.cast_finished.connect(_on_cast_finished)
+	comp.channel_ended.connect(_on_channel_ended)
+	comp.combat_entered.connect(_on_combat_entered)
+	comp.combat_exited.connect(_on_combat_exited)
+
+## Skill display name with the same guard the miss row uses (cast
+## data is engine content, not user text -- no escape needed).
+func _cast_label(skill) -> String:
+	if skill == null:
+		return "a skill"
+	if "display_name" in skill:
+		var s := str(skill.get("display_name"))
+		if not s.is_empty():
+			return s
+	if "name" in skill:
+		var n := str(skill.get("name"))
+		if not n.is_empty():
+			return n
+	return "a skill"
+
+func _combat_state_row(text: String) -> void:
+	if _combat_log != null and _combat_log.has_method("add_message"):
+		_combat_log.call("add_message", text, _combat_log.EntryType.SYSTEM)
+
+func _on_cast_started(skill) -> void:
+	_combat_state_row("You begin casting %s." % _cast_label(skill))
+
+func _on_cast_finished(skill) -> void:
+	_combat_state_row("You finish casting %s." % _cast_label(skill))
+
+func _on_channel_ended(skill, completed: bool) -> void:
+	var verdict := "" if bool(completed) else " (interrupted)"
+	_combat_state_row("You stop channeling %s%s." % [_cast_label(skill), verdict])
+
+func _on_combat_entered() -> void:
+	_combat_state_row("You have entered combat.")
+
+func _on_combat_exited() -> void:
+	_combat_state_row("You have left combat.")
 
 func _on_container_opened(key: String, container_type: int) -> void:
 	if _mm == null:

@@ -7600,3 +7600,48 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
      GATES: pipeline exit 0 zero script errors, lint 36/0, naming
      25/0, ignore-book + map-ping + fresh-kit + login receipts all
      exit 0.
+- LOOPS v30: THE COMBAT-SENSE ROUND (fresh census + honest removals):
+     a fresh census ran FIRST (598 declared / 234 OK / 282 regex-VOID
+     / 82 DEAD) followed by a TRUE-VOID scan (zero textual mentions
+     beyond decl(+emit): 265 names) because the connect-regex is
+     blind to name-keyed UI connect maps (leader_changed: BOTH party
+     and guild UIs already ride it as map keys -- census false) and
+     string connects; loot/spawn/edge signals that pass the true-void
+     scan are the real wallpaper. THE CAST-SENSE LOOP SHIPPED: the
+     player's own CombatComponent lifecycle (cast_started/cast_
+     finished/channel_ended/combat_entered/combat_exited) emitted
+     zero-listener since birth; hud_integrator._bind_player_
+     combat_feedback (deferred, local_player seam, no-crash no-player
+     law) binds the component's five signals into NEW CombatLog rows
+     (System family: "You begin casting X" / "You finish casting X" /
+     "You stop channeling X (interrupted)" / "You have entered/left
+     combat") -- player-local on purpose, enemies already surface via
+     skill_hit/skill_resolved. Receipt tests/test_combat_sense_loop.gd
+     exit 0 (binder no-op honest, lifecycle rows truth-verified
+     through the entries, bridge proven connected). TWO VOID WALLS
+     DEMOLISHED (mirror of the close_vault law: an announcement rule
+     is already carrying the signal's voice -- a second lane with no
+     consumer repeats it):
+       (a) chapter_recorded removed from ActsService -- the announce
+       path _announce_chapter already notifies the player and the
+       Chronicle panel re-reads on open (panel_opened -> refresh);
+       (b) boss_spawned removed from SpawnService -- the world-boss
+       arrival voice ALREADY rides NotificationService's own bridge
+       over EventHub.entity_spawned (metadata notification_enabled +
+       scopes; the spawn path defaults an empty scope to SERVER-WIDE
+       so the classic boss announce reaches everyone); a hud
+       listener would have double-toasted every boss spawn.
+     The receipts also pin the bridge truisms (entity_spawned ->
+     _on_entity_spawned connected). DRIVEIER FIX: PlayerManager.
+     set_local_player(null) crashed on the display-name duck-read
+     ('String' and 'Nil' in 'in') -- clearing the slot (logout,
+     probe teardown) is a legal state; guarded. Census verdict jumps:
+     remaining TRUE-VOID clusters by family: economy (gold/xp
+     catalog ghosts), combat telemetry (attack/cast on the shared
+     combat_component? no -- the local-player cast half is fixed;
+     enemy/threat sides remain), zone instance trio, npc_spawned
+     (documented: entity_spawned covers it), observation_ready,
+     instance_contract_changed, notification_queued. GATES: pipeline
+     exit 0 zero script errors, lint 36/0, naming 25/0, new receipt +
+     login + map-ping + fresh-kit + ignore-book + channel-mute +
+     daily + acts all exit 0.

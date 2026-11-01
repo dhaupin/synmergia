@@ -32,8 +32,9 @@ const DictStore = preload("res://adapters/persistence/dict_store.gd")
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 const KillRewards = preload("res://core/services/kill_rewards.gd")
 
-## Fired when chapters are recorded by a door open (per act_id).
-signal chapter_recorded(act_id: String, chapter_index: int, day_index: int)
+## (chapter_recorded was removed: it emitted with zero listeners
+## while _announce_chapter already carries the player-facing voice
+## and the Chronicle panel re-reads on open.)
 ## Fired when a mystery is solved (mystery_id, player_id).
 signal mystery_solved(mystery_id: String, player_id: String)
 
@@ -139,7 +140,11 @@ func _on_door_opened(day_index: int) -> void:
 			ledger[idx] = day_index
 			recorded_any = true
 			_announce_chapter(rid, act, d, day_index)
-			chapter_recorded.emit(rid, idx, day_index)
+			# NO-VOID: chapter_recorded (declared, zero listeners) was
+			# removed -- the announcement above IS the player-facing
+			# consumer path and the Chronicle panel re-reads on open
+			# (panel_opened -> refresh), so an extra signal had no
+			# consumer to earn its emit.
 		if recorded_any:
 			_recorded[rid] = ledger
 			_next_fill[rid] = _find_next_fill(act, ledger)

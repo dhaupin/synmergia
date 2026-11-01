@@ -49,7 +49,9 @@ func _ready() -> void:
 
 func set_local_player(player: Node) -> void:
 	local_player = player
-	character_name = player.display_name if ("display_name" in player) else "Player"
+	# A null clear (logout, probe teardown) is a legal slot state:
+	# the duck-typed reads must not touch a missing node.
+	character_name = player.display_name if (player != null and is_instance_valid(player) and "display_name" in player) else "Player"
 	_update_resource_signals()
 
 ## Resolve the local player's entity id by duck-typing the bound player
