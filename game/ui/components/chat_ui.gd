@@ -329,6 +329,12 @@ func add_message(sender_id: String, channel: int, message: String, viewer_id: St
 		local_id = viewer_id
 	if local_id != "" and svc.is_ignored_sender(local_id, sender_id):
 		return
+	# The channel-mute law: a viewer-hidden channel's incoming lines
+	# never reach this chat's history (receive-side only -- your own
+	# sends ride the normal pipeline). Same one-filter-covers-both
+	# routing as the ignore law above.
+	if local_id != "" and svc.is_channel_muted(local_id, channel):
+		return
 	var sender_name := _get_sender_name(sender_id)
 	var formatted: String = _chat_svc().format_message(sender_id, channel, message, sender_name)
 	_chat_history.append_text(formatted + "\n")
@@ -422,6 +428,14 @@ func _add_player_info_header(header: HBoxContainer) -> void:
 	ignore_btn.pressed.connect(_open_ignore_book)
 	header.add_child(ignore_btn)
 
+	# Channel-settings button: the mute knob for incoming lines.
+	var channels_btn := Button.new()
+	channels_btn.text = "[Channels]"
+	channels_btn.add_theme_font_size_override("font_size", 10)
+	channels_btn.focus_mode = Control.FOCUS_ALL
+	channels_btn.pressed.connect(_open_channel_settings)
+	header.add_child(channels_btn)
+
 	# Admin button (if GM/admin)
 	if _is_admin():
 		var admin_btn := Button.new()
@@ -444,6 +458,17 @@ func _open_ignore_book() -> void:
 	var mm = mm_script.instance
 	if mm != null and is_instance_valid(mm) and mm.has_method("open_menu"):
 		mm.call("open_menu", "ignore")
+
+## Channel-settings funnel: same MenuManager static-instance law as
+## the ignore book; both buttons open panels that write the service
+## they read.
+func _open_channel_settings() -> void:
+	var mm_script: GDScript = load("res://ui/components/menu_manager.gd")
+	if mm_script == null:
+		return
+	var mm = mm_script.instance
+	if mm != null and is_instance_valid(mm) and mm.has_method("open_menu"):
+		mm.call("open_menu", "channels")
 
 func _is_admin() -> bool:
 	var local_id := str(_pmgr().get_local_player_id()) if _pmgr() else ""

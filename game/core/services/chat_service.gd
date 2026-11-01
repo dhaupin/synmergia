@@ -150,8 +150,10 @@ func _ready() -> void:
 		MAX_HISTORY_PER_CHANNEL = gc.Chat.MAX_HISTORY_PER_CHANNEL
 		MAX_MESSAGE_LENGTH = gc.Chat.MAX_MESSAGE_LENGTH
 
-		# Initialize history for each channel
-	for channel in Channel:
+		# Initialize history for each channel (the VALUES -- iterating
+		# the enum bare would key history by the enum NAMES ("SAY")
+		# and int-keyed lookups would miss them).
+	for channel in Channel.values():
 		_chat_history[channel] = []
 
 		# Load profanity filter words from config file
@@ -468,6 +470,12 @@ func _handle_command(sender_id: String, channel: Channel, command: String, targe
 			return _cmd_unignore(sender_id, args)
 		"muted":
 			return _cmd_muted(sender_id, args)
+		"mute":
+			return _cmd_mute(sender_id, args)
+		"unmute":
+			return _cmd_unmute(sender_id, args)
+		"channels":
+			return _cmd_channels(sender_id, args)
 		"report":
 			return _cmd_report(sender_id, args)
 		"bug":
@@ -1055,6 +1063,48 @@ func _cmd_muted(sender_id: String, args: Array) -> bool:
 		send_system_message(sender_id, "You are not ignoring anyone")
 	else:
 		send_system_message(sender_id, "Ignored: %s" % ", ".join(muted))
+	var channels := get_muted_channels(sender_id)
+	if not channels.is_empty():
+		send_system_message(sender_id, "Muted channels: %s" % ", ".join(channels))
+	return true
+
+## Command: Mute a channel (receive-side; /mute Trade hides Trade's
+## incoming lines). Same law as the panel: both ride set_channel_muted.
+func _cmd_mute(sender_id: String, args: Array) -> bool:
+	return _mute_command(sender_id, args, true)
+
+## Command: Unmute a channel
+func _cmd_unmute(sender_id: String, args: Array) -> bool:
+	return _mute_command(sender_id, args, false)
+
+func _mute_command(sender_id: String, args: Array, muted: bool) -> bool:
+	if args.is_empty():
+		send_system_message(sender_id, "Usage: /%s <channel>  (see %s)" % ["mute" if muted else "unmute", "/channels"])
+		return true
+	var channel := channel_by_name(str(args[0]))
+	if channel < 0:
+		send_system_message(sender_id, "Unknown channel: %s (try %s)" % [str(args[0]), "/channels"])
+		return true
+	var result: Dictionary = set_channel_muted(sender_id, channel, muted)
+	send_system_message(sender_id, str(result.get("message", "")))
+	return bool(result.get("success", false))
+
+## Command: Channels -- the mute state board (every channel with its
+## hidden/shown verdict + the System protection called out).
+func _cmd_channels(sender_id: String, args: Array) -> bool:
+	var muted: Array = get_muted_channels(sender_id)
+	var lines: Array = []
+	for channel in Channel.values():
+		if channel == Channel.WHISPER:
+			continue
+		var label := get_channel_name(channel)
+		if channel == Channel.SYSTEM:
+			label += " (always shown)"
+		elif muted.has(label):
+			label += " [MUTED]"
+		lines.append(label)
+	send_system_message(sender_id, "Channels: %s" % ", ".join(lines))
+	send_system_message(sender_id, "Toggle with /mute <channel> or /unmute <channel>")
 	return true
 
 ## Command: Report player abuse
@@ -1222,6 +1272,91 @@ func _sender_display_name(sender_id: String) -> String:
 func _is_ignored(ignorer_id: String, ignored_id: String) -> bool:
 	var ignored: Array = _ignored_players.get(ignorer_id, [])
 	return ignored		.has(ignored_id)
+
+## ============================================================================
+## PER-CHANNEL MUTE (the channel_settings_changed owner)
+## ============================================================================
+## Mute = a RECEIVE-side filter: the viewer hides a channel's incoming
+## lines in their own chat view (their own sends are untouched --
+## this is a personal volume knob, not a broadcast policy). The mute
+## list rides _player_settings (born-dead until this round; keyed by
+## channel display names so the KV round-trip stays string-stable)
+## and every real change emits channel_settings_changed. System
+## stays unmuteable: its lines are the game's error and announcement
+## voice, and blocking it would blind your own feedback.
+
+static func _mute_record(channel: Channel) -> String:
+	# Static needs a lazy _channel_info path; use the enum name (the
+	# same string the info dict keys it under).
+	var enum_name := str(Channel.keys()[channel])
+	# "SAY" -> "Say" capitalization is owned by the info dict; the
+	# record key just needs to be stable per channel.
+	return enum_name
+
+func _muted_channel_list(viewer_id: String) -> Array:
+	var settings: Variant = _player_settings.get(viewer_id)
+	if settings == null:
+		settings = {}
+		_player_settings[viewer_id] = settings
+	var list: Variant = settings.get("muted_channels")
+	if list == null or not (list is Array):
+		list = []
+		settings["muted_channels"] = list
+	return list
+
+## Set (or clear) a channel mute for one viewer. Returns
+## {"success", "message", "muted"}; refusals carry named causes
+## (protected channel, duplicate) -- no silent no-ops, no fake emits.
+func set_channel_muted(viewer_id: String, channel: Channel, muted: bool) -> Dictionary:
+	if channel == Channel.SYSTEM:
+		return {"success": false, "message": "System messages cannot be muted", "muted": false}
+	var list := _muted_channel_list(viewer_id)
+	var record := _mute_record(channel)
+	if muted and list.has(record):
+		return {"success": false, "message": "%s is already muted" % _mute_label(channel), "muted": true}
+	if not muted and not list.has(record):
+		return {"success": false, "message": "%s is not muted" % _mute_label(channel), "muted": false}
+	if muted:
+		list.append(record)
+	else:
+		list.erase(record)
+	_persist_player_settings(viewer_id)
+	channel_settings_changed.emit(viewer_id, channel)
+	return {"success": true, "message": "%s %s" % [_mute_label(channel), "muted" if muted else "unmuted"], "muted": muted}
+
+## The display-filter truth both chat surfaces consult: does this
+## viewer hide that channel's incoming lines?
+func is_channel_muted(viewer_id: String, channel: Channel) -> bool:
+	var list: Variant = _player_settings.get(viewer_id, {}).get("muted_channels", [])
+	return list.has(_mute_record(channel))
+
+## The muted channel labels, for command feedback and panels.
+func get_muted_channels(viewer_id: String) -> Array:
+	var out: Array = []
+	for record in _muted_channel_list(viewer_id):
+		out.append(MUTE_LABELS.get(record, record))
+	return out
+
+static func _mute_label(channel: Channel) -> String:
+	var record := _mute_record(channel)
+	return MUTE_LABELS.get(record, record)
+
+## Record key -> display label (kept here so callers never re-derive
+## the capitalization).
+const MUTE_LABELS := {
+	"SAY": "Say", "WHISPER": "Whisper", "YELL": "Yell", "ZONE": "Zone",
+	"GLOBAL": "Global", "PARTY": "Party", "GUILD": "Guild",
+	"ALLIANCE": "Alliance", "TRADE": "Trade", "COMBAT": "Combat", "EMOTE": "Emote"
+}
+
+## Resolve a channel by its display name (case-insensitive) or enum
+## key, for the slash commands. Returns -1 when unknown.
+func channel_by_name(name: String) -> int:
+	var wanted := str(name).to_lower().strip_edges()
+	for channel in Channel.values():
+		if _mute_record(channel).to_lower() == wanted or MUTE_LABELS.get(_mute_record(channel), "").to_lower() == wanted:
+			return channel
+	return -1
 
 ## Send system message
 func send_system_message(target_id: String, message: String) -> void:

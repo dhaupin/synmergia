@@ -7551,3 +7551,52 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
      call sites. GATES: pipeline exit 0 zero script errors, lint 36/0,
      naming 25/0, map-ping/fresh-kit/ignore-book + login receipts all
      exit 0.
+- LOOPS v29: CHANNEL MUTE BECOMES REAL (the channel_settings_changed
+     owner): the last un-faked contract name now has its feature, no
+     dummy emits. Mute = a RECEIVE-side filter: the viewer hides a
+     channel's incoming live lines in their own view only (their own
+     sends ride the normal pipeline); System stays unmuteable (it is
+     the game's error/announcement voice -- blocking it would blind
+     your own feedback). CHATSERVICE: set_channel_muted/is_channel_muted/
+     get_muted_channels/channel_by_name + _mute_record (records are
+     channel ENUM-NAME strings so the KV round-trip is string-stable);
+     every real change emits channel_settings_changed and persists
+     through _persist_player_settings -- the _player_settings dict and
+     its chat:settings: KV key were declared+loaded+persisted at birth
+     and written by NOTHING until now (the born-dead twin of the
+     ignore list; the load leg already round-tripped, now the write
+     leg is real). Named refusals mirror the ignore API: duplicate
+     mute ("already muted"), unmute-when-not ("not muted"), protected
+     System. COMMANDS: /mute <channel> //unmute <channel> //channels
+     (the state board, System shown "(always shown)") ride the API;
+     /muted now ALSO lists muted channels (the name collision with
+     the old ignore-list-only output is finally honest). PANEL:
+     ChannelSettingsUI (UIPanel shell law, class_name) -- one row per
+     channel catalog (enum read through the service instance so the
+     panel never re-derives ids), protected System last, state label
+     + Mute/Unmute toggle, refreshes on the service's own
+     channel_settings_changed signal (no private re-read) and mounts
+     on MenuManager "channels" + the chat header [Channels] button
+     (funnel = the ignore book's law). FILTER: ChatUI.add_message
+     drops a muted channel's incoming lines under the same
+     one-filter-covers-both routing the ignore law uses. RECEIPT
+     tests/test_channel_mute_loop.gd exit 0, 7 legs: emit truth,
+     duplicate/System refusals, KV + fresh-service reboot round-trip
+     (revive through _load_chat_state -- no more reboot evaporation
+     for settings), /mute//channels command legs, display filter
+     (muted Trade hidden / Zone shown / System shown), panel
+     shell+catalog + toggle-writes-what-it-displays. BUG CAUGHT:
+     iterating an enum bare (`for channel in Channel:`) iterates the
+     enum NAMES (strings), not values -- channel_by_name +
+     _cmd_channels + the _ready history init all tripped it; the
+     history init had silently keyed _chat_history by "SAY".."EMOTE"
+     since ChatService was born (int-keyed lookups missed until the
+     guarded lazy re-init healed them per channel); now all three
+     iterate Channel.values(). Receipt-lore: DictStore has erase()
+     not erase_value() (the ignore receipt's erase_was-a-has_method-
+     guard-noop fixed as collateral in docs); queue_free twins the
+     refreshed rows for a frame, so a row-state read goes through
+     the children (latest wrapper wins), never a flat node path.
+     GATES: pipeline exit 0 zero script errors, lint 36/0, naming
+     25/0, ignore-book + map-ping + fresh-kit + login receipts all
+     exit 0.
