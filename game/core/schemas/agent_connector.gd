@@ -24,7 +24,11 @@ enum AgentType {
 
 signal status_changed(status: ConnectorStatus)
 signal action_received(action: AgentAction)
-signal observation_ready(observation: Dictionary)
+## (observation_ready was REMOVED (no-void): the observation POST leg
+## already lives in the connector's send_observation path, and no
+## consumer ever existed for an "observation ready" contract -- four
+## census rounds logged it unshipped. If agent-facing observation
+## telemetry lands, re-declare it WITH its consumer in the same commit.)
 signal error_occurred(error_message: String)
 
 @export var connector_name: String = "Connector"
@@ -36,13 +40,13 @@ var _agent_id: String = ""
 var _config: Dictionary = {}
 
 ## Required: Connect to the agent
-func connect(config: Dictionary) -> bool:
+func connect_agent(config: Dictionary) -> bool:
 	_config = config
 	_set_status(ConnectorStatus.CONNECTING)
 	return false  # Override in subclass
 
 ## Required: Disconnect from the agent
-func disconnect() -> void:
+func disconnect_agent() -> void:
 	_set_status(ConnectorStatus.DISCONNECTED)
 
 ## Required: Send observation/state to agent
@@ -100,7 +104,7 @@ func get_status() -> ConnectorStatus:
 	return _status
 
 ## Check if connected
-func is_connected() -> bool:
+func is_agent_connected() -> bool:
 	return _status == ConnectorStatus.CONNECTED
 
 func _set_status(new_status: ConnectorStatus) -> void:

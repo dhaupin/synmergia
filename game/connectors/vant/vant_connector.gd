@@ -47,7 +47,7 @@ func _ready() -> void:
 	_http_request.request_completed.connect(_on_http_request_completed)
 
 ## Connect to Vant runtime
-func connect(config: Dictionary) -> bool:
+func connect_agent(config: Dictionary) -> bool:
 	vant_api_url = config.get("api_url", vant_api_url)
 	api_key = config.get("api_key", api_key)
 	agent_session_id = config.get("agent_session_id", agent_session_id)
@@ -66,7 +66,7 @@ func connect(config: Dictionary) -> bool:
 	return true
 
 ## Disconnect from Vant
-func disconnect() -> void:
+func disconnect_agent() -> void:
 	_poll_timer.stop()
 
 	if _session_id != "":
@@ -77,7 +77,7 @@ func disconnect() -> void:
 
 ## Send observation to Vant
 func send_observation(observation: Dictionary) -> void:
-	if not is_connected():
+	if not is_agent_connected():
 		return
 
 	var payload := {
@@ -173,7 +173,7 @@ func _on_poll() -> void:
 	# -> _parse_vant_response (shape: {"action": {...}}). Busy guard:
 	# this HTTPRequest node is shared with send_observation, and Godot
 	# rejects a request while one is in flight.
-	if not is_connected():
+	if not is_agent_connected():
 		return
 	if _http_request == null or _http_request.busy:
 		return

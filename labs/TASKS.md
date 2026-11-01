@@ -7738,3 +7738,34 @@ pipeline exit 0 zero script errors, lint 36/0, naming 25/0, all prior
 receipts exit 0. NEXT: the true-void survivors -- threat telemetry,
 zone instance trio, npc_spawned, observation_ready,
 instance_contract_changed, notification_queued.
+
+## 2026-11-01 -- TRUE-VOID SURVIVORS ROUND (the list closed)
+Every survivor from the census's true-void scan got its honest end:
+1. THE THREAT SENSE (enemy/threat telemetry): hud_integrator._bind_enemy
+   _threat_sense joins SpawnService.enemy_spawned and binds each enemy's
+   AggroComponent legs; rows only touch the local player: focus flips
+   ('The Wolf turns its attention on you.' / 'You slip out of...'),
+   threat_overflow (FIRST HONEST EMIT at aggro's clamp leg, exactly
+   once per first cap crossing), and out_of_combat ('...breaks off.'
+   via the focused-on-you book). threat_changed REMOVED (decl + all
+   three emits: every leg is either a flip or an overflow).
+2. THE ZONE TRIO: InstanceService now SUBSCRIBES ZoneManager's
+   instance_created/instance_destroyed and re-rebuilds the instanced-
+   zone registry live (the once-at-boot rebuild left fresh creates
+   stale until reboot -- a real bug the emit named). instance_contract
+   _changed REMOVED (zone contracts are boot-static, no mutate path).
+3. RETIRED WITH CAUSES: npc_spawned (entity_spawned owns spawn voice;
+   minimap rides it), notification_queued (queue legs already speak
+   through notification_sent + history; the silent pop-oldest overflow
+   now GameLog.warns), observation_ready (the POST leg lives in
+   send_observation; no consumer ever existed).
+4. DRIVE-BY: the connector native-shadow law -- AgentConnector/Vant/Mcp
+   had connect/disconnect/is_connected overriding native Object methods
+   and AgentAction.to_string() shadowed too (warnings-treated-as-errors
+   only surface when a receipt compiles the chain, so the pipeline never
+   saw them). Renamed connect_agent/disconnect_agent/is_agent_connected
+   (+ call legs and the two service callers); the un-called to_string
+   deleted.
+Receipt: tests/test_true_void_survivors.gd exit 0 five legs, zero
+SCRIPT ERROR. GATES: pipeline exit 0 zero script errors, lint 36/0,
+naming 25/0, all prior receipts exit 0.

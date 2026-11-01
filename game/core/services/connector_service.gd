@@ -35,7 +35,7 @@ func register_connector(connector: AgentConnector) -> void:
 func unregister_connector(connector_name: String) -> void:
 	if _connectors.has(connector_name):
 		var connector: AgentConnector = _connectors[connector_name]
-		connector.disconnect()
+		connector.disconnect_agent()
 		_connectors.erase(connector_name)
 		GameLog.info("ConnectorService: Unregistered connector '%s'" % connector_name)
 
@@ -47,7 +47,7 @@ func connect_agent(agent_id: String, connector_name: String, config: Dictionary,
 
 	var connector: AgentConnector = _connectors[connector_name]
 
-	if not connector.connect(config):
+	if not connector.connect_agent(config):
 		return false
 
 	_connected_agents[agent_id] = {
@@ -64,7 +64,7 @@ func disconnect_agent(agent_id: String) -> void:
 	if _connected_agents.has(agent_id):
 		var data: Dictionary = _connected_agents[agent_id]
 		var connector: AgentConnector = data["connector"]
-		connector.disconnect()
+		connector.disconnect_agent()
 		_connected_agents.erase(agent_id)
 		agent_disconnected.emit(agent_id)
 		GameLog.info("ConnectorService: Agent '%s' disconnected" % agent_id)

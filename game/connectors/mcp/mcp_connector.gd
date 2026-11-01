@@ -37,7 +37,7 @@ func _ready() -> void:
 	_ws_client.disconnected.connect(_on_ws_disconnected)
 
 ## Connect to MCP server
-func connect(config: Dictionary) -> bool:
+func connect_agent(config: Dictionary) -> bool:
 	mcp_server_url = config.get("server_url", mcp_server_url)
 	access_token = config.get("access_token", access_token)
 	model = config.get("model", model)
@@ -62,14 +62,14 @@ func connect(config: Dictionary) -> bool:
 	return true
 
 ## Disconnect from MCP
-func disconnect() -> void:
+func disconnect_agent() -> void:
 	_ws_client.close()
 	_set_status(ConnectorStatus.DISCONNECTED)
 	GameLog.info("MCPConnector: Disconnected")
 
 ## Send observation via MCP
 func send_observation(observation: Dictionary) -> void:
-	if not is_connected():
+	if not is_agent_connected():
 		return
 
 	var message: Dictionary = {
@@ -86,7 +86,7 @@ func send_observation(observation: Dictionary) -> void:
 
 ## Request action from MCP agent
 func request_action(prompt: String = "") -> void:
-	if not is_connected():
+	if not is_agent_connected():
 		return
 
 	var request_id := "req_%d" % Time.get_ticks_msec()

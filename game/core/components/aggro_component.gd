@@ -1,11 +1,16 @@
 ## AggroComponent - Threat/aggro tracking
 ## Attached to entities that generate threat (enemies track who attacks them)
+## The honest telemetry set: target_changed (focus flips -- the HUD
+## threat sense consumes), threat_overflow (a source's threat hits the
+## cap -- first real emit at the clamp leg), out_of_combat (the fight
+## ends). threat_changed was REMOVED (no-void: every meaningful leg it
+## covered is either a target flip or an overflow; the per-hit number
+## spoke to zero consumers for its whole life).
 extends Node
 class_name AggroComponent
 
 
 signal target_changed(old_target, new_target)
-signal threat_changed(target, threat_amount: int)
 signal threat_overflow(source)
 signal out_of_combat()
 
@@ -79,14 +84,22 @@ func add_threat(target, amount: int, damage_type: String = "") -> void:
 	if not _threat_table.has(target):
 		_threat_table[target] = 0
 
+	# THE OVERFLOW LEG (the signal earns its first real emit): the
+	# table cannot rise past max_threat_per_target -- when THIS add
+	# would push the entry through the cap for the first time, the
+	# source's threat has overflowed (the HUD threat sense rows it).
+	var previous: int = int(_threat_table[target])
+
 	# Add threat (negative amounts allowed for dumps; floor at 0)
 	_threat_table[target] = clampi(_threat_table[target] + modified, 0, max_threat_per_target)
+
+	if previous < max_threat_per_target and int(_threat_table[target]) >= max_threat_per_target \
+			and modified > 0:
+		threat_overflow.emit(target)
 
 	# Enter combat if this is the first significant threat
 	if not _is_in_combat and modified > 0:
 		_enter_combat(target)
-
-	threat_changed.emit(target, _threat_table[target])
 
 	# Update target if needed (respects active taunts)
 	_update_target()
@@ -136,14 +149,12 @@ func is_taunted() -> bool:
 func reduce_threat(target, amount: int) -> void:
 	if _threat_table.has(target):
 		_threat_table[target] = maxi(0, _threat_table[target] - amount)
-		threat_changed.emit(target, _threat_table[target])
 
 ## Multiply a target's threat by a fraction (percentage aggro dumps,
 ## e.g. 0.5 = lose half your threat). Floors at 0.
 func scale_threat(target, factor: float) -> void:
 	if _threat_table.has(target):
 		_threat_table[target] = int(float(_threat_table[target]) * clampf(factor, 0.0, 1.0))
-		threat_changed.emit(target, _threat_table[target])
 
 ## Remove all threat from a target
 func clear_threat(target) -> void:

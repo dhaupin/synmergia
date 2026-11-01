@@ -113,6 +113,7 @@ func is_valid() -> bool:
 
 	return action_type != ActionType.UNKNOWN
 
-## Get debug string
-func to_string() -> String:
-	return "AgentAction(%s: %s)" % [ActionType.keys()[action_type], action_name]
+## (the custom to_string() debug-helper was REMOVED (no-void): it
+## shadowed the native Object.to_string(), had zero callers, and
+## treated-warnings-as-error parse profiles rejected the whole script
+## for it. If a debug printer is ever wanted, name it honestly.)

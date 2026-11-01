@@ -97,7 +97,10 @@ var _dispatcher: RefCounted = null
 
 signal notification_sent(entity_id: String, notification: Dictionary)
 signal notification_received(entity_id: String, notification: Dictionary)
-signal notification_queued(entity_id: String, queue_size: int)
+## (notification_queued was REMOVED (no-void): every queue leg already
+## speaks -- notification_sent + the history book -- and there is no
+## deferred-delivery leg to announce; the overflow drop gets an honest
+## GameLog.warn instead of a signal nobody could listen to.)
 
 func _ready() -> void:
 	GameLog.info("NotificationService: Ready")
@@ -205,7 +208,9 @@ func send(
 	# Add to queue
 	_notification_queue.append(notification)
 	if _notification_queue.size() > _max_queue_size:
-		_notification_queue.pop_at(0)
+		var dropped = _notification_queue.pop_at(0)
+		GameLog.warn("NotificationService: queue overflowed past %d; oldest notification dropped for %s (%s)" \
+			% [_max_queue_size, entity_id, str(dropped.get("message", "")) if dropped is Dictionary else "?"])
 
 	# Track for entity
 	if not _entity_notifications.has(entity_id):

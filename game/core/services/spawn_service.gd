@@ -134,8 +134,10 @@ class SpawnPoint:
 signal spawn_point_registered(spawn_point: Dictionary)
 signal enemy_spawned(entity, spawn_point_id: String, metadata: SpawnMetadata)
 signal enemy_despawned(entity, spawn_point_id: String, metadata: SpawnMetadata)
-signal npc_spawned(npc, npc_id: String, metadata: SpawnMetadata)
 signal spawn_point_cleared(spawn_point_id: String)
+## (npc_spawned was REMOVED: entity_spawned is the one spawn voice the
+## consumers built on -- the minimap's NPC impressions ride it -- and
+## the name never had a listener or an honest emit of its own.)
 signal world_boss_schedule_started(schedule_id: String, config: Dictionary)
 signal world_boss_schedule_spawned(schedule_id: String, boss: Entity)
 

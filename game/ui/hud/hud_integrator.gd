@@ -225,6 +225,7 @@ func _connect_all() -> void:
 	# gold_changed signals had no player-facing consumer -- the rows
 	# land in CombatLog (gains ride the LOOT family, spends System).
 	_bind_player_wallet_feedback.call_deferred()
+	_bind_enemy_threat_sense.call_deferred()
 
 	# (Boss arrivals need no hud bridge: boss_spawned was removed for
 	# the no-void law -- the NotificationService bridge over
@@ -477,6 +478,100 @@ func _on_item_equipped_changed(item, slot_name: String, equipped: bool) -> void:
 			label = s
 	var verb := "equip" if bool(equipped) else "unequip"
 	_combat_log.call("add_message", "You %s %s (%s)." % [verb, label, slot_name], _combat_log.EntryType.SYSTEM)
+
+## ---- The threat sense (the enemy/threat telemetry consumer) -------
+## Three aggro signals spoke to zero consumers for their whole life.
+## This binder turns SpawnService.enemy_spawned into per-enemy
+## bindings and speaks ONLY on the legs that touch the local player:
+## focus flips on/off you, and your threat hitting the cap.
+
+var _threat_sense_bound: bool = false
+var _enemy_focused_local := {}   # enemy instance_id -> true while the
+	# enemy's focus sits on the local player
+
+func _bind_enemy_threat_sense() -> void:
+	if _threat_sense_bound:
+		return
+	var ss := get_node_or_null("/root/SpawnService")
+	if ss == null or not ss.has_signal("enemy_spawned"):
+		return
+	_threat_sense_bound = true
+	ss.enemy_spawned.connect(_on_enemy_spawned_threat_sense)
+
+func _on_enemy_spawned_threat_sense(enemy, _spawn_point_id: String, _metadata) -> void:
+	if enemy == null or not is_instance_valid(enemy):
+		return
+	if not ("aggro_component" in enemy):
+		return
+	var aggro = enemy.get("aggro_component")
+	if aggro == null or not is_instance_valid(aggro):
+		return
+	if aggro.has_signal("target_changed") \
+			and not aggro.target_changed.is_connected(_on_enemy_focus_changed):
+		aggro.target_changed.connect(_on_enemy_focus_changed.bind(enemy))
+	if aggro.has_signal("threat_overflow") \
+			and not aggro.threat_overflow.is_connected(_on_enemy_threat_overflow):
+		aggro.threat_overflow.connect(_on_enemy_threat_overflow.bind(enemy))
+	if aggro.has_signal("out_of_combat") \
+			and not aggro.out_of_combat.is_connected(_on_enemy_fight_broken):
+		aggro.out_of_combat.connect(_on_enemy_fight_broken.bind(enemy))
+
+## Was this enemy's focus sitting on the local player just before this
+## flip? (The out_of_combat leg reads the same book.)
+func _enemy_focuses_local(enemy, target) -> bool:
+	var me := _local_player_ref()
+	if me == null:
+		return false
+	return target == me
+
+func _local_player_ref() -> Node:
+	var pm := get_node_or_null("/root/PlayerManager")
+	if pm == null:
+		return null
+	var lp = pm.get("local_player")
+	if lp == null or not is_instance_valid(lp):
+		return null
+	return lp
+
+func _enemy_label(enemy) -> String:
+	if enemy == null or not is_instance_valid(enemy):
+		return "something"
+	if "display_name" in enemy and str(enemy.get("display_name")) != "":
+		return str(enemy.get("display_name"))
+	return str(enemy.name)
+
+func _threat_row(text: String) -> void:
+	if _combat_log == null or not _combat_log.has_method("add_message"):
+		return
+	_combat_log.call("add_message", text, _combat_log.EntryType.SYSTEM)
+
+func _on_enemy_focus_changed(old_target, new_target, enemy) -> void:
+	var me := _local_player_ref()
+	if me == null:
+		return
+	var label := _enemy_label(enemy)
+	if new_target == me and old_target != me:
+		if enemy != null and is_instance_valid(enemy):
+			_enemy_focused_local[enemy.get_instance_id()] = true
+		_threat_row("The %s turns its attention on you." % label)
+	elif old_target == me and new_target != me:
+		if enemy != null and is_instance_valid(enemy):
+			_enemy_focused_local.erase(enemy.get_instance_id())
+		_threat_row("You slip out of the %s's attention." % label)
+
+func _on_enemy_threat_overflow(source, enemy) -> void:
+	if source != _local_player_ref():
+		return
+	_threat_row("Your threat on the %s maxes out." % _enemy_label(enemy))
+
+func _on_enemy_fight_broken(enemy) -> void:
+	if enemy == null or not is_instance_valid(enemy):
+		return
+	var was_id := int(enemy.get_instance_id())
+	if not _enemy_focused_local.has(was_id):
+		return
+	_enemy_focused_local.erase(was_id)
+	_threat_row("The %s forgets the fight and breaks off." % _enemy_label(enemy))
 
 func _on_container_opened(key: String, container_type: int) -> void:
 	if _mm == null:

@@ -17,7 +17,11 @@ extends Node
 const InstanceContract = preload("res://core/schemas/instance_contract.gd")
 
 signal lobby_state_changed(zone_id: String, instance_id: String, state: int)
-signal instance_contract_changed(zone_id: String)
+## (instance_contract_changed was REMOVED (no-void): a zone's contract
+## is boot-static -- gravity, capacity and deadline all read from
+## ZoneData with NO runtime mutate path, so the name could never
+## honestly emit. If hot contract-mutation lands, re-declare it WITH
+## its emit and its consumer in the same commit.)
 ## S12 item 3: dungeon session lifecycle (the shared front door).
 signal dungeon_session_opened(zone_id: String, instance_id: String, members: Array)
 signal dungeon_return_requested(return_map: Dictionary)
@@ -38,8 +42,21 @@ var _dungeon_sessions: Dictionary = {}
 const DUNGEON_SWEEP_SECONDS: float = 5.0
 
 
+## THE ZONE TRIO consumer: ZoneManager's instance_created/destroyed
+## sat emitted-but-unlistened while THIS service rebuilt its instanced-
+## zone registry ONCE at _ready -- so live creates left the registry
+## stale (a fresh instance's zone never turned is_instanced_zone true
+## until the next boot). The subscription is the real consumer: every
+## lifecycle change re-rebuilds the registry from ZoneManager truth.
 func _ready() -> void:
 	_rebuild_arena_registry()
+	if ZoneManager != null:
+		if ZoneManager.has_signal("instance_created") \
+				and not ZoneManager.instance_created.is_connected(_on_zone_instance_created):
+			ZoneManager.instance_created.connect(_on_zone_instance_created)
+		if ZoneManager.has_signal("instance_destroyed") \
+				and not ZoneManager.instance_destroyed.is_connected(_on_zone_instance_destroyed):
+			ZoneManager.instance_destroyed.connect(_on_zone_instance_destroyed)
 	var sweep := Timer.new()
 	sweep.wait_time = DUNGEON_SWEEP_SECONDS
 	sweep.autostart = true
@@ -47,6 +64,14 @@ func _ready() -> void:
 	add_child(sweep)
 	GameLog.info("InstanceService: Ready (%d instanced zone defs)" % _arena_zones.size())
 
+
+func _on_zone_instance_created(_instance_id: String, _zone_data) -> void:
+	_rebuild_arena_registry()
+	GameLog.info("InstanceService: a zone instance was created; the instanced-zone registry rebuilt")
+
+func _on_zone_instance_destroyed(_instance_id: String) -> void:
+	_rebuild_arena_registry()
+	GameLog.info("InstanceService: a zone instance was destroyed; the instanced-zone registry rebuilt")
 
 ## Zones that DECLARE themselves instanced (from ZoneData), plus any
 ## live instances registered in ZoneManager. Both keyed by base zone
