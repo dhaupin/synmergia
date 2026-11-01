@@ -544,7 +544,8 @@ func _are_players_in_range(player1_id: String, player2_id: String) -> bool:
 func _get_entity_position(entity_id: String) -> Vector3:
 	if not EntityService:
 		return Vector3.INF
-	var entity = EntityService.get_entity_by_id(entity_id)
+	# get_entity is the EntityService lookup (get_entity_by_id does not exist on it).
+	var entity = EntityService.get_entity(entity_id)
 	if entity and is_instance_valid(entity) and ("global_position" in entity):
 		return entity.global_position
 	return Vector3.INF

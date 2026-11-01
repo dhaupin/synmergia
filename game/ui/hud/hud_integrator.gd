@@ -205,6 +205,13 @@ func _connect_all() -> void:
 	_bind_horde_signals()
 	_bind_sky_totem_signals()
 
+	# World map clicks -> the WaypointService ping. map_clicked and
+	# waypoint_clicked sat as declared-contract signals; the map's own
+	# class comment promised click-to-navigate. The consumer creates +
+	# activates a pinned waypoint so the beacon + compass ride the
+	# service law (deferred: the map control mounts with the HUD).
+	_bind_map_ping.call_deferred()
+
 
 ## WeatherEventService signals -> SkyTotem. The service owns the
 ## authoritative close time: it pushes the mystery id + seconds at
@@ -218,6 +225,89 @@ func _slot_service() -> Node:
 	if slot_script == null or not slot_script.can_instantiate():
 		return null
 	return slot_script.call("singleton")
+
+## ---- World map click-to-navigate (the WaypointService ping) -------
+
+func _bind_map_ping() -> void:
+	var wm := _world_map_node()
+	if wm == null or not wm.has_signal("map_clicked"):
+		return
+	if not wm.map_clicked.is_connected(_on_map_clicked):
+		wm.map_clicked.connect(_on_map_clicked)
+	if wm.has_signal("waypoint_clicked") and not wm.waypoint_clicked.is_connected(_on_waypoint_clicked):
+		wm.waypoint_clicked.connect(_on_waypoint_clicked)
+
+func _world_map_node() -> Node:
+	var tree := get_tree()
+	if tree == null or tree.root == null:
+		return null
+	return tree.root.find_child("WorldMap", true, false)
+
+func _waypoint_service() -> Node:
+	var tree := get_tree()
+	if tree == null or tree.root == null:
+		return null
+	return tree.root.get_node_or_null(NodePath("WaypointService"))
+
+func _local_player_id() -> String:
+	var tree := get_tree()
+	var pm: Node = tree.root.get_node_or_null(NodePath("PlayerManager")) if tree and tree.root else null
+	if pm == null:
+		return ""
+	var lp: Variant = pm.get("local_player")
+	if lp != null and is_instance_valid(lp):
+		return str(lp.get("entity_id"))
+	if pm.has_method("get_local_player_id"):
+		return str(pm.call("get_local_player_id"))
+	return ""
+
+## The player's tracked zone id ("" when untracked) -- WaypointService
+## tolerates an empty zone, the name is display-grouping only.
+func _map_pin_zone(player_id: String) -> String:
+	var tree := get_tree()
+	if tree == null or tree.root == null:
+		return ""
+	var ess: Node = tree.root.get_node_or_null(NodePath("EntityService"))
+	var zm: Node = tree.root.get_node_or_null(NodePath("ZoneManager"))
+	if ess == null or zm == null or not zm.has_method("get_entity_zone_id"):
+		return ""
+	var ent = ess.get_entity(player_id)
+	if ent == null or not is_instance_valid(ent):
+		return ""
+	return str(zm.get_entity_zone_id(ent))
+
+func _on_map_clicked(pos: Vector3) -> void:
+	_route_map_ping(pos, "")
+
+func _on_waypoint_clicked(pos: Vector3) -> void:
+	var label := ""
+	var wm := _world_map_node()
+	if wm != null and wm.has_method("last_waypoint_hit"):
+		var hit: Dictionary = wm.call("last_waypoint_hit")
+		label = str(hit.get("label", ""))
+	_route_map_ping(pos, label)
+
+## Create + activate the pinned waypoint: the beacon (pillar of light)
+## and the compass ride WaypointService's own law, and the service's
+## notify path already tells the player what happened (create, cap,
+## invalid, rate limit). A failed create needs no extra consumer toast.
+func _route_map_ping(pos: Vector3, quest_label: String) -> void:
+	if pos == Vector3.ZERO:
+		return
+	var wsvc := _waypoint_service()
+	if wsvc == null or not wsvc.has_method("create_waypoint"):
+		return
+	var player_id := _local_player_id()
+	if player_id.is_empty():
+		return
+	var waypoint_name := "Map Marker" if quest_label.is_empty() else "Quest: %s" % quest_label
+	var result: Dictionary = wsvc.create_waypoint(player_id, waypoint_name, pos, _map_pin_zone(player_id))
+	if not bool(result.get("success", false)):
+		return
+	var wp: Variant = result.get("waypoint", {})
+	var wp_id := str(wp.get("id", "")) if wp is Dictionary else ""
+	if wp_id != "" and wsvc.has_method("activate_waypoint"):
+		wsvc.activate_waypoint(player_id, wp_id)
 
 func _on_container_opened(key: String, container_type: int) -> void:
 	if _mm == null:

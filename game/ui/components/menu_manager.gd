@@ -51,6 +51,8 @@ var _mount_panel: Control
 var _transfer_panel: Control
 var _trade_panel: Control
 var _container_panel: Control
+var _ignore_panel: Control
+
 var _admin_panel: Control
 var _sky_almanac_panel: Control
 var _chronicle_panel: Control
@@ -314,6 +316,14 @@ func _initialize_panels() -> void:
 	_container_panel.z_index = 500
 	add_child(_container_panel)
 	_container_panel.panel_closed.connect(_on_panel_closed.bind("container"))
+
+	# Ignore book panel (chat moderation; opens from the chat header
+	# or /ignore through the funnel).
+	_ignore_panel = preload("res://ui/components/ignore_book_ui.gd").new()
+	_ignore_panel.name = "IgnoreBookUI"
+	_ignore_panel.z_index = 500
+	add_child(_ignore_panel)
+	_ignore_panel.panel_closed.connect(_on_panel_closed.bind("ignore"))
 
 	# Sky Almanac panel (Skyward Concord; V key)
 	_sky_almanac_panel = load("res://ui/components/sky_almanac_ui.gd").new()
@@ -1071,6 +1081,7 @@ func _get_panel(menu_name: String) -> Control:
 		"transfer": return _transfer_panel
 		"trade": return _trade_panel
 		"container": return _container_panel
+		"ignore": return _ignore_panel
 		"sky_almanac": return _sky_almanac_panel
 		"chronicle": return _chronicle_panel
 		"lobby": return _lobby_panel

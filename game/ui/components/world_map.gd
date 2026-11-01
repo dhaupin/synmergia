@@ -1004,8 +1004,79 @@ func _input(event: InputEvent) -> void:
 		_pan_offset += event.relative
 
 func _handle_map_click(screen_pos: Vector2) -> void:
-	var map_pos := _screen_to_world(screen_pos)
-	map_clicked.emit(map_pos)
+	var hit := _quest_waypoint_hit(screen_pos)
+	_last_waypoint_hit = hit
+	if not hit.is_empty():
+		var hit_pos: Vector3 = hit.get("position", Vector3.ZERO)
+		if hit_pos != Vector3.ZERO:
+			# The declared loop lives: clicking ON a quest waypoint
+			# announces the pinned destination. The consumer (the HUD's
+			# WaypointService ping) reads last_waypoint_hit() synchronously
+			# for the marker's label.
+			waypoint_clicked.emit(hit_pos)
+			return
+	var world_pos := _click_world_position(screen_pos)
+	if world_pos == Vector3.ZERO:
+		return
+	map_clicked.emit(world_pos)
+
+## The hit bookkeeping the consumer reads during the synchronous emit.
+var _last_waypoint_hit: Dictionary = {}
+
+## The clicked quest waypoint (control-space hit within
+## WAYPOINT_HIT_RADIUS_PX pixels of the marker center), or {} when the
+## click missed every quest marker.
+const WAYPOINT_HIT_RADIUS_PX: float = 12.0
+
+func _quest_waypoint_hit(screen_pos: Vector2) -> Dictionary:
+	var best: Dictionary = {}
+	var best_d: float = WAYPOINT_HIT_RADIUS_PX
+	for waypoint in _waypoints:
+		var marker: Control = waypoint.get("marker")
+		if marker == null or not is_instance_valid(marker):
+			continue
+		var center: Vector2 = marker.position + marker.size * 0.5
+		var d: float = screen_pos.distance_to(center)
+		if d < best_d:
+			best_d = d
+			best = waypoint
+	return best
+
+## The marker the click landed on (the HUD's Quest-ping names its
+## waypoint after this).
+func last_waypoint_hit() -> Dictionary:
+	return _last_waypoint_hit
+
+## Map click -> true world position. The WaypointService ping consumer
+## needs real world coords, not a fabricated flat 8km guess: on the
+## spherical law exactly invert the lat/lon convention the canvas
+## draws with (the lat_lon_to_uv inverse), on the planar shape keep
+## the legacy _screen_to_world mapping.
+func _click_world_position(screen_pos: Vector2) -> Vector3:
+	var ShapeResolver = load("res://core/frame/math/world_shape.gd")
+	if ShapeResolver != null and ShapeResolver.is_spherical():
+		var Sph = load("res://core/frame/math/spherical.gd")
+		if Sph == null:
+			return Vector3.ZERO
+		return _spherical_from_screen(screen_pos, Sph)
+	return _screen_to_world(screen_pos)
+
+func _spherical_from_screen(screen_pos: Vector2, Sph) -> Vector3:
+	var vp_size := size
+	var drawn: float = vp_size.y
+	if drawn <= 1.0 or vp_size.x <= 1.0:
+		return Vector3.ZERO
+	var x0: float = maxf(0.0, (vp_size.x - drawn) * 0.5)
+	var local_x: float = screen_pos.x - x0
+	if local_x < 0.0 or local_x > drawn or screen_pos.y < 0.0 or screen_pos.y > vp_size.y:
+		return Vector3.ZERO
+	var u: float = local_x / drawn
+	var v: float = screen_pos.y / vp_size.y
+	var lat: float = 90.0 - 180.0 * v
+	var lon: float = -180.0 + 360.0 * u
+	var radius: float = _bank.R if _bank != null else 20000.0
+	var world: Vector3 = Sph.spherical_to_cartesian(lat, lon, 1.0, radius)
+	return world if world.is_finite() else Vector3.ZERO
 
 func _screen_to_world(screen_pos: Vector2) -> Vector3:
 	# Convert screen position to world position. The denominator is the

@@ -270,7 +270,9 @@ func create_waypoint_here(player_id: String, name: String) -> Dictionary:
 	if not EntityService:
 		return {"success": false, "message": "Cannot get player position"}
 
-	var entity = EntityService.get_entity_by_id(player_id)
+	# get_entity is the EntityService lookup (get_entity_by_id does not
+	# exist on it -- the old name crashed every proximity tick).
+	var entity = EntityService.get_entity(player_id)
 	if not entity or not is_instance_valid(entity):
 		return {"success": false, "message": "Player not found"}
 
@@ -468,7 +470,9 @@ func get_distance_to_active(player_id: String) -> float:
 	if not EntityService:
 		return -1.0
 
-	var entity = EntityService.get_entity_by_id(player_id)
+	# get_entity is the EntityService lookup (the old get_entity_by_id
+	# name does not exist and crashed every proximity tick).
+	var entity = EntityService.get_entity(player_id)
 	if not entity or not is_instance_valid(entity):
 		return -1.0
 
@@ -496,7 +500,9 @@ func get_bearing_to_active(player_id: String) -> float:
 	if not EntityService:
 		return -1.0
 
-	var entity = EntityService.get_entity_by_id(player_id)
+	# get_entity is the EntityService lookup (the old get_entity_by_id
+	# name does not exist and crashed every proximity tick).
+	var entity = EntityService.get_entity(player_id)
 	if not entity or not is_instance_valid(entity):
 		return -1.0
 

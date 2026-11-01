@@ -296,12 +296,39 @@ func _handle_command(text: String) -> void:
 				var local_id := str(_pmgr().get_local_player_id()) if _pmgr() else ""
 				_chat_svc().send_emote(local_id, args)
 		_:
-			add_system_message("Unknown command: %s" % cmd)
+			# Slash passthrough: every command the local star-match did
+			# not claim reaches the service's own command router (/ignore,
+			# /unignore, /muted, /report, /bug, the admin set). Direct
+			# router call (not send_message): the send pipeline returns
+			# true for unknown commands, which would silence the
+			# unknown-command feedback.
+			var svc := _chat_svc()
+			if svc == null:
+				add_system_message("Unknown command: %s" % cmd)
+				return
+			var local_id := _local_player_id_safe()
+			var handled: bool = svc._handle_command(local_id, _current_channel, text.substr(1), "")
+			if not handled:
+				add_system_message("Unknown command: %s" % cmd)
 
 func _on_chat_message(sender_id: String, channel: int, message: String, targets: Array) -> void:
 	add_message(sender_id, channel, message)
 
-func add_message(sender_id: String, channel: int, message: String) -> void:
+func add_message(sender_id: String, channel: int, message: String, viewer_id: String = "") -> void:
+	# The ignore-book display law: a blocked sender's lines never
+	# reach the history (by id or best-known name; System lines are
+	# exempted inside the service). Both chat surfaces -- THIS
+	# panel and MenuManager's chat feed -- route through add_message,
+	# so one check covers both. viewer_id: an explicit perspective
+	# (receipts, embeds); empty falls back to the local player.
+	var svc := _chat_svc()
+	if svc == null:
+		return
+	var local_id := _local_player_id_safe()
+	if local_id == "":
+		local_id = viewer_id
+	if local_id != "" and svc.is_ignored_sender(local_id, sender_id):
+		return
 	var sender_name := _get_sender_name(sender_id)
 	var formatted: String = _chat_svc().format_message(sender_id, channel, message, sender_name)
 	_chat_history.append_text(formatted + "\n")
@@ -310,6 +337,20 @@ func add_message(sender_id: String, channel: int, message: String) -> void:
 	# Trim old messages
 	if _message_count > _max_messages:
 		_trim_history()
+
+## Local player id without hard-crashing when the manager is absent
+## (script probes): local_player's entity-id first, the manager
+## lookup id second, "" when neither exists.
+func _local_player_id_safe() -> String:
+	var tree := Engine.get_main_loop() as SceneTree
+	var mgr: Node = tree.root.get_node_or_null(NodePath("PlayerManager")) if tree and tree.root else null
+	if mgr != null and mgr.get("local_player") != null:
+		var lp: Variant = mgr.get("local_player")
+		if is_instance_valid(lp) and lp.get("entity_id") != null:
+			return str(lp.get("entity_id"))
+	if mgr != null and mgr.has_method("get_local_player_id"):
+		return str(mgr.call("get_local_player_id"))
+	return ""
 
 func add_system_message(message: String) -> void:
 	var formatted := "[color=%s][System]:[/color] %s" % [UIStyles.COLORS.warning.to_html(), _esc(message)]
@@ -372,6 +413,15 @@ func _add_player_info_header(header: HBoxContainer) -> void:
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(spacer)
 
+	# Ignore-book button: a real panel behind the funnel -- /ignore
+	# and this button write the same persisted list.
+	var ignore_btn := Button.new()
+	ignore_btn.text = "[Ignore]"
+	ignore_btn.add_theme_font_size_override("font_size", 10)
+	ignore_btn.focus_mode = Control.FOCUS_ALL
+	ignore_btn.pressed.connect(_open_ignore_book)
+	header.add_child(ignore_btn)
+
 	# Admin button (if GM/admin)
 	if _is_admin():
 		var admin_btn := Button.new()
@@ -382,6 +432,18 @@ func _add_player_info_header(header: HBoxContainer) -> void:
 		admin_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 		admin_btn.pressed.connect(_toggle_admin_shell)
 		header.add_child(admin_btn)
+
+## Ignore-book funnel: rides MenuManager's static instance like the
+## world-map interaction registration does.
+func _open_ignore_book() -> void:
+	var mm_script: GDScript = load("res://ui/components/menu_manager.gd")
+	if mm_script == null:
+		return
+	# The world-map registration pattern: MenuManager holds its own
+	# static var instance.
+	var mm = mm_script.instance
+	if mm != null and is_instance_valid(mm) and mm.has_method("open_menu"):
+		mm.call("open_menu", "ignore")
 
 func _is_admin() -> bool:
 	var local_id := str(_pmgr().get_local_player_id()) if _pmgr() else ""

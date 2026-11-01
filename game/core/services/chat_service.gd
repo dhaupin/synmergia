@@ -157,6 +157,12 @@ func _ready() -> void:
 		# Load profanity filter words from config file
 	_load_profanity_list()
 
+	# Revive the KV persistence: the ignore book and per-player
+	# settings did in-memory work for their whole life while the
+	# _load_chat_state/_persist_* pair sat unwritten (the ignore list
+	# evaporated every reboot). Load it once at boot.
+	_load_chat_state()
+
 ## Open a whisper chat with a target player
 func open_whisper(target_id: String) -> void:
 	if not target_id.is_empty():
@@ -1023,40 +1029,28 @@ func _cmd_emote(sender_id: String, args: Array) -> bool:
 	var emote := " ".join(args)
 	return send_message(sender_id, Channel.EMOTE, emote)
 
-## Command: Ignore
+## Command: Ignore (rides the ignore-book API so the command, the
+## panel, and the persistence hit the exact same law).
 func _cmd_ignore(sender_id: String, args: Array) -> bool:
 	if args.is_empty():
-		return false
-
-	var target: String = args[0]
-
-	if not _ignored_players		.has(sender_id):
-		_ignored_players[sender_id] = []
-
-	if not _ignored_players[sender_id]		.has(target):
-		_ignored_players[sender_id].append(target)
-		player_chat_ignored.emit(sender_id, target)
-		send_system_message(sender_id, "Ignored %s" % target)
-
-	return true
+		send_system_message(sender_id, "Usage: /ignore <player>")
+		return true
+	var result: Dictionary = ignore_player(sender_id, str(args[0]))
+	send_system_message(sender_id, str(result.get("message", "")))
+	return bool(result.get("success", false))
 
 ## Command: Unignore
 func _cmd_unignore(sender_id: String, args: Array) -> bool:
 	if args.is_empty():
-		return false
-
-	var target: String = args[0]
-
-	if _ignored_players		.has(sender_id) and _ignored_players[sender_id]		.has(target):
-		_ignored_players[sender_id].erase(target)
-		player_chat_unignored.emit(sender_id, target)
-		send_system_message(sender_id, "Stopped ignoring %s" % target)
-
-	return true
+		send_system_message(sender_id, "Usage: /unignore <player>")
+		return true
+	var result: Dictionary = unignore_player(sender_id, str(args[0]))
+	send_system_message(sender_id, str(result.get("message", "")))
+	return bool(result.get("success", false))
 
 ## Command: Muted
 func _cmd_muted(sender_id: String, args: Array) -> bool:
-	var muted: Array = _ignored_players.get(sender_id, [])
+	var muted: Array = get_ignored_players(sender_id)
 	if muted.is_empty():
 		send_system_message(sender_id, "You are not ignoring anyone")
 	else:
@@ -1152,6 +1146,77 @@ func _cmd_suggest(sender_id: String, args: Array) -> bool:
 		send_system_message(sender_id, "Suggestion system not available. Please try again later.")
 
 	return true
+
+## ============================================================================
+## IGNORE BOOK API (the consumer round's service half)
+## ============================================================================
+
+## Ignore a player by display name. The entry stores the NAME (the
+## /ignore command's original contract), so the book handles senders
+## that resolve online and offline. Self-ignore is refused. Returns
+## {"success", "message", "target"}.
+func ignore_player(ignorer_id: String, target_name: String) -> Dictionary:
+	var target := str(target_name).strip_edges()
+	if target.is_empty():
+		return {"success": false, "message": "No player named"}
+	if ignorer_id != "" and target == ignorer_id:
+		return {"success": false, "message": "You cannot ignore yourself"}
+	if target == "SYSTEM":
+		return {"success": false, "message": "System messages are always shown"}
+	if not _ignored_players.has(ignorer_id):
+		_ignored_players[ignorer_id] = []
+	if _ignored_players[ignorer_id].has(target):
+		return {"success": false, "message": "Already ignoring %s" % target}
+	_ignored_players[ignorer_id].append(target)
+	_persist_ignored(ignorer_id)
+	player_chat_ignored.emit(ignorer_id, target)
+	return {"success": true, "message": "Ignored %s" % target, "target": target}
+
+## Unignore a player (mirrors ignore_player; erasing the last entry
+## clears the persisted key entirely).
+func unignore_player(ignorer_id: String, target_name: String) -> Dictionary:
+	var target := str(target_name).strip_edges()
+	if target.is_empty() or not _ignored_players.has(ignorer_id) or not _ignored_players[ignorer_id].has(target):
+		return {"success": false, "message": "Not ignoring %s" % target}
+	_ignored_players[ignorer_id].erase(target)
+	_persist_ignored(ignorer_id)
+	player_chat_unignored.emit(ignorer_id, target)
+	return {"success": true, "message": "Stopped ignoring %s" % target, "target": target}
+
+## The persisted ignore list (names), for the book's UI.
+func get_ignored_players(ignorer_id: String) -> Array:
+	return _ignored_players.get(ignorer_id, [])
+
+## The display-filter truth both chat surfaces consult: sender blocked
+## by the local ignore list, by id (the list may hold ids) or by best
+## known display name. System lines and servers never filter.
+func is_ignored_sender(ignorer_id: String, sender_id: String) -> bool:
+	if sender_id.is_empty() or sender_id == "SYSTEM" or ignorer_id.is_empty():
+		return false
+	if _is_ignored(ignorer_id, sender_id):
+		return true
+	var sender_name := _sender_display_name(sender_id)
+	if sender_name.is_empty():
+		return false
+	for entry in _ignored_players.get(ignorer_id, []):
+		if str(entry).to_lower() == sender_name.to_lower():
+			return true
+	return false
+
+## Best-known display name for a sender id ("" when unresolvable --
+## the entity-service lookup is a runtime path, the bare identifier
+## is the known script-mode false-fail).
+func _sender_display_name(sender_id: String) -> String:
+	var ess := _entity_svc()
+	if ess == null or not ess.has_method("get_entity"):
+		return ""
+	var entity = ess.get_entity(sender_id)
+	if entity == null or not is_instance_valid(entity):
+		return ""
+	var char_data = entity.get("character_data") if "character_data" in entity else null
+	if char_data != null and "player_name" in char_data:
+		return str(char_data.player_name)
+	return str(entity.name) if "name" in entity else ""
 
 ## Check if player is ignored
 func _is_ignored(ignorer_id: String, ignored_id: String) -> bool:

@@ -789,7 +789,8 @@ func _cmd_invalidate_sessions(args: Array) -> Dictionary:
 func _find_entity_by_id(entity_id: String) -> Node3D:
 	# Try to find in EntityService
 	if EntityService:
-		var entity = EntityService.get_entity_by_id(entity_id)
+		# get_entity is the EntityService lookup (get_entity_by_id does not exist on it).
+		var entity = EntityService.get_entity(entity_id)
 		if entity:
 			return entity
 

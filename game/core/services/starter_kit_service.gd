@@ -37,6 +37,13 @@ signal starter_kit_granted(player_id: String, items: Array)
 ## still under its fallback id, so the player spawned empty-handed.
 var _granted_for: Dictionary = {}
 
+## The character_confirmed relay (cheap-pair loop): the fresh-confirm
+## set, keyed by character_id. Both Enter-World legs are creation
+## paths, so a confirmed character earns the kit THIS session; a
+## returning character (saved progress, no fresh mark) does not -- the
+## old unconditional grant re-issued the kit on every boot.
+var _fresh_confirmed: Dictionary = {}
+
 func _ready() -> void:
 	if instance == null:
 		instance = self
@@ -45,14 +52,60 @@ func _ready() -> void:
 		return
 	GameLog.info("StarterKitService: Ready")
 
+	# The character_confirmed relay. CharacterSelect DEFINES the signal
+	# but sat with zero emitters and zero listeners; the selection scene
+	# is created and torn down freely, so the consumer connects through
+	# the tree instead of a boot-lifetime hook: every fresh node
+	# carrying that script gets its signal connected. Runtime path
+	# compare (not parse-time preload) keeps the script-mode law
+	# intact.
+	var tree := get_tree()
+	if tree != null and not tree.node_added.is_connected(_on_tree_node_added):
+		tree.node_added.connect(_on_tree_node_added)
+
 	# Connect to player spawn
 	if GameManager and GameManager.has_signal("player_entered_world"):
 		if not GameManager.player_entered_world.is_connected(_on_player_entered_world):
 			GameManager.player_entered_world.connect(_on_player_entered_world)
 
-## Called when player enters the world
+## Called when player enters the world: gate on the fresh-confirm law
+## before the grant (see _should_grant_kit).
 func _on_player_entered_world(player_id: String, character_data) -> void:
+	if not _should_grant_kit(player_id):
+		GameLog.info("StarterKitService: %s has saved progress -- kit not re-issued" % player_id)
+		return
 	grant_starter_kit(player_id, character_data)
+
+## The tree relay: every node that carries the selection script gets
+## its character_confirmed connected to the fresh-confirm handler.
+func _on_tree_node_added(node: Node) -> void:
+	var script: Script = node.get_script()
+	if script == null or script.resource_path != "res://ui/menus/character_select.gd":
+		return
+	if node.has_signal("character_confirmed") and not node.character_confirmed.is_connected(_on_character_confirmed):
+		node.character_confirmed.connect(_on_character_confirmed)
+
+## The selection screen announced a finalized (brand-new) character.
+func _on_character_confirmed(data) -> void:
+	if data == null or not ("character_id" in data):
+		return
+	var char_id := str(data.character_id)
+	if char_id.is_empty():
+		return
+	_fresh_confirmed[char_id] = true
+	GameLog.info("StarterKitService: fresh confirm marked for %s" % char_id)
+
+## Grant decision law: the character was confirmed fresh this session
+## (both Enter-World legs count) OR it never completed a session with
+## us (no saved progress). Returning characters with a saved bag keep
+## their bag -- they do not collect a second kit.
+func _should_grant_kit(player_id: String) -> bool:
+	if _fresh_confirmed.get(player_id, false):
+		return true
+	var progress := get_node_or_null("/root/PlayerProgress")
+	if progress != null and progress.has_method("has_progress") and progress.has_progress(player_id):
+		return false
+	return true
 
 ## Grant starter kit to a new character
 func grant_starter_kit(player_id: String, character_data) -> void:

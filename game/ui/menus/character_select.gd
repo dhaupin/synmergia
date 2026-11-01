@@ -118,6 +118,14 @@ func _on_play_pressed() -> void:
 	data.class_data = selected_class
 	data.zone_id = selected_species.home_zone if selected_species else "zone_starter_plains"
 
+	# The confirmed-selection announce (cheap-pair loop): BOTH legs here
+	# are creation paths (a fresh CharacterData either way), so Enter
+	# World emits the declared signal. StarterKitService's tree relay
+	# listens on it to mark the character fresh, which is how the
+	# starting kit starts firing once per character instead of once per
+	# boot (returning characters were collecting the kit again).
+	character_confirmed.emit(data)
+
 	# If we got here from the lobby "Create New" button, link the new
 	# character to the current account and persist it; then go back to
 	# the lobby. If we got here from the main menu path, go directly

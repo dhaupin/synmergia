@@ -7499,3 +7499,55 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
      pipeline 27/0 exit 0 zero script errors, lint 36/0, naming
      25/0, daily-quest 8-leg DST block + slot container loop +
      quest/ground-loot/login all exit 0.
+- LOOPS v28: THE CHEAP PAIR + THE IGNORE BOOK (consumers for the last
+     small contract names, then chat moderation itself):
+     (1) WAYPOINT PING LIVES: full-map clicks get the navigate law
+     the class comment always promised. Click ON a quest waypoint
+     marker -> waypoint_clicked (zero emits until now; hud reads
+     WorldMap.last_waypoint_hit() synchronously for the marker
+     label), click on canvas -> map_clicked with a TRUE world
+     position (spherical law inverts lat_lon_to_uv exactly; the old
+     _screen_to_world fabricated flat 8km coords). Consumer =
+     hud_integrator._route_map_ping -> WaypointService.create_waypoint
+     ("Map Marker" / "Quest: <label>") + activate_waypoint (beacon +
+     compass ride the service's own law; the service's notify path
+     already answers rate-limit/cap/invalid). Receipt
+     tests/test_map_ping_route.gd exit 0 (marker hit -> waypoint_clicked,
+     canvas -> map_clicked at (20001,0,0), create+activate truth).
+     (2) CHARACTER CONFIRMED + THE KIT GATE: character_select emits its
+     declared signal on Enter World (both legs are creation paths).
+     StarterKitService listens via a tree node_added relay (the scene
+     mounts/tears down freely) and gates the grant: fresh-confirmed OR
+     no saved progress earns the kit; returning characters STOP
+     collecting a second kit on every boot (the _granted_for set was
+     session-only -- a per-boot double-grant bug the gate fixes).
+     Receipt tests/test_character_fresh_kit.gd exit 0 (declared+emitted,
+     relay connects, fresh + never-saved pass the gate).
+     (3) IGNORE BOOK LOOP: '/ignore' had a signal pair
+     (player_chat_ignored/unignored) and ZERO persistent storage + ZERO
+     listening UI (the list evaporated every reboot) and the chat UI's
+     local star-match reported "Unknown command" for every service
+     command. Shipped: ChatService ignore_player/unignore_player/
+     get_ignored_players/is_ignored_sender (self-ignore + duplicate +
+     SYSTEM refused with named causes; names persisted, id-or-name
+     blocked-sender matching at display time), _ready now calls the
+     previously-dead _load_chat_state (KV revive), /ignore//unignore/
+     /muted route through the API, ChatUI's default command branch
+     passes through the service's router directly (send_message would
+     swallow unknowns -- direct call keeps the unknown-command line),
+     add_message drops blocked senders on BOTH chat surfaces (MenuManager
+     feeds the same panel; optional viewer_id for script-side receipts),
+     IgnoreBookUI (UIPanel shell, idempotent synchronous build) mounted
+     on MenuManager's "ignore" row behind the funnel, chat header gets
+     an [Ignore] button. channel_settings_changed STAYS contract
+     surface (its per-channel semantics = a channel-mute feature this
+     round does not fake). Receipt tests/test_ignore_book_loop.gd exit 0
+     (API+KV truth, signals, blocked/allowed/failed System lines,
+     panel render + unignore).
+     (4) DRIVING FIX: WaypointService (and trade_service/admin_commands)
+     called EntityService.get_entity_by_id, which DOES NOT EXIST on
+     EntityService (the real lookup is get_entity) -- every waypoint
+     activation crashed the proximity _process tick; replaced all four
+     call sites. GATES: pipeline exit 0 zero script errors, lint 36/0,
+     naming 25/0, map-ping/fresh-kit/ignore-book + login receipts all
+     exit 0.
