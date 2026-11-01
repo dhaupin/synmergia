@@ -102,9 +102,12 @@ func _on_insight_recorded(player_id: String, _sign_id: String, _window_index: in
 func _maybe_reset_dailies() -> void:
 	if SignService == null:
 		return
-	# The SKY's day, not the raw clock: admin clock overrides and the
-	# Concord calendar must agree, or dailies reset on the wrong dawn.
-	var day := SignService.current_day_index()
+	# The HUMAN day, not the sky's: the 2-hour sky day and the UTC day
+	# both roll the board at meaningless hours (every 2 hours; 19:00
+	# EST). Dailies reset at MIDNIGHT EASTERN (America/New_York, DST
+	# honored) -- SignService.current_human_day_index shared clock,
+	# admin time-travel still moves every calendar together.
+	var day := SignService.current_human_day_index()
 	if day == _daily_reset_day:
 		return
 	_daily_reset_day = day
@@ -128,7 +131,7 @@ func _maybe_reset_dailies() -> void:
 			if qstate == QuestData.QuestState.IN_PROGRESS:
 				quests.erase(quest_id)
 				reset += 1
-				quest_failed.emit(str(player_id), quest_id, "Daily expired at the sky dawn")
+				quest_failed.emit(str(player_id), quest_id, "Daily expired at the midnight reset")
 				continue
 			if qstate != QuestData.QuestState.REWARDED:
 				continue

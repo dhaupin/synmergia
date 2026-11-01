@@ -7424,3 +7424,78 @@ these are PLAYER-VISIBLE now that the site is live, priority up:
      surface, logged. GATES: pipeline 27/0 exit 0 zero script errors,
      lint 36/0, naming 25/0, login + quest gates + ground loot all
      exit 0.
+- LOOPS v27: THE CONSUMER-SIDE ROUND (dailies + the zero-listener batch):
+     the round flips the no-void law the right way: BUILD THE
+     CONSUMER FIRST, then the emits earn their keep. (0) THE EVENT
+     CATALOG FORENSICS (owner asked): the deleted 4 files were born
+     2026-08-29 by "Event system refactor: EventHub + domain-specific
+     buses" (73f6da0) as parallel domain buses, but that commit's own
+     migration went to EventHub instead; beyond syntax-fix passes
+     NOTHING ever touched them and no doc (TASKS/PRD/AGENTS) EVER
+     promised a later role -- the only writes mentioning "catalog"
+     are our own round notes. Coverage that actually exists: EventHub
+     (56 live signals, the names the code truly uses) + per-service
+     signals where the concept exists at all. Nothing of value lost;
+     the dead duplicate names would have collided with live ones
+     (skill_executed existed in both). (1) DAILIES -> HUMAN DAY: the
+     board rolled on SignService.current_day_index = UTC midnights
+     (19:00 EST) on the 2-h SKY day; now SignService.current_human_
+     day_index keys midnights EASTERN (America/New_York, DST honored
+     via the compiled US rule: 2nd Sunday March 07:00 UTC open, 1st
+     Sunday November 06:00 UTC close; Godot's own calendar for
+     civil dates -- no hand leap math). The Concord calendar (signs,
+     almanac windows, ancient door, world seeds, ambience) STAYS on
+     current_day_index on purpose. quest_failed wording -> "midnight
+     reset". test_daily_quest pins 8 legs: both midnight boundaries
+     (05:00Z EST / 04:00Z EDT), spring-forward/fall-back one-second
+     edges, offsets -5/-4. (2) THE SLOT SERVICE WAS NEVER PRINTED:
+     slot_service.gd had ZERO indentation for its ENTIRE LIFE
+     (born flat, 4 commits, all flat) so it NEVER PARSED -- and
+     nothing referenced it, so every gate stayed green while an
+     unloadable service sat in the tree. Reindented to tabs +
+     verified headless load; ContainerConfigData had the same
+     disease: a static load() SHADOWING the builtin (recursive
+     self-call; "Too few arguments for load()") -- renamed
+     load_config() + dict-inference typed fixes. (3) THE CONTAINER
+     LOOP LIVES: SlotService.open_container/close_container shipped
+     (open validates against the data-driven config, materializes
+     the store, emits container_opened; close is the session half,
+     delete stays the erase kind); the consumer is REAL -- ContainerUI
+     (UIPanel standard shell; idempotent synchronous content build so
+     a show before _ready cannot see an empty panel), MenuManager
+     mounts it on the "container" registry row, and hud_integrator
+     routes container_opened/closed through MenuManager.open_menu +
+     a close-guard is_showing(key) (the ONE funnel law). Receipt:
+     tests/test_slot_container_open.gd exit 0 (open -> emit -> item
+     row renders -> close -> emit). (4) COOLDOWN TICK DRIVES THE BARS:
+     CooldownService._process emits cooldown_tick per active cooldown
+     (the service's own remaining read); CooldownIndicator connects
+     started/tick/ended -- the indicator was BUILT for this and had
+     to reverse-engineer the world from RATE_LIMITED toasts;
+     cooldown_ended retires a CANCELLED bar instantly instead of
+     waiting out the display's own end_time (toasts stay as fallback).
+     (5) CONTROLLER PAIR: InputManager hooks Input.joy_connection_
+     changed (controller_disconnected had ZERO emitters since birth;
+     only the boot leg emitted) and hud_integrator bridges both into
+     CONNECTION_QUALITY toasts. (6) GOVERNANCE BADGES: the inner
+     ModeratorProgression got an owner hook -- badges collected over
+     4 levels with NO up-announcement now flow through governance_ref
+     -> _on_badges_gained -> badge_earned (one per badge), and
+     hud_integrator bridges to ACHIEVEMENT_UNLOCKED toasts. (7)
+     XP SHARED: PartyService.share_xp now emits xp_shared (the split
+     result customers: PartyUI refresh); the party panel's refresh
+     path rides the same signal. (8) SKILL MISSED: _apply_hit's whiff
+     leg emits skill_missed (zero emitters until now) and
+     hud_integrator feeds CombatLog.log_miss -- the miss row the log
+     has carried had zero callers. (9) HONESTLY DOCUMENTED, NOT
+     FAKED: channel_settings_changed (the ignore book has NO listening
+     UI -- the next consumer round), npc_spawned (minimap already
+     covers NPC spawns via entity_spawned/despawned impressions;
+     a second blip layer would mark everything twice), the zone
+     instance trio, attack_hit (redundant with skill_hit/skill_
+     resolved look), observation_ready/instance_contract_changed/
+     notification_queued/character_confirmed/waypoint_clicked stay
+     contract surface until their consumers are built. GATES:
+     pipeline 27/0 exit 0 zero script errors, lint 36/0, naming
+     25/0, daily-quest 8-leg DST block + slot container loop +
+     quest/ground-loot/login all exit 0.

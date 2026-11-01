@@ -50,6 +50,7 @@ var _shop_panel: Control
 var _mount_panel: Control
 var _transfer_panel: Control
 var _trade_panel: Control
+var _container_panel: Control
 var _admin_panel: Control
 var _sky_almanac_panel: Control
 var _chronicle_panel: Control
@@ -304,6 +305,15 @@ func _initialize_panels() -> void:
 	_trade_panel.z_index = 500
 	add_child(_trade_panel)
 	_trade_panel.panel_closed.connect(_on_panel_closed.bind("trade"))
+
+	# Container panel (storage surfaces; opens through the hud
+	# well-signal path -- SlotService.container_opened opens storage
+	# sessions and hud_integrator routes them here).
+	_container_panel = preload("res://ui/components/container_ui.gd").new()
+	_container_panel.name = "ContainerUI"
+	_container_panel.z_index = 500
+	add_child(_container_panel)
+	_container_panel.panel_closed.connect(_on_panel_closed.bind("container"))
 
 	# Sky Almanac panel (Skyward Concord; V key)
 	_sky_almanac_panel = load("res://ui/components/sky_almanac_ui.gd").new()
@@ -1060,6 +1070,7 @@ func _get_panel(menu_name: String) -> Control:
 		"titles": return _title_panel
 		"transfer": return _transfer_panel
 		"trade": return _trade_panel
+		"container": return _container_panel
 		"sky_almanac": return _sky_almanac_panel
 		"chronicle": return _chronicle_panel
 		"lobby": return _lobby_panel

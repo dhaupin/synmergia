@@ -12,6 +12,7 @@
 ## service or widget silently no-ops.
 extends Node
 const UIStyles = preload("res://ui/components/ui_styles.gd")
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
 
 const HudLayer := preload("res://ui/hud/hud_layer.gd")
@@ -164,6 +165,39 @@ func _connect_all() -> void:
 	if _action_menu and _action_menu.has_signal("action_selected"):
 		_action_menu.action_selected.connect(_on_action_selected)
 
+	# SlotService container lifecycle -> MenuManager's ContainerUI.
+	# The storage consumer the container_opened signal was designed
+	# for: every service-driven open/close of a store session now
+	# reaches a real panel (routing rides the ONE funnel law through
+	# MenuManager.open_menu so the touch HUD + back stack agree).
+	var slot_svc := _slot_service()
+	if slot_svc != null and slot_svc.has_signal("container_opened"):
+		if not slot_svc.container_opened.is_connected(_on_container_opened):
+			slot_svc.container_opened.connect(_on_container_opened)
+		if not slot_svc.container_closed.is_connected(_on_container_closed):
+			slot_svc.container_closed.connect(_on_container_closed)
+
+	# Controller plug/drop -> the connection toast (the pad's soft
+	# state was invisible for the whole scaffolding era; the pair
+	# signals sat with one leg emitting blind and one leg dead).
+	if not InputManager.controller_connected.is_connected(_on_controller_connected):
+		InputManager.controller_connected.connect(_on_controller_connected)
+	if not InputManager.controller_disconnected.is_connected(_on_controller_disconnected):
+		InputManager.controller_disconnected.connect(_on_controller_disconnected)
+
+	# The whiff line: CombatSystem's skill_missed -> CombatLog.log_miss
+	# (the miss leg was silent for the whole scaffolding era; the
+	# log's own miss row had zero callers).
+	var combat_svc := get_node_or_null("/root/CombatSystem")
+	if combat_svc and combat_svc.has_signal("skill_missed"):
+		if not combat_svc.skill_missed.is_connected(_on_skill_missed):
+			combat_svc.skill_missed.connect(_on_skill_missed)
+
+	# Governance badges -> the achievement toast (badge_earned was
+	## listener-declared with zero emitters AND zero listeners).
+	if CommunityGovernance and not CommunityGovernance.badge_earned.is_connected(_on_badge_earned):
+		CommunityGovernance.badge_earned.connect(_on_badge_earned)
+
 	# Player position -> Minimap (poll via process loop).
 	set_process(true)
 
@@ -176,6 +210,69 @@ func _connect_all() -> void:
 ## authoritative close time: it pushes the mystery id + seconds at
 ## open, and the countdown re-pushes every tick so a server/restart
 ## never lies to the player.
+## Script-mode-safe resolve of SlotService (runtime load, not a
+## parse-time reference: the class registry is not the autoload set
+## and the bare identifier is the known --script-mode false-fail).
+func _slot_service() -> Node:
+	var slot_script: GDScript = load("res://core/services/slot_service.gd")
+	if slot_script == null or not slot_script.can_instantiate():
+		return null
+	return slot_script.call("singleton")
+
+func _on_container_opened(key: String, container_type: int) -> void:
+	if _mm == null:
+		return
+	var panel: Control = _mm.get_panel_node("container")
+	if panel == null:
+		return
+	panel.show_container(key, container_type)
+	_mm.call("open_menu", "container")
+
+func _on_container_closed(key: String) -> void:
+	if _mm == null:
+		return
+	var panel: Control = _mm.get_panel_node("container")
+	if panel == null:
+		return
+	if panel.is_showing(key):
+		_mm.call("close_menu", "container")
+
+## The pad's plug/drop toast (consumer contract for the pair).
+func _on_controller_connected() -> void:
+	if NotificationService:
+		NotificationService.notify(
+			NotifKind.CONNECTION_QUALITY,
+			"Gamepad connected",
+			"InputManager",
+			"ctrl:connected",
+			{},
+			""
+		)
+
+func _on_controller_disconnected() -> void:
+	if NotificationService:
+		NotificationService.notify(
+			NotifKind.CONNECTION_QUALITY,
+			"Gamepad disconnected",
+			"InputManager",
+			"ctrl:disconnected",
+			{},
+			""
+		)
+
+## The governance badge toast (achievement-shaped so the kind map
+## already has its color path).
+func _on_badge_earned(player_id: String, badge: String) -> void:
+	if NotificationService:
+		NotificationService.notify(
+			NotifKind.ACHIEVEMENT_UNLOCKED,
+			"Badge earned: %s" % badge.capitalize(),
+			"CommunityGovernance",
+			"badge:%s:%s" % [player_id, badge],
+			{"player_id": player_id, "badge": badge},
+			player_id
+		)
+
 func _bind_sky_totem_signals() -> void:
 	var we := get_weather_event_service()
 	if we == null or _sky_totem == null:
@@ -479,6 +576,14 @@ func _on_entity_unregistered(entity, _metadata = null) -> void:
 	if entity_id != "" and _minimap and _minimap.has_method("remove_marker"):
 		_minimap.remove_marker(entity_id)
 
+
+## The whiff row the log was built for (caster's own skill names
+## included; guard log row for non-entity casters).
+func _on_skill_missed(caster, _skill) -> void:
+	if _combat_log == null:
+		return
+	var caster_name: String = caster.display_name if caster != null and "display_name" in caster else "Unknown"
+	_combat_log.log_miss(caster_name)
 
 func _on_entity_died(entity, _killer, _metadata) -> void:
 	var name_str: String = entity.display_name if entity and "display_name" in entity else "Unknown"

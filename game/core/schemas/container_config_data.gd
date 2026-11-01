@@ -2,7 +2,7 @@
 ## All container types and expansion tiers defined here
 ##
 ## Usage:
-##   var data := ContainerConfigData.load()
+##   var data := ContainerConfigData.load_config()
 ##   var config = data.get_container(ContainerType.INVENTORY)
 
 extends Resource
@@ -196,7 +196,11 @@ var containers: Dictionary = {
 ## STATIC ACCESSORS
 ## ============================================================================
 
-static func load() -> ContainerConfigData:
+## The old name was a trap: a static load() SHADOWED thebuiltin
+## load() inside this file, so load(path) resolved to the static
+## method itself (recursive, zero args) and the schema never
+## compiled correctly. Renamed to load_config().
+static func load_config() -> ContainerConfigData:
 	# Try to load from .tres file first
 	var path := "res://data/containers/container_configs.tres"
 	if ResourceLoader.exists(path):
@@ -206,7 +210,7 @@ static func load() -> ContainerConfigData:
 
 ## Get container config by type
 static func get_container(container_type: int) -> Dictionary:
-	var data := load()
+	var data := load_config()
 	return data.containers.get(container_type, {})
 
 ## Get expansion cost for tier
@@ -218,7 +222,7 @@ static func get_expansion_cost(container_type: int, tier: int) -> int:
 ## Get slots for tier
 static func get_slots_for_tier(container_type: int, tier: int) -> int:
 	var config := get_container(container_type)
-	var base := config.get("base_slots", 0)
+	var base: int = int(config.get("base_slots", 0))
 	return base + (tier * SLOTS_PER_TIER)
 
 ## Check if container is expandable
@@ -260,5 +264,5 @@ func is_valid_type(container_type: int) -> bool:
 
 ## Get display name
 func get_display_name(container_type: int) -> String:
-	var config := containers.get(container_type, {})
-	return config.get("name", "Unknown")
+	var config: Dictionary = containers.get(container_type, {})
+	return str(config.get("name", "Unknown"))

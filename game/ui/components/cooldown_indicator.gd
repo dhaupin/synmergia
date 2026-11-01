@@ -56,14 +56,80 @@ func _ready() -> void:
 	# Load bar scene
 	_bar_scene = preload("res://ui/components/cooldown_bar.tscn")
 
-	# Wire via _notify_svc() to catch RATE_LIMITED toasts
+	# Wire via _notify_svc() to catch RATE_LIMITED toasts (the legacy
+	# reverse-engineered path; kept as a fallback for service frames
+	# that never called start_cooldown through the service).
 	if _notify_svc():
 		if _notify_svc().has_signal("notification_sent"):
 			if not _notify_svc().notification_sent.is_connected(_on_notification_sent):
 				_notify_svc().notification_sent.connect(_on_notification_sent)
 
+	# PRIMARY truth: CooldownService now emits cooldown_started/tick/
+	# ended on its own sweep. The indicator was BUILT for this and had
+	# zero listeners wired anywhere -- bars were keying off toasts
+	# while the service state sat unwatched. Tick keeps the fill
+	# honest (the tween's self-managed countdown stays as fallback);
+	# ended retires a CANCELLED bar instantly instead of waiting out
+	# the display's own end_time. All player scopes shown by design
+	# (same as the toast path -- client frames carry one local player).
+	var cooldown_svc := _cooldown_svc()
+	if cooldown_svc:
+		if cooldown_svc.has_signal("cooldown_started") and not cooldown_svc.cooldown_started.is_connected(_on_cooldown_started):
+			cooldown_svc.cooldown_started.connect(_on_cooldown_started)
+		if cooldown_svc.has_signal("cooldown_tick") and not cooldown_svc.cooldown_tick.is_connected(_on_cooldown_tick):
+			cooldown_svc.cooldown_tick.connect(_on_cooldown_tick)
+		if cooldown_svc.has_signal("cooldown_ended") and not cooldown_svc.cooldown_ended.is_connected(_on_cooldown_ended):
+			cooldown_svc.cooldown_ended.connect(_on_cooldown_ended)
+
 	hide()
 
+
+## Script-mode-safe resolve of the CooldownService autoload
+## (same pattern as _notify_svc above: bare identifier fails
+## compile when autoloads are absent -- the test_islands law).
+func _cooldown_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("CooldownService")) if tree and tree.root else null
+
+
+func _on_cooldown_started(player_id: String, action_type: String, duration: float) -> void:
+	# A fresh service-level cooldown is the earlier truth the toast
+	# path used to wait for the FIRST retry to see.
+	if not _active_cooldowns.has(action_type):
+		_show_cooldown(action_type, duration)
+
+func _on_cooldown_tick(player_id: String, action_type: String, remaining: float) -> void:
+	# Authoritative fill: override the tween's self-managed countdown
+	# with the service's own remaining read. The fill/bg metas live on
+	# the inner barContainer (the same store _create_cooldown_bar
+	# writes, and _update_cooldown_bar walks), so find that child.
+	if not _active_cooldowns.has(action_type):
+		return
+	var data: Dictionary = _active_cooldowns[action_type]
+	var _bar: Control = data.get("bar")
+	var bar_container := _find_bar_container(_bar)
+	if bar_container == null:
+		return
+	var fill: ColorRect = bar_container.get_meta("fill") if bar_container.has_meta("fill") else null
+	var bg: ColorRect = bar_container.get_meta("bg") if bar_container.has_meta("bg") else null
+	if fill == null or bg == null:
+		return
+	var duration: float = maxf(float(data.get("duration", remaining)), 0.001)
+	fill.size.x = bg.size.x * clampf(remaining / duration, 0.0, 1.0)
+
+func _find_bar_container(bar: Control) -> Control:
+	if bar == null or not is_instance_valid(bar):
+		return null
+	for child in bar.get_children():
+		if child is Control and child.has_meta("fill"):
+			return child
+	return null
+
+func _on_cooldown_ended(player_id: String, action_type: String) -> void:
+	# Cancel/expire: retire the bar NOW rather than waiting for the
+	# display's own end_time to count out.
+	if _active_cooldowns.has(action_type):
+		_finish_cooldown(action_type)
 
 func _on_notification_sent(entity_id: String, notification: Dictionary) -> void:
 	var kind: int = notification.get("kind", -1)

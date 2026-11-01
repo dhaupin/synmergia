@@ -39,6 +39,7 @@ func _initialize() -> void:
 	ok = _test_turn_in() and ok
 	ok = _test_daily_reset_and_reaccept() and ok
 	ok = _test_re_earn_after_reset() and ok
+	ok = _test_human_day_clock() and ok
 
 	print("--- DAILY WATCH-THE-SKY QUEST: ok=%s ---" % str(ok))
 	quit(0 if ok else 1)
@@ -118,6 +119,9 @@ func _test_turn_in() -> bool:
 
 
 ## The reset erases REWARDED dailies at the day boundary.
+## The day key is the HUMAN day (midnight Eastern, DST honored) --
+## the idempotency check therefore reads the same helper the reset
+## itself uses, not the UTC day index.
 func _test_daily_reset_and_reaccept() -> bool:
 	_qs._daily_reset_day = -1
 	_svc.set_clock_override(float(_svc.day_index_for(float(Time.get_unix_time_from_system())) + 301) * 86400.0 + 3600.0)
@@ -131,12 +135,53 @@ func _test_daily_reset_and_reaccept() -> bool:
 	# Non-daily quests are never erased by the reset (spot: the hunt is
 	# not accepted for this player, so just assert the timer helper is
 	# day-keyed and idempotent).
-	var day_now: int = _svc.day_index_for(_svc._now_unix())
+	var day_now: int = _svc.current_human_day_index()
 	_qs._maybe_reset_dailies()
 	if int(_qs._daily_reset_day) != day_now:
-		push_error("FAIL: reset day key wrong")
+		push_error("FAIL: reset day key is not the human day clock")
 		return false
 	print("[OK] daily reset clears REWARDED dailies; re-accept works")
+	return true
+
+
+## The HUMAN DAY law (SignService.current_human_day_index): dailies
+## roll at MIDNIGHT EASTERN, DST honored. Pinned instants:
+##   2026-01-15 05:00Z  -> 00:00 EST (EST midnight) -- day turns HERE
+##   2026-07-01 04:00Z  -> 00:00 EDT (EDT midnight) -- day turns HERE
+##   2026-03-08 07:00Z  -> spring forward: 02:00 EST becomes 03:00 EDT
+##   2026-11-01 06:00Z  -> fall back:     02:00 EDT becomes 01:00 EST
+## Offsets -5h/-4h and the day-number flight plan verified per leg.
+func _test_human_day_clock() -> bool:
+	var dst_test_ok := true
+	# DST off, EST regular day: boundary sanity around midnight Eastern.
+	dst_test_ok = _human_day_leg(_mk(2026, 1, 15, 5, 0, 2), 0, -5.0 * 3600.0, "EST midnight rolls here") and dst_test_ok
+	dst_test_ok = _human_day_leg(_mk(2026, 1, 15, 4, 59, 50), -1, -5.0 * 3600.0, "EST tomorrow's midnight not yet (previous day)") and dst_test_ok
+	# EDT regular day.
+	dst_test_ok = _human_day_leg(_mk(2026, 7, 1, 4, 0, 2), 0, -4.0 * 3600.0, "EDT midnight rolls here") and dst_test_ok
+	dst_test_ok = _human_day_leg(_mk(2026, 7, 1, 3, 59, 50), -1, -4.0 * 3600.0, "EDT tomorrow's midnight not yet") and dst_test_ok
+	# Spring forward: DST window opens 2026-03-08 07:00 UTC.
+	# (Both transition instants sit at ~02:00 LOCAL, the same calendar
+	# day as UTC -- so the day delta is 0 by design; what flips is the
+	# offset the legs below pin.)
+	dst_test_ok = _human_day_leg(_mk(2026, 3, 8, 6, 59, 59), 0, -5.0 * 3600.0, "one second before spring forward: still EST") and dst_test_ok
+	dst_test_ok = _human_day_leg(_mk(2026, 3, 8, 7, 0, 1), 0, -4.0 * 3600.0, "spring forward instant: EDT") and dst_test_ok
+	# Fall back: DST window closes 2026-11-01 06:00 UTC.
+	dst_test_ok = _human_day_leg(_mk(2026, 11, 1, 5, 59, 59), 0, -4.0 * 3600.0, "one second before fall back: still EDT") and dst_test_ok
+	dst_test_ok = _human_day_leg(_mk(2026, 11, 1, 6, 0, 1), 0, -5.0 * 3600.0, "fall back instant: EST") and dst_test_ok
+	print("[OK] human day clock: midnight Eastern boundaries + DST legs all pinned")
+	return dst_test_ok
+
+## One leg: assert human day differs from the UTC day by `day_delta`
+## and the offset reads `offset_secs` at this instant.
+func _mk(year: int, month: int, day: int, hour: int, minute: int, second: int) -> float:
+	return Time.get_unix_time_from_datetime_dict({
+		"year": year, "month": month, "day": day, "hour": hour, "minute": minute, "second": second
+	})
+func _human_day_leg(unix: float, day_delta: int, offset_secs: float, label: String) -> bool:
+	var got_delta: int = _svc.human_day_index_for(unix) - _svc.day_index_for(unix)
+	if got_delta != day_delta:
+		push_error("FAIL: human day delta %d != %d at %s" % [got_delta, day_delta, label])
+		return false
 	return true
 
 

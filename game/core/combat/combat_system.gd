@@ -227,10 +227,14 @@ func _apply_hit(hitbox: HitboxData, target) -> void:
 	# blocks into partial-damage floats. Emitted for both outcomes.
 	EventHub.hit_resolved.emit(caster, target, outcome, hitbox.skill, damage)
 
-	# Emit signals (the landed-hit path only; misses are not "hits")
+	# Emit signals (the landed-hit path only; the miss leg now gets
+	# its own announcement -- skill_missed had zero emitters for the
+	# whole scaffolding era while CombatLog.log_miss sat waiting).
 	if caster and not is_whiff:
 		skill_hit.emit(caster, target, hitbox.skill, damage)
 		damage_dealt.emit(caster, target, damage, hitbox.skill)
+	elif caster:
+		skill_missed.emit(caster, hitbox.skill)
 
 	# Apply additional effects from skill (landed hits only: a stunned
 	# target should not eat CC off a dodged swing)

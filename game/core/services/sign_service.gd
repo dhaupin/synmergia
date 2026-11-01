@@ -125,6 +125,69 @@ func current_day_index() -> int:
 	return day_index_for(_now_unix())
 
 
+## THE HUMAN DAY (America/New_York): the day the PLAYERS actually
+## live in, so the daily board rolls at midnight Eastern -- not UTC
+## midnight (19:00 EST / 20:00 EDT, which dropped content mid-VOD)
+## and not the 2-hour SKY day (world_sim_seconds, nothing to do with
+## reset cadence). DST honored by the compiled US rule (2007+):
+## DST opens the second Sunday of March, closes the first Sunday of
+## November, both transitions landing 02:00/01:00 local so the local
+## calendar day containing the boundary moment is never ambiguous.
+## Like day_index_for / current_day_index this is pure calendar math
+## honoring the clock override (admin time travel moves every clock
+## together). The Concord calendar (signs, almanac windows, ancient
+## door, world seeds, ambience tints) stays on current_day_index --
+## the human day is ONLY for player-facing reset cadence (dailies).
+const ET_UTC_OFFSET_EST: float = -5.0 * 3600.0
+const ET_UTC_OFFSET_EDT: float = -4.0 * 3600.0
+
+## eastern_offset_seconds(unix): the true Eastern UTC offset for that
+## instant, via the rule instants (07:00 UTC open on the second Sunday of
+## March, 06:00 UTC close on the first Sunday of November, both
+## computed from the UTC calendar of that instant's year). Public for
+## probes/tests to pin the offset law.
+func eastern_offset_seconds(unix: float) -> float:
+	var utc_midnight: float = unix - fposmod(unix, 86400.0)
+	var utc_dict: Dictionary = Time.get_datetime_dict_from_unix_time(int(utc_midnight))
+	var year: int = int(utc_dict.get("year"))
+	# Second Sunday of March, 07:00 UTC (02:00 local EST + shift).
+	var dst_start: float = _nth_sunday_unix(year, 3, 2, 7.0)
+	# First Sunday of November, 06:00 UTC (02:00 local EDT straight).
+	var dst_end: float = _nth_sunday_unix(year, 11, 1, 6.0)
+	if unix >= dst_start and unix < dst_end:
+		return ET_UTC_OFFSET_EDT
+	return ET_UTC_OFFSET_EST
+
+## Days since epoch for a civil UTC date via Godot's calendar (no
+## manual leap/weekday math -- get_unix_time_from_datetime_dict is
+## authoritative and timezone-free).
+func _days_from_civil(year: int, month: int, day: int) -> int:
+	var unix: float = Time.get_unix_time_from_datetime_dict({
+		"year": year, "month": month, "day": day, "hour": 12, "minute": 0, "second": 0
+	})
+	return int(round(unix / 86400.0))
+
+## Unix of the n-th weekday-indexed Sunday of a UTC month at
+## hour_utc:00. Pure: month-caret constant 12:00 keeps it off dusk.
+func _nth_sunday_unix(year: int, month: int, n: int, hour_utc: float) -> float:
+	# Weekday law: 1970-01-01 (day 0) was a Thursday, so
+	# (epoch_day + 4) % 7 walks 0=Thursday (Sun lands at index 3).
+	var day_one: int = _days_from_civil(year, month, 1)
+	var weekday_one: int = (day_one + 4) % 7
+	var first_sunday: int = day_one + ((3 - weekday_one) + 7) % 7
+	return float(first_sunday + (n - 1) * 7) * 86400.0 + hour_utc * 3600.0
+
+## Eastern-day index of a unix timestamp (the floor of the local
+## ET calendar day): midnight-ET midnights are the boundaries, so
+## your daily board rolls at exactly midnight Eastern, all year.
+func human_day_index_for(unix: float) -> int:
+	var offset: float = eastern_offset_seconds(unix)
+	return int(floor((unix + offset) / 86400.0))
+
+func current_human_day_index() -> int:
+	return human_day_index_for(_now_unix())
+
+
 ## THE SKY DAY (the owner's order: an hour of day + an hour of
 ## night, the dusk/dawn ramps between): one SKY day lasts 2 real
 ## hours. The arc shape is untouched (dawn at phase 0, noon 0.25,

@@ -123,6 +123,18 @@ func _connect_services() -> void:
 			_party_svc.party_created.connect(_on_party_member_changed)
 		if _party_svc.has_signal("party_disbanded"):
 			_party_svc.party_disbanded.connect(_on_party_disbanded)
+		# The share split's companion line: kill_rewards drives
+		# share_xp, and the HUD now hears the result (party-side soft
+		# refresh without inventing a new panel).
+		if _party_svc.has_signal("xp_shared"):
+			_party_svc.xp_shared.connect(_on_xp_shared)
+
+## The share split landed: refresh the party panel, log the split
+## (the consumer the xp_shared contract was built for; kill_rewards
+## already calls share_xp, so the loop finally closes).
+func _on_xp_shared(_party_id: String, _base_xp: int, _distribution: Dictionary, _killer_id: String) -> void:
+	if _party and _party.has_method("refresh"):
+		_party.refresh()
 
 	# Guild events -> GuildUI.
 	if _guild and _guild_svc:

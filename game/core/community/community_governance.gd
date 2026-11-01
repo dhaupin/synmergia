@@ -26,6 +26,11 @@ class ModeratorProgression:
 	var badges: Array = []
 	var privileges: Array = []
 	var last_activity: float = 0
+	## The owning service instance, set at creation: badges were only
+	## collected here and never announced upward (badge_earned had
+	## zero emitters). Inner classes cannot reach the outer service's
+	## other methods bare (AGENTS.md law), so the owner is passed in.
+	var governance_ref: Object = null
 
 	const MAX_LEVEL: int = 10
 	const XP_PER_VOTE: int = 10
@@ -61,10 +66,21 @@ class ModeratorProgression:
 		if level >= 9: privileges.append("trusted_jury")
 
 	func _update_badges() -> void:
-		if level >= 2 and not badges.has("voting_initiate"): badges.append("voting_initiate")
-		if level >= 5 and not badges.has("community_pillar"): badges.append("community_pillar")
-		if level >= 8 and not badges.has("justice_keeper"): badges.append("justice_keeper")
-		if level == 10 and not badges.has("elder_council"): badges.append("elder_council")
+		## Appends new badges AND announces each one upward through the
+		## owning service (the inner-class -> service bridge law).
+		var new_badges: Array[String] = []
+		if level >= 2 and not badges.has("voting_initiate"):
+			new_badges.append("voting_initiate")
+		if level >= 5 and not badges.has("community_pillar"):
+			new_badges.append("community_pillar")
+		if level >= 8 and not badges.has("justice_keeper"):
+			new_badges.append("justice_keeper")
+		if level == 10 and not badges.has("elder_council"):
+			new_badges.append("elder_council")
+		for badge in new_badges:
+			badges.append(badge)
+		if not new_badges.is_empty() and governance_ref != null:
+			governance_ref.call("_on_badges_gained", player_id, new_badges)
 
 	func to_dict() -> Dictionary:
 		return {
@@ -390,14 +406,24 @@ signal badge_earned(player_id: String, badge: String)
 
 ## MODERATOR PROGRESSION API
 
+## The inner class announces NEW badges here; the service re-emits
+## one signal per badge (the consumers the signal was declared for).
+func _on_badges_gained(player_id: String, new_badges: Array[String]) -> void:
+	for badge in new_badges:
+		badge_earned.emit(player_id, str(badge))
+
 func get_progression(player_id: String) -> Dictionary:
 	if not _moderator_progression.has(player_id):
-		_moderator_progression[player_id] = ModeratorProgression.new(player_id)
+		var prog = ModeratorProgression.new(player_id)
+		prog.governance_ref = self
+		_moderator_progression[player_id] = prog
 	return _moderator_progression[player_id].to_dict()
 
 func record_participation(player_id: String, vote_outcome: bool) -> void:
 	if not _moderator_progression.has(player_id):
-		_moderator_progression[player_id] = ModeratorProgression.new(player_id)
+		var prog = ModeratorProgression.new(player_id)
+		prog.governance_ref = self
+		_moderator_progression[player_id] = prog
 	var prog: ModeratorProgression = _moderator_progression[player_id]
 	var old_level := prog.level
 	prog.record_vote(vote_outcome)

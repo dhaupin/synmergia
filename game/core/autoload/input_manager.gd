@@ -109,6 +109,12 @@ func _ready() -> void:
 	_check_controller()
 	_setup_input_actions()
 	camera_move.connect(_on_camera_move)
+	# Engine-level joypad plug/drop: controller_disconnected had zero
+	# emitters for the whole scaffolding era (the boot check only
+	# connected), so HUD could never drop the pad's soft state. One
+	# engine signal, both legs honest.
+	if not Input.joy_connection_changed.is_connected(_on_joy_connection_changed):
+		Input.joy_connection_changed.connect(_on_joy_connection_changed)
 
 	# The COD-style touch HUD is created on every platform so desktop
 	# players can toggle it on too (Settings > Controls > Touch Controls).
@@ -221,6 +227,18 @@ func _check_controller() -> void:
 		_controller_id = i
 		controller_connected.emit()
 		break
+
+## Engine hook: the plug/drop law. A drop only counts when it is THE
+## pad we were tracking; a plug re-checks and re-emits connected.
+func _on_joy_connection_changed(device: int, connected: bool) -> void:
+	if connected:
+		_check_controller()
+		GameLog.info("InputManager: Joypad %d connected" % device)
+		return
+	if _controller_id == device:
+		_controller_id = -1
+		controller_disconnected.emit()
+		GameLog.info("InputManager: Joypad %d disconnected" % device)
 
 func _create_virtual_joystick() -> void:
 	if _virtual_joystick:

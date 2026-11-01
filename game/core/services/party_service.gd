@@ -439,6 +439,11 @@ func share_xp(party_id: String, base_xp: int, killer_id: String) -> Dictionary:
 		var xp := int(base_xp * xp_bonus / member_count)
 		xp_distribution[member_id] = xp
 
+	# The share announcement: the HUD's companion line (who saw the
+	# split) never had an emitter OR a listener -- the signal is the
+	# contract, and kill_rewards already drives this entry point.
+	xp_shared.emit(party_id, base_xp, xp_distribution, killer_id)
+
 	return xp_distribution
 
 ## Periodic cleanup of expired invites

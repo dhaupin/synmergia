@@ -119,9 +119,19 @@ func get_active_cooldowns(player_id: String) -> Dictionary:
 			active[action_type] = remaining
 	return active
 
-## Process: Clean up expired cooldowns
+## Process: Clean up expired cooldowns.
+## cooldown_tick now fires on the LIVE sweep (per active cooldown, the
+## service's own remaining read): the HUD's CooldownIndicator was
+## built for tick-driven bars and previously had to reverse-engineer
+## the world from RATE_LIMITED toasts -- the namespace wheel without
+## the spoke. The indicator drives its fill off THIS signal now.
 func _process(delta: float) -> void:
 	for player_id in _cooldowns.keys():
+		var player_actions: Dictionary = _cooldowns[player_id]
+		for action_type in player_actions.keys():
+			var remaining := get_remaining(player_id, action_type)
+			if remaining > 0.0:
+				cooldown_tick.emit(player_id, action_type, remaining)
 		_cleanup_player_cooldowns(player_id)
 
 func _cleanup_player_cooldowns(player_id: String) -> void:
