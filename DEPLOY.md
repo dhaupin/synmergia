@@ -127,6 +127,7 @@ hits two local HTTP sidecars that live inside the main container:
 |---------|------|----------|---------|
 | `pg-bridge` | 8080 | sqlite, postgres | Persistence (accounts, inventory, etc.) |
 | `redis-bridge` | 8081 | inmemory, redis | Cache / sessions / rate-limit state |
+| `webhook-bridge` | 8083 | inmemory, redis | Payment processor webhook transport (nginx routes `/hooks/` here; the engine poller claims + acks deliveries) |
 
 Both sidecars are stdlib-only by default (sqlite + inmemory). They lazily
 import `psycopg2-binary` or `redis-py` only when the matching backend is
@@ -143,6 +144,7 @@ lives in `labs/prd-db.md` sec.3-5 (persistence) and sec.7.2 (cache).
 
     curl -f http://localhost:8080/health   # pg-bridge
     curl -f http://localhost:8081/health   # redis-bridge
+    curl -f http://localhost:8083/health   # webhook-bridge
 
 ## 3. Development Setup
 

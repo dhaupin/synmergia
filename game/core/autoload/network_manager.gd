@@ -134,8 +134,27 @@ func _auto_start_server(port: int) -> void:
 	await get_tree().create_timer(0.5).timeout
 	if start_server(port):
 		_log("info", "Auto-started server on port %d (START_MODE=%s)" % [port, OS.get_environment("START_MODE")])
+		_boot_webhook_transport()
 	else:
 		_log("error", "Failed to auto-start server on port %d" % port)
+
+## The payment webhook transport (game/core/economy/webhook_transport.gd)
+## rides the server boot: it polls the webhook-bridge queue and feeds the
+## premium provider board's door once per delivery. OFF unless the
+## deployment env carries WEBHOOK_BRIDGE_URL -- clients and dev bots
+## never poll.
+func _boot_webhook_transport() -> void:
+	var transport_script := load("res://core/economy/webhook_transport.gd")
+	if transport_script == null or not transport_script.can_instantiate():
+		_log("error", "Webhook transport could not load; the bridge queue runs unpolled until a reboot.")
+		return
+	if not OS.has_environment("WEBHOOK_BRIDGE_URL"):
+		_log("info", "Webhook transport: no WEBHOOK_BRIDGE_URL in the env; OFF is the honest boot state (clients and dev bots never poll).")
+		return
+	var transport: Node = transport_script.new()
+	transport.name = "WebhookTransport"
+	add_child(transport)
+	_log("info", "Webhook transport booted and polling WEBHOOK_BRIDGE_URL=%s" % OS.get_environment("WEBHOOK_BRIDGE_URL"))
 
 func _process(_delta: float) -> void:
 	match connection_state:

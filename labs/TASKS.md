@@ -7853,3 +7853,52 @@ Most of the effective harness strain: PR merges two DIFFERANT thinkers
 clean: OpenHands' audit craft + my rest-and-recovery harness memory of
 which receipts call what. NEXT: processor transport + sigil sink
 catalog.
+
+## 2026-11-02 -- WEBHOOK TRANSPORT (the round the door learned to answer)
+Before this round the payment armor had a perfect front half and NO
+back half: handle_webhook existed, was armor-perfect, and consumed
+ZERO real deliveries -- the external processor could POST all day and
+nothing polled the queue (three shipped SKUs, one wall between
+customer and wallet). Shipped the full loop, split like the repo's
+sidecar law says:
+- srv/webhook-bridge/ (main.py + server.py + backends.py + README +
+  14-test suite + entrypoint wiring): the PUBLIC HTTP entry on 8083,
+  nginx /hooks/<channel> -> 127.0.0.1:8083 in BOTH server blocks (own
+  hooks rate zone, 64k cap, 413 before store, 503 when saturated).
+  Stores deliveries VERBATIM: raw body base64 (never re-serialized --
+  the HMAC chain must see exactly what the processor signed), headers
+  lowercased with hop-by-hop stripped, the signature header untouched.
+  Claims with per-claim TTL (dead pollers reopen, at-least-once); acks
+  carry the engine VERDICT (processed|refused|expired|error + detail);
+  delivered records stay as operator audit; /stats + /deliveries/<id>
+  readouts. STORES NO SECRET, VERIFIES NOTHING: PAYMENT_WEBHOOK_SECRET
+  stays in the engine env (zero-knowledge law holds; the bridge is
+  transport, not armor).
+- game/core/economy/webhook_transport.gd: the engine poller. OFF
+  unless WEBHOOK_BRIDGE_URL env (NetworkManager boot seam, prod/server
+  only). Poll /deliveries/next on a timer; route channel->provider
+  (PAYMENT_WEBHOOK_PROVIDER env, default "webhook") through the
+  PremiumShopService registry resolver (injectable seam for script
+  receipts); call provider.handle_webhook(RAW bytes, headers) ONCE per
+  delivery -- the per-process _handled ledger is the once law's whole
+  runtime (redelivery re-acks the FIRST verdict, the door never
+  re-runs); settle-then-answer so no re-entrant beat double-runs the
+  door; refusals ANSWER (they ack + settle -- a refusal that never
+  acked would replay-wrap forever); transport legs retry fail-soft.
+  GameLog audit line per verdict; no signals emitted (no consumer
+  law). Verdict mapping: door complete -> processed (poll leg pays),
+  refused -> refused (armor's reason on the record), cancelled ->
+  expired.
+- GATES: bridge python suite 14/0 exit 0; live sidecar smoke (health,
+  POST accept 202, GET claim with signature header intact lowercased,
+  queue view) exit 0; parse checks on both new/edited .gd files exit 0
+  (network_manager's bare-autoload compile note is the documented
+  script-mode artifact, identical pre/post at HEAD); engine receipt
+  tests/test_webhook_transport.gd exit 0 (boot law OFF/ON, once-law
+  signed truth pays 100 through the poll leg exactly once, redelivery
+  honesty, refusal settles, routes refuse by name, mixed-case
+  signature header survives); lint 36/0; naming within pipeline.
+  Deliberately NOT in the runner DEFAULT_SET: same precedent as the
+  premium/gamble receipts (money suite; no pack-count drift).
+- NEXT: sigil-sink catalog; OpenHands' staging PRs A (gameplay
+  driver), B (crafting leg), C (perf honesty) reviewed when they land.

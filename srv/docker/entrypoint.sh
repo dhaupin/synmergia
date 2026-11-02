@@ -51,15 +51,20 @@ if [[ "$START_MODE" == "test" ]]; then
     PG_BRIDGE_PID=$!
     python3 /workspace/project/srv/redis-bridge/main.py &
     REDIS_BRIDGE_PID=$!
+    WEBHOOK_BRIDGE_HOST="${WEBHOOK_BRIDGE_HOST:-0.0.0.0}" \
+    python3 /workspace/project/srv/webhook-bridge/main.py &
+    WEBHOOK_BRIDGE_PID=$!
     # Give the sidecars a moment to bind their ports.
     sleep 1
-    log "pg-bridge pid=$PG_BRIDGE_PID  redis-bridge pid=$REDIS_BRIDGE_PID  noaa-kp: not started in test mode"
+    log "pg-bridge pid=$PG_BRIDGE_PID  redis-bridge pid=$REDIS_BRIDGE_PID  webhook-bridge pid=$WEBHOOK_BRIDGE_PID  noaa-kp: not started in test mode"
 
     cleanup_bridges() {
         kill "$PG_BRIDGE_PID" 2>/dev/null || true
         kill "$REDIS_BRIDGE_PID" 2>/dev/null || true
+        kill "$WEBHOOK_BRIDGE_PID" 2>/dev/null || true
         wait "$PG_BRIDGE_PID" 2>/dev/null || true
         wait "$REDIS_BRIDGE_PID" 2>/dev/null || true
+        wait "$WEBHOOK_BRIDGE_PID" 2>/dev/null || true
     }
     trap cleanup_bridges EXIT
 
@@ -71,6 +76,10 @@ if [[ "$START_MODE" == "test" ]]; then
     log "Running redis-bridge tests..."
     python3 /workspace/project/srv/redis-bridge/test_redis_bridge.py >/tmp/redis-bridge-test.log 2>&1 || {
         log "FAIL: redis-bridge tests"; tail -n 30 /tmp/redis-bridge-test.log; exit 1
+    }
+    log "Running webhook-bridge tests..."
+    python3 /workspace/project/srv/webhook-bridge/test_webhook_bridge.py >/tmp/webhook-bridge-test.log 2>&1 || {
+        log "FAIL: webhook-bridge tests"; tail -n 30 /tmp/webhook-bridge-test.log; exit 1
     }
 
     # Godot smoke tests.
@@ -163,9 +172,17 @@ if [[ "$START_MODE" == "prod" ]]; then
     python3 /workspace/project/srv/noaa_kp_sidecar.py &
     NOAA_KPID=$!
 
+    # webhook-bridge: the payment processor's public HTTP entry. nginx
+    # routes /hooks/ here; the engine transport polls the same queue
+    # and feeds the provider's handle_webhook once per delivery.
+    log "Starting webhook-bridge..."
+    WEBHOOK_BRIDGE_HOST="127.0.0.1" WEBHOOK_BRIDGE_PORT="8083" \
+    python3 /workspace/project/srv/webhook-bridge/main.py &
+    WEBHOOK_BRIDGE_PID=$!
+
     # Give the sidecars a moment to bind their ports.
     sleep 1
-    log "pg-bridge pid=$PG_BRIDGE_PID  redis-bridge pid=$REDIS_BRIDGE_PID  noaa-kp pid=$NOAA_KPID"
+    log "pg-bridge pid=$PG_BRIDGE_PID  redis-bridge pid=$REDIS_BRIDGE_PID  noaa-kp pid=$NOAA_KPID  webhook-bridge pid=$WEBHOOK_BRIDGE_PID"
 
     # nginx (HTTP + HTTPS if certs exist)
     _setup_nginx
