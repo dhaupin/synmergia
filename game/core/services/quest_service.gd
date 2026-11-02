@@ -451,7 +451,13 @@ func accept_quest(player_id: String, quest_id: String) -> bool:
 			"target": str(obj.get("target", obj.get("target_id", ""))),
 			"required": int(obj.get("count", 1)),
 			"current": 0,
-			"completed": false
+			"completed": false,
+			# The optional flag is authored in the .tres but was dropped
+			# here, so _are_all_objectives_complete demanded the optional
+			# objectives too -- any quest with an optional objective could
+			# never complete (quest_intro_core_npcs, the blacksmith's
+			# onboarding quest, has two).
+			"optional": bool(obj.get("optional", false))
 		})
 
 	_player_quests[player_id][quest_id] = {
@@ -551,6 +557,11 @@ func update_quest_progress(player_id: String, objective_type: int, target: Strin
 
 func _are_all_objectives_complete(objectives: Array) -> bool:
 	for obj in objectives:
+		# Optional objectives never gate completion (QuestData.check_completion
+		# applies the same rule); requiring them stranded every quest that
+		# authors one.
+		if obj.get("optional", false):
+			continue
 		if not obj.get("completed", false):
 			return false
 	return true
@@ -585,10 +596,9 @@ func turn_in_quest(player_id: String, quest_id: String) -> bool:
 	return true
 
 func _apply_rewards(player_id: String, quest: QuestData) -> Dictionary:
-	# quest.rewards is Array[Reward] (one entry per reward line). We
-	# fold the array into a summary dict the rest of the game can read
-	# without depending on the Reward schema. Inventory/XP/gold grants
-	# are TODO and live in their respective services.
+	# quest.rewards is Array[Reward] (one entry per reward line). We fold
+	# the array into a summary dict the rest of the game can read without
+	# depending on the Reward schema.
 	var summary := {
 		"experience": 0,
 		"gold": 0,
@@ -596,29 +606,127 @@ func _apply_rewards(player_id: String, quest: QuestData) -> Dictionary:
 		"reputation": {},
 		"titles": []
 	}
+	# Two authoring forms exist. The structured `rewards` array is the
+	# detailed form (it can carry items with drop chances); the scalar
+	# xp_reward/gold_reward/faction/title exports are the summary form.
+	# The catalog authors BOTH for the same values, so paying both would
+	# double every reward -- the array wins when present, the scalars are
+	# the fallback. Reading only `rewards` (the old code) left every quest
+	# paying nothing on turn-in.
+	var has_xp := false
+	var has_gold := false
 	for reward in quest.rewards:
 		if not reward is Dictionary:
 			continue
 		var rtype: String = str(reward.get("type", ""))
 		match rtype:
-			"experience":
+			"experience", "xp":
+				has_xp = true
 				summary["experience"] += int(reward.get("quantity", 0))
 			"gold":
+				has_gold = true
 				summary["gold"] += int(reward.get("quantity", 0))
 			"item":
 				summary["items"].append({
 					"id": reward.get("id", ""),
 					"quantity": int(reward.get("quantity", 1)),
 				})
-			"reputation":
+			"reputation", "faction":
 				summary["reputation"][reward.get("id", "")] = int(reward.get("quantity", 0))
 			"title":
 				summary["titles"].append(reward.get("id", ""))
+	if not has_xp:
+		summary["experience"] += int(quest.xp_reward)
+	if not has_gold:
+		summary["gold"] += int(quest.gold_reward)
+	if not quest.faction_reward.is_empty() and int(quest.faction_amount) != 0:
+		summary["reputation"][quest.faction_reward] = int(quest.faction_amount)
+	if not quest.title_reward.is_empty():
+		summary["titles"].append(quest.title_reward)
+	_grant_rewards(player_id, summary)
 	return summary
 
-## ============================================================================
-## QUEST TRACKING
-## ============================================================================
+## Pay the folded summary through the live services. Every grant is
+## duck-typed and late-resolved so a script-mode receipt (no mounted
+## wallet, autoloads not pre-loaded) still folds the summary without
+## crashing; the reward signal fires either way.
+func _grant_rewards(player_id: String, summary: Dictionary) -> void:
+	if player_id.is_empty():
+		return
+	var xp: int = int(summary.get("experience", 0))
+	var gold: int = int(summary.get("gold", 0))
+
+	# XP and gold land on the local player node when it is the earner
+	# (add_experience/add_gold own the level-up and one-purse lanes) and
+	# mirror into PlayerManager -- the persistent stats surface the HUD
+	# reads -- exactly like KillRewards does.
+	var pm := _pmgr()
+	var local_node = null
+	if pm != null and pm.has_method("get_local_player"):
+		local_node = pm.get_local_player()
+	if local_node != null and _node_player_id(local_node) == player_id:
+		if xp > 0 and local_node.has_method("add_experience"):
+			local_node.call("add_experience", xp)
+		if gold > 0 and local_node.has_method("add_gold"):
+			local_node.call("add_gold", gold)
+	if pm != null:
+		if xp > 0 and pm.has_method("add_experience"):
+			pm.add_experience(xp)
+		if gold > 0 and pm.has_method("add_gold"):
+			pm.add_gold(gold)
+
+	# Items: resolve through DataService, grant through the ONE purse.
+	var inv_svc := _inventory_service()
+	if inv_svc != null and inv_svc.has_method("get_inventory"):
+		var inv = inv_svc.get_inventory(player_id)
+		if inv != null and inv.has_method("add_item"):
+			for entry in summary.get("items", []):
+				var item_id: String = str(entry.get("id", ""))
+				if item_id.is_empty():
+					continue
+				var item = _resolve_item(item_id)
+				if item != null:
+					inv.add_item(item, int(entry.get("quantity", 1)))
+
+	# Titles ride TitleService's own ledger.
+	var titles: Array = summary.get("titles", [])
+	if not titles.is_empty():
+		var tsvc = _resolve_autoload("TitleService")
+		if tsvc != null and tsvc.has_method("unlock"):
+			for title_id in titles:
+				tsvc.unlock(player_id, str(title_id))
+
+## Player id of a node, tolerant of both Entity and PlayerController.
+func _node_player_id(node) -> String:
+	if node == null:
+		return ""
+	if "entity_id" in node and str(node.get("entity_id")) != "":
+		return str(node.get("entity_id"))
+	if "player_id" in node:
+		return str(node.get("player_id"))
+	return ""
+
+func _resolve_item(item_id: String):
+	var ds = _resolve_autoload("DataService")
+	if ds != null and ds.has_method("get_item"):
+		return ds.get_item(item_id)
+	return null
+
+func _inventory_service() -> Node:
+	return _resolve_autoload("InventoryService")
+
+func _pmgr() -> Node:
+	return _resolve_autoload("PlayerManager")
+
+## Late-resolve an autoload through the tree so script-mode receipts
+## (which do not pre-load autoloads) work; bare-identifier fallback for
+## full boot. Mirrors the convention in kill_rewards.gd.
+func _resolve_autoload(svc_name: String) -> Node:
+	var ml := Engine.get_main_loop()
+	if ml != null and (ml is SceneTree):
+		return (ml as SceneTree).root.get_node_or_null(svc_name)
+	return null
+
 
 func get_quest_progress(player_id: String, quest_id: String) -> Dictionary:
 	var player_data: Dictionary = _player_quests.get(player_id, {})

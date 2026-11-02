@@ -213,6 +213,9 @@ func run() -> void:
 	# --- Stage 12: death runs the respawn cycle ----------------------
 	await _stage_death_respawn(player)
 
+	# --- Stage 13: dialogue -> quest accept -> turn-in -> rewards -----
+	await _stage_dialogue_quest(inst, player, inv, pid)
+
 	await _finish()
 
 ## Spawn a real wolf with the shipped wolf data, in front of the player.
@@ -562,6 +565,107 @@ func ds_get_item(item_id: String):
 	var ds := get_tree().root.get_node_or_null("DataService")
 	return ds.get_item(item_id) if ds != null and ds.has_method("get_item") else null
 
+
+## Stage 13: the dialogue -> quest -> reward lane, driven end to end. Walks
+## up to the blacksmith, opens its dialogue through the action menu, follows
+## the branch that carries the GIVE_QUEST action, and proves the reward
+## machinery pays on turn-in. This is the loop that had NO receipt: before
+## round 2, turn_in_quest marked the quest REWARDED but granted nothing
+## (QuestService._apply_rewards folded the reward summary and threw it away).
+func _stage_dialogue_quest(inst: Node, player, inv, pid: String) -> void:
+	var dsvc := get_tree().root.get_node_or_null("DialogService")
+	var qsvc := get_tree().root.get_node_or_null("QuestService")
+	var pman := get_tree().root.get_node_or_null("PlayerManager")
+	_ok("DialogService + QuestService up", dsvc != null and qsvc != null)
+	if dsvc == null or qsvc == null:
+		return
+	# _grant_rewards pays the PlayerManager mirror only when the local player
+	# matches the quest earner; the playable world registers the player as
+	# local (player_controller._ready -> PlayerManager.set_local_player).
+	if pman != null and pman.get_local_player() != player:
+		pman.set_local_player(player)
+
+	# Spawn the blacksmith with its shipped data (dialogue + quest giver).
+	var npc = load("res://core/entities/npc_entity.gd").new()
+	npc.display_name = "Playthrough Blacksmith"
+	npc.npc_data = load("res://data/npc/npc_blacksmith_village.tres")
+	npc.global_position = player.global_position + _forward(player) * 2.0
+	inst.add_child(npc)
+	await get_tree().process_frame
+	var es := get_tree().root.get_node_or_null("EntityService")
+	var tm := get_tree().root.get_node_or_null("TargetingManager")
+	# SpawnService registers an NPC under its NPCData id (entity_id ==
+	# npc_data.id), which is what the dialogue -> TALK bridge matches on. A
+	# manual registration without the override would get an "entity_N" id and
+	# the TALK objective would never credit -- register the real way.
+	var npc_id := str(npc.npc_data.id)
+	if es and str(npc.get("entity_id")) == "":
+		es.register_entity(npc, null, npc_id)
+	if tm and str(npc.get("entity_id")) != "":
+		tm.register_targetable(str(npc.get("entity_id")), "npc", npc,
+			npc.display_name, npc.global_position, npc.entity_type)
+	await get_tree().process_frame
+
+	# E opens the action menu (proving the press resolves a live NPC). Drive
+	# the "talk" action with the blacksmith's id pinned -- the same
+	# _on_context_action seam the menu emits through, but immune to the
+	# nearest-target scan picking a leftover NPC from an earlier stage.
+	_key(KEY_E)
+	await _settle(0.6)
+	var menu = player.get("_action_menu")
+	_ok("E opened the blacksmith action menu", menu != null and menu.visible)
+	if menu == null or not menu.visible:
+		return
+	var started := [false]
+	dsvc.dialogue_started.connect(func(_n, _d): started[0] = true)
+	player._on_context_action("talk", str(npc.get("entity_id")))
+	await _settle(0.4)
+	# Some legs race the signal connect; the current dialogue is the truth.
+	_ok("dialogue started with the blacksmith",
+		started[0] or dsvc.get_current_node() != {})
+	await _shot("playthrough_10_dialogue")
+
+	# Walk the tree: node 0 -> choice 0 -> node 1 -> choice 0 -> node 3
+	# (the GIVE_QUEST choice) -> node 4 -> auto-end.
+	var guard := 0
+	while dsvc.get_current_node() != {} and guard < 12:
+		guard += 1
+		var node: Dictionary = dsvc.get_current_node()
+		var choices: Array = node.get("choices", [])
+		if choices.is_empty():
+			dsvc.advance()
+		else:
+			dsvc.select_choice(0)
+		await get_tree().process_frame
+	# The choice fired GIVE_QUEST; accept_quest is the observable result.
+	var accepted: Dictionary = qsvc.get_quest_progress(pid, "quest_intro_core_npcs")
+	_ok("dialogue GIVE_QUEST accepted quest_intro_core_npcs",
+		not accepted.is_empty(), "(state=%s)" % str(accepted.get("state")))
+	if accepted.is_empty():
+		return
+
+	# Complete the required TALK objective by speaking to the blacksmith --
+	# the real dialogue_ended bridge credits it (target == the npc_ id).
+	dsvc.start_dialogue(str(npc.npc_data.id), "blacksmith_village_intro")
+	dsvc.end_dialogue()
+	await get_tree().process_frame
+	var prog: Dictionary = qsvc.get_quest_progress(pid, "quest_intro_core_npcs")
+	_ok("the TALK bridge completed the required objective",
+		int(prog.get("state", -1)) == 3, "(state=%s)" % str(prog.get("state")))
+
+	# Turn in and prove the rewards are GRANTED (the round-2 fix).
+	var gold_before: int = int(inv.get_gold())
+	var pm_gold_before: int = int(pman.gold) if pman else 0
+	var rewarded: bool = qsvc.turn_in_quest(pid, "quest_intro_core_npcs")
+	_ok("turn_in_quest accepted the completed quest", rewarded)
+	# quest_intro_core_npcs authors gold_reward=25, xp_reward=250, rewards=[].
+	_ok("quest turn-in granted the gold reward (25)",
+		int(inv.get_gold()) == gold_before + 25,
+		"(%d -> %d)" % [gold_before, inv.get_gold()])
+	_ok("quest turn-in mirrored the gold into PlayerManager",
+		int(pman.gold) == pm_gold_before + 25 if pman else true,
+		"(%d -> %d)" % [pm_gold_before, int(pman.gold) if pman else 0])
+	await _shot("playthrough_11_quest_reward")
 
 
 func _finish() -> void:
