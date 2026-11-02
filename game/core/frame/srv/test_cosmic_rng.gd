@@ -61,7 +61,7 @@ func _test_cosmic_integration() -> void:
 	a.stir_from_cosmic(cosmic)
 	var b = RngScript.new(true)
 	b.stir("kp", 5.67 * 100.0)
-	b.stir("chaos", int(cosmic.total_chaos))
+	b.stir("chaos", int(cosmic.total_chaos()))
 	var ra: float = a.stream_for("loot/daily_crate").randf()
 	var rb: float = b.stream_for("loot/daily_crate").randf()
 	_check("stir_from_cosmic mixes kp + total chaos", is_equal_approx(ra, rb))

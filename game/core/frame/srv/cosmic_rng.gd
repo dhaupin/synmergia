@@ -68,7 +68,11 @@ func stir_from_cosmic(cosmic: Variant) -> void:
 	if cosmic == null:
 		return
 	stir("kp", cosmic.last_kp * 100.0)
-	stir("chaos", int(cosmic.total_chaos))
+	# total_chaos is an accessor method (CosmicEntropy.total_chaos()), not a
+	# property -- reading it as a property threw and silently dropped the
+	# chaos entropy word from every stir.
+	var chaos: float = float(cosmic.total_chaos()) if cosmic.has_method("total_chaos") else 0.0
+	stir("chaos", int(chaos))
 
 
 ## Derive a scoped stream. Same (scope, pool_state) -> same stream
