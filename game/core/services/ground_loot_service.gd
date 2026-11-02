@@ -324,7 +324,9 @@ func try_pickup(player, drop_id: String = "") -> Array:
 			failed.append(item)
 
 	# Currency lands via the duck-typed add_gold path (PlayerController
-	# mirrors PlayerManager.add_gold).
+	# mirrors PlayerManager.add_gold). The coins are consumed from the drop the
+	# moment they are paid -- even when items remain (bag full) -- so a
+	# re-press of E cannot collect the same gold twice.
 	var currency: Dictionary = drop.get("currency", {})
 	if not currency.is_empty() and "add_gold" in player and player.has_method("add_gold"):
 		var total: int = 0
@@ -332,6 +334,7 @@ func try_pickup(player, drop_id: String = "") -> Array:
 			total += int(currency[coin_id])
 		if total > 0:
 			player.add_gold(total)
+		drop["currency"] = {}
 
 	if picked.is_empty():
 		if not failed.is_empty():
@@ -340,6 +343,17 @@ func try_pickup(player, drop_id: String = "") -> Array:
 				"GroundLootService",
 				"bags_full:%s" % player_id,
 				{})
+			return []
+		# Currency-only drop: the coins were paid above and the drop is now
+		# empty, so consume it. Returning without removing it let the player
+		# re-press E and farm the same gold forever -- an infinite-gold exploit
+		# the moment a currency-only roll (which the shipped wolf table
+		# produces on ~half of kills) reaches the ground.
+		var coin_id_removed := str(drop["id"])
+		_remove_drop(coin_id_removed, "picked_up")
+		_hub_emit("ground_loot_picked_up", [player, coin_id_removed, []])
+		drop_picked_up.emit(coin_id_removed, player, [])
+		_log("info", "GroundLootService: %s picked up currency from %s" % [player_id, coin_id_removed])
 		return []
 
 	# Partial pickup keeps the remainder on the ground.

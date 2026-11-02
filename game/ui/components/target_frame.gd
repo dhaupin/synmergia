@@ -13,6 +13,8 @@ var _name_label: Label
 var _level_label: Label
 var _hp_bar: ProgressBar
 var _mp_bar: ProgressBar
+var _hp_label: Label
+var _mp_label: Label
 var _buff_container: HBoxContainer
 var _debuff_container: HBoxContainer
 var _class_label: Label
@@ -169,12 +171,14 @@ func _setup_ui() -> void:
 	hp_label.add_theme_font_size_override("font_size", 11)
 	hp_label.add_theme_color_override("font_color", UIStyles.COLORS.error)
 	hp_row.add_child(hp_label)
+	_hp_label = hp_label
 
 	var mp_label := Label.new()
 	mp_label.name = "MPLabel"
 	mp_label.add_theme_font_size_override("font_size", 10)
 	mp_label.add_theme_color_override("font_color", UIStyles.COLORS.info)
 	hp_row.add_child(mp_label)
+	_mp_label = mp_label
 
 	# Cast bar (hidden by default)
 	_cast_container = Control.new()
@@ -301,30 +305,100 @@ func set_target(target) -> void:
 		return
 
 	var schema_id: String = "enemy"
-	if target and "entity_type" in target:
-		match target.entity_type:
+	if "entity_type" in target:
+		match int(target.entity_type):
 			Entity.EntityType.PLAYER:
 				schema_id = "player"
 			Entity.EntityType.NPC:
 				schema_id = "npc"
 	_target_schema_id = schema_id
 
-	_target_id = target.entity_id if target and "entity_id" in target else ""
+	# Identity comes from TargetInfo.id, a live entity's entity_id, or a dict.
+	# The old read was `target.entity_id` only, so a TargetInfo (what
+	# target_acquired emits) always resolved to "" and the frame hid itself.
+	_target_id = _target_id_of(target)
 	if _target_id.is_empty():
 		hide()
 		return
 
 	show()
 	_target_effects.clear()
+	# Render immediately: acquisition used to leave the name/level/HP blank
+	# until the next target_updated (which only fires when the target moves).
+	_update_display(_to_display_dict(target))
 	_refresh_effects()
 
 func _on_target_acquired(target) -> void:
 	set_target(target)
 
 func _on_target_updated(target) -> void:
-	if target == null or _target_id != (target.entity_id if target and "entity_id" in target else ""):
+	if target == null:
 		return
-	_update_display(target)
+	var tid: String = _target_id_of(target)
+	if tid == "" or _target_id != tid:
+		return
+	_update_display(_to_display_dict(target))
+
+## Identity of a target payload: TargetInfo uses `id`, entities use `entity_id`,
+## and a pre-built dict may carry either.
+func _target_id_of(target) -> String:
+	if target is Dictionary:
+		return str(target.get("entity_id", target.get("id", "")))
+	if "entity_id" in target:
+		return str(target.entity_id)
+	if "id" in target:
+		return str(target.id)
+	return ""
+
+## Normalize any target payload (TargetInfo, live Entity/PlayerController node,
+## or an already-built Dictionary) into the display dict _update_display reads.
+## target_updated emits a TargetInfo whose node is the live entity; the frame
+## used to be handed that object directly and threw "Cannot convert argument 1
+## from Object to Dictionary" on every moving-target frame.
+func _to_display_dict(target) -> Dictionary:
+	if target is Dictionary:
+		return target
+	var d: Dictionary = {}
+	d["entity_id"] = _target_id_of(target)
+	var node = null
+	if "node" in target and target.node != null and is_instance_valid(target.node):
+		node = target.node
+	elif target is Node:
+		node = target
+	if node != null:
+		if "display_name" in node:
+			d["name"] = str(node.display_name)
+		if "level" in node:
+			d["level"] = int(node.level)
+		if "relation" in node:
+			d["relation"] = _relation_name(int(node.relation))
+		if "health_component" in node and node.health_component != null:
+			d["health"] = int(node.health_component.current_health)
+			d["max_health"] = int(node.health_component.max_health)
+		elif "current_health" in node:
+			d["health"] = int(node.current_health)
+			d["max_health"] = int(node.max_health)
+		if "enemy_data" in node and node.enemy_data != null:
+			var et := int(node.enemy_data.enemy_type)
+			if et == 1:
+				d["elite_type"] = "ELITE"
+			elif et >= 3:
+				d["elite_type"] = "BOSS"
+		if "char_class" in node and str(node.char_class) != "":
+			d["class"] = str(node.char_class)
+	# TargetInfo carries its own display name when no live node is attached.
+	if not d.has("name") and "display_name" in target:
+		d["name"] = str(target.display_name)
+	return d
+
+func _relation_name(relation: int) -> String:
+	match relation:
+		Entity.Relation.FRIENDLY:
+			return "friendly"
+		Entity.Relation.HOSTILE:
+			return "hostile"
+		_:
+			return "neutral"
 
 func _on_effect_added(entity_id: String, effect_data: Dictionary) -> void:
 	if entity_id != _target_id:
@@ -457,17 +531,14 @@ func _update_bars() -> void:
 			_mp_bar.max_value = _max_mp if _max_mp > 0 else 1
 			_mp_bar.value = _current_mp
 
-			# Update HP/MP labels
-			var vbox: VBoxContainer = get_child(0)
-			if vbox:
-				var hp_row: HBoxContainer = vbox.get_child(5)
-				if hp_row:
-					var hp_label: Label = hp_row.get_child(0)
-					var mp_label: Label = hp_row.get_child(1)
-					if hp_label:
-						hp_label.text = "HP: %d / %d" % [_current_hp, _max_hp]
-						if mp_label:
-							mp_label.text = "  MP: %d / %d" % [_current_mp, _max_mp]
+			# Update HP/MP labels via the stored refs. The old code walked
+			# get_child(0).get_child(5) -- but index 5 is the cast container
+			# (not the hp row at index 4), so the typed HBoxContainer
+			# assignment threw and aborted the update on every render.
+			if _hp_label:
+				_hp_label.text = "HP: %d / %d" % [_current_hp, _max_hp]
+			if _mp_label:
+				_mp_label.text = "  MP: %d / %d" % [_current_mp, _max_mp]
 
 func update_health(current: int, maximum: int) -> void:
 	_current_hp = current

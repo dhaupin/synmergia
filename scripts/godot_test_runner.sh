@@ -126,6 +126,7 @@ probe_playtest_r12
 probe_climb
 probe_calibration
 globe_driver
+playthrough_driver
 probe_ancient_loop
 frame/math/test_penrose
 frame/math/test_pentagrid

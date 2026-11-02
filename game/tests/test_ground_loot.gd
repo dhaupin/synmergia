@@ -19,6 +19,7 @@ func _initialize() -> void:
 	_test_unknown_item_skipped()
 	_test_pickup_requires_inventory()
 	_test_pickup_into_inventory()
+	_test_pickup_currency_only_not_farmable()
 	_test_pickup_range_gate()
 	_test_owner_lock_window()
 	_test_reward_drop_owner_locked()
@@ -120,6 +121,40 @@ func _test_pickup_into_inventory() -> void:
 
 	# Second pickup with nothing nearby -> empty
 	_assert(svc.try_pickup(player).is_empty(), "no drop in range -> empty pickup")
+	player.free()
+	svc.queue_free()
+
+
+## A currency-only drop (no items) must be consumed on pickup. The shipped
+## wolf table produces currency-only rolls on ~half of kills, so if the drop
+## survived the pickup the player could re-press E and farm the same gold
+## forever (an infinite-gold exploit).
+func _test_pickup_currency_only_not_farmable() -> void:
+	var svc := _mk_ground_svc()
+	var isvc = root.get_node_or_null("InventoryService")
+	if isvc == null:
+		_fail("InventoryService missing")
+		svc.queue_free()
+		return
+	var inv = load("res://core/components/inventory_component.gd").new()
+	root.add_child(inv)
+	isvc.register_inventory("gl_coin", inv)
+
+	var player = _mk_player("gl_coin")
+	player.global_position = Vector3(0.5, 0, 0.5)
+
+	var drop_id: String = svc.create_drop(Vector3.ZERO, [],
+		{"source": "enemy", "currency": {"gold": 7}})
+	_assert(drop_id != "", "currency-only drop created")
+
+	var first: Array = svc.try_pickup(player)
+	_assert(first.is_empty(), "currency-only pickup returns no items")
+	_assert(player.gold == 7, "currency-only pickup paid the gold")
+	_assert(svc.get_drop_count() == 0, "currency-only drop consumed on pickup")
+
+	# Re-press: nothing left to farm.
+	svc.try_pickup(player)
+	_assert(player.gold == 7, "currency-only drop cannot be farmed twice")
 	player.free()
 	svc.queue_free()
 

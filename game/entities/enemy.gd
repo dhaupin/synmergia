@@ -525,11 +525,13 @@ func _roll_and_drop_loot() -> void:
 		GameLog.info("  currency: %s %d" % [cid, result.currency[cid]])
 
 	# Spawn a real ground drop at the corpse. GroundLootService resolves
-	# the {item_id, quantity} dicts into Item instances; an empty roll
-	# (nothing dropped) creates no drop. Currency rides along and is
-	# paid via the duck-typed add_gold on pickup. Kill credit rides
+	# the {item_id, quantity} dicts into Item instances. The gate matches
+	# create_drop's own emptiness law (items OR currency): gating on items
+	# alone silently threw away currency-only rolls -- with the shipped wolf
+	# table ~46% of kills roll no item while 90% roll gold, so nearly half of
+	# all kill loot (the coin) never reached the ground. Kill credit rides
 	# along too so LootRulesService can apply party delegation rules.
-	if GroundLootService and not result.items.is_empty():
+	if GroundLootService and (not result.items.is_empty() or not result.currency.is_empty()):
 		var drop_pos := global_position + Vector3(0.0, -0.5, 0.0)
 		var options := {
 			"source": "enemy",

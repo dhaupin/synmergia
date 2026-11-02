@@ -630,7 +630,7 @@ func _setup_portal() -> void:
 	})
 	if tm:
 		tm.register_targetable(
-			gateway_id, "teleport", portal,
+			gateway_id, "gateway", portal,
 			str(gateway_data.display_name), portal.global_position,
 			Entity.EntityType.TELEPORT
 		)
