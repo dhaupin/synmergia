@@ -26,6 +26,10 @@ signal weight_changed(current: float, max_weight: float, encumbered: bool)
 
 var _inventory: Array = []
 var _equipment: Dictionary = {}	 # EquipSlot -> Item
+## The equipment stat delta currently applied to the owner (stat -> amount).
+## Tracked so _apply_equipment_stats subtracts the old delta before adding the
+## new one -- add_stat has no inverse, so a plain re-add would stack bonuses.
+var _applied_equipment_stats: Dictionary = {}
 var _gold: int = 0
 # Non-gold currency balances (currency_id -> int). Gold stays on _gold;
 # everything else (FAVOR/TOKEN/EVENT kinds) rides this ledger.
@@ -601,14 +605,37 @@ func clear_equipment() -> void:
 
 ## Apply equipment stats to entity
 func _apply_equipment_stats() -> void:
-	var entity: Entity = get_parent()
+	# The owner may be a PlayerController (extends CharacterBody3D) or an Entity
+	# subclass (Enemy/NPC). Reading the parent as the typed `Entity` was a
+	# RUNTIME TYPE-ASSIGNMENT error for the player -- "Trying to assign value of
+	# type 'player_controller.gd' to a variable of type 'entity.gd'" -- which
+	# aborted this function before the first stat applied, so equipping gear
+	# never moved the player's attributes. Read it untyped and duck-type the
+	# stat surface the player and Entity both expose.
+	var entity = get_parent()
 	if entity == null:
 		return
+	if not entity.has_method("get_stat") or not entity.has_method("set_stat"):
+		return
 
+	# Equipment bonuses are applied as a DELTA and the previous delta is
+	# subtracted first. add_stat accumulates with no inverse, so a plain
+	# re-add on every equip/unequip/clear would stack forever (equip, unequip,
+	# re-equip doubles the bonus); the stored _applied_equipment_stats makes
+	# each application idempotent.
 	var equipment_stats := get_equipment_stats()
+	var touched := {}
+	for stat_name in _applied_equipment_stats:
+		touched[stat_name] = true
 	for stat_name in equipment_stats:
-		var value: int = equipment_stats[stat_name]
-		entity.add_stat(stat_name, value)
+		touched[stat_name] = true
+	for stat_name in touched:
+		var prev: int = int(_applied_equipment_stats.get(stat_name, 0))
+		var now: int = int(equipment_stats.get(stat_name, 0))
+		var delta: int = now - prev
+		if delta != 0:
+			entity.set_stat(stat_name, entity.get_stat(stat_name) + delta)
+	_applied_equipment_stats = equipment_stats.duplicate()
 
 # ============ WEIGHT / ENCUMBRANCE ============
 

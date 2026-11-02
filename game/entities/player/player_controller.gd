@@ -1626,7 +1626,9 @@ func _find_and_set_nearest_target() -> void:
 
 	# Target nearest
 	var nearest = enemies[0]
-	if nearest.has("entity_id"):
+	# `in` is the property-existence operator; `nearest.has("entity_id")` was a
+	# call to a method Node3D does not have, so it threw and F2 never targeted.
+	if "entity_id" in nearest:
 		_tm().set_target(
 			nearest.entity_id,
 			"enemy",
@@ -1841,6 +1843,18 @@ func _on_component_gold_changed_mirror(_delta: int) -> void:
 
 func get_stat(stat_name: String) -> int:
 	return int(stats.get(stat_name, 0))
+
+## Entity-parity stat surface. PlayerController extends CharacterBody3D, not
+## Entity, so it lacked the get_stat/set_stat pair that InventoryComponent's
+## _apply_equipment_stats drives: equipping gear threw a missing-method error
+## and moved no attributes. set_stat is deliberately silent -- the player has
+## no stat_changed listener, so emitting one (which KillRewards would also do
+## for "xp") would be a zero-listener signal under the no-void law.
+func set_stat(stat_name: String, value: int) -> void:
+	stats[stat_name] = value
+
+func add_stat(stat_name: String, amount: int) -> void:
+	set_stat(stat_name, get_stat(stat_name) + amount)
 
 ## SKILL SYSTEM
 

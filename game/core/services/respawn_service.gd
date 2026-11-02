@@ -970,7 +970,13 @@ func _get_nearby_potential_healers(player) -> Array:
 	var Interest = load("res://core/services/entity_interest.gd")
 	var entities: Array = Interest.query_all(player.global_position, REVIVE_RANGE, [player])
 	for entity in entities:
-		if entity.health_component and not entity.health_component.is_dead():
+		# Interest returns every nearby entity, NPCs included, and an NPC has no
+		# health_component: reading it directly threw and aborted the whole
+		# respawn flow (get_available_respawn_modes -> respawn UI) on any player
+		# death near an NPC. Duck-type the property before touching it.
+		if not ("health_component" in entity) or entity.health_component == null:
+			continue
+		if not entity.health_component.is_dead():
 			if entity.controller_type == Entity.ControllerType.HUMAN:
 				nearby.append(entity)
 	return nearby
