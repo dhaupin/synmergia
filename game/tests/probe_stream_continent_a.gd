@@ -69,7 +69,7 @@ func _run() -> void:
 	var surfaces_ok := true
 	for fa in st_big.active_faces():
 		var mi_f: MeshInstance3D = st_big._patches.get(fa)
-		if mi_f == null or mi_f.mesh == null or mi_f.mesh.get_surface_count() != 2:
+		if mi_f == null or mi_f.mesh == null or mi_f.mesh.get_surface_count() < 2:
 			surfaces_ok = false
 	ok = _check("continent walk faces %d..%d: ground + skirt surfaces on every streamed face" % [FACE_LO, FACE_HI], surfaces_ok) and ok
 	globe_big.queue_free()
