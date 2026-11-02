@@ -103,15 +103,19 @@ func run() -> void:
 		# probe family pins the 100 m prototype explicitly. The old
 		# absolute |r - 101| check penalized the shipped world (a
 		# "63.67 m" error that was just 20000 + normal surface lift).
-		# The LAW the driver pins: the body sits ABOVE the base shell by
-		# the walk-surface lift at its position -- read the tolerance
-		# from the globe itself (player.planet_distance vs planet_radius
-		# stays within ~3 m of the boot walk surface 9.0 m).
+		# The LAW the driver pins: the body rests on the walk surface
+		# (streamed terrain + tile lift + capsule skin). The old fixed
+		# "~3 m above the 100 m prototype" tolerance misread a correctly
+		# seated body as off-shell once the 20 km world shipped -- its
+		# spawn shore is a ~28 m plateau (off_shell_29.52). Ask the body
+		# whether it is glued (the same law probe_planet_walk_20km uses)
+		# instead of pinning a constant.
 		var pr: float = float(globe.get("planet_radius"))
 		var lift: float = absf(player.planet_distance() - pr)
-		if lift > 12.0:
+		var glued: bool = player.is_glued(2.0)
+		if not glued:
 			_fail += "off_shell_%.2f; " % lift
-		print("globe driver: player surface lift %.2f m (planet r %.1f), path %.1f m" % [lift, pr, player.path_walked])
+		print("globe driver: player surface lift %.2f m (planet r %.1f, glued %s), path %.1f m" % [lift, pr, str(glued), player.path_walked])
 
 	# --- Stage 6: HUD panel over the globe (real hotkey) -------------
 	_key(KEY_I)
