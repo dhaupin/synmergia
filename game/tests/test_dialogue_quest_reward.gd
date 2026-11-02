@@ -156,6 +156,31 @@ func _run() -> void:
 	else:
 		_ok("auto_complete granted the gold reward exactly once")
 
+	# --- Leg 5b: the authored quest chain gates acceptance. "The Old Roads"
+	# (quest_main_teachings) authors required_quests = [quest_main_awakening]
+	# and quest_cross_the_cistern authors previous_quest_id; neither was
+	# enforced, so a sequel was acceptable before its prerequisite.
+	var chain_avail: Dictionary = qs.check_quest_availability("dq_chain", "quest_main_teachings")
+	if bool(chain_avail.get("available", true)) or not str(chain_avail.get("reason", "")).begins_with("Requires quest:"):
+		_fail("chained quest offered before its prerequisite (reason=%s)" % str(chain_avail.get("reason")))
+	else:
+		_ok("chained quest refused before its prerequisite")
+	if qs.accept_quest("dq_chain", "quest_main_teachings"):
+		_fail("accept_quest let a chained quest through without its prerequisite")
+	else:
+		_ok("accept_quest enforces the chain")
+	# Satisfy the prerequisite, then the quest opens.
+	if not qs._player_quests.has("dq_chain"):
+		qs._player_quests["dq_chain"] = {}
+	qs._player_quests["dq_chain"]["quest_main_awakening"] = {
+		"state": qs.QuestData.QuestState.REWARDED, "objectives": [],
+		"data": ds_svc.get_quest("quest_main_awakening")
+	}
+	if not qs.accept_quest("dq_chain", "quest_main_teachings"):
+		_fail("chained quest still refused after the prerequisite is turned in")
+	else:
+		_ok("chained quest accepts once the prerequisite is turned in")
+
 	# --- Leg 6: dialog actions call real endpoints (BUG B).
 	# STOP_FOLLOW: stop_follow exists and returns false when not following
 	# (the old cancel_follow call was a silent no-op / nonexistent method).

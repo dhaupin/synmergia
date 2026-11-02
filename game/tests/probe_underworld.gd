@@ -248,6 +248,15 @@ func _run() -> void:
 		var QuestService2 = root_node.get_node_or_null("QuestService")
 		if QuestService2 != null:
 			QuestService2.load_player_quests("deep_walker")
+			# quest_cross_the_cistern chains off quest_listen_to_the_deep; the
+			# earlier leg accepted it, so credit it as turned in before the
+			# sequel (the chain gate refuses otherwise).
+			var DataService2 = root_node.get_node_or_null("DataService")
+			QuestService2._player_quests["deep_walker"]["quest_listen_to_the_deep"] = {
+				"state": QuestService2.QuestData.QuestState.REWARDED,
+				"objectives": [],
+				"data": DataService2.get_quest("quest_listen_to_the_deep") if DataService2 else null
+			}
 			var accepted2: bool = QuestService2.accept_quest("deep_walker", "quest_cross_the_cistern")
 			ok = _check("quest_cross_the_cistern accepts for the walker", accepted2) and ok
 			if accepted2 and is_instance_valid(walker):

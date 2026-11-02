@@ -70,8 +70,15 @@ func _run() -> void:
 		_fail("quest has %d objectives, expected 2" % objs.size())
 
 	# --- The real accept path ---------------------------------------
+	# quest_cross_the_cistern chains off quest_listen_to_the_deep, so seed the
+	# prerequisite as turned in -- otherwise the (correct) chain gate refuses.
 	var pid := "swim_bridge_tester"
 	qs.load_player_quests(pid)
+	qs._player_quests[pid]["quest_listen_to_the_deep"] = {
+		"state": qs.QuestData.QuestState.REWARDED,
+		"objectives": [],
+		"data": load("res://data/quests/quest_listen_to_the_deep.tres")
+	}
 	if not qs.accept_quest(pid, "quest_cross_the_cistern"):
 		_fail("the Warden's swim quest did not accept")
 		_finish()

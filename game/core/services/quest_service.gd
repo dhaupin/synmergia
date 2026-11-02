@@ -324,6 +324,9 @@ func _get_available_quest_ids(player_id: String) -> Array:
 			# Check level requirement
 			if player_level < int(quest.min_level):
 				continue
+			# Chain gate (same rule as check_quest_availability).
+			if not _first_unmet_prereq(player_data, quest).is_empty():
+				continue
 			available.append(qid)
 	return available
 
@@ -366,6 +369,11 @@ func get_available_quests(player_id: String) -> Array:
 			var min_level: int = int(quest.min_level)
 			if player_level < min_level:
 				continue
+			# Chain gate: the roster must not offer a quest whose authored
+			# prerequisite is unmet, or the UI would list a quest the accept
+			# gate then refuses.
+			if not _first_unmet_prereq(player_data, quest).is_empty():
+				continue
 			var qname: String = str(quest.display_name)
 			if qname.is_empty():
 				qname = qid
@@ -407,8 +415,36 @@ func check_quest_availability(player_id: String, quest_id: String) -> Dictionary
 		result.reason = "Level too low (need %d)" % quest.min_level
 		return result
 
+	# Check the authored quest chain. previous_quest_id and required_quests
+	# are declared on QuestData and authored in data/quests/*.tres, but
+	# nothing enforced them -- a player could accept a sequel before its
+	# prerequisite, or pick up "The Old Roads" before "The Awakening".
+	var missing: String = _first_unmet_prereq(player_data, quest)
+	if not missing.is_empty():
+		result.reason = "Requires quest: %s" % missing
+		return result
+
 	result.available = true
 	return result
+
+## First authored prerequisite the player has not turned in, or "" when
+## every prerequisite is met. Both the accept gate and the roster read it
+## so the offered list and the accepted set never disagree.
+func _first_unmet_prereq(player_data: Dictionary, quest: QuestData) -> String:
+	var prereqs: Array = []
+	if not quest.previous_quest_id.is_empty():
+		prereqs.append(quest.previous_quest_id)
+	for req in quest.required_quests:
+		if not prereqs.has(str(req)):
+			prereqs.append(str(req))
+	for prereq_id in prereqs:
+		if prereq_id.is_empty():
+			continue
+		if not player_data.has(prereq_id):
+			return prereq_id
+		if int(player_data[prereq_id].get("state", QuestData.QuestState.LOCKED)) != QuestData.QuestState.REWARDED:
+			return prereq_id
+	return ""
 
 func _load_quest_data(quest_id: String) -> QuestData:
 	if DataService:
