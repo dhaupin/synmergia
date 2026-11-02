@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TitleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/title_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "pillarsworn"
+display_name = "Pillarsworn"
+description = "Sworn to the Concord's nine pillars, paid in Concord Sigils."
+prefix_form = "Pillarsworn"
+suffix_form = "pillar-sworn"
+category = 7
+rarity = 3
+unlock_method = 6
+unlock_source = "sigil_sink"
+is_account_title = false
+sort_order = 110

@@ -14,6 +14,7 @@ class_name PremiumShopUI
 
 const PremiumShopServiceScript = preload("res://core/services/premium_shop_service.gd")
 const BlackMarketServiceScript = preload("res://core/services/black_market_service.gd")
+const SigilSinkServiceScript = preload("res://core/services/sigil_sink_service.gd")
 const NotifKindScript = preload("res://core/notifications/notification_kind.gd")
 
 ## Build-once content refs (inside the base Panel/Main shell).
@@ -21,6 +22,7 @@ var _rows_box: VBoxContainer
 var _status_label: Label
 var _sigil_label: Label
 var _rolls_box: VBoxContainer
+var _sinks_box: VBoxContainer
 
 func _setup_panel() -> void:
 	set_panel_size(Vector2(460, 520))
@@ -54,11 +56,15 @@ func _ensure_content() -> void:
 		_rolls_box = VBoxContainer.new()
 		_rolls_box.name = "RollsBox"
 		main.add_child(_rolls_box)
+		_sinks_box = VBoxContainer.new()
+		_sinks_box.name = "SinksBox"
+		main.add_child(_sinks_box)
 	else:
 		_sigil_label = main.get_node("Sigils") as Label
 		_status_label = main.get_node("Status") as Label
 		_rows_box = main.get_node("Rows") as VBoxContainer
 		_rolls_box = main.get_node("RollsBox") as VBoxContainer
+		_sinks_box = main.get_node("SinksBox") as VBoxContainer
 	_watch_service()
 
 ## The service is a runtime singleton (not an autoload): refresh rides
@@ -107,6 +113,7 @@ func _refresh() -> void:
 	for sku in shop.get_skus(player_id):
 		_add_sku_row(shop, player_id, sku)
 	_refresh_rolls(player_id)
+	_refresh_sinks(player_id)
 
 func _unused(_x) -> void:
 	pass
@@ -228,3 +235,70 @@ func _player_id_for_toast() -> String:
 	if pm == null or not pm.has_method("get_local_player_id"):
 		return ""
 	return str(pm.get_local_player_id())
+
+## THE CONCORD SINKS: the mirror door of the vault -- where sigils LEAVE.
+## Rows read the real books (owned state comes from RideService's stable
+## and TitleService's register at read time), buys are honest debit-then-
+## grant with refunds, and refresh rides the sink service's own signal.
+func _refresh_sinks(player_id: String) -> void:
+	if _sinks_box == null:
+		return
+	for child in _sinks_box.get_children():
+		child.queue_free()
+	var sinks = SigilSinkServiceScript.singleton()
+	if sinks == null or not is_instance_valid(sinks):
+		var absent := Label.new()
+		absent.text = "The sink catalog is closed (service unavailable)."
+		_sinks_box.add_child(absent)
+		return
+	if not sinks.sink_purchased.is_connected(_on_sink_refresh):
+		sinks.sink_purchased.connect(_on_sink_refresh)
+	var header := Label.new()
+	header.text = "-- Where sigils go --"
+	header.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
+	_sinks_box.add_child(header)
+	for row in sinks.get_catalog(player_id):
+		_add_sink_row(sinks, player_id, row)
+
+func _add_sink_row(sinks, player_id: String, sink: Dictionary) -> void:
+	var row := PanelContainer.new()
+	var hbox := HBoxContainer.new()
+	row.add_child(hbox)
+	var name_label := Label.new()
+	var owned: bool = bool(sink.get("owned", false))
+	name_label.text = "%s - %d sigils%s" % [
+		str(sink.get("display_name", sink.get("sink_id", "?"))),
+		int(sink.get("sigils", 0)),
+		" (owned)" if owned else "",
+	]
+	name_label.tooltip_text = str(sink.get("detail", ""))
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hbox.add_child(name_label)
+	var buy := Button.new()
+	buy.text = "Owned..." if owned else "Buy"
+	buy.disabled = owned
+	buy.pressed.connect(func():
+		var result: Dictionary = sinks.buy_sink(player_id, str(sink.get("sink_id", "")))
+		_notify_sink(result)
+		_refresh())
+	hbox.add_child(buy)
+	_sinks_box.add_child(row)
+
+func _on_sink_refresh(_player_id: String, _sink_id: String, _sigils: int) -> void:
+	_refresh()
+
+func _notify_sink(result: Dictionary) -> void:
+	var ns := get_node_or_null("/root/NotificationService")
+	if ns == null:
+		return
+	var NotifKind = NotifKindScript.NotifKind
+	var ok: bool = bool(result.get("success", false))
+	var message: String = "The Concord accepts your sigils." if ok else str(result.get("reason", ""))
+	ns.notify(
+		NotifKind.CUSTOM,
+		message,
+		"PremiumShopUI",
+		"sigil_sink_%s" % str(message).hash(),
+		{},
+		_player_id_for_toast()
+	)

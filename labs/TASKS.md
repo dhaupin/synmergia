@@ -7945,3 +7945,53 @@ gear-adjusted player stats) left open + tracked for the next rounds.
   no re-verification needed -- content identical).
 - NEXT: sigil-sink catalog; consider #21 as part of it (the panel should read
   the live gear-adjusted stat surface).
+
+## 2026-11-02 -- SIGIL-SINK CATALOG (the round the mirror door opened)
+The vault panel could bring sigils IN (SKUs, webhook delivery, the
+gamble's reverse door) but had no honest OUT: nothing in the repo
+spent a Concord Sigil on anything. Shipped the sink catalog: real
+prices on real service doors, priced against the processor SKUs
+(sigil_100 = $4.99 floor).
+- core/services/sigil_sink_service.gd (the PremiumShopService
+  dialect: static _instance + singleton(), no autoload wiring needed):
+  const catalog of SEVEN sinks -- five VENDOR-source steed deeds out
+  of RideService's real ownership book (Meadow Pacer 150 / Plains
+  Runner 250 / Reef Glider 400 / Trench Wyrm 650 / Storm Lancer 900,
+  all data/mounts truth; the GM Skywarden's mount is refused one gate
+  BEFORE the service's own fail-closed) + two NEW title editions in
+  data/titles/ (title_pillarsworn.tres, title_deepseabaron.tres --
+  UnlockMethod.PURCHASE, which existed in the schema at birth and now
+  earns its grant leg) priced 200/500 out of TitleService's real
+  register.
+- BOOK LAW (the audit talks hold): gate-before-books (availability,
+  unknown id by name, already-owned read off the REAL books, exact-need
+  affordability, QoS rate gate under "sigil_sink_purchase") then
+  debit-once, grant-once, REFUND on any refused grant leg (hard
+  GL.error when a refund cannot land), GL.info audit per sale, and ONE
+  sink_purchased signal (consumer = the panel; no-void law).
+- TitleService has NO class_name: bare static calls do not compile in
+  --script/--check-only context AT ALL (reproduced: player_manager.gd
+  at HEAD, untouched, fails check-only on bare autoloads). The service
+  routes title legs through the autoload NODE calling the same
+  instance impls the static facade wraps (_has_title/_do_unlock/
+  _do_equip).
+- PremiumShopUI grew the mirror half under the Deep Rolls: a "Where
+  sigils go" section rendering get_catalog(player_id) with OWNED state
+  read from RideService/TitleService at render time, disabled Buy on
+  owned rows, hashed dedupe toasts on both outcomes, refresh on the
+  service's own signal.
+- Receipt tests/test_sigil_sink_catalog.gd exit 0 six legs (catalog
+  truth incl. no phantom ids + no GM price, unknown/wallet-less/broke
+  refusals by name with books untouched, Pacer for exactly 150 into
+  RideService.owns_mount with dupe refusal without a second debit,
+  Pillarsworn for exactly 200 + equips through the real equip surface,
+  the refund law exercised through injected refusing doors on a fresh
+  instance -- the transport-receipt seam pattern -- recovering every
+  sigil on both stable and herald legs, the purchase voice + panel
+  render + owned rows read true). Deliberately NOT in the runner
+  DEFAULT_SET: money-suite precedent; no pack-count drift.
+- GATES: receipt 6/ALL-OK exit 0; lint 36/0 (the sink file hit the
+  one lint miss: continuation alignment mixed tabs+spaces -- tabs
+  only in GDScript, fixed); full pipeline in flight this round.
+- NEXT: Concord money-hub world-building (where the sinks physically
+  live), then PR-IO review keeps OpenHands' dialogue/quest lane clear.
