@@ -138,17 +138,23 @@ func _run() -> void:
 	else:
 		_ok("quest item reward placed in the mounted inventory")
 
-	# --- Leg 5: optional objectives never gate completion. quest_intro_core_npcs
-	# authors meet_blacksmith (required) + meet_academy/meet_store (optional);
-	# the completion check demanded the optional ones and accept_quest dropped
-	# the flag, so the quest could never complete.
+	# --- Leg 5: optional objectives never gate completion, and auto_complete
+	# pays on the spot. quest_intro_core_npcs authors meet_blacksmith (required)
+	# + meet_academy/meet_store (optional) and auto_complete = true; the
+	# completion check demanded the optional ones, accept_quest dropped the
+	# flag, and auto_complete was never read at all.
+	var intro_gold_before: int = int(pm.gold)
 	qs.accept_quest("dq_probe", "quest_intro_core_npcs")
 	qs.update_quest_progress("dq_probe", 5, "npc_blacksmith_village", 1)
 	var intro: Dictionary = qs.get_quest_progress("dq_probe", "quest_intro_core_npcs")
-	if int(intro.get("state", -1)) != 3:
-		_fail("required-only objective did not complete the quest (state=%s)" % str(intro.get("state")))
+	if int(intro.get("state", -1)) != 4:
+		_fail("required-only objective did not complete+auto-pay the quest (state=%s)" % str(intro.get("state")))
 	else:
-		_ok("optional objectives do not gate completion")
+		_ok("optional objectives do not gate completion; auto_complete pays on the spot")
+	if int(pm.gold) != intro_gold_before + 25:
+		_fail("auto_complete did not grant the gold reward (want +25, got %d)" % (int(pm.gold) - intro_gold_before))
+	else:
+		_ok("auto_complete granted the gold reward exactly once")
 
 	# --- Leg 6: dialog actions call real endpoints (BUG B).
 	# STOP_FOLLOW: stop_follow exists and returns false when not following

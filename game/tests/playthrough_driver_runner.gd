@@ -627,6 +627,8 @@ func _stage_dialogue_quest(inst: Node, player, inv, pid: String) -> void:
 
 	# Walk the tree: node 0 -> choice 0 -> node 1 -> choice 0 -> node 3
 	# (the GIVE_QUEST choice) -> node 4 -> auto-end.
+	var gold_before: int = int(inv.get_gold())
+	var pm_gold_before: int = int(pman.gold) if pman else 0
 	var guard := 0
 	while dsvc.get_current_node() != {} and guard < 12:
 		guard += 1
@@ -644,25 +646,23 @@ func _stage_dialogue_quest(inst: Node, player, inv, pid: String) -> void:
 	if accepted.is_empty():
 		return
 
-	# Complete the required TALK objective by speaking to the blacksmith --
-	# the real dialogue_ended bridge credits it (target == the npc_ id).
+	# Complete the required TALK objective by speaking to the blacksmith -- the
+	# real dialogue_ended bridge credits it (target == the npc_ id).
 	dsvc.start_dialogue(str(npc.npc_data.id), "blacksmith_village_intro")
 	dsvc.end_dialogue()
 	await get_tree().process_frame
 	var prog: Dictionary = qsvc.get_quest_progress(pid, "quest_intro_core_npcs")
-	_ok("the TALK bridge completed the required objective",
-		int(prog.get("state", -1)) == 3, "(state=%s)" % str(prog.get("state")))
-
-	# Turn in and prove the rewards are GRANTED (the round-2 fix).
-	var gold_before: int = int(inv.get_gold())
-	var pm_gold_before: int = int(pman.gold) if pman else 0
-	var rewarded: bool = qsvc.turn_in_quest(pid, "quest_intro_core_npcs")
-	_ok("turn_in_quest accepted the completed quest", rewarded)
+	# auto_complete = true: completion pays on the spot, so the quest lands in
+	# REWARDED (4) without a trip back to the giver.
+	_ok("the TALK bridge completed + auto-paid the quest",
+		int(prog.get("state", -1)) == 4, "(state=%s)" % str(prog.get("state")))
 	# quest_intro_core_npcs authors gold_reward=25, xp_reward=250, rewards=[].
-	_ok("quest turn-in granted the gold reward (25)",
+	# The reward must land exactly once even though dialogue_ended fires twice
+	# (the walk ended the dialogue once, then the explicit pass again).
+	_ok("quest auto-pay granted the gold reward exactly once (25)",
 		int(inv.get_gold()) == gold_before + 25,
 		"(%d -> %d)" % [gold_before, inv.get_gold()])
-	_ok("quest turn-in mirrored the gold into PlayerManager",
+	_ok("quest auto-pay mirrored the gold into PlayerManager",
 		int(pman.gold) == pm_gold_before + 25 if pman else true,
 		"(%d -> %d)" % [pm_gold_before, int(pman.gold) if pman else 0])
 	await _shot("playthrough_11_quest_reward")

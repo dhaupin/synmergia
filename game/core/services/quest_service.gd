@@ -540,15 +540,24 @@ func update_quest_progress(player_id: String, objective_type: int, target: Strin
 			var qname: String = "Unknown"
 			if qdata != null and "display_name" in qdata:
 				qname = str(qdata.display_name)
+			# auto_complete is authored in the .tres ("complete without
+			# turn-in NPC") but was never read, so quests that set it still
+			# demanded a visit to the giver. Pay them the moment they complete.
+			var auto: bool = qdata != null and "auto_complete" in qdata and bool(qdata.auto_complete)
 			if is_instance_valid(NotificationService):
+				var msg: String = "Quest Complete: %s" % qname
+				if not auto:
+					msg += " - Return to quest giver!"
 				NotificationService.notify(
 					NotifKind.QUEST_COMPLETED,
-					"Quest Complete: %s - Return to quest giver!" % qname,
+					msg,
 					"QuestService",
 					"quest_complete:%s:%s" % [player_id, quest_id],
 					{"quest_id": quest_id, "player_id": player_id},
 					player_id
 				)
+			if auto:
+				turn_in_quest(player_id, quest_id)
 
 	if updated.is_empty():
 		return
