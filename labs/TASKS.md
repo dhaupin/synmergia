@@ -7902,3 +7902,46 @@ sidecar law says:
   premium/gamble receipts (money suite; no pack-count drift).
 - NEXT: sigil-sink catalog; OpenHands' staging PRs A (gameplay
   driver), B (crafting leg), C (perf honesty) reviewed when they land.
+
+## 2026-11-02 -- PR #20 REVIEW + MERGE (the round the loop learned to die-and-pay)
+OpenHands' PR #20 (branch pr-a-playthrough-driver, head 4e1ed9b) reviewed,
+verified locally on the MERGED tree, and merged into main (merge commit
+315d607; PR marked merged with authorship). PR #18 closed landed-not-merged
+(e1f49bc); issues #19 (terrain static-resolution stderr race, cosmetic) and
+#21 (character panel reads stale CharacterData stats instead of live
+gear-adjusted player stats) left open + tracked for the next rounds.
+- THE DRIVER: game/tests/playthrough_driver.gd + playthrough_driver_runner.gd
+  (node-runner pattern, same SceneTree-await-stranding law as globe_driver)
+  walks the REAL input pipeline on world_playable: spawn -> F2 target the wolf
+  through the input map -> attack until it dies -> collect the corpse through
+  the interact action -> equip wep_iron_sword -> blacksmith repair -> NPC menu.
+  Uses live-node asserts, real key events, fight isolation (scene wildlife
+  freed, health pool padded, nondeterminism documented). Registered in the
+  runner DEFAULT_SET (102 tests now).
+- THE SIX BUGS, all verified in the patch before landing:
+  1/2. inventory_component._apply_equipment_stats read the parent as TYPED
+       Entity -> runtime type-assignment abort on PlayerController, so gear
+       moved NO attributes; and add_stat re-add stacked bonuses with no
+       inverse (double-count on re-equip). Deltas now idempotent against
+       _applied_equipment_stats; player gains the Entity-parity get_stat/
+       set_stat/add_stat surface (deliberately silent -- no void emit).
+  3. enemy._roll_and_drop_loot gated on items only: currency-only rolls
+     (~46% of wolf kills) never dropped their gold at all.
+  4. ground_loot_service.try_pickup never consumed a currency-only drop:
+     re-press E farmed the same gold forever (INFINITE-GOLD EXPLOIT). Coins
+     paid -> drop removed; regression leg in test_ground_loot.
+  5. target_frame resolved a TargetInfo's id as entity_id (always ""): the
+     frame HID ITSELF for the whole game. Id normalization (dict/id/entity_id)
+     + render on acquisition + stored label refs; latent _update_bars child
+     index bug fixed too.
+  6. respawn_service._get_nearby_potential_healers threw on NPCs (no
+     health_component) and KILLED THE RESPAWN FLOW near any NPC; plus the
+     dungeon portal registered schema_id "teleport" where only "gateway"
+     exists. Both duck-typed/register-corrected.
+- GATES on the merged tree (main's webhook a571019 + #18 fixes + #20):
+  pipeline exit 0 with 102 passed / 0 failed / 0 phantom, ZERO script errors
+  (playthrough_driver included); lint 36/0. Push survived two rejections
+  (CI's pck refresh raced the push; merge rebuilt on the remote tip 2ba77a3,
+  no re-verification needed -- content identical).
+- NEXT: sigil-sink catalog; consider #21 as part of it (the panel should read
+  the live gear-adjusted stat surface).
