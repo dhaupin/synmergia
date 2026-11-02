@@ -232,6 +232,7 @@ jobs:
           # web/index.html is the hand-maintained shell (input bridge,
           # hash bootstrap) that the app actually serves -- a stock-shell
           # export into web/ would silently clobber it.
+          mkdir -p builds/web-shell
           godot --headless --path game/ --export-release "Web" "../builds/web-shell/game.html"
           ls -lh web/ builds/web-shell/
 
