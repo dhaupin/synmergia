@@ -7823,3 +7823,33 @@ HEAD with the round stashed; suspected partial .godot import cache
 after restore) -- NEVER the economy surfaces; all their receipts ran
 green inside the pipeline. NEXT: real processor transport ->
 handle_webhook once per delivery, sigil-sink catalog expansion.
+
+## 2026-11-02 -- PR-18 REVIEWED, VERIFIED, LANDED (GLM + DeepSeek tag team)
+OpenHands built a branch (fix/terrain-stream-probe-surface) auditing the
+processing harness exactly where the last round's pipeline had died
+(stream continents a-d, crafting, thermals). Review: patches re-read
+line by line, every claim re-verified locally. REAL PRODUCT BUGS it
+fixed: (1) cosmic_rng.stir_from_cosmic read CosmicEntropy.total_chaos
+as a PROPERTY but it is an ACCESSOR METHOD -- every stir THREW
+"Nonexistent 'int' constructor" and silently dropped the chaos entropy
+word (equal-kp skies produced identical streams); accessor call guarded
++ test mirror fixed. (2) inventory_service.get_inventory handed a freed
+registration back as a typed value; is_instance_valid guard + stale-row
+drop. (3) hud wallet binder read player.gold_changed unconditionally;
+globe body has none (component purse) -- has_signal guards on both
+legs. (4) runner DEFAULT_SET/LONG_TESTS word-split with comment lines
+in => phantom test names + empty grep pattern => long timeout for all;
+lists now stripped before iterating. STALE ASSERTS updated: continent
+shards >=2 surfaces (streamer emits ground+skirt+hydrology water
+legitimately), thermals 10 (8 thermals + 2 launchers after
+underworld/ascenion), rebase probe drains pending_derive before
+reading streaming faces, globe driver asks is_glued(2.0) instead of a
+prototype-era fixed ride-height. VERIFIED IN THIS SANDBOX: pipeline
+exit 0 / 101 passed / 0 failed / 0 phantom / 0 SCRIPT ERROR (previously
+"failing probes" were code bugs, NOT import-cache drift -- hypothesis
+retired); lint 36/0; naming exit 0; cosmic, thermals, gamble 9,
+premium 6 receipts exit 0; parse checks clean on all 12 touched files.
+Most of the effective harness strain: PR merges two DIFFERANT thinkers
+clean: OpenHands' audit craft + my rest-and-recovery harness memory of
+which receipts call what. NEXT: processor transport + sigil sink
+catalog.

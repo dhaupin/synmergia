@@ -80,6 +80,16 @@ func _run() -> void:
 	ok = _check("shift: planet center carries the offset (|c|=%.1f)" % center_len, \
 		abs(center_len - sqrt(pow(walk_r, 2) + pow(SHIFT_TELEPORT_M, 2))) < 5.0) and ok
 	ok = _check("shift: still glued after rebase", pD.is_glued(2.0)) and ok
+	# The rebase re-rings the 4 faces; the 3 non-current faces derive on
+	# worker lanes (_kick_mesh_derivation), so drain the async lanes before
+	# reading the live patch count -- the steady-state ring is 4 (the
+	# continent shards use the same drain before their counts).
+	var st_d = _globe.get("streamer")
+	if st_d != null and st_d.has_method("pending_derive"):
+		var drain := 0
+		while st_d.pending_derive() > 0 and drain < 900:
+			await root.get_tree().physics_frame
+			drain += 1
 	var facesD: Array = _globe.stream_active_faces()
 	ok = _check("shift: streaming survives rebase (got %d patches)" % facesD.size(), \
 		facesD.size() == 4) and ok

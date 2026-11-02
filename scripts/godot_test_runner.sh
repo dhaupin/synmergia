@@ -161,6 +161,13 @@ probe_stream_continent_b
 probe_stream_continent_c
 probe_stream_continent_d
 "
+# The DEFAULT_SET above is comment-annotated; the raw list is word-split
+# below, so comment words ("CI-minutes", "chunks", ...) and blank lines
+# would become phantom test names -- and an empty token makes `grep -qx`
+# match EVERY line, granting the long timeout to every test. Strip
+# comments and blank lines from both lists before iterating.
+TESTS="$(printf '%s\n' "${TESTS}" | sed 's/#.*//' | grep -v '^[[:space:]]*$')"
+LONG_TESTS="$(printf '%s\n' "${LONG_TESTS}" | sed 's/#.*//' | grep -v '^[[:space:]]*$')"
 for t in ${TESTS}; do
 	# Frame primitives keep their tests co-located (frame rule);
 	# a "frame/..." name resolves under core/frame/, else tests/.

@@ -64,7 +64,16 @@ func unregister_inventory(player_id: String) -> void:
 
 ## Get player's inventory
 func get_inventory(player_id: String) -> InventoryComponent:
-	return _player_inventories.get(player_id)
+	var inv = _player_inventories.get(player_id)
+	# A freed registration (a body that went away without unregistering) must
+	# not be handed back: returning it as a typed InventoryComponent raises
+	# "previously freed instance". A freed Object compares equal to null, so
+	# gate on validity alone. An absent key is also invalid -- erasing it is a
+	# harmless no-op and returning null is the honest answer.
+	if not is_instance_valid(inv):
+		_player_inventories.erase(player_id)
+		return null
+	return inv
 
 ## Check if player has inventory registered
 func has_inventory(player_id: String) -> bool:

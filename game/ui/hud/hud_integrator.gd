@@ -404,8 +404,11 @@ func _bind_player_wallet_feedback() -> void:
 	# The node wallet (kills, ground loot, dwelling spends). It
 	# carries the running TOTAL, so seed the seen-value to stay quiet
 	# through hydration and speak only in real deltas. Per-leg guards:
-	# a rebind must not skip the component legs below.
-	if not player.gold_changed.is_connected(_on_node_gold_changed):
+	# a rebind must not skip the component legs below. The globe body
+	# (GlobeWorldPlayer) is the playable local player but declares no
+	# `gold`/`gold_changed` (its purse is the mounted component), so gate
+	# on has_signal before reading the property or connecting.
+	if player.has_signal("gold_changed") and not player.gold_changed.is_connected(_on_node_gold_changed):
 		_node_gold_seen = int(player.gold) if "gold" in player else -1
 		player.gold_changed.connect(_on_node_gold_changed)
 	# The component wallet (vendors, vault, ferry, blacksmith) and
@@ -414,7 +417,7 @@ func _bind_player_wallet_feedback() -> void:
 	if "inventory_component" in player:
 		comp = player.get("inventory_component")
 	if comp != null and is_instance_valid(comp):
-		if not comp.gold_changed.is_connected(_on_component_gold_changed):
+		if comp.has_signal("gold_changed") and not comp.gold_changed.is_connected(_on_component_gold_changed):
 			_comp_gold_seen = comp.get_gold()
 			comp.gold_changed.connect(_on_component_gold_changed)
 		if comp.has_signal("item_equipped") \
