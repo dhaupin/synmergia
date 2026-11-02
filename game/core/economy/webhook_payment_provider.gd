@@ -46,9 +46,42 @@ const SKUS := [
 	{"sku_id": "sigil_600", "display_name": "600 Concord Sigils + 50 bonus", "sigils": 650, "price_label": "$24.99"},
 ]
 
-## purchase_id -> {player_id, sku_id, sigils, state}
+## purchase_id -> {purchase_id, player_id, sku_id, sigils, state}
 var _orders := {}
 var _rng := RandomNumberGenerator.new()
+
+## REBOOT LAW, provider half: the SERVICE hydrates its open orders from
+## the KV door, but its truth (pending vs paid vs walked-away) lives
+## HERE -- a fresh process with an empty provider board would refuse a
+## genuinely-paid webhook and strand a paid checkout. Every order is
+## written through at birth and on every state move (completed and
+## cancelled orders STAY as records, so duplicate deliveries stay
+## honestly refused after a reboot instead of re-binding a fresh
+## pending order). Adapters are re-registered at boot; their state is
+## not born there.
+const KV_PREFIX := "premium:webhookorder:"
+
+func _init() -> void:
+	_hydrate_orders()
+
+func _hydrate_orders() -> void:
+	var store := DictStore.new()
+	for key in store.all_keys():
+		if not key.begins_with(KV_PREFIX):
+			continue
+		var order = store.get_value(key)
+		if order is Dictionary and not order.is_empty():
+			var pid := str(order.get("purchase_id", ""))
+			if pid != "":
+				_orders[pid] = order
+
+func _persist_order(purchase_id: String) -> void:
+	var store := DictStore.new()
+	var order: Dictionary = _orders.get(purchase_id, {})
+	if order.is_empty():
+		store.erase(KV_PREFIX + purchase_id)
+	else:
+		store.set_value(KV_PREFIX + purchase_id, order.duplicate(true))
 
 func get_id() -> String:
 	return "webhook"
@@ -70,13 +103,19 @@ func begin_purchase(player_id: String, sku_id: String) -> Dictionary:
 	for order in _orders.values():
 		if str(order.get("player_id")) == player_id and str(order.get("state")) == "pending":
 			return {"status": "refused", "reason": "An order is already open at this processor."}
-	var purchase_id := "pay_%d_%d" % [Time.get_unix_time_from_system() * 1000.0, _rng.randi() % 100000]
+	# The id must be genuinely unique: a collision would silently
+	# OVERWRITE a standing order and let a webhook name the wrong SKU.
+	var purchase_id := ""
+	while purchase_id == "" or _orders.has(purchase_id):
+		purchase_id = "pay_%d_%d" % [Time.get_unix_time_from_system() * 1000.0, _rng.randi() % 100000]
 	_orders[purchase_id] = {
+		"purchase_id": purchase_id,
 		"player_id": player_id,
 		"sku_id": sku_id,
 		"sigils": int(sku.get("sigils", 0)),
 		"state": "pending",
 	}
+	_persist_order(purchase_id)
 	return {"status": "pending", "purchase_id": purchase_id, "message": "Checkout hosted; awaiting the processor's webhook."}
 
 func poll_purchase(purchase_id: String, _player_id: String = "") -> Dictionary:
@@ -94,7 +133,13 @@ func cancel_purchase(purchase_id: String, _player_id: String = "") -> Dictionary
 	var order: Dictionary = _orders.get(purchase_id, {})
 	if order.is_empty():
 		return {"status": "refused", "purchase_id": purchase_id, "reason": "Unknown purchase."}
+	# A completed order is PAID: cancelling it now would bury the money
+	# (state flips to cancelled, the poll leg closes empty, the sigils
+	# never land). Refuse and let the poll leg pay it instead.
+	if str(order.get("state")) == "completed":
+		return {"status": "refused", "purchase_id": purchase_id, "reason": "That order already paid out; poll it, do not cancel it."}
 	order["state"] = "cancelled"
+	_persist_order(purchase_id)
 	return {"status": "cancelled", "purchase_id": purchase_id}
 
 ## THE WEBHOOK DOOR. payload_bytes = the RAW body exactly as delivered
@@ -119,9 +164,13 @@ func handle_webhook(payload_bytes: PackedByteArray, headers: Dictionary) -> Dict
 	if t_part == "" or v_part == "":
 		return {"status": "refused", "reason": "The signature header is malformed; refusing."}
 
-	# 2. HMAC-SHA256 over the RAW bytes.
+	# 2. HMAC-SHA256 over the RAW bytes. A secret that cannot derive a
+	# signature is a DEAD secret, never a skipped gate: refuse (fail
+	# closed) rather than let an unsigned payload past the door.
 	var expected := _hmac_hex(secret, payload_bytes)
-	if not expected.is_empty() and not _constant_time_equal(expected, v_part):
+	if expected.is_empty():
+		return {"status": "refused", "reason": "The verification could not be sealed; refusing (fail closed)."}
+	if not _constant_time_equal(expected, v_part):
 		return {"status": "refused", "reason": "Signature mismatch; the payload died at the door."}
 
 	# 3. Freshness window (replay kill).
@@ -145,9 +194,11 @@ func handle_webhook(payload_bytes: PackedByteArray, headers: Dictionary) -> Dict
 	match event:
 		"checkout.completed":
 			order["state"] = "completed"
+			_persist_order(purchase_id)
 			return {"status": "complete", "purchase_id": purchase_id}
 		"checkout.expired", "checkout.cancelled":
 			order["state"] = "cancelled"
+			_persist_order(purchase_id)
 			return {"status": "cancelled", "purchase_id": purchase_id}
 		_:
 			return {"status": "refused", "reason": "Unknown event type; refusing."}
@@ -159,6 +210,7 @@ func fulfill_purchase(purchase_id: String) -> Dictionary:
 	if order.is_empty():
 		return {"status": "refused", "purchase_id": purchase_id, "reason": "Unknown purchase."}
 	order["state"] = "completed"
+	_persist_order(purchase_id)
 	return {"status": "complete", "purchase_id": purchase_id}
 
 ## ---------------------------------------------------------------------------

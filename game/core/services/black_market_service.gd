@@ -154,24 +154,32 @@ func _weighted_draw(table, boost: float) -> Dictionary:
 	for entry in table.entries:
 		running += max(0.0, float(entry.get("rarity_weight", 1.0)) * boost)
 		if pick <= running:
-			return {
-				"item_id": str(entry.get("item_id", "")),
-				"min_quantity": int(entry.get("min_quantity", 1)),
-				"max_quantity": int(entry.get("max_quantity", 1)),
-				"refuse_reason": "",
-			}
+			return _draw_shape(entry)
 	# Float edge fell past the last entry (can only happen on rounding);
 	# honor the LAST real entry rather than fabricating one.
-	var last: Dictionary = table.entries[table.entries.size() - 1]
+	return _draw_shape(table.entries[table.entries.size() - 1])
+
+## The chosen entry becomes the roll's decided shape: the quantity band
+## is ROLLED HERE once (server truth) so the granted count and the
+## reported count are the same number -- the books never say x3 and
+## pay x1. Corrupt band data (min > max) is clamped, never taken
+## through randi_range (a bad range aborts a function -- past the
+## debit that would strand a player's sigils without the refund leg).
+func _draw_shape(entry: Dictionary) -> Dictionary:
+	var lo: int = max(1, int(entry.get("min_quantity", 1)))
+	var hi: int = max(lo, int(entry.get("max_quantity", lo)))
+	var quantity: int = lo
+	if hi > lo:
+		quantity = randi_range(lo, hi)
 	return {
-		"item_id": str(last.get("item_id", "")),
-		"min_quantity": int(last.get("min_quantity", 1)),
-		"max_quantity": int(last.get("max_quantity", 1)),
+		"item_id": str(entry.get("item_id", "")),
+		"quantity": quantity,
 		"refuse_reason": "",
 	}
 
-## Grant the drawn entry through the ONE purse's bag. Refusals name
-## their cause so the refund audit has an honest line to point at.
+## Grant the drawn entry through the ONE purse's bag. The grant and
+## the report both read the draw's single decided quantity. Refusals
+## name their cause so the refund audit has an honest line to point at.
 func _grant_draw(player_id: String, draw: Dictionary) -> Dictionary:
 	var item_id := str(draw.get("item_id", ""))
 	if item_id == "":
@@ -182,12 +190,10 @@ func _grant_draw(player_id: String, draw: Dictionary) -> Dictionary:
 	var item = ds.call("get_item", item_id)
 	if item == null:
 		return {}
+	var quantity: int = max(1, int(draw.get("quantity", 1)))
 	var inv := _inventory_of(player_id)
-	if inv == null or not inv.add_item(item, int(draw.get("min_quantity", 1))):
+	if inv == null or not inv.add_item(item, quantity):
 		return {}
-	var quantity := int(draw.get("min_quantity", 1))
-	if draw.get("max_quantity", 1) > draw.get("min_quantity", 1):
-		quantity = randi_range(draw.get("min_quantity", 1), draw.get("max_quantity", 1))
 	return {
 		"item_name": str(item.display_name),
 		"item_id": item_id,

@@ -153,12 +153,13 @@ func _notify_checkout(result: Dictionary) -> void:
 	if ns == null:
 		return
 	var NotifKind = NotifKindScript.NotifKind
-	var ok := bool(result.get("success", false))
+	# The dedupe key carries the MESSAGE, not a fixed name: a fixed key
+	# lets the 5s window swallow the next checkout's honest answer.
 	ns.notify(
 		NotifKind.CUSTOM,
 		str(result.get("value", "Checkout opened.")),
 		"PremiumShopUI",
-		"premium_checkout",
+		"premium_checkout_%s" % str(result.get("value", "")).hash(),
 		{},
 		_player_id_for_toast()
 	)
@@ -217,7 +218,7 @@ func _notify_roll(result: Dictionary) -> void:
 		NotifKind.CUSTOM,
 		str(result.get("message", "")),
 		"BlackMarketUI",
-		"black_market_roll",
+		"black_market_roll_%s" % str(result.get("message", "")).hash(),
 		{},
 		_player_id_for_toast()
 	)

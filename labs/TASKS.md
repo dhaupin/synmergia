@@ -7794,3 +7794,32 @@ pipeline exit 0 zero script errors, lint 36/0, naming 25/0, receipts
 (gamble/premium/economy/true-void/combat/progress/kill/login) exit 0.
 NEXT: real processor wiring behind handle_webhook, sigil-sink catalog
 expansion, census/gaps rounds continue.
+
+## 2026-11-02 -- ECONOMY AUDIT ROUND (bugs, gaps, edges, vulns)
+Sweep across the gamble surfaces + payment seam + panel. FIXED on the
+same lands: (1) quantity book-lie -- the roll granted min_quantity and
+reported a separately rolled count up to max (a min1/max3 entry said
+x3 and paid x1); the band is rolled ONCE in _draw_shape and every
+count in the grant is that number; corrupt bands clamp instead of
+randi_range-aborting past the debit. (2) paid-order burial -- the
+service poll closed the order before granting; a failed grant erased
+a genuinely-paid checkout; grant-before-close now and the poll
+re-attempts while the provider keeps reporting complete. (3) cancel
+buried money -- provider.cancel flipped COMPLETED orders to
+cancelled on both webhook and manual processors; both refuse it now
+and the service honors the refusal, keeping the order open for the
+poll leg. (4) provider half of the reboot law -- webhook _orders rode
+RAM; records persist through the DictStore KV door
+("premium:webhookorder:"), hydrate in _init, stay after
+completion/cancel, ids loop-until-unique. TIGHTENED: empty derived
+HMAC refuses instead of skipping; sigils priced into the order at
+begin; toast dedupe keys carry the message hash; dead `ok` var gone.
+Receipt grew to 9 legs (cancel-refuse recovery, grant-failure retry,
+webhook idempotence past reboot) -- exit 0. Premium receipt 6 legs
+exit 0, lint 36/0, naming exit 0. Pipeline at this restored sandbox
+exits 1 on PRE-EXISTING probe legs (stream continents a-d, crafting,
+thermals -- Oct-18-era world/streamer probes; reproduced at the pushed
+HEAD with the round stashed; suspected partial .godot import cache
+after restore) -- NEVER the economy surfaces; all their receipts ran
+green inside the pipeline. NEXT: real processor transport ->
+handle_webhook once per delivery, sigil-sink catalog expansion.

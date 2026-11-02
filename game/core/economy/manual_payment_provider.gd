@@ -67,6 +67,12 @@ func poll_purchase(purchase_id: String, _player_id: String = "") -> Dictionary:
 
 func cancel_purchase(purchase_id: String, _player_id: String = "") -> Dictionary:
 	if _pending.has(purchase_id):
+		# A completed order is PAID: flipping it to cancelled here would
+		# bury the money before the poll leg pays it out. Refuse and let
+		# the buyer poll instead. (The webhook adapter carries the same
+		# guard -- the processor contract, not a provider flavor.)
+		if str(_pending[purchase_id]["status"]) == "complete":
+			return {"status": "refused", "purchase_id": purchase_id, "reason": "That order already paid out; poll it, do not cancel it."}
 		_pending[purchase_id]["status"] = "cancelled"
 		return {"status": "cancelled", "purchase_id": purchase_id}
 	return {"status": "refused", "reason": "Unknown purchase.", "purchase_id": purchase_id}

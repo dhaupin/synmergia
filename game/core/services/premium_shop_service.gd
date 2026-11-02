@@ -136,10 +136,19 @@ func begin_purchase(player_id: String, sku_id: String) -> Dictionary:
 		purchase_failed.emit(player_id, sku_id, reason)
 		return {"success": false, "value": reason}
 	if status == "pending":
+		# The sigil figure is priced INTO the order at open time so a
+		# catalog edit after checkout cannot silently change what the
+		# buyer was quoted and paid for.
+		var sku_sigils := 0
+		for sku in provider.get_catalog(player_id):
+			if str(sku.get("sku_id", "")) == sku_id:
+				sku_sigils = int(sku.get("sigils", 0))
+				break
 		_open_orders[player_id] = {
 			"purchase_id": str(result.get("purchase_id", "")),
 			"sku_id": sku_id,
 			"provider_id": provider.get_id(),
+			"sigils": sku_sigils,
 		}
 		_persist_open_order(player_id)
 		purchase_state_changed.emit(player_id, str(result.get("purchase_id", "")), "pending")
@@ -164,12 +173,21 @@ func poll_purchase(player_id: String) -> Dictionary:
 	var status := str(provider_result.get("status", "refused"))
 	match status:
 		"complete":
+			# GRANT BEFORE CLOSE. The old order buried a paid checkout on
+			# any grant failure: the close-then-grant sequencing erased a
+			# genuinely-paid order and returned "failed" with no recourse.
+			# Now the order stays on the books until the purse actually
+			# takes the sigils, and the next poll re-attempts (the provider
+			# keeps reporting complete for a paid order). The residual
+			# crash window is between add_currency and _close_order; on
+			# that reboot the retry errs CREDIT-SIDE (the player may see a
+			# re-credited paid order rather than a buried one).
+			var granted_sigils := _grant_sigils(player_id, str(order.get("sku_id", "")), int(order.get("sigils", 0)))
+			if granted_sigils <= 0:
+				return {"status": "failed", "message": "Grant refused this pass; the paid order stays open on the books."}
 			_close_order(player_id)
-			var sigils := _grant_sigils(player_id, str(order.get("sku_id", "")))
-			if sigils <= 0:
-				return {"status": "failed", "message": "Grant refused; the purse kept the books."}
-			purchase_completed.emit(player_id, str(order.get("sku_id", "")), sigils)
-			return {"status": "complete", "sigils": sigils}
+			purchase_completed.emit(player_id, str(order.get("sku_id", "")), granted_sigils)
+			return {"status": "complete", "sigils": granted_sigils}
 		"cancelled":
 			_close_order(player_id)
 			purchase_failed.emit(player_id, str(order.get("sku_id", "")), "Cancelled at checkout.")
@@ -182,14 +200,19 @@ func poll_purchase(player_id: String) -> Dictionary:
 			purchase_failed.emit(player_id, str(order.get("sku_id", "")), strange_status)
 			return {"status": "cancelled", "message": strange_status}
 
-## Cancel checkout through the provider (buyer's own seam).
+## Cancel checkout through the provider (buyer's own seam). The
+## provider's refusal is a LAW here, not a detail: a completed (paid)
+## order refuses cancellation -- overriding it would flip the state to
+## cancelled and bury the money before the poll leg could pay it out.
 func cancel_purchase(player_id: String) -> Dictionary:
 	var order: Dictionary = _open_orders.get(player_id, {})
 	if order.is_empty():
 		return {"success": false, "value": "No open order to cancel."}
 	var provider = _provider()
 	if provider != null:
-		provider.cancel_purchase(str(order.get("purchase_id", "")), player_id)
+		var cancelled: Dictionary = provider.cancel_purchase(str(order.get("purchase_id", "")), player_id)
+		if str(cancelled.get("status", "")) == "refused":
+			return {"success": false, "value": "%s Poll instead -- the grant is waiting." % str(cancelled.get("reason", "The processor refused the cancel."))}
 	_close_order(player_id)
 	purchase_failed.emit(player_id, str(order.get("sku_id", "")), "Cancelled at checkout.")
 	return {"success": true, "value": "Order cancelled."}
@@ -217,10 +240,13 @@ func _close_order(player_id: String) -> void:
 	_persist_open_order(player_id)
 
 ## The ONE grant leg. Validates the currency (kind PREMIUM in
-## DataService truth), the SKU's sigil figure, then credits through the
-## unified ledger. Returns the granted amount (0 when refused).
-func _grant_sigils(player_id: String, sku_id: String) -> int:
-	var sigils := _sigils_for_sku(player_id, sku_id)
+## DataService truth), the sigil figure (the order's priced figure,
+## catalog fallback), then credits through the unified ledger. Returns
+## the granted amount (0 when refused).
+func _grant_sigils(player_id: String, sku_id: String, priced_sigils: int = 0) -> int:
+	var sigils: int = priced_sigils
+	if sigils <= 0:
+		sigils = _sigils_for_sku(player_id, sku_id)
 	if sigils <= 0:
 		var gl = _glog()
 		if gl:

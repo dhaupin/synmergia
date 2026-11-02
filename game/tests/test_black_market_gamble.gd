@@ -16,6 +16,14 @@ extends SceneTree
 ##      duplicate delivery is refused; a closed order polls none.
 ##   6. REBOOT LAW: a fresh service instance hydrates an open order
 ##      from the KV door and closing it erases it.
+##   7. THE PAID ORDER SURVIVES ITSELF: a buyer cancel on a PAID order
+##      is refused by the processor (the service honors the refusal;
+##      the order stays open) and the poll leg pays it out; a grant
+##      failure (wallet unmounted past the webhook truth) leaves the
+##      paid order OPEN for retry instead of burying it.
+##   8. WEBHOOK REBOOT IDEMPOTENCE: a fresh provider instance hydrates
+##      its order records from the KV door and still refuses a
+##      duplicate delivery for a completed order.
 ## Run:
 ##   godot --headless --path . --script res://tests/test_black_market_gamble.gd
 
@@ -190,8 +198,72 @@ func _run() -> void:
 	if str(shop.poll_purchase("gambler_probe").get("status", "")) not in ["none", "cancelled"]:
 		_fail("a closed order still polls a live leg")
 		return
+
+	# 7. THE PAID ORDER SURVIVES ITSELF. A cancel against a PAID order
+	# is refused by the processor; the service honors the refusal and
+	# keeps the order open; then the poll leg pays it out.
+	var opened3: Dictionary = shop.begin_purchase("gambler_probe", "sigil_100")
+	if not bool(opened3.get("success", false)):
+		_fail("the paid-survives checkout was refused: " + str(opened3.get("value")))
+		return
+	var purchase3 := str(shop.get_open_order("gambler_probe").get("purchase_id", ""))
+	if str(webhook.fulfill_purchase(purchase3).get("status", "")) != "complete":
+		_fail("the operator seam did not pay the paid-survives order")
+		return
+	var balance4: int = int(comp.call("get_currency_amount", "currency_concord_sigil"))
+	var wrongful_cancel: Dictionary = shop.cancel_purchase("gambler_probe")
+	if bool(wrongful_cancel.get("success", false)):
+		_fail("cancel buried a PAID order -- the money died")
+		return
+	if shop.get_open_order("gambler_probe").is_empty():
+		_fail("the refused cancel closed the paid order anyway")
+		return
+	var recovered: Dictionary = shop.poll_purchase("gambler_probe")
+	if str(recovered.get("status", "")) != "complete" or int(recovered.get("sigils", 0)) != 100:
+		_fail("the paid order did not pay out through the poll leg: " + str(recovered))
+		return
+	if int(comp.call("get_currency_amount", "currency_concord_sigil")) != balance4 + 100:
+		_fail("the paid-survives payout is not exactly 100")
+		return
+	print("[OK] a canceled-against-grain paid order was refused and paid through poll (exactly 100)")
+
+	# 7b. GRANT FAILURE KEEPS THE PAID ORDER OPEN. The wallet leaves
+	# (unlogged-out edge), the webhook truth lands, the grant refuses --
+	# the order STAYS on the books; the wallet returns and the same
+	# order pays out. The books never bury a paid checkout.
+	var opened4: Dictionary = shop.begin_purchase("gambler_probe", "sigil_100")
+	if not bool(opened4.get("success", false)):
+		_fail("the grant-failure checkout was refused: " + str(opened4.get("value")))
+		return
+	webhook.fulfill_purchase(str(shop.get_open_order("gambler_probe").get("purchase_id", "")))
+	inv_svc.call("unregister_inventory", "gambler_probe")
+	var stranded: Dictionary = shop.poll_purchase("gambler_probe")
+	if str(stranded.get("status", "")) != "failed":
+		_fail("a grant failure did not report honestly: " + str(stranded))
+		return
+	if shop.get_open_order("gambler_probe").is_empty():
+		_fail("the grant failure buried the paid order")
+		return
+	inv_svc.call("register_inventory", "gambler_probe", comp)
+	var retried: Dictionary = shop.poll_purchase("gambler_probe")
+	if str(retried.get("status", "")) != "complete" or int(retried.get("sigils", 0)) != 100:
+		_fail("the kept-open order did not pay out on the retry: " + str(retried))
+		return
+	if int(comp.call("get_currency_amount", "currency_concord_sigil")) != balance4 + 200:
+		_fail("the retry double-granted or shorted the purse")
+		return
+	print("[OK] a grant failure kept the paid order open and the retry paid exactly 100")
+
+	# 8. WEBHOOK REBOOT IDEMPOTENCE. A fresh provider hydrates the
+	# KV-persisted order records and still refuses a duplicate delivery
+	# for a completed order -- state lives past the process.
+	var rebooted_webhook2 = load(WebhookPath).new()
+	var dupe_after_reboot: Dictionary = _webhook_call(rebooted_webhook2, purchase2, "checkout.completed", TEST_SECRET, 4)
+	if str(dupe_after_reboot.get("status", "")) != "refused":
+		_fail("a rebooted processor re-bound a completed order: " + str(dupe_after_reboot))
+		return
 	OS.set_environment("PAYMENT_WEBHOOK_SECRET", "")
-	print("[OK] the webhook armor held: unsigned/tampered/stale/foreign die, the signed truth grants 280 exactly once, dupes refused")
+	print("[OK] the webhook armor held: unsigned/tampered/stale/foreign die, the signed truth grants 280 exactly once, dupes refused; the rebooted processor holds its book")
 
 	# 6. REBOOT LAW. A fresh service instance hydrates the KV orders and
 	# re-registers its adapters (plugins live at boot, not in the KV) --
