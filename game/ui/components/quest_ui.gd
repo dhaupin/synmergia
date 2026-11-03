@@ -228,7 +228,11 @@ func _get_completed_quests(player_id: String) -> Array:
 	var player_quests: Dictionary = _questservice().get_player_quests(player_id)
 	for quest_id in player_quests:
 		var state: int = player_quests[quest_id].get("state", QuestData.QuestState.LOCKED)
-		if state == QuestData.QuestState.COMPLETE:
+		# COMPLETE = objectives done, awaiting turn-in; REWARDED = turned in.
+		# Both belong in the Complete tab -- filtering only COMPLETE made
+		# turned-in quests vanish from the journal entirely (and the REWARDED
+		# branch of _get_quest_type_color unreachable).
+		if state == QuestData.QuestState.COMPLETE or state == QuestData.QuestState.REWARDED:
 			completed.append(quest_id)
 	return completed
 

@@ -222,6 +222,27 @@ func _run() -> void:
 		_ok("objective line reads 'Talk to <npc>' in the journal")
 	else:
 		_fail("objective line did not render readable 'Talk to ...' text")
+
+	# Complete tab must include TURNED-IN (REWARDED) quests, not just
+	# objectives-done (COMPLETE). Filtering only COMPLETE made every
+	# turned-in quest vanish from the journal entirely.
+	qs._player_quests[pid]["quest_wolves_hunt"] = {"state": qs.QuestData.QuestState.REWARDED, "objectives": []}
+	qs._player_quests[pid]["quest_intro_core_npcs"] = {"state": qs.QuestData.QuestState.COMPLETE, "objectives": []}
+	# Clear the list immediately (refresh_quest_list's queue_free is deferred,
+	# so stale AVAILABLE buttons would still be children during iteration and
+	# mask a dropped REWARDED quest).
+	for child in qui._quest_list.get_children():
+		child.free()
+	qui._current_tab = qui_script.Tab.COMPLETE
+	qui.refresh_quest_list()
+	var completed_names := {}
+	for child in qui._quest_list.get_children():
+		if child is Button:
+			completed_names[str(child.text).strip_edges()] = true
+	if completed_names.has("Wolf Hunt") and completed_names.has("Meet the People Doing the Work"):
+		_ok("Complete tab lists both awaiting-turn-in and turned-in quests")
+	else:
+		_fail("Complete tab dropped a turned-in quest (saw %s)" % str(completed_names.keys()))
 	qui.queue_free()
 
 	_finish()
