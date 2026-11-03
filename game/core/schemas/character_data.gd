@@ -324,13 +324,16 @@ func get_allocated_points(stat_name: String) -> int:
 ## compute as if level were +5 -- the "their level multiple goes like
 ## 5 lvls higher" beat. Late-resolves SignService via the main loop so
 ## --script-mode compilation never touches a bare autoload identifier.
-func get_stat_total(stat_name: String) -> int:
+func get_stat_total(stat_name: String, level_override: int = -1) -> int:
 	if not class_data:
 		class_data = load_class(class_id)
 	if not class_data:
 		return 0
 
-	var effective_level := level
+	# Some consumers know the LIVE level (the restored progress on the
+	# player node can outpace this creation-time resource); -1 keeps the
+	# book's own level.
+	var effective_level := level_override if level_override >= 0 else level
 	var ml := Engine.get_main_loop()
 	if ml != null and (ml is SceneTree):
 		var svc = (ml as SceneTree).root.get_node_or_null("SignService")
@@ -350,13 +353,18 @@ func get_all_stats_with_allocated() -> Dictionary:
 
 ## Calculate derived stats (max health, mana, attack, defense)
 ## These are estimates based on class/species/level/allocated stats
-func get_derived_stats() -> Dictionary:
+func get_derived_stats(stats_override: Dictionary = {}) -> Dictionary:
 	if not class_data:
 		class_data = load_class(class_id)
 	if not class_data:
 		return {}
 
+	## An empty override keeps the book's own answer. Callers that hold
+	## the live picture (level-aware totals, gear-adjusted stats) pass
+	## their totals so the formulas never fork into a parallel copy.
 	var stats := get_all_stats_with_allocated()
+	if not stats_override.is_empty():
+		stats = stats_override
 	if stats.is_empty():
 		return {}
 

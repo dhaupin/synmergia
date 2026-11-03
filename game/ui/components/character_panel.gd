@@ -241,6 +241,14 @@ func _show_tab(tab_id: int) -> void:
 		if container:
 			container.visible = (tab == tab_id)
 
+	# Live re-render: the panel can stay open through equip/unequip and
+	# level-ups, so the stats/skills bodies re-read their books every
+	# time they come back on screen (issue #21's stale-truth law).
+	if tab_id == Tab.STATS:
+		refresh_stats()
+	elif tab_id == Tab.SKILLS:
+		refresh_skills()
+
 ## ============================================================================
 ## INVENTORY TAB
 ## ============================================================================
@@ -495,10 +503,13 @@ func _show_equip_item_picker(slot_id: int) -> void:
 	# Get slot name for display
 	var slot_name := _get_slot_name(slot_id)
 
-	# Find items that can be equipped in this slot
+	# Find items that can be equipped in this slot. The bag's store is
+	# index-addressed `_inventory` -- `_items` was never a member, so
+	# this list always came back empty and every picker said "No
+	# equippable items" forever (same dead key the probe caught).
 	var equippable: Array[Item] = []
-	for slot in inv._items:
-		var item: Item = inv._items[slot]
+	for slot in range(inv._inventory.size()):
+		var item: Item = inv._inventory[slot]
 		if item and item.equip_slot == slot_id and item.can_equip():
 			equippable.append(item)
 
@@ -565,10 +576,12 @@ func _get_slot_name(slot_id: int) -> String:
 	return "Unknown"
 
 func _equip_item_from_picker(inv: InventoryComponent, item: Item, slot_id: int) -> void:
-	# Find the inventory slot containing this item
+	# Find the inventory slot containing this item (index-addressed
+	# `_inventory` -- `_items` was never a member, so this lookup always
+	# fell through to "Could not find item in inventory").
 	var inv_slot: int = -1
-	for slot in inv._items:
-		if inv._items[slot] == item:
+	for slot in range(inv._inventory.size()):
+		if inv._inventory[slot] == item:
 			inv_slot = slot
 			break
 
@@ -580,6 +593,7 @@ func _equip_item_from_picker(inv: InventoryComponent, item: Item, slot_id: int) 
 	if inv.equip_item(inv_slot):
 		show_notification("Equipped %s" % item.name, false)
 		_refresh_equipment_display()
+		refresh_stats()
 	else:
 		show_notification("Failed to equip item", false)
 
@@ -599,6 +613,7 @@ func _unequip_item(slot_id: int) -> void:
 	if inv.unequip_item(slot_id):
 		show_notification("Item unequipped and added to inventory")
 		_refresh_equipment_display()
+		refresh_stats()
 	else:
 		show_notification("Failed to unequip - inventory may be full", false)
 
@@ -716,9 +731,17 @@ func _create_stat_card(stat: Dictionary) -> PanelContainer:
 	card.add_theme_stylebox_override("panel", style)
 
 	var hbox := HBoxContainer.new()
+	# The refresh pass reads stat_card.get_node("HBox/VBox/Value") --
+	# both containers must carry their names or the lookup misses and
+	# the cards freeze at their birth text forever.
+	hbox.name = "HBox"
 	card.add_child(hbox)
 
 	var info := VBoxContainer.new()
+	# The refresh pass reads stat_card.get_node("VBox/Value") -- the
+	# inner VBox was never NAMED "VBox", so every stat value lookup
+	# missed and the six cards froze at their birth text forever.
+	info.name = "VBox"
 	hbox.add_child(info)
 
 	var name_lbl := Label.new()
@@ -947,6 +970,30 @@ func _refresh_stats_display() -> void:
 	if not vbox:
 		return
 
+	# THE LIVE-TRUTH LAW (issue #21): these cards render the character
+	# AS THEY ARE, not as they were born. The book totals ride the LIVE
+	# level (a restored progress level can outpace the creation-time
+	# CharacterData resource) and the gear delta the live bag currently
+	# applies (the SAME book InventoryComponent pushes onto the player
+	# with _apply_equipment_stats -- reading it directly, so the panel
+	# invents no parallel write and never diverges from the player).
+	var live_level: int = _char_data.level
+	var player := _get_local_player()
+	if player != null and "level" in player:
+		live_level = int(player.level)
+	var gear: Dictionary = {}
+	var inv = _resolve_inventory()
+	if inv != null and inv.has_method("get_equipment_stats"):
+		gear = inv.get_equipment_stats()
+
+	# Level-aware totals per stat (The blessing's +5 effective level
+	# rides inside get_stat_total; no parallel formula here).
+	var stat_keys := ["strength", "intelligence", "wisdom", "agility", "vitality", "endurance"]
+	var totals: Dictionary = {}
+	for _sk in stat_keys:
+		var _k: String = _sk
+		totals[_k] = _char_data.get_stat_total(_k, live_level)
+
 	# Update character name/level header
 	var char_header: HBoxContainer = null
 	for child in vbox.get_children():
@@ -966,14 +1013,9 @@ func _refresh_stats_display() -> void:
 			cls_data = CharacterData.load_class(_char_data.class_id)
 		if cls_data and cls_data.display_name != "":
 			char_class_name = cls_data.display_name
-		name_lbl.text = "%s %s - Level %d" % [species_name, char_class_name, _char_data.level]
-
-	# Get stats from character
-	var stats: Dictionary = _char_data.get_stats()
-	var allocated: Dictionary = _char_data.allocated_stats
+		name_lbl.text = "%s %s - Level %d" % [species_name, char_class_name, live_level]
 
 	# Update stat cards (str, int, wis, agi, vit, end)
-	var stat_keys := ["strength", "intelligence", "wisdom", "agility", "vitality", "endurance"]
 	var display_keys := ["str", "int", "wis", "agi", "vit", "end"]
 
 	for i in range(stat_keys.size()):
@@ -982,20 +1024,31 @@ func _refresh_stats_display() -> void:
 		var disp_key: String = display_keys[i]
 		var stat_card: PanelContainer = vbox.get_node_or_null("GridContainer/Stat_" + disp_key)
 		if stat_card:
-			var val_lbl: Label = stat_card.get_node_or_null("VBox/Value")
+			var val_lbl: Label = stat_card.get_node_or_null("HBox/VBox/Value")
 			if val_lbl:
-				var base: int = stats.get(stat_key, 10)
-				var bonus: int = allocated.get(stat_key, 0)
-				var total: int = base + bonus
+				var total: int = int(totals.get(stat_key, 10))
+				var allocated: int = _char_data.get_allocated_points(stat_key)
+				var gear_bonus: int = int(gear.get(stat_key, 0))
+				total += gear_bonus
 				var display := str(total)
-				if bonus > 0:
-					display = "%d (+%d)" % [total, bonus]
-				elif base != total:
-					display = "%d (%d)" % [total, base]
+				if gear_bonus > 0 and allocated > 0:
+					display = "%d (+%d pts, +%d gear)" % [total, allocated, gear_bonus]
+				elif gear_bonus > 0:
+					display = "%d (+%d gear)" % [total, gear_bonus]
+				elif allocated > 0:
+					display = "%d (+%d)" % [total, allocated]
 				val_lbl.text = display
 
 	# Update derived stats using CharacterData's centralized calculation
-	var derived_keys := _char_data.get_derived_stats()
+	# with the SAME live totals (gear-adjusted) so the formulas stay the
+	# one source of truth, no forked math. The merged book carries ALL
+	# keys -- get_derived_stats pads missing keys at 10, so dropping an
+	# untouched stat would silently rewrite it to the floor.
+	var merged: Dictionary = {}
+	for stat_key in stat_keys:
+		var gear_bonus2: int = int(gear.get(stat_key, 0))
+		merged[stat_key] = int(totals.get(stat_key, 10)) + gear_bonus2
+	var derived_keys := _char_data.get_derived_stats(merged)
 
 	for child in vbox.get_children():
 		if child is HBoxContainer and child.name.begins_with("Derived_"):

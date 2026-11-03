@@ -8043,3 +8043,38 @@ plaza, all riding existing plumbing with zero service changes.
 - NEXT: issue #21 (character panel reads stale creation-time
   CharacterData instead of the live gear-adjusted stats), then the
   OpenHands dialogue/quest lane stays clear.
+
+## 2026-11-03 -- CHARACTER PANEL LIVE STATS (issue #21)
+
+The character panel stopped reading creation-time CharacterData and
+now renders the character as they actually are.
+
+- LIVE-TRUTH LAW: `_refresh_stats_display` rides the LIVE level
+  (`_get_local_player()`'s `level`, else the book's), and totals come
+  from `CharacterData.get_stat_total(stat, level_override=-1)` while
+  the gear delta is read straight off the live bag via
+  `get_equipment_stats()` (the same book `_apply_equipment_stats`
+  pushes onto the player -- single source of truth, no parallel
+  write).
+- DERIVED REROUTE: new `CharacterData.get_derived_stats(stats_override={})`
+  receives the merged live book (ALL six keys; missing keys pad at
+  10), so the derived rows answer with the life-instant numbers and
+  the formulas stay CharacterData's alone.
+- THREE DEAD-AT-BIRTH LEGS KILLED: the equip picker + apply handler
+  iterated `inv._items` (never a member; the store is index-addressed
+  `_inventory`) so "No equippable items" was all the picker ever
+  said; the stat value lookup `VBox/Value` named a grandchild
+  (card > HBox > VBox > Value, HBox auto-named) so the six value
+  labels froze at birth text forever (HBox named, lookup
+  `HBox/VBox/Value`); and the tab never re-rendered on show or
+  equip/unequip (refresh hooks added).
+- RECEIPT: probe_character_panel.gd extended in place (runner
+  DEFAULT_SET, modified not added) with leg group E: level law
+  (live 7 outruns stale cd.level=1), real gear through a real bag
+  (sword +5 str, ring +2 vit, equipped by ITEM ID -- add_item stores
+  a duplicate, identity comparison misses), header "Level 7" over a
+  cd.level still saying 1, strength card exactly "%d (+5 gear)",
+  derived max_health by the same method. Probe exit 0, 24 checks /
+  0 misses, 0 SCRIPT ERROR.
+- GATES: probe 24/0, lint 36/0, full pipeline exit 0 (102 passed /
+  0 failed / 0 SCRIPT ERROR).

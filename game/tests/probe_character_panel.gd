@@ -12,6 +12,13 @@
 ## C. GlobeWorldPlayer binds itself to PlayerManager and exposes its bag
 ##    as `inventory_component` (the panel's duck-typed resolve path).
 ##    Without both, the globe body's bag was unreachable from the panel.
+## E. LIVE-TRUTH STATS (issue #21): the stats tab must read the
+##    character AS THEY ARE -- level-aware totals at the LIVE level
+##    (restored progress can outrun the creation-time CharacterData)
+##    plus the gear delta the live bag applies -- the same book
+##    InventoryComponent pushes onto the player. Real gear goes
+##    through a real bag; the derived stats route the same merged
+##    book (one formula source, no forked math).
 ##
 ## NOTE: probe scripts compile BEFORE autoloads register -- bare
 ## autoload identifiers are a compile error here. Resolve services via
@@ -23,9 +30,12 @@ extends SceneTree
 var _checks := 0
 
 
-func _check(label: String, cond: bool) -> bool:
+func _check(label: String, cond: bool, detail: String = "") -> bool:
 	_checks += 1
-	print("  %s %s" % ["PASS" if cond else "FAIL", label])
+	var line := "  %s %s" % ["PASS" if cond else "FAIL", label]
+	if not cond and not detail.is_empty():
+		line += " <" + detail + ">"
+	print(line)
 	return cond
 
 
@@ -138,6 +148,97 @@ func _run() -> void:
 	await process_frame
 	ok = _check("D1 globe bag reachable from the panel",
 		panel._resolve_inventory() == gp.inventory_component) and ok
+
+	# --- E. LIVE-TRUTH STATS (issue #21) --------------------------------
+	# The stats cards must read the character AS THEY ARE: level-aware
+	# totals at the LIVE level (the creation-time CharacterData stays
+	# behind on purpose) plus the gear delta the live bag applies.
+	var CharacterDataScript = load("res://core/schemas/character_data.gd")
+	var cd = CharacterDataScript.new()
+	cd.character_id = "probe_cp_live"
+	cd.level = 1  # the stale creation-time book, deliberately
+	var l1_total: int = cd.get_stat_total("strength", 1)
+	ok = _check("E1 load_class totals resolve", l1_total > 0) and ok
+	var l7: int = cd.get_stat_total("strength", 7)
+	ok = _check("E2 totals ride the level law", l7 > l1_total) and ok
+
+	# Real gear through the REAL bag: the sword boots +5 strength and
+	# the ring +2 vitality into get_equipment_stats -- the same book
+	# InventoryComponent pushes onto the player.
+	var sword = load("res://data/weapons/wep_iron_sword.tres")
+	var ring = load("res://data/accessories/acc_ring_first_light.tres")
+	ok = _check("E3 real gear loads as items", sword != null and ring != null) and ok
+	var added_sw: bool = bag.add_item(sword)
+	var added_rg: bool = bag.add_item(ring)
+	ok = _check("E4 gear enters the bag", added_sw and added_rg) and ok
+	# The Apple from leg B owns slot 0 -- equip each piece from its own
+	# actual bag slot, never an assumed index.
+	var sw_slot := -1
+	var rg_slot := -1
+	for slot in range(bag._inventory.size()):
+		var held = bag._inventory[slot]
+		if held != null and held.id == sword.id:
+			sw_slot = slot
+		elif held != null and held.id == ring.id:
+			rg_slot = slot
+	var eq_sw: bool = inv_svc.get_inventory("probe_cp_1").equip_item(sw_slot)
+	var eq_rg: bool = inv_svc.get_inventory("probe_cp_1").equip_item(rg_slot)
+	ok = _check("E5 bag equips both pieces", eq_sw and eq_rg) and ok
+	var gear_now: Dictionary = inv_svc.get_inventory("probe_cp_1").get_equipment_stats()
+	ok = _check("E6 equipment stats read +5 str / +2 vit",
+		int(gear_now.get("strength", 0)) == 5
+		and int(gear_now.get("vitality", 0)) == 2) and ok
+
+	# A live player whose progress level outran the book: entity_id
+	# stays probe_cp_1 so the bag wiring above still resolves.
+	var live_src := GDScript.new()
+	live_src.source_code = "extends Node\nvar entity_id: String = \"probe_cp_1\"\nvar level: int = 7\n"
+	live_src.reload()
+	var live_player = live_src.new()
+	live_player.name = "ProbeLivePlayer"
+	root.add_child(live_player)
+	pm.set_local_player(live_player)
+
+	panel.set_character_data(cd)
+	panel._show_tab(panel.Tab.STATS)
+	await process_frame
+
+	var str_card = panel.find_child("Stat_str", true, false)
+	var str_val = str_card.get_node_or_null("HBox/VBox/Value") if str_card != null else null
+	var str_expect: int = cd.get_stat_total("strength", 7) + 5
+	ok = _check("E7 strength card shows live level + gear",
+		str_val != null and str_val.text == "%d (+5 gear)" % str_expect,
+		"card=%s value=%s text=%s" % [str_card != null, str_val != null,
+		str_val.text if str_val != null else ""]) and ok
+	var vit_card = panel.find_child("Stat_vit", true, false)
+	var vit_val = vit_card.get_node_or_null("HBox/VBox/Value") if vit_card != null else null
+	var vit_expect: int = cd.get_stat_total("vitality", 7) + 2
+	ok = _check("E8 vitality card shows gear",
+		vit_val != null and vit_val.text == "%d (+2 gear)" % vit_expect,
+		"card=%s value=%s text=%s" % [vit_card != null, vit_val != null,
+		vit_val.text if vit_val != null else ""]) and ok
+
+	var name_lbl2 = panel.find_child("CharName", true, false)
+	ok = _check("E9 header rides the LIVE level (7, not the book's 1)",
+		name_lbl2 != null and str(name_lbl2.text).ends_with("- Level 7"),
+		"text=%s" % (str(name_lbl2.text) if name_lbl2 != null else "")) and ok
+
+	# Derived stats route the SAME merged book in (max_health is the
+	# expected answer, not a forked formula).
+	var merged_expect: Dictionary = {
+		"strength": cd.get_stat_total("strength", 7) + 5,
+		"intelligence": cd.get_stat_total("intelligence", 7),
+		"wisdom": cd.get_stat_total("wisdom", 7),
+		"agility": cd.get_stat_total("agility", 7),
+		"vitality": cd.get_stat_total("vitality", 7) + 2,
+		"endurance": cd.get_stat_total("endurance", 7)
+	}
+	var mh_expect: int = int(cd.get_derived_stats(merged_expect).get("max_health", 0))
+	var mh_row = panel.find_child("Derived_max_health", true, false)
+	var mh_val = mh_row.get_node_or_null("Value") if mh_row != null else null
+	ok = _check("E10 derived max health uses the merged live book",
+		mh_val != null and mh_val.text == str(mh_expect) and mh_expect > 100,
+		"text=%s expect=%d" % [mh_val.text if mh_val != null else "", mh_expect]) and ok
 
 	print("probe_character_panel: %d checks, %s" % [_checks, "PASS" if ok else "FAIL"])
 	quit(0 if ok else 1)
