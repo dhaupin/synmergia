@@ -541,9 +541,32 @@ func _stage_death_respawn(player) -> void:
 	rs.respawn_completed.connect(func(_p, pos): completed[0] = true; completed_pos[0] = pos)
 
 	# Real damage path: take_damage -> die -> player_died -> RespawnService cycle.
+	# Seed a bag item so the corpse has something to carry (equipped gear
+	# is not part of the bag; the corpse carries bag items).
+	var bag_inv = player.get("inventory_component")
+	if bag_inv != null and bag_inv.has_method("add_item"):
+		var seed_item = ds_get_item("wep_iron_sword")
+		if seed_item != null:
+			bag_inv.add_item(seed_item, 1)
+
 	hc.take_damage(9999, null)
 	await get_tree().process_frame
 	_ok("the player is dead after lethal damage", hc.is_dead())
+	# The death corpse must carry the player's bag. get_all_items() returns
+	# Item instances but _loot_items is Array[Dictionary]; the old
+	# append_array() rejected the Objects (typed-array error) so a dead
+	# player's gear never became lootable.
+	var corpse = hc.get_corpse() if hc.has_method("get_corpse") else null
+	if corpse != null:
+		var corpse_items: Array = corpse.get_loot_items()
+		var carried := false
+		for it in corpse_items:
+			if it is Dictionary and str(it.get("item_id", "")) == "wep_iron_sword":
+				carried = true
+		_ok("the death corpse carries the player's equipped bag item", carried,
+			"(%d loot entries)" % corpse_items.size())
+	else:
+		_ok("the death corpse carries the player's equipped bag item", false, "(no corpse)")
 	var modes: Array = rs.get_available_respawn_modes(player)
 	_ok("the zone offers at least one respawn mode", modes.size() > 0, "(%s)" % str(modes))
 	await _shot("playthrough_8_death")
