@@ -216,6 +216,9 @@ func run() -> void:
 	# --- Stage 13: dialogue -> quest accept -> turn-in -> rewards -----
 	await _stage_dialogue_quest(inst, player, inv, pid)
 
+	# --- Stage 14: accept an available quest from the journal ---------
+	await _stage_journal_accept(player, pid)
+
 	await _finish()
 
 ## Spawn a real wolf with the shipped wolf data, in front of the player.
@@ -666,6 +669,61 @@ func _stage_dialogue_quest(inst: Node, player, inv, pid: String) -> void:
 		int(pman.gold) == pm_gold_before + 25 if pman else true,
 		"(%d -> %d)" % [pm_gold_before, int(pman.gold) if pman else 0])
 	await _shot("playthrough_11_quest_reward")
+
+
+## Stage 14: accept a quest from the JOURNAL (not an NPC). Opens the real
+## QuestUI through MenuManager, lists the AVAILABLE tab, selects a quest the
+## player has not accepted, and presses its Accept button. Proves the journal
+## accept path works on live node state -- before the round-2 fix the AVAILABLE
+## detail read get_quest_progress ({} for an unaccepted quest) and showed no
+## Accept button, so the journal could not accept a quest at all.
+func _stage_journal_accept(player, pid: String) -> void:
+	var mm := get_tree().root.get_node_or_null("MenuManager")
+	if mm == null and get_tree().current_scene != null:
+		var hud = get_tree().current_scene.get_node_or_null("HudLayer")
+		mm = hud.get_node_or_null("MenuManager") if hud else null
+	_ok("MenuManager resolved for the journal stage", mm != null)
+	if mm == null:
+		return
+	mm.open_menu("quests")
+	await _settle(0.5)
+	var panel: Control = mm.get_panel_node("quests")
+	_ok("the quest journal opened", panel != null and panel.visible)
+	if panel == null:
+		return
+	panel._current_tab = panel.Tab.AVAILABLE
+	panel.refresh_quest_list()
+	await get_tree().process_frame
+	var qsvc := get_tree().root.get_node_or_null("QuestService")
+	var avail: Array = qsvc.get_available_quests(pid)
+	var pick_id := str(avail[0].get("id", "")) if not avail.is_empty() and avail[0] is Dictionary else ""
+	_ok("the journal lists an available quest to accept", not pick_id.is_empty(),
+			"(id=%s, %d listed)" % [pick_id, avail.size()])
+	if pick_id.is_empty():
+		return
+	panel._show_quest_detail(pick_id)
+	await get_tree().process_frame
+	var accept: Button = null
+	var stack: Array = [panel._quest_detail]
+	while not stack.is_empty():
+		var n = stack.pop_back()
+		for c in n.get_children():
+			stack.append(c)
+			if c is Button and str(c.text) == "Accept Quest":
+				accept = c
+	_ok("the available quest detail shows an Accept button", accept != null)
+	if accept == null:
+		return
+	accept.pressed.emit()
+	await get_tree().process_frame
+	var prog: Dictionary = qsvc.get_quest_progress(pid, pick_id)
+	# QuestState.IN_PROGRESS == 2 (the runner uses literals, no QuestData import).
+	_ok("pressing Accept accepted the quest from the journal",
+			not prog.is_empty() and int(prog.get("state", -1)) == 2,
+			"(state=%s)" % str(prog.get("state")))
+	await _shot("playthrough_12_journal_accept")
+	if panel.has_method("close"):
+		panel.close()
 
 
 func _finish() -> void:
