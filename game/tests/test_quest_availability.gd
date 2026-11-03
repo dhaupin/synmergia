@@ -152,6 +152,27 @@ func _run() -> void:
 		_ok("QuestUI AVAILABLE tab rendered %d quest buttons" % buttons)
 	else:
 		_fail("QuestUI AVAILABLE tab rendered no buttons (dict->id normalization broken)")
+
+	# Selecting an AVAILABLE quest must show its detail with an Accept button.
+	# The quest is not in _player_quests yet, so get_quest_progress() returns
+	# {} and the detail used to fall through to the empty state -- the player
+	# could see the quest listed but never accept it from the journal.
+	qui._show_quest_detail(str(low.id))
+	var accept_btn := false
+	var detail_has_title := false
+	var stack: Array = [qui._quest_detail]
+	while not stack.is_empty():
+		var node = stack.pop_back()
+		for child in node.get_children():
+			stack.append(child)
+			if child is Button and str(child.text) == "Accept Quest":
+				accept_btn = true
+			if child is Label and str(child.text) == str(low.display_name):
+				detail_has_title = true
+	if accept_btn and detail_has_title:
+		_ok("AVAILABLE quest detail shows the title + Accept button")
+	else:
+		_fail("AVAILABLE quest detail missing (accept=%s title=%s)" % [str(accept_btn), str(detail_has_title)])
 	qui.queue_free()
 
 	_finish()

@@ -787,10 +787,26 @@ func get_quest_progress(player_id: String, quest_id: String) -> Dictionary:
 
 func get_quest_objectives_text(player_id: String, quest_id: String) -> Array:
 	var progress := get_quest_progress(player_id, quest_id)
-	if progress.is_empty():
+	if not progress.is_empty():
+		return _format_objectives_text(progress.get("objectives", []))
+	# Not accepted yet (the journal AVAILABLE tab): format the catalog
+	# objectives so the player sees what the quest asks before accepting.
+	var quest := _load_quest_data(quest_id)
+	if quest == null:
 		return []
+	var raw := []
+	for o in quest.objectives:
+		if o is Dictionary:
+			raw.append({
+				"type": int(o.get("type", QuestData.ObjectiveType.KILL)),
+				"target": str(o.get("target", "")),
+				"current": 0,
+				"required": int(o.get("count", 1)),
+				"completed": false
+			})
+	return _format_objectives_text(raw)
 
-	var objectives: Array = progress.get("objectives", [])
+func _format_objectives_text(objectives: Array) -> Array:
 	var result := []
 
 	for obj in objectives:

@@ -20,6 +20,13 @@ func _questservice() -> Node:
 	var tree := Engine.get_main_loop() as SceneTree
 	return tree.root.get_node_or_null(NodePath("QuestService")) if tree and tree.root else null
 
+## Catalog lookup for a quest the player has not accepted yet (the AVAILABLE
+## tab). DataService is resolved at runtime so --script receipts stay safe.
+func _load_quest_data(quest_id: String):
+	var tree := Engine.get_main_loop() as SceneTree
+	var ds = tree.root.get_node_or_null(NodePath("DataService")) if tree and tree.root else null
+	return ds.get_quest(quest_id) if ds and ds.has_method("get_quest") else null
+
 ## QuestUI - Quest journal panel
 ## Shows active quests, objectives, and quest log
 
@@ -265,12 +272,17 @@ func _show_quest_detail(quest_id: String) -> void:
 	var pmq := _pm()
 	var local_id: String = str(pmq.local_player.entity_id) if pmq and pmq.local_player else ""
 	var progress: Dictionary = _questservice().get_quest_progress(local_id, quest_id)
-	if progress.is_empty():
-		_show_empty_detail()
-		return
-
+	# An AVAILABLE quest is not in _player_quests yet, so progress is {} and
+	# the detail used to fall through to the empty state -- the quest listed
+	# but no Accept button. Fall back to the catalog data + AVAILABLE state.
 	var data: QuestData = progress.get("data")
-	var state: int = progress.get("state", QuestData.QuestState.LOCKED)
+	var state: int = progress.get("state", QuestData.QuestState.AVAILABLE)
+	if progress.is_empty() or data == null:
+		data = _load_quest_data(quest_id)
+		if data == null:
+			_show_empty_detail()
+			return
+		state = QuestData.QuestState.AVAILABLE
 
 	# Quest title
 	var title := Label.new()
