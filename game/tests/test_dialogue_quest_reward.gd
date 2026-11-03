@@ -57,7 +57,7 @@ func _run() -> void:
 	var comp = load("res://core/components/inventory_component.gd").new()
 	comp.set_owner_id("dq_probe")
 	var player_script := GDScript.new()
-	player_script.source_code = "extends Node\nvar entity_id: String = 'dq_probe'\nvar gold: int = 0\nvar experience: int = 0\nvar level: int = 1\nvar inventory_component = null\nfunc add_gold(a: int) -> void:\n\tgold += a\nfunc add_experience(a: int) -> void:\n\texperience += a\n"
+	player_script.source_code = "extends Node3D\nvar entity_id: String = 'dq_probe'\nvar gold: int = 0\nvar experience: int = 0\nvar level: int = 1\nvar inventory_component = null\nfunc add_gold(a: int) -> void:\n\tgold += a\nfunc add_experience(a: int) -> void:\n\texperience += a\n"
 	player_script.reload()
 	var fake_player = player_script.new()
 	fake_player.name = "DqProbePlayer"
@@ -244,6 +244,41 @@ func _run() -> void:
 			_fail("faction reward not granted (want +250, got %d)" % (rep_after - rep_before))
 		else:
 			_ok("faction reward granted on turn-in (+250 reputation)")
+
+	# --- Leg 8: the player-level gate reads the LIVE node level. The old
+	# helper called PlayerManager.get_player_info(), which does not exist
+	# (only get_character_data), so it always returned 1 -- a min_level > 1
+	# quest would be wrongly refused to a high-level player.
+	fake_player.level = 7
+	if int(qs._get_player_level("dq_probe")) != 7:
+		_fail("_get_player_level did not read the live player node level (got %d)" % int(qs._get_player_level("dq_probe")))
+	else:
+		_ok("_get_player_level reads the live player node level")
+	fake_player.level = 1
+
+	# --- Leg 9: TELEPORT / EQUIP_ITEM / OPEN_TRADE dialog actions had enum
+	# cases but no handlers (they hit the default "Unknown action type").
+	var tel_ok: bool = dial.execute_action(
+		DialogActionType.TELEPORT, {"position": Vector3(12.0, 3.0, -8.0)}, "dq_probe")
+	if not tel_ok or fake_player.global_position != Vector3(12.0, 3.0, -8.0):
+		_fail("TELEPORT did not move the player (ok=%s pos=%s)" % [str(tel_ok), str(fake_player.global_position)])
+	else:
+		_ok("TELEPORT moves the local player to the given position")
+	dial.execute_action(DialogActionType.GIVE_ITEM, {"item_id": "wep_iron_sword", "quantity": 1}, "dq_probe")
+	var eq_ok: bool = dial.execute_action(DialogActionType.EQUIP_ITEM, {"item_id": "wep_iron_sword"}, "dq_probe")
+	var equipped_sword := false
+	for slot in comp.get_all_equipment().values():
+		if slot != null and str(slot.id) == "wep_iron_sword":
+			equipped_sword = true
+	if not eq_ok or not equipped_sword:
+		_fail("EQUIP_ITEM did not equip the named item (ok=%s)" % str(eq_ok))
+	else:
+		_ok("EQUIP_ITEM equips the named item through the purse")
+	var ot_ok: bool = dial.execute_action(DialogActionType.OPEN_TRADE, {}, "dq_probe")
+	if not ot_ok:
+		_fail("OPEN_TRADE returned false (no handler)")
+	else:
+		_ok("OPEN_TRADE routes to the trade panel")
 	inv_svc.unregister_inventory("dq_probe")
 	pm.set_local_player(null)
 	_finish()

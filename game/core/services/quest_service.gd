@@ -866,14 +866,19 @@ func _format_objectives_text(objectives: Array) -> Array:
 ## ============================================================================
 
 func _get_player_level(player_id: String) -> int:
-	# Try to get player level from available services
-	if InventoryService and InventoryService.has_method("get_player_level"):
-		var level: int = InventoryService.get_player_level(player_id)
-		if level > 0:
-			return level
-	# Fallback: check player stats via PlayerManager
-	if PlayerManager and PlayerManager.has_method("get_player_info"):
-		var info: Dictionary = PlayerManager.get_player_info(player_id)
+	# The live player node owns `level` (PlayerController / a player Entity).
+	# Read it first: PlayerManager.get_player_info() does not exist (only
+	# get_character_data), so the old gate fell through to level 1 for every
+	# player -- a quest with min_level > 1 would be wrongly refused to a
+	# high-level player (and wrongly offered to a low-level one).
+	var pm := _pmgr()
+	if pm != null and pm.has_method("get_local_player"):
+		var node = pm.get_local_player()
+		if node != null and "level" in node and str(_node_player_id(node)) == player_id:
+			return int(node.level)
+	# Fallback: the persistent local stats surface.
+	if pm != null and pm.has_method("get_character_data"):
+		var info: Dictionary = pm.get_character_data()
 		if info is Dictionary and info.has("level"):
 			return int(info.get("level", 1))
 	# Default to level 1

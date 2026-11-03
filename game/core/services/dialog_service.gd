@@ -392,6 +392,43 @@ func execute_action(action_type: int, action_data: Dictionary, player_id: String
 				if book != null and inv != null and inv.has_method("add_item"):
 					inv.add_item(book, 1)
 					return true
+		DialogActionType.TELEPORT:
+			# Two forms: {waypoint_id} moves to an owned waypoint's world
+			# position; {position: Vector3} moves to a literal point. The enum
+			# case had no handler, so an authored teleport hit the default
+			# "Unknown action type" branch and did nothing.
+			var wp_id: String = action_data.get("waypoint_id", "")
+			if wp_id != "" and _waypoint_svc() and _waypoint_svc().has_method("get_waypoint"):
+				var wp: Dictionary = _waypoint_svc().get_waypoint(player_id, wp_id)
+				if not wp.is_empty():
+					var wp_pos := Vector3(float(wp.get("position_x", 0.0)), float(wp.get("position_y", 0.0)), float(wp.get("position_z", 0.0)))
+					return _teleport_player(player_id, wp_pos)
+			var raw = action_data.get("position", null)
+			if raw is Vector3:
+				return _teleport_player(player_id, raw)
+			var _gl := _glog()
+			if _gl:
+				_gl.warn("DialogAction: TELEPORT needs a waypoint_id or position")
+			return false
+		DialogActionType.EQUIP_ITEM:
+			# Equips the first bag copy of the named item through the mounted
+			# purse (the enum case had no handler).
+			var item_id: String = action_data.get("item_id", "")
+			var inv = _get_mounted_inventory(player_id)
+			if inv != null and item_id and inv.has_method("find_item") and inv.has_method("equip_item"):
+				var slot: int = inv.find_item(item_id)
+				if slot >= 0:
+					return inv.equip_item(slot)
+			return false
+		DialogActionType.OPEN_TRADE:
+			# Opens the trade panel; its own flow selects the partner (the enum
+			# case had no handler). MenuManager is loaded lazily to avoid the
+			# cyclic preload (see OPEN_VAULT above).
+			var TradeMenu = load("res://ui/components/menu_manager.gd")
+			if TradeMenu:
+				TradeMenu.open_menu("trade")
+				return true
+			return false
 		_:
 			var _gl := _glog()
 			if _gl:
@@ -405,3 +442,27 @@ func get_local_player_id() -> String:
 		if player and "entity_id" in player:
 			return player.entity_id
 	return ""
+
+## The ONE purse: the InventoryComponent mounted on the player's entity,
+## resolved the same way the GIVE_ITEM / GIVE_CURRENCY legs do.
+func _get_mounted_inventory(player_id: String):
+	var inv_svc := _inv_svc()
+	if inv_svc == null or not inv_svc.has_method("get_inventory"):
+		return null
+	return inv_svc.get_inventory(player_id)
+
+## Move the local player to a world position (the TELEPORT dialog action).
+## Guarded: only the owning player's body moves, and the target must be a
+## finite point.
+func _teleport_player(player_id: String, position: Vector3) -> bool:
+	if player_id.is_empty() or not position.is_finite():
+		return false
+	if _pmgr() == null or not _pmgr().has_method("get_local_player"):
+		return false
+	var node = _pmgr().get_local_player()
+	if node == null or not ("global_position" in node):
+		return false
+	if not ("entity_id" in node) or str(node.entity_id) != player_id:
+		return false
+	node.global_position = position
+	return true
