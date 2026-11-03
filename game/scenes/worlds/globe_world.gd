@@ -1028,6 +1028,10 @@ const CAPITOL_NPC_BATCH: Array = [
 	["npc_merchant_capital", 25.0, 0.006],
 	["npc_herbalist_capital", -70.0, 0.006],
 	["npc_elder_capital", 150.0, 0.006],
+	# The Concord Herald: the sink shrine's keeper (village_props
+	# CAPITOL_BATCH carries the pillar itself at the same bearing,
+	# one step out; the herald stands plaza-side of it).
+	["npc_concord_herald", -95.0, 0.006],
 ]
 
 

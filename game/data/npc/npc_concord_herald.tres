@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="NPCData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/npc_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "npc_concord_herald"
+display_name = "Concord Herald"
+description = "Keeper of the pillared shrine on the capitol strand -- the Concord's honest out. Steed deeds and degree stakes are sealed at this pillar; the sigils the webhook armor delivers go out here, never bartered, never buried."
+faction = "friendly"
+scene_path = "res://scenes/npcs/merchant_general.tscn"
+zone_id = "zone_nexus_central"
+spawn_offset = Vector3(-6, 0, 3)
+greeting = "The pillar keeps its own ledger. Sigils in, deeds out -- and the Concord never buries a coin."
+farewell = "May your deed ride true."
+includes = [
+  {"type": "offering", "ref_id": "concord_pillar_vault"}
+]

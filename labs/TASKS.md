@@ -7995,3 +7995,51 @@ prices on real service doors, priced against the processor SKUs
   only in GDScript, fixed); full pipeline in flight this round.
 - NEXT: Concord money-hub world-building (where the sinks physically
   live), then PR-IO review keeps OpenHands' dialogue/quest lane clear.
+## 2026-11-03 -- MONEY-HUB WORLD-BUILDING (the sinks get a physical home)
+After the sink catalog shipped, the mirror door had a service but no
+place in the world: nothing on the globe sells the sinks. Shipped the
+Concord money hub: a shrine + a herald in Nexus Central's capitol
+plaza, all riding existing plumbing with zero service changes.
+- village_props.gd: `concord_shrine` kind on PropKind + _concord_shrine
+  builder (dais, 5 m pillar, sky-cyan emissive TorusMesh sigil band
+  emission 1.2, bronze capstone, OmniLight halo) + CAPITOL_BATCH row
+  bearing -95; body attaches via the in-tree law (PropCollider.attach
+  deferred in a lambda -- the source lock read attach's returns, so no
+  parallel body earned its node name).
+- spawn chain: globe_world.gd CAPITOL_NPC_BATCH row ("npc_concord_
+  herald", -95.0, 0.006) + zone_nexus_central.tres roster entry; new
+  data/npc/npc_concord_herald.tres (NPCData: merchant_general.tscn
+  scene, offering ref concord_pillar_vault; `npc_type` omitted -- not
+  in npc_data.gd's schema, it is orphaned dead data in old .tres
+  files) + data/npc_offerings/concord_pillar_vault.tres (NPCOffering
+  -> PremiumShopService, panel premium, mirroring
+  black_market_premium.tres). Verified at the seams (action_menu.gd
+  offering rows, npc_entity.gd interact prompt): the "Sigil Vault"
+  action menu + "[E] Open Sigil Vault" prompt mint themselves.
+- Receipt dev_temp/probes/concord_shrine_probe.gd (dev_temp only, NOT
+  in runner DEFAULT_SET -- world-building precedent, no fleet-pack
+  regen) exit 0 SHRINE-OK 14 passes / 0 misses: data doors (herald
+  loads, offering ref, premium panel route, roster + batch rows), a
+  REAL globe boot leg (ConcordSinkShrine node found, herald entity
+  carries npc_data.id "npc_concord_herald"), the factory body/glow
+  laws on a fresh _instantiate (PropBody BoxShape tall > 4.5,
+  emissive TorusMesh band + OmniLight halo found).
+- NOISE VERDICT SETTLED: the intermittent boot SCRIPT ERRORs
+  (sector_cache set_value/get_value on RefCounted, get_ticks_msec on
+  null, "Nonexistent function '' in base 'Vector3'") were suspected
+  round-introduced; HEAD control stash cycles with the fixed probe
+  reproduce the SAME classes at HEAD (4 lines, counts vary per boot) --
+  pre-existing globe boot randomness, not this round. Probe lore:
+  boot shrine legs and factory legs both run regardless of which path
+  placed the node (or its absence at HEAD), and the probe gates ONLY
+  on its own verdict, never on the boot's stderr.
+- probe_starter_village (runner set) stale eliminations refreshed:
+  capitol prop family now 4 ("ConcordSinkShrine" joins the ankh, moon
+  gate, bout stones) and the capitol roster counts >= 8 incl. the
+  herald, so the shrine no longer lands in the NPC bucket by
+  elimination.
+- GATES: probe exit 0 / 14 OK; lint 36/0; full pipeline exit=0, 102
+  passed / 0 failed, zero SCRIPT ERROR lines.
+- NEXT: issue #21 (character panel reads stale creation-time
+  CharacterData instead of the live gear-adjusted stats), then the
+  OpenHands dialogue/quest lane stays clear.

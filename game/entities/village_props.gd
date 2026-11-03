@@ -26,6 +26,7 @@
 extends RefCounted
 
 const TerrainGen = preload("res://scenes/worlds/terrain_gen.gd")
+const PropCollider = preload("res://entities/prop_collider.gd")
 
 ## The bout stone roster: (name, zone id, tint). zone ids are the
 ## data/zones .tres ids (the gateway law's target_lookup path).
@@ -54,6 +55,10 @@ const CAPITOL_BATCH: Array = [
 	["ankh", "CapitolAnkh", 20.0, 0.004],
 	["moongate", "CapitolMoonGate", -35.0, 0.006],
 	["boutstones", "CapitolBoutStones", 155.0, 0.005],
+	# The Concord sink shrine: the physical home of the Sigil Vault
+	# (the herald NPC stands plaza-side of it -- see globe_world's
+	# CAPITOL_NPC_BATCH, same bearing, one step in).
+	["concord_shrine", "ConcordSinkShrine", -95.0, 0.007],
 ]
 
 
@@ -106,6 +111,8 @@ static func _instantiate(kind: String, pname: String, pos: Vector3,
 			return _moongate(pname, pos, dir)
 		"boutstones":
 			return _bout_stones(pname, pos, dir)
+		"concord_shrine":
+			return _concord_shrine(pname, pos, dir)
 	return null
 
 
@@ -192,6 +199,85 @@ static func _stone_arch(gateway: Node3D, tint: Color) -> void:
 	lintel.material_override = mat
 	lintel.position = Vector3(0.0, 3.35, 0.0)
 	gateway.add_child(lintel)
+
+
+# ---- THE CONCORD SINK SHRINE (the Sigil Vault's home) ------------------
+
+## The pillared stand where Concord Sigils find their honest out: the
+## money-hub world-building for the sink catalog (steed deeds, degree
+## stakes, and the vault's own ledger all resolve through the herald
+## standing beside it). Authored stone riding the Plaza frame's laws
+## like the bout stones, with the sky-cyan sigil band the Concord's
+## mark carries -- and a PropCollider body so the pillar stays solid.
+static func _concord_shrine(pname: String, pos: Vector3, dir: Vector3) -> Node3D:
+	var shrine := Node3D.new()
+	shrine.name = pname
+	shrine.position = pos
+	_align_radial(shrine, dir)
+	var stone: StandardMaterial3D = StandardMaterial3D.new()
+	stone.albedo_color = Color(0.55, 0.58, 0.60)
+	stone.roughness = 0.85
+	# The dais: a squat seat-ring the herald's clients can gather on.
+	var dais: MeshInstance3D = MeshInstance3D.new()
+	var dais_mesh: CylinderMesh = CylinderMesh.new()
+	dais_mesh.top_radius = 2.4
+	dais_mesh.bottom_radius = 3.0
+	dais_mesh.height = 0.4
+	dais.mesh = dais_mesh
+	dais.material_override = stone
+	dais.position = Vector3(0, 0.2, 0)
+	shrine.add_child(dais)
+	var pillar: MeshInstance3D = MeshInstance3D.new()
+	var pillar_mesh: CylinderMesh = CylinderMesh.new()
+	pillar_mesh.top_radius = 0.42
+	pillar_mesh.bottom_radius = 0.62
+	pillar_mesh.height = 5.0
+	pillar.mesh = pillar_mesh
+	pillar.material_override = stone
+	pillar.position = Vector3(0, 2.7, 0)
+	shrine.add_child(pillar)
+	# THE SIGIL BAND (the Concord's sky-cyan mark): an emissive ring
+	# crowning the pillar -- static authored light, no fake pulse.
+	var band: MeshInstance3D = MeshInstance3D.new()
+	var band_mesh: TorusMesh = TorusMesh.new()
+	band_mesh.inner_radius = 0.52
+	band_mesh.outer_radius = 0.78
+	var band_mat: StandardMaterial3D = StandardMaterial3D.new()
+	band_mat.albedo_color = Color(0.55, 0.85, 0.9)
+	band_mat.emission_enabled = true
+	band_mat.emission = Color(0.55, 0.85, 0.9)
+	band_mat.emission_energy_multiplier = 1.2
+	band.mesh = band_mesh
+	band.material_override = band_mat
+	band.position = Vector3(0, 4.9, 0)
+	shrine.add_child(band)
+	# The capstone: a low bronze lid over the band's base ring.
+	var cap: MeshInstance3D = MeshInstance3D.new()
+	var cap_mesh: CylinderMesh = CylinderMesh.new()
+	cap_mesh.top_radius = 0.55
+	cap_mesh.bottom_radius = 0.7
+	cap_mesh.height = 0.5
+	cap.mesh = cap_mesh
+	cap.material_override = stone
+	cap.position = Vector3(0, 5.35, 0)
+	shrine.add_child(cap)
+	# A soft warm halo at the pillar's crown so the shrine reads as a
+	# lit place at dusk (the harbor-light school: light marks the
+	# landmark, never a beacon you fast-travel to).
+	var halo: OmniLight3D = OmniLight3D.new()
+	halo.light_color = Color(0.62, 0.88, 0.95)
+	halo.light_energy = 1.4
+	halo.omni_range = 9.0
+	halo.position = Vector3(0, 4.6, 0)
+	shrine.add_child(halo)
+	# THE IN-TREE COLLIDER LAW (the capitol quarters' law): attach the
+	# solid body one frame later, when the prop belt is inside the
+	# tree and PropCollider's AABB read can resolve transforms. The
+	# deferred lambda keeps the static call off the parse-time path.
+	var attach_body := func() -> void:
+		PropCollider.attach(shrine)
+	attach_body.call_deferred()
+	return shrine
 
 
 # ---- SHARED HELPERS -----------------------------------------------------

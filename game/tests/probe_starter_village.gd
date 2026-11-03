@@ -167,7 +167,7 @@ func _run() -> void:
 		# (armory, skill academy, banker, smithy, merchant, herbalist,
 		# keeper), the ankh, the moon gate, and the bout stones, plus
 		# the four city quarters and the pier head under its root.
-		var cap_props: Array = ["CapitolAnkh", "CapitolMoonGate", "CapitolBoutStones"]
+		var cap_props: Array = ["CapitolAnkh", "CapitolMoonGate", "CapitolBoutStones", "ConcordSinkShrine"]
 		var cap_props_found := 0
 		var cap_npcs := 0
 		var cap_built := 0
@@ -180,9 +180,9 @@ func _run() -> void:
 				cap_built += 1
 			else:
 				cap_npcs += 1  # NPC entities (the roster's own-frame law)
-		_check("the capitol carries the prop family (ankh, moon gate, bout stones)", cap_props_found == 3)
+		_check("the capitol carries the prop family (ankh, moon gate, bout stones, sink shrine)", cap_props_found == 4)
 		_check("the capitol quarters + pier head boot (5 built)", cap_built == cap_expected_built.size())
-		_check("the capitol roster spawns the 7 NPCs", cap_npcs >= 7)
+		_check("the capitol roster spawns the 8 NPCs (incl. the Concord herald)", cap_npcs >= 8)
 		# THE FERRY GATEWAY PIN: the route's city end names the cove
 		# pier gateway -- the boat sails the bay (the owner's turn-17
 		# retarget; veh_haven_ferry.route_gateways[1]).
