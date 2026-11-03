@@ -257,7 +257,12 @@ func _get_quest_name(quest_id: String) -> String:
 		var data: QuestData = progress.get("data")
 		if data:
 			return data.display_name
-	# Fallback
+	# The empty-id progress lookup always misses (progress is keyed by player),
+	# so without the catalog fallback every tab listed raw ids. Read the catalog
+	# for the display name.
+	var catalog: QuestData = _load_quest_data(quest_id)
+	if catalog and not catalog.display_name.is_empty():
+		return catalog.display_name
 	return quest_id
 
 func _on_quest_selected(quest_id: String) -> void:

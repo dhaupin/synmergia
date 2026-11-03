@@ -153,6 +153,19 @@ func _run() -> void:
 	else:
 		_fail("QuestUI AVAILABLE tab rendered no buttons (dict->id normalization broken)")
 
+	# The list button must show the quest's display NAME, not its raw id.
+	# _get_quest_name looked up get_quest_progress("", quest_id) -- an empty
+	# player id -- so the progress lookup always missed and every tab listed
+	# raw ids ("quest_arena_trial") instead of display names.
+	var named := false
+	for child in qui._quest_list.get_children():
+		if child is Button and str(low.display_name) in str(child.text):
+			named = true
+	if named:
+		_ok("QuestUI list button shows the quest display name")
+	else:
+		_fail("QuestUI list button shows the raw id, not '%s'" % str(low.display_name))
+
 	# Selecting an AVAILABLE quest must show its detail with an Accept button.
 	# The quest is not in _player_quests yet, so get_quest_progress() returns
 	# {} and the detail used to fall through to the empty state -- the player
