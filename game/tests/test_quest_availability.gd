@@ -186,6 +186,42 @@ func _run() -> void:
 		_ok("AVAILABLE quest detail shows the title + Accept button")
 	else:
 		_fail("AVAILABLE quest detail missing (accept=%s title=%s)" % [str(accept_btn), str(detail_has_title)])
+
+	# Objectives must render as readable text, not literal BBCode. Two bugs
+	# stacked here: (1) the _esc() helpers did
+	#     text.replace("[","[lb]").replace("]","[rb]")
+	# which corrupted their own "[lb]" tokens ("[lb]" -> "[lb[rb]"), and
+	# (2) QuestUI re-escaped the service's already-formatted BBCode and
+	# prefixed an invalid "[bullet]" tag. Both leaked "[lb]color=..." into
+	# the journal. Assert no objective label carries escape/tag garbage.
+	qui._show_quest_detail("quest_intro_core_npcs")
+	await process_frame
+	var obj_labels := 0
+	var obj_clean := true
+	var obj_readable := false
+	var ostack: Array = [qui._quest_detail]
+	while not ostack.is_empty():
+		var onode = ostack.pop_back()
+		for ochild in onode.get_children():
+			ostack.append(ochild)
+			if ochild is RichTextLabel:
+				obj_labels += 1
+				var raw_text: String = str(ochild.text)
+				var parsed: String = str(ochild.get_parsed_text())
+				if raw_text.contains("[lb") or parsed.contains("[lb") \
+						or parsed.contains("[color=") or parsed.contains("[bullet]"):
+					obj_clean = false
+					_fail("objective label leaks BBCode: %s" % parsed)
+				if parsed.contains("Talk to"):
+					obj_readable = true
+	if obj_labels > 0 and obj_clean:
+		_ok("quest objectives render readable text (no [lb]/[color=]/[bullet] leakage)")
+	elif obj_labels == 0:
+		_fail("no objective RichTextLabels rendered for quest_intro_core_npcs")
+	if obj_readable:
+		_ok("objective line reads 'Talk to <npc>' in the journal")
+	else:
+		_fail("objective line did not render readable 'Talk to ...' text")
 	qui.queue_free()
 
 	_finish()

@@ -76,10 +76,11 @@ static func singleton() -> Node:
 
 ## BBCode XSS escape (AGENTS.md "Security: BBCode XSS").
 ## DialogUI renders user-supplied text in RichLabels; unescaped [ and ]
-## let a player inject formatting/color/URL tags. Full-width brackets
-## are not recognized as BBCode and pass through as literal text.
+## let a player inject formatting/color/URL tags. We neutralize '[' to
+## the [lb] literal-bracket tag; a bare ']' cannot open a tag, so it
+## needs no escaping (escaping it corrupted the [lb] we had inserted).
 static func _esc(text: String) -> String:
-	return text.replace("[", "[lb]").replace("]", "[rb]")
+	return text.replace("[", "[lb]")
 
 const DialogueData = preload("res://core/schemas/dialogue_data.gd")
 # ShopUI and UIStyles are not autoloads (class_name only).

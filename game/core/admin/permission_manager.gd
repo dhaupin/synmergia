@@ -52,7 +52,7 @@ class AuditEntry:
 		}
 
 	static func _esc(text: String) -> String:
-		return text.replace('[', '[lb]').replace(']', '[rb]')
+		return text.replace('[', '[lb]')
 
 	func format_entry() -> String:
 		var time_str := Time.get_datetime_string_from_unix_time(timestamp)

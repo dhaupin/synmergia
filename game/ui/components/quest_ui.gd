@@ -30,10 +30,6 @@ func _load_quest_data(quest_id: String):
 ## QuestUI - Quest journal panel
 ## Shows active quests, objectives, and quest log
 
-## Escape BBCode brackets in user-supplied content.
-static func _esc(text: String) -> String:
-	return text.replace("[", "[lb]").replace("]", "[rb]")
-
 ## Tab definitions
 enum Tab { ACTIVE, COMPLETE, AVAILABLE }
 var _current_tab: Tab = Tab.ACTIVE
@@ -327,7 +323,11 @@ func _show_quest_detail(quest_id: String) -> void:
 	for obj_text in _questservice().get_quest_objectives_text(local_id, quest_id):
 		var obj_label := RichTextLabel.new()
 		obj_label.bbcode_enabled = true
-		obj_label.text = "[bullet] %s" % _esc(str(obj_text))
+		# get_quest_objectives_text() returns service-formatted BBCode (it
+		# escapes the dynamic target itself and wraps the line in [color=]).
+		# Escaping it again here rendered the tags literally, and [bullet]
+		# is not a valid Godot tag -- prefix a plain ASCII dash instead.
+		obj_label.text = "- %s" % str(obj_text)
 		obj_label.add_theme_color_override("default_color", UIStyles.COLORS.text_primary)
 		obj_label.custom_minimum_size.y = 20
 		_quest_detail.add_child(obj_label)

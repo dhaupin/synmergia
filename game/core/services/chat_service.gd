@@ -82,7 +82,7 @@ enum Channel {
 
 ## BBCode escape for user-supplied content.
 static func _escape_bbcode(text: String) -> String:
-	return text.replace("[", "[lb]").replace("]", "[rb]")
+	return text.replace("[", "[lb]")
 
 # Channel info
 var _channel_info: Dictionary = {

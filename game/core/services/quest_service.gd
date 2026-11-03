@@ -13,7 +13,11 @@ const DictStore = preload("res://adapters/persistence/dict_store.gd")
 const _kv_prefix := "quest:player:"
 
 static func _esc(text: String) -> String:
-	return text.replace('[', '[lb]').replace(']', '[rb]')
+	# Neutralize only '[': a bare ']' cannot open a BBCode tag. Replacing
+	# ']' too corrupted the '[lb]' tokens the first replace had just
+	# inserted ('[lb]' -> '[lb[rb]'), which RichTextLabel renders as
+	# literal text. (AGENTS.md "Security: BBCode XSS".)
+	return text.replace("[", "[lb]")
 
 ## Singleton
 static var instance: QuestService

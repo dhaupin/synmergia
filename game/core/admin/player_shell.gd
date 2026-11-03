@@ -8,7 +8,7 @@ const QoSService = preload("res://core/autoload/qos_service.gd")
 
 ## Escape BBCode brackets in user-supplied strings.
 static func _esc(text: String) -> String:
-	return text.replace('[', '[lb]').replace(']', '[rb]')
+	return text.replace('[', '[lb]')
 
 ## Player command definition
 class PlayerCommand:
