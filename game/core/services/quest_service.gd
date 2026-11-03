@@ -745,6 +745,21 @@ func _grant_rewards(player_id: String, summary: Dictionary) -> void:
 			for title_id in titles:
 				tsvc.unlock(player_id, str(title_id))
 
+	# Reputation rides FactionManager's ledger. _apply_rewards folds the
+	# faction_reward/faction_amount (and "reputation"/"faction" reward lines)
+	# into the summary but nothing ever paid it -- faction rewards were a
+	# silent no-op. Route each delta through modify_reputation (it clamps,
+	# persists and emits reputation_changed / the rank-transition toast).
+	var reputation: Dictionary = summary.get("reputation", {})
+	if not reputation.is_empty():
+		var fsvc = _resolve_autoload("FactionManager")
+		if fsvc != null and fsvc.has_method("modify_reputation"):
+			for faction_id in reputation.keys():
+				var delta: int = int(reputation[faction_id])
+				if str(faction_id).is_empty() or delta == 0:
+					continue
+				fsvc.modify_reputation(player_id, str(faction_id), delta)
+
 ## Player id of a node, tolerant of both Entity and PlayerController.
 func _node_player_id(node) -> String:
 	if node == null:

@@ -221,6 +221,29 @@ func _run() -> void:
 	else:
 		_ok("REMOVE_ITEM routes through the purse")
 
+
+	# --- Leg 7: faction/reputation rewards are paid on turn-in. _apply_rewards
+	# folded faction_reward/faction_amount (and "reputation"/"faction" reward
+	# lines) into the summary, but _grant_rewards never paid it -- faction
+	# rewards were a silent no-op. Drive the REAL fold->grant chain.
+	var faction_svc: Node = root.get_node_or_null("FactionManager")
+	if faction_svc == null:
+		_fail("FactionManager autoload missing")
+	else:
+		var rep_quest = load("res://core/schemas/quest_data.gd").new()
+		rep_quest.id = "dq_rep_probe"
+		rep_quest.display_name = "Rep Probe"
+		rep_quest.faction_reward = "faction_human"
+		rep_quest.faction_amount = 250
+		var rep_before: int = int(faction_svc.get_reputation("dq_probe", "faction_human"))
+		var rep_summary: Dictionary = qs._apply_rewards("dq_probe", rep_quest)
+		var rep_after: int = int(faction_svc.get_reputation("dq_probe", "faction_human"))
+		if int(rep_summary.get("reputation", {}).get("faction_human", 0)) != 250:
+			_fail("reward summary did not fold the faction reward (got %s)" % str(rep_summary.get("reputation")))
+		elif rep_after != rep_before + 250:
+			_fail("faction reward not granted (want +250, got %d)" % (rep_after - rep_before))
+		else:
+			_ok("faction reward granted on turn-in (+250 reputation)")
 	inv_svc.unregister_inventory("dq_probe")
 	pm.set_local_player(null)
 	_finish()
