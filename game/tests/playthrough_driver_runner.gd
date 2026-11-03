@@ -670,6 +670,30 @@ func _stage_dialogue_quest(inst: Node, player, inv, pid: String) -> void:
 		"(%d -> %d)" % [pm_gold_before, int(pman.gold) if pman else 0])
 	await _shot("playthrough_11_quest_reward")
 
+	# The blacksmith's tree also carries an OPEN_SHOP choice ("I'll start with
+	# the forge." -> shop_id blacksmith_service). Drive it and assert the real
+	# ShopUI opens bound to that offering -- the authored dialogue -> shop seam
+	# had no live receipt. (blacksmith_service is a type="service" offering, so
+	# the panel is intentionally empty of goods; the seam is what is under test.)
+	dsvc.start_dialogue(str(npc.npc_data.id), "blacksmith_village_intro")
+	await get_tree().process_frame
+	dsvc.select_choice(0)   # node 0 -> 1
+	await get_tree().process_frame
+	dsvc.select_choice(0)   # node 1 -> 3
+	await get_tree().process_frame
+	dsvc.select_choice(1)   # node 3 -> OPEN_SHOP(blacksmith_service), ends dialogue
+	await _settle(0.5)
+	var ShopUIScript := load("res://ui/components/shop_ui.gd")
+	var shop = ShopUIScript.singleton() if ShopUIScript else null
+	_ok("the dialogue OPEN_SHOP choice opened the shop panel",
+			shop != null and shop.visible, "(shop=%s)" % str(shop))
+	if shop != null:
+		var bound: String = str(shop._offering.display_name) if shop._offering else ""
+		_ok("the shop panel is bound to the authored offering",
+				bound == "Equipment Repair", "(offering=%s)" % bound)
+		shop.close()
+	await _shot("playthrough_12_dialogue_shop")
+
 
 ## Stage 14: accept a quest from the JOURNAL (not an NPC). Opens the real
 ## QuestUI through MenuManager, lists the AVAILABLE tab, selects a quest the
