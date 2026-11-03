@@ -1386,10 +1386,16 @@ func _create_ring_mesh(radius: float) -> ArrayMesh:
 		indices.append(segments + 2 + i)
 		indices.append(segments + 1 + i)
 
+	# add_surface_from_arrays needs the full Mesh.ARRAY_MAX-sized array
+	# with each stream at its own index. The old 3-element [verts,
+	# indices, colors] list failed the guard ("p_arrays.size() !=
+	# ARRAY_MAX"), so the ring mesh got no surface and the target
+	# highlight never rendered.
 	var arrays := []
-	arrays.append(verts)
-	arrays.append(indices)
-	arrays.append(colors)
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_INDEX] = indices
+	arrays[Mesh.ARRAY_COLOR] = colors
 	array_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	return array_mesh
 
