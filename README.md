@@ -213,6 +213,7 @@ and [DEVCODE.md](./DEVCODE.md) for the mechanics of running things.
 | [🗺️ World Design](./labs/world-building.md) | World, zones, procedural generation |
 | [🤖 Developer Notes](./AGENTS.md) | Code conventions, patterns, and tips for contributors |
 | [🚀 Deployment Guide](./DEPLOY.md) | Docker deployment, production setup, and operations |
+| [🧩 Shard Mesh](./labs/prd-shard-mesh.md) | Multi-container deployment: intent vs reality, transport fork, phased path |
 
 ---
 

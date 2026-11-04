@@ -34,10 +34,19 @@ class_name PostgresStore
 const NotImplemented = "PostgresStore: pg-bridge sidecar not yet wired. Use MemoryPersistenceStore for tests/dev."
 
 var _bridge_url: String = ""
-var _http: HTTPRequest
-var _parent: Node
+var _client: HTTPClient = null
+var _host: String = ""
+var _port: int = 80
+var _use_ssl: bool = false
 var _pending: Dictionary = {}
 var _request_counter: int = 0
+
+## Synchronous request budget and poll cadence. This store is called at
+## boot and from service legs that cannot yield frames, so the transport
+## polls the socket directly instead of waiting on an HTTPRequest signal
+## (which only fires on a processed frame -- a busy-wait never delivers it).
+const SYNC_TIMEOUT_MS: int = 5000
+const SYNC_POLL_STEP_MS: int = 2
 
 # Retry configuration
 const MAX_RETRIES: int = 3
@@ -88,8 +97,10 @@ class PostgresResult:
 		return data
 
 
-func _init(parent: Node = null) -> void:
-	_parent = parent
+func _init(_parent: Node = null) -> void:
+	# `parent` is retained for call-site compatibility; the synchronous
+	# HTTPClient transport needs no scene-tree node.
+	pass
 
 
 func open(config: Dictionary) -> int:
@@ -97,14 +108,9 @@ func open(config: Dictionary) -> int:
 	if _bridge_url == "":
 		push_error(NotImplemented)
 		return -1
-	if not _parent:
-		_parent = Engine.get_main_loop().root if Engine.get_main_loop() else null
-	if not _parent:
-		push_error("PostgresStore: no parent Node for HTTPRequest")
+	if not _parse_url(_bridge_url):
+		push_error("PostgresStore: malformed bridge_url %s" % _bridge_url)
 		return -1
-	_http = HTTPRequest.new()
-	_parent.add_child(_http)
-	_http.request_completed.connect(_on_response)
 	var ok: bool = _blocking_get("/health")
 	if not ok:
 		push_error("PostgresStore: bridge %s not reachable" % _bridge_url)
@@ -114,9 +120,9 @@ func open(config: Dictionary) -> int:
 
 
 func close() -> void:
-	if _http and is_instance_valid(_http):
-		_http.queue_free()
-		_http = null
+	if _client:
+		_client.close()
+		_client = null
 	_active_connections = 0
 	_pending_queries = 0
 	_circuit_breaker_failures = 0
@@ -125,7 +131,7 @@ func close() -> void:
 
 
 func healthy() -> bool:
-	if not _http:
+	if _client == null:
 		return false
 	if _circuit_breaker_tripped:
 		var now: int = Time.get_ticks_msec()
@@ -135,6 +141,29 @@ func healthy() -> bool:
 		else:
 			return false
 	return _blocking_get("/health")
+
+
+## Parse "http://host:port" (or https) into connection fields.
+func _parse_url(url: String) -> bool:
+	var rest: String = url
+	_use_ssl = false
+	if rest.begins_with("https://"):
+		_use_ssl = true
+		rest = rest.substr(8)
+	elif rest.begins_with("http://"):
+		rest = rest.substr(7)
+	# Strip any trailing path; the bridge API is rooted at "/".
+	var slash: int = rest.find("/")
+	if slash >= 0:
+		rest = rest.substr(0, slash)
+	var colon: int = rest.rfind(":")
+	if colon >= 0:
+		_host = rest.substr(0, colon)
+		_port = int(rest.substr(colon + 1))
+	else:
+		_host = rest
+		_port = 443 if _use_ssl else 80
+	return _host != "" and _port > 0
 
 
 # --- Public API returning types matching PersistenceStore ---
@@ -328,8 +357,6 @@ func execute_batch_with_params(statements: Array, entries: Dictionary) -> int:
 # --- HTTP plumbing with retry wrapper ---
 
 func _retry_request(callable: Callable, max_attempts: int = MAX_RETRIES) -> PostgresResult:
-	if not _http:
-		return PostgresResult.err("HTTP client not initialized", -1)
 	if _circuit_breaker_tripped:
 		var now: int = Time.get_ticks_msec()
 		if now - _circuit_breaker_tripped_time >= _circuit_breaker_reset_timeout_ms:
@@ -371,90 +398,102 @@ func _retry_request(callable: Callable, max_attempts: int = MAX_RETRIES) -> Post
 func _request_with_retry(path: String, body: Dictionary) -> PostgresResult:
 	return _retry_request(func() -> PostgresResult:
 		_pending_queries += 1
-		var url: String = _bridge_url + path
 		var json: String = JSON.stringify(body)
 		var headers: PackedStringArray = PackedStringArray([
 			"Content-Type: application/json",
 			"Accept: application/json",
 		])
-		var err: int = _http.request(url, headers, HTTPClient.METHOD_POST, json)
-		if err != OK:
-			_pending_queries -= 1
-			return PostgresResult.err("HTTP request error: " + str(err), err)
-		var ok: bool = _await_response()
+		var resp: Dictionary = _sync_request(HTTPClient.METHOD_POST, path, headers, json)
 		_pending_queries -= 1
-		if not ok:
-			return PostgresResult.err("Request timeout or failed", -3)
-		return PostgresResult.ok(_last_response)
+		if resp.get("_transport_error", false):
+			return PostgresResult.err(str(resp.get("error", "transport error")), -3)
+		return PostgresResult.ok(resp)
 	)
 
 
 func _blocking_get(path: String) -> bool:
-	if not _http:
-		return false
-	if _circuit_breaker_tripped:
-		var now: int = Time.get_ticks_msec()
-		if now - _circuit_breaker_tripped_time >= _circuit_breaker_reset_timeout_ms:
-			_circuit_breaker_tripped = false
-			_circuit_breaker_failures = 0
-		else:
-			return false
-
-	var attempt: int = 0
-	var delay_ms: int = BASE_RETRY_DELAY_MS
-
-	while attempt <= MAX_RETRIES:
+	var res: PostgresResult = _retry_request(func() -> PostgresResult:
 		_pending_queries += 1
-		var url: String = _bridge_url + path
-		var err: int = _http.request(url, PackedStringArray(["Accept: application/json"]), HTTPClient.METHOD_GET)
-		if err != OK:
-			_pending_queries -= 1
-			_record_failure()
-		else:
-			var ok: bool = _await_response()
-			_pending_queries -= 1
-			if not ok:
-				_record_failure()
-			else:
-				_record_success()
-				return true
-
-		attempt += 1
-		if attempt <= MAX_RETRIES:
-			OS.delay_msec(delay_ms)
-			delay_ms = min(delay_ms * 2, MAX_RETRY_DELAY_MS)
-
-	return false
+		var r: Dictionary = _sync_request(
+			HTTPClient.METHOD_GET, path, PackedStringArray(["Accept: application/json"]), ""
+		)
+		_pending_queries -= 1
+		if r.get("_transport_error", false):
+			return PostgresResult.err(str(r.get("error", "transport error")), -3)
+		return PostgresResult.ok(r)
+	)
+	if not res.success or not (res.data is Dictionary):
+		return false
+	return res.data.get("ok", false)
 
 
-var _last_response: Dictionary = {}
-var _last_ok: bool = false
-var _response_received: bool = false
-
-
-func _on_response(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
-	_last_response = {}
-	_last_ok = (result == HTTPRequest.RESULT_SUCCESS and response_code == 200)
-	if _last_ok and body.size() > 0:
-		var text: String = body.get_string_from_utf8()
-		var parsed: Variant = JSON.parse_string(text)
+## One synchronous request: connect (if needed), send, poll until the
+## response arrives or the budget expires. No frame pumping required --
+## this is what lets the store connect during boot and from any service leg.
+## A dropped keep-alive is retried once on a fresh socket.
+func _sync_request(method: int, path: String, headers: PackedStringArray, body: String) -> Dictionary:
+	for attempt in range(2):
+		if _client == null or _client.get_status() == HTTPClient.STATUS_DISCONNECTED:
+			if not _connect():
+				return {"_transport_error": true, "error": "connection timed out"}
+		if _client.get_status() != HTTPClient.STATUS_CONNECTED:
+			_client.close()
+			_client = null
+			continue
+		var rerr: int = _client.request(method, path, headers, body)
+		if rerr != OK:
+			# The socket was stale despite a CONNECTED read; drop it and retry.
+			_client.close()
+			_client = null
+			continue
+		if not _pump_until([HTTPClient.STATUS_BODY, HTTPClient.STATUS_CONNECTED], [HTTPClient.STATUS_REQUESTING]):
+			return {"_transport_error": true, "error": "request timed out"}
+		if _client.get_status() == HTTPClient.STATUS_DISCONNECTED:
+			_client = null
+			continue
+		var code: int = _client.get_response_code()
+		var payload: String = ""
+		if _client.has_response():
+			var buf: PackedByteArray = PackedByteArray()
+			while _client.get_status() == HTTPClient.STATUS_BODY:
+				_client.poll()
+				var chunk: PackedByteArray = _client.read_response_body_chunk()
+				if chunk.size() == 0:
+					OS.delay_msec(SYNC_POLL_STEP_MS)
+				else:
+					buf.append_array(chunk)
+			payload = buf.get_string_from_utf8()
+		if code != 200:
+			return {"_transport_error": true, "error": "http %d: %s" % [code, payload]}
+		var parsed: Variant = JSON.parse_string(payload)
 		if parsed is Dictionary:
-			_last_response = parsed
-		elif parsed != null:
-			_last_response = {"value": parsed}
-	_response_received = true
+			return parsed
+		if parsed != null:
+			return {"value": parsed}
+		return {}
+	return {"_transport_error": true, "error": "connection reset"}
 
 
-func _await_response() -> bool:
-	_response_received = false
-	_last_response = {}
-	_last_ok = false
-	var timeout_ms: int = 5000
+## Open a fresh connection to the bridge. Returns false on timeout.
+func _connect() -> bool:
+	if _client:
+		_client.close()
+	_client = HTTPClient.new()
+	var cerr: int = _client.connect_to_host(_host, _port, TLSOptions.client() if _use_ssl else null)
+	if cerr != OK:
+		return false
+	return _pump_until([HTTPClient.STATUS_CONNECTED], [HTTPClient.STATUS_CONNECTING, HTTPClient.STATUS_RESOLVING])
+
+
+## Poll the socket until the status leaves `from_states` (lands in a
+## terminal set) or the timeout budget is spent. Returns true if it left.
+func _pump_until(accept: Array, from_states: Array) -> bool:
 	var elapsed: int = 0
-	while not _response_received and elapsed < timeout_ms:
-		OS.delay_msec(10)
-		elapsed += 10
-	return _last_ok
+	while _client.get_status() in from_states and elapsed < SYNC_TIMEOUT_MS:
+		_client.poll()
+		OS.delay_msec(SYNC_POLL_STEP_MS)
+		elapsed += SYNC_POLL_STEP_MS
+	return _client.get_status() in accept or not (_client.get_status() in from_states)
 
 
 func _record_success() -> void:

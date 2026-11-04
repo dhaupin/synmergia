@@ -163,6 +163,29 @@ class TestPgBridge(unittest.TestCase):
         st, rows = self.h.post("/query", {"sql": "SELECT * FROM b"})
         self.assertEqual(len(rows["rows"]), 2)
 
+    def test_batch_accepts_param_statements(self):
+        # DictStore sends {sql, params} objects with $N placeholders; the
+        # bridge must bind them (SQLite translates to ?).
+        self.h.post("/execute", {"sql": "CREATE TABLE bp (key TEXT PRIMARY KEY, value TEXT)"})
+        _, body = self.h.post("/batch", {
+            "statements": [
+                {"sql": "INSERT INTO bp (key, value) VALUES ($1, $2)", "params": ["k1", "v1"]},
+                {"sql": "INSERT INTO bp (key, value) VALUES ($1, $2)", "params": ["k2", "v2"]},
+            ]
+        })
+        self.assertTrue(body["ok"])
+        st, rows = self.h.post("/query", {"sql": "SELECT key FROM bp ORDER BY key"})
+        self.assertEqual([r["key"] for r in rows["rows"]], ["k1", "k2"])
+
+    def test_query_binds_dollar_params(self):
+        self.h.post("/execute", {"sql": "CREATE TABLE qp (key TEXT, value TEXT)"})
+        self.h.post("/execute", {"sql": "INSERT INTO qp (key, value) VALUES ($1, $2)",
+                                 "params": ["a", "1"]})
+        st, rows = self.h.post("/query", {
+            "sql": "SELECT value FROM qp WHERE key = $1", "params": ["a"],
+        })
+        self.assertEqual(rows["rows"][0]["value"], "1")
+
     def test_insert_many(self):
         self.h.post("/execute", {
             "sql": "CREATE TABLE im (id TEXT, val INT)",
@@ -189,6 +212,48 @@ class TestPgBridge(unittest.TestCase):
             # If no exception, the bridge swallowed it — still acceptable if
             # the body indicates failure. Either way the bridge didn't crash.
             pass
+
+
+class TestPgConvertSql(unittest.TestCase):
+    """Unit tests for the $N -> %s translation that the Postgres backend
+    relies on. These are pure functions, so they run without psycopg3."""
+
+    def test_dollar_params_translate_in_order(self):
+        from backends import _pg_convert_sql
+
+        sql, params = _pg_convert_sql(
+            "SELECT * FROM t WHERE a = $1 AND b = $2", ["x", "y"]
+        )
+        self.assertEqual(sql, "SELECT * FROM t WHERE a = %s AND b = %s")
+        self.assertEqual(params, ["x", "y"])
+
+    def test_repeated_placeholder_duplicates_param(self):
+        from backends import _pg_convert_sql
+
+        sql, params = _pg_convert_sql("SELECT * FROM t WHERE a = $1 OR b = $1", ["x"])
+        self.assertEqual(sql, "SELECT * FROM t WHERE a = %s OR b = %s")
+        self.assertEqual(params, ["x", "x"])
+
+    def test_literal_percent_escaped_with_params(self):
+        from backends import _pg_convert_sql
+
+        sql, params = _pg_convert_sql(
+            "SELECT * FROM t WHERE name LIKE $1 AND tag = $2", ["%o%", "z"]
+        )
+        # The literal % inside the bound value stays as data; the SQL text
+        # has no bare % so nothing needs escaping there.
+        self.assertEqual(sql, "SELECT * FROM t WHERE name LIKE %s AND tag = %s")
+        self.assertEqual(params, ["%o%", "z"])
+
+    def test_literal_percent_in_sql_escaped_without_params(self):
+        # Regression: a no-param query with a literal % (e.g. a LIKE prefix)
+        # raised "only '%s', '%b', '%t' are allowed as placeholders" because
+        # the early-return skipped escaping when params was empty.
+        from backends import _pg_convert_sql
+
+        sql, params = _pg_convert_sql("SELECT key FROM kv WHERE key LIKE 'tick:%'", [])
+        self.assertEqual(sql, "SELECT key FROM kv WHERE key LIKE 'tick:%%'")
+        self.assertEqual(params, [])
 
 
 class TestMigrationAgainstBridge(unittest.TestCase):

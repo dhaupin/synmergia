@@ -48,6 +48,25 @@ services:
       - REDIS_HOST=redis
       - REDIS_ENABLED=true
       - JWT_SECRET=${JWT_SECRET:-change_me_in_production}
+      # ── Shared state (shard mesh) ───────────────────────────────────────────
+      # Defaults keep dev/CI on in-process memory (byte-identical to before).
+      # For a multi-shard deploy set, per container:
+      #   STORAGE_BACKEND=postgres CACHE_BACKEND=redis
+      #   PG_BACKEND=postgres     REDIS_BACKEND=redis
+      # The bridges read PG_BACKEND/REDIS_BACKEND; the engine reads
+      # STORAGE_BACKEND/CACHE_BACKEND and talks to the bridges over HTTP.
+      - STORAGE_BACKEND=${STORAGE_BACKEND:-memory}
+      - CACHE_BACKEND=${CACHE_BACKEND:-memory}
+      - PG_BACKEND=${PG_BACKEND:-sqlite}
+      - REDIS_BACKEND=${REDIS_BACKEND:-inmemory}
+      - PG_BRIDGE_URL=${PG_BRIDGE_URL:-http://127.0.0.1:8080}
+      - REDIS_BRIDGE_URL=${REDIS_BRIDGE_URL:-http://127.0.0.1:8081}
+      # ── Shard identity (shard mesh) ─────────────────────────────────────────
+      # Unset -> shard_1 / Alpha (the single-node default). A mesh sets a
+      # unique SHARD_ID per container; ShardManager reads these at boot.
+      - SHARD_ID=${SHARD_ID:-}
+      - SHARD_NAME=${SHARD_NAME:-}
+      - IS_PRIMARY=${IS_PRIMARY:-}
     volumes:
       - synmergia-data:/var/lib/synmergia
       # Mount the Godot project (synmergia/game/) as the container's /workspace/project/game/
