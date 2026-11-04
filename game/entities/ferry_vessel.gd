@@ -89,14 +89,41 @@ static func lane_dirs() -> Array:
 static func build(parent: Node3D, planet_radius: float, surface_lift: float,
 		walk_surface_h: Callable, sea_level: float) -> Node3D:
 	var lane: Array = lane_dirs()
+	return build_vessel(parent, "PansRunner", lane[0], lane[1],
+		planet_radius, surface_lift, walk_surface_h, sea_level)
+
+
+## THE SUNDERED BARQUE (S14.7.3): Old Brack's last boat, the data route
+## veh_sundered_barque already declares (waypoint_strait_moor <->
+## waypoint_strait_seaward through FerrySchedule). Same hull dialect,
+## same place() law -- only the LANE differs: the two pins' own
+## positions from the gateway data, normalized to dirs at boot by the
+## caller (DataService truth, never an in-file bearing).
+static func build_barque(parent: Node3D, lane_a: Vector3, lane_b: Vector3,
+		planet_radius: float, surface_lift: float,
+		walk_surface_h: Callable, sea_level: float) -> Node3D:
+	return build_vessel(parent, "SunderedBarque", lane_a.normalized(),
+		lane_b.normalized(), planet_radius, surface_lift,
+		walk_surface_h, sea_level)
+
+
+## THE GENERIC HULL: one builder, any lane, any name. The place() law
+## reads ONLY the metas this stamps (the two lane dirs, radius, lift,
+## sea level, the walk callable); the piece colliders and the deck
+## ride ride along for free (one law, any caller -- the barque carries
+## riders exactly like the runner).
+static func build_vessel(parent: Node3D, vessel_name: String,
+		lane_a: Vector3, lane_b: Vector3, planet_radius: float,
+		surface_lift: float, walk_surface_h: Callable,
+		sea_level: float) -> Node3D:
 	var vessel := Node3D.new()
-	vessel.name = "PansRunner"
+	vessel.name = vessel_name
 	parent.add_child(vessel)
 	# The lane lives on the vessel so place() needs no recompute
 	# (importantly: the walk callable is stored too -- the tick law
 	# calls place with no extra plumbing).
-	vessel.set_meta("lane_a", lane[0])
-	vessel.set_meta("lane_b", lane[1])
+	vessel.set_meta("lane_a", lane_a.normalized())
+	vessel.set_meta("lane_b", lane_b.normalized())
 	vessel.set_meta("radius", planet_radius)
 	vessel.set_meta("surface_lift", surface_lift)
 	vessel.set_meta("sea", sea_level)

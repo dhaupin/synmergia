@@ -108,6 +108,7 @@ func _ready() -> void:
 	_bind_to_world()
 	_install_horde_bar()
 	_install_storm_bar()
+	_install_sea_bar()
 	_install_integrator()
 	_setup_main_menu_bar()
 
@@ -166,6 +167,19 @@ func _install_storm_bar() -> void:
 	var storm_bar: Control = StormBarScript.new()
 	storm_bar.name = "StormBar"
 	add_child(storm_bar)
+
+
+## Installs the SeaBar widget (S14.7.3 sea-state chip): hidden dry;
+## the widget polls the local body's swim book itself, so the install
+## stays a one-liner (the same posture the horde bar takes before its
+## arena wire).
+func _install_sea_bar() -> void:
+	var SeaBarScript := load("res://ui/components/sea_bar.gd")
+	if not SeaBarScript:
+		return
+	var sea_bar: Control = SeaBarScript.new()
+	sea_bar.name = "SeaBar"
+	add_child(sea_bar)
 
 
 func _install_integrator() -> void:

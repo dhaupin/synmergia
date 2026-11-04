@@ -184,7 +184,92 @@ func _run() -> void:
 	player.global_position = up * (sea_r + 25.0)
 	player._sea_swim_step(0.2, up, Vector3.ZERO)
 	_check("leaving the water clears the swimmer book", os.swim_state("sea_receipt_body") == null)
+	# --- E. THE MOUNT HANDOFF (S14.7.3) -----------------------------------
+	os.forget_swimmer("sea_receipt_body")
+	var stamp_stub = _gd_stub("extends RefCounted\nvar calls: Array = []\nfunc water_stamp_for(player_id: String, band: int) -> Dictionary:\n\tcalls.append(band)\n\treturn {\"action\": \"swim\", \"speed\": 12.0, \"grace\": 40.0, \"crush_bonus\": 30.0, \"immune\": false}\n")
+	player.ride_service = stamp_stub
+	# 55 m is past the gearless squeeze line -- a swimmer mount's 40 m
+	# grace re-bands the body into plain SUBMERGED.
+	player.global_position = up * (sea_r - 55.0)
+	var stub_swam: bool = player._sea_swim_step(0.2, up, Vector3.ZERO)
+	_check("a swimmer mount's grace re-bands the body", stub_swam and player._sea_band == 2)
+	_check("the ride law was asked each tick", stamp_stub.calls.size() >= 1)
+	# A land mount is dismissed by the service itself (S14.6): here the
+	# stub simply answers dismount and the body still swims -- no
+	# crash, no phantom fall-through.
+	var land_stub = _gd_stub("extends RefCounted\nfunc water_stamp_for(player_id: String, band: int) -> Dictionary:\n\treturn {\"action\": \"dismount\"}\n")
+	player.ride_service = land_stub
+	var land_swam: bool = player._sea_swim_step(0.2, up, Vector3.ZERO)
+	_check("a dismissed land mount still obeys the sea", land_swam and player._sea_wet)
+	player.ride_service = null
+
+	# --- F. THE DAMAGE LAW (S14.7.3) --------------------------------------
+	os.forget_swimmer("sea_receipt_body")
+	var HC = load("res://core/components/health_component.gd")
+	var hc = HC.new()
+	hc.max_health = 100
+	hc.current_health = 100
+	player.health_component = hc
+	player.add_child(hc)
+	player.global_position = up * (sea_r - 58.0)   # past the squeeze line
+	for _i in range(6):
+		player._sea_swim_step(5.0, up, Vector3.ZERO)  # five-second bites
+	_check("the drained breath book reads", player._sea_breath_s < 30.0)
+	_check("the squeeze keeps a pressure pool", player._sea_pressure > 0.0)
+	_check("the pool pays through health", hc.current_health < 100)
+	_check("drowning pays the hard rate (30+ hp gone)", hc.current_health <= 60)
+	var harm_rows: int = hc.health_changed.get_connections().size()
+	_check("the health component is the body's voice", harm_rows >= 0)
+	# Surfacing: the book clears, the debt wipes, health does NOT heal.
+	var hp_after: int = hc.current_health
+	player.global_position = up * (sea_r + 25.0)
+	player._sea_swim_step(0.2, up, Vector3.ZERO)
+	_check("leaving the water wipes the directive books",
+		not player._sea_wet and player._sea_dps_debt == 0.0 and player._sea_pressure == 0.0)
+	_check("surfacing is not a heal", hc.current_health == hp_after)
+
+	# --- G. THE SEA BAR (S14.7.3) -----------------------------------------
+	var SB = load("res://ui/components/sea_bar.gd")
+	var bar = SB.new()
+	bar._ready()
+	root.add_child(bar)
+	var wet_body = _gd_stub("extends Node\nvar _sea_wet := true\nvar _sea_band := 3\nvar _sea_depth := 55.0\nvar _sea_breath_s := 20.0\nvar _sea_breath_max := 45.0\nvar _sea_drowning_s := 0.0\nvar _sea_pressure := 3.5\n")
+	root.add_child(wet_body)
+	bar.update_from_body(wet_body)
+	_check("a wet body shows the bar", bar.visible)
+	_check("the band row reads the squeeze", bar._band_label.text == "SQUEEZE")
+	_check("the breath bar reads the book",
+		absf(float(bar._breath_bar.value) - (20.0 / 45.0)) < 0.01)
+	_check("the pressure row speaks", bar._pressure_label.text.begins_with("Pressure"))
+	wet_body._sea_drowning_s = 2.0
+	bar.update_from_body(wet_body)
+	_check("drowning flashes in the row", bar._breath_label.text.contains("DROWNING"))
+	bar.update_from_body(null)
+	_check("a dry body hides the bar", not bar.visible)
+	wet_body.queue_free()
+	bar.queue_free()
 	player.queue_free()
+
+	# --- H. THE GARDEN BINDING (S14.7.3) ----------------------------------
+	# A fresh harness: register + apply one shelf face, then join the
+	# binder and let the service's depletion book drive the paint.
+	var BGB = load("res://entities/deep_garden_binder.gd")
+	BGB.bind(root)
+	var bind_grove := _first_grove(streamer, shelf_face)
+	_check("the binder finds the grove paint", bind_grove != null)
+	if bind_grove != null:
+		_check("the grove carries its plant identity",
+			bind_grove.has_meta("harvest_ids") and (bind_grove.get_meta("harvest_ids") as Array).size() == 3)
+		var ids: Array = bind_grove.get_meta("harvest_ids")
+		var now: float = float(Time.get_unix_time_from_system())
+		for nid in ids:
+			hs._nodes[str(nid)]["depleted_until"] = now + 99999.0
+		BGB.call("refresh", root)
+		_check("a fully-taken cove hides its paint", not bind_grove.visible)
+		for nid in ids:
+			hs.force_ready(str(nid))
+		BGB.call("refresh", root)
+		_check("a respawned cove stands again", bind_grove.visible)
 
 	_finish("SUNDERED SEA SWIM RECEIPT")
 
@@ -234,3 +319,19 @@ func _finish(label: String) -> void:
 	else:
 		print("SUNDERED SEA SWIM RECEIPT FAILED")
 		quit(1)
+
+func _gd_stub(source: String):
+	var scr := GDScript.new()
+	scr.source_code = source
+	scr.reload()
+	return scr.new()
+
+
+func _first_grove(streamer_ref, face: int) -> Node:
+	var patch := Node3D.new()
+	root.add_child(patch)
+	streamer_ref._apply_sundered_deep(int(face), patch)
+	for child in patch.get_children():
+		if child.name.begins_with("DeepGarden"):
+			return child
+	return null

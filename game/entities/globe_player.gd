@@ -1310,6 +1310,11 @@ const SEA_SWIM_VERTICAL: float = 2.4
 const SEA_FLOAT_SPRING: float = 1.6
 ## Depth under the sea line a body floats at while idle (head up).
 const SEA_FLOAT_DEPTH: float = 0.6
+## Drowning bite (per SECOND of continued submersion past breath 0)
+## and the pressure pool's damage multiplier -- the driver converts
+## SwimState's numbers here, once (prd-ocean-depths sec 4/8).
+const SEA_DROWN_DPS: float = 10.0
+const SEA_PRESSURE_MULT: float = 1.0
 
 ## Sea bookkeeping (read by the HUD/anticheat legs later).
 var _sea_wet: bool = false
@@ -1319,6 +1324,16 @@ var _sea_flow: Vector3 = Vector3.ZERO
 ## The horizontal velocity the sea law applied this frame (the current
 ## plus the swim steering) -- read by the receipt and the HUD.
 var _sea_carry: Vector3 = Vector3.ZERO
+## THE SWIM BOOK (S14.7.3): what the water does to this body right
+## now -- the HUD's SeaBar reads these directly, the damage law fires
+## on them. All snapshots of the last tick_swimmer.
+var _sea_breath_s: float = -1.0
+var _sea_breath_max: float = -1.0
+var _sea_pressure: float = 0.0
+var _sea_drowning_s: float = 0.0
+var _sea_burn_dps: float = 0.0
+## Fractional damage carried between ticks (take_damage is int).
+var _sea_dps_debt: float = 0.0
 
 ## The live OceanService node (null in bare/script hosts).
 func _ocean_service() -> Node:
@@ -1336,11 +1351,33 @@ func _sea_swim_step(delta: float, up: Vector3, wish: Vector3) -> bool:
 		return false
 	var grace: float = 0.0
 	var immune: bool = false
+	var breath_mult: float = 1.0
 	if os.has_method("breather_for"):
 		var br: Dictionary = os.breather_for(entity_id)
 		grace = maxf(float(br.get("grace_m", 0.0)), 0.0)
 		immune = bool(br.get("current_immune", false))
-	var st: Dictionary = os.tick_swimmer(entity_id, global_position, delta, grace, 0.0, 0.0, immune)
+		breath_mult = maxf(float(br.get("mult", 1.0)), 1.0)
+	# THE MOUNT HANDOFF (S14.6's ticket, fed here since S14.7.3): the
+	# ride law answers BEFORE the sea law -- a land mount that is
+	# past the waterline is dismissed by the service itself; a
+	# swimmer mount stamps its grace/crush/current-immunity into the
+	# SAME tick call, so a mounted body and a naked body obey one
+	# ocean law. The band estimate for the handoff is the service's
+	# own (the raw gear grace; the mount's grace rides into the REAL
+	# call below). No ride service == the old naked path unchanged.
+	var mount_grace := 0.0
+	var mount_crush := 0.0
+	if ride_service != null and ride_service.has_method("water_stamp_for"):
+		var est_band: int = -1
+		if os.has_method("band_at"):
+			est_band = int(os.band_at(global_position, grace))
+		var stamp: Dictionary = ride_service.water_stamp_for(entity_id, est_band)
+		if str(stamp.get("action", "none")) == "swim":
+			mount_grace = maxf(float(stamp.get("grace", 0.0)), 0.0)
+			mount_crush = maxf(float(stamp.get("crush_bonus", 0.0)), 0.0)
+			immune = immune or bool(stamp.get("immune", false))
+	var st: Dictionary = os.tick_swimmer(entity_id, global_position, delta,
+		grace, mount_grace, mount_crush, immune)
 	var band: int = int(st.get("band", 0))
 	var depth: float = float(st.get("depth", -1.0))
 	# The wade band belongs to the ford law (it reads the terrain, this
@@ -1350,6 +1387,12 @@ func _sea_swim_step(delta: float, up: Vector3, wish: Vector3) -> bool:
 			_sea_wet = false
 			_sea_flow = Vector3.ZERO
 			_sea_depth = -1.0
+			_sea_breath_s = -1.0
+			_sea_breath_max = -1.0
+			_sea_pressure = 0.0
+			_sea_drowning_s = 0.0
+			_sea_burn_dps = 0.0
+			_sea_dps_debt = 0.0
 			if os.has_method("forget_swimmer"):
 				os.forget_swimmer(entity_id)
 		return false
@@ -1357,6 +1400,28 @@ func _sea_swim_step(delta: float, up: Vector3, wish: Vector3) -> bool:
 	_sea_band = band
 	_sea_depth = depth
 	_sea_flow = st.get("current", Vector3.ZERO)
+	# THE SWIM BOOK: snapshot the state for the HUD, then the DAMAGE
+	# LAW -- the driver converts (SwimState speaks pools and seconds,
+	# the body speaks health). Drowning past an empty breath, the
+	# squeeze/crush pressure pool (the pool IS the per-second rate),
+	# and a non-water volume's burn each pull the debt up; the debt
+	# pays out through the health component in whole points. Surfaced
+	# refills and eased pools are the service's law, never re-derived.
+	var SwimState = load("res://core/frame/srv/swim_state.gd")
+	_sea_breath_s = float(st.get("breath", 0.0))
+	_sea_breath_max = maxf(float(SwimState.BREATH_SECONDS) * breath_mult, 1.0)
+	_sea_pressure = maxf(float(st.get("pressure", 0.0)), 0.0)
+	_sea_drowning_s = maxf(float(st.get("drowning_s", 0.0)), 0.0)
+	_sea_burn_dps = maxf(float(st.get("burn_dps", 0.0)), 0.0)
+	var dps: float = _sea_burn_dps + _sea_pressure * SEA_PRESSURE_MULT
+	if _sea_drowning_s > 0.0:
+		dps += SEA_DROWN_DPS
+	if dps > 0.0:
+		_sea_dps_debt += dps * delta
+		if _sea_dps_debt >= 1.0:
+			var dmg: int = int(_sea_dps_debt)
+			_sea_dps_debt -= float(dmg)
+			take_damage(dmg, null, "drowning")
 	# Horizontal: the swim pace steers the existing velocity toward the
 	# wish; the current RIDES ON TOP at its own speed (the ferry lane).
 	var horiz: Vector3 = velocity - up * velocity.dot(up)

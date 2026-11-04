@@ -8318,3 +8318,81 @@ to swim it. Data alone is not a sea.
   (FerryService owns the timetable; the drift is the lane today), and
   water mounts riding the sea bands (SwimState.MOUNT_DISMOUNT_ON_
   SUBMERGE is not wired into the globe body yet).
+
+## 2026-11-04 -- PR-43 MERGE + S14.7.3: THE BARQUE, THE BINDER, THE DAMAGE, THE BAR
+
+Round plan from the previous round's deferral ledger: PR/issue triage,
+then the four S14.7 lane deferrals (prop entity binding, breath/
+pressure damage + HUD, the scheduled ferry ride, water mounts riding
+the sea bands). All four landed; one stale probe leg fell with them.
+
+- PR #43 MERGED (`24e1631b`, OpenHands, resolves #42): UIManager's
+  three GameManager connects were guarded with has_method() on SIGNAL
+  names -- always false -- so `_initialize_ui()` never ran and the
+  TargetTooltip island never spawned for the whole project life (the
+  dead-guard idiom fails CLOSED, zero noise). Guarded with has_signal()
+  + is_connected de-dupe; runtime autoload resolution (script-mode
+  safe); `TargetingManager.get_local_player_id()` added (the phantom
+  call); `show_target_tooltip()` rewritten against get_current_target();
+  `ui/targeting/target_tooltip.gd` dropped the dead local_id read. A
+  static lint guard `_check_has_method_on_signal` flags the idiom
+  repo-wide -> lint is 37 checks now. Receipt test_ui_manager_tooltip_
+  wiring 11/0 (the trap pinned, real connect legs, tooltip spawn +
+  rebuild-on-restart, the getter round-trip). Runner DEFAULT_SET 107.
+- THE BARQUE: the data route veh_sundered_barque (6 casts/day, first
+  5.5 h, 0.6 h crossing, pins waypoint_strait_moor <-> waypoint_strait_
+  seaward) had no hull. ferry_vessel.gd gained build_vessel() -- one
+  generic builder (piece-collider hull, place() law reader) -- and
+  build_barque() whose lane is the two pins' own dirs from DataService
+  gateway truth; the Pans runner now delegates. globe_world boots her
+  with the runner's tick law and pays the deck wake at berths (the
+  at_sea plan clears the roster only after the credit, the wake-glue
+  shape). Receipt test_sundered_ferry_barque 16/0: route status, both
+  pins resolve, one hull of four colliding pieces, the lane IS the
+  two pins, mid-lane float ON the sea radials, berths at the pins.
+  Deferred: harbor buoys for the two pins (the harbor_lights law
+  may join later), a real-world deck ride leg through globe boot
+  (the carry law is already receipted on the runner).
+- THE BINDER: the grove's paint follows the truth. The register call
+  stamps each (face, bed) grove with the deep_garden group + the
+  harvest_ids of its three plants; world-side deep_garden_binder
+  (entities/deep_garden_binder.gd) joins HarvestService's depletion
+  book to the paint: ALL three depleted -> the cove hides its kelp/
+  spires until a respawn reveals it; un-registered groves (bare
+  hosts) keep paint, no invented depletion. Idempotent bind (meta
+  guard) across re-init/re-derive. Legs live in the swim receipt.
+- THE SEA'S BITE (globe_player): the swim step reads breath/
+  pressure/burn/drowning from tick_swimmer, books `_sea_breath_s/max`,
+  `_sea_pressure`, `_sea_drowning_s`, `_sea_burn_dps`, and pays:
+  drowning 10 dps past empty breath + the pressure pool (pool = rate,
+  mult 1) + any non-water burn -> a damage debt taken through
+  take_damage in whole points; surfacing wipes the debt (the pool
+  easing is the service's law, the surface heals nothing). THE MOUNT
+  HANDOFF fed: water_stamp_for answers before the tick -- a swimmer
+  mount's grace/crush/immunity enter the SAME tick call (one ocean
+  law, mounted or not), a land mount past the waterline is dismissed
+  by the service itself, no ride service -> the naked path unchanged.
+- THE SEABAR (ui/components/sea_bar.gd + hud_layer install): the
+  StormBar dialect; polls the local body's swim book at 0.15 s,
+  hidden dry: band row (SURFACE SWIM at the top meter breath law),
+  breath bar (fraction of breather capacity), DROWNING flash,
+  pressure row. The damage stays the body's law; the bar only tells
+  the truth. Receipt legs: wet shows SQUEEZE, breath fraction exact,
+  drowning flash, dry hides.
+- THE FORD PROBE'S DRY LEG FELL AND WAS RE-LAWED: probe_terrain_
+  planet measured the "dry" walk at the spring's ANTIPODE -- on the
+  Sundered backend that side can lie under the S14.7 radial world
+  sea, so the S14.7.2 sea step takes a "dry" body standing on the
+  seabed (the sea depth bands put it in CRUSH) and the dry speed leg
+  collapsed (ratio 133.33; identical at HEAD control so it had been
+  latent since the radial sea, un-caught while the full pipeline was
+  waived). The dry site is now the hydro law's OWN guaranteed-dry
+  ground (the spawn apron, water suppressed by law, flat 28 m):
+  ratio 0.93, PASS by law. The full pipeline re-run against this
+  round's tree is the round gate recorded below.
+- GATES: swim receipt 52/0 exit 0; barque receipt 16/0 exit 0;
+  wiring receipt 11/0 exit 0; lint 37/0 exit 0 (5 files, the new
+  has_method-on-signal guard green); fleet packs regenerated 9 packs
+  / 6 unfiled sets, packstruct --deep green; full default pipeline
+  (fresh run against the finished tree): exit 0 with 107 passed /
+  0 failed / probe_terrain_planet PASS on the re-lawed dry leg.

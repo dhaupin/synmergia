@@ -139,6 +139,8 @@ func _ready() -> void:
 	_build_capitol_monolith()
 	_build_pans_monolith()
 	_build_pans_ferry()
+	_build_sundered_barque()
+	_install_garden_binder()
 	_build_town_npcs()
 	_build_player()
 	_setup_ambience()
@@ -899,6 +901,119 @@ func _build_pans_ferry() -> void:
 	tick.timeout.connect(_pans_ferry_tick.bind(int(ferry.ferries_per_day), \
 		float(ferry.first_departure_hour), float(ferry.crossing_hours)))
 	add_child(tick)
+
+
+## ---- THE SUNDERED BARQUE (S14.7.3): the strait's own scheduled ride --
+## the data route veh_sundered_barque already declares (6 cast-offs/day,
+## first at 5.5 h, a 0.6 h crossing) and the physical hull was the one
+## thing missing: the boat now rides the same closed-form FerrySchedule
+## law the runner rides, between the two pin dirs ITS OWN gateway data
+## names (DataService truth -- never an in-file bearing), carrying who
+## stands on her deck (place()'s one carry law) and paying the deck
+## wake the same ledger law pays. The 0.5 m/s RUN current stays the
+## sea's own flow (the swim step's lane); the crossed arc the BARQUE
+## law runs is the wakes'/pins' law.
+const BARQUE_VEHICLE := "veh_sundered_barque"
+const BARQUE_MOOR_GATEWAY := "waypoint_strait_moor"
+const BARQUE_SEAWARD_GATEWAY := "waypoint_strait_seaward"
+var sund_ferry_vessel: Node3D = null
+var _barque_vehicle_id: String = BARQUE_VEHICLE
+var _barque_pier_gateway: String = BARQUE_MOOR_GATEWAY
+var _barque_pans_gateway: String = BARQUE_SEAWARD_GATEWAY
+var _barque_wake_seen: Dictionary = {}
+var _barque_wake_last_t: float = -1.0
+
+func _build_sundered_barque() -> void:
+	var FS = get_node_or_null("/root/FerryService")
+	var FV: GDScript = load("res://entities/ferry_vessel.gd")
+	var Gen = load("res://scenes/worlds/terrain_gen.gd")
+	var sea: float = Gen.sea_level(streamer.world_seed) if streamer else 0.0
+	var DS = get_node_or_null("/root/DataService")
+	var moor: Vector3 = Vector3.ZERO
+	var seaward: Vector3 = Vector3.ZERO
+	var ok_pins := false
+	if DS != null and DS.has_method("get_gateway"):
+		var g1 = DS.get_gateway(BARQUE_MOOR_GATEWAY)
+		var g2 = DS.get_gateway(BARQUE_SEAWARD_GATEWAY)
+		if g1 != null and g2 != null:
+			moor = (g1.source_position as Vector3).normalized()
+			seaward = (g2.source_position as Vector3).normalized()
+			ok_pins = true
+	var logb = get_node_or_null("/root/GameLog")
+	var ferry = null
+	if FS != null:
+		ferry = FS.call("get_ferry", BARQUE_VEHICLE)
+	if ferry != null and ferry.route_gateways != null and ferry.route_gateways.size() >= 2:
+		_barque_vehicle_id = str(ferry.id)
+		_barque_pier_gateway = str(ferry.route_gateways[0])
+		_barque_pans_gateway = str(ferry.route_gateways[ferry.route_gateways.size() - 1])
+	if not ok_pins or ferry == null:
+		if logb:
+			logb.warn("GlobeWorld: the Sundered barque stays tied up (gateway data or ferry data absent)")
+		return
+	sund_ferry_vessel = FV.build_barque(world_root, moor, seaward,
+		planet_radius, STREAMER_TILE_LIFT,
+		Callable(streamer, "walk_surface_h"), sea)
+	var tick := Timer.new()
+	tick.wait_time = 1.0
+	tick.autostart = true
+	tick.timeout.connect(_barque_ferry_tick.bind(int(ferry.ferries_per_day),
+		float(ferry.first_departure_hour), float(ferry.crossing_hours)))
+	add_child(tick)
+
+
+## The barque's ride-law tick: the SAME closed form the runner runs
+## (FerrySchedule.vessel_t off the Concord epoch), place()'s one carry
+## law, and its OWN wake text -- the berthing glue stamps the standing
+## roster once per berth through record_deck_wake, exactly the ledger
+## the dock path and the runner pay.
+func _barque_ferry_tick(per_day: int, first_h: float, cross_h: float) -> void:
+	if sund_ferry_vessel == null:
+		return
+	var Schedule = load("res://core/frame/srv/ferry_schedule.gd")
+	var epoch: float = SignService.sky_epoch_days() if SignService else \
+		float(Time.get_unix_time_from_system()) / 86400.0
+	var t: float = Schedule.vessel_t(per_day, first_h, cross_h, epoch)
+	FERRY_VESSEL_LAW.place(sund_ferry_vessel, t)
+	_barque_credit_deck_riders(t)
+
+func _barque_credit_deck_riders(t: float) -> void:
+	var fs = get_node_or_null("/root/FerryService")
+	if fs == null or not fs.has_method("record_deck_wake"):
+		return
+	var sea_before: bool = _barque_wake_last_t > 0.02 and _barque_wake_last_t < 0.98
+	if sea_before:
+		var end_id: String = _barque_pier_gateway if t <= 0.5 else _barque_pans_gateway
+		for id in _barque_wake_seen:
+			fs.call("record_deck_wake", str(_barque_wake_seen[id]), _barque_vehicle_id, end_id)
+		_barque_wake_seen.clear()
+	var at_sea: bool = t > 0.02 and t < 0.98
+	if at_sea:
+		var roster: Dictionary = sund_ferry_vessel.get_meta("ride_roster") \
+			if sund_ferry_vessel.has_meta("ride_roster") else {}
+		for id in roster:
+			var b: Node = instance_from_id(id)
+			if b == null or not is_instance_valid(b):
+				continue
+			# Players ride as physics bodies; NPC rosters (code-moved
+			# Entities) are never credited -- no purse.
+			if not (b is CharacterBody3D):
+				continue
+			var pid = b.get("entity_id")
+			if pid == null or str(pid) == "":
+				continue
+			_barque_wake_seen[id] = str(pid)
+	_barque_wake_last_t = t
+
+
+## THE DEEP GARDEN BINDER (S14.7.3): the paint now follows the truth --
+## one world-side listener joins HarvestService's harvest/respawn
+## signals and hides each bed's grove while ALL three of its plants are
+## depleted (the cove stands empty), reveals it when any respawn lands.
+func _install_garden_binder() -> void:
+	var BGB = load("res://entities/deep_garden_binder.gd")
+	if BGB != null and BGB.has_method("bind"):
+		BGB.call("bind", world_root)
 
 
 ## The ride law's tick: FerrySchedule.vessel_t is the ONE law -- the

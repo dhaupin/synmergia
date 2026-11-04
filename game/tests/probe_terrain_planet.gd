@@ -415,8 +415,18 @@ func _run() -> void:
 				depth = maxf(depth, surf - Gen.terrain_height(mid, seed_p))
 			if depth > 0.2 and depth <= 1.55:
 				fc = mid
-				fdry = (mid * -1.0).normalized()
 				ford_depth = depth
+	if fc != Vector3.ZERO:
+		# THE DRY SITE is a law, not an accident of geography: the spring's
+		# antipode used to be cited ("no channel there"), but the S14.7
+		# radial world sea owns everything below the sea line's wading
+		# reach, and on the Sundered backend that antipode can be open
+		# ocean -- the sea step then takes a "dry" body standing on the
+		# seabed (CRUSH band), and the dry speed leg collapses. The hydro
+		# law's OWN guaranteed-dry ground is the spawn apron (water is
+		# suppressed around the boot plaza by law), flat 28 m: grounded
+		# body, no wing, honest full walk speed.
+		fdry = Gen.SPAWN_CENTER.normalized()
 	if fc != Vector3.ZERO:
 		var wader: CharacterBody3D = GPlayer.new()
 		wader.planet_radius = R20KM
@@ -468,7 +478,7 @@ func _run() -> void:
 		wader.queue_free()
 	ok = _check("ford: a wadeable river section exists on the planet (%s)" % ford_found, ford_found) and ok
 	ok = _check("ford: body wades in the channel bed (depth %.2f m)" % ford_depth, ford_ok) and ok
-	ok = _check("ford: dry ground reads no wade (antipodal bank)", dry_ok) and ok
+	ok = _check("ford: dry ground reads no wade (spawn-apron law)", dry_ok) and ok
 	ok = _check("ford: waded walk is slowed (speed ratio %.2f, band [0.3, 0.95])" % ford_speed_ratio, \
 		ford_speed_ratio > 0.3 and ford_speed_ratio < 0.95) and ok
 

@@ -3234,6 +3234,19 @@ func _apply_sundered_deep(face: int, patch_node: Node3D) -> void:
 		rng.seed = base_acc + 31337 + bed_idx * 101
 		var grove := Node3D.new()
 		grove.name = "DeepGarden%d_%d" % [face, bed_idx]
+		# THE ENTITY BINDING (S14.7.3): the grove is not just paint -- it
+		# carries the identity of the harvest nodes the SAME bed
+		# registration created (the one placement law, both halves).
+		# The world-side deep_garden_binder reads this meta against the
+		# service's own depletion book: a fully-taken cove hides its
+		# paint until a plant respawns.
+		grove.add_to_group("deep_garden")
+		var plant_prefix := "deep_kelp" if kind == 1 else "deep_pearl"
+		var plant_ids: Array = []
+		for k in range(3):
+			plant_ids.append("%s_%d_%d_%d" % [plant_prefix, face, bed_idx, k])
+		grove.set_meta("harvest_ids", plant_ids)
+		grove.set_meta("deep_kind", kind)
 		var root_r: float = sea_r - (DEEP_KELP_M if kind == 1 else DEEP_PEARL_M)
 		if kind == 1:
 			# THE KELP SHELF: strands tall enough to read from the surface,
