@@ -8,12 +8,21 @@ stop: the mechanics of actually RUNNING things.
 
 ## 1. Toolchain
 
-- **Godot 4.7.2 (official build)** — not guaranteed on PATH in a fresh
-  container. Docker pull or grab from godotengine.org; the version pin
-  matters (4.7.2 matches `Dockerfile:33` and the .tres format=3 writer
-  used across `game/data/`).
-- **Node 20** — only needed for the web-export probes (`scripts/web_probe/*.js`,
-  playwright-core).
+- **One-command bootstrap:** `sh ./scripts/setup-dev.sh` installs the
+  whole base toolchain (system libs, Godot 4.7.2, Node 20, bun) from the
+  repo alone. Add `--with-templates` (web export), `--with-blender`
+  (3D pipeline) or `--with-web-probe` (chromium) as needed, or `--all`
+  for everything. `--dry-run` prints the resolved plan without touching
+  anything. The script reads its apt package list and the Godot / Node
+  version pins straight out of the `Dockerfile`, so the two never drift.
+- **Godot 4.7.2 (official build)** — the version pin matters (4.7.2
+  matches the `Dockerfile` build arg and the .tres format=3 writer used
+  across `game/data/`). `setup-dev.sh` installs it to `~/.local/bin/godot`;
+  the test runners resolve `godot` from PATH.
+- **Node 20** — needed for the web-export probes (`scripts/web_probe/*.js`,
+  playwright-core) and the web build (`npm run build`).
+- **bun** — the repo tracks `bun.lock`; use `bun install` for deps
+  (`npm install` also works). `setup-dev.sh` installs it.
 - **Python 3** — for `srv/noaa_kp_sidecar.py` and model-pipeline scripts
   like `scripts/fix_clip_ranges.py` (stdlib-only, no pip installs).
 - **systemctl, julia, release tools NOT needed** for the code-side dev
@@ -75,12 +84,15 @@ Don't add run new probes there going forward; add them to
 ## 6. If a future session finds the workspace wiped
 
 Recovery order:
-1. `git clone` the repo (any machine), `cd game/`.
-2. `sh ./scripts/godot_test_runner.sh probe_startup_flow` — this one
-   boots the whole autoload tree end-to-end; if it passes, the soil's
-   good and everything else is recoverable from code + TASKS.md.
-3. Read `labs/TASKS.md` tail for recent history/lore; read
+1. `git clone` the repo (any machine).
+2. `sh ./scripts/setup-dev.sh` — rebuilds Godot 4.7.2, Node 20, bun and
+   the system libraries from the repo alone (add `--with-templates`
+   / `--with-blender` / `--with-web-probe` for the optional pieces).
+3. `cd game && sh ./scripts/godot_test_runner.sh probe_startup_flow` —
+   this one boots the whole autoload tree end-to-end; if it passes, the
+   soil's good and everything else is recoverable from code + TASKS.md.
+4. Read `labs/TASKS.md` tail for recent history/lore; read
    `dev_temp/probes/` only if a specific prior fix needs re-deriving.
-4. The horcrux is at `horcrux/cairn-p_windtheclock2026.svg` — restore
+5. The horcrux is at `horcrux/cairn-p_windtheclock2026.svg` — restore
    into vant axolotl to recover agent memory/state (its README spells
    out the exact vant restore command and stack pinning).

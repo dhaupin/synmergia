@@ -45,14 +45,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xvfb x11vnc websockify novnc xfwm4 xdotool \
     libx11-6 libx11-xcb1 libxcb1 libxext6 libxrandr2 libxcursor1 \
     libxi6 libxinerama1 libxrender1 libxkbcommon0 \
-    libgl1 libasound2 libpulse0 \
+    libgl1 libasound2t64 libpulse0 \
     # Web server
     nginx openssl \
     # Dev tools
     python3 python3-pip ffmpeg imagemagick x11-apps \
-    # Puppeteer / Chromium (screenshots)
-    libnss3 libatk-bridge2.0-0 libxcomposite1 libxdamage1 \
-    libgbm1 libpangocairo-1.0-0 libpango-1.0-0 libgtk-3-0 \
+    # Puppeteer / Chromium (screenshots). The t64 suffix is required on
+    # trixie: libasound2 / libgtk-3-0 / libatk-bridge2.0-0 were renamed
+    # to their time64 ABI variants and the bare names no longer resolve.
+    libnss3 libatk-bridge2.0-0t64 libxcomposite1 libxdamage1 \
+    libgbm1 libpangocairo-1.0-0 libpango-1.0-0 libgtk-3-0t64 \
     fonts-liberation \
     # Database clients (app connects to external containers)
     postgresql-client redis-tools \
@@ -90,6 +92,15 @@ RUN curl -fsSL "https://deb.nodesource.com/setup_${NODE_VERSION}.x" | bash - \
 # ── Working dir ────────────────────────────────────────────────────────────
 WORKDIR /workspace/project/game
 
+# ── Sidecar services (srv/) ────────────────────────────────────────────────
+# The entrypoint runs the pg/redis/webhook bridges + the NOAA Kp sidecar
+# from /workspace/project/srv/. That path must exist in the image, or
+# test/prod modes die at the first `python3 .../main.py`. Compose mounts
+# ./game and ./labs but NOT srv, so without this COPY the sidecars are
+# absent from every container built from this image. game/ is NOT copied
+# on purpose: the runtime supplies it via the compose bind mount (dev)
+# or a deploy-time overlay (prod), so baking it here would be dead weight.
+COPY srv/ /workspace/project/srv/
 
 # ── Nginx config ───────────────────────────────────────────────────────────
 COPY nginx.conf /etc/nginx/nginx.conf

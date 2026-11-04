@@ -161,14 +161,23 @@ Synmergia will launch as a **free-to-play browser MMORPG**. Create your account,
 git clone https://github.com/dhaupin/synmergia.git
 cd synmergia
 
+# Install the dev toolchain (Godot 4.7.2, Node 20, bun, system libs).
+# Add --with-templates / --with-blender / --with-web-probe as needed.
+sh ./scripts/setup-dev.sh
+
 # Open in Godot 4.7.2
 godot --editor game/
 
 # Or run a headless server
 godot --headless --server --path game/
+
+# Run the smoke tests (serial, or parallel for speed)
+sh ./scripts/godot_test_runner.sh
+sh ./scripts/godot_test_parallel.sh
 ```
 
-See [AGENTS.md](./AGENTS.md) for developer conventions and code patterns.
+See [AGENTS.md](./AGENTS.md) for developer conventions and code patterns,
+and [DEVCODE.md](./DEVCODE.md) for the mechanics of running things.
 
 ---
 
