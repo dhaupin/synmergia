@@ -219,6 +219,15 @@ func run() -> void:
 	# --- Stage 14: accept an available quest from the journal ---------
 	await _stage_journal_accept(player, pid)
 
+	# --- Stage 15: the waypoint -> compass loop -----------------------
+	await _stage_waypoint_route(player)
+
+	# --- Stage 16: the friend request -> accept -> block loop ---------
+	await _stage_social_friends(pid)
+
+	# --- Stage 17: the chat pipeline + the ignore book ----------------
+	await _stage_chat_social(pid)
+
 	await _finish()
 
 ## Spawn a real wolf with the shipped wolf data, in front of the player.
@@ -717,6 +726,30 @@ func _stage_dialogue_quest(inst: Node, player, inv, pid: String) -> void:
 		shop.close()
 	await _shot("playthrough_12_dialogue_shop")
 
+	# --- The Awakening, the game's first quest, completes on the real data ---
+	# Regression: its TALK objective used to target the display name
+	# "Village Elder", but the TALK bridge credits by the npc_ id verbatim
+	# with no display-name fallback, so the first quest could never finish.
+	var awake = load("res://data/quests/quest_main_awakening.tres")
+	var awake_target := ""
+	if awake != null and awake.objectives.size() > 0:
+		awake_target = str(awake.objectives[0].get("target", ""))
+	_ok("The Awakening TALK objective targets the npc_ id",
+		awake_target == "npc_village_elder", "(target=%s)" % awake_target)
+	qsvc.accept_quest(pid, "quest_main_awakening")
+	var awake_before: Dictionary = qsvc.get_quest_progress(pid, "quest_main_awakening")
+	_ok("The Awakening accepted into progress",
+		int(awake_before.get("state", -1)) == 2, "(state=%s)" % str(awake_before.get("state")))
+	# Speaking with the elder is the real credit path (dialogue_ended carries
+	# the NPCData id; quest_service bridges it into the TALK objective).
+	dsvc.start_dialogue("npc_village_elder", "village_elder_greeting")
+	dsvc.end_dialogue()
+	await get_tree().process_frame
+	var awake_obj: Array = qsvc.get_quest_progress(pid, "quest_main_awakening").get("objectives", [])
+	var awake_done := awake_obj.size() > 0 and bool(awake_obj[0].get("completed", false))
+	_ok("talking to the elder completes The Awakening objective", awake_done,
+		"(%s)" % str(awake_obj))
+
 
 ## Stage 14: accept a quest from the JOURNAL (not an NPC). Opens the real
 ## QuestUI through MenuManager, lists the AVAILABLE tab, selects a quest the
@@ -771,6 +804,168 @@ func _stage_journal_accept(player, pid: String) -> void:
 	await _shot("playthrough_12_journal_accept")
 	if panel.has_method("close"):
 		panel.close()
+
+
+
+## Stage 15: the waypoint -> compass loop. Creates a real waypoint at the
+## player's position, activates it through WaypointService, and asserts the
+## HUD Compass actually opened for the local player -- the compass had zero
+## driver coverage, and its activation arm gates on the local player id.
+func _stage_waypoint_route(player) -> void:
+	var wsvc := get_tree().root.get_node_or_null("WaypointService")
+	_ok("WaypointService up", wsvc != null)
+	if wsvc == null:
+		return
+	var pid := str(player.get("entity_id"))
+	var comp = _find_compass()
+	_ok("the HUD Compass is in the tree", comp != null)
+	if comp != null:
+		comp.hide_compass()
+
+	var res: Dictionary = wsvc.create_waypoint_here(pid, "Playthrough Marker")
+	_ok("create_waypoint_here succeeded", bool(res.get("success", false)), "(%s)" % str(res.get("message", "")))
+	var wp: Dictionary = res.get("waypoint", {})
+	var wp_id := str(wp.get("id", ""))
+	_ok("the waypoint got an id", wp_id != "", "(%s)" % wp_id)
+	if wp_id == "":
+		return
+
+	var act: Dictionary = wsvc.activate_waypoint(pid, wp_id)
+	_ok("activate_waypoint succeeded", bool(act.get("success", false)), "(%s)" % str(act.get("message", "")))
+	if comp != null:
+		_ok("the compass opened for the activated waypoint", comp.visible,
+			"(local=%s pid=%s)" % [str(_local_pid()), pid])
+	_ok("WaypointService reports the active waypoint",
+		str(wsvc.get_active_waypoint(pid).get("id", "")) == wp_id)
+
+	# Bounds validation refuses an out-of-world position (anti-teleport).
+	var far: Dictionary = wsvc.create_waypoint(pid, "Far Marker", Vector3(9999999.0, 0.0, 0.0), "zone_starter_plains")
+	_ok("create_waypoint refuses an out-of-bounds position",
+		not bool(far.get("success", false)), "(%s)" % str(far.get("message", "")))
+
+	wsvc.deactivate_waypoint(pid)
+	if comp != null:
+		_ok("the compass closed when the waypoint deactivated", not comp.visible)
+	await _shot("playthrough_13_waypoint")
+
+
+## Stage 16: the friend request -> accept -> block loop. Two real player ids
+## drive FriendsService's request/accept/block surface; asserts the loop's
+## observable state (friendship, one-time accept, block auto-unfriends).
+func _stage_social_friends(pid: String) -> void:
+	var fsvc := get_tree().root.get_node_or_null("FriendsService")
+	_ok("FriendsService up", fsvc != null)
+	if fsvc == null:
+		return
+	var peer := "playthrough_peer"
+	var accepted_signals := [0]
+	var declined_signals := [0]
+	fsvc.friend_request_accepted.connect(func(_fid): accepted_signals[0] += 1)
+	fsvc.friend_request_declined.connect(func(_f, _t): declined_signals[0] += 1)
+
+	var req: Dictionary = fsvc.send_friend_request(pid, "Playthrough Player", peer)
+	_ok("send_friend_request succeeded", bool(req.get("success", false)), "(%s)" % str(req.get("message", "")))
+	var req_id := str(req.get("request_id", ""))
+	if req_id == "":
+		return
+	var accept: Dictionary = fsvc.accept_friend_request(peer, req_id)
+	_ok("accept_friend_request succeeded", bool(accept.get("success", false)), "(%s)" % str(accept.get("message", "")))
+	_ok("the two players are friends after accept", fsvc.is_friend(pid, peer))
+	# Regression: accept used to ALSO emit friend_request_declined (copy-paste
+	# from decline), so the UI saw an accept and a decline for one request.
+	_ok("accept emitted accepted exactly once, declined not at all",
+		accepted_signals[0] == 1 and declined_signals[0] == 0,
+		"(accepted=%d declined=%d)" % [accepted_signals[0], declined_signals[0]])
+
+	var blk: Dictionary = fsvc.block_player(pid, peer)
+	_ok("block_player succeeded", bool(blk.get("success", false)), "(%s)" % str(blk.get("message", "")))
+	_ok("blocking auto-unfriended the pair", not fsvc.is_friend(pid, peer))
+	_ok("the peer can no longer interact with the blocker", not fsvc.can_interact_with(peer, pid))
+	var unblk: Dictionary = fsvc.unblock_player(pid, peer)
+	_ok("unblock_player succeeded", bool(unblk.get("success", false)), "(%s)" % str(unblk.get("message", "")))
+	_ok("the peer can interact again after unblock", fsvc.can_interact_with(peer, pid))
+
+
+## Stage 17: the chat pipeline + the ignore book. A real party makes PARTY
+## chat resolve a live audience (send_message returns true + message_received
+## fires); the ignore book then hides the peer's lines at the display surface
+## while System stays visible.
+func _stage_chat_social(pid: String) -> void:
+	var csvc := get_tree().root.get_node_or_null("ChatService")
+	_ok("ChatService up", csvc != null)
+	if csvc == null:
+		return
+	var peer := "playthrough_chatter"
+
+	# A real party makes PARTY chat resolve a live target set.
+	var psvc := get_tree().root.get_node_or_null("PartyService")
+	var got: Array = []
+	csvc.message_received.connect(func(sender_id, channel, msg, targets): got.append([sender_id, channel, msg, targets]))
+	if psvc != null:
+		var party_id: String = psvc.create_party(pid)
+		_ok("party created for chat", party_id != "", "(%s)" % party_id)
+		psvc.invite_player(pid, peer)
+		psvc.accept_invite(peer)
+		var sent: bool = csvc.send_message(pid, csvc.Channel.PARTY, "playthrough hello")
+		_ok("party chat delivered to a real audience", sent)
+		_ok("message_received fired for the party line", not got.is_empty())
+		psvc.leave_party(pid)
+		psvc.leave_party(peer)
+	else:
+		_ok("PartyService up (for the chat audience)", false)
+
+	# System messages always land, even with an ignore list.
+	var sys_lines: Array = []
+	csvc.message_received.connect(func(sender_id, channel, msg, _targets):
+		if channel == csvc.Channel.SYSTEM:
+			sys_lines.append(msg))
+	csvc.send_system_message(pid, "Playthrough system line")
+	_ok("send_system_message emitted a SYSTEM line", not sys_lines.is_empty())
+
+	# The ignore book: ignoring the peer hides their lines (by id), System
+	# stays visible, and unignoring restores delivery.
+	var ign: Dictionary = csvc.ignore_player(pid, peer)
+	_ok("ignore_player succeeded", bool(ign.get("success", false)), "(%s)" % str(ign.get("message", "")))
+	_ok("is_ignored_sender reports the ignored peer", csvc.is_ignored_sender(pid, peer))
+	_ok("is_ignored_sender never hides SYSTEM", not csvc.is_ignored_sender(pid, "SYSTEM"))
+	var unign: Dictionary = csvc.unignore_player(pid, peer)
+	_ok("unignore_player succeeded", bool(unign.get("success", false)), "(%s)" % str(unign.get("message", "")))
+	_ok("the peer is no longer ignored", not csvc.is_ignored_sender(pid, peer))
+
+	# The display surface: ChatUI (the live chat panel) drops an ignored
+	# sender's line but keeps a System line.
+	var mm := get_tree().root.get_node_or_null("MenuManager")
+	if mm == null and get_tree().current_scene != null:
+		var hud = get_tree().current_scene.get_node_or_null("HudLayer")
+		mm = hud.get_node_or_null("MenuManager") if hud else null
+	var chat = mm.get_node_or_null("ChatUI") if mm != null else null
+	_ok("the HUD chat panel is in the tree", chat != null)
+	if chat != null and chat.has_method("add_message"):
+		csvc.ignore_player(pid, peer)
+		var count_before: int = int(chat.get("_message_count"))
+		chat.add_message(peer, csvc.Channel.SAY, "hidden line", pid)
+		var after_hidden: int = int(chat.get("_message_count"))
+		chat.add_message("SYSTEM", csvc.Channel.SYSTEM, "visible line", pid)
+		var after_system: int = int(chat.get("_message_count"))
+		_ok("ChatUI dropped the ignored sender's line", after_hidden == count_before,
+			"(%d -> %d)" % [count_before, after_hidden])
+		_ok("ChatUI kept the System line", after_system > after_hidden)
+		csvc.unignore_player(pid, peer)
+
+
+func _local_pid() -> String:
+	var pm := get_tree().root.get_node_or_null("PlayerManager")
+	return str(pm.get_local_player_id()) if pm != null else ""
+
+
+## The HUD Compass: under the HUD's WaypointUI, or found by name anywhere.
+func _find_compass():
+	var hud = get_tree().current_scene.get_node_or_null("HudLayer") if get_tree().current_scene else null
+	if hud != null:
+		var direct = hud.get_node_or_null("Compass")
+		if direct != null:
+			return direct
+	return get_tree().root.find_child("Compass", true, false)
 
 
 func _finish() -> void:

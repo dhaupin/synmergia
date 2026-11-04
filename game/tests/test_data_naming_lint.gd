@@ -155,6 +155,26 @@ func _run() -> void:
 	else:
 		_fail("Phantom quest refs: %s" % ", ".join(bad_quest_refs))
 
+	# --- Quest TALK objectives target NPCData ids ---
+	# The TALK bridge credits by npc_ id verbatim (dialog_service emits
+	# dialogue_ended with the NPCData id) and has NO display-name fallback,
+	# so an objective targeting a display name never ticks. The Awakening
+	# shipped this way and was uncompletable.
+	var bad_talk_targets: Array = []
+	var talk_re := RegEx.new()
+	talk_re.compile("\"type\"\\s*:\\s*5\\s*,\\s*\"target\"\\s*:\\s*\"([^\"]*)\"")
+	for base in quest_ids:
+		var qtxt := _file_text("data/quests", base)
+		var qid := str(quest_ids[base])
+		for m in talk_re.search_all(qtxt):
+			var tgt := m.get_string(1)
+			if tgt != "" and not npc_id_set.has(tgt):
+				bad_talk_targets.append("%s -> %s" % [qid, tgt])
+	if bad_talk_targets.is_empty():
+		_ok("Quest TALK objectives all target real npc_ ids")
+	else:
+		_fail("TALK targets that cannot be credited (use the npc_ id): %s" % ", ".join(bad_talk_targets))
+
 	# --- Offering quest_ids + dialogue npc_id refs ---
 	var bad_offering_refs: Array = []
 	var odir := DirAccess.open("res://data/npc_offerings")

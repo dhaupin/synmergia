@@ -19,11 +19,28 @@ static var _face_centers: PackedVector3Array = PackedVector3Array()
 static var _face_verts: Array = []  # Array[PackedInt32Array]
 static var _face_neighbors: Array = []  # Array[PackedInt32Array]
 static var _built: bool = false
+## Guards the one-time build. The terrain streamer derives faces on
+## worker threads (globe_terrain_streamer._mesh_derive_job /
+## _prop_derive_job), and several can reach face_center() before the
+## first build finishes. The plain `if _built` check is not atomic, so
+## without this lock two threads both ran the build and appended to the
+## SHARED statics -- _face_centers grew past 20 (Out of bounds) and the
+## torn writes corrupted the heap. Double-checked under the lock: the
+## first thread builds, the rest see _built and return.
+static var _build_lock := Mutex.new()
 
 
 static func _ensure_built() -> void:
 	if _built:
 		return
+	_build_lock.lock()
+	if not _built:
+		_build_locked()
+		_built = true
+	_build_lock.unlock()
+
+
+static func _build_locked() -> void:
 	var verts: Array[Vector3] = []
 	for v in Icosahedral.VERTICES:
 		verts.append(v.normalized())
@@ -103,7 +120,6 @@ static func _ensure_built() -> void:
 					nbrs.append(other)
 		nbrs.sort()
 		_face_neighbors.append(nbrs)
-	_built = true
 
 
 ## Face count (always 20).
