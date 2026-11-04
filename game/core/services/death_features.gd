@@ -208,19 +208,17 @@ func apply_death_penalties(entity, killer = null, is_pvp: bool = false, was_duel
 	}
 
 	# XP Loss
-	if Config.XP_LOSS_PERCENT > 0 and entity.has_method("get_xp"):
-		var current_xp: int = entity.get_xp()
+	if Config.XP_LOSS_PERCENT > 0:
+		var current_xp: int = _read_xp(entity)
 		var xp_loss := int(current_xp * Config.XP_LOSS_PERCENT)
-		if xp_loss > 0:
-			entity.modify_xp(-xp_loss)
+		if xp_loss > 0 and _spend_xp(entity, xp_loss):
 			penalties["xp_loss"] = xp_loss
 
 	# Gold Loss
-	if Config.GOLD_LOSS_PERCENT > 0 and entity.has_method("get_gold"):
-		var current_gold: int = entity.get_gold()
+	if Config.GOLD_LOSS_PERCENT > 0:
+		var current_gold: int = _read_gold(entity)
 		var gold_loss := int(current_gold * Config.GOLD_LOSS_PERCENT)
-		if gold_loss > 0:
-			entity.modify_gold(-gold_loss)
+		if gold_loss > 0 and _spend_gold(entity, gold_loss):
 			penalties["gold_loss"] = gold_loss
 
 	# Durability Loss
@@ -234,6 +232,11 @@ func apply_death_penalties(entity, killer = null, is_pvp: bool = false, was_duel
 			if RespawnService:
 				RespawnService.remove_karma(entity.entity_id, Config.PVP_KARMA_LOSS, "Killed by %s" % killer.display_name)
 				penalties["karma_loss"] = Config.PVP_KARMA_LOSS
+
+	# Mirror the loss into PlayerManager (the HUD's XP/gold source) when
+	# the victim is the local player, matching the reward-side mirror.
+	if penalties["xp_loss"] > 0 or penalties["gold_loss"] > 0:
+		_mirror_progress_to_player_manager(entity, -int(penalties["xp_loss"]), -int(penalties["gold_loss"]))
 
 	# Log and emit
 	if penalties.xp_loss > 0 or penalties.gold_loss > 0 or penalties.durability_loss > 0:
@@ -266,6 +269,127 @@ func apply_death_penalties(entity, killer = null, is_pvp: bool = false, was_duel
 		)
 
 	return penalties
+
+
+## ============================================================================
+## PROGRESSION SURFACE (duck-typed)
+## ============================================================================
+## The authoritative progression lives on the player node as the
+## `experience`/`gold` fields plus add_experience/add_gold (the same
+## convention kill_rewards.gd pays through). Death penalties and
+## kill-streak bonuses route through these helpers so they hit the
+## real wallet; the node's own signals keep PlayerManager and the HUD
+## in sync. Nothing here reads a `modify_xp`/`modify_gold`/`get_xp`
+## method -- no class in the repo declares those.
+
+## Current XP of a combatant, or 0 when the node carries no progress.
+func _read_xp(entity) -> int:
+	if entity != null and "experience" in entity:
+		return int(entity.experience)
+	return 0
+
+
+## Current gold of a combatant, or 0 when the node carries no purse.
+func _read_gold(entity) -> int:
+	if entity != null and "gold" in entity:
+		return int(entity.gold)
+	return 0
+
+
+## Deduct XP (a death penalty), never below zero. Returns true when
+## XP actually moved so the caller books the loss honestly.
+func _spend_xp(entity, amount: int) -> bool:
+	if entity == null or amount <= 0 or not ("experience" in entity):
+		return false
+	var current: int = int(entity.experience)
+	if current <= 0:
+		return false
+	# No negative-XP API exists (add_experience only grants). A penalty is
+	# a direct field move; announce it so the HUD/PlayerManager mirror hears.
+	var loss: int = mini(amount, current)
+	entity.experience = current - loss
+	_emit_xp_changed(entity)
+	return true
+
+
+## Deduct gold (a death penalty), never below zero. Routes through the
+## node's remove_gold when present (the ONE-purse path), else the field.
+func _spend_gold(entity, amount: int) -> bool:
+	if entity == null or amount <= 0:
+		return false
+	if "remove_gold" in entity and entity.has_method("remove_gold"):
+		return bool(entity.remove_gold(amount))
+	if not ("gold" in entity):
+		return false
+	var current: int = int(entity.gold)
+	if current <= 0:
+		return false
+	entity.gold = maxi(0, current - amount)
+	return true
+
+
+## Grant XP (a kill-streak bonus) through the real grant surface.
+func _grant_xp(entity, amount: int) -> void:
+	if entity == null or amount <= 0:
+		return
+	if "add_experience" in entity and entity.has_method("add_experience"):
+		entity.add_experience(amount)
+	elif "experience" in entity:
+		entity.experience = int(entity.experience) + amount
+		_emit_xp_changed(entity)
+
+
+## Grant gold (a kill-streak bonus) through the real grant surface.
+func _grant_gold(entity, amount: int) -> void:
+	if entity == null or amount <= 0:
+		return
+	if "add_gold" in entity and entity.has_method("add_gold"):
+		entity.add_gold(amount)
+	elif "gold" in entity:
+		entity.gold = int(entity.gold) + amount
+
+
+## Re-announce XP after a direct field move so the HUD/PlayerManager
+## mirror hears it (add_experience emits this itself).
+func _emit_xp_changed(entity) -> void:
+	if "experience_changed" in entity and entity.has_signal("experience_changed"):
+		entity.experience_changed.emit(int(entity.experience), int(entity.level) if "level" in entity else 1)
+
+
+## Mirror a progression delta into PlayerManager (the persistent stats
+## the HUD reads). Signed: a kill-streak bonus is positive, a death
+## penalty negative. Only the local player node is mirrored --
+## PlayerManager holds the local player's stats, never another's.
+func _mirror_progress_to_player_manager(entity, xp: int, gold: int) -> void:
+	if entity == null:
+		return
+	var tree := get_tree()
+	if tree == null:
+		return
+	var pm: Node = tree.root.get_node_or_null(NodePath("PlayerManager"))
+	if pm == null or not pm.has_method("get_local_player"):
+		return
+	if pm.get_local_player() != entity:
+		return
+	if xp != 0 and pm.has_method("add_experience"):
+		pm.add_experience(xp)
+	if gold != 0 and pm.has_method("add_gold"):
+		pm.add_gold(gold)
+
+
+## Zone id for a death record. The entity itself never carries one --
+## ZoneManager owns the entity->zone map.
+func _zone_id_of(entity) -> String:
+	if entity == null:
+		return ""
+	var tree := get_tree()
+	if tree == null:
+		return ""
+	var zm: Node = tree.root.get_node_or_null(NodePath("ZoneManager"))
+	if zm != null and zm.has_method("get_entity_zone_id"):
+		return str(zm.get_entity_zone_id(entity))
+	return ""
+
 
 ## ============================================================================
 ## GRIEFING PROTECTION
@@ -424,14 +548,20 @@ func _apply_kill_streak_reward(killer_id: String, streak: int) -> void:
 	var xp_bonus := int(streak * Config.KILL_STREAK_XP_MULTIPLIER * 100)
 	var gold_bonus := streak * Config.KILL_STREAK_GOLD_BONUS
 
-	# Apply rewards
+	# Apply rewards through the real duck-typed progression surface
+	# (experience field + add_experience/add_gold). The old guards probed
+	# modify_xp/modify_gold, which no class declares -- the enabled
+	# streak bonus silently granted nothing.
 	if EntityService:
 		var killer = EntityService.get_entity(killer_id)
 		if killer:
-			if killer.has_method("modify_xp") and xp_bonus > 0:
-				killer.modify_xp(xp_bonus)
-			if killer.has_method("modify_gold") and gold_bonus > 0:
-				killer.modify_gold(gold_bonus)
+			if xp_bonus > 0:
+				_grant_xp(killer, xp_bonus)
+			if gold_bonus > 0:
+				_grant_gold(killer, gold_bonus)
+			# The HUD XP bar reads PlayerManager, so mirror the bonus into
+			# the persistent stats the same way kill_rewards does.
+			_mirror_progress_to_player_manager(killer, xp_bonus, gold_bonus)
 
 	kill_streak_rewarded.emit(killer_id, streak, xp_bonus, gold_bonus)
 
@@ -632,10 +762,10 @@ func _on_player_died(entity, killer) -> void:
 	# pick it up. Zone rules decide how much drops; duels drop nothing.
 	_drop_player_loot(entity, killer, was_duel)
 
-	# Record for death stats
-	var zone_id := ""
-	if entity.has_method("get_zone_id"):
-		zone_id = entity.get_zone_id()
+	# Record for death stats. Zone comes from ZoneManager (no entity
+	# declares get_zone_id), so the death-history row carries a real
+	# zone instead of an empty string.
+	var zone_id := _zone_id_of(entity)
 	record_death(entity, killer, zone_id, "death")
 
 	# Record kill for griefing detection. Duel kills are consensual --
