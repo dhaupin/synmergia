@@ -8119,3 +8119,28 @@ a missing function.
   ALWAYS natural -- no boot can hang on the fence.
 - GATES: lint 36/0; full pipeline exit 0 (102 passed / 0 failed /
   0 SCRIPT ERROR).
+
+## 2026-11-03 -- PR-22 MERGE ROUND (OpenHands quest/dialog/money loops)
+
+Merged OpenHands' playthrough driver broadening (merge commit
+bf70f22; the draft PR was merged via head-branch merge since it was
+draft) and re-gated merged main in this worktree.
+
+- The branch fixes #23/#25-#31/#33: quest rewards PAY (faction via
+  FactionManager, chains enforce prerequisites, optional objectives
+  stop gating, auto_complete pays on the spot), DialogService actions
+  route the real seams (STOP_FOLLOW/UNLOCK_TITLE/TEACH_SKILL/
+  GIVE_ITEM/GIVE_CURRENCY/SET_WAYPOINT), InventoryService gains the
+  signed-delta modify_gold, VendorService buyback is typed +
+  persisted, TradeService's unique guard runs, the corpse carries the
+  bag, the target ring mesh has a surface, QuestUI renders readable
+  objectives and keeps REWARDED quests, and the runtime
+  nonexistent-method callers were routed to real ones.
+- New lane receipts outside the runner DEFAULT_SET:
+  test_dialogue_quest_reward 22/0, test_quest_availability 12/0,
+  test_dialogue_ui_flow 7/0, test_trade_unique_guard 4/0; driver 77/0.
+- MERGE-INTEGRITY GATES on merged main: lint 36/0; full pipeline
+  exit 0 / 102 passed / 0 failed / 0 SCRIPT ERROR (ran to completion
+  pre-merge at 1e00d88 and post-merge at bf70f22; two aborted runs
+  were the cloud runner restarts, never code).
+- Open lanes: #34, #35, and the S14.7 Sundered Sea long lane.
