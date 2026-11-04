@@ -129,13 +129,6 @@ func _connect_services() -> void:
 		if _party_svc.has_signal("xp_shared"):
 			_party_svc.xp_shared.connect(_on_xp_shared)
 
-## The share split landed: refresh the party panel, log the split
-## (the consumer the xp_shared contract was built for; kill_rewards
-## already calls share_xp, so the loop finally closes).
-func _on_xp_shared(_party_id: String, _base_xp: int, _distribution: Dictionary, _killer_id: String) -> void:
-	if _party and _party.has_method("refresh"):
-		_party.refresh()
-
 	# Guild events -> GuildUI.
 	if _guild and _guild_svc:
 		if _guild_svc.has_signal("player_joined_guild"):
@@ -316,6 +309,13 @@ func _on_xp_shared(_party_id: String, _base_xp: int, _distribution: Dictionary, 
 	# Character creation events -> CharacterPanel refresh.
 	if GameManager:
 		GameManager.game_state_changed.connect(_on_game_state_changed)
+
+## The share split landed: refresh the party panel (the consumer the
+## xp_shared contract was built for; kill_rewards already calls
+## share_xp, so the loop finally closes).
+func _on_xp_shared(_party_id: String, _base_xp: int, _distribution: Dictionary, _killer_id: String) -> void:
+	if _party and _party.has_method("refresh"):
+		_party.refresh()
 
 
 func _refresh_from_game_manager() -> void:
