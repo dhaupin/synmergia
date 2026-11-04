@@ -643,11 +643,13 @@ func _is_item_owned_by_anyone(item_id: String) -> bool:
 	for player in all_players:
 		if not is_instance_valid(player):
 			continue
-			var inventory: Dictionary = InventoryService.get_player_inventory(player.entity_id)
-			for slot_key in inventory:
-				var slot_data = inventory[slot_key]
-				if slot_data.has("item_id") and slot_data["item_id"] == item_id:
-					return true
+		# The body below used to sit one tab under the `continue`, so it was
+		# unreachable and this always returned false -- unique items were never
+		# recognized as owned. Read the mounted purse (InventoryService has no
+		# get_player_inventory; the real lookup is get_inventory + find_item).
+		var inventory = InventoryService.get_inventory(player.entity_id)
+		if inventory != null and inventory.has_method("find_item") and inventory.find_item(item_id) >= 0:
+			return true
 	return false
 
 ## Get pending trade request for player
