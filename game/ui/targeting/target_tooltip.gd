@@ -95,8 +95,9 @@ func _on_target_acquired(target: TargetingScript.TargetInfo) -> void:
 	if not _targetingmanager():
 		return
 
-	# Only show tooltip for local player targeting
-	var local_id: int = _targetingmanager().get_local_player_id()
+	# Only show tooltip for a valid target with a live node. (The local
+	# player id is not needed here; the previous `local_id` read was an
+	# unused variable that called a method TargetingManager lacked.)
 	if target.id == "" or not target.node:
 		return
 
