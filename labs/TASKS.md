@@ -8078,3 +8078,44 @@ now renders the character as they actually are.
   0 misses, 0 SCRIPT ERROR.
 - GATES: probe 24/0, lint 36/0, full pipeline exit 0 (102 passed /
   0 failed / 0 SCRIPT ERROR).
+
+## 2026-11-03 -- TERRAIN TEARDOWN FENCE (issue #19)
+
+The globe streamer's worker lanes got a teardown fence; the
+"Nonexistent function / get_ticks_msec on null / Thread destroyed"
+stderr spam is traced to unjoined derive threads at world death, not
+a missing function.
+
+- TRACE: HEAD control runs (fix stashed) reproduce the exact 6
+  SCRIPT ERROR + 3 thread-warning spam on probe_stream_continent_a's
+  natural exit; the spam lands AFTER "TickService: Stopped" -- the
+  derive workers are still running when the engine starts finalizing
+  (empty '' names = calls resuming into script state the finalizer
+  frees around them).
+- HYPOTHESIS KILLED: the issue's own suggestion (a) says statics are
+  not "fully resolved" before the first async derive. Instrumentation
+  says otherwise: 23 mesh jobs / 11 prop jobs entered AND completed
+  inside the workers in one boot; the statics are politely resolved.
+- THE STRAGGLER PARK: a class of re-derive kicks (face re-sweeps from
+  the final frames) parks mid-compute in an engine-internal futex and
+  only resumes under the finalizer; unbounded wait_to_finish() on it
+  hangs the exit forever (three 900 s timeouts proved it). The park
+  is engine-level (the issue's own suggestion (b)); not faked away.
+- THE FENCE (globe_terrain_streamer.gd): `async_shutdown()`
+  (main thread only) marks the streamer closed, joins every worker
+  that finishes inside a 30 s window (wait_to_finish ONLY on threads
+  whose job returned), DROPS a still-alive park past the window
+  instead of wedging the boot, then clears the mesh+prop books under
+  their own mutexes. The kickers refuse work after it (`_shutdown`).
+- THE HOOK (globe_world.gd): `_exit_tree()` walks the fence before
+  the node releases the workers' script state (guarded has_method so
+  fence-less mock streamers stay silent). Scene swaps, probe exits
+  and teardown all pass through it.
+- MEASURED vs HEAD (HDR control stash cycle): drained boots
+  (probe_planet_rebase_20km, probe_terrain_backend light-load,
+  probe_meshcache_ram) 0 SCRIPT ERROR / 0 thread warnings with the
+  fence; straggler boots (continent_a; terrain_backend under heavy
+  host contention) 6+3 at HEAD -> 0-3 + 0-3 fenced, and the exit is
+  ALWAYS natural -- no boot can hang on the fence.
+- GATES: lint 36/0; full pipeline exit 0 (102 passed / 0 failed /
+  0 SCRIPT ERROR).

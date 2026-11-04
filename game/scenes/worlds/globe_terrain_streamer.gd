@@ -2003,8 +2003,53 @@ var _prop_jobs := {}     # face -> true while a derive is in flight
 var _prop_results := {}  # face -> packed derive arrays (set in thread)
 var _prop_threads := {}  # face -> Thread (reaped in the apply pass)
 
-## Threading gate: the terrain arc's content only (the prototype's
-## S7 greenery keeps the sync path -- cheap and law-pinned).
+## THE TEARDOWN FENCE (issue #19): a world that dies while a derive is
+## in flight must not leave its workers calling into engine state the
+## finalizer tears down around them -- that is the teardown stderr spam
+## ("Nonexistent function ..." / "'' in base 'Vector3'" /
+## "get_ticks_msec on a null value") plus Godot's own "Thread destroyed
+## without wait_to_finish()" warnings.
+## MAIN THREAD ONLY (kickers + appliers are main-thread too). The fence
+## marks the streamer closed (kickers refuse after it), joins every
+## worker that FINISHES inside a bounded window, then clears the books.
+## THE BOUNDED LAW is deliberate: a straggler re-derive job can park
+## mid-compute in an engine-internal wait around world death and only
+## ever resume under the finalizer -- wait_to_finish() on it would hang
+## the exit forever, so a still-alive worker past the window is DROPPED
+## (its Thread object dies unjoined, the one honest residue the
+## finalizer leaves) instead of wedging the boot. Every finished worker
+## reaps cleanly: with normal derive walls the window joins everything
+## (small and drained worlds exit 0/0 spam / 0/0 thread warnings).
+const FENCE_JOIN_WINDOW_MS: int = 30000
+
+var _shutdown := false
+
+func async_shutdown() -> void:
+	if _shutdown:
+		return
+	_shutdown = true
+	var live: Array = (_mesh_threads.values() + _prop_threads.values()).filter(
+		func(t): return t != null and t.is_started())
+	var give_up_ms: int = Time.get_ticks_msec() + FENCE_JOIN_WINDOW_MS
+	while not live.is_empty() and Time.get_ticks_msec() < give_up_ms:
+		live = live.filter(func(t): return t != null and t.is_started() and t.is_alive())
+		if live.is_empty():
+			break
+		OS.delay_msec(250)
+	for t in (_mesh_threads.values() + _prop_threads.values()):
+		if t != null and t.is_started() and not t.is_alive():
+			t.wait_to_finish()  # the job returned; this is a fast reap
+	_mesh_mutex.lock()
+	_mesh_threads.clear()
+	_mesh_results.clear()
+	_mesh_jobs.clear()
+	_mesh_mutex.unlock()
+	_prop_mutex.lock()
+	_prop_threads.clear()
+	_prop_results.clear()
+	_prop_jobs.clear()
+	_prop_mutex.unlock()
+
 func _prop_async() -> bool:
 	return lod_on and terrain_on
 
@@ -2018,6 +2063,8 @@ func _kick_prop_derivation(face: int) -> void:
 	_prop_mutex.unlock()
 	if busy:
 		return  # already deriving (the guard survives a face revisit)
+	if _shutdown:
+		return  # the teardown fence owns the streamer now
 	_prop_jobs[face] = true
 	if terrain_on:
 		# The strait freight is a service registration (main-thread
@@ -3287,6 +3334,8 @@ func _kick_mesh_derivation(face: int, use_lvl: int) -> void:
 	_mesh_mutex.unlock()
 	if busy:
 		return  # already deriving (the guard survives a face revisit)
+	if _shutdown:
+		return  # the teardown fence owns the streamer now
 	var t := Thread.new()
 	_mesh_threads[face] = t
 	t.start(Callable(self, "_mesh_derive_job").bind(face, use_lvl), Thread.PRIORITY_LOW)

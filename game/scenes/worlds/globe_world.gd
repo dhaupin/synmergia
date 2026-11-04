@@ -280,6 +280,18 @@ func _setup_touch_hud() -> void:
 	GameLog.info("GlobeWorld: touch HUD wired to orbit_camera")
 
 
+## THE STREAMER FENCE (issue #19): when the world leaves the tree --
+## scene swap, probe exit, teardown -- join every live derive thread
+## BEFORE the engine releases the script state they call into. The
+## unjoined threads were the source of the teardown stderr spam
+## ("Nonexistent function", "get_ticks_msec on null", "Thread
+## destroyed without wait_to_finish"). Guarded so a fence-less (or
+## mock) streamer stays silent.
+func _exit_tree() -> void:
+	var streamer = get("streamer")
+	if streamer != null and streamer.has_method("async_shutdown"):
+		streamer.async_shutdown()
+
 func _setup_streamer() -> void:
 	if not stream_terrain:
 		return
