@@ -212,6 +212,23 @@ func orbit_camera(dx: float, dy: float) -> void:
 	look_pitch = clampf(look_pitch - dy, -LOOK_PITCH_LIMIT, LOOK_PITCH_LIMIT)
 
 
+## Flush the glide session to the sky-road stats: routes the session's
+## distance/altitude/time to the gliding achievements once per glide.
+## The wing auto-deploys near the ground, so a session is often one
+## glide rather than one frame -- landing is when it is complete.
+func _flush_glide_session() -> void:
+	_glide_session_active = false
+	if _glide_session_distance <= 0.0:
+		_glide_session_distance = 0.0
+		return
+	_glide_session_distance = 0.0
+	if not (Engine.get_main_loop() is SceneTree):
+		return
+	var ts = Engine.get_main_loop().root.get_node_or_null("ThermalService")
+	if ts != null and ts.has_method("push_glide_achievements"):
+		ts.push_glide_achievements(entity_id)
+
+
 ## Radial direction from the planet center to this body (local up).
 ## Anticheat glide-flag helper (defensive resolve; GM/spawn contexts
 ## without a limit stamp are no-ops there).
@@ -269,6 +286,14 @@ var planar_mode: bool = false
 ## deployment setting is fed by PlayerConfig ("auto"/"manual").
 var glider = null  # GliderState (load-time assigned; frame primitive)
 var _glide_up: Vector3 = Vector3.UP  # up vector captured per frame
+## Glide-session bookkeeping: whether this body was GLIDING last frame,
+## and the distance it has carried in the current glide session. Landing
+## (or the wing closing) flushes the session to ThermalService's
+## achievements, so a completed glide is recognized without a per-frame
+## cost -- the wing auto-deploys near the ground, so the tick rarely
+## lands a full session in one frame.
+var _glide_session_active: bool = false
+var _glide_session_distance: float = 0.0
 
 # R45 saddle: the riding layer (labs/prd-mounts.md sec 9). The body
 # listens to RideService's summon/dismiss signals and adopts the
@@ -868,6 +893,8 @@ func _physics_process(delta: float) -> void:
 				gstate = glider.state
 		if gstate == glider.State.GLIDING:
 			_glide_up = up
+			_glide_session_active = true
+			_glide_session_distance += velocity.length() * delta
 			var ac = Engine.get_main_loop().root.get_node_or_null("AntiCheatService") if Engine.get_main_loop() is SceneTree else null
 			if ac != null and ac.has_method("set_glide_active"):
 				ac.set_glide_active(entity_id, true)
@@ -900,6 +927,11 @@ func _physics_process(delta: float) -> void:
 			move_and_slide()
 			_validate_movement()
 			return
+		# The wing closed (landed, stowed, or vacuum): flush the glide
+		# session to ThermalService's achievements so a completed run
+		# is recognized once, not per frame.
+		if _glide_session_active:
+			_flush_glide_session()
 		if is_on_floor():
 			glider.on_grounded()
 			_set_ac_gliding(false)
