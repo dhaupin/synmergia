@@ -57,7 +57,7 @@ func _run() -> void:
 	var comp = load("res://core/components/inventory_component.gd").new()
 	comp.set_owner_id("dq_probe")
 	var player_script := GDScript.new()
-	player_script.source_code = "extends Node3D\nvar entity_id: String = 'dq_probe'\nvar gold: int = 0\nvar experience: int = 0\nvar level: int = 1\nvar inventory_component = null\nfunc add_gold(a: int) -> void:\n\tgold += a\nfunc add_experience(a: int) -> void:\n\texperience += a\n"
+	player_script.source_code = "extends Node3D\nvar entity_id: String = 'dq_probe'\nvar entity_type: int = 1\nvar display_name: String = 'DqProbe'\nvar seed: int = 0\nvar gold: int = 0\nvar experience: int = 0\nvar level: int = 1\nvar inventory_component = null\nfunc add_gold(a: int) -> void:\n\tgold += a\nfunc add_experience(a: int) -> void:\n\texperience += a\n"
 	player_script.reload()
 	var fake_player = player_script.new()
 	fake_player.name = "DqProbePlayer"
