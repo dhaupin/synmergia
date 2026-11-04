@@ -8144,3 +8144,27 @@ draft) and re-gated merged main in this worktree.
   pre-merge at 1e00d88 and post-merge at bf70f22; two aborted runs
   were the cloud runner restarts, never code).
 - Open lanes: #34, #35, and the S14.7 Sundered Sea long lane.
+
+## 2026-11-04 -- PR-39 MERGE ROUND (driver social/nav stages 15-17 + fixes #36/#37/#38)
+
+Merged OpenHands' driver hookups + dialogue/quest fixes branch
+(pr-c-driver-social-waypoint) and re-gated in this worktree.
+
+- Driver grew stages 15-17 in place: waypoint -> compass, friends
+  request/accept/block, chat audience + ignore-book hiding. Driver
+  now walks 113 stages-legs (was 78).
+- Fixes: IcosahedralFaces._ensure_built() mutex-guarded double-check
+  (#36 heap tear under concurrent worker lanes -- the concurrent-build
+  half of #19; complements the 1e00d88 teardown fence),
+  quest_main_awakening.tres TALK target now the npc_village_elder id
+  (#37 the first quest was uncompletable), FriendsService
+  accept_friend_request no longer emits the stray declined signal
+  (#38); test_data_naming_lint now guards TALK objective targets.
+- AGENTS.md conflict resolved on merge (their 2026-11-04 entries
+  above this worktree's 2026-11-03 PR-22 entry).
+- MERGE-INTEGRITY GATES on merged main: lint 36/0. Full pipeline
+  SKIPPED by owner instruction this round (was green on the branch's
+  CI at every commit: driver 113/0, pipeline 102/0/0 before merge;
+  the icosahedral fix's own probes exit 0).
+- Issues #36/#37/#38 closed by owner after the merge; OpenHands'
+  superseded web-shell-mkdir PR #24 left open for their call.
