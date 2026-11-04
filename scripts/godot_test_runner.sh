@@ -76,6 +76,7 @@ test_roster_and_dispatch
 test_sundered_sea_swim
 test_ui_manager_tooltip_wiring
 test_sundered_ferry_barque
+test_sea_bar_hud_ready
 probe_riding
 probe_ward_gate
 probe_startup_flow

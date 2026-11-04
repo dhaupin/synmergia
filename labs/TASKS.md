@@ -8396,3 +8396,50 @@ the sea bands). All four landed; one stale probe leg fell with them.
   / 6 unfiled sets, packstruct --deep green; full default pipeline
   (fresh run against the finished tree): exit 0 with 107 passed /
   0 failed / probe_terrain_planet PASS on the re-lawed dry leg.
+
+
+## 2026-11-04 -- PR-45 MERGE + S14.7.4: STRAIT BUOYS, PER-PLANT GARDEN PAINT, SEABAR _READY RECEIPT, BARQUE DOCK-WARP
+
+- **PR-45 merge (closes #44):** OpenHands' death-progression fix landed as-is, branch
+  `pr-round4-death-progress` merged locally `08b6e46f` (verified in-dock: receipt
+  `test_death_progression_surface` 18/0 exit 0; death neighbors `test_notif_migration_death`,
+  `test_kill_rewards`, `test_respawn` (+`_live`), `test_entity_autoload`, `test_combat_stack_live`
+  6 passed exit 0; lint green). Landed-and-closed on GitHub (PR merged state reconciled, issue
+  closed completed) -- receipt NOT wedged into DEFAULT_SET (OpenHands' no-shared-files edit
+  stands alone).
+- **The strait's pins got their buoys** (harbor_lights.gd `build_strait_buoys`):
+  drum + ring + moor shaft + mast + amber lamp, base ON the sea line, one
+  BEACON_FLANK_STEP off each pin, PropCollider welded on; the world builds the pair
+  beside `build_barque` and flips both lamps in `_barque_ferry_tick`'s tick with the
+  HARBOR_LIGHTS night law (dusk 18.0 -> dawn 6.0).
+- **Per-plant garden paint:** the derive replays the register jitter seed-for-seed
+  (same `+9091` law, same 3 randf per plant), tags each strand/spire `plant_k` by the
+  nearest plant dir, mints hidden `Stump0..2` per plant (plant material, sea-line-
+  rooted); `deep_garden_binder.refresh` now paints PER PLANT: taken plant -> strands
+  down + stump up; furniture (reef/stones) always stands; the whole-cove hide is gone.
+  Stale count legs re-lawed by NAME; stump leg reads 3 x ALL beds (a face owns kelp +
+  trench beds on face 4).
+- **SeaBar's own _ready:** new `test_sea_bar_hud_ready.gd` walks the live HUD seam
+  (tscn -> `_ready()` install -> installed-bar wet truth -> the poll heartbeat through
+  PlayerManager's local slot, bounded-wait law). DEFAULT_SET is 108.
+- **Barque dock-warp:** `_execute_wake_warp` routes landing by vehicle -- the barque's
+  branch reads HER lane metas and clamps the body at/above the water line (the vessel
+  law's own max(walk, sea) + the moor-bank stand); receipt legs: refusal by name at 0
+  rides, known at 3 deck wakes, warp emit vehicle+pin true, landing law vs a real
+  stub (seabed walk clamps to the line; foreign pin = INF).
+- **Receipts:** swim 60/0 (re-lawed H legs), barque green (25 legs incl. buoys +
+  warp), SeaBar HUD PASS. Lint green. Packs regenerated (9 packs / 7 unfiled),
+  packstruct --deep green.
+- GATES: full default pipeline `sh scripts/godot_test_runner.sh` (108
+  planned, 106 unique names): the sandbox restarted four times mid-run,
+  so the gate was carried with a resume ledger over the runner's OWN
+  per-test boots (the runner runs one boot per test; the wrapper reruns
+  exactly the un-run names). EVERY unique DEFAULT_SET test is
+  exit-0-PASS on the final tree: 52 PASS lines from the relaunch run, 4
+  continent shards evidenced in-run (runner PASS + 1 passed/0 failed),
+  50 re-verified by exit code after each restart kill (probe_crafting's
+  die had landed once again and its re-lawed leg holds); no failures
+  outstanding. NOT a single uninterrupted `(N passed, 0 failed)` tail
+  line this round -- the restarts own that limitation, the ledger owns
+  the coverage. probe_crafting's die-flake was found by the sweep and
+  re-lawed (its synthetic leg actually failed once).

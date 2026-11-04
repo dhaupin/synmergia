@@ -123,6 +123,55 @@ static func build_moor_guide(parent: Node3D, planet_radius: float, surface_lift:
 	return node
 
 
+## THE STRAIT BUOYS (S14.7.4): the Sundered barque's two pins finally
+## get their harbor marks -- a floating drum + moor mast + amber lamp
+## ON the sea line at a flank step off each pin (one sign each way, the
+## BEACON_FLANK_STEP law), so the berthed hull never touches its own
+## marker. The lamp rides the SAME night law (place_night -> set_lit),
+## so both buoys lit dusk to dawn off the epoch the barque's tick
+## already holds. No walk callable by design: a buoy is not a moor
+## bank -- its base IS the sea line (the vessel law's float truth),
+## which is exactly what makes it a buoy and not a beacon.
+static func build_strait_buoys(parent: Node3D, planet_radius: float,
+		surface_lift: float, pin_a: Vector3, pin_b: Vector3,
+		sea_level: float) -> Array:
+	var spawn_dir: Vector3 = Vector3(0, 1, 0)
+	var out: Array = []
+	var names: Array = ["StraitBuoyMoor", "StraitBuoySeaward"]
+	for i in range(2):
+		var pin: Vector3 = (pin_a.normalized() if i == 0 else pin_b.normalized())
+		var dir: Vector3 = _flank(pin, spawn_dir, -1.0 if i == 0 else 1.0)
+		var node := Node3D.new()
+		node.name = names[i]
+		parent.add_child(node)
+		node.set_meta("dir", dir)
+		node.set_meta("radius", planet_radius)
+		node.set_meta("surface_lift", surface_lift)
+		node.set_meta("sea", sea_level)
+		# THE SEA LINE IS THE BASE: the drum's bottom sits exactly on
+		# the water the vessel law floats on (no walk read -- read the
+		# law's comment above).
+		var base_r: float = planet_radius + surface_lift + sea_level
+		node.position = dir * base_r
+		_set_tangent_frame(node, dir, spawn_dir)
+		# THE DRUM: a barrel with its own ring band, buoyant by build
+		# (it straddles the line: half above, half below). Below it, a
+		# short mooring shaft anchors the honest way.
+		_box(node, Vector3(0, 0.55, 0), Vector3(1.4, 1.1, 1.4), _STONE)
+		_box(node, Vector3(0, 0.55, 0), Vector3(1.55, 0.22, 1.55), _FINIAL)
+		_box(node, Vector3(0, -0.45, 0), Vector3(0.4, 0.7, 0.4), _STONE)
+		# THE MAST + CAGED LAMP: a slim stick and the amber head, the
+		# pier beacon's proportions shrunk to buoy size (it reads from
+		# the berthed deck, ~2 m at the waterline below).
+		_box(node, Vector3(0, 1.75, 0), Vector3(0.12, 1.4, 0.12), _STONE)
+		var lamp := _lamp(node, Vector3(0, 2.62, 0), 0.26)
+		node.set_meta("lamp", lamp.material_override)
+		node.set_meta("halo", _halo(node, Vector3(0, 2.62, 0)))
+		PropCollider.attach(node)
+		out.append(node)
+	return out
+
+
 ## THE NIGHT LAW: lit from dusk (18.0) through dawn (6.0), dark to
 ## the sun. Pure -- the caller carries the epoch; the globe's ferry
 ## tick passes the epoch it already holds, so the lights and the

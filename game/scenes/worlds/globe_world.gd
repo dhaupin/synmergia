@@ -917,6 +917,8 @@ const BARQUE_VEHICLE := "veh_sundered_barque"
 const BARQUE_MOOR_GATEWAY := "waypoint_strait_moor"
 const BARQUE_SEAWARD_GATEWAY := "waypoint_strait_seaward"
 var sund_ferry_vessel: Node3D = null
+var _barque_buoy_moor: Node3D = null
+var _barque_buoy_seaward: Node3D = null
 var _barque_vehicle_id: String = BARQUE_VEHICLE
 var _barque_pier_gateway: String = BARQUE_MOOR_GATEWAY
 var _barque_pans_gateway: String = BARQUE_SEAWARD_GATEWAY
@@ -954,6 +956,18 @@ func _build_sundered_barque() -> void:
 	sund_ferry_vessel = FV.build_barque(world_root, moor, seaward,
 		planet_radius, STREAMER_TILE_LIFT,
 		Callable(streamer, "walk_surface_h"), sea)
+	# THE HARBOR BUOYS (S14.7.4): the two pins get their floating marks
+	# the runner's landings already have lights for -- drum + mast + amber
+	# lamp ON the sea line, one flank step off each berth. They ride the
+	# SAME night law the other harbor lights do (place_night off the
+	# epoch this route's tick already holds).
+	var HLB = load("res://entities/harbor_lights.gd")
+	if HLB != null and HLB.has_method("build_strait_buoys"):
+		var buoys: Array = HLB.call("build_strait_buoys", world_root,
+			planet_radius, STREAMER_TILE_LIFT, moor, seaward, sea)
+		if buoys.size() == 2:
+			_barque_buoy_moor = buoys[0]
+			_barque_buoy_seaward = buoys[1]
 	var tick := Timer.new()
 	tick.wait_time = 1.0
 	tick.autostart = true
@@ -976,6 +990,10 @@ func _barque_ferry_tick(per_day: int, first_h: float, cross_h: float) -> void:
 	var t: float = Schedule.vessel_t(per_day, first_h, cross_h, epoch)
 	FERRY_VESSEL_LAW.place(sund_ferry_vessel, t)
 	_barque_credit_deck_riders(t)
+	# THE BUOY LIGHTS: night law off the same epoch (the runner's harbor
+	# law, second route).
+	HARBOR_LIGHTS.place_night(_barque_buoy_moor, epoch)
+	HARBOR_LIGHTS.place_night(_barque_buoy_seaward, epoch)
 
 func _barque_credit_deck_riders(t: float) -> void:
 	var fs = get_node_or_null("/root/FerryService")
@@ -1096,7 +1114,12 @@ func _execute_wake_warp(player_id: String, vehicle_id: String, gateway_id: Strin
 		if logb:
 			logb.warn("GlobeWorld: wake warp ignored for non-local body %s" % player_id)
 		return
-	var local: Vector3 = _wake_landing(gateway_id)
+	# The route owns its landing law: the runner's two landings are the
+	# capitol pier and the pans moor bank; the barque's are HER OWN two
+	# pins (the strait's moor and seaward marks). One wake signal, one
+	# vehicle-true landing.
+	var local: Vector3 = _barque_wake_landing(gateway_id) \
+		if vehicle_id == _barque_vehicle_id else _wake_landing(gateway_id)
 	if local == Vector3.INF:
 		if logb:
 			logb.warn("GlobeWorld: wake warp has no landing for %s" % gateway_id)
@@ -1124,6 +1147,32 @@ func _wake_landing(gateway_id: String) -> Vector3:
 		return Vector3.INF
 	var walk: float = float(streamer.walk_surface_h(dir.normalized())) if streamer else 0.0
 	return dir.normalized() * (planet_radius + walk + stand_extra)
+
+
+## THE BARQUE'S LANDINGS (the dock-warp tier's second route): the wake
+## steps between her two pins. The dir comes from the VESSEL'S OWN
+## metas (the lane the hull rides is the lane the sailor lands on --
+## never a re-derived bearing), and the body never spawns UNDER the
+## sea: the vessel law's own max(walk, sea) clamp keeps the landing at
+## or above the water line, drowning takes the body only by its own
+## swim, never by a warp.
+func _barque_wake_landing(gateway_id: String) -> Vector3:
+	if sund_ferry_vessel == null:
+		return Vector3.INF
+	var lane_a: Vector3 = sund_ferry_vessel.get_meta("lane_a")
+	var lane_b: Vector3 = sund_ferry_vessel.get_meta("lane_b")
+	var dir: Vector3
+	if gateway_id == _barque_pier_gateway:
+		dir = lane_a.normalized()
+	elif gateway_id == _barque_pans_gateway:
+		dir = lane_b.normalized()
+	else:
+		return Vector3.INF
+	var walk: float = float(streamer.walk_surface_h(dir)) if streamer else 0.0
+	var Gen = load("res://scenes/worlds/terrain_gen.gd")
+	var sea: float = Gen.sea_level(streamer.world_seed) if streamer else 0.0
+	# the moor-bank law's stand (bank + body center) + the sea clamp
+	return dir * (planet_radius + maxf(walk, sea) + 0.6 + 0.95)
 
 
 ## THE TOWN ROSTERS (the owner's turn-15 law: "the starter village

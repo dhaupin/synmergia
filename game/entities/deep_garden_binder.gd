@@ -7,9 +7,9 @@
 ## nodes also stamps each grove with meta `harvest_ids` = the ids of
 ## the three plants that bed owns. This binder subscribes to
 ## HarvestService's harvest_completed + node_respawned and re-evaluates
-## the cove's paint: while ALL of a grove's plants are depleted the
-## grove hides (the cove stands empty -- the kelp is taken, the
-## pearls are pocketed), and any respawn reveals it again. Leaf-empty
+## the cove's paint PER PLANT (S14.7.4): a taken plant shears to its
+## own stump until THAT plant's respawn comes back; the cove stands
+## through it (the reef, the stones -- furniture is not loot). Leaf-empty
 ## beds (a grove whose nodes were never registered, e.g. a bare host
 ## with terrain off) keep their paint: the binder never invents a
 ## depletion the service does not declare.
@@ -50,7 +50,7 @@ static func bind(root: Node) -> void:
 	refresh(root)
 
 
-## A cove changed: re-judge the paint from the service's own book.
+## A plant changed: re-judge the paint from the service's own book.
 static func _on_harvest(_player_id: String, node_id: String,
 		_item_id: String, _qty: int, root: Node) -> void:
 	refresh(root)
@@ -60,8 +60,14 @@ static func _on_respawn(_node_id: String, root: Node) -> void:
 	refresh(root)
 
 
-## The paint law: hide a grove exactly when the service says every
-## plant it owns is depleted; reveal on any breath left in the bed.
+## The paint law (S14.7.4, per-plant): the grove is the cove's own
+## furniture and STAYS -- reef boulders, drowned stones; the cove does
+## not vanish. A TAKEN PLANT shears to a stump: the strands/spires
+## standing on that plant (their `plant_k` meta, stamped at derive
+## time) stand down and that plant's Stump<k> shows; a respawn brings
+## the plant back and hides the stump. A plant whose service id says
+## nothing about depletion is a live plant -- never a hidden one
+## (fail-open on paint is honest: paint never invents a depletion).
 static func refresh(root: Node) -> void:
 	var svc = _svc_from(root)
 	if svc == null or not svc.has_method("is_depleted"):
@@ -73,10 +79,18 @@ static func refresh(root: Node) -> void:
 		var ids: Array = grove.get_meta("harvest_ids")
 		if ids.is_empty():
 			continue
-		var all_taken := true
-		for nid in ids:
-			var seen: bool = svc.call("is_depleted", str(nid))
-			if not seen:
-				all_taken = false
-				break
-		grove.visible = not all_taken
+		# One read of the service per PLANT (ids[k] owns plant k).
+		var gone: Dictionary = {}
+		for k in range(ids.size()):
+			gone[k] = bool(svc.call("is_depleted", str(ids[k])))
+		for child in grove.get_children():
+			var mesh := child as MeshInstance3D
+			if mesh == null or not mesh.has_meta("plant_k"):
+				continue
+			var k: int = int(mesh.get_meta("plant_k"))
+			if k < 0 or not gone.has(k):
+				continue
+			if str(mesh.name).begins_with("Stump"):
+				mesh.visible = gone[k]
+			else:
+				mesh.visible = not gone[k]

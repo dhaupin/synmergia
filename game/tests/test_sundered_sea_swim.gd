@@ -97,7 +97,9 @@ func _run() -> void:
 	_check("shelf face paints one garden per bed", shelf_node.get_child_count() == shelf_beds.size())
 	_check("shelf gardens are named for their face and bed",
 		shelf_node.get_child_count() > 0 and str(shelf_node.get_child(0).name).begins_with("DeepGarden%d_" % shelf_face))
-	_check("shelf paints fourteen kelp strands", _count_material(shelf_node, streamer._kelp_material()) == 14 * shelf_kind)
+	_check("shelf paints fourteen kelp strands", _count_named(shelf_node, "Kelp") == 14 * shelf_kind)
+	_check("every bed on the face carries its three hidden stumps",
+		_count_named(shelf_node, "Stump") == 3 * shelf_beds.size())
 	_check("shelf paints reef boulders", _count_material(shelf_node, streamer._reef_material()) > 0)
 	shelf_node.queue_free()
 	var trench_node := Node3D.new()
@@ -107,7 +109,7 @@ func _run() -> void:
 		if str(child.name).begins_with("Spire"):
 			spires += 1
 	_check("trench paints six vent spires per bed", spires == 6 * trench_kind)
-	_check("trench face draws only its own shelf kelp", _count_material(trench_node, streamer._kelp_material()) == 14 * _count_kind(trench_beds, 1))
+	_check("a face keeps its stumps inside its own beds", _count_named(trench_node, "Kelp") == 14 * _count_kind(trench_beds, 1))
 	trench_node.queue_free()
 	var empty_node := Node3D.new()
 	streamer._apply_sundered_deep(empty_face, empty_node)
@@ -262,14 +264,44 @@ func _run() -> void:
 			bind_grove.has_meta("harvest_ids") and (bind_grove.get_meta("harvest_ids") as Array).size() == 3)
 		var ids: Array = bind_grove.get_meta("harvest_ids")
 		var now: float = float(Time.get_unix_time_from_system())
-		for nid in ids:
-			hs._nodes[str(nid)]["depleted_until"] = now + 99999.0
+		_check("the paint carries the per-plant seam",
+			_grove_plant(bind_grove, 0, true) > 0
+			and _grove_plant(bind_grove, 1, true) > 0
+			and _grove_plant(bind_grove, 2, true) > 0
+			and _grove_named(bind_grove, "Stump", false) == 3)
+		# ONE plant taken (S14.7.4 per-plant law): its strands stand
+		# down, ITS stump shows; the bed's other plants and the reef
+		# furniture stand through it -- the cove does not vanish.
+		hs._nodes[str(ids[0])]["depleted_until"] = now + 99999.0
 		BGB.call("refresh", root)
-		_check("a fully-taken cove hides its paint", not bind_grove.visible)
+		_check("a taken plant stands down to its stump",
+			_grove_plant(bind_grove, 0, true) == 0
+			and _grove_plant(bind_grove, 0, false) > 0)
+		_check("its stump rises", _grove_named(bind_grove, "Stump0", true) == 1)
+		_check("the bed's other plants keep their paint",
+			_grove_plant(bind_grove, 1, true) > 0 and _grove_plant(bind_grove, 2, true) > 0)
+		_check("the taken cove's furniture stands", _grove_named(bind_grove, "Reef", true) == 4)
+		_check("the cove itself never vanishes", bind_grove.visible)
+		# The rest of the bed taken: every strand down, every stump up.
+		for k in range(1, ids.size()):
+			hs._nodes[str(ids[k])]["depleted_until"] = now + 99999.0
+		BGB.call("refresh", root)
+		_check("a fully-taken bed is all stumps",
+			_grove_plant(bind_grove, 0, true) == 0
+			and _grove_plant(bind_grove, 1, true) == 0
+			and _grove_plant(bind_grove, 2, true) == 0
+			and _grove_named(bind_grove, "Stump0", true) == 1
+			and _grove_named(bind_grove, "Stump1", true) == 1
+			and _grove_named(bind_grove, "Stump2", true) == 1)
+		# Any respawn: back the way it was, per plant.
 		for nid in ids:
 			hs.force_ready(str(nid))
 		BGB.call("refresh", root)
-		_check("a respawned cove stands again", bind_grove.visible)
+		_check("a respawned bed stands planted again",
+			_grove_plant(bind_grove, 0, true) > 0
+			and _grove_plant(bind_grove, 1, true) > 0
+			and _grove_plant(bind_grove, 2, true) > 0
+			and _grove_named(bind_grove, "Stump", false) == 3)
 
 	_finish("SUNDERED SEA SWIM RECEIPT")
 
@@ -289,6 +321,17 @@ func _all_meshes(node: Node) -> Array:
 			out.append(child)
 		out.append_array(_all_meshes(child))
 	return out
+
+
+## Count meshes by name prefix (optionally visible-only): the stump
+## law counts paint by IDENTITY, not by shared bed material (a stump
+## carries its plant's material by design).
+func _count_named(node: Node, prefix: String, visible_only: bool = false) -> int:
+	var n := 0
+	for mesh in _all_meshes(node):
+		if str(mesh.name).begins_with(prefix) and (not visible_only or mesh.visible):
+			n += 1
+	return n
 
 
 func _count_material(node: Node, mat) -> int:
@@ -325,6 +368,36 @@ func _gd_stub(source: String):
 	scr.source_code = source
 	scr.reload()
 	return scr.new()
+
+
+## Count this grove's PLANT strands (plant_k-tagged, not stumps) that
+## carry `vis`ibility -- the per-plant paint law's counting seam.
+func _grove_plant(grove: Node, plant_k: int, vis: bool) -> int:
+	var n := 0
+	for child in grove.get_children():
+		var mesh := child as MeshInstance3D
+		if mesh == null or not mesh.has_meta("plant_k"):
+			continue
+		if int(mesh.get_meta("plant_k")) != int(plant_k):
+			continue
+		if str(mesh.name).begins_with("Stump"):
+			continue
+		if mesh.visible == vis:
+			n += 1
+	return n
+
+
+## Count grove children named with `prefix` at a given visibility
+## (stumps / reef furniture legs).
+func _grove_named(grove: Node, prefix: String, vis: bool) -> int:
+	var n := 0
+	for child in grove.get_children():
+		var mesh := child as MeshInstance3D
+		if mesh == null:
+			continue
+		if str(mesh.name).begins_with(prefix) and mesh.visible == vis:
+			n += 1
+	return n
 
 
 func _first_grove(streamer_ref, face: int) -> Node:

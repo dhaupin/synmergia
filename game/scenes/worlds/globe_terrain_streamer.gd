@@ -3232,6 +3232,18 @@ func _apply_sundered_deep(face: int, patch_node: Node3D) -> void:
 		var north: Vector3 = dir.cross(east)
 		var rng := RandomNumberGenerator.new()
 		rng.seed = base_acc + 31337 + bed_idx * 101
+		# THE PER-PLANT TRUTH (S14.7.4): the REGISTER call's jitter replayed
+		# seed-for-seed (same law, same call order) -- the paint learns
+		# which strand stands on which registered plant, so per-plant
+		# depletion can shear the paint honestly.
+		var plants := RandomNumberGenerator.new()
+		plants.seed = base_acc + 9091 + bed_idx * 101
+		var plant_dirs: Array = []
+		for k in range(3):
+			var pd_k: Vector3 = (dir + east * plants.randf_range(-0.0016, 0.0016)
+				+ north * plants.randf_range(-0.0016, 0.0016)).normalized()
+			plants.randf_range(-3.0, 3.0)  # the depth jitter, replayed
+			plant_dirs.append(pd_k)
 		var grove := Node3D.new()
 		grove.name = "DeepGarden%d_%d" % [face, bed_idx]
 		# THE ENTITY BINDING (S14.7.3): the grove is not just paint -- it
@@ -3262,6 +3274,11 @@ func _apply_sundered_deep(face: int, patch_node: Node3D) -> void:
 				stalk.material_override = _kelp_material()
 				stalk.position = _tangent_patch_local(d_k, patch_center, sea_r - DEEP_KELP_M + h * 0.5)
 				stalk.basis = Basis(east, d_k, north).rotated(d_k, rng.randf_range(0.0, TAU))
+				var owner: int = 0
+				for pk in range(3):
+					if plant_dirs[pk].angle_to(d_k) < plant_dirs[owner].angle_to(d_k):
+						owner = pk
+				stalk.set_meta("plant_k", owner)
 				grove.add_child(stalk)
 			for k in range(4):
 				var bd: Vector3 = (dir + east * rng.randf_range(-0.004, 0.004)
@@ -3286,6 +3303,11 @@ func _apply_sundered_deep(face: int, patch_node: Node3D) -> void:
 				spire.material_override = _reef_material()
 				spire.position = _tangent_patch_local(sd, patch_center, root_r + sh * 0.5)
 				spire.basis = Basis(east, sd, north).rotated(sd, rng.randf_range(0.0, TAU))
+				var owner: int = 0
+				for pk in range(3):
+					if plant_dirs[pk].angle_to(sd) < plant_dirs[owner].angle_to(sd):
+						owner = pk
+				spire.set_meta("plant_k", owner)
 				grove.add_child(spire)
 			for k in range(2):
 				var pd: Vector3 = (dir + east * rng.randf_range(-0.002, 0.002)
@@ -3296,6 +3318,22 @@ func _apply_sundered_deep(face: int, patch_node: Node3D) -> void:
 				stone.material_override = _reef_material()
 				stone.position = _tangent_patch_local(pd, patch_center, root_r - 1.5)
 				grove.add_child(stone)
+		# THE STUMPS (S14.7.4): a taken plant is a cut stump until respawn
+		# (the per-plant paint law; the whole-cove hide is gone). Hidden
+		# at build -- the deep_garden_binder flips them off the service's
+		# own depletion book, never a second book here.
+		var stump_mat: Material = _kelp_material() if kind == 1 else _reef_material()
+		var stump_dims: Vector3 = Vector3(0.10, 0.16, 0.55) if kind == 1 else Vector3(0.35, 0.6, 0.6)
+		for k in range(3):
+			var stump := MeshInstance3D.new()
+			stump.name = "Stump%d" % k
+			stump.mesh = _shared_prop_cyl(stump_dims.x, stump_dims.y, stump_dims.z)
+			stump.material_override = stump_mat
+			stump.position = _tangent_patch_local(plant_dirs[k], patch_center,
+				root_r + stump_dims.z * 0.5)
+			stump.set_meta("plant_k", k)
+			stump.visible = false
+			grove.add_child(stump)
 		patch_node.add_child(grove)
 
 ## The shelf's green-black kelp (one material, cached).

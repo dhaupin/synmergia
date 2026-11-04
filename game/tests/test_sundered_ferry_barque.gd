@@ -12,6 +12,13 @@ extends SceneTree
 ##      bow along the travel tangent (the runner's law, second lane);
 ##   5. the deck pieces ride along (the piece-collider law -- the
 ##      deck is standable, the rider carry law unchanged).
+##   6. the harbor buoys (S14.7.4): both pins carry a floating drum +
+##      amber lamp ON the sea line, flank-stepped off the berth, and
+##      both lamps ride the SAME night law the pier beacon does.
+##   7. the dock-warp tier (S14.7.4): the wake lets a sailor step
+##      between HER two pins -- the service refuses the warp before
+##      the rides are wake-known, pays it after, and the world's
+##      landing law clamps the body at or above the water line.
 ## Run: godot --headless --path . --script res://tests/test_sundered_ferry_barque.gd
 
 var _passed: int = 0
@@ -119,6 +126,69 @@ func _run() -> void:
 	var far_dir: Vector3 = barque.global_transform.origin.normalized()
 	_check_line("t=1 berths at the seaward pin", far_dir.angle_to(seaward) < 0.002)
 
+	# --- 4. THE HARBOR BUOYS (S14.7.4) --------------------------------------
+	var HLB = load("res://entities/harbor_lights.gd")
+	var buoys: Array = HLB.build_strait_buoys(sim_root, RADIUS, 0.52, moor, seaward, sea)
+	_check_line("the two pins carry their buoys", buoys.size() == 2
+		and str(buoys[0].name) == "StraitBuoyMoor" and str(buoys[1].name) == "StraitBuoySeaward")
+	var buoy_r: float = (buoys[0].global_transform.origin).length()
+	_check_line("the buoy rides ON the sea line", absf(buoy_r - sea_line) < 3.0)
+	_check_line("the buoy stands OFF its berth pin",
+		(buoys[0].global_transform.origin.normalized()).angle_to(moor) > 0.0005)
+	var lamp_mat: Material = buoys[0].get_meta("lamp")
+	_check_line("the buoy lamp carries the night law's flip",
+		lamp_mat != null and lamp_mat is StandardMaterial3D)
+	if lamp_mat != null:
+		HLB.place_night(buoys[0], 0.77)  # dusk (18.4 h)
+		_check_line("the buoy lamp is lit at dusk", lamp_mat.emission_enabled)
+		HLB.place_night(buoys[0], 0.30)  # dawn (7.2 h)
+		_check_line("the buoy lamp sleeps to the sun", not lamp_mat.emission_enabled)
+
+	# --- 5. THE DOCK-WARP TIER (S14.7.4) ------------------------------------
+	var sailor := "probe_wake_sailor"
+	var rides: int = FS.rides_recorded(sailor, "veh_sundered_barque") \
+		if FS.has_method("rides_recorded") else 0
+	if rides == 0:
+		var refused: Dictionary = FS.warp_wake(sailor, "veh_sundered_barque", "waypoint_strait_moor")
+		_check_line("the wake refuses the unearned warp",
+			refused.get("ok") == false and str(refused.get("reason", "")).contains("not yours yet"))
+		for k in range(3):
+			var paid: Dictionary = FS.record_deck_wake(sailor, "veh_sundered_barque", "waypoint_strait_moor")
+			_check_line("deck wake %d is honest" % (k + 1), bool(paid.get("ok")))
+		_check_line("the wake is known after three crossings",
+			FS.wake_is_known(sailor, "veh_sundered_barque"))
+	var warped: Array = []
+	FS.wake_warped.connect(func(pid: String, vid: String, gid: String) -> void:
+		warped.append([pid, vid, gid]))
+	var warp: Dictionary = FS.warp_wake(sailor, "veh_sundered_barque", "waypoint_strait_moor")
+	_check_line("the wake pays the earned warp", bool(warp.get("ok")))
+	_check_line("the wake signal names her vehicle and pin",
+		warped.size() == 1 and warped[0][1] == "veh_sundered_barque"
+		and warped[0][2] == "waypoint_strait_moor")
+
+	# THE WORLD'S LANDING LAW: the barque branch clamps the body at or
+	# above the water line (runner's wake landing law, second lane).
+	var GW: GDScript = load("res://scenes/worlds/globe_world.gd")
+	var world := Node3D.new()
+	world.set_script(GW)
+	world.set("planet_radius", RADIUS)
+	world.set("streamer", _sea_streamer_stub(world_seed))
+	world.set("sund_ferry_vessel", barque)
+	world.set("_barque_pier_gateway", "waypoint_strait_moor")
+	world.set("_barque_pans_gateway", "waypoint_strait_seaward")
+	var land_moor: Vector3 = world._barque_wake_landing("waypoint_strait_moor")
+	_check_line("the moor landing stands ON the barque lane",
+		land_moor.normalized().angle_to(moor) < 0.001)
+	var sea_stub: float = Gen.sea_level(world_seed)
+	_check_line("a seabed walk never lands under the sea line",
+		land_moor.length() >= RADIUS + sea_stub + 1.5)
+	var land_far: Vector3 = world._barque_wake_landing("waypoint_strait_seaward")
+	_check_line("the seaward landing stands on her second pin",
+		land_far.normalized().angle_to(seaward) < 0.001)
+	_check_line("a foreign pin has no barque landing",
+		world._barque_wake_landing("waypoint_capitol_pier") == Vector3.INF)
+	world.free()
+
 	_finish()
 
 func _check_line(cond_label: String, cond: bool) -> void:
@@ -126,3 +196,15 @@ func _check_line(cond_label: String, cond: bool) -> void:
 		_ok(cond_label)
 	else:
 		_fail(cond_label)
+
+
+## A real-streamer-shape stub for the landing law: world_seed from the
+## world data; the walk law returns a SEABED read (a pin at sea must
+## still land the body AT the water line, never under it).
+func _sea_streamer_stub(seed_bytes: PackedByteArray):
+	var scr := GDScript.new()
+	scr.source_code = "extends RefCounted\nvar world_seed := PackedByteArray()\nfunc walk_surface_h(d: Vector3) -> float:\n\treturn -30.0\n"
+	scr.reload()
+	var stub = scr.new()
+	stub.world_seed = seed_bytes
+	return stub
