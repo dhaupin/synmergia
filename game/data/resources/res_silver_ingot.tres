@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "res_silver_ingot"
+display_name = "Silver Ingot"
+description = "Two pale ores made one at the forge. The smiths of the Concord say silver remembers where it has been; the ferrule only says pour."
+icon_path = "res://icons/resources/silver_ingot.png"
+item_category = 4
+rarity = 2
+equip_slot = 0
+stack_size = 100
+sell_price = 28
+buy_price = 75
+required_level = 0

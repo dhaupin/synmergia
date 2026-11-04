@@ -35,6 +35,7 @@ find /tmp -maxdepth 1 -name 'syn_*.log' -mtime +1 -delete 2>/dev/null
 DEFAULT_SET="
 test_data_naming_lint
 test_item_catalog
+test_item_use
 test_a11y_service
 test_a11y_contrast
 test_movement_profiles

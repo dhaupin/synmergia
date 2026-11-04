@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_potion_mana_small"
+display_name = "Brew Small Mana Potion"
+description = "One cap steeped cold, one petal for the dreaming. The vials must not be shaken."
+station = 3
+inputs = [{"item_id": "res_mooncap", "qty": 1}, {"item_id": "res_moonpetal", "qty": 1}]
+output = {"item_id": "potion_mana_small", "qty": 1}
+byproducts = [{"item_id": "res_slag", "qty": 1}]
+craft_time_sec = 0.0
+required_level = 2
+failure_rate = 0.05

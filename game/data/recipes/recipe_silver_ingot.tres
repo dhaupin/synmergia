@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_silver_ingot"
+display_name = "Smelt Silver Ingot"
+description = "The pale ore hates the forge less if the fire is patient. Two ores, one ingot, a little more slag."
+station = 1
+inputs = [{"item_id": "res_ore_silver", "qty": 2}]
+output = {"item_id": "res_silver_ingot", "qty": 1}
+byproducts = [{"item_id": "res_slag", "qty": 1}]
+craft_time_sec = 0.0
+required_level = 2
+failure_rate = 0.1

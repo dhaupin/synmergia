@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "tea_mooncap_steep"
+display_name = "Mooncap Steep"
+description = "A wanderer-flask of pale broth. Knits 25 health back every two seconds for eight — slowly, and then all at once again."
+icon_path = "res://icons/items/tea_mooncap.png"
+item_category = 3
+rarity = 1
+equip_slot = 0
+stack_size = 10
+sell_price = 8
+buy_price = 35
+item_level = 2
+required_level = 2
+use_skill_id = ""
+cooldown = 5.0
+duration = 0.0
+buff_effects = [{
+"type": "heal_over_time",
+"value": 25,
+"interval": 2.0,
+"duration": 8.0
+}]

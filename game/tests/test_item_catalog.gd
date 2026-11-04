@@ -218,4 +218,144 @@ func _run() -> void:
 		if not rbad.is_empty():
 			_check("bill defects: " + "; ".join(rbad.slice(0, 5)), false)
 
+	# F. THE VENDOR STOCK LAW: every vendor offering's shelf reflects
+	# service truth -- a phantom sku on a shelf is a shop that sells
+	# air. Schema-only offerings (service/quest/dialogue/bank) carry
+	# no shelf and are only typed.
+	var odir := DirAccess.open("res://data/npc_offerings")
+	var vbad: Array = []
+	var vcount := 0
+	if odir == null:
+		vbad.append("data/npc_offerings missing")
+	else:
+		var all_items: Array = ds.get_all_items()
+		odir.list_dir_begin()
+		var vfn := odir.get_next()
+		while vfn != "":
+			if vfn.ends_with(".tres"):
+				vcount += 1
+				var o = load("res://data/npc_offerings/" + vfn)
+				if o == null:
+					vbad.append("load failed: " + vfn)
+					vfn = odir.get_next()
+					continue
+				var ot: String = str(o.type)
+				if not ["vendor", "service", "quest", "dialogue", "bank"].has(ot):
+					vbad.append("%s unknown type '%s'" % [vfn, ot])
+				elif ot == "vendor":
+					var smode: String = str(o.stock_mode)
+					if not ["by_category", "by_item_id", "mixed"].has(smode):
+						vbad.append("%s stock_mode '%s'" % [vfn, smode])
+					if float(o.price_multiplier) <= 0.0:
+						vbad.append(vfn + " price multiplier")
+					if int(o.stock_qty) <= 0:
+						vbad.append(vfn + " stock qty")
+					for sc in o.sell_categories:
+						if int(sc) < 0 or int(sc) > 9:
+							vbad.append("%s sell category %d" % [vfn, int(sc)])
+						for bc in o.buy_categories:
+							if int(bc) < 0 or int(bc) > 9:
+								vbad.append("%s buy category %d" % [vfn, int(bc)])
+					if smode == "by_item_id" or smode == "mixed":
+						if o.catalog_items.is_empty():
+							vbad.append(vfn + " item-id shelf empty")
+						for entry in o.catalog_items:
+							var eid: String = str(entry.get("item_id", ""))
+							if int(entry.get("qty", 0)) <= 0:
+								vbad.append("%s shelf %s qty" % [vfn, eid])
+							var shelf_itm = ds.get_item(eid)
+							if shelf_itm == null:
+								vbad.append("%s phantom shelf %s" % [vfn, eid])
+							elif int(shelf_itm.buy_price) <= 0:
+								vbad.append("%s shelf %s unpriced" % [vfn, eid])
+					if smode == "by_category" or smode == "mixed":
+						var shelves := 0
+						for sc2 in o.sell_categories:
+							for itmc in all_items:
+								if itmc != null and int(itmc.item_category) == int(sc2):
+									shelves += 1
+						if shelves == 0 and not o.sell_categories.is_empty() and not o.catalog_items.is_empty():
+							vbad.append(vfn + " shelf resolves to nothing")
+						elif shelves == 0 and smode == "by_category":
+							vbad.append(vfn + " by-category shelf empty")
+				vfn = odir.get_next()
+		_check("vendor stock law (%d offerings)" % vcount, vbad.is_empty())
+		if not vbad.is_empty():
+			print("    vendor defects: " + "; ".join(vbad.slice(0, 6)))
+
+	# G. THE OFFERING LAW: every NPC's includes resolves to a real
+	# file (offering/vendor -> data/npc_offerings, inline dialogue ->
+	# data/dialogues, quest ids -> data/quests -- a phantom include is
+	# a conversation with nobody).
+	var ndir := DirAccess.open("res://data/npc")
+	var ibad: Array = []
+	var icount := 0
+	if ndir == null:
+		ibad.append("data/npc missing")
+	else:
+		ndir.list_dir_begin()
+		var nfn := ndir.get_next()
+		while nfn != "":
+			if nfn.ends_with(".tres"):
+				icount += 1
+				var nd = load("res://data/npc/" + nfn)
+				if nd == null:
+					ibad.append("load failed: " + nfn)
+					nfn = ndir.get_next()
+					continue
+				for inc in nd.includes:
+					var it2: String = str(inc.get("type", ""))
+					var ref: String = str(inc.get("ref_id", ""))
+					var dia: String = str(inc.get("dialogue_id", ""))
+					if it2 == "offering" or it2 == "vendor":
+						if ref.is_empty() or not FileAccess.file_exists("res://data/npc_offerings/%s.tres" % ref):
+							ibad.append("%s phantom %s include %s" % [nfn, it2, ref])
+					elif it2 == "dialogue":
+						if dia.is_empty() or not FileAccess.file_exists("res://data/dialogues/%s.tres" % dia):
+							ibad.append("%s phantom dialogue include %s" % [nfn, dia])
+					elif it2 == "quest":
+						for qid in inc.get("quest_ids", []):
+							if not FileAccess.file_exists("res://data/quests/%s.tres" % str(qid)):
+								ibad.append("%s phantom quest include %s" % [nfn, qid])
+				nfn = ndir.get_next()
+		_check("offering include law (%d npcs)" % icount, ibad.is_empty())
+		if not ibad.is_empty():
+			print("    include defects: " + "; ".join(ibad.slice(0, 6)))
+
+	# H. THE ICON LAW: every icon_path in data/**/*.tres names a file
+	# that EXISTS on disk now (the generator's law: an aspirational
+	# path is a promise; a real png is kept).
+	var icon_pat := RegEx.new()
+	icon_pat.compile('icon_path\\s*=\\s*"([^"]+)"')
+	var icon_missing: Array = []
+	var icon_count := 0
+	if DirAccess.open("res://data") != null:
+		var stack: Array = ["res://data"]
+		while not stack.is_empty():
+			var dpath = stack.pop_back()
+			var dd := DirAccess.open(dpath)
+			if dd == null:
+				continue
+			dd.list_dir_begin()
+			var dfn := dd.get_next()
+			while dfn != "":
+				var fpath: String = str(dpath) + "/" + str(dfn)
+				if dd.current_is_dir():
+					stack.append(fpath)
+				elif dfn.ends_with(".tres"):
+					var text := FileAccess.get_file_as_string(fpath)
+					var from := 0
+					var m := icon_pat.search(text, from)
+					while m != null:
+						icon_count += 1
+						var ip: String = m.get_string(1)
+						if not FileAccess.file_exists(ip):
+							icon_missing.append(fpath + " -> " + ip)
+						from = m.get_end()
+						m = icon_pat.search(text, from)
+				dfn = dd.get_next()
+		_check("icon paths exist on disk (%d referenced)" % icon_count, icon_missing.is_empty())
+		if not icon_missing.is_empty():
+			print("    icon residue: " + "; ".join(icon_missing.slice(0, 5)))
+
 	_finish()

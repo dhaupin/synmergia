@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_elixir_ironblood"
+display_name = "Brew Ironblood Elixir"
+description = "The ore must be ground fine enough to swear into. Two grits, one petal, and a steady hand."
+station = 3
+inputs = [{"item_id": "res_iron_ore", "qty": 2}, {"item_id": "res_moonpetal", "qty": 1}]
+output = {"item_id": "elixir_ironblood", "qty": 1}
+byproducts = [{"item_id": "res_slag", "qty": 1}]
+craft_time_sec = 0.0
+required_level = 4
+failure_rate = 0.1

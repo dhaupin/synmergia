@@ -387,6 +387,260 @@ func get_inventory_summary(player_id: String) -> Dictionary:
 		"free_slots": inv.get_free_slot_count()
 	}
 
+## ============================================================================
+## THE USE DOOR: consumables actually become effects
+## ============================================================================
+## For the whole project's life the consumable schema carried a book
+## (buff_effects) and no one ever read it -- a potion was an ingredient
+## for nothing. The use door fixes the CONSUMER, not the schema:
+##
+##   GATES BEFORE EVERYTHING: a real bag, a real slot, a real item,
+##   CONSUMABLE category, an alive body, a non-empty effect book, and
+##   the per-ITEM use cooldown (a potion's cooldown is the ITEM's own
+##   field, not a service namespace: CooldownService's books price
+##   COOLDOWNS by action key, so the bag's use door keeps its own book
+##   keyed [player][item] -> expiry). Every refusal names itself.
+##
+##   VALIDATED THEN PAID: the whole effect book is validated (every
+##   buff a known type with usable values) BEFORE a single charge is
+##   removed -- the books never half-drink. Then ONE charge leaves the
+##   slot, then the effects land (instant heal/mana/stamina through
+##   the body's duck surface; timed effects are real StatusEffect
+##   nodes riding apply_status_effect -- the skill precedent).
+##
+##   UNKNOWN = REFUSAL: an unreadable buff type, a buff with no
+##   value, or a timed effect with no duration refuses the whole use
+##   (nothing consumed) -- never a silent no-op.
+
+signal item_used(player_id: String, item: Item, applied: Array)
+
+# [player_id -> [item_id -> expiry unix seconds]] (the use cooldown book)
+var _use_cooldowns: Dictionary = {}
+
+## The receipt seam: an injectable body resolver for scripted boots
+## (the transport-seam law: injectable resolvers, never product
+## fakes). Runtime rides the default chain in _use_body.
+var _use_body_override: Callable = Callable()
+
+const StatusEffect = preload("res://core/entities/status_effect.gd")
+
+## Stat buff keys the use door knows. Maps buff dict key -> the
+## StatusEffect export it drives (suffix law: "<stat>_mod", and the
+## two multiplier exports). Anything outside this book is a refusal.
+const _STAT_BUFFS := {
+	"strength": "strength_mod",
+	"agility": "agility_mod",
+	"intelligence": "intelligence_mod",
+	"vitality": "vitality_mod",
+	"endurance": "endurance_mod",
+	"wisdom": "wisdom_mod",
+	"max_health": "max_health_mod",
+	"max_mana": "max_mana_mod",
+	"physical_resistance": "physical_resistance",
+	"magical_resistance": "magical_resistance",
+	"movement_speed": "movement_speed_multiplier",
+	"attack_speed": "attack_speed_multiplier",
+	"damage": "damage_multiplier",
+	"defense": "defense_multiplier",
+}
+
+func use_item(player_id: String, slot: int) -> Dictionary:
+	var inv: InventoryComponent = get_inventory(player_id)
+	if inv == null:
+		return _use_refusal(player_id, "", "no inventory")
+
+	var item: Item = inv.get_item(slot)
+	if item == null:
+		return _use_refusal(player_id, "", "empty slot")
+
+	if item.item_category != Item.ItemCategory.CONSUMABLE:
+		return _use_refusal(player_id, item.id, "not consumable")
+
+	var body = _use_body(player_id)
+	if body == null:
+		return _use_refusal(player_id, item.id, "no body")
+
+	if body.has_method("is_alive") and not body.is_alive():
+		return _use_refusal(player_id, item.id, "dead")
+
+	if "level" in body and int(item.required_level) > 0 \
+			and int(body.level) < int(item.required_level):
+		return _use_refusal(player_id, item.id, "not your level yet")
+
+	if item.buff_effects.is_empty() and str(item.use_skill_id).is_empty():
+		return _use_refusal(player_id, item.id, "inert")
+
+	var remaining := _use_cooldown_remaining(player_id, item.id)
+	if remaining > 0.0:
+		return {
+			"ok": false,
+			"reason": "cooldown",
+			"item_id": item.id,
+			"remaining": remaining,
+		}
+
+	if not str(item.use_skill_id).is_empty():
+		return _use_refusal(player_id, item.id, "skill items route through SkillService (deferred lane)")
+
+	# VALIDATE the whole book before consuming anything.
+	var applied: Array = []
+	var bad := validate_effects(item)
+	if not bad.is_empty():
+		return _use_refusal(player_id, item.id, "bad buff book: %s" % ", ".join(bad))
+
+	# Now the books move: ONE charge leaves the slot... (a fail here
+	# means the stack vanished between our read and the consume; the
+	# bag's own item_removed speakers it, we do not invent a refund
+	# for an instant effect already paid because effects only APPLY
+	# after the charge left).
+	var removed: Item = inv.remove_item(slot, 1)
+	if removed == null:
+		return _use_refusal(player_id, item.id, "consume failed")
+
+	# ...then the effects land, in book order.
+	for buff: Dictionary in item.buff_effects:
+		var r := _apply_buff(body, item, buff)
+		applied.append(r)
+
+	# The cooldown writes AFTER the drink (an expiry keyed at consume
+	# time: the door re-opens exactly item.cooldown later).
+	if float(item.cooldown) > 0.0:
+		if not _use_cooldowns.has(player_id):
+			_use_cooldowns[player_id] = {}
+		_use_cooldowns[player_id][item.id] = \
+			Time.get_unix_time_from_system() + float(item.cooldown)
+
+	item_used.emit(player_id, removed, applied)
+	_persist_inventory(player_id)
+
+	return {"ok": true, "item_id": item.id, "consumed": 1, "applied": applied}
+
+## Return [] when every buff is known and usable; a list of defect
+## strings otherwise (honest names, one per bad buff).
+func validate_effects(item: Item) -> Array:
+	var bad: Array = []
+	for i in range(item.buff_effects.size()):
+		var buff: Dictionary = item.buff_effects[i]
+		var kind := str(buff.get("type", ""))
+		var value = buff.get("value", null)
+		match kind:
+			"instant_heal", "instant_mana", "instant_stamina":
+				if value == null or float(value) <= 0.0:
+					bad.append("buff[%d] %s needs value > 0" % [i, kind])
+			"heal_over_time":
+				if value == null or float(value) <= 0.0:
+					bad.append("buff[%d] %s needs value > 0" % [i, kind])
+				if _effect_duration(item, buff) <= 0.0:
+					bad.append("buff[%d] %s needs a duration" % [i, kind])
+			"stat_buff":
+				if not _STAT_BUFFS.has(str(buff.get("stat", ""))):
+					bad.append("buff[%d] unknown stat '%s'" % [i, buff.get("stat", "")])
+				elif value == null or float(value) == 0.0:
+					bad.append("buff[%d] %s needs a nonzero value" % [i, kind])
+				elif _effect_duration(item, buff) <= 0.0:
+					bad.append("buff[%d] %s needs a duration" % [i, kind])
+			_:
+				bad.append("buff[%d] unknown type '%s'" % [i, kind])
+	return bad
+
+## Timed effects: the buff's own duration wins, else the item's
+## duration field, else nothing (a refusal in validation).
+func _effect_duration(item: Item, buff: Dictionary) -> float:
+	var d = buff.get("duration", null)
+	if d != null and float(d) > 0.0:
+		return float(d)
+	return max(0.0, float(item.duration))
+
+func _use_refusal(player_id: String, item_id: String, reason: String) -> Dictionary:
+	return {"ok": false, "reason": reason, "item_id": item_id, "remaining": 0.0}
+
+## The body a use door serves: the registered character entity (the
+## server truth), else the local player body (the script-mode truth;
+## tests and simulated boots register their own bags).
+func _use_body(player_id: String):
+	if _use_body_override.is_valid():
+		return _use_body_override.call(player_id)
+	var es = get_node_or_null("/root/EntityService")
+	if es != null and es.has_method("get_entity"):
+		var ent = es.get_entity(player_id)
+		if ent != null and is_instance_valid(ent):
+			return ent
+	var pm = get_node_or_null("/root/PlayerManager")
+	if pm != null and pm.has_method("get_local_player"):
+		var local = pm.get_local_player()
+		if local != null and is_instance_valid(local):
+			return local
+	return null
+
+func _apply_buff(body, item: Item, buff: Dictionary) -> Dictionary:
+	var kind := str(buff.get("type", ""))
+	var value := float(buff.get("value", 0))
+	match kind:
+		"instant_heal":
+			if body.has_method("heal"):
+				body.heal(int(value))
+				return {"type": kind, "value": value, "landed": true}
+			return {"type": kind, "value": value, "landed": false}
+		"instant_mana":
+			if body.has_method("restore_mana"):
+				body.restore_mana(int(value))
+			elif "current_mana" in body:
+				var target: int = int(body.current_mana) + int(value)
+				if "max_mana" in body:
+					target = mini(target, int(body.max_mana))
+				body.current_mana = target
+			return {"type": kind, "value": value, "landed": true}
+		"instant_stamina":
+			if body.has_method("restore_stamina"):
+				body.restore_stamina(value)
+			elif "current_stamina" in body:
+				body.current_stamina = float(body.current_stamina) + value
+			return {"type": kind, "value": value, "landed": true}
+		"heal_over_time":
+			return _apply_timed_effect(body, item, buff, kind, value)
+		"stat_buff":
+			return _apply_timed_effect(body, item, buff, kind, value)
+	return {"type": kind, "value": value, "landed": false}
+
+## A timed effect is a real StatusEffect riding the entity's own
+## apply_status_effect law (the skill/aura precedent: stat mods in,
+## ticks heal, the entity's timers expire it).
+func _apply_timed_effect(body, item: Item, buff: Dictionary, kind: String, value: float) -> Dictionary:
+	var fx := StatusEffect.new()
+	fx.effect_id = item.id + "_" + kind
+	fx.effect_name = item.display_name
+	if kind == "stat_buff":
+		fx.effect_name = "%s (%s)" % [item.display_name, str(buff.get("stat", ""))]
+	fx.effect_type = StatusEffect.EffectType.BUFF
+	var dur := _effect_duration(item, buff)
+	if kind == "stat_buff":
+		fx.tick_behavior = StatusEffect.TickBehavior.DURATION
+		var export_name: String = _STAT_BUFFS[str(buff.get("stat", ""))]
+		var stat := str(buff.get("stat", ""))
+		# Float multiplier exports (speed/damage/defense) take the raw
+		# float; the stat exports take int points.
+		if export_name.ends_with("_multiplier") or export_name.ends_with("_resistance"):
+			fx.set(export_name, value)
+		else:
+			fx.set(export_name, int(value))
+	else:
+		fx.tick_behavior = StatusEffect.TickBehavior.TICKED
+		fx.tick_heal = int(value)
+		fx.tick_interval = max(0.1, float(buff.get("interval", 1.0)))
+		fx.total_ticks = maxi(1, int(dur / fx.tick_interval))
+	if body.has_method("apply_status_effect"):
+		fx.duration = dur
+		body.apply_status_effect(fx)
+		return {"type": kind, "value": value, "duration": dur, "landed": true}
+	return {"type": kind, "value": value, "duration": dur, "landed": false}
+
+## The use door's cooldown book read (remaining seconds, 0 = ready).
+func _use_cooldown_remaining(player_id: String, item_id: String) -> float:
+	if not _use_cooldowns.has(player_id):
+		return 0.0
+	var exp = _use_cooldowns[player_id].get(item_id, 0.0)
+	return max(0.0, float(exp) - Time.get_unix_time_from_system())
+
 ## == Persistence ============================================================
 
 func _load_inventories() -> void:

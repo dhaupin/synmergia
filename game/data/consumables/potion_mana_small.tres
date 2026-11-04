@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "potion_mana_small"
+display_name = "Small Mana Potion"
+description = "Mooncap steeped cold so the dreaming stays in. Restores 40 mana. Tastes like a library."
+icon_path = "res://icons/items/potion_blue_small.png"
+item_category = 3
+rarity = 0
+equip_slot = 0
+stack_size = 10
+sell_price = 5
+buy_price = 22
+required_level = 0
+use_skill_id = ""
+cooldown = 2.0
+duration = 0.0
+buff_effects = [{
+"type": "instant_mana",
+"value": 40
+}]
