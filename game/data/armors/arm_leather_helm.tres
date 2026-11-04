@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_leather_helm"
+display_name = "Leather Helm"
+description = "Boiled hide over a twin-wired frame. Turns a branch, a fist, most of a gull."
+icon_path = "res://icons/items/armor_leather_helm.png"
+item_category = 1
+rarity = 0
+equip_slot = 1
+armor_type = 2
+stack_size = 1
+sell_price = 20
+buy_price = 80
+item_level = 4
+required_level = 3
+stats = {
+"vitality": 2
+}
+armor_value = 8

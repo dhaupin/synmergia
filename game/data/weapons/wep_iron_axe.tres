@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_iron_axe"
+display_name = "Iron Axe"
+description = "Splits firewood before breakfast and wolves after it. The edge remembers a tree's grain."
+icon_path = "res://icons/items/axe_iron.png"
+item_category = 0
+rarity = 0
+equip_slot = 8
+weapon_type = 2
+stack_size = 1
+sell_price = 30
+buy_price = 140
+item_level = 5
+required_level = 5
+required_strength = 5
+stats = {
+"strength": 3
+}
+weapon_damage_min = 12
+weapon_damage_max = 20
+attack_speed = 0.9

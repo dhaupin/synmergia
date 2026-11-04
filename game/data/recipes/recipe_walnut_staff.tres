@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_walnut_staff"
+display_name = "Bound Walnut Staff"
+description = "A moon-grown walnut blank, planed true; a silver ferrule the smith set by hand and a mooncap bred for the grip's resin."
+station = 2
+inputs = [{"item_id": "res_timber", "qty": 2}, {"item_id": "res_ore_silver", "qty": 1}, {"item_id": "res_mooncap", "qty": 1}]
+output = {"item_id": "wep_walnut_staff", "qty": 1}
+byproducts = [{"item_id": "res_timber", "qty": 1}]
+craft_time_sec = 0.0
+required_level = 6
+failure_rate = 0.1

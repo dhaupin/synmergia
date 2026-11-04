@@ -34,6 +34,7 @@ find /tmp -maxdepth 1 -name 'syn_*.log' -mtime +1 -delete 2>/dev/null
 # Default regression set: work streams that must never silently rot.
 DEFAULT_SET="
 test_data_naming_lint
+test_item_catalog
 test_a11y_service
 test_a11y_contrast
 test_movement_profiles

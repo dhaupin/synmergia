@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_iron_dagger"
+display_name = "Iron Dagger"
+description = "Nine inches of honest iron. The quayside answer to everything bigger."
+icon_path = "res://icons/items/dagger_iron.png"
+item_category = 0
+rarity = 0
+equip_slot = 8
+weapon_type = 4
+stack_size = 1
+sell_price = 15
+buy_price = 60
+item_level = 3
+required_level = 3
+required_agility = 3
+stats = {
+"agility": 2
+}
+weapon_damage_min = 5
+weapon_damage_max = 9
+attack_speed = 1.8

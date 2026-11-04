@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_iron_axe"
+display_name = "Forge Iron Axe"
+description = "The head is three ingots of iron; the haft one timber the splitter chose itself."
+station = 1
+inputs = [{"item_id": "res_iron_ingot", "qty": 3}, {"item_id": "res_timber", "qty": 1}]
+output = {"item_id": "wep_iron_axe", "qty": 1}
+byproducts = [{"item_id": "res_slag", "qty": 1}]
+craft_time_sec = 0.0
+required_level = 5
+failure_rate = 0.05

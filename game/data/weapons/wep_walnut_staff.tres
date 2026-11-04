@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_walnut_staff"
+display_name = "Walnut Staff"
+description = "Black walnut, moon-grown, with a silver ferrule the smith set by hand. Storms lean toward it."
+icon_path = "res://icons/items/staff_walnut.png"
+item_category = 0
+rarity = 1
+equip_slot = 8
+weapon_type = 7
+stack_size = 1
+sell_price = 45
+buy_price = 220
+item_level = 6
+required_level = 6
+required_intelligence = 5
+stats = {
+"intelligence": 4
+}
+weapon_damage_min = 6
+weapon_damage_max = 12
+attack_speed = 1.1

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_leather_gloves"
+display_name = "Leather Gloves"
+description = "Thin where the palm needs the rope, thick where the buckles live. The smiths punch their marks in the off set."
+icon_path = "res://icons/items/armor_leather_gloves.png"
+item_category = 1
+rarity = 0
+equip_slot = 5
+armor_type = 2
+stack_size = 1
+sell_price = 15
+buy_price = 60
+item_level = 3
+required_level = 2
+stats = {
+"strength": 1,
+"agility": 1
+}
+armor_value = 5

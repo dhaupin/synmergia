@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_leather_legs"
+display_name = "Leather Legguards"
+description = "Double-stitched and waxed against the fords. The wax smells like every spring you have walked."
+icon_path = "res://icons/items/armor_leather_legs.png"
+item_category = 1
+rarity = 0
+equip_slot = 3
+armor_type = 2
+stack_size = 1
+sell_price = 25
+buy_price = 100
+item_level = 4
+required_level = 3
+stats = {
+"agility": 2
+}
+armor_value = 10

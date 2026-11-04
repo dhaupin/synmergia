@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_iron_mail_chest"
+display_name = "Rivet Iron Mail"
+description = "Five ingots draw to wire, the wire rings, the rings rivet. A craft for hands that do not mind a long afternoon."
+station = 1
+inputs = [{"item_id": "res_iron_ingot", "qty": 5}]
+output = {"item_id": "arm_iron_mail_chest", "qty": 1}
+byproducts = [{"item_id": "res_slag", "qty": 2}]
+craft_time_sec = 0.0
+required_level = 8
+failure_rate = 0.15

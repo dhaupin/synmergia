@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_iron_spear"
+display_name = "Iron Spear"
+description = "A haft of Haven timber, a straight head, and polite range. Keeps horns and teeth at arm's length."
+icon_path = "res://icons/items/spear_iron.png"
+item_category = 0
+rarity = 0
+equip_slot = 8
+weapon_type = 9
+stack_size = 1
+sell_price = 35
+buy_price = 160
+item_level = 6
+required_level = 6
+required_strength = 4
+stats = {
+"strength": 2,
+"agility": 2
+}
+weapon_damage_min = 10
+weapon_damage_max = 18
+attack_speed = 1.0

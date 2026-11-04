@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_longbow"
+display_name = "Shape Haven Shorebow"
+description = "Three laminae of timber, steamed and bent with real care. The string is a kelp cord the quay folk braid dry -- it has never once chafed wet."
+station = 2
+inputs = [{"item_id": "res_timber", "qty": 3}, {"item_id": "res_kelp_fiber", "qty": 3}]
+output = {"item_id": "wep_longbow", "qty": 1}
+byproducts = [{"item_id": "res_timber", "qty": 1}]
+craft_time_sec = 0.0
+required_level = 8
+failure_rate = 0.12

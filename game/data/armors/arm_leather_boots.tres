@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_leather_boots"
+display_name = "Leather Boots"
+description = "The tanner's own pattern, soled for gravel, mud, and the capitol's waxed floors."
+icon_path = "res://icons/items/armor_leather_boots.png"
+item_category = 1
+rarity = 0
+equip_slot = 4
+armor_type = 2
+stack_size = 1
+sell_price = 15
+buy_price = 60
+item_level = 3
+required_level = 2
+stats = {
+"agility": 2
+}
+armor_value = 6

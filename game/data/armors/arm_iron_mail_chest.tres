@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_iron_mail_chest"
+display_name = "Iron Mail Coat"
+description = "Riveted rings the forge cut from its own slag-scarred stock. Heavy, honest, and priced like an apology to the shoulders."
+icon_path = "res://icons/items/armor_iron_mail.png"
+item_category = 1
+rarity = 1
+equip_slot = 2
+armor_type = 3
+stack_size = 1
+sell_price = 60
+buy_price = 280
+item_level = 8
+required_level = 8
+required_strength = 6
+stats = {
+"vitality": 4,
+"strength": 2
+}
+armor_value = 20
