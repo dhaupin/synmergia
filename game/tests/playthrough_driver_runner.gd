@@ -726,6 +726,30 @@ func _stage_dialogue_quest(inst: Node, player, inv, pid: String) -> void:
 		shop.close()
 	await _shot("playthrough_12_dialogue_shop")
 
+	# --- The Awakening, the game's first quest, completes on the real data ---
+	# Regression: its TALK objective used to target the display name
+	# "Village Elder", but the TALK bridge credits by the npc_ id verbatim
+	# with no display-name fallback, so the first quest could never finish.
+	var awake = load("res://data/quests/quest_main_awakening.tres")
+	var awake_target := ""
+	if awake != null and awake.objectives.size() > 0:
+		awake_target = str(awake.objectives[0].get("target", ""))
+	_ok("The Awakening TALK objective targets the npc_ id",
+		awake_target == "npc_village_elder", "(target=%s)" % awake_target)
+	qsvc.accept_quest(pid, "quest_main_awakening")
+	var awake_before: Dictionary = qsvc.get_quest_progress(pid, "quest_main_awakening")
+	_ok("The Awakening accepted into progress",
+		int(awake_before.get("state", -1)) == 2, "(state=%s)" % str(awake_before.get("state")))
+	# Speaking with the elder is the real credit path (dialogue_ended carries
+	# the NPCData id; quest_service bridges it into the TALK objective).
+	dsvc.start_dialogue("npc_village_elder", "village_elder_greeting")
+	dsvc.end_dialogue()
+	await get_tree().process_frame
+	var awake_obj: Array = qsvc.get_quest_progress(pid, "quest_main_awakening").get("objectives", [])
+	var awake_done := awake_obj.size() > 0 and bool(awake_obj[0].get("completed", false))
+	_ok("talking to the elder completes The Awakening objective", awake_done,
+		"(%s)" % str(awake_obj))
+
 
 ## Stage 14: accept a quest from the JOURNAL (not an NPC). Opens the real
 ## QuestUI through MenuManager, lists the AVAILABLE tab, selects a quest the
