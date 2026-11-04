@@ -24,12 +24,27 @@ const MAX_LIFT: float = 3.0
 ## the caller is the physics tick, one call per frame by construction.
 const GLIDE_TICK_MAX_DISTANCE: float = 1.0
 
+## Glide-distance milestone (meters): glide_distance_reached fires
+## each time a body's cumulative glide distance crosses another
+## multiple of this step. QuestService bridges it into GLIDE
+## objectives (the "glide 300 meters" teaching quest), so the quest
+## authors a plain target and the step lives here, one source.
+const GLIDE_QUEST_STEP: float = 300.0
+
+## Fired when a body's cumulative glide distance crosses a
+## GLIDE_QUEST_STEP multiple (meters carries the milestone reached).
+## Emitted from the physics tick, so listeners must be cheap.
+signal glide_distance_reached(player_id: String, meters: float)
+
 ## Launch-boost bookkeeping: player_id -> {until: unix, speed: float}
 var _launches: Dictionary = {}
 ## player_id -> glide stats {"distance": float, "max_altitude": float,
 ## "time": float} -- achievement book (AchievementService reads via
 ## track()).
 var _glide_stats: Dictionary = {}
+## player_id -> last crossed GLIDE_QUEST_STEP multiple (milestone book;
+## keeps the quest signal one-shot per boundary).
+var _glide_milestones: Dictionary = {}
 ## launcher id -> awakened (session book; ritual persistence is the
 ## server-effort story, recorded per shard through DictStore).
 var _awake: Dictionary = {}
@@ -147,6 +162,14 @@ func record_glide_tick(player_id: String, distance: float, altitude: float) -> v
 	stats["max_altitude"] = maxf(float(stats.get("max_altitude", 0.0)), altitude)
 	stats["time"] = float(stats.get("time", 0.0)) + (1.0 / 60.0)
 	_glide_stats[player_id] = stats
+	# Quest milestone: fire each time cumulative distance crosses a
+	# GLIDE_QUEST_STEP boundary. The signature value is the crossed
+	# milestone's meter count (300, 600, ...), so QuestService credits a
+	# plain amount and one quest target covers every crossing.
+	var crossed := int(stats["distance"] / GLIDE_QUEST_STEP)
+	if crossed > int(_glide_milestones.get(player_id, 0)):
+		_glide_milestones[player_id] = crossed
+		glide_distance_reached.emit(player_id, float(crossed) * GLIDE_QUEST_STEP)
 
 
 func glide_stats(player_id: String) -> Dictionary:

@@ -46,6 +46,12 @@ const NotifKind = preload("res://core/notifications/notification_kind.gd").Notif
 const MAX_ACTIVE_QUESTS: int = 20
 const MAX_QUEST_NAME_LENGTH: int = 64
 
+## GLIDE objectives author this literal target (the quest text names the
+## goal: "glide 300 meters"); the credit path is ThermalService's
+## milestone signal, one step of GLIDE_QUEST_STEP meters per credit.
+const GLIDE_QUEST_TARGET: String = "glide_distance"
+
+
 func _ready() -> void:
 	instance = self
 	GameLog.info("QuestService: Ready")
@@ -58,6 +64,7 @@ func _ready() -> void:
 	# same deferral, one pattern.
 	call_deferred("_connect_insight_bridge")
 	call_deferred("_connect_swim_bridge")
+	call_deferred("_connect_glide_bridge")
 	call_deferred("_maybe_reset_dailies")
 	var reset_timer := Timer.new()
 	reset_timer.wait_time = 60.0
@@ -93,6 +100,27 @@ func _on_water_entered_for_quest(body_id: String, volume_id: String) -> void:
 	if str(body_id).is_empty() or str(volume_id).is_empty():
 		return
 	update_quest_progress(str(body_id), QuestData.ObjectiveType.SWIM, str(volume_id), 1)
+
+
+## The glide credit bridge (the sky roads, prd-thermal): ThermalService
+## emits glide_distance_reached each time a body's cumulative glide
+## distance crosses a GLIDE_QUEST_STEP (300 m) boundary. GLIDE
+## objectives author a plain target (the quest text names the goal);
+## the signal's meter value is the credited amount, so one objective
+## completes at the milestone. ThermalService is a LATER autoload, so
+## the connect is deferred like the insight/swim bridges; has_signal
+## keeps it optional for old pack contexts.
+func _connect_glide_bridge() -> void:
+	var thermal = get_node_or_null("/root/ThermalService")
+	if thermal != null and thermal.has_signal("glide_distance_reached") \
+				and not thermal.glide_distance_reached.is_connected(_on_glide_distance_reached):
+		thermal.glide_distance_reached.connect(_on_glide_distance_reached)
+
+
+func _on_glide_distance_reached(player_id: String, meters: float) -> void:
+	if str(player_id).is_empty():
+		return
+	update_quest_progress(player_id, QuestData.ObjectiveType.GLIDE, GLIDE_QUEST_TARGET, 1)
 
 
 func _on_insight_recorded(player_id: String, _sign_id: String, _window_index: int) -> void:
@@ -847,6 +875,8 @@ func _format_objectives_text(objectives: Array) -> Array:
 				text = "Explore %s" % _esc(target)
 			QuestData.ObjectiveType.SWIM:
 				text = "Swim %s: %d/%d" % [_esc(target), current, required]
+			QuestData.ObjectiveType.GLIDE:
+				text = "Glide: %d/%d m" % [current, required]
 			QuestData.ObjectiveType.RECORD_INSIGHT:
 				text = "Watch the sky: %d/%d" % [current, required]
 			_:

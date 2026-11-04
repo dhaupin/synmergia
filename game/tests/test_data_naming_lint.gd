@@ -79,6 +79,31 @@ func _has_prefix(ids: Dictionary, prefix: String, label: String) -> void:
 func _file_text(dir_path: String, base: String) -> String:
 	return FileAccess.get_file_as_string("res://%s/%s.tres" % [dir_path, base])
 
+func _load_display_names(dir_path: String) -> Dictionary:
+	var out: Dictionary = {}
+	var dir := DirAccess.open("res://" + dir_path)
+	if dir == null:
+		return out
+	dir.list_dir_begin()
+	var f := dir.get_next()
+	while f != "":
+		if f.ends_with(".tres"):
+			var txt := FileAccess.get_file_as_string("res://%s/%s" % [dir_path, f])
+			for line in txt.split("\n"):
+				var t := line.strip_edges()
+				if t.begins_with("display_name = \""):
+					out[t.trim_prefix("display_name = \"").trim_suffix("\"")] = true
+					break
+		f = dir.get_next()
+	return out
+
+## Matches an authored objective dict's type + target, e.g.
+##   {"id": "...", "type": 13, "target": "glide_distance", "count": 1}
+func _objective_regex() -> RegEx:
+	var re := RegEx.new()
+	re.compile("\"type\":\\s*(\\d+),\\s*\"target\":\\s*\"([^\"]*)\"")
+	return re
+
 func _run() -> void:
 	var npc_ids := _load_ids("data/npc")
 	var quest_ids := _load_ids("data/quests")
@@ -155,25 +180,68 @@ func _run() -> void:
 	else:
 		_fail("Phantom quest refs: %s" % ", ".join(bad_quest_refs))
 
-	# --- Quest TALK objectives target NPCData ids ---
-	# The TALK bridge credits by npc_ id verbatim (dialog_service emits
-	# dialogue_ended with the NPCData id) and has NO display-name fallback,
-	# so an objective targeting a display name never ticks. The Awakening
-	# shipped this way and was uncompletable.
-	var bad_talk_targets: Array = []
-	var talk_re := RegEx.new()
-	talk_re.compile("\"type\"\\s*:\\s*5\\s*,\\s*\"target\"\\s*:\\s*\"([^\"]*)\"")
+	# --- Quest objective integrity ---
+	# Every objective's target must resolve against the SAME catalog its
+	# credit bridge reads. A KILL objective with a non-enemy target (the old
+	# "glide 300 meters" Wings Over Haven bug) is a quest that can never
+	# tick; the same class hit the Awakening's TALK target.
+	var enemy_names := _load_display_names("data/enemies")
+	# The marshal's trial dummies are entity-free and fabricated at bout
+	# time (BoutHostService.TRIAL_DUMMY_NAME), so they are not in data/enemies.
+	enemy_names["marshal's dummies"] = true
+	var item_names := _load_display_names("data/items")
+	for extra_dir in ["data/misc", "data/accessories", "data/resources"]:
+		for dn in _load_display_names(extra_dir):
+			item_names[dn] = true
+	var ocean_ids := _load_ids("data/oceans")
+	var ocean_id_set := {}
+	for ob in ocean_ids:
+		ocean_id_set[ocean_ids[ob]] = true
+	var bad_objectives: Array = []
 	for base in quest_ids:
 		var qtxt := _file_text("data/quests", base)
-		var qid := str(quest_ids[base])
-		for m in talk_re.search_all(qtxt):
-			var tgt := m.get_string(1)
-			if tgt != "" and not npc_id_set.has(tgt):
-				bad_talk_targets.append("%s -> %s" % [qid, tgt])
-	if bad_talk_targets.is_empty():
-		_ok("Quest TALK objectives all target real npc_ ids")
+		var qqid := str(quest_ids[base])
+		# Scan EVERY line: objectives are authored inline (one line) or as a
+		# multi-line array (quest_intro_core_npcs), so keying off the
+		# "objectives = [" line alone would skip the multi-line form. The
+		# objective regex needs a numeric "type" + a "target", which the
+		# rewards dicts (string type, no target) never match.
+		for line in qtxt.split("\n"):
+			var tl := line.strip_edges()
+			if not tl.begins_with("{"):
+				continue
+			for om in _objective_regex().search_all(tl):
+				var otype := int(om.get_string(1))
+				var otarget := om.get_string(2)
+				var why := ""
+				match otype:
+					0:
+						if not enemy_names.has(otarget):
+							why = "KILL target is not an enemy display_name"
+					1:
+						if not item_names.has(otarget):
+							why = "COLLECT target is not an item display_name"
+					4:
+						if not zone_id_set.has(otarget):
+							why = "EXPLORE target is not a zone id"
+					5:
+						if not npc_id_set.has(otarget):
+							why = "TALK target is not an npc_ id"
+					11:
+						if otarget != "sky_insight":
+							why = "RECORD_INSIGHT target must be 'sky_insight'"
+					12:
+						if not ocean_id_set.has(otarget):
+							why = "SWIM target is not an ocean id"
+					13:
+						if otarget != "glide_distance":
+							why = "GLIDE target must be 'glide_distance'"
+				if why != "":
+					bad_objectives.append("%s: %s (%s)" % [qqid, why, otarget])
+	if bad_objectives.is_empty():
+		_ok("Quest objectives all resolve against their credit catalogs")
 	else:
-		_fail("TALK targets that cannot be credited (use the npc_ id): %s" % ", ".join(bad_talk_targets))
+		_fail("Unresolvable quest objectives: %s" % "; ".join(bad_objectives))
 
 	# --- Offering quest_ids + dialogue npc_id refs ---
 	var bad_offering_refs: Array = []
