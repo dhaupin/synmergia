@@ -88,11 +88,73 @@ func _roll_loot() -> void:
 					"looted": false,
 				})
 
-	# Also include dropped equipment/items from the owner's inventory
+	# Also include dropped equipment/items from the owner's inventory.
+	# get_all_items() returns Item instances, but _loot_items is
+	# Array[Dictionary] -- append_array() rejected the Objects outright
+	# ("Attempted to append_array a variable of type 'Object' into a
+	# TypedArray of type 'Dictionary'"), so a dead player's bag never
+	# became lootable. Convert each Item to the {item_id, quantity,
+	# display_name, looted} dict the loot path consumes.
 	if _owner and "inventory_component" in _owner and _owner.inventory_component != null:
 		var inventory = _owner.inventory_component
 		if inventory and inventory.has_method("get_all_items"):
-			_loot_items.append_array(inventory.get_all_items())
+			for entry in inventory.get_all_items():
+				_loot_items.append(_to_loot_entry(entry))
+
+## Normalize an inventory entry (an Item instance) into the dict shape the
+## loot path consumes. Non-Item entries pass through when they are already
+## dictionaries.
+func _to_loot_entry(entry) -> Dictionary:
+	if entry is Dictionary:
+		return entry
+	var item_id: String = str(entry.id) if ("id" in entry) else ""
+	var qty: int = int(entry.current_stack) if ("current_stack" in entry) else 1
+	return {
+		"item_id": item_id,
+		"quantity": maxi(1, qty),
+		"display_name": str(entry.display_name) if ("display_name" in entry) else item_id,
+		"looted": false,
+	}
+
+## Hand a loot entry to the looter through the real seams: gold rides the
+## purse mirror's add_gold, items ride the mounted InventoryComponent (the
+## player node has no add_item()). Returns whether the grant landed.
+func _grant_to_looter(looter, entry: Dictionary) -> bool:
+	var item_id := str(entry.get("item_id", ""))
+	var qty: int = maxi(1, int(entry.get("quantity", 1)))
+	if item_id == "gold":
+		if "add_gold" in looter and looter.has_method("add_gold"):
+			looter.add_gold(qty)
+			return true
+		return false
+	var inv = _looter_inventory(looter)
+	if inv == null or not inv.has_method("add_item"):
+		return false
+	var item = _resolve_item(item_id)
+	if item == null:
+		return false
+	return inv.add_item(item, qty)
+
+## The looter's mounted purse, preferring the component on the node and
+## falling back to InventoryService's registry.
+func _looter_inventory(looter):
+	if "inventory_component" in looter and looter.inventory_component != null:
+		return looter.inventory_component
+	var inv_svc := _inventory_svc()
+	if inv_svc != null and inv_svc.has_method("get_inventory"):
+		return inv_svc.get_inventory(str(looter.entity_id) if "entity_id" in looter else "")
+	return null
+
+func _inventory_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("InventoryService")) if tree and tree.root else null
+
+func _resolve_item(item_id: String):
+	if item_id.is_empty():
+		return null
+	var tree := Engine.get_main_loop() as SceneTree
+	var ds = tree.root.get_node_or_null(NodePath("DataService")) if tree and tree.root else null
+	return ds.get_item(item_id) if ds and ds.has_method("get_item") else null
 
 func _process(delta: float) -> void:
 	if _is_looted:
@@ -173,18 +235,15 @@ func loot_item(looter: Entity, item_index: int) -> Dictionary:
 	if item.get("looted", false):
 		return {"success": false, "reason": "Already looted"}
 
-	# Atomically mark as looted to prevent race conditions
-	if item.get("looted", false):
-		return {"success": false, "reason": "Already looted (race condition prevented)"}
+	# Grant FIRST, then mark looted. The old order marked the item
+	# consumed before any grant, and the grant itself called
+	# looter.add_item() -- a method the player node does not have, so the
+	# item was destroyed with nothing handed over.
+	if not _grant_to_looter(looter, item):
+		return {"success": false, "reason": "Could not receive item"}
 
-	# Mark as looted
 	item["looted"] = true
-
-	# Give item to looter
 	var result := {"success": true, "item": item}
-
-	if looter.has_method("add_item"):
-		looter.add_item(item.duplicate())
 
 	corpse_looted.emit(self, looter)
 

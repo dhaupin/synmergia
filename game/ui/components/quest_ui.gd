@@ -20,12 +20,15 @@ func _questservice() -> Node:
 	var tree := Engine.get_main_loop() as SceneTree
 	return tree.root.get_node_or_null(NodePath("QuestService")) if tree and tree.root else null
 
+## Catalog lookup for a quest the player has not accepted yet (the AVAILABLE
+## tab). DataService is resolved at runtime so --script receipts stay safe.
+func _load_quest_data(quest_id: String):
+	var tree := Engine.get_main_loop() as SceneTree
+	var ds = tree.root.get_node_or_null(NodePath("DataService")) if tree and tree.root else null
+	return ds.get_quest(quest_id) if ds and ds.has_method("get_quest") else null
+
 ## QuestUI - Quest journal panel
 ## Shows active quests, objectives, and quest log
-
-## Escape BBCode brackets in user-supplied content.
-static func _esc(text: String) -> String:
-	return text.replace("[", "[lb]").replace("]", "[rb]")
 
 ## Tab definitions
 enum Tab { ACTIVE, COMPLETE, AVAILABLE }
@@ -225,7 +228,11 @@ func _get_completed_quests(player_id: String) -> Array:
 	var player_quests: Dictionary = _questservice().get_player_quests(player_id)
 	for quest_id in player_quests:
 		var state: int = player_quests[quest_id].get("state", QuestData.QuestState.LOCKED)
-		if state == QuestData.QuestState.COMPLETE:
+		# COMPLETE = objectives done, awaiting turn-in; REWARDED = turned in.
+		# Both belong in the Complete tab -- filtering only COMPLETE made
+		# turned-in quests vanish from the journal entirely (and the REWARDED
+		# branch of _get_quest_type_color unreachable).
+		if state == QuestData.QuestState.COMPLETE or state == QuestData.QuestState.REWARDED:
 			completed.append(quest_id)
 	return completed
 
@@ -250,7 +257,12 @@ func _get_quest_name(quest_id: String) -> String:
 		var data: QuestData = progress.get("data")
 		if data:
 			return data.display_name
-	# Fallback
+	# The empty-id progress lookup always misses (progress is keyed by player),
+	# so without the catalog fallback every tab listed raw ids. Read the catalog
+	# for the display name.
+	var catalog: QuestData = _load_quest_data(quest_id)
+	if catalog and not catalog.display_name.is_empty():
+		return catalog.display_name
 	return quest_id
 
 func _on_quest_selected(quest_id: String) -> void:
@@ -265,12 +277,17 @@ func _show_quest_detail(quest_id: String) -> void:
 	var pmq := _pm()
 	var local_id: String = str(pmq.local_player.entity_id) if pmq and pmq.local_player else ""
 	var progress: Dictionary = _questservice().get_quest_progress(local_id, quest_id)
-	if progress.is_empty():
-		_show_empty_detail()
-		return
-
+	# An AVAILABLE quest is not in _player_quests yet, so progress is {} and
+	# the detail used to fall through to the empty state -- the quest listed
+	# but no Accept button. Fall back to the catalog data + AVAILABLE state.
 	var data: QuestData = progress.get("data")
-	var state: int = progress.get("state", QuestData.QuestState.LOCKED)
+	var state: int = progress.get("state", QuestData.QuestState.AVAILABLE)
+	if progress.is_empty() or data == null:
+		data = _load_quest_data(quest_id)
+		if data == null:
+			_show_empty_detail()
+			return
+		state = QuestData.QuestState.AVAILABLE
 
 	# Quest title
 	var title := Label.new()
@@ -310,7 +327,11 @@ func _show_quest_detail(quest_id: String) -> void:
 	for obj_text in _questservice().get_quest_objectives_text(local_id, quest_id):
 		var obj_label := RichTextLabel.new()
 		obj_label.bbcode_enabled = true
-		obj_label.text = "[bullet] %s" % _esc(str(obj_text))
+		# get_quest_objectives_text() returns service-formatted BBCode (it
+		# escapes the dynamic target itself and wraps the line in [color=]).
+		# Escaping it again here rendered the tags literally, and [bullet]
+		# is not a valid Godot tag -- prefix a plain ASCII dash instead.
+		obj_label.text = "- %s" % str(obj_text)
 		obj_label.add_theme_color_override("default_color", UIStyles.COLORS.text_primary)
 		obj_label.custom_minimum_size.y = 20
 		_quest_detail.add_child(obj_label)

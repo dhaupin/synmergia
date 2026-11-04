@@ -108,7 +108,7 @@ class Report:
 		}
 
 	static func esc(text: String) -> String:
-		return text.replace('[', '[lb]').replace(']', '[rb]')
+		return text.replace('[', '[lb]')
 
 	func format_report() -> String:
 		var type_str: String = _type_to_string()

@@ -201,6 +201,24 @@ func run() -> void:
 	# --- Stage 8: walk up to an NPC and open its action menu ---------
 	await _stage_npc_menu(inst, player)
 
+	# --- Stage 9: buy and sell through the real shop panel -----------
+	await _stage_vendor_trade(player, inv, ds, pid)
+
+	# --- Stage 10: the vault takes and returns coin and goods --------
+	await _stage_vault(player, inv, pid)
+
+	# --- Stage 11: the banker's vault opens from the action menu -----
+	await _stage_bank_menu(player)
+
+	# --- Stage 12: death runs the respawn cycle ----------------------
+	await _stage_death_respawn(player)
+
+	# --- Stage 13: dialogue -> quest accept -> turn-in -> rewards -----
+	await _stage_dialogue_quest(inst, player, inv, pid)
+
+	# --- Stage 14: accept an available quest from the journal ---------
+	await _stage_journal_accept(player, pid)
+
 	await _finish()
 
 ## Spawn a real wolf with the shipped wolf data, in front of the player.
@@ -302,6 +320,458 @@ func _stage_npc_menu(inst: Node, player) -> void:
 		_ok("the menu was populated with a real target",
 			str(menu.get("_target_id")) != "")
 	await _shot("playthrough_4_npc_menu")
+
+## Stage 9: buy and sell through the real shop panel. Opens the merchant's
+## vendor offering exactly as the action menu does (ShopUI.open_for_offering),
+## then drives the panel's own Buy/Sell buttons -- the shop only ever reached
+## by hand is the last unproven money loop. Asserts both purses move and the
+## item crosses the counter.
+func _stage_vendor_trade(player, inv, ds, pid: String) -> void:
+	var merchant = load("res://data/npc/npc_merchant_general.tres")
+	_ok("merchant data loaded", merchant != null)
+	if merchant == null or ds == null:
+		return
+	var offering = merchant.get_vendor_offering()
+	_ok("merchant has a vendor offering", offering != null)
+	if offering == null:
+		return
+
+	# Fund the purse so affordability never masks the transaction under test.
+	inv.add_gold(500)
+	var gold_before: int = inv.get_gold()
+
+	ShopUI.open_for_offering(pid, offering, merchant, player.global_position + _forward(player) * 2.0)
+	await _settle(0.3)
+	var shop = ShopUI.singleton()
+	_ok("shop panel opened", shop != null and shop.visible)
+	if shop == null:
+		return
+
+	shop._current_tab = shop.Tab.BUY
+	shop._refresh_grid()
+	var catalog: Array = shop.get("_catalog")
+	_ok("shop catalog has buyable stock", catalog.size() > 0, "(%d entries)" % catalog.size())
+	if catalog.is_empty():
+		ShopUI.close_shop()
+		return
+
+	# Pick a stock entry the vendor will also buy back (its category is in the
+	# offering's buy_categories) so the counter can round-trip honestly.
+	var buy_index := -1
+	for i in range(catalog.size()):
+		var it: Resource = catalog[i].get("item")
+		if it != null and offering.buy_categories.has(it.item_category):
+			buy_index = i
+			break
+	_ok("the store stocks something it also buys", buy_index >= 0)
+	if buy_index < 0:
+		ShopUI.close_shop()
+		return
+
+	var buy_item: Resource = catalog[buy_index].get("item")
+	var buy_id: String = str(buy_item.id) if buy_item != null else ""
+	var buy_price: int = int(catalog[buy_index].get("price", 0))
+	shop._selected_index = buy_index
+	shop._selected_type = shop.Tab.BUY
+	shop._on_buy_pressed()
+	await _settle(0.2)
+	var gold_after_buy: int = inv.get_gold()
+	_ok("buy debited the purse by the quoted price",
+		gold_after_buy == gold_before - buy_price,
+		"(%d -> %d, price %d, item %s)" % [gold_before, gold_after_buy, buy_price, buy_id])
+	_ok("buy landed the item in the bag", inv.find_item(buy_id) >= 0, "(%s)" % buy_id)
+
+	# Sell it back: the catalog came from the vendor's buy_categories, so the
+	# counter round-trips. VendorService is not an autoload -- resolve its
+	# singleton through a runtime load (same script resource ShopUI preloads,
+	# so the static _instance is shared).
+	var svc = load("res://core/services/vendor_service.gd").singleton()
+	shop._current_tab = shop.Tab.SELL
+	# The sellable list is a snapshot taken at open time; buying changed the bag,
+	# so re-query it (the panel's own reload leg) before reading it back.
+	shop._load_sellable()
+	shop._refresh_grid()
+	var sellable: Array = shop.get("_sellable")
+	var found := -1
+	for i in range(sellable.size()):
+		if str(sellable[i].get("item").id) == buy_id:
+			found = i
+			break
+	_ok("the bought item appears in the vendor's sellable list", found >= 0)
+	if found >= 0:
+		var sell_price: int = int(sellable[found].get("price", 0))
+		shop._selected_index = found
+		shop._selected_type = shop.Tab.SELL
+		shop._on_sell_pressed()
+		await _settle(0.2)
+		var gold_after_sell: int = inv.get_gold()
+		_ok("sell credited the purse by the quoted price",
+			gold_after_sell == gold_after_buy + sell_price,
+			"(%d -> %d, price %d)" % [gold_after_buy, gold_after_sell, sell_price])
+		_ok("sell removed the item from the bag", inv.find_item(buy_id) < 0, "(%s)" % buy_id)
+		_ok("the vendor buys for no more than it sells (spread holds)", sell_price <= buy_price,
+			"(buy %d, sell %d)" % [buy_price, sell_price])
+		if svc != null:
+			var buyback: Array = svc.get_buyback(pid)
+			_ok("the sale entered the vendor buyback ledger", buyback.size() > 0,
+				"(%d entries)" % buyback.size())
+	await _shot("playthrough_5_shop")
+	ShopUI.close_shop()
+
+
+## Stage 10: the vault takes and returns coin and goods. Drives the real
+## VaultService legs (deposit/withdraw gold + item) -- the seam whose gold
+## helper (InventoryService.modify_gold) was missing for its whole life.
+func _stage_vault(player, inv, pid: String) -> void:
+	var vault = get_tree().root.get_node_or_null("VaultService")
+	_ok("VaultService up", vault != null)
+	if vault == null:
+		return
+	var personal: int = vault.VaultType.PERSONAL
+
+	# Gold round-trip: this is the leg that died on the missing modify_gold.
+	inv.add_gold(100)
+	var gold_before: int = inv.get_gold()
+	var deposit_ok: bool = vault.deposit_gold(pid, personal, 40)
+	await get_tree().process_frame
+	var gold_after_dep: int = inv.get_gold()
+	_ok("vault gold deposit succeeded", deposit_ok, "(purse %d -> %d)" % [gold_before, gold_after_dep])
+	_ok("deposit debited exactly the amount", gold_after_dep == gold_before - 40,
+		"(%d -> %d, expected %d)" % [gold_before, gold_after_dep, gold_before - 40])
+	var vdata: Dictionary = vault.open_vault(pid, personal)
+	_ok("the vault now holds the coin", int(vdata.get("gold", 0)) == 40,
+		"(vault gold %d)" % int(vdata.get("gold", 0)))
+	var withdraw_ok: bool = vault.withdraw_gold(pid, personal, 40)
+	await get_tree().process_frame
+	_ok("vault gold withdrawal succeeded", withdraw_ok)
+	_ok("withdraw restored the purse", inv.get_gold() == gold_before,
+		"(gold %d, expected %d)" % [inv.get_gold(), gold_before])
+
+	# Item round-trip: deposit a real resource, withdraw it back by slot.
+	var ore = ds_get_item("res_iron_ore")
+	if ore != null:
+		var item_dict := {
+			"id": str(ore.id),
+			"name": str(ore.display_name),
+			"icon_path": str(ore.icon_path) if "icon_path" in ore else "",
+			"rarity": int(ore.rarity) if "rarity" in ore else 0,
+			"stack_size": int(ore.stack_size) if "stack_size" in ore else 1,
+		}
+		var dep_item: bool = vault.deposit_item(pid, personal, item_dict, 2)
+		_ok("vault item deposit succeeded", dep_item)
+		var vdata2: Dictionary = vault.open_vault(pid, personal)
+		var slots: Array = vdata2.get("slots", [])
+		var occupied := -1
+		for i in range(slots.size()):
+			if not slots[i].is_empty() and str(slots[i].get("id", "")) == str(ore.id):
+				occupied = i
+				break
+		_ok("the deposited item is in a vault slot", occupied >= 0, "(slot %d)" % occupied)
+		if occupied >= 0:
+			var wres: Dictionary = vault.withdraw_item(pid, personal, occupied, 2)
+			_ok("vault item withdrawal returned the item", not wres.is_empty(), "(%s)" % str(wres))
+	await _shot("playthrough_6_vault")
+
+
+## Stage 11: the banker's vault opens from the action menu. Proves the
+## walk-up -> Bank path reaches the real panel, not just the service API.
+func _stage_bank_menu(player) -> void:
+	var banker = load("res://data/npc/npc_banker_village.tres")
+	_ok("banker data loaded", banker != null)
+	if banker == null:
+		return
+	var inst = get_tree().current_scene
+	var npc = load("res://core/entities/npc_entity.gd").new()
+	npc.display_name = "Village Banker"
+	npc.npc_data = banker
+	npc.global_position = player.global_position + _forward(player) * 2.0
+	inst.add_child(npc)
+	await get_tree().process_frame
+	var es := get_tree().root.get_node_or_null("EntityService")
+	var tm := get_tree().root.get_node_or_null("TargetingManager")
+	if es and str(npc.get("entity_id")) == "":
+		es.register_entity(npc)
+	if tm and str(npc.get("entity_id")) != "":
+		tm.register_targetable(str(npc.get("entity_id")), "npc", npc,
+			npc.display_name, npc.global_position, npc.entity_type)
+	await get_tree().process_frame
+
+	_key(KEY_E)
+	await _settle(0.6)
+	var menu = player.get("_action_menu")
+	_ok("E opened the banker action menu", menu != null and menu.visible)
+	if menu != null:
+		menu._on_action_selected("bank")
+		await _settle(0.5)
+	var mm := get_tree().root.get_node_or_null("MenuManager")
+	if mm == null and get_tree().current_scene != null:
+		var hud = get_tree().current_scene.get_node_or_null("HudLayer")
+		mm = hud.get_node_or_null("MenuManager") if hud else null
+	_ok("MenuManager resolved", mm != null)
+	if mm != null:
+		var bank_panel: Control = mm.get_panel_node("bank")
+		_ok("the bank panel is showing after the Bank action",
+			bank_panel != null and bank_panel.visible,
+			"(panel=%s)" % str(bank_panel))
+		if bank_panel != null and bank_panel.has_method("close"):
+			bank_panel.close()
+	await _shot("playthrough_7_bank")
+
+
+## Stage 12: death runs the respawn cycle. Kills the player through the real
+## HealthComponent.take_damage path, then asserts the service-driven cycle
+## holds the body dead and brings it back alive at a resolved position.
+func _stage_death_respawn(player) -> void:
+	var hc = player.get("health_component")
+	_ok("player has a health component", hc != null)
+	if hc == null:
+		return
+	var rs = get_tree().root.get_node_or_null("RespawnService")
+	_ok("RespawnService up", rs != null)
+	if rs == null:
+		return
+
+	# Collapse the (huge) health pool this driver set for the combat stage so a
+	# single hit kills -- the death path under test, not the fight.
+	hc.max_health = 50
+	hc.current_health = 50
+
+	var completed := [false]
+	var completed_pos := [Vector3.ZERO]
+	rs.respawn_completed.connect(func(_p, pos): completed[0] = true; completed_pos[0] = pos)
+
+	# Real damage path: take_damage -> die -> player_died -> RespawnService cycle.
+	# Seed a bag item so the corpse has something to carry (equipped gear
+	# is not part of the bag; the corpse carries bag items).
+	var bag_inv = player.get("inventory_component")
+	if bag_inv != null and bag_inv.has_method("add_item"):
+		var seed_item = ds_get_item("wep_iron_sword")
+		if seed_item != null:
+			bag_inv.add_item(seed_item, 1)
+
+	hc.take_damage(9999, null)
+	await get_tree().process_frame
+	_ok("the player is dead after lethal damage", hc.is_dead())
+	# The death corpse must carry the player's bag. get_all_items() returns
+	# Item instances but _loot_items is Array[Dictionary]; the old
+	# append_array() rejected the Objects (typed-array error) so a dead
+	# player's gear never became lootable.
+	var corpse = hc.get_corpse() if hc.has_method("get_corpse") else null
+	if corpse != null:
+		var corpse_items: Array = corpse.get_loot_items()
+		var carried := false
+		for it in corpse_items:
+			if it is Dictionary and str(it.get("item_id", "")) == "wep_iron_sword":
+				carried = true
+		_ok("the death corpse carries the player's equipped bag item", carried,
+			"(%d loot entries)" % corpse_items.size())
+	else:
+		_ok("the death corpse carries the player's equipped bag item", false, "(no corpse)")
+	var modes: Array = rs.get_available_respawn_modes(player)
+	_ok("the zone offers at least one respawn mode", modes.size() > 0, "(%s)" % str(modes))
+	await _shot("playthrough_8_death")
+
+	# The service's own self-driven cycle: death -> hold -> respawn. In the
+	# ankh-less starter zone this is the TIMED default (10s) -- wait it out.
+	var waited := 0.0
+	while not completed[0] and waited < 13.0:
+		await _settle(0.5)
+		waited += 0.5
+	_ok("the respawn cycle completed", completed[0], "(waited %.1fs)" % waited)
+	_ok("the player is alive again", not hc.is_dead(), "(hp %d)" % hc.current_health)
+	_ok("respawn restored the body to a real position",
+		completed_pos[0] != Vector3.ZERO or player.global_position != Vector3.ZERO,
+		"(pos %s)" % str(player.global_position))
+	await _shot("playthrough_9_respawn")
+
+
+## DataService item lookup without the local `ds` binding (used by stages that
+## do not receive it).
+func ds_get_item(item_id: String):
+	var ds := get_tree().root.get_node_or_null("DataService")
+	return ds.get_item(item_id) if ds != null and ds.has_method("get_item") else null
+
+
+## Stage 13: the dialogue -> quest -> reward lane, driven end to end. Walks
+## up to the blacksmith, opens its dialogue through the action menu, follows
+## the branch that carries the GIVE_QUEST action, and proves the reward
+## machinery pays on turn-in. This is the loop that had NO receipt: before
+## round 2, turn_in_quest marked the quest REWARDED but granted nothing
+## (QuestService._apply_rewards folded the reward summary and threw it away).
+func _stage_dialogue_quest(inst: Node, player, inv, pid: String) -> void:
+	var dsvc := get_tree().root.get_node_or_null("DialogService")
+	var qsvc := get_tree().root.get_node_or_null("QuestService")
+	var pman := get_tree().root.get_node_or_null("PlayerManager")
+	_ok("DialogService + QuestService up", dsvc != null and qsvc != null)
+	if dsvc == null or qsvc == null:
+		return
+	# _grant_rewards pays the PlayerManager mirror only when the local player
+	# matches the quest earner; the playable world registers the player as
+	# local (player_controller._ready -> PlayerManager.set_local_player).
+	if pman != null and pman.get_local_player() != player:
+		pman.set_local_player(player)
+
+	# Spawn the blacksmith with its shipped data (dialogue + quest giver).
+	var npc = load("res://core/entities/npc_entity.gd").new()
+	npc.display_name = "Playthrough Blacksmith"
+	npc.npc_data = load("res://data/npc/npc_blacksmith_village.tres")
+	npc.global_position = player.global_position + _forward(player) * 2.0
+	inst.add_child(npc)
+	await get_tree().process_frame
+	var es := get_tree().root.get_node_or_null("EntityService")
+	var tm := get_tree().root.get_node_or_null("TargetingManager")
+	# SpawnService registers an NPC under its NPCData id (entity_id ==
+	# npc_data.id), which is what the dialogue -> TALK bridge matches on. A
+	# manual registration without the override would get an "entity_N" id and
+	# the TALK objective would never credit -- register the real way.
+	var npc_id := str(npc.npc_data.id)
+	if es and str(npc.get("entity_id")) == "":
+		es.register_entity(npc, null, npc_id)
+	if tm and str(npc.get("entity_id")) != "":
+		tm.register_targetable(str(npc.get("entity_id")), "npc", npc,
+			npc.display_name, npc.global_position, npc.entity_type)
+	await get_tree().process_frame
+
+	# E opens the action menu (proving the press resolves a live NPC). Drive
+	# the "talk" action with the blacksmith's id pinned -- the same
+	# _on_context_action seam the menu emits through, but immune to the
+	# nearest-target scan picking a leftover NPC from an earlier stage.
+	_key(KEY_E)
+	await _settle(0.6)
+	var menu = player.get("_action_menu")
+	_ok("E opened the blacksmith action menu", menu != null and menu.visible)
+	if menu == null or not menu.visible:
+		return
+	var started := [false]
+	dsvc.dialogue_started.connect(func(_n, _d): started[0] = true)
+	player._on_context_action("talk", str(npc.get("entity_id")))
+	await _settle(0.4)
+	# Some legs race the signal connect; the current dialogue is the truth.
+	_ok("dialogue started with the blacksmith",
+		started[0] or dsvc.get_current_node() != {})
+	await _shot("playthrough_10_dialogue")
+
+	# Walk the tree: node 0 -> choice 0 -> node 1 -> choice 0 -> node 3
+	# (the GIVE_QUEST choice) -> node 4 -> auto-end.
+	var gold_before: int = int(inv.get_gold())
+	var pm_gold_before: int = int(pman.gold) if pman else 0
+	var guard := 0
+	while dsvc.get_current_node() != {} and guard < 12:
+		guard += 1
+		var node: Dictionary = dsvc.get_current_node()
+		var choices: Array = node.get("choices", [])
+		if choices.is_empty():
+			dsvc.advance()
+		else:
+			dsvc.select_choice(0)
+		await get_tree().process_frame
+	# The choice fired GIVE_QUEST; accept_quest is the observable result.
+	var accepted: Dictionary = qsvc.get_quest_progress(pid, "quest_intro_core_npcs")
+	_ok("dialogue GIVE_QUEST accepted quest_intro_core_npcs",
+		not accepted.is_empty(), "(state=%s)" % str(accepted.get("state")))
+	if accepted.is_empty():
+		return
+
+	# Complete the required TALK objective by speaking to the blacksmith -- the
+	# real dialogue_ended bridge credits it (target == the npc_ id).
+	dsvc.start_dialogue(str(npc.npc_data.id), "blacksmith_village_intro")
+	dsvc.end_dialogue()
+	await get_tree().process_frame
+	var prog: Dictionary = qsvc.get_quest_progress(pid, "quest_intro_core_npcs")
+	# auto_complete = true: completion pays on the spot, so the quest lands in
+	# REWARDED (4) without a trip back to the giver.
+	_ok("the TALK bridge completed + auto-paid the quest",
+		int(prog.get("state", -1)) == 4, "(state=%s)" % str(prog.get("state")))
+	# quest_intro_core_npcs authors gold_reward=25, xp_reward=250, rewards=[].
+	# The reward must land exactly once even though dialogue_ended fires twice
+	# (the walk ended the dialogue once, then the explicit pass again).
+	_ok("quest auto-pay granted the gold reward exactly once (25)",
+		int(inv.get_gold()) == gold_before + 25,
+		"(%d -> %d)" % [gold_before, inv.get_gold()])
+	_ok("quest auto-pay mirrored the gold into PlayerManager",
+		int(pman.gold) == pm_gold_before + 25 if pman else true,
+		"(%d -> %d)" % [pm_gold_before, int(pman.gold) if pman else 0])
+	await _shot("playthrough_11_quest_reward")
+
+	# The blacksmith's tree also carries an OPEN_SHOP choice ("I'll start with
+	# the forge." -> shop_id blacksmith_service). Drive it and assert the real
+	# ShopUI opens bound to that offering -- the authored dialogue -> shop seam
+	# had no live receipt. (blacksmith_service is a type="service" offering, so
+	# the panel is intentionally empty of goods; the seam is what is under test.)
+	dsvc.start_dialogue(str(npc.npc_data.id), "blacksmith_village_intro")
+	await get_tree().process_frame
+	dsvc.select_choice(0)   # node 0 -> 1
+	await get_tree().process_frame
+	dsvc.select_choice(0)   # node 1 -> 3
+	await get_tree().process_frame
+	dsvc.select_choice(1)   # node 3 -> OPEN_SHOP(blacksmith_service), ends dialogue
+	await _settle(0.5)
+	var ShopUIScript := load("res://ui/components/shop_ui.gd")
+	var shop = ShopUIScript.singleton() if ShopUIScript else null
+	_ok("the dialogue OPEN_SHOP choice opened the shop panel",
+			shop != null and shop.visible, "(shop=%s)" % str(shop))
+	if shop != null:
+		var bound: String = str(shop._offering.display_name) if shop._offering else ""
+		_ok("the shop panel is bound to the authored offering",
+				bound == "Equipment Repair", "(offering=%s)" % bound)
+		shop.close()
+	await _shot("playthrough_12_dialogue_shop")
+
+
+## Stage 14: accept a quest from the JOURNAL (not an NPC). Opens the real
+## QuestUI through MenuManager, lists the AVAILABLE tab, selects a quest the
+## player has not accepted, and presses its Accept button. Proves the journal
+## accept path works on live node state -- before the round-2 fix the AVAILABLE
+## detail read get_quest_progress ({} for an unaccepted quest) and showed no
+## Accept button, so the journal could not accept a quest at all.
+func _stage_journal_accept(player, pid: String) -> void:
+	var mm := get_tree().root.get_node_or_null("MenuManager")
+	if mm == null and get_tree().current_scene != null:
+		var hud = get_tree().current_scene.get_node_or_null("HudLayer")
+		mm = hud.get_node_or_null("MenuManager") if hud else null
+	_ok("MenuManager resolved for the journal stage", mm != null)
+	if mm == null:
+		return
+	mm.open_menu("quests")
+	await _settle(0.5)
+	var panel: Control = mm.get_panel_node("quests")
+	_ok("the quest journal opened", panel != null and panel.visible)
+	if panel == null:
+		return
+	panel._current_tab = panel.Tab.AVAILABLE
+	panel.refresh_quest_list()
+	await get_tree().process_frame
+	var qsvc := get_tree().root.get_node_or_null("QuestService")
+	var avail: Array = qsvc.get_available_quests(pid)
+	var pick_id := str(avail[0].get("id", "")) if not avail.is_empty() and avail[0] is Dictionary else ""
+	_ok("the journal lists an available quest to accept", not pick_id.is_empty(),
+			"(id=%s, %d listed)" % [pick_id, avail.size()])
+	if pick_id.is_empty():
+		return
+	panel._show_quest_detail(pick_id)
+	await get_tree().process_frame
+	var accept: Button = null
+	var stack: Array = [panel._quest_detail]
+	while not stack.is_empty():
+		var n = stack.pop_back()
+		for c in n.get_children():
+			stack.append(c)
+			if c is Button and str(c.text) == "Accept Quest":
+				accept = c
+	_ok("the available quest detail shows an Accept button", accept != null)
+	if accept == null:
+		return
+	accept.pressed.emit()
+	await get_tree().process_frame
+	var prog: Dictionary = qsvc.get_quest_progress(pid, pick_id)
+	# QuestState.IN_PROGRESS == 2 (the runner uses literals, no QuestData import).
+	_ok("pressing Accept accepted the quest from the journal",
+			not prog.is_empty() and int(prog.get("state", -1)) == 2,
+			"(state=%s)" % str(prog.get("state")))
+	await _shot("playthrough_12_journal_accept")
+	if panel.has_method("close"):
+		panel.close()
+
 
 func _finish() -> void:
 	print("PLAYTHROUGH %d passed, %d failed%s" % [_pass, _fail, _fail_flags if _fail_flags else ""])

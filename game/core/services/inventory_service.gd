@@ -340,6 +340,23 @@ func get_gold(player_id: String) -> int:
 		return inv.get_gold()
 	return 0
 
+## Signed gold delta through the ONE purse. The companion to get_gold():
+## VaultService.deposit_gold/withdraw_gold/expand_vault and DeathFeatures
+## call this by name, but it never existed -- every vault gold move (and the
+## expansion debit/refund) died on a missing method, so the vault held no
+## coin and the death gold-penalty silently no-oped. Positive adds, negative
+## removes; a removal the purse cannot cover refuses (no partial debit) and
+## returns false so the caller can abort its own book.
+func modify_gold(player_id: String, amount: int) -> bool:
+	var inv: InventoryComponent = get_inventory(player_id)
+	if inv == null:
+		return false
+	if amount >= 0:
+		inv.add_gold(amount)
+		return true
+	return inv.remove_gold(-amount)
+
+
 ## Check if player can receive item (has space and weight)
 func can_receive_item(player_id: String, item: Item) -> bool:
 	var inv: InventoryComponent = get_inventory(player_id)

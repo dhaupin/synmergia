@@ -30,6 +30,7 @@ static func singleton():
 		# every ShopUI open with "Nonexistent function '_ready'") and the
 		# node is not in the tree, so _ready would not fire anyway. Stock
 		# state is lazily built in ensure_stock().
+		_instance._load_state()
 	return _instance
 
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
@@ -214,14 +215,20 @@ func sell_item(player_id: String, offering, npc_data, item_id: String, slot_key:
 
 ## Get the player's buyback list for a vendor session.
 func get_buyback(player_id: String) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
 	if _buyback.has(player_id):
-		return _buyback[player_id]
-	return []
+		# _buyback[player_id] is an untyped Array; returning it directly from an
+		# Array[Dictionary] function is a runtime conversion error, so copy
+		# element-by-element into the typed result.
+		for entry in _buyback[player_id]:
+			result.append(entry)
+	return result
 
 
 ## Clear buyback for a player.
 func clear_buyback(player_id: String) -> void:
 	_buyback.erase(player_id)
+	_persist_buyback(player_id)
 
 
 ## Trigger restock for an offering. Called when shop closes.
@@ -465,6 +472,7 @@ func _add_buyback(player_id: String, item: Item, qty: int, price: int) -> void:
 		"quantity": qty,
 		"price": price
 	})
+	_persist_buyback(player_id)
 
 
 ## ============================================================================

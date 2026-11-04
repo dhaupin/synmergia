@@ -458,8 +458,10 @@ func _check_and_trigger_player_snapshot(player_id: String, sub_meter: String, va
 		"session_minutes": _get_session_minutes(player_id),
 		"previous_snapshots_in_session": _get_player_snapshot_count(player_id)
 	}
-	if GameManager != null:
-		snapshot["shard_id"] = GameManager.get_current_shard_id()
+	# GameManager has no get_current_shard_id(); the shard id lives on
+	# ShardManager.shard_id. The old call raised 'Nonexistent function'.
+	if ShardManager != null and "shard_id" in ShardManager:
+		snapshot["shard_id"] = str(ShardManager.shard_id)
 	else:
 		snapshot["shard_id"] = "shard_unknown"
 

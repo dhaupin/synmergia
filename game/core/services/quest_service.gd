@@ -13,7 +13,11 @@ const DictStore = preload("res://adapters/persistence/dict_store.gd")
 const _kv_prefix := "quest:player:"
 
 static func _esc(text: String) -> String:
-	return text.replace('[', '[lb]').replace(']', '[rb]')
+	# Neutralize only '[': a bare ']' cannot open a BBCode tag. Replacing
+	# ']' too corrupted the '[lb]' tokens the first replace had just
+	# inserted ('[lb]' -> '[lb[rb]'), which RichTextLabel renders as
+	# literal text. (AGENTS.md "Security: BBCode XSS".)
+	return text.replace("[", "[lb]")
 
 ## Singleton
 static var instance: QuestService
@@ -324,6 +328,9 @@ func _get_available_quest_ids(player_id: String) -> Array:
 			# Check level requirement
 			if player_level < int(quest.min_level):
 				continue
+			# Chain gate (same rule as check_quest_availability).
+			if not _first_unmet_prereq(player_data, quest).is_empty():
+				continue
 			available.append(qid)
 	return available
 
@@ -366,6 +373,11 @@ func get_available_quests(player_id: String) -> Array:
 			var min_level: int = int(quest.min_level)
 			if player_level < min_level:
 				continue
+			# Chain gate: the roster must not offer a quest whose authored
+			# prerequisite is unmet, or the UI would list a quest the accept
+			# gate then refuses.
+			if not _first_unmet_prereq(player_data, quest).is_empty():
+				continue
 			var qname: String = str(quest.display_name)
 			if qname.is_empty():
 				qname = qid
@@ -407,8 +419,36 @@ func check_quest_availability(player_id: String, quest_id: String) -> Dictionary
 		result.reason = "Level too low (need %d)" % quest.min_level
 		return result
 
+	# Check the authored quest chain. previous_quest_id and required_quests
+	# are declared on QuestData and authored in data/quests/*.tres, but
+	# nothing enforced them -- a player could accept a sequel before its
+	# prerequisite, or pick up "The Old Roads" before "The Awakening".
+	var missing: String = _first_unmet_prereq(player_data, quest)
+	if not missing.is_empty():
+		result.reason = "Requires quest: %s" % missing
+		return result
+
 	result.available = true
 	return result
+
+## First authored prerequisite the player has not turned in, or "" when
+## every prerequisite is met. Both the accept gate and the roster read it
+## so the offered list and the accepted set never disagree.
+func _first_unmet_prereq(player_data: Dictionary, quest: QuestData) -> String:
+	var prereqs: Array = []
+	if not quest.previous_quest_id.is_empty():
+		prereqs.append(quest.previous_quest_id)
+	for req in quest.required_quests:
+		if not prereqs.has(str(req)):
+			prereqs.append(str(req))
+	for prereq_id in prereqs:
+		if prereq_id.is_empty():
+			continue
+		if not player_data.has(prereq_id):
+			return prereq_id
+		if int(player_data[prereq_id].get("state", QuestData.QuestState.LOCKED)) != QuestData.QuestState.REWARDED:
+			return prereq_id
+	return ""
 
 func _load_quest_data(quest_id: String) -> QuestData:
 	if DataService:
@@ -451,7 +491,13 @@ func accept_quest(player_id: String, quest_id: String) -> bool:
 			"target": str(obj.get("target", obj.get("target_id", ""))),
 			"required": int(obj.get("count", 1)),
 			"current": 0,
-			"completed": false
+			"completed": false,
+			# The optional flag is authored in the .tres but was dropped
+			# here, so _are_all_objectives_complete demanded the optional
+			# objectives too -- any quest with an optional objective could
+			# never complete (quest_intro_core_npcs, the blacksmith's
+			# onboarding quest, has two).
+			"optional": bool(obj.get("optional", false))
 		})
 
 	_player_quests[player_id][quest_id] = {
@@ -534,15 +580,24 @@ func update_quest_progress(player_id: String, objective_type: int, target: Strin
 			var qname: String = "Unknown"
 			if qdata != null and "display_name" in qdata:
 				qname = str(qdata.display_name)
+			# auto_complete is authored in the .tres ("complete without
+			# turn-in NPC") but was never read, so quests that set it still
+			# demanded a visit to the giver. Pay them the moment they complete.
+			var auto: bool = qdata != null and "auto_complete" in qdata and bool(qdata.auto_complete)
 			if is_instance_valid(NotificationService):
+				var msg: String = "Quest Complete: %s" % qname
+				if not auto:
+					msg += " - Return to quest giver!"
 				NotificationService.notify(
 					NotifKind.QUEST_COMPLETED,
-					"Quest Complete: %s - Return to quest giver!" % qname,
+					msg,
 					"QuestService",
 					"quest_complete:%s:%s" % [player_id, quest_id],
 					{"quest_id": quest_id, "player_id": player_id},
 					player_id
 				)
+			if auto:
+				turn_in_quest(player_id, quest_id)
 
 	if updated.is_empty():
 		return
@@ -551,6 +606,11 @@ func update_quest_progress(player_id: String, objective_type: int, target: Strin
 
 func _are_all_objectives_complete(objectives: Array) -> bool:
 	for obj in objectives:
+		# Optional objectives never gate completion (QuestData.check_completion
+		# applies the same rule); requiring them stranded every quest that
+		# authors one.
+		if obj.get("optional", false):
+			continue
 		if not obj.get("completed", false):
 			return false
 	return true
@@ -585,10 +645,9 @@ func turn_in_quest(player_id: String, quest_id: String) -> bool:
 	return true
 
 func _apply_rewards(player_id: String, quest: QuestData) -> Dictionary:
-	# quest.rewards is Array[Reward] (one entry per reward line). We
-	# fold the array into a summary dict the rest of the game can read
-	# without depending on the Reward schema. Inventory/XP/gold grants
-	# are TODO and live in their respective services.
+	# quest.rewards is Array[Reward] (one entry per reward line). We fold
+	# the array into a summary dict the rest of the game can read without
+	# depending on the Reward schema.
 	var summary := {
 		"experience": 0,
 		"gold": 0,
@@ -596,29 +655,142 @@ func _apply_rewards(player_id: String, quest: QuestData) -> Dictionary:
 		"reputation": {},
 		"titles": []
 	}
+	# Two authoring forms exist. The structured `rewards` array is the
+	# detailed form (it can carry items with drop chances); the scalar
+	# xp_reward/gold_reward/faction/title exports are the summary form.
+	# The catalog authors BOTH for the same values, so paying both would
+	# double every reward -- the array wins when present, the scalars are
+	# the fallback. Reading only `rewards` (the old code) left every quest
+	# paying nothing on turn-in.
+	var has_xp := false
+	var has_gold := false
 	for reward in quest.rewards:
 		if not reward is Dictionary:
 			continue
 		var rtype: String = str(reward.get("type", ""))
 		match rtype:
-			"experience":
+			"experience", "xp":
+				has_xp = true
 				summary["experience"] += int(reward.get("quantity", 0))
 			"gold":
+				has_gold = true
 				summary["gold"] += int(reward.get("quantity", 0))
 			"item":
 				summary["items"].append({
 					"id": reward.get("id", ""),
 					"quantity": int(reward.get("quantity", 1)),
 				})
-			"reputation":
+			"reputation", "faction":
 				summary["reputation"][reward.get("id", "")] = int(reward.get("quantity", 0))
 			"title":
 				summary["titles"].append(reward.get("id", ""))
+	if not has_xp:
+		summary["experience"] += int(quest.xp_reward)
+	if not has_gold:
+		summary["gold"] += int(quest.gold_reward)
+	if not quest.faction_reward.is_empty() and int(quest.faction_amount) != 0:
+		summary["reputation"][quest.faction_reward] = int(quest.faction_amount)
+	if not quest.title_reward.is_empty():
+		summary["titles"].append(quest.title_reward)
+	_grant_rewards(player_id, summary)
 	return summary
 
-## ============================================================================
-## QUEST TRACKING
-## ============================================================================
+## Pay the folded summary through the live services. Every grant is
+## duck-typed and late-resolved so a script-mode receipt (no mounted
+## wallet, autoloads not pre-loaded) still folds the summary without
+## crashing; the reward signal fires either way.
+func _grant_rewards(player_id: String, summary: Dictionary) -> void:
+	if player_id.is_empty():
+		return
+	var xp: int = int(summary.get("experience", 0))
+	var gold: int = int(summary.get("gold", 0))
+
+	# XP and gold land on the local player node when it is the earner
+	# (add_experience/add_gold own the level-up and one-purse lanes) and
+	# mirror into PlayerManager -- the persistent stats surface the HUD
+	# reads -- exactly like KillRewards does.
+	var pm := _pmgr()
+	var local_node = null
+	if pm != null and pm.has_method("get_local_player"):
+		local_node = pm.get_local_player()
+	if local_node != null and _node_player_id(local_node) == player_id:
+		if xp > 0 and local_node.has_method("add_experience"):
+			local_node.call("add_experience", xp)
+		if gold > 0 and local_node.has_method("add_gold"):
+			local_node.call("add_gold", gold)
+	if pm != null:
+		if xp > 0 and pm.has_method("add_experience"):
+			pm.add_experience(xp)
+		if gold > 0 and pm.has_method("add_gold"):
+			pm.add_gold(gold)
+
+	# Items: resolve through DataService, grant through the ONE purse.
+	var inv_svc := _inventory_service()
+	if inv_svc != null and inv_svc.has_method("get_inventory"):
+		var inv = inv_svc.get_inventory(player_id)
+		if inv != null and inv.has_method("add_item"):
+			for entry in summary.get("items", []):
+				var item_id: String = str(entry.get("id", ""))
+				if item_id.is_empty():
+					continue
+				var item = _resolve_item(item_id)
+				if item != null:
+					inv.add_item(item, int(entry.get("quantity", 1)))
+
+	# Titles ride TitleService's own ledger.
+	var titles: Array = summary.get("titles", [])
+	if not titles.is_empty():
+		var tsvc = _resolve_autoload("TitleService")
+		if tsvc != null and tsvc.has_method("unlock"):
+			for title_id in titles:
+				tsvc.unlock(player_id, str(title_id))
+
+	# Reputation rides FactionManager's ledger. _apply_rewards folds the
+	# faction_reward/faction_amount (and "reputation"/"faction" reward lines)
+	# into the summary but nothing ever paid it -- faction rewards were a
+	# silent no-op. Route each delta through modify_reputation (it clamps,
+	# persists and emits reputation_changed / the rank-transition toast).
+	var reputation: Dictionary = summary.get("reputation", {})
+	if not reputation.is_empty():
+		var fsvc = _resolve_autoload("FactionManager")
+		if fsvc != null and fsvc.has_method("modify_reputation"):
+			for faction_id in reputation.keys():
+				var delta: int = int(reputation[faction_id])
+				if str(faction_id).is_empty() or delta == 0:
+					continue
+				fsvc.modify_reputation(player_id, str(faction_id), delta)
+
+## Player id of a node, tolerant of both Entity and PlayerController.
+func _node_player_id(node) -> String:
+	if node == null:
+		return ""
+	if "entity_id" in node and str(node.get("entity_id")) != "":
+		return str(node.get("entity_id"))
+	if "player_id" in node:
+		return str(node.get("player_id"))
+	return ""
+
+func _resolve_item(item_id: String):
+	var ds = _resolve_autoload("DataService")
+	if ds != null and ds.has_method("get_item"):
+		return ds.get_item(item_id)
+	return null
+
+func _inventory_service() -> Node:
+	return _resolve_autoload("InventoryService")
+
+func _pmgr() -> Node:
+	return _resolve_autoload("PlayerManager")
+
+## Late-resolve an autoload through the tree so script-mode receipts
+## (which do not pre-load autoloads) work; bare-identifier fallback for
+## full boot. Mirrors the convention in kill_rewards.gd.
+func _resolve_autoload(svc_name: String) -> Node:
+	var ml := Engine.get_main_loop()
+	if ml != null and (ml is SceneTree):
+		return (ml as SceneTree).root.get_node_or_null(svc_name)
+	return null
+
 
 func get_quest_progress(player_id: String, quest_id: String) -> Dictionary:
 	var player_data: Dictionary = _player_quests.get(player_id, {})
@@ -634,10 +806,26 @@ func get_quest_progress(player_id: String, quest_id: String) -> Dictionary:
 
 func get_quest_objectives_text(player_id: String, quest_id: String) -> Array:
 	var progress := get_quest_progress(player_id, quest_id)
-	if progress.is_empty():
+	if not progress.is_empty():
+		return _format_objectives_text(progress.get("objectives", []))
+	# Not accepted yet (the journal AVAILABLE tab): format the catalog
+	# objectives so the player sees what the quest asks before accepting.
+	var quest := _load_quest_data(quest_id)
+	if quest == null:
 		return []
+	var raw := []
+	for o in quest.objectives:
+		if o is Dictionary:
+			raw.append({
+				"type": int(o.get("type", QuestData.ObjectiveType.KILL)),
+				"target": str(o.get("target", "")),
+				"current": 0,
+				"required": int(o.get("count", 1)),
+				"completed": false
+			})
+	return _format_objectives_text(raw)
 
-	var objectives: Array = progress.get("objectives", [])
+func _format_objectives_text(objectives: Array) -> Array:
 	var result := []
 
 	for obj in objectives:
@@ -678,14 +866,19 @@ func get_quest_objectives_text(player_id: String, quest_id: String) -> Array:
 ## ============================================================================
 
 func _get_player_level(player_id: String) -> int:
-	# Try to get player level from available services
-	if InventoryService and InventoryService.has_method("get_player_level"):
-		var level: int = InventoryService.get_player_level(player_id)
-		if level > 0:
-			return level
-	# Fallback: check player stats via PlayerManager
-	if PlayerManager and PlayerManager.has_method("get_player_info"):
-		var info: Dictionary = PlayerManager.get_player_info(player_id)
+	# The live player node owns `level` (PlayerController / a player Entity).
+	# Read it first: PlayerManager.get_player_info() does not exist (only
+	# get_character_data), so the old gate fell through to level 1 for every
+	# player -- a quest with min_level > 1 would be wrongly refused to a
+	# high-level player (and wrongly offered to a low-level one).
+	var pm := _pmgr()
+	if pm != null and pm.has_method("get_local_player"):
+		var node = pm.get_local_player()
+		if node != null and "level" in node and str(_node_player_id(node)) == player_id:
+			return int(node.level)
+	# Fallback: the persistent local stats surface.
+	if pm != null and pm.has_method("get_character_data"):
+		var info: Dictionary = pm.get_character_data()
 		if info is Dictionary and info.has("level"):
 			return int(info.get("level", 1))
 	# Default to level 1

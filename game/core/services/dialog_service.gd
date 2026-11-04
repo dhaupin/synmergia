@@ -45,6 +45,20 @@ func _pmgr() -> Node:
 	var tree := Engine.get_main_loop() as SceneTree
 	return tree.root.get_node_or_null(NodePath("PlayerManager")) if tree and tree.root else null
 
+## Resolve an Item resource by id through DataService (the static data
+## catalog), late-loaded so script-mode receipts stay autoload-safe.
+func _resolve_item(item_id: String):
+	if item_id.is_empty():
+		return null
+	var ds = _data_svc()
+	if ds != null and ds.has_method("get_item"):
+		return ds.get_item(item_id)
+	return null
+
+func _data_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("DataService")) if tree and tree.root else null
+
 ## Singleton instance (use singleton() to access)
 static var _instance: Node = null
 func _enter_tree() -> void:
@@ -62,10 +76,11 @@ static func singleton() -> Node:
 
 ## BBCode XSS escape (AGENTS.md "Security: BBCode XSS").
 ## DialogUI renders user-supplied text in RichLabels; unescaped [ and ]
-## let a player inject formatting/color/URL tags. Full-width brackets
-## are not recognized as BBCode and pass through as literal text.
+## let a player inject formatting/color/URL tags. We neutralize '[' to
+## the [lb] literal-bracket tag; a bare ']' cannot open a tag, so it
+## needs no escaping (escaping it corrupted the [lb] we had inserted).
 static func _esc(text: String) -> String:
-	return text.replace("[", "[lb]").replace("]", "[rb]")
+	return text.replace("[", "[lb]")
 
 const DialogueData = preload("res://core/schemas/dialogue_data.gd")
 # ShopUI and UIStyles are not autoloads (class_name only).
@@ -283,8 +298,10 @@ func execute_action(action_type: int, action_data: Dictionary, player_id: String
 				return _follow_svc().request_follow(player_id, target_id)
 		DialogActionType.STOP_FOLLOW:
 			if _follow_svc():
-				_follow_svc().cancel_follow(player_id)
-				return true
+				# FollowService exposes stop_follow, not cancel_follow --
+				# the old call was a nonexistent method (silent no-op).
+				# Return the real result (false when not following).
+				return _follow_svc().stop_follow(player_id, "dialogue")
 		DialogActionType.OPEN_SHOP:
 			var shop_id: String = action_data.get("shop_id", "")
 			if ShopUI:
@@ -304,39 +321,115 @@ func execute_action(action_type: int, action_data: Dictionary, player_id: String
 				MenuManager.open_menu("bank")
 				return true
 		DialogActionType.SET_WAYPOINT:
+			# Actually create the waypoint at the player's position. The old
+			# branch only logged and returned true, so an authored SET_WAYPOINT
+			# action reported success while creating nothing.
 			var wp_name: String = action_data.get("name", "Marker")
-			var color: int = action_data.get("color", 0)
-			if _waypoint_svc():
-				# _waypoint_svc().create_waypoint would be called with player pos
-				var _gl := _glog()
-				if _gl:
-					_gl.debug("DialogAction: SET_WAYPOINT '%s'" % wp_name)
-				return true
+			var wsvc := _waypoint_svc()
+			if wsvc != null and wsvc.has_method("create_waypoint_here"):
+				var wp_res: Dictionary = wsvc.create_waypoint_here(player_id, wp_name)
+				return bool(wp_res.get("success", false))
+			return false
 		DialogActionType.GIVE_ITEM:
 			var item_id: String = action_data.get("item_id", "")
 			var quantity: int = action_data.get("quantity", 1)
 			if _inv_svc() and item_id:
-				_inv_svc().add_item(player_id, item_id, quantity)
-				return true
+				# InventoryService has no add_item(player, item, qty): the
+				# ONE purse is the mounted component. Resolve the item
+				# through DataService and grant it there.
+				var inv = _inv_svc().get_inventory(player_id) if _inv_svc().has_method("get_inventory") else null
+				var item = _resolve_item(item_id)
+				if inv != null and item != null and inv.has_method("add_item"):
+					inv.add_item(item, quantity)
+					return true
 		DialogActionType.GIVE_CURRENCY:
 			var amount: int = action_data.get("amount", 0)
 			var currency: String = action_data.get("currency", "gold")
-			var _gl := _glog()
-			if _gl:
-				_gl.debug("DialogAction: GIVE_CURRENCY %d %s" % [amount, currency])
-			return true
+			if amount != 0:
+				var inv = _inv_svc().get_inventory(player_id) if _inv_svc() and _inv_svc().has_method("get_inventory") else null
+				if inv != null:
+					if currency == "" or currency == "gold":
+						if amount > 0:
+							inv.add_gold(amount)
+						else:
+							inv.remove_gold(-amount)
+						return true
+					if amount > 0:
+						inv.add_currency(currency, amount)
+					else:
+						inv.remove_currency(currency, -amount)
+					return true
+		DialogActionType.REMOVE_ITEM:
+			var item_id: String = action_data.get("item_id", "")
+			var quantity: int = action_data.get("quantity", 1)
+			var inv = _inv_svc().get_inventory(player_id) if _inv_svc() and _inv_svc().has_method("get_inventory") else null
+			if inv != null and item_id and inv.has_method("remove_item_by_id"):
+				return inv.remove_item_by_id(item_id, quantity)
+		DialogActionType.REMOVE_CURRENCY:
+			var amount: int = action_data.get("amount", 0)
+			var currency: String = action_data.get("currency", "gold")
+			var inv = _inv_svc().get_inventory(player_id) if _inv_svc() and _inv_svc().has_method("get_inventory") else null
+			if inv != null and amount > 0:
+				if currency == "" or currency == "gold":
+					return inv.remove_gold(amount)
+				return inv.remove_currency(currency, amount)
 		DialogActionType.UNLOCK_TITLE:
 			# Resource.get(key, default) was removed in 4.7.2; the
 			# guard already exists, so drop the default arg.
 			var title_id: String = action_data.get("title_id")
 			if _title_svc() and title_id:
-				_title_svc().unlock_title(player_id, title_id)
+				# TitleService's public grant is unlock() (a static shim);
+				# unlock_title() never existed.
+				_title_svc().unlock(player_id, title_id)
 				return true
 		DialogActionType.TEACH_SKILL:
 			var skill_id: String = action_data.get("skill_id")
 			if _academy_svc() and skill_id:
-				_academy_svc().unlock_skill(player_id, skill_id)
+				# Skills are learned by consuming a SkillBook item; the
+				# academy grants one through the ONE purse. unlock_skill()
+				# never existed.
+				var book = _academy_svc().create_book(skill_id, "common")
+				var inv = _inv_svc().get_inventory(player_id) if _inv_svc() and _inv_svc().has_method("get_inventory") else null
+				if book != null and inv != null and inv.has_method("add_item"):
+					inv.add_item(book, 1)
+					return true
+		DialogActionType.TELEPORT:
+			# Two forms: {waypoint_id} moves to an owned waypoint's world
+			# position; {position: Vector3} moves to a literal point. The enum
+			# case had no handler, so an authored teleport hit the default
+			# "Unknown action type" branch and did nothing.
+			var wp_id: String = action_data.get("waypoint_id", "")
+			if wp_id != "" and _waypoint_svc() and _waypoint_svc().has_method("get_waypoint"):
+				var wp: Dictionary = _waypoint_svc().get_waypoint(player_id, wp_id)
+				if not wp.is_empty():
+					var wp_pos := Vector3(float(wp.get("position_x", 0.0)), float(wp.get("position_y", 0.0)), float(wp.get("position_z", 0.0)))
+					return _teleport_player(player_id, wp_pos)
+			var raw = action_data.get("position", null)
+			if raw is Vector3:
+				return _teleport_player(player_id, raw)
+			var _gl := _glog()
+			if _gl:
+				_gl.warn("DialogAction: TELEPORT needs a waypoint_id or position")
+			return false
+		DialogActionType.EQUIP_ITEM:
+			# Equips the first bag copy of the named item through the mounted
+			# purse (the enum case had no handler).
+			var item_id: String = action_data.get("item_id", "")
+			var inv = _get_mounted_inventory(player_id)
+			if inv != null and item_id and inv.has_method("find_item") and inv.has_method("equip_item"):
+				var slot: int = inv.find_item(item_id)
+				if slot >= 0:
+					return inv.equip_item(slot)
+			return false
+		DialogActionType.OPEN_TRADE:
+			# Opens the trade panel; its own flow selects the partner (the enum
+			# case had no handler). MenuManager is loaded lazily to avoid the
+			# cyclic preload (see OPEN_VAULT above).
+			var TradeMenu = load("res://ui/components/menu_manager.gd")
+			if TradeMenu:
+				TradeMenu.open_menu("trade")
 				return true
+			return false
 		_:
 			var _gl := _glog()
 			if _gl:
@@ -350,3 +443,27 @@ func get_local_player_id() -> String:
 		if player and "entity_id" in player:
 			return player.entity_id
 	return ""
+
+## The ONE purse: the InventoryComponent mounted on the player's entity,
+## resolved the same way the GIVE_ITEM / GIVE_CURRENCY legs do.
+func _get_mounted_inventory(player_id: String):
+	var inv_svc := _inv_svc()
+	if inv_svc == null or not inv_svc.has_method("get_inventory"):
+		return null
+	return inv_svc.get_inventory(player_id)
+
+## Move the local player to a world position (the TELEPORT dialog action).
+## Guarded: only the owning player's body moves, and the target must be a
+## finite point.
+func _teleport_player(player_id: String, position: Vector3) -> bool:
+	if player_id.is_empty() or not position.is_finite():
+		return false
+	if _pmgr() == null or not _pmgr().has_method("get_local_player"):
+		return false
+	var node = _pmgr().get_local_player()
+	if node == null or not ("global_position" in node):
+		return false
+	if not ("entity_id" in node) or str(node.entity_id) != player_id:
+		return false
+	node.global_position = position
+	return true

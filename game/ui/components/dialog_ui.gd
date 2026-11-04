@@ -16,7 +16,7 @@ var _npc_position: Vector3 = Vector3.ZERO  # For distance-based close
 
 ## Escape BBCode brackets in user-supplied content.
 static func _esc(text: String) -> String:
-	return text.replace("[", "[lb]").replace("]", "[rb]")
+	return text.replace("[", "[lb]")
 
 ## Components
 var _speaker_label: Label
@@ -239,5 +239,14 @@ func _on_choice_selected(choice_index: int) -> void:
 		_show_node(next)
 
 func _on_continue_pressed() -> void:
+	# Advance the REAL dialogue service (the same call the receipt/tree walk
+	# uses). The old body called the demo fallback _show_node(), so pressing
+	# Continue on a choice-less node (every authored dialogue ends on one)
+	# painted the placeholder "Hello, traveler!" and never advanced or closed
+	# the conversation -- the demo path is only for a service-less boot.
+	var svc = DialogServiceClass.singleton()
+	if svc and svc.get_current_node() != {}:
+		svc.advance()
+		return
 	_current_node += 1
 	_show_node(_current_node)

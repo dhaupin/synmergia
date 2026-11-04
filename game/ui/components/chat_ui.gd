@@ -40,7 +40,7 @@ func _security_svc() -> Node:
 
 ## Escape BBCode brackets in user-supplied content.
 static func _esc(text: String) -> String:
-	return text.replace('[', '[lb]').replace(']', '[rb]')
+	return text.replace('[', '[lb]')
 
 ## Chat history display
 var _chat_history: RichTextLabel

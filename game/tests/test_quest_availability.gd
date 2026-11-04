@@ -152,6 +152,97 @@ func _run() -> void:
 		_ok("QuestUI AVAILABLE tab rendered %d quest buttons" % buttons)
 	else:
 		_fail("QuestUI AVAILABLE tab rendered no buttons (dict->id normalization broken)")
+
+	# The list button must show the quest's display NAME, not its raw id.
+	# _get_quest_name looked up get_quest_progress("", quest_id) -- an empty
+	# player id -- so the progress lookup always missed and every tab listed
+	# raw ids ("quest_arena_trial") instead of display names.
+	var named := false
+	for child in qui._quest_list.get_children():
+		if child is Button and str(low.display_name) in str(child.text):
+			named = true
+	if named:
+		_ok("QuestUI list button shows the quest display name")
+	else:
+		_fail("QuestUI list button shows the raw id, not '%s'" % str(low.display_name))
+
+	# Selecting an AVAILABLE quest must show its detail with an Accept button.
+	# The quest is not in _player_quests yet, so get_quest_progress() returns
+	# {} and the detail used to fall through to the empty state -- the player
+	# could see the quest listed but never accept it from the journal.
+	qui._show_quest_detail(str(low.id))
+	var accept_btn := false
+	var detail_has_title := false
+	var stack: Array = [qui._quest_detail]
+	while not stack.is_empty():
+		var node = stack.pop_back()
+		for child in node.get_children():
+			stack.append(child)
+			if child is Button and str(child.text) == "Accept Quest":
+				accept_btn = true
+			if child is Label and str(child.text) == str(low.display_name):
+				detail_has_title = true
+	if accept_btn and detail_has_title:
+		_ok("AVAILABLE quest detail shows the title + Accept button")
+	else:
+		_fail("AVAILABLE quest detail missing (accept=%s title=%s)" % [str(accept_btn), str(detail_has_title)])
+
+	# Objectives must render as readable text, not literal BBCode. Two bugs
+	# stacked here: (1) the _esc() helpers did
+	#     text.replace("[","[lb]").replace("]","[rb]")
+	# which corrupted their own "[lb]" tokens ("[lb]" -> "[lb[rb]"), and
+	# (2) QuestUI re-escaped the service's already-formatted BBCode and
+	# prefixed an invalid "[bullet]" tag. Both leaked "[lb]color=..." into
+	# the journal. Assert no objective label carries escape/tag garbage.
+	qui._show_quest_detail("quest_intro_core_npcs")
+	await process_frame
+	var obj_labels := 0
+	var obj_clean := true
+	var obj_readable := false
+	var ostack: Array = [qui._quest_detail]
+	while not ostack.is_empty():
+		var onode = ostack.pop_back()
+		for ochild in onode.get_children():
+			ostack.append(ochild)
+			if ochild is RichTextLabel:
+				obj_labels += 1
+				var raw_text: String = str(ochild.text)
+				var parsed: String = str(ochild.get_parsed_text())
+				if raw_text.contains("[lb") or parsed.contains("[lb") \
+						or parsed.contains("[color=") or parsed.contains("[bullet]"):
+					obj_clean = false
+					_fail("objective label leaks BBCode: %s" % parsed)
+				if parsed.contains("Talk to"):
+					obj_readable = true
+	if obj_labels > 0 and obj_clean:
+		_ok("quest objectives render readable text (no [lb]/[color=]/[bullet] leakage)")
+	elif obj_labels == 0:
+		_fail("no objective RichTextLabels rendered for quest_intro_core_npcs")
+	if obj_readable:
+		_ok("objective line reads 'Talk to <npc>' in the journal")
+	else:
+		_fail("objective line did not render readable 'Talk to ...' text")
+
+	# Complete tab must include TURNED-IN (REWARDED) quests, not just
+	# objectives-done (COMPLETE). Filtering only COMPLETE made every
+	# turned-in quest vanish from the journal entirely.
+	qs._player_quests[pid]["quest_wolves_hunt"] = {"state": qs.QuestData.QuestState.REWARDED, "objectives": []}
+	qs._player_quests[pid]["quest_intro_core_npcs"] = {"state": qs.QuestData.QuestState.COMPLETE, "objectives": []}
+	# Clear the list immediately (refresh_quest_list's queue_free is deferred,
+	# so stale AVAILABLE buttons would still be children during iteration and
+	# mask a dropped REWARDED quest).
+	for child in qui._quest_list.get_children():
+		child.free()
+	qui._current_tab = qui_script.Tab.COMPLETE
+	qui.refresh_quest_list()
+	var completed_names := {}
+	for child in qui._quest_list.get_children():
+		if child is Button:
+			completed_names[str(child.text).strip_edges()] = true
+	if completed_names.has("Wolf Hunt") and completed_names.has("Meet the People Doing the Work"):
+		_ok("Complete tab lists both awaiting-turn-in and turned-in quests")
+	else:
+		_fail("Complete tab dropped a turned-in quest (saw %s)" % str(completed_names.keys()))
 	qui.queue_free()
 
 	_finish()
