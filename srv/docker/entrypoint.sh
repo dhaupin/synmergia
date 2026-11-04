@@ -82,13 +82,20 @@ if [[ "$START_MODE" == "test" ]]; then
         log "FAIL: webhook-bridge tests"; tail -n 30 /tmp/webhook-bridge-test.log; exit 1
     }
 
-    # Godot smoke tests.
+    # Godot smoke tests. Run every tests/test_*.gd under the project.
+    # cwd is already the Godot project root, so the glob is tests/*.gd
+    # and the script path is res://tests/<file>. The previous form
+    # (glob game/tests/*.gd from inside game/, script res://<basename>)
+    # matched nothing and invoked a path that does not exist, so the
+    # loop ran zero tests and still logged success -- a false green.
+    # This is the full test_*.gd set and runs serially; for the faster
+    # parallel path use scripts/godot_test_parallel.sh.
     cd /workspace/project/game
-    for test_file in game/tests/test_*.gd; do
+    for test_file in tests/test_*.gd; do
         [[ -f "$test_file" ]] || continue
         log "  Running: $test_file"
         godot --headless --path /workspace/project/game \
-            --script "res://$(basename "$test_file")" || {
+            --script "res://$test_file" || {
             log "FAIL: $test_file"
             exit 1
         }
