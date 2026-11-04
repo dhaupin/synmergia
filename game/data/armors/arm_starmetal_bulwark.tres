@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_starmetal_bulwark"
+display_name = "Starmetal Bulwark"
+description = "Plate you cannot out-wear. The forge wins two of these a year and writes a letter home about each one."
+icon_path = "res://icons/items/armor_starmetal_bulwark.png"
+item_category = 1
+rarity = 5
+equip_slot = 2
+armor_type = 4
+stack_size = 1
+sell_price = 2000
+buy_price = 6000
+item_level = 18
+required_level = 18
+required_strength = 14
+stats = {
+"vitality": 8,
+"strength": 5
+}
+armor_value = 44

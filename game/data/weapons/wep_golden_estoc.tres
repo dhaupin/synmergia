@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_golden_estoc"
+display_name = "Golden Estoc"
+description = "A thrusting blade tinned thin enough to find the seam in any ring coat. Mercenary make: heavier in the wallet than the hand."
+icon_path = "res://icons/items/estoc_golden.png"
+item_category = 0
+rarity = 3
+equip_slot = 8
+weapon_type = 1
+stack_size = 1
+sell_price = 165
+buy_price = 450
+item_level = 10
+required_level = 10
+required_strength = 8
+stats = {
+"strength": 6,
+"vitality": 1
+}
+weapon_damage_min = 12
+weapon_damage_max = 19
+attack_speed = 1.2

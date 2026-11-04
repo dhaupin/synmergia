@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_starmetal_skysplitter"
+display_name = "Forge Skysplitter"
+description = "Three ingots and a mooncap for the grip -- the resin keeps hands warm against metal that stays cold-headed always. The forge remembers each one it finishes."
+station = 1
+inputs = [{"item_id": "res_starmetal_ingot", "qty": 3}, {"item_id": "res_mooncap", "qty": 1}]
+output = {"item_id": "wep_starmetal_skysplitter", "qty": 1}
+byproducts = [{"item_id": "res_slag", "qty": 2}]
+craft_time_sec = 0.0
+required_level = 18
+failure_rate = 0.2

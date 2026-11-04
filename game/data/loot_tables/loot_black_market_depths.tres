@@ -12,6 +12,22 @@ min_items_dropped = 1
 max_items_dropped = 1
 base_drop_chance = 1.0
 entries = [{
+"item_id": "wep_starmetal_skysplitter",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 1.0,
+"rarity_weight": 9.0,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "arm_starmetal_bulwark",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 1.0,
+"rarity_weight": 8.0,
+"is_guaranteed": false,
+"conditions": []
+}, {
 "item_id": "item_ancient_coin",
 "min_quantity": 1,
 "max_quantity": 3,

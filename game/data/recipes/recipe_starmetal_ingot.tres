@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_starmetal_ingot"
+display_name = "Temper Starmetal Ingot"
+description = "Sky metal comes full and wants the deepest binder in the book. Two ores, one mythril, and a fire the forge only lends at night."
+station = 1
+inputs = [{"item_id": "res_ore_starmetal", "qty": 2}, {"item_id": "res_mythril_ingot", "qty": 1}]
+output = {"item_id": "res_starmetal_ingot", "qty": 1}
+byproducts = [{"item_id": "res_slag", "qty": 1}]
+craft_time_sec = 0.0
+required_level = 14
+failure_rate = 0.2

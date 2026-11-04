@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "res_golden_ingot"
+display_name = "Golden Ingot"
+description = "Two sun-colored ores made one at the forge. The merchants swear by it, the smiths swear AT it -- gold is soft, but it takes a temper other metals envy."
+icon_path = "res://icons/resources/golden_ingot.png"
+item_category = 4
+rarity = 2
+equip_slot = 0
+stack_size = 100
+sell_price = 88
+buy_price = 190
+required_level = 0

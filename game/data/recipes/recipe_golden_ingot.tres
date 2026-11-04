@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_golden_ingot"
+display_name = "Smelt Golden Ingot"
+description = "Gold melts at a disloyal temperature. Two ores, one ingot, and the crucible keeps a little of the profit."
+station = 1
+inputs = [{"item_id": "res_ore_golden", "qty": 2}]
+output = {"item_id": "res_golden_ingot", "qty": 1}
+byproducts = [{"item_id": "res_slag", "qty": 1}]
+craft_time_sec = 0.0
+required_level = 5
+failure_rate = 0.1

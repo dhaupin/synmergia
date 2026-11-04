@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_starmetal_skysplitter"
+display_name = "Skysplitter"
+description = "The Concord charter names it the Starmetal Greatblade and would prefer you did not nickname it. The Concord has signed a great many things it would prefer people did not nickname."
+icon_path = "res://icons/items/skysplitter.png"
+item_category = 0
+rarity = 5
+equip_slot = 8
+weapon_type = 1
+stack_size = 1
+sell_price = 1800
+buy_price = 5200
+item_level = 18
+required_level = 18
+required_strength = 14
+stats = {
+"strength": 10,
+"vitality": 2
+}
+weapon_damage_min = 20
+weapon_damage_max = 34
+attack_speed = 0.9
