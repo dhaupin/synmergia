@@ -57,6 +57,7 @@ func _init() -> void:
 	_check_empty_function_bodies()
 	_check_long_files()
 	_check_assert_in_production()
+	_check_has_method_on_signal()
 
 	_finish()
 
@@ -529,6 +530,58 @@ func _check_assert_in_production() -> void:
 		_ok("no assert() in non-test .gd files")
 	else:
 		_ok(str(hits) + " .gd files use assert() in non-test code (info)")
+
+
+## has_method("x") is always false when x is a SIGNAL name. That
+## mistake silently kills wiring (the UIManager -> GameManager connects
+## were dead for life because they were guarded with has_method on
+## signals). Signals are not methods: use has_signal(). Flag any
+## has_method("...") literal that names a signal declared in the repo.
+## Names that are BOTH a signal and a method are skipped (ambiguous,
+## e.g. NetworkManager.player_connected).
+func _check_has_method_on_signal() -> void:
+	var re_sig := RegEx.new()
+	re_sig.compile("(?m)^\\s*signal\\s+([A-Za-z_]\\w*)")
+	var re_fn := RegEx.new()
+	re_fn.compile("(?m)^\\s*(?:static\\s+)?func\\s+([A-Za-z_]\\w*)")
+
+	var signal_names := {}
+	var method_names := {}
+	for path in Helpers.list_gd_files():
+		if path.begins_with("res://addons/"):
+			continue
+		var text := Helpers.read_text(path)
+		for m in re_sig.search_all(text):
+			signal_names[m.get_string(1)] = true
+		for m in re_fn.search_all(text):
+			method_names[m.get_string(1)] = true
+
+	var re_guard := RegEx.new()
+	re_guard.compile("has_method\\s*\\(\\s*\"([A-Za-z_]\\w*)\"")
+	var offenders: Array = []
+	for path in Helpers.list_gd_files():
+		if path.begins_with("res://addons/"):
+			continue
+		if path.begins_with("res://tests/"):
+			continue  # receipt probes may intentionally exercise the idiom
+		var text := Helpers.read_text(path)
+		var line_num := 0
+		for raw in text.split("\n"):
+			line_num += 1
+			var stripped := raw.strip_edges()
+			if stripped.begins_with("#"):
+				continue
+			for m in re_guard.search_all(raw):
+				var name := m.get_string(1)
+				if signal_names.has(name) and not method_names.has(name):
+					offenders.append("%s:%d has_method(\"%s\")" % [path, line_num, name])
+					Helpers.report_issue(path, line_num, "error",
+							"has_method() on signal \"%s\" (always false; use has_signal())" % name)
+
+	if offenders.is_empty():
+		_ok("no has_method() guards on signal names")
+	else:
+		_fail("has_method() guards on signal names: " + ", ".join(offenders))
 
 
 func _finish() -> void:

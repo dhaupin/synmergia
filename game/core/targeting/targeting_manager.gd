@@ -678,6 +678,14 @@ func _action_check_lobby(_source_id: String, _target_id: String) -> Dictionary:
 func set_local_player(player_id: String) -> void:
 	_local_player_id = player_id
 
+
+## The id of the local player (empty when unset). TargetingManager is
+## the registry the tooltip and action callbacks read; the local id
+## must be answerable from here (previously callers reached for a
+## get_local_player_id() that did not exist on this class).
+func get_local_player_id() -> String:
+	return _local_player_id
+
 ## Get current target
 func get_current_target() -> TargetInfo:
 	return _current_target
