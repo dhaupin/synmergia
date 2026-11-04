@@ -71,6 +71,7 @@ probe_swim
 frame/srv/test_ferry_schedule
 probe_ferry
 probe_water_mounts
+test_sundered_deep_economy
 probe_riding
 probe_ward_gate
 probe_startup_flow

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_breather_abyss_pearl"
+display_name = "Abyssal Breather"
+description = "An abyss pearl on a braided kelp cord. The reed keeps the deep at a distance; the pearl is different -- it is a piece of the deep that decided to help. Eight breaths the sea cannot count, twenty more meters the squeeze forgives, and the water's slow pull does not reach the diver at all."
+icon_path = "res://icons/items/breather_abyss_pearl.png"
+item_category = 2
+rarity = 3
+equip_slot = 11
+accessory_type = 6
+breath_multiplier = 8.0
+squeeze_grace_m = 20.0
+current_immune = true
+stack_size = 1
+bind_on_equip = true
+sell_price = 60
+buy_price = 300
+item_level = 55
+required_level = 8
+stats = {}

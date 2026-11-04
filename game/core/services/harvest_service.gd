@@ -35,8 +35,11 @@ func _ready() -> void:
 
 ## Register one gatherable node. Returns the node id ("" refused:
 ## unknown item, missing ids). world_id resolves from ZoneData when
-## the zone is known, else main.
-func register_node(node_id: String, zone_id: String, item_id: String, pos: Vector3, quantity: int = 1, respawn_sec: float = 60.0) -> String:
+## the zone is known, else main. S14.7: min/max_depth_m (0 = not
+## depth-gated) declare the node's WATER band (meters below the
+## volume's waterline) -- data side of the deep-harvest law; the
+## gate itself runs in harvest() against the ACTOR's sampled depth.
+func register_node(node_id: String, zone_id: String, item_id: String, pos: Vector3, quantity: int = 1, respawn_sec: float = 60.0, min_depth_m: float = 0.0, max_depth_m: float = 0.0) -> String:
 	var nid := str(node_id).strip_edges()
 	if nid.is_empty() or str(item_id).strip_edges().is_empty():
 		return ""
@@ -52,6 +55,8 @@ func register_node(node_id: String, zone_id: String, item_id: String, pos: Vecto
 		"respawn_sec": maxf(0.0, respawn_sec),
 		"depleted_until": 0.0,
 		"last_harvester": "",
+		"min_depth_m": maxf(0.0, min_depth_m),
+		"max_depth_m": maxf(0.0, max_depth_m),
 	}
 	return nid
 
@@ -64,6 +69,23 @@ func harvest(player_id: String, node_id: String) -> Dictionary:
 	if pid.is_empty() or not _nodes.has(nid):
 		return {"ok": false, "reason": "unknown_node"}
 	var node: Dictionary = _nodes[nid]
+	# THE DEPTH BAND LAW (S14.7): a depth-banded node yields only to a
+	# body truly sampling inside its band. The actor's position is the
+	# BODY truth (PlayerManager -- local body, the same duck the world
+	# wiring will walk), the sampler is OceanService's own discipline
+	# (plane OR radial waterline; the world sea measures radial). No
+	# body / no sample / a dry or rock sample refuses BY NAME, fail
+	# closed: the deep garden cannot be taken blind from the shore.
+	var band_min: float = float(node.get("min_depth_m", 0.0))
+	var band_max: float = float(node.get("max_depth_m", 0.0))
+	if band_min > 0.0 or band_max > 0.0:
+		var depth: float = _actor_depth(pid)
+		if depth < 0.0:
+			return {"ok": false, "reason": "not_in_water"}
+		if depth < band_min:
+			return {"ok": false, "reason": "too_shallow", "depth_m": snappedf(depth, 0.1)}
+		if band_max > 0.0 and depth > band_max:
+			return {"ok": false, "reason": "too_deep", "depth_m": snappedf(depth, 0.1)}
 	var now := _unix_now()
 	var until: float = float(node.get("depleted_until", 0.0))
 	if until > 0.0 and now < until:
@@ -157,6 +179,30 @@ func _purse(player_id: String):
 	if inv_svc != null and inv_svc.has_method("get_inventory"):
 		return inv_svc.get_inventory(player_id)
 	return null
+
+
+## The actor's water depth for the band gate (-1 = cannot judge: no
+## local body / no sampler / mismatched id / unresolvable position).
+## The body read is DUCK-TYPED (the same "global_position if Node3D
+## else position" shape probe bodies present) so no schema tie.
+func _actor_depth(actor_id: String) -> float:
+	var osc = get_node_or_null("/root/OceanService")
+	if osc == null or not osc.has_method("sample_depth"):
+		return -1.0
+	var pm = get_node_or_null("/root/PlayerManager")
+	if pm == null or not pm.has_method("get_local_player"):
+		return -1.0
+	var body: Node = pm.get_local_player()
+	if body == null or str(body.get("entity_id")) != actor_id:
+		return -1.0
+	var pos := Vector3(INF, INF, INF)
+	if body is Node3D:
+		pos = body.global_position
+	elif "position" in body:
+		pos = body.get("position")
+	if not is_finite(pos.x):
+		return -1.0
+	return float(osc.sample_depth(pos))
 
 func _world_for_zone(zone_id: String) -> String:
 	var zm = get_node_or_null("/root/ZoneManager")

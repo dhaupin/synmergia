@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_abyssal_breather"
+display_name = "String the Abyssal Breather"
+description = "One trench pearl strung on eight strands of kelp fiber -- the cord is the part the quay knows how to tie, the pearl is the part nobody explains. The result keeps a diver alive and still."
+station = 0
+inputs = [{"item_id": "res_abyss_pearl", "qty": 1}, {"item_id": "res_kelp_fiber", "qty": 8}]
+output = {"item_id": "acc_breather_abyss_pearl", "qty": 1}
+byproducts = []
+craft_time_sec = 0.0
+required_level = 8
+failure_rate = 0.0

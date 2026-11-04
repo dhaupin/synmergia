@@ -68,6 +68,18 @@ enum Liquid {
 @export var floor_center: Vector3 = Vector3.ZERO
 @export var floor_radius: float = 0.0
 @export var floor_y: float = 0.0
+## THE WATERLINE, second model (S14.7): a RADIAL waterline. The
+## plane waterline (surface_height, world Y) is only honest where a
+## scene is small enough for a plane to lie -- it is NOT honest for
+## the world sea on a 20 km globe, where the waterline is a SPHERE.
+## A volume with waterline_is_radial = true reads its waterline at
+## the world's own sea truth: radius == the shell radius plus
+## TerrainGen.sea_level (the seed's sea -- OceanService resolves
+## the number once; data stays pure and can never disagree with the
+## terrain that paints the water). sample_depth then measures the
+## body's radial column the same way the plane model does: negative
+## above the line, meters-below below it, -1 inside the rock.
+@export var waterline_is_radial: bool = false
 ## How deep the swimmable water goes before the SQUEEZE band starts
 ## (meters below the surface along the down axis).
 @export var max_depth: float = 60.0

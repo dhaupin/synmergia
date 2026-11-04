@@ -98,6 +98,12 @@ enum EquipSlot {
 ## (the MovementProfile owns speed -- orthogonal systems or soup).
 @export var breath_multiplier: float = 1.0
 @export var squeeze_grace_m: float = 0.0
+## S14.7: an aquatic grant, orthogonal to speed law: a breather that
+## declares current_immune floats free of the volume's declared
+## current drift (OceanService.effective_current zeroes the stamp --
+## the same seam the water mounts ride). Air and depth ratings stay
+## on the accessory; this only answers the water, never the swim.
+@export var current_immune: bool = false
 
 # Stack & Trade
 @export var stack_size: int = 1
@@ -385,6 +391,7 @@ func to_dict() -> Dictionary:
 		"weapon_type": weapon_type,
 		"armor_type": armor_type,
 		"accessory_type": accessory_type,
+		"current_immune": current_immune,
 		"stack_size": stack_size,
 		"current_stack": current_stack,
 		"is_bound": is_bound,
@@ -444,6 +451,7 @@ static func from_dict(data: Dictionary) -> Item:
 	item.weapon_type = data.get("weapon_type", WeaponType.NONE)
 	item.armor_type = data.get("armor_type", ArmorType.NONE)
 	item.accessory_type = data.get("accessory_type", AccessoryType.NONE)
+	item.current_immune = bool(data.get("current_immune", false))
 	item.stack_size = int(data.get("stack_size", 1))
 	item.current_stack = int(data.get("current_stack", 1))
 	item.is_bound = data.get("is_bound", false)

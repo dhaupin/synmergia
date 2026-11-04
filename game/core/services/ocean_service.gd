@@ -47,6 +47,11 @@ const ItemScript = preload("res://core/schemas/item.gd")
 
 var _volumes: Dictionary = {}
 var _loaded: bool = false
+## The seed's sea truth, resolved once (runtime cache -- the world
+## seed never changes mid-run). S14.7: the RADIAL WATERLINE law
+## reads its line here; data volumes stay pure and can never
+## disagree with the terrain that paints the water.
+var _sea_level_cache: float = -1.0
 
 
 func _ready() -> void:
@@ -66,6 +71,16 @@ func ensure_loaded() -> void:
 		if v != null and v is OceanVolumeScript:
 			_volumes[str(v.id)] = v
 	_loaded = true
+
+
+## The world sea's waterline RADIUS (shell + the seed's sea level).
+## The TerrainGen preload is the repo's own law (the service already
+## reads the generator for terrain-currents); the number is resolved
+## ONCE and cached per run.
+func sea_surface_radius() -> float:
+	if _sea_level_cache < 0.0:
+		_sea_level_cache = TerrainGen.sea_level(TerrainGen.world_seed_bytes())
+	return DEFAULT_FLOOR_RADIUS + _sea_level_cache
 
 
 func get_volume(id: String):
@@ -97,13 +112,23 @@ func volume_at(pos: Vector3):
 		if bool(v.floor_is_radial):
 			# WORLD-SHELL ocean: claims the radial band above its rock.
 			var center: Vector3 = v.floor_center if v.floor_center != Vector3.ZERO else _default_center()
-			var floor_r: float = float(v.floor_radius) if float(v.floor_radius) > 0.0 else DEFAULT_FLOOR_RADIUS
 			var d: float = pos.distance_to(center)
-			if d < floor_r:
+			var floor_r: float = float(v.floor_radius) if float(v.floor_radius) > 0.0 else DEFAULT_FLOOR_RADIUS
+			# THE RADIAL WATERLINE (S14.7): a world-sea volume claims
+			# the radial band from its rock up past the SEA sphere
+			# (+2 m wading reach, the same slack the plane model keeps).
+			if bool(v.waterline_is_radial):
+				var sea_r: float = sea_surface_radius()
+				if d < floor_r or d > sea_r + 2.0:
+					continue
+				if best == null or d < best_dist:
+					best = v
+					best_dist = d
+			elif d < floor_r:
 				continue  # inside the rock: no volume owns the stone
-			if d > floor_r + float(v.max_depth) + 50.0:
+			elif d > floor_r + float(v.max_depth) + 50.0:
 				continue  # above the water column's reach
-			if best == null or d < best_dist:
+			elif best == null or d < best_dist:
 				best = v
 				best_dist = d
 		else:
@@ -134,23 +159,33 @@ func volume_at(pos: Vector3):
 ## Clamped to the radial floor: a body pressed against the rock
 ## reads its true depth, never through it (terrain respect).
 ##
-## The radial clamp, both hemispheres: depth is measured DOWN from
-## the surface plane toward the floor center, so the honest column
-## is (floor_distance - body_distance) -- how much water lies
-## between the body and the rock along the radial. This works on
-## BOTH sides of a small globe:
-##   main world: floor_y = +20000, surface at 0, body at -5 m
-##     -> column = 20000 - 19995 = 5 m of water above the rock. Correct.
-##   moon crater: floor_r = 1194 near the top of the sphere, surface
-##     plane at -6, body below it -> column = distance to the rock.
-## The plane waterline decides DRY vs wet; the radial decides how
-## much water the body is honestly in.
+## THE RADIAL WATERLINE (S14.7): a volume with waterline_is_radial
+## reads its waterline as the world sea's own sphere
+## (sea_surface_radius, the seed's sea resolved once) and measures
+## depth along the radial: depth = sea_r - |pos - center|. Above the
+## sphere the sample reads NEGATIVE (meters above the line, the same
+## sign law the plane keeps); inside the rock it reads the -1
+## sentinel. The pairing law: radial waterline belongs with radial
+## rock (floor_is_radial) -- the plane branch below is the fallback
+## for a mismatched declaration, and the receipt pins the pairing.
 func sample_depth(pos: Vector3, vol = null) -> float:
 	ensure_loaded()
 	var v = vol if vol != null else volume_at(pos)
 	if v == null:
 		return -1.0
-	# Plane waterline (the surface is a plane in the current scenes).
+	if bool(v.waterline_is_radial) and bool(v.floor_is_radial):
+		var center: Vector3 = v.floor_center if v.floor_center != Vector3.ZERO else _default_center()
+		var d: float = pos.distance_to(center)
+		if d < float(v.floor_radius):
+			return -1.0  # inside the rock: stone, not water
+		return sea_surface_radius() - d
+	# PLANE WATERLINE (the current scenes): depth is measured DOWN
+	# from the surface plane (the radial clamp, both hemispheres: the
+	# honest column is how much water lies between the body and the
+	# rock along the radial -- main world 20 km shell: surface 0, body
+	# at -5, rock line 20000 -> 5 m of water above the rock; a moon
+	# crater pool reads its own dish). The plane waterline decides DRY
+	# vs wet; the radial decides how much water the body is honestly in.
 	var depth: float = float(v.surface_height) - pos.y
 	if depth < 0.0:
 		return depth  # above water: meters above the line (negative)
@@ -245,7 +280,7 @@ var _wet_by: Dictionary = {}
 ## squeeze_grace_m) ADDS to the breather's for the squeeze line;
 ## crush_bonus_m (the mount's crush_depth_bonus_m) is the only thing
 ## that moves CRUSH -- one derivation, same as band_for.
-func tick_swimmer(body_id: String, pos: Vector3, delta: float, breather_grace_m: float = 0.0, mount_grace_m: float = 0.0, crush_bonus_m: float = 0.0) -> Dictionary:
+func tick_swimmer(body_id: String, pos: Vector3, delta: float, breather_grace_m: float = 0.0, mount_grace_m: float = 0.0, crush_bonus_m: float = 0.0, current_immune: bool = false) -> Dictionary:
 	ensure_loaded()
 	var v = volume_at(pos)
 	var depth: float = sample_depth(pos, v)
@@ -280,7 +315,8 @@ func tick_swimmer(body_id: String, pos: Vector3, delta: float, breather_grace_m:
 		float(v.pressure_per_meter), total_grace, crush_bonus_m)
 	return {"state": state, "depth": depth, "band": v.band_for(depth, total_grace, crush_bonus_m), \
 		"liquid": v.liquid, "burn_dps": float(v.burn_dps), \
-		"current": _volume_current(pos, v), "breath": s.breath, "pressure": s.pressure, \
+		"current": Vector3.ZERO if current_immune else _volume_current(pos, v), \
+		"breath": s.breath, "pressure": s.pressure, \
 		"drowning_s": s.drowning_s}
 
 
@@ -309,7 +345,7 @@ func forget_swimmer(body_id: String) -> void:
 ## inventory, no component, nothing equipped -- resolves to the
 ## unbreathered default so callers never null-check.
 func breather_for(player_id: String) -> Dictionary:
-	var out := {"mult": 1.0, "grace_m": 0.0}
+	var out := {"mult": 1.0, "grace_m": 0.0, "current_immune": false}
 	var inv = null
 	if InventoryService != null and InventoryService.has_method("get_inventory"):
 		inv = InventoryService.get_inventory(player_id)
@@ -320,6 +356,7 @@ func breather_for(player_id: String) -> Dictionary:
 		return out
 	out["mult"] = maxf(float(item.breath_multiplier), 1.0)
 	out["grace_m"] = maxf(float(item.squeeze_grace_m), 0.0)
+	out["current_immune"] = bool(item.current_immune)
 	return out
 
 

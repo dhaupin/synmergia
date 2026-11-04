@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="OceanVolume" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/ocean_volume.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "ocean_sundered_sea"
+display_name = "The Sundered Sea"
+surface_height = 0.0
+floor_is_radial = true
+floor_center = Vector3(0, 0, 0)
+floor_radius = 19400.0
+floor_y = 0.0
+waterline_is_radial = true
+max_depth = 60.0
+current_direction = Vector3(-0.24, -0.146, 0.06)
+current_strength = 0.5
+pressure_per_meter = 0.1
+salinity = 1.0
+ambient_fog_color = Color(0.04, 0.16, 0.24, 1)
+ambient_fog_density = 0.03
+ambient_sounds = Array[String](["ocean_lap", "ocean_deep"])
+lore = "After the sundering the sea took the west face whole. The reef gardens wait just past the light; the kelp keeps the middle dark; the trench at the far bank holds whatever the shelf was willing to lose. The Concord charter says the sea is landing -- its currents say ferry."

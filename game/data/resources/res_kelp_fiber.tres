@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "res_kelp_fiber"
+display_name = "Kelp Fiber"
+description = "Strands of deep kelp pulled from the gardens below the light. Sun-dried it braids into rope; the Concord weavers of the quay prize a kelp cord for a harness that never chafes wet."
+icon_path = "res://icons/resources/kelp_fiber.png"
+item_category = 4
+rarity = 1
+equip_slot = 0
+stack_size = 50
+sell_price = 2
+buy_price = 8
+required_level = 0

@@ -8168,3 +8168,59 @@ Merged OpenHands' driver hookups + dialogue/quest fixes branch
   the icosahedral fix's own probes exit 0).
 - Issues #36/#37/#38 closed by owner after the merge; OpenHands'
   superseded web-shell-mkdir PR #24 left open for their call.
+
+## 2026-11-04 -- S14.7.1 SUNDERED SEA DEEP-SHELF DATA PASS (radial waterline + depth economy)
+
+The Sundered Sea lane's first increment: the deep-shelf economy
+lands as DATA + SERVICES, no fake visuals (prd-ocean-depths sec 8-10).
+
+- OceanVolume grew the RADIAL WATERLINE model (`waterline_is_radial`):
+  the plane waterline is only honest in small scenes; the 20 km world
+  sea's waterline is a SPHERE. Pairing law: radial waterline rides
+  radial rock; the receipt pins the pairing.
+- OceanService now resolves the sea's truth once:
+  `sea_surface_radius()` = shell (20000) + TerrainGen.sea_level
+  (world seed), runtime-cached -- data volumes stay pure and can
+  never disagree with the terrain that paints the water. Radial
+  volumes claim [floor_radius, sea_r + 2 m wading reach] in
+  volume_at; sample_depth reads the radial column (negative above
+  the line, -1 inside the rock). The plane branch is untouched --
+  probe_ocean's Haven Shelf and probe_swim's Builder's Pool laws
+  did not move a meter.
+- The current law's sea edition: Item gained the `current_immune`
+  accessory field (to_dict/from_dict ride too); breather_for speaks
+  it; tick_swimmer(..., current_immune) stamps ZERO. Datum: the sea
+  cannot carry the pearl-diver.
+- HarvestService grew DEPTH-BAND nodes: register_node(...,
+  min_depth_m, max_depth_m) (0 = ungated). harvest samples the
+  actor's body depth (PlayerManager local-body duck -> OceanService
+  sample_depth) and refuses BY NAME before the depleted/rate gates:
+  not_in_water (no body / dry / rock), too_shallow, too_deep.
+  Fail closed: the deep garden cannot be taken blind from shore.
+- Data: data/oceans/ocean_sundered_sea.tres (first radial-waterline
+  world volume: floor_is_radial, center ZERO, floor_radius 19400,
+  max_depth 60, pressure 0.1; current = backend_sundered RUN tangent
+  at 0.5 m/s -- the ferry lane); res_kelp_fiber + res_abyss_pearl;
+  acc_breather_abyss_pearl (x8 air, +20 m grace, current-immune,
+  necklace, level 8); recipe_abyssal_breather (1 pearl + 8 kelp,
+  hand station). Bands: reef kelp 30-45 m, trench pearls 50-58 m
+  (squeeze line 50 lives under the kelp band's floor; the pearl
+  lives past it, the breather buys the climb back).
+- Receipt tests/test_sundered_deep_economy.gd added to the runner
+  DEFAULT_SET (fleet packs regenerated: 9 packs / 2 unfiled
+  family sets; packstruct lint --deep green). 36 checks / 0 fails,
+  exit 0: seed sea truth == shell + Gen.sea_level exactly, claim
+  windows (+2 wading, rock -1), RUN-lane current ==
+  BS.RUN_DIR.normalized()*0.5 with the immune tick reading ZERO,
+  bands 20/49/55/61 m, band refusals by name both nodes, honest
+  purse grants (3 kelp / 2 pearls), no-body fail-closed leg, craft
+  gate (8 kelp alone nothing; 1+8 crafts), breather equip + default
+  law + un-equip reset.
+- GATES: receipt exit 0 36/0; lint 36/0; full pipeline exit=0 /
+  103 passed / 0 failed / 0 SCRIPT ERROR (DEFAULT_SET now 103,
+  four continent shards included; one restart of the cloud runner
+  happened AFTER completion, not mid-run).
+- Deferred to S14.7.2+: node-in-world registration in the streamer
+  (the _register_harvest_node pattern, seed-stable ids), reef/kelp/
+  trench visual props, globe_player swim integration with the
+  radial waterline, and the current loop as a ferry ride lane.
