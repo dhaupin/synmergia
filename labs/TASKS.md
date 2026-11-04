@@ -8268,3 +8268,53 @@ fixed the two phantom-call issues left open on the board.
 - Sandbox note: `tests/lint/run_all.sh` defaults to
   /tmp/Godot_v4.7.2-stable_x86_64, which a workspace restore wipes --
   pass `GODOT=$(command -v godot)` or every lint file reports CRASH.
+
+## 2026-11-04 -- S14.7.2 SUNDERED SEA DEEP GARDEN + SEA BODY
+
+The deep shelf gets a world (nodes + props) and the world body learns
+to swim it. Data alone is not a sea.
+
+- THE DEEP GARDEN (globe_terrain_streamer): six authored chart beds
+  (kelp shelf x 0.40/0.45/0.50, trench pearls x 0.58/0.64/0.70)
+  resolve through StraitChart.dir_from_chart; the bed direction's own
+  face owns it. _deep_beds_for_face() is the ONE law read by both the
+  harvest registration and the prop build. A face may own several beds
+  (the first draft's one-bed-per-face assumption was falsified by the
+  receipt); ids stay per-bed stable: deep_kelp_<face>_<bed>_<k>.
+- Registration rides _kick_prop_derivation beside the strait freight
+  (main thread): three HarvestService nodes per bed, res_kelp_fiber /
+  res_abyss_pearl, bands 30-45 / 50-58, depth jitter clamped inside
+  the band, positions on OceanService.sea_surface_radius() (one sea
+  truth; shell fallback), respawn 420 s / 900 s.
+- The draw: kelp beds paint 14 strands (7-14 m tapered cylinders) + 4
+  reef boulders; trench beds paint 6 pale spires + 2 drowned stones;
+  patch-local via _tangent_patch_local, cached materials, shared prop
+  mesh registry.
+- THE SEA STEP (globe_player): _sea_swim_step() calls tick_swimmer
+  once with breather grace + current_immune and obeys the band --
+  DRY/WADING keep the ford law, SUBMERGED/SQUEEZE/CRUSH take the body:
+  swim pace = walk x 0.62 steered at 4/s, the volume current added on
+  top (the ferry lane), buoyancy to a 0.6 m float depth unless crouch
+  dives / jump climbs, CRUSH ignores the wish and pushes up. _sea_carry
+  books the applied horizontal. Leaving the water forgets the swimmer.
+- Receipt tests/test_sundered_sea_swim.gd (runner DEFAULT_SET now 105;
+  fleet packs regenerated, 9 packs / 4 unfiled sets, packstruct --deep
+  green) 32 checks / 0 fails: bed ownership exactly once, per-kind
+  draw counts, no draw on a non-bed face, three nodes per bed with the
+  right id/band/sea-line depth, stable re-registration, and the body
+  legs (dry false, 38 m true, band/depth reads, flow > 0.4 m/s along
+  RUN, _sea_carry == volume flow, idle float, immunity zeroes, leaving
+  clears the book).
+- GATES: receipt 32/0 exit 0; lint 36/0; S14.7.1 receipt exit 0;
+  probe_water_mounts 30 checks / 0 failures exit 0; continent-shard
+  boot probe (probe_stream_continent_a) exit 0 with every PASS leg
+  green; the 3 SCRIPT ERROR lines in that boot are the PRE-EXISTING
+  classes (water-tri derive + the #19 teardown: "Nonexistent function
+  '' in base 'Vector3'", get_ticks_msec on null) at untouched line
+  ranges, same as documented in prior rounds.
+- Deferred: node-in-world prop ENTITY binding (harvest nodes are
+  service truth today; the garden mesh is the paint), breath/pressure
+  damage conversion + HUD meters, the ferry as a scheduled ride
+  (FerryService owns the timetable; the drift is the lane today), and
+  water mounts riding the sea bands (SwimState.MOUNT_DISMOUNT_ON_
+  SUBMERGE is not wired into the globe body yet).

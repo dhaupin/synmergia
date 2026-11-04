@@ -2070,6 +2070,7 @@ func _kick_prop_derivation(face: int) -> void:
 		# The strait freight is a service registration (main-thread
 		# side effect) -- it stays on the caller, not the worker.
 		_prop_register_freight(face)
+		_register_sundered_deep(face)
 	var t := Thread.new()
 	_prop_threads[face] = t
 	t.start(Callable(self, "_prop_derive_job").bind(face, _decor_salt), Thread.PRIORITY_LOW)
@@ -2109,6 +2110,7 @@ func _apply_derived_props(face: int) -> void:
 	var tree_nodes: Array = _apply_tree_sites(face, packed["trees"], patch_node)
 	_apply_detail_sites(face, packed["details"], patch_node)
 	_apply_grass_field(packed["grass"], patch_node)
+	_apply_sundered_deep(face, patch_node)
 	# The collider law (moved from _spawn_rocks -- the tree build is
 	# async now, so the new node trees carry it in this pass):
 	# trunk bodies block + join the climbable group; canopies stay
@@ -3105,6 +3107,207 @@ func _register_strait_freight(face: int, center_dir: Vector3, world_seed_v: Pack
 		var nid := "freight_%d_%d" % [face, k]
 		svc.register_node(nid, "zone_sundered_sea", "item_sealed_crate", \
 			crate_dir * radius, 1, 620.0)
+
+## ============================================================================
+## S14.7.2 THE DEEP GARDEN (prd-ocean-depths.md sec 8-10)
+## The Sundered Sea's shelf and trench become WORLD presence. ONE bed
+## table decides both the gather and the draw (the harvest-node law: a
+## node you can see is a node you can take), the real face lookup
+## decides which patch owns a bed (so a reload re-claims the SAME
+## identity), and every depth is measured DOWN the radial from the sea
+## sphere -- the exact line OceanService samples -- so a body at a bed's
+## depth is inside the node's authored band by construction.
+## ============================================================================
+## Depth the beds sit at, as authored (m below the sea line) and the
+## band a harvesting body must be inside (the S14.7.1 depth gate).
+const DEEP_KELP_M: float = 38.0
+const DEEP_KELP_BAND: Vector2 = Vector2(30.0, 45.0)
+const DEEP_PEARL_M: float = 54.0
+const DEEP_PEARL_BAND: Vector2 = Vector2(50.0, 58.0)
+const DEEP_KELP_RESPAWN: float = 420.0
+const DEEP_PEARL_RESPAWN: float = 900.0
+## The authored beds on the strait chart: [x, y, kind] -- kind 1 is the
+## reef kelp shelf (the lane's deep flank), kind 2 the trench pearl bed
+## past the squeeze line. Three plants per bed.
+const DEEP_BEDS: Array = [
+	[0.40, -0.07, 1], [0.45, 0.00, 1], [0.50, 0.07, 1],
+	[0.58, -0.04, 2], [0.64, 0.00, 2], [0.70, 0.04, 2],
+]
+
+## Every authored bed THIS face owns (a plane-ish chart cluster can put
+## two beds on one face -- each bed keeps its own identity, so the draw
+## and the gather still agree one-for-one). The bed direction's own face
+## is the owner.
+func _deep_beds_for_face(face: int) -> Array:
+	var out: Array = []
+	var Chart = load("res://core/services/strait_chart.gd")
+	if Chart == null:
+		return out
+	for idx in range(DEEP_BEDS.size()):
+		var bed: Array = DEEP_BEDS[idx]
+		var d: Vector3 = Chart.dir_from_chart(float(bed[0]), float(bed[1])).normalized()
+		if FacePatches.face_for_direction(d) == face:
+			out.append({"bed": idx, "dir": d, "kind": int(bed[2]),
+				"chart": Vector2(float(bed[0]), float(bed[1]))})
+	return out
+
+## The world sea's own waterline (the S14.7.1 radial law): OceanService
+## resolves shell + TerrainGen sea level once; this reads it and falls
+## back to the shell alone when the service is absent (probes, bare
+## hosts) -- never a second derivation of the sea truth.
+func _sea_line_radius() -> float:
+	var hs = Engine.get_main_loop()
+	if hs == null or not (hs is SceneTree):
+		return radius
+	var os = (hs as SceneTree).root.get_node_or_null(NodePath("OceanService"))
+	if os != null and os.has_method("sea_surface_radius"):
+		return float(os.sea_surface_radius())
+	return radius
+
+## Register every bed this face owns as live HarvestService nodes (the
+## gather half). Called on the MAIN thread beside the strait freight:
+## service registration is a side effect, never worker work.
+func _register_sundered_deep(face: int) -> void:
+	if not terrain_on:
+		return
+	var beds := _deep_beds_for_face(face)
+	if beds.is_empty():
+		return
+	var hs = Engine.get_main_loop()
+	if hs == null or not (hs is SceneTree):
+		return
+	var svc = (hs as SceneTree).root.get_node_or_null(NodePath("HarvestService"))
+	if svc == null or not svc.has_method("register_node"):
+		return
+	var sea_r: float = _sea_line_radius()
+	for bed in beds:
+		var kind: int = int(bed["kind"])
+		var dir: Vector3 = bed["dir"]
+		var bed_idx: int = int(bed["bed"])
+		var item_id := "res_kelp_fiber" if kind == 1 else "res_abyss_pearl"
+		var band: Vector2 = DEEP_KELP_BAND if kind == 1 else DEEP_PEARL_BAND
+		var depth_m: float = DEEP_KELP_M if kind == 1 else DEEP_PEARL_M
+		var respawn: float = DEEP_KELP_RESPAWN if kind == 1 else DEEP_PEARL_RESPAWN
+		var prefix := "deep_kelp" if kind == 1 else "deep_pearl"
+		# Stable per-(face, bed) plant jitter: a reload re-registers the
+		# same three plants at the same directions and depths.
+		var bytes: PackedByteArray = TerrainGen.face_seed_bytes(world_seed, face)
+		var acc: int = 0
+		for b in bytes:
+			acc = (acc * 131 + b) % 9007199254740991
+		var rng := RandomNumberGenerator.new()
+		rng.seed = acc + 9091 + bed_idx * 101
+		var hint: Vector3 = Vector3(0, 1, 0) if absf(dir.dot(Vector3(0, 1, 0))) < 0.999 else Vector3(1, 0, 0)
+		var east: Vector3 = (hint - dir * hint.dot(dir)).normalized()
+		var north: Vector3 = dir.cross(east)
+		for k in range(3):
+			var d_k: Vector3 = (dir + east * rng.randf_range(-0.0016, 0.0016)
+				+ north * rng.randf_range(-0.0016, 0.0016)).normalized()
+			var depth_k: float = clampf(depth_m + rng.randf_range(-3.0, 3.0), band.x + 1.0, band.y - 1.0)
+			var nid := "%s_%d_%d_%d" % [prefix, face, bed_idx, k]
+			svc.register_node(nid, "zone_sundered_sea", item_id, d_k * (sea_r - depth_k),
+				1, respawn, band.x, band.y)
+
+## Draw every bed this face owns (the visual half of the same
+## placement): kelp strands standing off the shelf, reef boulders
+## around their feet; in the trench, pale spires and a couple of
+## drowned stones. Children sit in the patch's local frame via
+## _tangent_patch_local, exactly like the trees and rocks.
+func _apply_sundered_deep(face: int, patch_node: Node3D) -> void:
+	var beds := _deep_beds_for_face(face)
+	if beds.is_empty():
+		return
+	var sea_r: float = _sea_line_radius()
+	var patch_center: Vector3 = FacePatches.face_center(face) * (radius + TILE_LIFT)
+	var bytes: PackedByteArray = TerrainGen.face_seed_bytes(world_seed, face)
+	var base_acc: int = 0
+	for b in bytes:
+		base_acc = (base_acc * 131 + b) % 9007199254740991
+	for bed in beds:
+		var kind: int = int(bed["kind"])
+		var dir: Vector3 = bed["dir"]
+		var bed_idx: int = int(bed["bed"])
+		var hint: Vector3 = Vector3(0, 1, 0) if absf(dir.dot(Vector3(0, 1, 0))) < 0.999 else Vector3(1, 0, 0)
+		var east: Vector3 = (hint - dir * hint.dot(dir)).normalized()
+		var north: Vector3 = dir.cross(east)
+		var rng := RandomNumberGenerator.new()
+		rng.seed = base_acc + 31337 + bed_idx * 101
+		var grove := Node3D.new()
+		grove.name = "DeepGarden%d_%d" % [face, bed_idx]
+		var root_r: float = sea_r - (DEEP_KELP_M if kind == 1 else DEEP_PEARL_M)
+		if kind == 1:
+			# THE KELP SHELF: strands tall enough to read from the surface,
+			# anchored in the bed and thinning outward.
+			for k in range(14):
+				var spread: float = rng.randf_range(0.0008, 0.0075)
+				var d_k: Vector3 = (dir + east * rng.randf_range(-spread, spread)
+					+ north * rng.randf_range(-spread, spread)).normalized()
+				var h: float = rng.randf_range(7.0, 14.0)
+				var stalk := MeshInstance3D.new()
+				stalk.name = "Kelp%d" % k
+				stalk.mesh = _shared_prop_cyl(0.09, 0.17, h)
+				stalk.material_override = _kelp_material()
+				stalk.position = _tangent_patch_local(d_k, patch_center, sea_r - DEEP_KELP_M + h * 0.5)
+				stalk.basis = Basis(east, d_k, north).rotated(d_k, rng.randf_range(0.0, TAU))
+				grove.add_child(stalk)
+			for k in range(4):
+				var bd: Vector3 = (dir + east * rng.randf_range(-0.004, 0.004)
+					+ north * rng.randf_range(-0.004, 0.004)).normalized()
+				var boulder := MeshInstance3D.new()
+				boulder.name = "Reef%d" % k
+				boulder.mesh = _shared_prop_cyl(1.2, 2.4, rng.randf_range(1.4, 2.8))
+				boulder.material_override = _reef_material()
+				boulder.position = _tangent_patch_local(bd, patch_center, sea_r - DEEP_KELP_M - 3.0)
+				boulder.basis = Basis(east, bd, north).rotated(bd, rng.randf_range(0.0, TAU))
+				grove.add_child(boulder)
+		else:
+			# THE TRENCH: pale vent spires past the squeeze line, and the
+			# pearl bed's drowned stones.
+			for k in range(6):
+				var sd: Vector3 = (dir + east * rng.randf_range(-0.003, 0.003)
+					+ north * rng.randf_range(-0.003, 0.003)).normalized()
+				var sh: float = rng.randf_range(5.0, 11.0)
+				var spire := MeshInstance3D.new()
+				spire.name = "Spire%d" % k
+				spire.mesh = _shared_prop_cyl(0.35, 1.1, sh)
+				spire.material_override = _reef_material()
+				spire.position = _tangent_patch_local(sd, patch_center, root_r + sh * 0.5)
+				spire.basis = Basis(east, sd, north).rotated(sd, rng.randf_range(0.0, TAU))
+				grove.add_child(spire)
+			for k in range(2):
+				var pd: Vector3 = (dir + east * rng.randf_range(-0.002, 0.002)
+					+ north * rng.randf_range(-0.002, 0.002)).normalized()
+				var stone := MeshInstance3D.new()
+				stone.name = "TrenchStone%d" % k
+				stone.mesh = _shared_prop_cyl(1.0, 1.8, rng.randf_range(1.0, 1.8))
+				stone.material_override = _reef_material()
+				stone.position = _tangent_patch_local(pd, patch_center, root_r - 1.5)
+				grove.add_child(stone)
+		patch_node.add_child(grove)
+
+## The shelf's green-black kelp (one material, cached).
+func _kelp_material() -> StandardMaterial3D:
+	if _kelp_mat_res != null:
+		return _kelp_mat_res
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.10, 0.32, 0.24)
+	m.roughness = 1.0
+	_kelp_mat_res = m
+	return m
+
+## The reef's wet stone (one material, cached).
+func _reef_material() -> StandardMaterial3D:
+	if _reef_mat_res != null:
+		return _reef_mat_res
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.24, 0.27, 0.27)
+	m.roughness = 1.0
+	_reef_mat_res = m
+	return m
+
+## Cached materials for the deep garden (never rebuilt per face).
+var _kelp_mat_res: StandardMaterial3D = null
+var _reef_mat_res: StandardMaterial3D = null
 
 ## How many loaded patches are actually VISIBLE in the tree right now
 ## (the round-12 web question: truth line said dry + meshes loaded, but

@@ -73,6 +73,7 @@ probe_ferry
 probe_water_mounts
 test_sundered_deep_economy
 test_roster_and_dispatch
+test_sundered_sea_swim
 probe_riding
 probe_ward_gate
 probe_startup_flow

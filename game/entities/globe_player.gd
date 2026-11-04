@@ -749,6 +749,11 @@ func _physics_process(delta: float) -> void:
 	is_sprinting = (Input.is_action_pressed("sprint") or _sprint_override_on) \
 		and climb_stamina > 0.6 and not is_crouching
 
+	# THE SEA STEP (S14.7.2): deep water outranks the walk --
+	# the water owns the body, the ford law never sees it.
+	if _sea_swim_step(delta, up, wish):
+		return
+
 	# WALK SPEED law: base x crouch / sprint / slope, then the climb
 	# check (a jump-hold against a wall outranks everything below).
 	var mult: float = 1.0
@@ -1281,3 +1286,98 @@ func lift_expected() -> float:
 	if snap_height_provider.is_valid():
 		return maxf(snap_height_provider.call(global_position), 0.0)
 	return 0.0
+## ============================================================================
+## S14.7.2 THE SEA STEP (prd-ocean-depths.md sec 3/8-10)
+## The world sea's wet half. ONE OceanService call answers everything
+## (band, depth, current, breath); the body only obeys it. The bands are
+## the service's, never re-derived here:
+##   * DRY / WADING -> false: the ford law and the walk own the body.
+##   * SURFACE_SWIM / SUBMERGED / SQUEEZE / CRUSH -> the water owns it:
+##     the swim speed feeds the wish, the CURRENT carries the body along
+##     the volume's declared flow (the ferry lane -- 0.5 m/s along the
+##     RUN tangent in the Sundered Sea; a current-immune breather reads
+##     ZERO from the service, not from here), and buoyancy holds the
+##     body at the waterline unless the player dives (crouch) or climbs
+##     (jump). CRUSH has no wish: the sea pushes up.
+## ============================================================================
+## Swim pace as a fraction of the walk pace (water is work).
+const SEA_SWIM_MULT: float = 0.62
+## How fast the wish steers the existing horizontal velocity (1/s).
+const SEA_STEER_PER_S: float = 4.0
+## Up/down swim speed (m/s) and the buoyancy spring that settles the
+## body onto the waterline (no bob without input).
+const SEA_SWIM_VERTICAL: float = 2.4
+const SEA_FLOAT_SPRING: float = 1.6
+## Depth under the sea line a body floats at while idle (head up).
+const SEA_FLOAT_DEPTH: float = 0.6
+
+## Sea bookkeeping (read by the HUD/anticheat legs later).
+var _sea_wet: bool = false
+var _sea_band: int = 0
+var _sea_depth: float = -1.0
+var _sea_flow: Vector3 = Vector3.ZERO
+## The horizontal velocity the sea law applied this frame (the current
+## plus the swim steering) -- read by the receipt and the HUD.
+var _sea_carry: Vector3 = Vector3.ZERO
+
+## The live OceanService node (null in bare/script hosts).
+func _ocean_service() -> Node:
+	var main_loop = Engine.get_main_loop()
+	if not (main_loop is SceneTree):
+		return null
+	var tree: SceneTree = main_loop
+	return tree.root.get_node_or_null("OceanService")
+
+
+## The sea owns this frame? Returns true when the water moved the body.
+func _sea_swim_step(delta: float, up: Vector3, wish: Vector3) -> bool:
+	var os := _ocean_service()
+	if os == null or not os.has_method("tick_swimmer"):
+		return false
+	var grace: float = 0.0
+	var immune: bool = false
+	if os.has_method("breather_for"):
+		var br: Dictionary = os.breather_for(entity_id)
+		grace = maxf(float(br.get("grace_m", 0.0)), 0.0)
+		immune = bool(br.get("current_immune", false))
+	var st: Dictionary = os.tick_swimmer(entity_id, global_position, delta, grace, 0.0, 0.0, immune)
+	var band: int = int(st.get("band", 0))
+	var depth: float = float(st.get("depth", -1.0))
+	# The wade band belongs to the ford law (it reads the terrain, this
+	# reads the water column); below it the sea owns the body.
+	if band <= 1 or depth <= WADE_MAX_DEPTH:
+		if _sea_wet:
+			_sea_wet = false
+			_sea_flow = Vector3.ZERO
+			_sea_depth = -1.0
+			if os.has_method("forget_swimmer"):
+				os.forget_swimmer(entity_id)
+		return false
+	_sea_wet = true
+	_sea_band = band
+	_sea_depth = depth
+	_sea_flow = st.get("current", Vector3.ZERO)
+	# Horizontal: the swim pace steers the existing velocity toward the
+	# wish; the current RIDES ON TOP at its own speed (the ferry lane).
+	var horiz: Vector3 = velocity - up * velocity.dot(up)
+	var want: Vector3 = wish * (walk_speed * SEA_SWIM_MULT)
+	horiz = horiz.lerp(want, clampf(SEA_STEER_PER_S * delta, 0.0, 1.0))
+	horiz += _sea_flow
+	_sea_carry = horiz
+	# Vertical law: buoyancy settles on the waterline; crouch dives,
+	# jump rises, and CRUSH ignores the wish (the ocean says no).
+	var vertical: float = 0.0
+	if band >= 4:
+		vertical = SEA_SWIM_VERTICAL
+		horiz = horiz.lerp(Vector3.ZERO, clampf(SEA_STEER_PER_S * delta, 0.0, 1.0))
+	elif Input.is_action_pressed("crouch") and not _text_entry_focused():
+		vertical = -SEA_SWIM_VERTICAL
+	elif Input.is_action_pressed("jump"):
+		vertical = SEA_SWIM_VERTICAL
+	else:
+		vertical = clampf((depth - SEA_FLOAT_DEPTH) * SEA_FLOAT_SPRING,
+			-SEA_SWIM_VERTICAL, SEA_SWIM_VERTICAL)
+	velocity = horiz + up * vertical
+	move_and_slide()
+	_validate_movement()
+	return true
