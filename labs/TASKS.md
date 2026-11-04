@@ -8443,3 +8443,10 @@ the sea bands). All four landed; one stale probe leg fell with them.
   line this round -- the restarts own that limitation, the ledger owns
   the coverage. probe_crafting's die-flake was found by the sweep and
   re-lawed (its synthetic leg actually failed once).
+
+## 2026-11-04 -- Parallel sweep + PR round (no full run by owner instruction)
+- PRs: #47 merged (`827fd6d3`) -- hud_services `_on_xp_shared` had swallowed ~180 lines of `_connect_services()`, wiring restored; receipt test_hud_services_wiring PASS exit 0 on the merged tree. #49 merged (`be5caa75`) -- health_component's phantom `has_method("get_party_id")` guard replaced by the PartyService seam; receipt test_party_death_notify PASS exit 0. Lint green (0 of 5) on the merged tree. Both PRs closed-as-merged with in-dock verification comments.
+- NEW: scripts/godot_test_parallel.sh -- the runner's concurrent sister (same laws; warm import first; no shares but the cache; no blind retry; --resume ledger). MEASURED: 8 tests 21 s wall at -j 4 (45 s CPU), 27 tests 45 s wall (2m09 CPU, ~2.9x). web-ci Optional Full Test Suite now runs `--all -j 4` (still non-gating). Serial runner untouched and still the DEFAULT_SET source of truth (gen_fleet_packs parses the same block).
+- Struct-family status check: dhaupin/crashtest already carries the agent-round issues (#79-82 auth/authz library rows, #82 docs/web catalog sync, #83 vant parallel-pack-driving speed ask) -- filed before the workspace died; nothing duplicated here.
+- Gates this round: parallel runner verified on subsets (8/0 and 27/0, exit 0 both), bash -n clean, resumeledger skip/append/frame-path legs exercised; full pipeline NOT run (owner instruction).
+
