@@ -255,7 +255,6 @@ func accept_friend_request(to_id: String, request_id: String) -> Dictionary:
 	_cancel_request(request)
 
 	friend_request_accepted.emit(request.from_player_id)
-	friend_request_declined.emit(request.from_player_id, request.to_player_id)
 
 	return {"success": true, "friend_id": request.from_player_id, "friend_name": request.from_player_name}
 
