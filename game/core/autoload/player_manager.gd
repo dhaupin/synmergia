@@ -252,3 +252,100 @@ func open_skill_academy_ui(_player_id: String, _npc_data) -> void:
 ## Get the local player node.
 func get_local_player() -> Node:
 	return local_player
+
+## ============================================================================
+## PLAYER ROSTER (issue #34)
+## The live roster is EntityService's registered player nodes, but the
+## admin/targeting surfaces ask PlayerManager for it -- these are the thin
+## delegating helpers they were always missing (the old bare calls raised
+## "Nonexistent function" at runtime). Every read is duck-typed and
+## node-resolved (no autoload identifiers) so bare hosts and script-mode
+## receipts stay silent instead of parsing against a missing singleton.
+## ============================================================================
+
+## The live EntityService node (null in bare/script-mode hosts).
+func _entity_service_node() -> Node:
+	var main_loop := Engine.get_main_loop()
+	if not (main_loop is SceneTree):
+		return null
+	var tree: SceneTree = main_loop
+	return tree.root.get_node_or_null("EntityService")
+
+
+## The permission level PermissionManager holds for a player, else the
+## player tier (0) -- never invented above PLAYER.
+func _permission_level_for(player_id: String) -> int:
+	var main_loop := Engine.get_main_loop()
+	if not (main_loop is SceneTree):
+		return 0
+	var tree: SceneTree = main_loop
+	var perms: Node = tree.root.get_node_or_null("PermissionManager")
+	if perms != null and perms.has_method("get_player_level"):
+		return int(perms.get_player_level(player_id))
+	return 0
+
+
+## One roster row for a live player node ({} when the node carries no
+## entity id -- an unspawned body is not a roster entry).
+func _player_info_from_node(player: Node) -> Dictionary:
+	if player == null or not is_instance_valid(player):
+		return {}
+	if not ("entity_id" in player):
+		return {}
+	var pid := str(player.get("entity_id"))
+	if pid == "":
+		return {}
+	var info := {"entity_id": pid, "name": pid, "level": 1, "online": true}
+	if "display_name" in player:
+		info["name"] = str(player.get("display_name"))
+	if "level" in player:
+		info["level"] = int(player.get("level"))
+	info["permission_level"] = _permission_level_for(pid)
+	return info
+
+
+## Every live (registered) player as a roster dictionary row.
+func get_all_players() -> Array:
+	var out: Array = []
+	var es := _entity_service_node()
+	if es == null or not es.has_method("get_all_players"):
+		return out
+	for player in es.get_all_players():
+		var info := _player_info_from_node(player)
+		if not info.is_empty():
+			out.append(info)
+	return out
+
+
+## Entity ids of every live player (the admin /online board).
+func get_online_player_ids() -> Array:
+	var ids: Array = []
+	for info in get_all_players():
+		ids.append(str((info as Dictionary).get("entity_id", "")))
+	return ids
+
+
+## "A live player node is registered" -- the admin/targeting meaning of
+## online (EntityService.get_entity(id) != null). A character id with no
+## spawned body is not online.
+func is_player_online(player_id: String) -> bool:
+	if player_id == "":
+		return false
+	var es := _entity_service_node()
+	if es == null or not es.has_method("get_entity"):
+		return false
+	var entity: Variant = es.get_entity(player_id)
+	return entity != null and is_instance_valid(entity)
+
+
+## Roster row for one player ({} when the id is not a live player).
+func get_player_info(player_id: String) -> Dictionary:
+	if player_id == "":
+		return {}
+	var es := _entity_service_node()
+	if es == null or not es.has_method("get_entity"):
+		return {}
+	var entity: Variant = es.get_entity(player_id)
+	if entity == null or not is_instance_valid(entity):
+		return {}
+	return _player_info_from_node(entity)

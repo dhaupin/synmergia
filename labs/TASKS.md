@@ -8224,3 +8224,47 @@ lands as DATA + SERVICES, no fake visuals (prd-ocean-depths sec 8-10).
   (the _register_harvest_node pattern, seed-stable ids), reef/kelp/
   trench visual props, globe_player swim integration with the
   radial waterline, and the current loop as a ferry ride lane.
+
+## 2026-11-04 -- ROSTER + CLIENT-DISPATCH ROUND (issues #34/#35) + PR-41 MERGE
+
+Cleared the OpenHands backlog: merged PR #41 (GLIDE objective + credit
+bridge, closes #40), closed draft PR #24 as already-satisfied, and
+fixed the two phantom-call issues left open on the board.
+
+- PR #41 landed as merge `94ecc77e` (pushed in `05e4c70d`): the
+  AGENTS.md top-entry conflict was resolved against the S14.7.1 entry
+  (glide round first, then the Sundered Sea pass). Re-gated here:
+  test_quest_glide_bridge 10/0, data-naming lint 26/0, lint 36/0.
+- PR #24 (web-ci mkdir) closed unmerged: `main`'s
+  `.github/workflows/web-ci.yml` already carries
+  `mkdir -p builds/web-shell` before the wasm export.
+- Issue #34 (PlayerManager roster API): the four missing delegating
+  helpers now exist -- get_player_info / get_all_players /
+  get_online_player_ids / is_player_online -- backed by EntityService's
+  live registration; rows carry entity_id/name/level/online/
+  permission_level, and "online" means a live player node is
+  registered. admin_commands._find_entity_by_id's fallback now
+  resolves the row's entity_id back to the live node (the old
+  `p as Node3D` could only ever return null once rows are dicts).
+- Issue #35 (NetworkManager dispatch): chat routes through the real
+  ChatService.send_message with the sender derived from
+  get_character_for_peer (payload sender ignored, unmapped peers
+  dropped by name); input/action call their handler only if one
+  exists and otherwise warn once per type, as do unknown message
+  types. The three phantom handle_client_* calls are gone.
+- Receipt tests/test_roster_and_dispatch.gd added to the runner
+  DEFAULT_SET (DEFAULT_SET now 104; fleet packs regenerated: 9 packs
+  / 3 unfiled family sets, packstruct --deep green). 37 checks /
+  0 fails: API presence, honest empty reads, a real registered body
+  through every roster read, the admin row->node lookup, the whisper
+  route (derived sender, forged sender never appears), unregistration
+  clearing online state, and the warn-once book.
+- Receipt lore: typed lambdas on typed signals can silently miss the
+  emit (untyped callbacks work); SAY needs a living audience so a
+  script-mode route leg uses WHISPER's explicit target.
+- GATES: receipt 37/0 exit 0; lint 36/0; glide receipt 10/0;
+  data-naming 26/0; packstruct --deep green. Full pipeline deferred
+  by owner instruction this round.
+- Sandbox note: `tests/lint/run_all.sh` defaults to
+  /tmp/Godot_v4.7.2-stable_x86_64, which a workspace restore wipes --
+  pass `GODOT=$(command -v godot)` or every lint file reports CRASH.

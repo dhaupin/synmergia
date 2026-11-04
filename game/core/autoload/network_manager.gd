@@ -380,16 +380,58 @@ func _receive_client_message(message: Dictionary) -> void:
 		var msg_type: String = message["type"]
 		match msg_type:
 			"input":
-				if InputManager:
+				# Input is simulated client-side; a server-side client-input
+				# handler only exists if the manager grows one (issue #35: this
+				# used to call a method that never existed and threw).
+				if InputManager and InputManager.has_method("handle_client_input"):
 					InputManager.handle_client_input(message.get("peer_id", 1), message.get("data", {}))
+				else:
+					_warn_unrouted("input")
 			"action":
-				if InteractionLayer:
+				if InteractionLayer and InteractionLayer.has_method("handle_client_action"):
 					InteractionLayer.handle_client_action(message.get("peer_id", 1), message.get("data", {}))
+				else:
+					_warn_unrouted("action")
 			"chat":
-				if ChatService:
-					ChatService.handle_client_chat(message.get("peer_id", 1), message.get("data", {}))
+				_handle_client_chat(message.get("peer_id", 1), message.get("data", {}))
 			"character_select":
 				_handle_character_select(message.get("peer_id", 1), message.get("data", {}))
+			_:
+				_warn_unrouted(msg_type)
+
+
+## Message types already warned about (one log line per type per process).
+var _unrouted_warned: Dictionary = {}
+
+## SERVER: a client message type with no live handler is warned once instead
+## of called into the void (issue #35).
+func _warn_unrouted(msg_type: String) -> void:
+	if _unrouted_warned.has(msg_type):
+		return
+	_unrouted_warned[msg_type] = true
+	_log("warn", "Client message type '%s' has no server handler (ignored)" % msg_type)
+
+
+## SERVER: routes a client chat message into ChatService. The sender identity
+## is DERIVED from the peer's associated character (the login mapping), never
+## from the payload, so a client cannot speak as someone else. The channel
+## resolves through ChatService.channel_by_name; an unknown channel falls
+## back to SAY rather than inventing one.
+func _handle_client_chat(peer_id: int, data: Dictionary) -> void:
+	var sender_id := get_character_for_peer(peer_id)
+	if sender_id == "":
+		_log("warn", "Chat: peer %d has no associated character (message dropped)" % peer_id)
+		return
+	if not ChatService or not ChatService.has_method("send_message"):
+		_warn_unrouted("chat")
+		return
+	var channel: int = 0
+	if ChatService.has_method("channel_by_name"):
+		var resolved := int(ChatService.channel_by_name(str(data.get("channel", "say"))))
+		channel = resolved if resolved >= 0 else int(ChatService.channel_by_name("say"))
+		if channel < 0:
+			channel = 0
+	ChatService.send_message(sender_id, channel, str(data.get("message", "")), str(data.get("target_id", "")))
 
 ## Handles character selection from client.
 ## Kicks any existing session for the character (Edge Case B),

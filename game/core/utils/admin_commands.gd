@@ -794,11 +794,18 @@ func _find_entity_by_id(entity_id: String) -> Node3D:
 		if entity:
 			return entity
 
-	# Try to find in player manager
+	# Try to find in the player roster. get_all_players() returns roster ROWS
+	# (dictionaries), not live nodes, so resolve the row's entity id back
+	# through EntityService for the entity itself.
 	var players = PlayerManager.get_all_players()
 	for p in players:
-		if p.get("entity_id") == entity_id or p.get("name") == entity_id:
-			return p as Node3D
+		var row: Dictionary = p
+		if str(row.get("entity_id", "")) == entity_id or str(row.get("name", "")) == entity_id:
+			if EntityService:
+				var live = EntityService.get_entity(str(row.get("entity_id", "")))
+				if live:
+					return live
+			return null
 
 	return null
 
