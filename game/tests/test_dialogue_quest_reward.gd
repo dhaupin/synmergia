@@ -279,6 +279,24 @@ func _run() -> void:
 		_fail("OPEN_TRADE returned false (no handler)")
 	else:
 		_ok("OPEN_TRADE routes to the trade panel")
+	# --- Leg 10: SET_WAYPOINT was a stub (only logged, returned true). It
+	# must create a real waypoint at the player's position through
+	# WaypointService.create_waypoint_here.
+	var es: Node = root.get_node_or_null("EntityService")
+	var wsvc: Node = root.get_node_or_null("WaypointService")
+	if es != null and wsvc != null:
+		es.register_entity(fake_player, null, "dq_probe")
+		var wps_before: int = wsvc.get_waypoints("dq_probe").size()
+		var sw_ok: bool = dial.execute_action(DialogActionType.SET_WAYPOINT, {"name": "Camp"}, "dq_probe")
+		var wps_after: int = wsvc.get_waypoints("dq_probe").size()
+		if not sw_ok or wps_after != wps_before + 1:
+			_fail("SET_WAYPOINT did not create a waypoint (ok=%s before=%d after=%d)" % [str(sw_ok), wps_before, wps_after])
+		else:
+			_ok("SET_WAYPOINT creates a real waypoint at the player")
+		es.unregister_entity(fake_player, "test")
+	else:
+		_fail("EntityService/WaypointService autoloads missing for SET_WAYPOINT leg")
+
 	inv_svc.unregister_inventory("dq_probe")
 	pm.set_local_player(null)
 	_finish()

@@ -277,7 +277,12 @@ func create_waypoint_here(player_id: String, name: String) -> Dictionary:
 		return {"success": false, "message": "Player not found"}
 
 	var position: Vector3 = entity.global_position if ("global_position" in entity) else Vector3.ZERO
-	var zone_id: String = ZoneManager.get_current_zone_id() if ZoneManager else ""
+	# ZoneManager has no get_current_zone_id(); the real lookup is
+	# get_entity_zone_id(entity). The old call raised 'Nonexistent function'
+	# and aborted every 'create waypoint here' before the waypoint existed.
+	var zone_id: String = ""
+	if ZoneManager and ZoneManager.has_method("get_entity_zone_id"):
+		zone_id = str(ZoneManager.get_entity_zone_id(entity))
 
 	return create_waypoint(player_id, name, position, zone_id)
 

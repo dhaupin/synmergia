@@ -321,14 +321,15 @@ func execute_action(action_type: int, action_data: Dictionary, player_id: String
 				MenuManager.open_menu("bank")
 				return true
 		DialogActionType.SET_WAYPOINT:
+			# Actually create the waypoint at the player's position. The old
+			# branch only logged and returned true, so an authored SET_WAYPOINT
+			# action reported success while creating nothing.
 			var wp_name: String = action_data.get("name", "Marker")
-			var color: int = action_data.get("color", 0)
-			if _waypoint_svc():
-				# _waypoint_svc().create_waypoint would be called with player pos
-				var _gl := _glog()
-				if _gl:
-					_gl.debug("DialogAction: SET_WAYPOINT '%s'" % wp_name)
-				return true
+			var wsvc := _waypoint_svc()
+			if wsvc != null and wsvc.has_method("create_waypoint_here"):
+				var wp_res: Dictionary = wsvc.create_waypoint_here(player_id, wp_name)
+				return bool(wp_res.get("success", false))
+			return false
 		DialogActionType.GIVE_ITEM:
 			var item_id: String = action_data.get("item_id", "")
 			var quantity: int = action_data.get("quantity", 1)
