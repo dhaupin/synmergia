@@ -2009,18 +2009,38 @@ var _prop_threads := {}  # face -> Thread (reaped in the apply pass)
 ## ("Nonexistent function ..." / "'' in base 'Vector3'" /
 ## "get_ticks_msec on a null value") plus Godot's own "Thread destroyed
 ## without wait_to_finish()" warnings.
-## MAIN THREAD ONLY (kickers + appliers are main-thread too). The fence
-## marks the streamer closed (kickers refuse after it), joins every
-## worker that FINISHES inside a bounded window, then clears the books.
-## THE BOUNDED LAW is deliberate: a straggler re-derive job can park
-## mid-compute in an engine-internal wait around world death and only
-## ever resume under the finalizer -- wait_to_finish() on it would hang
-## the exit forever, so a still-alive worker past the window is DROPPED
-## (its Thread object dies unjoined, the one honest residue the
-## finalizer leaves) instead of wedging the boot. Every finished worker
-## reaps cleanly: with normal derive walls the window joins everything
-## (small and drained worlds exit 0/0 spam / 0/0 thread warnings).
+## MAIN THREAD ONLY (kickers + appliers are main-thread too, and the
+## first fence's whole delay window ran inside _exit_tree). THE FENCE
+## RUNS IN THREE PHASES now (issue #19 residual, the non-blocking
+## drain that round left for its own round), so a world death never
+## blocks and every worker that can honestly finish does:
+##   1. THE QUICK LAP (async_shutdown, SYNC, bounded FENCE_JOIN_WINDOW_MS):
+##      marks the streamer closed (kickers refuse after it; both
+##      appliers go REAP-ONLY) and joins every worker that finishes
+##      inside its window -- mid-flight derives INCLUDED (a probe quit
+##      starves the frame drain of frames, so THIS is the quit path's
+##      fence; the shipped fence's window lives here). A book a busy
+##      worker still feeds is never cleared under it.
+##   2. THE FRAME DRAIN (THE NON-BLOCKING LAW): a coroutine ON THE
+##      STREAMER OBJECT awaits engine frames until pending_derive()
+##      == 0 -- the deferred applies flush on those frames, each one
+##      reaping its own thread and clearing its own book -- or the
+##      FENCE_JOIN_WINDOW_MS wall. The world's _exit_tree returns
+##      IMMEDIATELY; the drain never blocks the teardown. A drain
+##      parked on no further frames (the process is quitting) simply
+##      never resumes -- the residue equals the dropped-straggler law,
+##      not a new hazard (the orphaned streamer object is the
+##      pre-existing lifetime, not a new leak).
+##   3. THE DECISIVE LAP (_drain_fence_finish, bounded
+##      FENCE_FINAL_JOIN_MS): a last quick reap for the entries the
+##      drain raced, then the books clear under their own mutexes. A
+##      worker still parked mid-derive past the lap -- the straggler
+##      re-derive that parks in an engine-internal wait and only ever
+##      resumes under the finalizer -- is DROPPED (its Thread object
+##      dies unjoined, the one honest residue the finalizer would hold
+##      anyway) instead of wedging the boot forever.
 const FENCE_JOIN_WINDOW_MS: int = 30000
+const FENCE_FINAL_JOIN_MS: int = 2000
 
 var _shutdown := false
 
@@ -2028,6 +2048,14 @@ func async_shutdown() -> void:
 	if _shutdown:
 		return
 	_shutdown = true
+	_fence_quick_lap()
+	_drain_and_fence()
+
+## PHASE 1: the sync quick lap -- fast reaps only, no book clearing.
+## A worker that has already RETURNED joins and leaves its book; a
+## mid-flight entry keeps its book (the appliers and the frame drain
+## own those now). NO waiting on an alive worker, ever.
+func _fence_quick_lap() -> void:
 	var live: Array = (_mesh_threads.values() + _prop_threads.values()).filter(
 		func(t): return t != null and t.is_started())
 	var give_up_ms: int = Time.get_ticks_msec() + FENCE_JOIN_WINDOW_MS
@@ -2036,9 +2064,49 @@ func async_shutdown() -> void:
 		if live.is_empty():
 			break
 		OS.delay_msec(250)
-	for t in (_mesh_threads.values() + _prop_threads.values()):
-		if t != null and t.is_started() and not t.is_alive():
-			t.wait_to_finish()  # the job returned; this is a fast reap
+	_fence_reap_finished()
+
+func _fence_reap_finished() -> void:
+	var rows: Array = [[_mesh_mutex, _mesh_threads], [_prop_mutex, _prop_threads]]
+	for row in rows:
+		var mutex: Mutex = row[0]
+		var threads: Dictionary = row[1]
+		mutex.lock()
+		var faces: Array = threads.keys()
+		mutex.unlock()
+		for face in faces:
+			var t = threads.get(face)
+			if t != null and t.is_started() and not t.is_alive():
+				t.wait_to_finish()  # the job returned; this is a fast reap
+				mutex.lock()
+				threads.erase(face)
+				mutex.unlock()
+
+## PHASE 2: the frame drain (the non-blocking fence law). The streamer
+## object is an orphan after world death (never a tree child), so this
+## coroutine keeps running while the teardown proceeds and the applies
+## flush: each applier reaps its own thread and clears its own book.
+## No frames (process quitting) -> the decisive lap owns the rest.
+func _drain_and_fence() -> void:
+	var deadline_ms: int = Time.get_ticks_msec() + FENCE_JOIN_WINDOW_MS
+	var ml: Variant = Engine.get_main_loop()
+	while _mesh_threads.size() + _prop_threads.size() > 0 and Time.get_ticks_msec() < deadline_ms:
+		if ml == null or not (ml is SceneTree):
+			break
+		await ml.process_frame
+
+## PHASE 3: the decisive lap, then the books clear under their own
+## mutexes. A worker still parked past the lap (the engine-internal
+## futex straggler class) is DROPPED -- its Thread dies unjoined, the
+## one honest residue the finalizer would hold anyway.
+func _drain_fence_finish() -> void:
+	var give_up_ms: int = Time.get_ticks_msec() + FENCE_FINAL_JOIN_MS
+	while _mesh_threads.size() + _prop_threads.size() > 0 and Time.get_ticks_msec() < give_up_ms:
+		_fence_reap_finished()
+		if _mesh_threads.size() + _prop_threads.size() == 0:
+			break
+		OS.delay_msec(50)
+	_fence_reap_finished()
 	_mesh_mutex.lock()
 	_mesh_threads.clear()
 	_mesh_results.clear()
@@ -2100,6 +2168,11 @@ func _apply_derived_props(face: int) -> void:
 	if th != null:
 		th.wait_to_finish()  # the job has returned by the time the deferral fires
 		_prop_threads.erase(face)
+	if _shutdown:
+		# THE FENCE'S REAP-ONLY LAW (see _apply_derived_mesh). The prop
+		# applier keeps its own pending flag cleared inside the fence.
+		_prop_jobs.erase(face)
+		return
 	if packed == null:
 		return
 	if not _patches.has(face) or _patches[face] == null:
@@ -3620,6 +3693,14 @@ func _apply_derived_mesh(face: int) -> void:
 	if th != null:
 		th.wait_to_finish()  # the job has returned by the time the deferral fires
 		_mesh_threads.erase(face)
+	if _shutdown:
+		# THE FENCE'S REAP-ONLY LAW: a deferred apply that lands after the
+		# fence erects NOTHING (the scene nodes it would touch are dying
+		# or dead); its thread is already joined (or gone with the final
+		# book clear) and the pending flag clears so pending_derive()
+		# can reach zero inside the frame drain.
+		_mesh_jobs.erase(face)
+		return
 	if packed == null:
 		_mesh_jobs.erase(face)
 		return

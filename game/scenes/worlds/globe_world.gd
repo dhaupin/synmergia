@@ -283,9 +283,12 @@ func _setup_touch_hud() -> void:
 
 
 ## THE STREAMER FENCE (issue #19): when the world leaves the tree --
-## scene swap, probe exit, teardown -- join every live derive thread
-## BEFORE the engine releases the script state they call into. The
-## unjoined threads were the source of the teardown stderr spam
+## scene swap, probe exit, teardown -- stop the streamer AND reap it:
+## the fence's sync part is a FAST quick lap (finished threads only,
+## never a wait on a busy worker); the non-blocking frame drain runs
+## ON THE ORPHANED STREAMER OBJECT after this returns, so _exit_tree
+## is instant and the derives finish through the next frames' applies.
+## The unjoined threads were the source of the teardown stderr spam
 ## ("Nonexistent function", "get_ticks_msec on null", "Thread
 ## destroyed without wait_to_finish"). Guarded so a fence-less (or
 ## mock) streamer stays silent.
