@@ -86,14 +86,16 @@ func _on_health_depleted() -> void:
 	if _notif():
 		_notif().notify_death(entity.entity_id, killer_name, killer_type)
 
-		# Notify party members
-		if entity.has_method("get_party_id"):
-			var party_id = entity.get_party_id()
-			if party_id != "":
-				var party = _party().get_party(party_id) if _party() else null
-				if party:
-					for member_id in party.get("members", []):
-						_notif().notify_party_member_died(member_id, entity.display_name, killer_name)
+		# Notify party members. get_party_id was a phantom guard (no entity
+		# declares it), so this whole leg never ran; resolve the party
+		# through PartyService like every other caller (kill_rewards,
+		# loot_rules) instead.
+		var ps := _party()
+		if ps and ps.has_method("get_player_party") and "entity_id" in entity:
+			var party: Dictionary = ps.get_player_party(entity.entity_id)
+			for member_id in party.get("members", []):
+				if member_id != entity.entity_id:
+					_notif().notify_party_member_died(member_id, entity.display_name, killer_name)
 
 ## Take damage
 func take_damage(amount: int, source: Entity = null, damage_type: String = "physical") -> int:
