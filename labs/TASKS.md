@@ -8450,3 +8450,6 @@ the sea bands). All four landed; one stale probe leg fell with them.
 - Struct-family status check: dhaupin/crashtest already carries the agent-round issues (#79-82 auth/authz library rows, #82 docs/web catalog sync, #83 vant parallel-pack-driving speed ask) -- filed before the workspace died; nothing duplicated here.
 - Gates this round: parallel runner verified on subsets (8/0 and 27/0, exit 0 both), bash -n clean, resumeledger skip/append/frame-path legs exercised; full pipeline NOT run (owner instruction).
 
+## 2026-11-04b -- Branch law switch (staging local-gates)
+- Owner instruction: full gates stay LOCAL ONLY (parallel runner carries the default-set gate; CI is never the gate). All agent rounds (Buffy + OpenHands) land on `staging`; staging pushes trigger NO CI (web-ci push path = main only). Promotion = periodic manual fast-forward staging->main + --no-ff merge + single main push (~2-min CI, pck commit-back rides it). Staging fast-forwarded to e9648e32 before the OpenHands staging agent got deep (it was 10 commits behind at 1860e6f1).
+
