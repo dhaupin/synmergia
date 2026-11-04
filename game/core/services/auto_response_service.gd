@@ -229,15 +229,14 @@ func _handle_item_duplication(player_id: String, count: int, context: Dictionary
 func _auto_kick(player_id: String, reason: String, exploit_type: String = "exploit_threshold") -> void:
 	GameLog.warn("AutoResponse: Kicking %s: %s" % [player_id, reason])
 
-	# Player-facing toast BEFORE the disconnect. NetworkManager.kick_player
-	# drops the connection; the player needs a moment to see WHY. The
-	# AppFirewall ban/lift path is the precedent for this.
+	# Player-facing toast BEFORE the disconnect; the player needs a moment to
+	# see WHY. The AppFirewall ban/lift path is the precedent for this.
 	_notify_player(player_id, "You have been kicked: %s" % reason, NotifKind.AUTO_ACTION, "kick:" + exploit_type)
 
-	# Find peer ID and kick
-	var peer_id = _get_peer_for_player(player_id)
-	if peer_id > 0:
-		NetworkManager.kick_player(peer_id, reason)
+	# NetworkManager has no kick_player(peer_id, ...); the real disconnect
+	# seam is kick_player_by_character_id(character_id, reason). The old call
+	# raised 'Nonexistent function' and the kick never happened.
+	NetworkManager.kick_player_by_character_id(player_id, reason)
 
 	_notify_admins("Auto-kicked %s: %s" % [player_id, reason])
 	action_taken.emit(player_id, ActionType.KICK, exploit_type, reason)
@@ -248,10 +247,8 @@ func _auto_ban(player_id: String, reason: String, exploit_type: String = "exploi
 	# Issue permanent ban
 	NetworkManager.ban_player(player_id, reason, "auto_response")
 
-	# Kick if still connected
-	var peer_id = _get_peer_for_player(player_id)
-	if peer_id > 0:
-		NetworkManager.kick_player(peer_id, "Banned: " + reason)
+	# Kick if still connected (same real seam as _auto_kick).
+	NetworkManager.kick_player_by_character_id(player_id, "Banned: " + reason)
 
 	_notify_admins("Auto-banned %s: %s" % [player_id, reason])
 	action_taken.emit(player_id, ActionType.BAN, exploit_type, reason)

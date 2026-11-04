@@ -430,7 +430,10 @@ func _on_member_gui_input(frame: Control, event: InputEvent) -> void:
 				action_menu.show_menu(get_global_mouse_position(), player_id, Entity.EntityType.PLAYER)
 
 func _on_ready_check_pressed() -> void:
-	if PartyService:
+	# PartyService has no start_ready_check(); the bare call raised
+	# 'Nonexistent function' on every click. Guard it until the ready-check
+	# feature lands (tracked separately) so the button cannot crash the HUD.
+	if PartyService and PartyService.has_method("start_ready_check"):
 		PartyService.start_ready_check()
 
 func update_party(party_members: Array) -> void:

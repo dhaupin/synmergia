@@ -1116,7 +1116,14 @@ func _on_action_selected(action_id: String, target_id: String) -> void:
 					GameLog.info("Trade request failed")
 		"add_friend":
 			if FriendsService:
-				var my_name: String = PlayerManager.get_local_player_name() if PlayerManager.has_method("get_local_player_name") else ""
+				# PlayerManager has no get_local_player_name(); the guard was
+				# always false, so friend requests went out with a blank name.
+				# Read the live node's display_name instead.
+				var my_name: String = ""
+				if PlayerManager and PlayerManager.has_method("get_local_player"):
+					var lp = PlayerManager.get_local_player()
+					if lp != null and "display_name" in lp:
+						my_name = str(lp.display_name)
 				FriendsService.send_friend_request(my_id, my_name, target_id)
 		"view_character":
 			_open_character_inspect(target_id)

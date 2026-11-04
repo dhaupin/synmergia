@@ -269,7 +269,7 @@ func route_event(event: Dictionary) -> void:
 		"auction_update":
 			_pass_auction_update(event)
 		_:
-			GameLog.warning("CoordinatorService: Unknown event type %s" % event_type)
+			GameLog.warn("CoordinatorService: Unknown event type %s" % event_type)
 
 func _pass_heartbeat(event: Dictionary) -> void:
 	var source_shard: String = event.get("source_shard", "")
@@ -377,7 +377,7 @@ func get_online_players(shard_id: String = "") -> Dictionary:
 	_rate_limit_tracker[query_key] = filtered
 
 	if filtered.size() >= _RATE_LIMIT_MAX_QUERIES:
-		GameLog.warning("CoordinatorService: Rate limit exceeded for get_online_players on %s" % shard_id)
+		GameLog.warn("CoordinatorService: Rate limit exceeded for get_online_players on %s" % shard_id)
 		return {}
 
 	filtered.append(now)
