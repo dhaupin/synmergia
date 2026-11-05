@@ -351,6 +351,7 @@ decide with data.
 | Wardrobe locker — carry owned looks across owned items | AGREED, designed | §12 |
 | Guild heraldry packs — crew-bought social cosmetics | AGREED, designed | §13 |
 | Lucky — the weekly luck pot (7 days: 2 earned, 5 bought) | AGREED, designed | §14 |
+| The Whisper Ledger — the rumor mill + the Peal | AGREED, designed | §15 |
 
 ## 12. The wardrobe locker — spitball #2 (2026-11-05)
 
@@ -507,7 +508,54 @@ and the market board both consult), the fated stamp on lucky-found premium rares
 the pot UI. **Open question for that round:** does the charm lift HARVEST node yields
 too, or only kill/roll drops? (Harvest-skip is the shape that starts to smell.)
 
-## 15. The investor version (the one-paragraph answer)
+## 15. The Whisper Ledger — the rumor mill and the Peal (spitball #5, 2026-11-05)
+
+> **Status: AGREED.** The monetization of BEING SEEN — the one category the catalog
+> did not yet sell. §14's spiritbind jackpot is world froth by law; this section gives
+> the froth a mouth: a free rumor mill that tells the whole shard, and a small paid
+> permit that lets a finder ring the bells over their own legend.
+
+**Seat 1 — the rumor mill (free, worldbuilding first).** Every spiritbind landing
+whispers through the village heralds' evening news: *"The Ledger reports a spade found
+spiritbound near the pans — unnamed."* A notch too frequent to ignore, too rare to
+feel like spam. The mill turns the jackpot into a world clock — players check the
+herald the way they check weather — and every whisper advertises the whole luck
+economy to the whole shard, free of charge. Everyone can read; nobody pays.
+
+**Seat 2 — the Peal (the paid leg, the megaphone for your own legend).** When the
+jackpot lands on YOUR find, the landing already rumors free (item + place, name
+withheld). The Peal permit (deed-earned OR bought, the colorist license's own permit
+shape, never Charter-gated) adds the celebration you get to ring: a zone-wide bell, a
+sky-lantern burst, and the rumor line that carries your name instead of "unnamed".
+The landing itself is never sold; only its echo is. Cosmetic only — by construction it
+cannot touch a single number. A friend or the guild vault may buy a Peal FOR a finder
+(the gift leg): celebrations are meant to be given, not only owned.
+
+**Laws:**
+1. **Nobody buys the landing.** Money never raises jackpot odds (§14's law already),
+   and the rumor leg is free for every landing. The Peal only adds spectacle and the
+   name token — an amplifier, never a vendor.
+2. **No free text, ever.** Rumor lines are authored template sentences filled from the
+   item card's own truth (item id, place, name-or-unnamed). Moderation here is just
+   the withhold switch — no arbitrary strings, no heraldry-scale report flow needed.
+3. **The location leg comes free:** the whisper names the place ("by the drowned
+   pier") — a tourism engine zones would otherwise have to buy quests for.
+4. Charter never gates: the permit is deed-earned or bought, its two lanes exactly
+   equal in what they ring.
+5. Toll orthogonal (§10), and the mill reads provenance WITHOUT grading — a whisper
+   may honestly say a found mythic "wears its maker's toll" the same way the item
+   card does, but the mill never sells anything about it.
+
+**Implementation seat (a build round):** the Ledger as a subscriber to the central
+drop event (the roll-time modifier point §14 already created), a scheduled herald
+broadcast seat (the harbor-lights class of world furniture, or a world-channel line
+through the existing chat fabric), the Peal permit .tres + its sink row + the
+zone-wide cosmetic event (bell + lantern particles), and the gift leg through the
+guild vault rail (§13). **Open question for that round:** is the evening news a
+schedule the herald walks, or does a landing ring its own whisper same-day? (A small
+daily news lag is the honest editorial voice; immediacy is the louder froth.)
+
+## 16. The investor version (the one-paragraph answer)
 
 *Synmergia's monetization is not a plan, it is an installed, receipt-audited system: a
 wallet, three real-$ SKUs ($4.99–$24.99), a nine-row premium catalog (resurrection
