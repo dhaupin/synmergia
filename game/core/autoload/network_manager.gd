@@ -21,6 +21,14 @@ var DEFAULT_PORT: int = 10555
 var MAX_PLAYERS: int = 100
 const SERVER_IP: String = "127.0.0.1"
 
+## Edge transport (shard mesh Phase 2). "enet" is the default UDP
+## transport (byte-identical to before). "websocket" fronts the shard
+## behind an L7 proxy (nginx) so browser clients and a sticky LB can
+## reach it. Selected by EDGE_TRANSPORT (aliases: "ws", "wss").
+const EDGE_TRANSPORT_ENET: String = "enet"
+const EDGE_TRANSPORT_WEBSOCKET: String = "websocket"
+var edge_transport: String = EDGE_TRANSPORT_ENET
+
 ## WASM-SAFE NETWORKING CONSTANTS
 ## Maximum packet size: 64KB (65536 bytes) to prevent heap spikes in browser WASM
 const MAX_PACKET_SIZE: int = 65536
@@ -104,12 +112,46 @@ func _ready() -> void:
 	_client_state_tree = StateTreeScript.new()
 	_client_root_hash = _client_state_tree.root_hash()
 
+	# Edge transport (shard mesh Phase 2). Default enet keeps dev/CI
+	# byte-identical; a mesh sets EDGE_TRANSPORT=websocket so an L7
+	# proxy can front the shard.
+	edge_transport = _resolve_edge_transport()
+
 	# Auto-start server in headless/production mode
 	var godot_port := int(OS.get_environment("GODOT_PORT")) if OS.has_environment("GODOT_PORT") else DEFAULT_PORT
 	if OS.has_environment("START_MODE"):
 		var mode := OS.get_environment("START_MODE")
 		if mode in ["prod", "headless", "server"]:
 			_auto_start_server(godot_port)
+
+
+## Resolve EDGE_TRANSPORT from the env. Empty/unset -> enet (the
+## single-node default). Unknown values fall back to enet with a warn
+## rather than failing the boot.
+func _resolve_edge_transport() -> String:
+	if not OS.has_environment("EDGE_TRANSPORT"):
+		return EDGE_TRANSPORT_ENET
+	var raw := OS.get_environment("EDGE_TRANSPORT").strip_edges().to_lower()
+	if raw == "" or raw == EDGE_TRANSPORT_ENET:
+		return EDGE_TRANSPORT_ENET
+	if raw == EDGE_TRANSPORT_WEBSOCKET or raw == "ws" or raw == "wss":
+		return EDGE_TRANSPORT_WEBSOCKET
+	_log("warn", "Unknown EDGE_TRANSPORT='%s'; falling back to enet" % raw)
+	return EDGE_TRANSPORT_ENET
+
+
+## Build the server-side MultiplayerPeer for the selected edge transport.
+## Returns null on failure (the caller reports the honest error).
+func _make_server_peer(port: int) -> MultiplayerPeer:
+	if edge_transport == EDGE_TRANSPORT_WEBSOCKET:
+		var ws := WebSocketMultiplayerPeer.new()
+		if ws.create_server(port) != OK:
+			return null
+		return ws
+	var enet := ENetMultiplayerPeer.new()
+	if enet.create_server(port, MAX_PLAYERS) != OK:
+		return null
+	return enet
 
 
 func _init_firewall() -> void:
@@ -487,11 +529,9 @@ func start_server(port: int = DEFAULT_PORT) -> bool:
 		_log("warn", "Cannot start server: already connected")
 		return false
 
-	var peer := ENetMultiplayerPeer.new()
-	var error := peer.create_server(port, MAX_PLAYERS)
-
-	if error != OK:
-		_log("error", "Failed to start server on port %d: %s" % [port, error])
+	var peer := _make_server_peer(port)
+	if peer == null:
+		_log("error", "Failed to start %s server on port %d" % [edge_transport, port])
 		return false
 
 	multiplayer.multiplayer_peer = peer
@@ -507,7 +547,7 @@ func start_server(port: int = DEFAULT_PORT) -> bool:
 	# TickService drives the authoritative tick loop via its own timer
 	# NetworkManager only handles transport
 
-	_log("info", "Server started on port %d" % port)
+	_log("info", "Server started on port %d (transport=%s)" % [port, edge_transport])
 	server_started.emit()
 	return true
 
@@ -586,7 +626,10 @@ func connect_to_server(ip: String = SERVER_IP, port: int = DEFAULT_PORT) -> bool
 
 	connection_state = ConnectionState.CONNECTING
 
-	if OS.has_feature("web"):
+	# Web clients cannot open raw UDP sockets; a mesh that fronts shards
+	# with an L7 proxy also speaks websocket for native clients. Both
+	# route through the websocket client path.
+	if OS.has_feature("web") or edge_transport == EDGE_TRANSPORT_WEBSOCKET:
 		return _connect_websocket(ip, port)
 
 	var peer := ENetMultiplayerPeer.new()
@@ -746,7 +789,8 @@ func get_connection_info() -> Dictionary:
 		"is_server": is_server,
 		"is_client": is_client,
 		"peer_id": peer_id,
-		"connected_peers": connected_peers.size()
+		"connected_peers": connected_peers.size(),
+		"edge_transport": edge_transport
 	}
 
 ## ============================================================================

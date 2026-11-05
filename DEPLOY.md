@@ -398,7 +398,8 @@ To inspect a volume: `docker volume inspect synmergia_postgres-data`
 |----------|---------|-------------|----------|
 | `START_MODE` | `dev` | Run mode: dev, prod, headless, test | Yes |
 | `GODOT_PORT` | `9000` | Godot server port | No |
-| `GODOT_UPSTREAM` | `synmergia:9000` | Godot upstream for nginx | No |
+| `GODOT_UPSTREAM` | `synmergia:9000` | Godot upstream for nginx. A comma/space list of shard hosts expands into one `server` line per shard (see §12). | No |
+| `EDGE_TRANSPORT` | `enet` | Server transport: `enet` (raw UDP) or `websocket` (aliases `ws`/`wss`) for an L7-proxied shard. Unknown values fall back to `enet`. | No |
 | `POSTGRES_PASSWORD` | `synmergia_dev_pass` | PostgreSQL password | **Yes** |
 | `POSTGRES_HOST` | `postgres` | PostgreSQL host | No |
 | `REDIS_HOST` | `redis` | Redis host | No |
@@ -406,6 +407,25 @@ To inspect a volume: `docker volume inspect synmergia_postgres-data`
 | `JWT_SECRET` | `change_me_in_production` | JWT signing secret | **Yes** |
 | `DOMAIN` | `localhost` | Domain for SSL certs | For production |
 | `CERT_EMAIL` | `admin@localhost` | Email for Let's Encrypt | For production |
+
+### Shard Mesh Variables
+
+A single container is one shard; these are the mesh knobs (see §12 and
+`labs/prd-shard-mesh.md`). Unset, they keep the single-node defaults
+(`shard_1` / "Alpha", in-process memory) — dev and CI are unchanged.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SHARD_ID` | `shard_1` | This container's shard identity |
+| `SHARD_NAME` | `Alpha` | Human-readable shard name |
+| `IS_PRIMARY` | `false` | Mark one shard primary |
+| `STORAGE_BACKEND` | `memory` | Engine persistence: `memory` or `postgres` |
+| `CACHE_BACKEND` | `memory` | Engine cache: `memory` or `redis` |
+| `PG_BACKEND` | `sqlite` | pg-bridge backend: `sqlite` or `postgres` |
+| `REDIS_BACKEND` | `inmemory` | redis-bridge backend: `inmemory` or `redis` |
+| `PG_BRIDGE_URL` | `http://127.0.0.1:8080` | Engine -> pg-bridge URL |
+| `REDIS_BRIDGE_URL` | `http://127.0.0.1:8081` | Engine -> redis-bridge URL |
+| `SHARD_BUS_BACKEND` | follows `CACHE_BACKEND` | Cross-shard bus: `memory` or `redis` |
 
 ### Runtime Mode Detection
 
@@ -503,6 +523,27 @@ docker compose exec redis redis-cli ping
 |------|------|-------|
 | `api` | 10r/s | 50 |
 | `login` | 1r/s | - |
+| `hooks` | 5r/s | 20 |
+
+### Upstream & Sticky Routing
+
+The `godot` upstream carries `ip_hash` so a client's requests — including
+a WebSocket upgrade and its follow-ups — land on the **same** shard
+(session affinity). `GODOT_UPSTREAM` may be one `host:port` (the
+single-container default) or a comma/space-separated list of shard hosts;
+the container entrypoint expands it into one `server` line per shard at
+startup. A single host is byte-identical to the pre-mesh config.
+
+```bash
+# Single container (default)
+GODOT_UPSTREAM=synmergia:9000
+
+# A mesh behind one nginx (see §12)
+GODOT_UPSTREAM=shard-1:9000,shard-2:9000,shard-3:9000
+```
+
+To front a shard with WebSocket (L7, browser + native clients) set
+`EDGE_TRANSPORT=websocket` on the shard; leave it `enet` for raw UDP.
 
 ### Custom Configuration
 
@@ -692,28 +733,71 @@ The Synmergia `WorldManifest` contains the authoritative root seeds and world-le
 
 ## 12. Scaling Considerations
 
-### Horizontal Scaling (Future)
+### Shard Mesh (multi-container)
 
-Current architecture is single-shard. For horizontal scaling:
+The single container is one shard. A **mesh** runs several `synmergia`
+containers as distinct shards behind one nginx, over shared Postgres +
+Redis, presented to players as one world. The shard layer is built in
+phases (`labs/prd-shard-mesh.md`); the per-shard wiring is shipped:
 
-1. **Multiple Shard Containers**
-   - Run multiple `synmergia` containers
-   - Each with unique `SHARD_ID`
-   - Load balancer in front
+| Concern | Status | How |
+|---------|--------|-----|
+| Shard identity | Shipped | `SHARD_ID` / `SHARD_NAME` / `IS_PRIMARY` read at boot |
+| Shared state | Shipped | `STORAGE_BACKEND=postgres` / `CACHE_BACKEND=redis` + the bridges |
+| Cross-shard bus | Shipped | `SHARD_BUS_BACKEND` (follows `CACHE_BACKEND`); coordinator publishes/drains remote events |
+| Edge transport | Shipped | `EDGE_TRANSPORT=websocket` + nginx `ip_hash` sticky routing |
+| Topology (coordinator + N shards) | Planned | Phase 3 — a dedicated `coordinator` service and N `shard` replicas |
 
-2. **Shared State**
-   - PostgreSQL supports connection pooling
-   - Redis Cluster for cache distribution
-   - Coordinator service for cross-shard communication
+#### Per-shard environment
 
-3. **Load Balancer**
-   ```nginx
-   upstream synmergia_shards {
-       server shard1:9000;
-       server shard2:9000;
-       server shard3:9000;
-   }
-   ```
+Each shard container sets its identity and points at the shared
+services. The bridges run in-container and talk to Postgres/Redis:
+
+```yaml
+services:
+  shard:
+    image: synmergia
+    environment:
+      START_MODE: headless
+      SHARD_ID: ${SHARD_ID}          # unique per replica
+      EDGE_TRANSPORT: websocket      # front this shard with nginx
+      STORAGE_BACKEND: postgres
+      CACHE_BACKEND: redis
+      PG_BACKEND: postgres
+      REDIS_BACKEND: redis
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      REDIS_BRIDGE_URL: http://127.0.0.1:8081
+    deploy:
+      replicas: 4
+```
+
+> The real backends need `python3-psycopg` / `python3-redis`, which are
+> baked into the image.
+
+#### Load balancer
+
+One nginx fronts every shard. `ip_hash` keeps a client (and its
+WebSocket session) on one shard; the entrypoint expands the list into
+one `server` line per shard (see §8):
+
+```nginx
+upstream godot {
+    ip_hash;
+    server shard-1:9000;
+    server shard-2:9000;
+    server shard-3:9000;
+}
+```
+
+#### Why WebSocket at the edge
+
+`ENetMultiplayerPeer` is raw UDP, which nginx (an L7 proxy) cannot
+front and browsers cannot use directly. `EDGE_TRANSPORT=websocket` makes
+the shard serve `WebSocketMultiplayerPeer`, so one L7 entry serves both
+browser and native clients with standard sticky routing. Leave it `enet`
+for native clients that want UDP directly. See `labs/prd-shard-mesh.md`
+for the intent-vs-reality audit and the phased path.
 
 ### Vertical Scaling
 

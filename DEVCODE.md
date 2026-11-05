@@ -49,9 +49,16 @@ The cross-shard bus (Phase 1) picks its transport from
 `SHARD_BUS_BACKEND` (default: follow `CACHE_BACKEND`), so the mesh
 above gets the Redis bus automatically; `SHARD_BUS_BACKEND=memory`
 forces the process-local bus. A failed Redis connect falls back to
-memory rather than failing the boot. See `labs/prd-shard-mesh.md` for
-the intent-vs-reality audit and the phased path (the edge transport is
-Phase 2).
+memory rather than failing the boot.
+
+The edge transport (Phase 2) picks the server transport from
+`EDGE_TRANSPORT`: `enet` (default -- the raw UDP server, unchanged) or
+`websocket` (aliases `ws`/`wss`), which lets nginx front the shard over
+one L7 entry for browser + native clients. Unknown values fall back to
+`enet`. The nginx `godot` upstream carries `ip_hash` (sticky routing),
+and `GODOT_UPSTREAM` accepts a comma/space list of shard hosts (one
+`server` line per shard). See `labs/prd-shard-mesh.md` for the
+intent-vs-reality audit and the phased path (topology is Phase 3).
 
 ## 2. Golden-path commands (from `game/`)
 
