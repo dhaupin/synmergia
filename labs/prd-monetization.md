@@ -546,14 +546,36 @@ cannot touch a single number. A friend or the guild vault may buy a Peal FOR a f
    may honestly say a found mythic "wears its maker's toll" the same way the item
    card does, but the mill never sells anything about it.
 
+**The carrier: the sky almanac (the owner's rail).** The Ledger's news is not new
+furniture — it prints on the SKY ALMANAC (SkyAlmanacUI, the page the moon and sailing
+reads already share), marching at the same almanac-day cadence the world's weather
+calendar already keeps. The existing law is that the almanac is the world's memory —
+so the Ledger writes INTO that memory instead of building a parallel book:
+
+- **One derivation, two readers.** The whisper page derives from the same central
+  drop/landing facts the town herald's voice reads — never a second copy. This is the
+  honesty-law pattern the almanac already runs everywhere (ferry chart and dock
+  cannot disagree; the bug could live in exactly one file). The chart in the page and
+  the whisper in the village are one record.
+- **Notable landings become chronicle.** A recorded landing files as an Acts-style
+  chapter — index, source_name ("The Ledger"), record_text (the template line),
+  gate_day (the landing's almanac day) — so the mill's news persists with the world's
+  memory alongside the door records, and the page can print yesterday's rumors as
+  history, not chat. The day a spade lands spiritbound is a day with a page number.
+- **The fork resolves by the split itself.** A Peal rings LIVE, in the moment — bell
+  in-zone, lantern burst, immediacy is the amplifier's own product. The free whisper
+  prints at the almanac's dawn roll: the page is the delayed newspaper, editorial
+  voice intact. Both seats get the timing that suits them, from the carrier's own
+  clock — no schedule to invent.
+
 **Implementation seat (a build round):** the Ledger as a subscriber to the central
-drop event (the roll-time modifier point §14 already created), a scheduled herald
-broadcast seat (the harbor-lights class of world furniture, or a world-channel line
-through the existing chat fabric), the Peal permit .tres + its sink row + the
-zone-wide cosmetic event (bell + lantern particles), and the gift leg through the
-guild vault rail (§13). **Open question for that round:** is the evening news a
-schedule the herald walks, or does a landing ring its own whisper same-day? (A small
-daily news lag is the honest editorial voice; immediacy is the louder froth.)
+drop event (the roll-time modifier point §14 already created); a whisper page in
+SkyAlmanacUI beside the moon and sailing pages (registry rows + the page reader, no
+new UI scaffolding); the chapter leg riding the existing Acts/chronicle record rails
+(so the almanac schema already carries most of the shape); the Peal permit .tres +
+its sink row + the zone-wide cosmetic event (bell + lantern particles); the gift leg
+through the guild vault rail (§13). The herald line itself stays a thin voice-reader
+of the same record, wherever the village chirp lives.
 
 ## 16. The investor version (the one-paragraph answer)
 
