@@ -654,7 +654,7 @@ purchased title precedent already exists (`title_deepseabaron.tres`,
   guild's kit purchase already bills rank gates), the pack's herald rules carry it.
 - **§14 Lucky → "the Fated" (prefix).** Land a rare find under a BOUGHT charm — the
   fated stamp already marks the item; the title marks the person. And the rope's
-  crown: **"the Spiritbound" (prefix)** — a JACKPOT landing (§14's global leg). By
+  crown: **"the Chosen" (prefix)** — a JACKPOT landing (§14's global leg). By
   construction nobody can buy it: money never touches jackpot odds. The rarest
   prefix in the game is unbuyable, which is exactly what makes the prefix law mean.
 - **§15 Whisper Ledger → "Chronicler."** suffix, deed: the ledger's afternoon page
