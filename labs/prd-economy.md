@@ -134,7 +134,9 @@ evidence for the investor tie-back when it lands.
   every one a tenant sheet on the Drivers, mint/move/melt riding the
   same engines,
   the Concord count reached TWENTY-SEVEN at the batch
-  and TWENTY-EIGHT after the plates (row 28, the Boom — spitball #28).
+  and TWENTY-EIGHT after the plates (row 28, the Boom — spitball #28),
+  and THIRTY-ONE after the market round (rows 29-31, spitballs #29-#31
+  — homed in this PRD's secs 10-12 below).
 - The investor tie-back LANDED (owner order, spitball #27): the
   stool's Legs 2 and 3 absorbed the loop paragraphs and the
   breath-chart evidence, and the Palette leg (the platform answer)
@@ -245,3 +247,134 @@ change — the plates ride the Drivers as tenant sheets
 primitives travel upstream (dhaupin/vant #339/#340) and the game owns
 only its templates (the Two-Houses line); everything on every plate
 is free by construction except display time.
+
+## 10. The Market Day — spitball #29 (2026-11-05)
+
+> **Status: AGREED (the owner: "29, 30, 31 go in economy. Folks won't yolo
+> P2W in that stuff. Good ideas tho.").** The crowd's weekly festival on
+> the plates (prd-monetization.md sec 38): every almanac week ends with
+> ONE Market Day — a shard-wide window in which every plate opens its
+> frontage and the whole economy's surface turns festival. Nothing new is
+> sold inside the day; the day is where the plates' own clock family (the
+> Boom, Concord row 28) feeds.
+
+**THE SHAPE.** On Market Day each storefront, auction lot, tavern chalk,
+guild board and event plate may carry STALL FRONTAGE — a template render
+on the day's Market Page. Free stalls ride the STANDARD DRAWER: the
+plain frontage every account gets, free forever. Richer frontage buys
+DISPLAY TIME exactly on the Boom's law — extend never deepen (a second
+buy extends the window; placement order stays organic); the melt rides
+new FEAST rows in the BOOST family, shipping WITH their grant legs (the
+no-fake-sinks law verbatim). Concord row 29 carries the priced leg.
+
+**THE LOOP READING.** MINT: nothing new mints — the day spends what the
+week earned (the day's sales settle out of gold purses and trade
+windows; the frontage buys sit on sigils already stamped bought). MOVE:
+the trade window and the auction's single-claimant holds carry the day's
+volume. MELT: frontage FEAST rows melt into the audited book beside the
+roll board — and the MULTIPLICATION LAW runs the day: boosted stalls
+sell OTHER players' goods, and the sales fund next week's frontage. The
+day recurring weekly is the melt's heartbeat — the plate economy's
+(sec 9) breath chart gains its loudest weekly anchor, and the sink-alive
+board reads the day like a pulse.
+
+**LAWS.** SPECIES-BLIND: an agent principal runs a stall under identical
+laws — same drawer, same frontage family, same census (sec 8; the Parity
+Loop, vant PRD sec 7). NO FREE TEXT: frontage renders engine rows
+through templates only. THE TAPE RULE holds on every frontage quote
+(sec 8): evidence over realized settles, never opinion. PREVIEW NEVER
+DEBITS: reading the Market Page — with or without the frontage — is
+free, and nothing charges sight unseen. F2P FLOOR: every stall posts,
+browses and sells on the standard drawer free forever; the frontage is
+the only bought thing, and it buys TIME.
+
+**GATES:** Concord rows 29-31 land with the market round (the priced
+legs must be rows); no engine change — the day rides the Drivers as a
+tenant sheet (vant PRD sec 4); the generalist primitive (a recurring
+market window as a template-carried event over typed channels) travels
+upstream as a palette ask ONLY when the owner sends it (the Two-Houses
+law).
+
+## 11. The Foundry — spitball #30 (2026-11-05)
+
+> **Status: AGREED.** The creator economy: players AUTHOR, Concord
+> stamps, the engines carry the money. The platform play — a supply no
+> shelf can stock by itself.
+
+**THE SEAT.** An authored forge seat (deed-earnable or bought, two-way
+on the chartered family) where a player authors a COSMETIC TEMPLATE
+PACK under the standing look laws (secs 11-13 of prd-monetization.md) —
+dye palettes, heraldry trims, sail seams, furniture hall looks,
+locker-eligible field looks: TEMPLATE GRAMMAR ONLY (no free text ever;
+authored parts, chosen colors, authored motif choices on the heraldry
+dress). The author sets the pack's price in GOLD (the firewall lane;
+sigils never move through the Foundry).
+
+**CONCORD STAMPS.** A submitted pack is reviewed, STAMPED with
+provenance (author id, pack id, stamp date) and PUBLISHED to the
+Concord shelf. The stamp is the pack's hallmark law: every sale row
+carries it — no anonymous goods, and the report/takedown flow ships
+beside publication (the heraldry law's moderation flow, sec 13).
+
+**THE MONEY (engine-held, never hand-to-hand).** A buyer pays the pack
+price in gold. The Settle Engine splits deterministically at the sale
+row: the author's cut settles as gold into the author's purse through
+the standing exchange record; the house take (the Book's 10% shape,
+gold only) rides the FOUNDRY sink row. PROVENANCE stamps every sale
+row — who bought, when, which stamp. Author income is gold the payer's
+effort created: the firewall kept honest, and the multiplication law
+runs the Foundry like it runs the runner industry (inventories sold
+refuel the buyers' ability to buy more).
+
+**LAWS.** TWO-WAY: the forge seat and every published author's route
+are earnable on earned sigils — broke authors forge free; skill is the
+only gate on what sells. NO STAT SMUGGLING: pack contents are looks,
+never cards (the locker laws verbatim; a pack can never smuggle a stat
+onto a free item). NO FREE TEXT EVER: the pack's authored names ride
+the template grammar. TOLLS ORTHOGONAL; the seat buys NOTHING but the
+seat — a bought seat publishes the identical split as an earned seat
+(nobody buys an honor, nobody buys a rate; the author is graded
+EARNED/BOUGHT on the ledger beside their hallmark, never at a price).
+
+**GATES:** Concord row 30; FOUNDRY sink rows with grant legs; engines
+Purse (holds) + Settle (the split) + Agora (stamps and sale chapters,
+read free); census: top-author and top-pack share tool-side (the
+pattern, never the person). Upstream watch: a general third-party
+catalog with a deterministic revenue split over typed events is a
+palette ask (dhaupin/vant #337's events) ONLY when the owner sends it.
+
+## 12. The Wardens' Post — spitball #31 (2026-11-05)
+
+> **Status: AGREED.** The out-of-game seat: a monthly real-$
+> subscription for AWAY players — a digest of your witnesslist's world,
+> delivered by email/push on prd-web's rails. Nothing about it is
+> pay-to-win, and none of its content is hidden from anyone standing in
+> the world.
+
+**THE SEAT.** A monthly subscription turns ON the post: a scheduled
+digest that packs new chapters from your witnesslist's ledger —
+storefront restocks, auction settles, event schedules, wake records,
+guild-board lines — as TEMPLATE LINES from engine rows. One derivation,
+many readers (the carrier law verbatim): the digest is another reader
+of chapters anyone can open in-world or on the site for free.
+
+**LAWS.** 1. THE READ NEVER MOVES: everything the digest prints is
+readable free in-world and on the site, always (prd-web rails); the
+post is a convenience COPY for the away, never access. 2. NO GAMEPLAY
+ADVANTAGE: the digest delivers no in-world action, no alerting speed,
+no early data — schedule and cadence are the world's own publishing
+clock, and every event remains attendable without the post. 3. TEMPLATE
+LINES ONLY: no free text, nothing to moderate. 4. SPECIES-BLIND: the
+post is a human-shaped convenience; agents read the same chapters
+through the standing derives (the Parity Loop), and the census counts
+nothing special for the post. 5. PRIVACY: the digest reads YOUR
+witnesslist only — your choices, your ledger; the observatory sees the
+pattern of digests sent, tool-side (the pattern, never the person).
+
+**GATES:** Concord row 31 (a POST-family seat on the real-money
+subscription family); POST sink rows with grant legs; rides prd-web's
+email/push rails — no new service outside the standing family; the
+digest is game logic and travels upstream as nothing. The payable
+composition (a real-id binding between a shard account and an email
+address) is a standing one-derivation seam on prd-web's rails, gated on
+the round that builds it — no privacy law waived for convenience.

@@ -382,6 +382,9 @@ decide with data.
 | The Player Channels — storefronts, guild boards, tavern chalk, auction lots, event plates as plates over engine channels: read-only template renders, the record the judge, the Boom buys front-page days (clock never rank) | AGREED, designed | §38 |
 | The Plate Economy — the plates in the loop: the Boom as the consistent sigil eater (multiplies like the runner industry), moves ride the standing lanes (sigils never move), tape rule + memory law plate-wide | AGREED, designed | economy PRD |
 | The Parity Loop — the engine that can run agents that play with you: agent principal = principal, plates readable by machine and human through one derive, the engine owes #337/#336/#339/#340/#338, the world teaches the player | AGREED, designed | vant PRD §7 |
+| The Market Day — the crowd's weekly festival on the plates: every stall free on the standard drawer, richer frontage buys display time on the Boom's law (extend never deepen) | AGREED, designed | economy PRD §10 |
+| The Foundry — the creator economy: players author cosmetic template packs (template grammar only), Concord stamps + publishes, gold author split + house take at settle, provenance on every sale row | AGREED, designed | economy PRD §11 |
+| The Wardens' Post — the out-of-game digest seat for away players: witnesslist chapters by email/push, template lines only, the read free in-world forever | AGREED, designed | economy PRD §12 |
 
 ## 12. The wardrobe locker — spitball #2 (2026-11-05)
 
@@ -1195,7 +1198,11 @@ a Warrant Board (sec 33) keeping the owner's UO bounty want lawful —
 purses announced on mysteries into escrow, settlement a deterministic
 record-read nobody can whisper around, a Crier toll that buys
 front-page days, a house rake at settle, and the hunt itself the free
-door (the head is a record, never a scalp). Publishing
+door (the head is a record, never a scalp). The market round went where the
+crowd already is — the Market Day's festival frontage, the Foundry's
+author-gold split and the Wardens' Post away-digest sit in
+prd-economy.md secs 10-12 (rows 29-31): creator and convenience seats
+priced into the loop, none of them a stat. Publishing
 cadence is already contractual: seasonal packs authored by an income law that pays the
 shared progression curve, with a level cap that lifts on data, not opinion. Pay-to-win is priced out by construction
 rather than promised away: Mythos exclusives ship with an authored tradeoff toll that
@@ -1363,6 +1370,9 @@ by row, what is sold, what is sanked, and what stays free.
 | 26 | The Kindling | one Kindled Hour — a shard-wide doubled earned-deed ledger for ALL riders, deed-earnable or bought | ~$10 felt, the clock family | KINDLE row | every rider rides identical free — the buyer buys the hour for the crowd, never the notch for himself | §35 |
 | 27 | The Runner's Exchange | freight holds (escrow-held, gold) + the Crier toll + the rake at settle | hold chosen by the shipper; the Crier a small clock SKU | FREIGHT + CRIER rows | posting and hauling free; freight is a hold on the tram record, never a purchase | §36 |
 | 28 | The Boom | front-page days on any player-run channel plate (storefronts, guild boards, tavern chalk, auction lots, event plates) | sigil SKUs, the clock family — deed-earned or bought, two-way | BOOST + CRIER rows | every plate posts, browses and runs free; the identical display days earned on earned sigils | §38 |
+| 29 | The Market Day | weekly Market Day frontage on the storefront + auction plates (the Boom family) | sigil SKUs, the clock family — deed-earned or bought, two-way | FEAST rows (BOOST family) | every stall posts, browses and sells free on the standard drawer; frontage buys display TIME only | econ §10 |
+| 30 | The Foundry | player-authored cosmetic template packs: the forge seat + concord-stamped publication | pack price set by the author; the house take 10% gold at settle | FOUNDRY rows + gold author split | the forge seat earnable on earned sigils, two-way; craft routes always exist for every pack look | econ §11 |
+| 31 | The Wardens' Post | out-of-world digest of your witnesslist's ledger chapters, by email/push | small monthly seat, real $ | POST rows | the read is free in-world and on the site, always — the post is a convenience copy only | econ §12 |
 
 **How to read the table.** Where money buys the clock (rows 6, 8, 14, 15, 17,
 18), the chartered shape is the toll family and the toll is visible; where
@@ -1370,7 +1380,7 @@ money buys presence (rows 3, 4, 5, 7, 9, 13), no rate moves anywhere; where
 money buys the NOW (rows 10, 11, 12, 18, 19), the same door stands free by
 deed. Two structural rows hold the top: the Charter (row 1) is cosmetic plus
 convenience with an earned-sigils purchase door, and Mythos (row 2) is the
-provenance-graded tradeoff. The count is the pitch: TWENTY-EIGHT rows stand priced
+provenance-graded tradeoff. The count is the pitch: THIRTY-ONE rows stand priced
 and NONE turns a stat on by purchase (rows 21-22 sell only the wider SHOT
 at the unopened doors — the Oracles: money cannot buy the act; row 23 is
 the Peal permit celebrating in its second voice — the echo bought, never
@@ -1384,7 +1394,15 @@ rider identical), and the Exchange holds freight on the tram record —
 all three rides of the Loop's engines, the engines' no-debit/whole-
 return discipline carrying every one; row 28 is the BOOM — front-page
 days on any player-run channel plate (the crowd's clock, never rank,
-never a demotion — the plates post and browse free).
+never a demotion — the plates post and browse free); rows 29-31 are the
+MARKET ROUND — the Market Day's festival frontage on the Boom family's
+law (the day is where the plates melt), the Foundry's creator split
+(the buyer buys nothing but the pack; the split is record-certified
+gold; nobody buys a rate), and the Wardens' Post (a convenience copy
+for the away — the read never moves, in-world it is free forever); all
+three are crowd seats, none touches a stat, and their canonical home
+is the economy PRD's secs 10-12 — they live in the living economy,
+not the storefront.
 
 
 ## 31. The Oracles (spitball #18, 2026-11-05) — the wish to wake, priced in shots
