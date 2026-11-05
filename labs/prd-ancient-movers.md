@@ -170,6 +170,11 @@ design ("some even the devs don't know").
   days on the Lucky pot's shape). Both buy dice-COUNT, never a better
   die; no purchase opens the door, prints a hint, or touches the
   riddle/effort/watching/interaction keys.
+- **The Warrant Board (paid, read-free — prd-monetization.md sec 33).**
+  Bounties live on the record, never on players: a warrant's clauses
+  are checked against deed-transaction roots and settle only when the
+  roots match, so a purse can buy the megaphone and the rake — never
+  a hint, never a key, never a scalp. Claim and read stay free.
 - **Falsifiable only by the world:** when a sealed mystery is suspected,
   the community's evidence is the same evidence the team has: what the
   world did. No admin panel prints the answer, and no support tool
@@ -191,12 +196,16 @@ row. New ancients join this table by amendment with their open keys only.
 ## 9. The Laws
 
 1. **Nothing purchasable opens a wake-key.** Kits, modifiers, seats,
-   blessings, the ankh's rite — none of the Concord's Table's twenty-two
+   blessings, the ankh's rite — none of the Concord's Table's twenty-four
    priced rows wakes the unwoken by purchase. The Oracles (sec 31 of the
    monetization doc) sell only the WIDER SHOT — more dice in a week —
    and every account's own week rolls regardless. The Table prices what
    exists; the Gate wakes on dice, and a wallet buys dice, never the
-   draw.
+   draw. THE WARRANT BOARD joins the same law (sec 33 of the
+   monetization doc): it pays CONFIRMATIONS on deeds the world
+   already keeps — a bounty purse buys the megaphone and the rake,
+   never the act, never a key, never a scalp, and no warrant may
+   name a player.
 2. **The ancients are never a currency, a competition, or a leaderboard.**
    A wake is an event, not a rank; the first waker earns the story, never
    a per-human stat. The story is REAL CREDIT, law-dressed by the wake

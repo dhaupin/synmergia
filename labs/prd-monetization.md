@@ -369,6 +369,7 @@ decide with data.
 | The Oracles — the wish to wake, priced in shots: sidecar wisdom batches + the Sigil meditation; buy the shot, never the act | AGREED, designed | §31 |
 | The Wake Event — every wake prints a free ceremony, the record names the first waker forever; the Peal's second voice sells the echo | AGREED, canon | §32 |
 | The Civic Bill — woken ancients accrue stewardship on a TAKE-family book; the Steward's Pledge adopts an ancient, never a toll discount | AGREED, canon | ancients PRD |
+| The Warrant Board — bounties on mysteries (vant-modeled): purses escrow-held never debited, settle a record-read, sweeps return expired purses whole; the Crier buys front-page days, the rake cuts at settle | AGREED, designed | §33 |
 
 ## 12. The wardrobe locker — spitball #2 (2026-11-05)
 
@@ -1177,7 +1178,12 @@ SKUs). The exact cent is a build-seat number; the owner's veto reserved.
 *Synmergia's monetization is not a plan, it is an installed, receipt-audited system: a
 wallet, three real-$ SKUs ($4.99–$24.99), a nine-row premium catalog (resurrection
 tickets at $1.00 net per unit, a $7.50–$45 mount ladder, cosmetic titles at $10–25),
-an in-game sigil market, a four-tier expedition storage ladder where deeds earn the slots and the wallet only buys the clock (a chartered buy carries a small authored luck-toll), an achievement plate that reads nothing but the world's verbs (gold, coin and title rewards — never purchasable), a homestead with an earned front door (the clock door carries the move-toll and the signature toll, furniture sells breadth under the hallmark law), a public tavern door (the Anchor Room: guilds buy the pub's hour by the clock and the deed grant keeps F2P honest), and a sponsor stage (the $20 public pace stage where the rate is the ceiling and buys stack the clock — paid mints the Investor suffix, the deed route mints the Philanthropist prefix), and an earned-earn path that keeps F2P honest, a vehicle trade under one law (the Tide-Mender Trade: stations mend free, the kit mends the field, modifiers lace capability — never a rate, never an engine), a Mystery Gate that prices nothing (the ancient movers wake by server puzzle, tram effort, observation, interaction or pure luck — some wake-keys sealed server-side, beyond our own docs by design — and no purchase ever opens a gate; the Oracles (sec 31) lawfully sell only the wider SHOT on the same sealed doors — wisdom batches and meditation days, more dice never a better die; and the wake event (sec 32) is the owner's investor leg ON PURPOSE — a permanent ledger (first-waker names ride the wake record forever, the ego stoked by a suffix minted by the record itself), an easy spend on a hair trigger — the celebration permit bought at the emotional peak -- the lab: labs/prd-ancient-movers.md), and its Concord's Table pricing the whole SKU stack on one page. Publishing
+an in-game sigil market, a four-tier expedition storage ladder where deeds earn the slots and the wallet only buys the clock (a chartered buy carries a small authored luck-toll), an achievement plate that reads nothing but the world's verbs (gold, coin and title rewards — never purchasable), a homestead with an earned front door (the clock door carries the move-toll and the signature toll, furniture sells breadth under the hallmark law), a public tavern door (the Anchor Room: guilds buy the pub's hour by the clock and the deed grant keeps F2P honest), and a sponsor stage (the $20 public pace stage where the rate is the ceiling and buys stack the clock — paid mints the Investor suffix, the deed route mints the Philanthropist prefix), and an earned-earn path that keeps F2P honest, a vehicle trade under one law (the Tide-Mender Trade: stations mend free, the kit mends the field, modifiers lace capability — never a rate, never an engine), a Mystery Gate that prices nothing (the ancient movers wake by server puzzle, tram effort, observation, interaction or pure luck — some wake-keys sealed server-side, beyond our own docs by design — and no purchase ever opens a gate; the Oracles (sec 31) lawfully sell only the wider SHOT on the same sealed doors — wisdom batches and meditation days, more dice never a better die; and the wake event (sec 32) is the owner's investor leg ON PURPOSE — a permanent ledger (first-waker names ride the wake record forever, the ego stoked by a suffix minted by the record itself), an easy spend on a hair trigger — the celebration permit bought at the emotional peak -- the lab: labs/prd-ancient-movers.md), and its Concord's Table pricing the whole SKU stack on one page, and
+a Warrant Board (sec 33) keeping the owner's UO bounty want lawful —
+purses announced on mysteries into escrow, settlement a deterministic
+record-read nobody can whisper around, a Crier toll that buys
+front-page days, a house rake at settle, and the hunt itself the free
+door (the head is a record, never a scalp). Publishing
 cadence is already contractual: seasonal packs authored by an income law that pays the
 shared progression curve, with a level cap that lifts on data, not opinion. Pay-to-win is priced out by construction
 rather than promised away: Mythos exclusives ship with an authored tradeoff toll that
@@ -1320,6 +1326,7 @@ by row, what is sold, what is sanked, and what stays free.
 | 21 | The Wisdom Call | sidecar compute work units (Rust/Julia batches on a named door) | ~$0.25/unit, build-seat | WISDOM rows | small weekly earned allotment via witnessed deeds | §31 |
 | 22 | The Meditation Ceremony | ceremony day, Lucky-pot shape (25 sigils ~$1.25) | small SKU | ATTUNE rows | days 1-2 of every week earned free via deeds | §31 |
 | 23 | The Wake Peal | the standing Peal permit, rung at a wake (celebration voice) | same Peal permit (deed-earned or bought) | PEAL rows (second voice) | the Peal permit's earn path covers both voices | §32 |
+| 24 | The Warrant Board | warrant purses (announced, escrow-held) + the Crier toll + the house rake at settle | purse chosen by the poster; the Crier a small clock SKU | MERIT + CRIER rows | the hunt and every claim are free; bounties are purses posted into a hold, never purchases | §33 |
 
 **How to read the table.** Where money buys the clock (rows 6, 8, 14, 15, 17,
 18), the chartered shape is the toll family and the toll is visible; where
@@ -1327,11 +1334,14 @@ money buys presence (rows 3, 4, 5, 7, 9, 13), no rate moves anywhere; where
 money buys the NOW (rows 10, 11, 12, 18, 19), the same door stands free by
 deed. Two structural rows hold the top: the Charter (row 1) is cosmetic plus
 convenience with an earned-sigils purchase door, and Mythos (row 2) is the
-provenance-graded tradeoff. The count is the pitch: TWENTY-THREE rows stand priced
+provenance-graded tradeoff. The count is the pitch: TWENTY-FOUR rows stand priced
 and NONE turns a stat on by purchase (rows 21-22 sell only the wider SHOT
 at the unopened doors — the Oracles: money cannot buy the act; row 23 is
 the Peal permit celebrating in its second voice — the echo bought, never
-the event).
+the event; row 24 posts purses on mysteries — the Crier buys front-page
+days (the clock, never rank), the rake cuts only at a record-certified
+settle, and the verdict is certified by the ledger itself — the hunt is
+the free door, the head a record not a scalp).
 
 
 ## 31. The Oracles (spitball #18, 2026-11-05) — the wish to wake, priced in shots
@@ -1434,6 +1444,88 @@ banner through the sec 15 print rails, the ledger-chapter leg on the
 almanac derivation, the suffix mint condition reading the wake record,
 and the Peal permit's celebration-voice binding (the existing .tres, a
 second use-case; zero new payment code).
+
+
+## 33. The Warrant Board (spitball #20, 2026-11-05) — bounties on mysteries, modeled on vant
+
+The owner's TRIPLE YES, with the want behind it named plainly: "like old
+school ultima online where you could bring back the head of the player
+lol." The UO instinct is kept; the head is not. Synmergia has no combat,
+so nothing here pays for a player's anything: the Board posts bounties
+on MYSTERIES — a named ancient's claimed deeds, a creature's verified
+passage, an oddity confirmed. The head always meant the PROOF of a
+deed; at this Board the deed plate already keeps the proof. (Modeled on
+dhaupin/vant: bin/escrow.js, bin/market.js, bin/forum.js and
+bin/consensus.js were read section-by-section for this design.)
+
+THE POST: a player files a warrant from TEMPLATE LINES ONLY (clauses
+name a world fact the record can check — "first record of the drowned
+pier's false light", "warrant on the road under the fog", "confirm the
+islet orb's silent minute"), wraps a PURSE in sigils, and the purse is
+ANNOUNCED into an escrow hold — the mix law tracks its quarters
+through the hold exactly as everywhere else (deed-earned sigils stay
+graded, bought sigils stay visible, nothing converts by sitting in a
+hold). NOBODY MAY FILE A WARRANT NAMING A PLAYER: no heads, no scalps,
+no enemy-facing anything — the file format has no player field to
+abuse, and the census refuses the file. Free text, likewise, has no
+field to land in.
+
+THE CLAIM — HOLD, NEVER DEBIT (the vant escrow law, transplanted):
+bin/escrow.js's own comment IS the mechanic: "a hold is a reservation
+with a timeout - it does not debit budget." A hunter's claim is
+exactly that: a RESERVATION AGAINST THE PURSE with a countdown,
+referencing deed tx roots only, never prose. If the record confirms
+the clauses inside the window, the claim settles; if the clock runs
+out, the hold releases and NOTHING DEBITED anywhere.
+
+THE SETTLE — THE RECORD IS THE JUDGE (vant's settle shape, minus the
+buyer's discretion): in bin/market.js, settlement is confirm|refute by
+the buyer. Here nobody judges a bounty with a whisper: SETTLE IS
+DETERMINISTIC — a claim confirms when the deed tx roots match the
+clauses, and nothing else gets a vote. Vant's propose→vote surface
+(bin/consensus.js) is the one model the Board REFUSES on purpose: no
+ballots, no votes, no social wire to argue over — the ledger is the
+consensus. And vant's "delivery never blesses unverified bytes" rides
+over intact: a claim is a POINTER into the record, and the record
+decides what it means, never the claimant's story.
+
+THE SWEEP (the vant skill-sweep precedent): a warrant unclaimed past
+its own file clock releases by sweep — the purse returns WHOLE, no
+rake, no penalty, no trust mark. Expiry is administrative, never
+punitive.
+
+THE MERIT LEDGER (vant's decision trail, forum-shaped): every settle
+files a MERIT chapter — the warrant, the clauses, the purse, the claim
+roots, the finder — a public, read-free surface with the deed plate's
+law (template lines only). And the Board keeps vant's SHILL CENSUS:
+the top claimant's share of settled purses prints beside the ledger —
+a noticed pattern nobody can argue with, the one warning light that
+works without a single word being spoken.
+
+THE PAID LEGS (two, both small, both orthogonal):
+- THE CRIER TOLL: money buys the CLOCK — a front-page feature buys
+  DAYS in the Board's rotation, deletable and calendar-shaped, never
+  rank, never a ceiling, never a better verdict. Handbills rotate the
+  front page free; the clock only stretches one handbill's stay.
+- THE HOUSE RAKE AT SETTLE: the Book's 10% shape applied to settled
+  purses — the rake cuts at the moment value flows, on an outcome the
+  record certified. An expired purse pays nothing (the sweep).
+
+LAWS: the hunt is FREE and always was — reading, hunting, claiming and
+the ledger all cost nothing per account (the F2P floor is the whole
+service); no wiki (the Board is an agora of what HAS happened —
+precedent, never a guide); provenance travels lawfully — the finder's
+claim grades EARNED or BOUGHT through the tx roots like every purse;
+money buys the clock and the rake share, never the act, never the
+verdict, never the odds; sink kinds MERIT rows and CRIER rows ship
+WITH the grant legs (no-fake-sinks).
+
+IMPLEMENTATION SEAT (build round, gated on the first warrant): the
+warrant ledger on the keyed account-ledger family (hold / timeout /
+claim state, purse-mix tracked through the hold), the deterministic
+verifier over deed tx roots, the sweep job, the front-page
+derivation, the merit-chapter file, the census surface, and both sink
+rows.
 ---
 
 **Sources (server-price anchors, read 2026-11-05):** Hetzner cloud lineup
