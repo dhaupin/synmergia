@@ -1,0 +1,46 @@
+[gd_resource type="Resource" script_class="LootTable" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/loot_table.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "loot_trench_dream"
+name = "Trench Dream Drops"
+description = "What the Sentinel carries up from past the squeeze line. The pearl it grows around is the trench's own dream: whoever wears it hears the squeeze line loosen. The ores are the garden's debris caught in its kelp net -- the deep grades, shed honestly."
+level = 40
+min_items_dropped = 1
+max_items_dropped = 3
+base_drop_chance = 1.0
+entries = [{
+"item_id": "acc_necklace_pearl_sigil",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 0.10,
+"rarity_weight": 3.0,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "res_ore_starmetal",
+"min_quantity": 1,
+"max_quantity": 2,
+"drop_rate": 0.30,
+"rarity_weight": 2.5,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "res_ore_mythril",
+"min_quantity": 1,
+"max_quantity": 3,
+"drop_rate": 0.35,
+"rarity_weight": 2.0,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "res_abyss_pearl",
+"min_quantity": 2,
+"max_quantity": 4,
+"drop_rate": 0.60,
+"rarity_weight": 1.5,
+"is_guaranteed": false,
+"conditions": []
+}]

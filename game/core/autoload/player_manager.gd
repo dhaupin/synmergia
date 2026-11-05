@@ -4,6 +4,7 @@ extends Node
 
 const BlacksmithUI = preload("res://ui/components/blacksmith_ui.gd")
 const SkillAcademyUI = preload("res://ui/components/skill_academy_ui.gd")
+const LevelCurve = preload("res://core/progression/level_curve.gd")
 
 signal health_changed(current: int, maximum: int)
 signal mana_changed(current: int, maximum: int)
@@ -157,15 +158,19 @@ func add_experience(amount: int) -> void:
 	experience += amount
 	experience_changed.emit(experience, level)
 
-	while experience >= experience_to_next_level:
+	# THE CAP LAW: PlayerManager never encodes the cap itself; LevelCurve
+	# is the one authority. Overflow XP past the cap is banked (the
+	# experience field keeps its value; no level, no stat, no heal), so a
+	# seasonal cap raise pays out from what the body already banked.
+	while experience >= experience_to_next_level and level < LevelCurve.max_level():
 		level_up_function()
 
 func level_up_function() -> void:
 	experience -= experience_to_next_level
 	level += 1
 
-	# Increase XP requirement
-	experience_to_next_level = int(experience_to_next_level * 1.5)
+	# The curve (not a compounding drift) owns the next level's cost.
+	experience_to_next_level = LevelCurve.level_cost(level + 1)
 
 	# Stat increases
 	add_stat("strength", 1)

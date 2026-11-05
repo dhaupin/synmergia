@@ -1,0 +1,48 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/enemy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "trench_sentinel"
+display_name = "The Trench Sentinel"
+description = "The thing the squeeze line was sent to keep out. Kelp-wrapped bone grown around an abyss pearl larger than any the diggers ever pried loose, it climbs the trench wall on the standing tide and hauls the garden's debris behind it like a net. The divers give it a wide berth; the jewelers whisper that its pearl is why the trench never runs dry."
+enemy_type = 4
+level = 45
+faction = "hostile"
+health = 5200
+mana = 300
+stamina = 200
+strength = 55
+agility = 32
+intelligence = 70
+vitality = 100
+attack_power = 110
+spell_power = 140
+armor = 75
+resistance = 65
+attack_range = 12.0
+attack_speed = 0.8
+move_speed = 3.0
+aggro_range = 14.0
+chase_range = 40.0
+wander_range = 10.0
+see_stealth = false
+is_aggressive = true
+is_passive = false
+is_elite = false
+is_boss = true
+is_social = false
+loot_table_id = "loot_trench_dream"
+secondary_loot_table_id = "loot_elite_ore"
+gold_min = 400
+gold_max = 900
+xp_reward = 20000
+skills = []
+model_path = ""
+icon_path = ""
+scale = 2.4
+animation_set = "void"
+respawn_time = 3600.0
+despawn_time = 0.0
+difficulty_modifier = 3.0

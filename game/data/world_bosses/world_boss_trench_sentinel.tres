@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WorldBossData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/world_boss_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "trench_sentinel"
+boss_template_id = "trench_sentinel"
+display_name = "The Trench Sentinel"
+zone_id = "zone_sundered_sea"
+position = Vector3(0, 0, 0)
+interval_seconds = 14400.0
+first_delay_s = 600.0
+announce = true
+window_seconds = 3600.0

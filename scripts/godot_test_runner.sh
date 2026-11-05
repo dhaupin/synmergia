@@ -47,6 +47,7 @@ test_daily_class_blessing
 test_acts_service
 test_daily_quest
 test_quest_availability
+test_level_curve
 test_world_chunks
 test_tick_n017_cleanup
 test_tick_phase2_systems
