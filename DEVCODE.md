@@ -43,9 +43,15 @@ docker compose --profile headless up
 
 Unset -> `shard_1`/"Alpha" and in-process memory (the single-node
 default). The bridges' real backends need `python3-psycopg` /
-`python3-redis` (baked into the image). See `labs/prd-shard-mesh.md`
-for the intent-vs-reality audit and the phased path (cross-shard bus
-and the edge transport are Phase 1+).
+`python3-redis` (baked into the image).
+
+The cross-shard bus (Phase 1) picks its transport from
+`SHARD_BUS_BACKEND` (default: follow `CACHE_BACKEND`), so the mesh
+above gets the Redis bus automatically; `SHARD_BUS_BACKEND=memory`
+forces the process-local bus. A failed Redis connect falls back to
+memory rather than failing the boot. See `labs/prd-shard-mesh.md` for
+the intent-vs-reality audit and the phased path (the edge transport is
+Phase 2).
 
 ## 2. Golden-path commands (from `game/`)
 

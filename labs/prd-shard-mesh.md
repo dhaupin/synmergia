@@ -115,11 +115,31 @@ need.
 Outcome: shards are distinct and persistent. Still single-node
 for routing, but the foundation both transport options require.
 
-### Phase 1 -- Cross-shard bus
+### Phase 1 -- Cross-shard bus (this PR)
 
 Give `CoordinatorService` a real transport (Redis pub/sub is the
 natural fit -- Redis is already a compose service). Extract the
 coordinator to its own process if contention warrants.
+
+Shipped: the transport is a **swappable seam** (`game/core/mesh/`),
+mirroring the payment-provider plugin law. `ShardBus` is the contract
+(`subscribe`/`publish`/`poll`); `ShardBusRegistry` is the plugin board
+(re-registering an id replaces it; `make_default` re-points), seeded
+with `MemoryShardBus` so dev/CI are unchanged. `RedisShardBus` is the
+cross-process transport over the redis-bridge sidecar.
+
+The mailbox protocol: each bus instance has a self id (its shard id),
+`publish(topic, message)` drops a JSON copy into the per-(subscriber,
+topic) inbox list of every OTHER subscriber (the no-echo law), and
+`poll(topic)` drains the self inbox. `CoordinatorService` publishes on
+every `emit_cross_shard_event` and drains remote mail inside
+`get_pending_events`, so remote events ride the same exactly-once path
+as local emits. Transport selection is `SHARD_BUS_BACKEND`, defaulting
+to follow `CACHE_BACKEND`; a failed Redis connect falls back to the
+memory bus rather than failing the boot.
+
+Outcome: separate shard processes can exchange cross-shard events. The
+edge (LB + sticky routing) is still Phase 2.
 
 ### Phase 2 -- Edge transport
 
@@ -152,7 +172,7 @@ services:
 
 ## 5. Out of scope (this note)
 
-- The transport implementation itself (Phase 2).
+- The edge transport implementation itself (Phase 2).
 - Real HA Postgres/Redis (deployment concern).
 - The dormant Julia orchestrator (separate `prd-multiworld.md`
   and `world-building-arch.md` sec.11.2 deferral).
@@ -167,3 +187,18 @@ services:
   survive a process restart.
 - Defaults are unchanged: no `SHARD_ID` -> `shard_1`; no backend
   env -> `memory` (dev/CI stay green).
+
+## 7. Acceptance for Phase 1
+
+- Two `ShardBus` instances with different self ids exchange a
+  published message; the publisher does not receive its own fan-out.
+- Re-registering a bus id on the registry replaces it, and
+  `make_default` re-points the default.
+- An event emitted on one `CoordinatorService` instance arrives in a
+  second instance's `get_pending_events`.
+- `SHARD_BUS_BACKEND=redis` with no reachable bridge falls back to the
+  memory bus (boot never fails on a missing sidecar).
+- Defaults are unchanged: no `SHARD_BUS_BACKEND` + no
+  `CACHE_BACKEND=redis` -> the memory bus (dev/CI stay green).
+
+Receipt: `game/tests/test_shard_bus.gd` (17 legs).
