@@ -1792,6 +1792,29 @@ write path stays in the owning engines; the record is the judge.
    almanac's chapter family (sec 15's carrier law verbatim): the
    schedule is the world's memory, not a forum post.
 
+**THE CARRIER BENEATH THE PLATES (the owner's correction, landed).**
+Vant already owns the process layer this round's plates ride: its
+`lib/carriers.js` (pass 258) — the traveler is the ROUTER OBJECT (the
+invariant), a carrier is a LOCAL INTERFACE, and a route may carry a
+TEMPLATE: a bill of stations `{by?, op?, part?, carrier?}[]` enforced
+in order, with the certified-letter principle (CHECK / RISK / AUDIT at
+every station, a refused stage DROPS THE PACKET) and `replay()`
+reporting continuity as a typed record, never a repair. The plates
+and the carriers COMPOSE, they do not collide: a plate is the
+PUBLICATION lens (readers of engine rows — the carrier law's readers),
+a carrier is the PROCESS leg (variants: how the work moves). An
+auction opening, a commission handoff and an event reschedule are
+carrier routes; the storefront wall is the plate those routes fill.
+The word forks cleanly downstream: our canon keeps PLATE for the
+publication surface (the deed plate, the channel plates — readers);
+the process leg is vant's CARRIER, and the ground truth lives
+upstream (dhaupin/vant #341: the port-review 5 naming reconciliation
+plus the real-operations focus asks — countersigned station records,
+custom-code payload lanes for PLC/GDScript procedure artifacts, and
+party routes where a mesh/pod stage rides held by the pod while WHO
+acted stays individual). Gutenberg's posture applied: the palette
+grows where the art showed up.
+
 **THE BOOM (the owner's Sigil eater — the consistent sink).** A
 plate's front page buys DAYS: the Boom is front-page or rotation
 presence on ANY plate — featured storefront rows, featured auction

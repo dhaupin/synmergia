@@ -52,7 +52,8 @@ you find stuff, extend, etc pls!)"):
    the day this law landed (the port-review series: #333 settle contracts, #334 trust
    opt-out + settle-verifier seam, #335 publish-only trail +
    reconcile mode; #336 memory standing, #337 the economy seam, #338
-   srv wire contract; #339 channels + plates, #340 the boost lane).
+   srv wire contract; #339 channels + plates, #340 the boost lane; #341 carriers in
+   real-world operations).
 4. **Game logic never goes upstream.** Nothing in `dhaupin/vant`
    should ever learn that Synmergia exists as more than an issue
    number: beyond the share, vant <> synmergia — separate houses, one
@@ -248,6 +249,22 @@ agent-side compute rides the same wire everyone does.
 verbs, what it may not do, how its claims get witnessed — that is
 Synmergia's, forever (game logic never goes upstream). The engine
 runs the principal; the world teaches the player.
+
+**THE CARRIER ORGAN (the process layer, the owner's correction).**
+Round #28's clarification pass read `lib/carriers.js` (pass 258) and
+the port-review series grew #341: the traveler is the router object
+invariant, templates are bills of stations, the certified letter walks
+CHECK / RISK / AUDIT per station, and the asks are countersigned
+station records, custom-code payload lanes (gdscript/binary, the
+declared-absent pattern), and party routes (`by` pod mode, identity
+individual). The drivers inherit the shape the palette already runs:
+a tenant sheet's settle clauses ARE bill-of-stations thinking — the
+flow is template-defined upstream and template-learned here, which is
+exactly how the port stays the palette's tenant and never its fork.
+NAMING (the reconciliation): downstream keeps PLATE for its
+publication readers; CARRIER stays the process layer's word; the port
+follows whichever render-lens name upstream picks for #339's
+primitive.
 
 **GATES:** no Concord row, no SKU, no engine change; parity holds by
 construction through the tenant sheets (sec 4) and the species-blind

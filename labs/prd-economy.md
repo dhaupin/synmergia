@@ -211,6 +211,20 @@ rows), single-claimant holds on the Purse (auction lots), engine-settled
 rakes at settle. SIGILS NEVER MOVE (the firewall verbatim): the Boom
 eats sigils TO the sink — never across a counterparty.
 
+**THE PARTY POD (the mesh/pod letter's economy).** Vant's
+certified-letter posture (lib/carriers.js, pass 259) routes work
+through stations under CHECK / RISK / AUDIT, and the party question is
+upstream-alive (dhaupin/vant #341 sec 3): a stage may ride HELD BY A
+POD (a peer set) while WHO acted stays individual. The economy reads
+the same shape: a party pod is one hold family on the Purse (the
+stewardship escrow's multi-claimant shape), the RISK lane of every
+privileged hop is the single-use approval burn (#337's economy hooks
+point at the same station record), and a pod that earns a route's
+purse splits it by the route's template — deterministic, census-counted,
+species-blind. An agent party here is the same object an industrial
+party is upstream: similar systems, familiar architecture, one
+economy underneath.
+
 **THE TAPE RULE HOLDS PLATE-WIDE (sec 8).** A storefront quoting
 prices quotes the tape — evidence over realized settles, nothing
 else; no plate ever quotes opinion, hearsay or a screenshot. The
