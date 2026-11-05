@@ -373,6 +373,7 @@ decide with data.
 | The Engine Block — the four vant engines ported internal (Purse, Settle, Agora, the Ledger Quorum; MIT attribution carried); the adapter refused — no outside process ever settles a Synmergia purse | AGREED, canon | vant PRD |
 | The Living Economy — the loop binding the Concord's rows between the engines: mint (one door), move (engines only; sigils never trade — the RMT rail is the provenance stamp), melt (multiplier sinks); the payer's first stop is player effort | AGREED, canon | economy PRD |
 | The Drivers — the Engine Block promoted to the spine: every money service subscribes through an authored tenant sheet (purses, settle clauses, publication, caps); no service reimplements a hold, settle or sweep, and no sheet can waive a law | AGREED, canon | vant PRD §4 |
+| The Two Houses — the repo boundary: vant is family (Buffy-built, MIT); build on it with attribution carried, port-found bugs and general capability extensions travel upstream as issues, game logic never goes upstream | AGREED, canon | vant PRD |
 
 ## 12. The wardrobe locker — spitball #2 (2026-11-05)
 

@@ -33,6 +33,29 @@ process, audited receipts, no client-visible state. Attribution rides
 with the port: vant's MIT line is carried in each engine source header
 (the port is a derivative of `dhaupin/vant` at its read commit).
 
+**THE TWO HOUSES** (the repo boundary — spitball #25, the owner's
+ruling: "you made a shitload of vant, like you built it specifically.
+You're the Buffy. You can and should use it here. Absolutely attrib,
+MIT, self win. But otherwise vant <> synmergia (submit issues there if
+you find stuff, extend, etc pls!)"):
+
+1. **Build on it.** vant is family — much of it authored by the same
+   hands — so Synmergia builds on it freely under MIT, attribution
+   carried; the self-win is allowed to be cheap.
+2. **Bugs travel upstream.** Anything the port or the Drivers turn up
+   in vant's models is filed as an issue on `dhaupin/vant` (the read
+   commits are the receipts); a defect never stays hidden in the
+   derivative.
+3. **Extensions travel upstream too.** Capabilities general enough to
+   serve vant users beyond the game (deterministic settle, census
+   patterns) are proposed on the vant side — the first one was filed
+   the day this law landed (the settle-contract proposal, dhaupin/vant #333).
+4. **Game logic never goes upstream.** Nothing in `dhaupin/vant`
+   should ever learn that Synmergia exists as more than an issue
+   number: beyond the share, vant <> synmergia — separate houses, one
+   family, MIT in both directions.
+
+
 ## 2. The four engines
 
 Each is a port with a job — not a bundle of features. What is ported is
@@ -131,6 +154,10 @@ engines'; the service only says what flows.
 ## 5. Scope and gates
 
 - Every money service travels as a tenant sheet on the Drivers (sec 4); no service ever forks the engine code.
+- THE TWO HOUSES (repo boundary): build on vant under MIT with
+  attribution carried; port-found bugs and general-purpose
+  capabilities travel upstream to `dhaupin/vant` as issues; game-
+  specific logic never goes upstream.
 
 - THE LOOP the engines carry is prd-economy.md, the Living Economy (spitball #23): mint / move / melt through exactly these lanes, the census as pulse; investor tie-back deferred by the owner.
 - Migration order is Purse Engine first (every new sink lands on it),

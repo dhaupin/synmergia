@@ -8777,3 +8777,9 @@ the sea bands). All four landed; one stale probe leg fell with them.
 - THE NO-WAIVER LAW: no sheet field can disable provenance stamping, return-whole sweeps, no-penalty expiry, census observation or the deterministic judge; a different law needs a new spitball, never a field.
 - THE CHEAP MACHINE: a future money spitball = one tenant sheet + sink rows + UI readers + tests; build rounds never fork engine code. Warrant Board = tenant zero; Glad Book, guild vaults and beyond author the same four fields.
 - Crosslinks: Living Economy sec 3 grew the tenant-sheet pointer; bench grew the Drivers row (NOW TWENTY-SIX rows). DOC-ONLY round: zero .tres, zero service changes, the pack export stands.
+
+## 2026-11-05ak -- spitball #25: the Two Houses (the repo boundary law)
+- OWNER: "you made a shit load of vant, like you built it specifically. You're the Buffy. You can and should use it here. Absolutely attrib, mit, self win. But otherwise vant <> synmergia (submit issues there if you find stuff, extend, etc pls!)" Buffy yay.
+- LANDED: prd-vant-engines.md sec 1 THE TWO HOUSES + sec 5 scope bullet: build on vant freely (MIT, attribution carried, self-win allowed); bugs and general-purpose extensions travel upstream as dhaupin/vant issues; game-specific logic never goes upstream.
+- FIRST UPSTREAM TICKET: dhaupin/vant #333 -- vend-able settle contracts (deterministic settle by clause-match on recorded proof, confirm|refute default preserved) + two-independent-approvals promoted to a documented first-class guarantee. Design note, not a bug report; deeper lib/ review follow-ups promised.
+- Bench row Two Houses added (home vant PRD) -- bench TWENTY-SEVEN rows. DOC-ONLY round apart from the upstream issue: zero .tres, zero service changes, the pack export stands.
