@@ -8685,3 +8685,10 @@ the sea bands). All four landed; one stale probe leg fell with them.
 - OPEN SEAT: per-item mark storage -- per-slot item meta does not exist in the bag schema today; honest fallback = fixed one-mark-per-character owner-home stone, instancing deferred to its own round.
 - NUMBERS: investor renumbered sec 20 -> sec 21 (+ one clause); bench now TEN rows (waystone, AGREED, canon landed).
 - DOC-ONLY round: zero .tres, zero service changes, the pack export stands.
+
+## 2026-11-05v -- spitball #9 amendment: the Open Market (owner add, Buffy yay + law dress)
+- OWNER ADD LANDED INTO SEC 20: stones NEVER soulbound (deliberate divergence from the res rails: the ticket binds to a hand, a waystone binds to a place -- trade window from birth, TradeService stands, player markets when that seam lands); folks can make a whole living marking stones -- THE RUNNER INDUSTRY (craft blanks on the alchemy bill, inscribe fresh 3/3 at the wanted doors, sell at their own prices; sink chain: traded recall -> consumed stone -> sold blank -> pulled reagents).
+- THE GAZE BEFORE THE LEAP (owner's anti-ripoff, law-grade): viewing OR using pops mark name + zone + map ping BEFORE anything fires, confirm step never debits (preview never debits, literal dress); no recall leg exists without a confirm path; the gaze is SERVER TRUTH (the actual mark, never the seller's blurb -- NO FREE TEXT EVER; AS-MARKED AS-GOES).
+- MARKET LAWS: a traded stone keeps its own mark; a traded blank never mints marks; shelf price is the floor, player prices float honestly above.
+- OPEN SEAT ELEVATED: per-item mark storage LOAD-BEARING now (a traded stone must carry its mark through the trade window or the industry dies); interim fallback stays the one-mark-per-character owner-home stone.
+- DOC-ONLY round: zero .tres, zero service changes, the pack export stands.

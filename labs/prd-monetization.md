@@ -870,12 +870,37 @@ stays better at its own verb.
 - **Preview never debits.** the stone's card shows its charges remaining and its
   mark, the shelf shows the price before any click, and the consent prompt shows
   the destination before any accept.
+**THE OWNER'S AMENDMENT — THE OPEN MARKET (the runner industry):**
+- **THE STONE TRAVELS.** never soulbound — the deliberate divergence from the res
+  rails (the Soulbinder's Ticket binds to the hand that needs it; a waystone binds
+  to its PLACE, and places pass hands). Stones ride the trade window from birth
+  (`TradeService` stands) and the player markets the day that seam lands.
+- **THE RUNNER INDUSTRY** (the owner's living): marking stones is a VERB, not a
+  chore — a runner crafts blanks (the alchemy bill), inscribes fresh 3/3 marks at
+  the doors people want (the dungeon mouth, the harbor berth, the deep-dive shelf)
+  and sells them at prices they set. The sink multiplies by design: every traded
+  recall consumes a stone, every consumed stone sells a blank, every blank pulls
+  reagents — the runner is the supply chain, and nothing mints marks for free.
+- **THE GAZE BEFORE THE LEAP** (the owner's anti-ripoff seat, law-grade). viewing
+  OR using a stone pops the destination BEFORE anything fires: the mark's name,
+  its zone, and the map ping to the exact spot — a destination-confirm step with
+  no hand taken (preview never debits, in its most literal dress); a recall leg
+  without a confirm path refuses to exist. The spent stone stays spent, so the
+  gaze is the guard — and it is SERVER TRUTH: the eye sees the actual mark, never
+  the seller's blurb (NO FREE TEXT EVER — the destination line is the inscription
+  record, not the vendor's promise; AS-MARKED AS-GOES: a stone delivers you where
+  it says, the preview proves it).
+- **THE MARKET LAWS.** a traded stone keeps ITS mark (the mark rides the item,
+  never the marker); a traded blank is a fresh blank (trade never mints marks);
+  the Concord shelf price is the floor of the law, not the price of the market —
+  player prices float honestly above it.
 
 **Implementation seat (a build round):** `item_waystone` blank + the inscribed state
-ride the res-ticket .tres shape; per-item mark storage is the OPEN SEAT (per-slot
-item meta does not exist in the bag schema today — the honest fallback if it stays
-absent is a fixed owner-home stone, one mark per character, the instancing decision
-deferred to its own round); the recall leg rides the existing
+ride the res-ticket .tres shape; per-item mark storage is the OPEN SEAT and the
+market leg makes it LOAD-BEARING (a traded stone must carry its mark through the
+trade window, or the runner industry cannot exist) — per-slot item meta does not
+exist in the bag schema today, so the interim fallback is a fixed one-mark-per-
+character owner-home stone and the instancing decision gets its own build round; the recall leg rides the existing
 `PlayerLockService.cancel_on_teleport` chain; the consent prompt rides the party UI
 fabric; the shelf row joins the RESPAWN-family sink rows (a new TELEPORT row, same
 no-fake-sinks law: the grant leg ships WITH the row or the row doesn't land).
