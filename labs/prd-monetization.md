@@ -352,6 +352,8 @@ decide with data.
 | Guild heraldry packs — crew-bought social cosmetics | AGREED, designed | §13 |
 | Lucky — the weekly luck pot (7 days: 2 earned, 5 bought) | AGREED, designed | §14 |
 | The Whisper Ledger — the rumor mill + the Peal | AGREED, designed | §15 |
+| Expedition pack — the four-tier storage ladder (deeds earn, coin buys the clock) | AGREED, designed | §16 |
+| The title ropes — prefix/suffix walked back through §§11–16 | AGREED, designed | §17 |
 
 ## 12. The wardrobe locker — spitball #2 (2026-11-05)
 
@@ -577,12 +579,101 @@ its sink row + the zone-wide cosmetic event (bell + lantern particles); the gift
 through the guild vault rail (§13). The herald line itself stays a thin voice-reader
 of the same record, wherever the village chirp lives.
 
-## 16. The investor version (the one-paragraph answer)
+## 16. The expedition pack — the storage clock (spitball #6, 2026-11-05)
+
+Four permanent tier unlocks — **Expedition I–IV** — that grow every container an
+account actually works: the bag (`InventoryComponent.expand_inventory`, the `MAX_BAGS`
+rails), the vault (`expand_bank`, the `MAX_BANK_EXPANSIONS` rails), and the guild
+vault (the `GUILD_VAULT` container family; §13's vault rails). A tier is +12 slots on
+its container (the container schema's own `SLOTS_PER_TIER` rail). The pack is a
+permanent inventory/vault/guild-storage ADDITION, not a season item.
+
+**The F2P leg:** each tier is deed-earnable in roughly a week of honest play — quest
+milestones, ledger appearances, heraldry deeds — so the full ladder is about a month
+for a free account, and *a week gets ya something*. Deed tiers grade Proven under
+§10's provenance law: no tolls, full honor, and the tier's title (§17's ropes).
+
+**The bought leg:** sigils skip the deed ladder — money buys the CLOCK, never new
+capacity deeds can't reach. The authored tradeoff (the tenet required, never
+stats-only-bonus): a bought tier is **chartered** — provenance-stamped in the account
+ledger (§12's tx-roots family) and carrying the CHARTER'S TOLL: a small authored luck
+damp (~5%) on the account's luck pool while any chartered tier is held, riding §14's
+one central roll-time modifier. The grinders' edge is real and visible: identical
+capacity, but the chartered hold never gets the genius of the deed-grader, and it
+mints no title. The toll grades Proven/Tempered/Bought by the EXISTING purse law — an
+account that mixes deeds and cash can be Tempered, exactly as §10 defines.
+
+**Laws:**
+- **Capacity is never a stat.** Slots store; nothing strengthens. No container
+  upgrade changes damage, speed, or drop odds — the only purchased behavior is room.
+- **Money buys the clock, never the ceiling.** The tier ladder's top stays
+  deed-reachable for a free account; F2P can unlock all four tiers in about a month.
+- **The toll is authored and visible.** The charter's luck damp is on the item card /
+ Purchase flow the way Mythos tolls are; nobody buys a chartered tier by accident.
+- **The guild vault leg rides §13.** Vault tiers are bought FROM the guild vault
+  (rank-gated, no forced-online; deed-vs-bought mix tracked per the purse law).
+- **Preview never debits** (the standing preview law); tier purchases are permanent — no refunds
+  after the unlock receipt — and Charter never gates a tier's existence.
+- **Toll orthogonal, never Charter-required.**
+
+**Implementation seat (a build round):** four expedition SKU rows in the sink
+catalog + the deed-earn hooks riding quest/achievement rails; container-tier unlock
+receipts through the sink service; the charter's-toll hook into §14's roll-time
+modifier; provenance lines via the account-ledger tx roots; zero service surgery —
+the tiers are server ledger lines and authored DATA, the pack-export law of every
+purchased entity this catalog has shipped.
+
+## 17. The title ropes — prefix/suffix walked back through the walk (spitball #6b, 2026-11-05)
+
+The commission: walk back through monetization and seat the PLAYER TITLES. The rail
+predates the walk: `TitleData` (`core/schemas/title_data.gd` — both `prefix_form` and
+`suffix_form` on the name plate; `Category`/`Rarity`/`UnlockMethod` including
+`PURCHASE`) and `TitleService` (`core/services/title_service.gd` — unlocked books,
+`equipped_prefix`/`equipped_suffix`, `title_color`, the `title_unlocked` signal). A
+purchased title precedent already exists (`title_deepseabaron.tres`,
+`unlock_method = PURCHASE`, source sigil_sink). Titles need policy, not a system.
+
+**THE ROPE LAWS:**
+- **A title is a look, never a number.** No stat rides any title, ever; the display
+  IS the whole product. Rarity shades the plate (`title_color` = the schema's own
+  Rarity rail) and rarity follows the deed's rarity, not the wallet.
+- **Nobody buys an honor.** The PREFIX form is deed-minted ONLY. Sales mint SUFFIXES at most — the Deep
+  Sea Baron's shape: purchasable, plainly-branded vanity, suffix-form first. The
+  prefix/suffix split does the owning twice.
+- **No free text ever.** Title strings are authored `.tres` (free text is
+  never an unlock; the same template law the Ledger runs applies unchanged).
+- **Toll orthogonal, never Charter-required.** Title purchases ride the sink
+  catalog; nothing needs the Charter either to earn or to equip.
+
+**THE WALK-BACK (where titles sit on what is already built):**
+- **§11 dyes → "the Dyer."** suffix, deed: author a full dye-family palette in one
+  season; the colorist license's customers already have the deeds.
+- **§12 wardrobe → "Wardbearer."** suffix, deed: the first clean locker of owned
+  looks across owned carriers.
+- **§13 guild heraldry → "Herald of <Guild>."** the guild's public face, rank-gated (the
+  guild's kit purchase already bills rank gates), the pack's herald rules carry it.
+- **§14 Lucky → "the Fated" (prefix).** Land a rare find under a BOUGHT charm — the
+  fated stamp already marks the item; the title marks the person. And the rope's
+  crown: **"the Spiritbound" (prefix)** — a JACKPOT landing (§14's global leg). By
+  construction nobody can buy it: money never touches jackpot odds. The rarest
+  prefix in the game is unbuyable, which is exactly what makes the prefix law mean.
+- **§15 Whisper Ledger → "Chronicler."** suffix, deed: the ledger's afternoon page
+  says your name (the Peal'd finder or the found); the record becomes a name plate.
+- **§16 expedition pack → "Expedition I–IV" (prefix form), deed tiers ONLY.** The
+  chartered hold mints nothing — the honor difference is part of the charter's toll.
+
+**Implementation seat (a build round):** authored title `.tres` files at the six
+rope points + mint hooks riding each rail's existing event (the sink receipt, the
+lucky-find stamp, the ledger chapter); one cheap sink row for purchasable suffix
+vanity (the baron's shape); `TitleService` already carries unlock/equip/signal
+through; zero new systems, one new proof-of-policy receipt.
+
+## 18. The investor version (the one-paragraph answer)
 
 *Synmergia's monetization is not a plan, it is an installed, receipt-audited system: a
 wallet, three real-$ SKUs ($4.99–$24.99), a nine-row premium catalog (resurrection
 tickets at $1.00 net per unit, a $7.50–$45 mount ladder, cosmetic titles at $10–25),
-an in-game sigil market, and an earned-earn path that keeps F2P honest. Publishing
+an in-game sigil market, a four-tier expedition storage ladder where deeds earn the slots and the wallet only buys the clock (a chartered buy carries a small authored luck-toll), and an earned-earn path that keeps F2P honest. Publishing
 cadence is already contractual: seasonal packs authored by an income law that pays the
 shared progression curve, with a level cap that lifts on data, not opinion. Pay-to-win is priced out by construction
 rather than promised away: Mythos exclusives ship with an authored tradeoff toll that
