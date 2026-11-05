@@ -52,7 +52,7 @@ you find stuff, extend, etc pls!)"):
    the day this law landed (the port-review series: #333 settle contracts, #334 trust
    opt-out + settle-verifier seam, #335 publish-only trail +
    reconcile mode; #336 memory standing, #337 the economy seam, #338
-   srv wire contract).
+   srv wire contract; #339 channels + plates, #340 the boost lane).
 4. **Game logic never goes upstream.** Nothing in `dhaupin/vant`
    should ever learn that Synmergia exists as more than an issue
    number: beyond the share, vant <> synmergia — separate houses, one
@@ -217,3 +217,38 @@ asks land as upstream code (the palette's own files), and the
 Synmergia side inherits them as consumer laws through the tenant
 sheets (prd-economy.md sec 8) when the palette ships them — the
 framework thrives exactly as the owner said it does.
+
+## 7. The parity loop (the engine that runs agents that play with you) — spitball #28
+
+> **The owner's circle-back:** "let's circle back to economy/vant
+> parity (engine that can run agents that play with you)."
+
+**THE PARITY LAW.** An agent principal is a principal: the engines'
+id family already parses it, and #337 already wrote the no-special-
+casing line — agents integrate the way any other principal does. The
+parity loop is what the Dogfood Loop (prd-monetization.md sec 37)
+looks like from the engine side: the engine must be able to RUN an
+agent that plays with you — hold purses, claim holds, run plates,
+earn deeds, buy boosts — with nothing game-specific inside the engine
+and nothing agent-specific beside it.
+
+**WHAT THE ENGINE OWES THE ART (filed upstream already):** the
+credit-side ledger and the typed economy events (#337) so an agent's
+wallet and moves are engine-native; memory standing (#336) so an
+agent's standing is durable and forget leaves receipts; the
+channel/plate primitive (#339) so a guild board is as readable by an
+agent principal as by a human — THE PLATE CANNOT EXCLUDE THE MACHINE
+READER WITHOUT BREAKING THE HUMAN ONE, which is #339's derive-id
+argument and the reason plates are the parity surface; the boost lane
+(#340) so an agent buys front-page days under the identical
+clock-never-rank rule; the srv wire contract (#338) pinned so
+agent-side compute rides the same wire everyone does.
+
+**THE GAME SIDE (never upstream).** Who teaches the agent the world's
+verbs, what it may not do, how its claims get witnessed — that is
+Synmergia's, forever (game logic never goes upstream). The engine
+runs the principal; the world teaches the player.
+
+**GATES:** no Concord row, no SKU, no engine change; parity holds by
+construction through the tenant sheets (sec 4) and the species-blind
+census (prd-economy.md sec 8).

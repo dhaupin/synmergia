@@ -379,6 +379,9 @@ decide with data.
 | The Apeshit Batch: the Runner's Exchange — freight holds on the tram record (gold purses, Crier + rake, single-claimant holds, Quorum-fed freight roots) | AGREED, designed | §36 |
 | The Dogfood Loop — the palette doctrine: humans AND agents are players in our own economy under the same laws (no agent rails; dogfooding the pre-human engine test; the species-blind census) | AGREED, designed | §37 |
 | The Framework Asks — what vant must be as a framework: credit-side ledger, market tape, typed economy events, world-shaped connector, memory standing, srv wire contract (upstream notes dhaupin/vant #336–#338) | AGREED, designed | vant PRD §6 |
+| The Player Channels — storefronts, guild boards, tavern chalk, auction lots, event plates as plates over engine channels: read-only template renders, the record the judge, the Boom buys front-page days (clock never rank) | AGREED, designed | §38 |
+| The Plate Economy — the plates in the loop: the Boom as the consistent sigil eater (multiplies like the runner industry), moves ride the standing lanes (sigils never move), tape rule + memory law plate-wide | AGREED, designed | economy PRD |
+| The Parity Loop — the engine that can run agents that play with you: agent principal = principal, plates readable by machine and human through one derive, the engine owes #337/#336/#339/#340/#338, the world teaches the player | AGREED, designed | vant PRD §7 |
 
 ## 12. The wardrobe locker — spitball #2 (2026-11-05)
 
@@ -1251,7 +1254,10 @@ dogfood-tested by our own agents before players ever reach it, and
 the wider ask is filed upstream (dhaupin/vant #336–#338): the loop
 that runs this game is the same loop another team could run their
 economy on — the platform's return story, authored in public, against
-dated evidence."
+dated evidence — and the plates now sell the crowd: player-run
+storefronts, boards, taverns, auctions and events promote into
+front-page days — the Boom (§38), a consistent, deed-earnable sink on
+every venue's stage clock."
 
 
 ## 29. The Tide-Mender Trade (spitball #16, 2026-11-05) — vehicles, worn and woken
@@ -1356,6 +1362,7 @@ by row, what is sold, what is sanked, and what stays free.
 | 25 | The Guild Contract Board | commission purses (clause-held, escrow) + the Crier toll + the rake at settle | purse chosen by the poster; the Crier a small clock SKU | CONTRACT + CRIER rows | browsing, claiming and posting small orders free; a commission is a hold on the crafting record, never a purchase | §34 |
 | 26 | The Kindling | one Kindled Hour — a shard-wide doubled earned-deed ledger for ALL riders, deed-earnable or bought | ~$10 felt, the clock family | KINDLE row | every rider rides identical free — the buyer buys the hour for the crowd, never the notch for himself | §35 |
 | 27 | The Runner's Exchange | freight holds (escrow-held, gold) + the Crier toll + the rake at settle | hold chosen by the shipper; the Crier a small clock SKU | FREIGHT + CRIER rows | posting and hauling free; freight is a hold on the tram record, never a purchase | §36 |
+| 28 | The Boom | front-page days on any player-run channel plate (storefronts, guild boards, tavern chalk, auction lots, event plates) | sigil SKUs, the clock family — deed-earned or bought, two-way | BOOST + CRIER rows | every plate posts, browses and runs free; the identical display days earned on earned sigils | §38 |
 
 **How to read the table.** Where money buys the clock (rows 6, 8, 14, 15, 17,
 18), the chartered shape is the toll family and the toll is visible; where
@@ -1363,7 +1370,7 @@ money buys presence (rows 3, 4, 5, 7, 9, 13), no rate moves anywhere; where
 money buys the NOW (rows 10, 11, 12, 18, 19), the same door stands free by
 deed. Two structural rows hold the top: the Charter (row 1) is cosmetic plus
 convenience with an earned-sigils purchase door, and Mythos (row 2) is the
-provenance-graded tradeoff. The count is the pitch: TWENTY-SEVEN rows stand priced
+provenance-graded tradeoff. The count is the pitch: TWENTY-EIGHT rows stand priced
 and NONE turns a stat on by purchase (rows 21-22 sell only the wider SHOT
 at the unopened doors — the Oracles: money cannot buy the act; row 23 is
 the Peal permit celebrating in its second voice — the echo bought, never
@@ -1375,7 +1382,9 @@ batch — the Board holds commissions on the crafting record, the Kindling
 doubles the earned lane for the whole shard at the buyer's hour (every
 rider identical), and the Exchange holds freight on the tram record —
 all three rides of the Loop's engines, the engines' no-debit/whole-
-return discipline carrying every one).
+return discipline carrying every one; row 28 is the BOOM — front-page
+days on any player-run channel plate (the crowd's clock, never rank,
+never a demotion — the plates post and browse free).
 
 
 ## 31. The Oracles (spitball #18, 2026-11-05) — the wish to wake, priced in shots
@@ -1736,6 +1745,91 @@ human does. NO CONCORD ROW — the palette round prices nothing: the
 Dogfood Loop is rail maintenance and a front door, never a SKU.
 ENGINES: unchanged — the loop rides what already carries all four
 motions.
+
+## 38. The Player Channels (spitball #28, 2026-11-05) — storefronts, boards, taverns, auctions, events as plates
+
+> **Status:** AGREED. The owner's question: "can we use vant's
+> carrier/plate type system to allow player stores/guild/taverns/
+> auctions/events/etc? ... player-run channels are ripe for 'boosting'
+> or promoting, easy Sigil eater, consistent. Then circle back to
+> economy/vant parity (the engine that can run agents that play with
+> you)." Buffy's answer: yes — and it is barely a stretch. The carrier
+> law (one derivation, two readers, landed with spitball #5's almanac
+> append) and vant's own row shapes (market listings, settlement
+> claims, forum chapters per #335, memory envelopes, the typed bus)
+> unify as the PLATE, and every player-run channel is a tenant sheet
+> on the Drivers — the same rails every money surface already rides.
+
+**THE CHANNEL PLATE LAW.** A player-run channel is one primitive,
+twice over: a CHANNEL (typed rows the engines generate and own —
+listings, holds, settled claims, chapters) rendered by a PLATE
+(read-only, template fields only, NO FREE TEXT, tenancy enforced at
+the plate). One derivation, MANY READERS: the board UI, the almanac
+page, the deed plate, an agent reader and the web all read the same
+derive. The plate renders server truth and never mutates — every
+write path stays in the owning engines; the record is the judge.
+
+**THE FIVE PLATES (each one tenant sheet, engines only):**
+
+1. **THE STOREFRONT PLATE** — a player or guild stand lists crafted
+   goods, field kits and hulls; rows ride the trade window's GOLD lane
+   (sigils never move — the RMT firewall closes at the provenance
+   stamp as always), and the hallmark law (sec 19) carries straight
+   over: a storefront wall of catalog kits earns the same "nice hotel"
+   verdict a kit-hall does.
+2. **THE GUILD BOARD** — crew announcements, open berths, muster
+   calls; template lines in the heraldry dress (sec 13), rank-gated
+   posting on the hall's own authority.
+3. **THE TAVERN CHALK** — pub evenings, bout cards, dock schedules;
+   the host's clock laws verbatim (sec 22): the room's clock never
+   buys the crowd.
+4. **THE AUCTION PLATE** — timed lots riding SINGLE-CLAIMANT HOLDS on
+   the Purse (the Warrant Board's shape, sec 33, generalized):
+   deterministic settle, refusal or expiry releases WHOLE with no
+   penalty; the Book's 10% rake cuts at settle — GOLD only, the
+   firewall lane.
+5. **THE EVENT PLATE** — scheduled public events printed into the
+   almanac's chapter family (sec 15's carrier law verbatim): the
+   schedule is the world's memory, not a forum post.
+
+**THE BOOM (the owner's Sigil eater — the consistent sink).** A
+plate's front page buys DAYS: the Boom is front-page or rotation
+presence on ANY plate — featured storefront rows, featured auction
+lots, featured events — the Crier law (sec 33) generalized across
+every player-run channel. Money buys the CLOCK (display time in a
+published window unit), never rank: the organic order stays organic,
+a second buy EXTENDS the window, never deepens the placement.
+Boosted rows carry an engine-owned template marker — no custom text,
+nothing to moderate. Boost-neutrality holds the tenancy law tight: a
+boost can never leak a gated row to a reader who could not see it
+organically. NO enemy-facing anything: a boosted face is presence,
+never another face's demotion (the no-social-engineering law
+verbatim). **F2P FLOOR:** every plate posts, browses and runs free;
+the earn path rides the chartered two-way door — the identical
+front-page days earned on earned sigils. SINK: BOOST rows join the
+CRIER family (grant legs ship WITH the rows — no fake sinks).
+
+**AGENT PARITY (the circle-back).** An agent principal runs every
+plate — lists a guild storefront, staffs a tavern evening, runs an
+auction lot, posts an event schedule — same laws, same plates, read
+through the same derive by any reader; the species-blind census
+(sec 37's law) stands over the whole family. The engine-side law of
+that parity lands in prd-vant-engines.md sec 7.
+
+UPSTREAM (the palette polished, Two-Houses verbatim): the general
+channel/plate primitive filed as dhaupin/vant #339 (one typed
+publication primitive: channel rows + read-only template render +
+tenancy enforced + machine-readable by construction) and the boost
+lane filed as #340 (bought display time, rank-neutral, tenancy-
+neutral, engine-auditable). The game plates stay game logic — vant
+learns channels and boosts, never a storefront's wares.
+
+IMPLEMENTATION SEAT (build round, gated on the Drivers): the plate
+renderer (derive ids + template registry), the five channel tenant
+sheets, the Boom clock book on the sinks (BOOST rows), the auction
+rake row (gold, cut at settle), census feeds per plate
+(most-boosted, most-featured — tool-side forever). NO new engine —
+the plates ride the Purse, Settle, Agora and Quorum as they stand.
 
 ---
 

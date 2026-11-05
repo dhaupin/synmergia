@@ -133,7 +133,8 @@ evidence for the investor tie-back when it lands.
   sec 34), the Kindling (sec 35) and the Runner's Exchange (sec 36) —
   every one a tenant sheet on the Drivers, mint/move/melt riding the
   same engines,
-  the Concord count now TWENTY-SEVEN.
+  the Concord count reached TWENTY-SEVEN at the batch
+  and TWENTY-EIGHT after the plates (row 28, the Boom — spitball #28).
 - The investor tie-back LANDED (owner order, spitball #27): the
   stool's Legs 2 and 3 absorbed the loop paragraphs and the
   breath-chart evidence, and the Palette leg (the platform answer)
@@ -185,3 +186,48 @@ and the framework machinery that can power them (the credit-side
 ledger, the market tape, memory standing) travels upstream as the
 palette asks, dhaupin/vant #336–#338 (the Two-Houses law: the art
 never forks the palette to finish the painting).
+
+## 9. The plate economy — player-run channels (spitball #28)
+
+> **Status:** the owner's gravity: "player-run channels are ripe for
+> boosting or promoting, easy Sigil eater, consistent." This is the
+> loop of sections 1–4 applied to the channels:
+> prd-monetization.md sec 38's five plates read through
+> mint / move / melt.
+
+**THE MELT SHAPE.** The Boom is the plates' recurring sink: front-page
+days ride BOOST rows and eat sigils consistently — and the melt
+multiplies exactly like the runner industry: a boosted storefront
+makes sales, the sales refuel the next boost; a boosted auction fills
+the hall, the hall fills the next lot's boost; a boosted event draws
+the crowd, the crowd funds the next schedule. THE MULTIPLICATION LAW
+verbatim: a sink that consumes and regrows feeds back through OTHER
+players before it feeds the wall — boosted presence sells other
+players' goods, and the goods' sales fund more boosts.
+
+**THE MOVE SHAPE.** Player-to-player money on the plates rides
+exactly the standing lanes: the trade window's gold lane (storefront
+rows), single-claimant holds on the Purse (auction lots), engine-settled
+rakes at settle. SIGILS NEVER MOVE (the firewall verbatim): the Boom
+eats sigils TO the sink — never across a counterparty.
+
+**THE TAPE RULE HOLDS PLATE-WIDE (sec 8).** A storefront quoting
+prices quotes the tape — evidence over realized settles, nothing
+else; no plate ever quotes opinion, hearsay or a screenshot. The
+feature windows ride the same census discipline (feature-frequency
+counters live tool-side forever: a noticed pattern, never a
+punishment, never a printed leaderboard of boosts).
+
+**THE MEMORY LAW HOLDS PLATE-WIDE (sec 8).** A plate's retirement is
+a tombstone with a receipt: an expired auction lot, a closed
+storefront, a past event's chapter keep their residue — standing is
+never erased silently. Guild boards ride the envelope shape for
+multi-writer contest (revision + writers, conflicts flagged, never
+merged away).
+
+**GATES:** no Concord row beyond the Boom itself, no SKU, no engine
+change — the plates ride the Drivers as tenant sheets
+(prd-vant-engines.md sec 4); the general plate/channel and boost
+primitives travel upstream (dhaupin/vant #339/#340) and the game owns
+only its templates (the Two-Houses line); everything on every plate
+is free by construction except display time.
