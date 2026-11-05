@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_ring_starbinder"
+display_name = "Starbinder Ring"
+description = "Starmetal set over its own abyss pearl. The metal stays warm and the pearl stays cold, and the wearer is invited to reconcile the two opinions."
+icon_path = "res://icons/items/ring_starbinder.png"
+item_category = 2
+rarity = 5
+equip_slot = 9
+accessory_type = 1
+stack_size = 1
+bind_on_equip = true
+sell_price = 2000
+buy_price = 5600
+item_level = 18
+required_level = 18
+stats = {
+"wisdom": 3,
+"vitality": 3
+}

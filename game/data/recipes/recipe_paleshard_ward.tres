@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_paleshard_ward"
+display_name = "String Paleshard Ward"
+description = "Workbench, quiet room, no smoking. The mythril shard is cut thin, the pearl bored, the kelp braids double at the knot where the ward catches."
+station = 2
+inputs = [{"item_id": "res_mythril_ingot", "qty": 1}, {"item_id": "res_abyss_pearl", "qty": 1}, {"item_id": "res_kelp_fiber", "qty": 2}]
+output = {"item_id": "acc_necklace_paleshard_ward", "qty": 1}
+byproducts = [{"item_id": "res_kelp_fiber", "qty": 1}]
+craft_time_sec = 0.0
+required_level = 14
+failure_rate = 0.15

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_golden_signet"
+display_name = "Cut Ledger Warder's Signet"
+description = "One golden ingot, one silver: gold for the face, silver for the shank the deep bothers. The pillar stamps where the charter says it must."
+station = 1
+inputs = [{"item_id": "res_golden_ingot", "qty": 1}, {"item_id": "res_silver_ingot", "qty": 1}]
+output = {"item_id": "acc_ring_golden_signet", "qty": 1}
+byproducts = [{"item_id": "res_slag", "qty": 1}]
+craft_time_sec = 0.0
+required_level = 10
+failure_rate = 0.1

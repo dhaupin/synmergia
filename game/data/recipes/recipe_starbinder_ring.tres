@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_starbinder_ring"
+display_name = "Set Starbinder Ring"
+description = "A starmetal bezel over an abyss pearl. Nothing else sells the pairing -- the metal must stay warm and the pearl must stay cold, and the setting takes the argument."
+station = 1
+inputs = [{"item_id": "res_starmetal_ingot", "qty": 1}, {"item_id": "res_abyss_pearl", "qty": 1}]
+output = {"item_id": "acc_ring_starbinder", "qty": 1}
+byproducts = [{"item_id": "res_slag", "qty": 1}]
+craft_time_sec = 0.0
+required_level = 18
+failure_rate = 0.2

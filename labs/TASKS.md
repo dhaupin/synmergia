@@ -8482,3 +8482,7 @@ the sea bands). All four landed; one stale probe leg fell with them.
 - The audit: ore_golden/mythril/starmetal were mined + looted (elite ore table, bandit table) with ZERO recipe sinks -- three dead-end metals. Authored the binder-chained ladder: golden ingest -> mythril (gold carries the temper) -> starmetal (mythril carries it), then a 6-piece gear line L10/14/18 (estoc/scale coat, halberd/wardmail, skysplitter/bulwark) with nine honest bills across the forge + workbench, and the Fixer's Depths pull appended per its own documented law (skysplitter weight 9, bulwark weight 8).
 - Gates: catalog 10/0 (24 recipes / 160 icons), craft probe 13 checks, naming 26/0, lint 37/0, gamble receipt ALL-OK, packstruct clean, no DEFAULT_SET change (110).
 - Flavor notes: the Concord signs things it would prefer people did not nickname; the forge writes letters home about starmetal plate; mythril forgives the gold being there.
+
+## 2026-11-04h -- Jewelry + loot-wiring round
+- Four accessories (tidecaller ring, ledger signet, paleshard ward necklace, starbinder ring) + four bills across workbench/forge; the abyss pearl becomes a three-sink reagent (breather, paleshard, starbinder). loot_elite_ore gains the golden-tier freight (estoc .12 / scale coat .10 / signet .08) so L10 gear is earnable in-world; mythril/starmetal stay forge+depths by design.
+- Gates: catalog 10/0 (28 recipes, 164 icons), craft probe 13 checks, naming 26/0, lint 37/0. No DEFAULT_SET change (110).

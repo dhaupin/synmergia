@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_tidecaller_ring"
+display_name = "Braid Tidecaller Band"
+description = "Badge wet, dry slow, iron last. The kelp pulls the fit toward the water and the band signs its own shape."
+station = 2
+inputs = [{"item_id": "res_kelp_fiber", "qty": 4}, {"item_id": "res_iron_ingot", "qty": 1}]
+output = {"item_id": "acc_ring_tidecaller", "qty": 1}
+byproducts = [{"item_id": "res_kelp_fiber", "qty": 1}]
+craft_time_sec = 0.0
+required_level = 6
+failure_rate = 0.1

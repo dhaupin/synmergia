@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_ring_tidecaller"
+display_name = "Tidecaller Band"
+description = "Braided kelp around a smith's iron band. Grown wet and dried slow; the harbor-folk swear it always knows which way the current runs."
+icon_path = "res://icons/items/ring_tidecaller.png"
+item_category = 2
+rarity = 1
+equip_slot = 9
+accessory_type = 1
+stack_size = 1
+bind_on_equip = true
+sell_price = 36
+buy_price = 90
+item_level = 6
+required_level = 6
+stats = {
+"wisdom": 2,
+"vitality": 1
+}
