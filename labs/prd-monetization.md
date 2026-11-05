@@ -457,6 +457,33 @@ purchase.
    wealth at scale, the economy stays purchase-proof, and deed luck is strictly better
    — the standing tenet that earned is worth more, applied to fortune itself.
 
+### The spiritbind jackpot (the owner's addition to the pot)
+
+Beyond the fated stamp on bought-luck finds: a GLOBAL modifier that has nothing to do
+with the charm at all. **Every drop in the world — a wild stick, a market roll, an
+earned mythic, a crafting station output — rolls the same tiny, authored chance to
+land SPIRITBOUND**, the world's rarest binder. Luck of the draw whether the find is a
+stick or a mythic: the froth is that the jackpot can land on anything, at any moment,
+for anyone, and the item card is the only herald it gets.
+
+**Laws (the jackpot is global, authored, and untouchable by money):**
+1. The roll lives in the SAME central roll-time modifier as the Lucky charm — one
+   global spiritbind leg, never a per-item bandaid. It applies to non-stackable gear
+   only (weps/armors/wearables/accessories/instruments); stackable materials are
+   vetoed, since a bound stack is junk-locked.
+2. Spiritbound is permanent and honest — the item card says so, forever. It is not a
+   punishment tier: it is the rarest provenance, its own prestige (a handful of items
+   on the shard carry it).
+3. **Money never touches the jackpot odds.** A bought charm lifts the charm's own
+   drop rate only; the spiritbind leg rolls at its authored chance during bought AND
+   deed luck AND no luck alike. Nobody can buy the rarest binder; that is exactly the
+   froth.
+4. Toll orthogonal (§10): a spiritbound landing needs no grading. Mythos items keep
+   their toll grade; the jackpot lands ON TOP of whatever the purse already stamped.
+5. The jackpot is free-path by construction: it rolls whether or not Lucky exists in
+   the market. Lucky just widens the number of rolls a player makes — and so does
+   plain grinding.
+
 **Laws:**
 1. Luck is ONE central roll-time modifier over the drop sources (loot tables, the
    black-market board, harvest bounty) — never a per-item bandaid. The black market's
