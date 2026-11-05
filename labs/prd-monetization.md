@@ -198,7 +198,8 @@ roughly triples). The first two gaps are the reason this document exists.
    leg of the audited loop; everything downstream is data.
 2. **Season pass (seasonal-pack cadence)**: the publishing rhythm exists; a track of
    cosmetics + the seasonal core pack at ~$8–10/season is the single highest-leverage
-   future SKU and it resells the ladder rounds we already build.
+   future SKU and it resells the ladder rounds we already build. **Designed in §9** —
+   contents, hard laws, and the earned-sigils-only F2P door are specified.
 3. **Cosmetic breadth** (dyes, tabards, pet/mount skins): sink rows are data; the model
    ceiling rises without touching laws.
 4. **Storage/convenience tiers**: extra bank tabs, extra vendor stall rows — classic
@@ -208,14 +209,106 @@ roughly triples). The first two gaps are the reason this document exists.
    monthly all-you-need sigils + small daily conveniences; strongest for recurring revenue,
    weakest vs the "no subs for content already earned" sentiment; bring numbers, not vibes.
 
-## 9. The investor version (the one-paragraph answer)
+## 9. The Season Charter — the pass, with its F2P door
+
+> **Added 2026-11-05 (the pass design round)**, answering two questions: what does the
+> pass include, and can F2P earn it? The seasonal-pack cadence already exists as content
+> law (cap lifts + band packs, 3%-at-parity income); the Charter is its front door.
+
+**What it is.** One purchase per season — never a subscription. A season-long
+**two-track book of seasonal deeds** (quest-chain clears, boss kills, dive/salvage hauls,
+event seeds) fed by the packs' own content. The deed meter is time-synced to the season,
+not to spend.
+
+**Premium track (what money buys; cosmetics & convenience only):**
+- The season's cosmetic suite: exclusive title, dye kit, pet, and the seasonal mount
+  **skin** — a skin applies only to a ride already owned; no ride advantage is minted.
+- Season convenience, non-combat: an extra bank tab for the season, and **early entry**
+  (the pack's zones open a few days early — time, not power).
+- A pursuing deed faucet so the premium track climbs on season deeds as well (a Charter
+  holder still plays the season to unlock it — the pass is a key, not a dump).
+
+**Hard laws — what the Charter never gives:** no combat stats; no XP or cap-pace boosts
+(the don't-level-too-fast law); no debuff on anyone else; no content the free game will
+not eventually get. Premium is *earlier + prettier*, never *only*.
+
+**The F2P door (the pass itself is earnable):**
+1. **The free track** rides every Charter for everyone: a dye kit, a season trophy
+   cosmetic, the convenience tab — deeds only, no money, including for non-buyers.
+2. **The Charter itself is purchasable with earned sigils**: the unlock is priced both
+   ways — $8.99 **or** 300 **earned-only** sigils, any time during the season, payable
+   ONLY from the deed (earned) pool. Bought sigils cannot buy the pass. A grinder earns
+   their premium track through play; a buyer walks in day one. Either way the premium
+   track is cosmetic-only, so neither route is P2W — it is identity, not power.
+- Honest sizing note (a build round, not a wish): the earned faucet today is
+  boss-table drops only. Making 300 deed-sigils reachable in 2–4 weeks of active play
+  means the pass design round adds the deed-ledger grants to dailies/chains/hauls; that
+  is data on existing rails.
+
+## 10. The Mythos Toll — paid exclusives carry an honest tradeoff
+
+**The idea in one line.** Top-rung exclusives ("Mythos" grade) can be bought outright —
+but every Mythos item ships with its **Toll**: authored, item-card-visible negative
+modifiers drawn from the **coverable-hook set** (movement speed, all-resist, regen,
+cooldown/haste — NEVER damage, health, or defense). Example: a Mythos halberd at
+-10% all-resist / -10% move speed. The toll makes the item demand a skilled party or a
+build built to cover its hooks — ownership is participation, not a win button.
+
+**The provenance law — earned sigils are worth more in modifier rate, not exchange rate.**
+The wallet ledger stamps provenance at grant time:
+- **Coin sigils** — credited by the processor webhook (bought).
+- **Deed sigils** — credited by in-world rails (boss tables, quest chains, salvage and
+  dive income, event seeds). Same displayed balance, same 25-per-ticket spend value, one
+  purse, one UI. The two sigils differ only in what they are *credited by*.
+- A Mythos sink purchase **debits deed sigils first**, and the toll grades by the earned
+  fraction of that debit:
+
+| Grade | Deed fraction of the debit | Toll |
+|---|---|---|
+| **Proven** | 100% | none — the clean mythic exclusive |
+| **Tempered** | ≥ 75% | halved (e.g. -5%/-5%) |
+| **Bought** | < 75% | full, as authored (e.g. -10%/-10%) |
+
+The grade stamps on the grant and reads forever on the item card; a trade or a dye never
+launders it. Consequence, stated plainly: the F2P grinder's Mythos exclusive is
+**strictly better** than the buyer's — same look, same stat column, minus the toll. The
+buyer's advantage is the clock ("I have it now"), never the ceiling. Buyers who also
+play can temper their way to Proven with deeds — money buys the fast lane, not a
+separate road.
+
+**The anti-smell laws (the investor-facing tenets):**
+1. Every Mythos exclusive has a fully non-money path to a **better** version; money buys
+   now-sooner, never better-or-only.
+2. The toll taxes only its owner — no enemy-facing aura debuffs, no social engineering.
+3. Toll hooks are coverable by play (movement, resists, regen, haste): the design leans
+   on team and build craft — skilled-party reliance, not wallet reliance.
+4. The Charter (§9) and Mythos exclusives are different products; cosmetics carry no
+   toll because they carry no stats.
+5. XP pace and level caps can never be bought (the seasonal cap law stays free-for-all).
+
+**Implementation seat (a later design round; receipts must gain legs for it):**
+provenance is a wallet-ledger law (the honest first shape: an earned sub-ledger — two
+currency ids under a unified purse, debits striking the earned id first); Mythos rows
+are sink rows with authored toll fields; grades stamp at grant; the sink-catalog receipt
+gains the provenance-fraction → grade → toll legs. Open questions flagged honestly: if
+player-to-player trading ever opens, deed sigils must **bind-on-earn** (provenance must
+never become rentable via RMT); the 75/100 tier thresholds are a tuning dial, not a
+law; whether cosmetics ever ride the same provenance grade (a burned-in
+"deeds-imprinted" finish at Proven) is an open aesthetic call, not a decided one.
+
+## 11. The investor version (the one-paragraph answer)
 
 *Synmergia's monetization is not a plan, it is an installed, receipt-audited system: a
 wallet, three real-$ SKUs ($4.99–$24.99), a nine-row premium catalog (resurrection
 tickets at $1.00 net per unit, a $7.50–$45 mount ladder, cosmetic titles at $10–25),
 an in-game sigil market, and an earned-earn path that keeps F2P honest. Publishing
 cadence is already contractual: seasonal packs authored by an income law that pays the
-shared progression curve, with a level cap that lifts on data, not opinion. The total
+shared progression curve, with a level cap that lifts on data, not opinion. Pay-to-win is priced out by construction
+rather than promised away: Mythos exclusives ship with an authored tradeoff toll that
+grades by earned-vs-bought provenance — the buy-now version is strictly weaker than the
+grind-earned version of the same item — and the season pass is cosmetics-and-convenience
+with an earned-sigils-only purchase door, so the F2P trust floor is a **feature of the
+model**, not damage control. The total
 infrastructure cost of running the world at scale is benchmarked at roughly
 $2,800–4,200/month at 10,000 concurrent players (~$0.35 per concurrent player-month,
 ~$0.04 per DAU-month), meaning roughly 2,000 monthly payers cover it entirely and the
