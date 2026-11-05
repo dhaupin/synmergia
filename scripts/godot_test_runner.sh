@@ -110,6 +110,7 @@ test_shard_mesh_identity
 test_adapter_http_transport
 test_shard_bus
 test_edge_transport
+test_shard_mesh_topology
 probe_arena_instance
 probe_arena_trigger
 probe_lobby_service

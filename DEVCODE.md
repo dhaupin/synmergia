@@ -57,8 +57,25 @@ The edge transport (Phase 2) picks the server transport from
 one L7 entry for browser + native clients. Unknown values fall back to
 `enet`. The nginx `godot` upstream carries `ip_hash` (sticky routing),
 and `GODOT_UPSTREAM` accepts a comma/space list of shard hosts (one
-`server` line per shard). See `labs/prd-shard-mesh.md` for the
-intent-vs-reality audit and the phased path (topology is Phase 3).
+`server` line per shard).
+
+The topology (Phase 3) is an opt-in `mesh` compose profile: a
+`coordinator` service + N `shard` services over shared Postgres/Redis.
+
+```bash
+docker compose --profile mesh up --build --scale shard=4
+```
+
+The role is resolved from the env by `core/mesh/mesh_role.gd`:
+`START_MODE=coordinator` -> coordinator (no game port); `SHARD_ID` set
+(or `START_MODE` in prod/headless/server) -> shard; otherwise
+`standalone`. Each shard derives a unique id from its container
+`HOSTNAME` when `MESH_AUTOSHARD=true` and `SHARD_ID` is unset, so
+`--scale shard=N` needs no per-replica id (set `SHARD_ID` to pin one).
+The registry spans processes: a shard announces on the bus's
+`coordinator:mesh` topic and a coordinator in another process ingests
+it. See `labs/prd-shard-mesh.md` for the intent-vs-reality audit and
+the phased path.
 
 ## 2. Golden-path commands (from `game/`)
 

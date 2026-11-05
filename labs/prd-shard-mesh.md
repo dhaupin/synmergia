@@ -166,30 +166,77 @@ passes one host and is byte-identical to before.
 Outcome: a client reaches a shard behind nginx over websocket with
 session affinity. Topology (coordinator + N shards) is Phase 3.
 
-### Phase 3 -- Topology
+### Phase 3 -- Topology (SHIPPED)
 
 A `coordinator` service + N `shard` services (unique `SHARD_ID`,
-no fixed host ports) over shared Postgres/Redis. Compose example:
+no fixed host ports) over shared Postgres/Redis.
+
+**The role law (`game/core/mesh/mesh_role.gd`).** ONE file owns what a
+container is, resolved from env only and totally (an unset/unknown combo
+falls back to `standalone`, so a dev boot is unchanged):
+
+| Env | Role |
+|-----|------|
+| `START_MODE=coordinator` | `coordinator` |
+| `SHARD_ID` set, or `START_MODE` in prod/headless/server | `shard` |
+| otherwise | `standalone` |
+
+`MeshRole.self_id()` is the mesh identity: the coordinator id for a
+coordinator, else the shard id. `MeshRole.shard_id()`: an explicit
+`SHARD_ID` wins; `MESH_AUTOSHARD` with `SHARD_ID` unset derives a
+sanitized id from `HOSTNAME` (so `docker compose --scale shard=N` needs
+no per-replica id); neither -> `shard_1` (the dev default).
+
+**The cross-process registry.** The Phase 1 bus carries a second topic,
+`coordinator:mesh`, so mesh bookkeeping never mixes with gameplay events
+on `coordinator:events`. A shard announces its registration
+(`announce_self_to_mesh`) on that topic; any coordinator -- in ANOTHER
+process -- ingests it (`_ingest_mesh_mail`) and folds it into the normal
+registry. The registry reads (`get_all_shard_ids` / `get_all_shards` /
+`get_shard_info`) ingest first, so a cross-process shard is visible the
+moment anyone asks. Ingest never re-publishes (no loop) and the bus
+already no-echoes a publisher. The coordinator does NOT register as a
+shard (announce is a no-op for it).
+
+**The coordinator role** boots Godot headless but serves NO game port
+(entrypoint `coordinator` mode; it is not a shard). It still starts the
+shared-state bridges so the registry (Postgres) and bus (Redis) are live.
+
+**Compose topology** (`docker-compose.yml`, opt-in `mesh` profile --
+dev/prod/headless stay single-node):
+
+```bash
+docker compose --profile mesh up --build --scale shard=4
+```
 
 ```yaml
 services:
   coordinator:
-    image: synmergia
+    build: .
+    profiles: [mesh]
     environment:
-      START_MODE: coordinator
-      REDIS_BRIDGE_URL: http://redis-bridge:8080
+      - START_MODE=coordinator
+      - STORAGE_BACKEND=postgres
+      - CACHE_BACKEND=redis
+      - PG_BRIDGE_URL=http://127.0.0.1:8080
+      - REDIS_BRIDGE_URL=http://127.0.0.1:8081
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
   shard:
-    image: synmergia
+    build: .
+    profiles: [mesh]
     environment:
-      START_MODE: headless
-      SHARD_ID: ${SHARD_ID}
-      STORAGE_BACKEND: postgres
-      CACHE_BACKEND: redis
-      PG_BRIDGE_URL: http://pg-bridge:8080
-      REDIS_BRIDGE_URL: http://redis-bridge:8080
-    deploy:
-      replicas: 4
+      - START_MODE=headless
+      - MESH_AUTOSHARD=true        # unique id per replica (no fixed ports)
+      - EDGE_TRANSPORT=websocket   # nginx-frontable, sticky-routed
+      - STORAGE_BACKEND=postgres
+      - CACHE_BACKEND=redis
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
 ```
+
+Each shard has no fixed host ports (the mesh is addressed by service
+name), so replicas never collide; `--scale shard=N` gives N shards.
 
 ## 5. Out of scope (this note)
 
@@ -239,3 +286,20 @@ Receipt: `game/tests/test_shard_bus.gd` (17 legs).
   per shard (single host == the previous config).
 
 Receipt: `game/tests/test_edge_transport.gd` (14 legs).
+
+## 9. Acceptance for Phase 3
+
+- `MeshRole.resolve()`: coordinator / shard / standalone from the env,
+  with an unknown mode falling back safely.
+- `MeshRole.self_id()` is the coordinator id for a coordinator, the
+  shard id otherwise.
+- `MeshRole.shard_id()`: explicit `SHARD_ID` wins; `MESH_AUTOSHARD`
+  derives a sanitized id from `HOSTNAME`; neither -> `shard_1`.
+- A shard announces on the mesh topic and a SEPARATE coordinator
+  instance ingests it -- the registry spans processes.
+- A repeat announce is idempotent (one entry, refreshed).
+- A departure announce removes the shard from the registry.
+- The coordinator does not register itself as a shard.
+- Defaults unchanged: no mesh env -> the single-node boot.
+
+Receipt: `game/tests/test_shard_mesh_topology.gd` (18 legs).
