@@ -74,6 +74,9 @@ back through OTHER players before it feeds the wall.
 
 Nothing moves that the engines did not hold, settle and attest; a
 money surface that walks beside the engines does not exist in Synmergia.
+Every future service reaches them through a TENANT SHEET on the
+Drivers (prd-vant-engines.md sec 4): no service ever implements its
+own hold, settle or sweep, and no sheet can waive a law.
 
 ## 4. The flywheel
 

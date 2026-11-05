@@ -86,7 +86,51 @@ law standing behind it (no free text, no social engineering, the
 ledger is the consensus); if a build round finds itself porting one
 back, the round is wrong.
 
-## 4. Scope and gates
+
+## 4. The Drivers (the spine doctrine) — spitball #24
+
+> **The owner's ruling:** "these vant imported systems should not just
+> be the warrant board. These can drive many services across
+> synmergia. These should take a high level to *drive* other services,
+> just like vant." Buffy yay — and the block is hereby promoted from a
+> library with tenants to THE SPINE.
+
+**THE SPINE LAW.** The engines are not a library beside the services;
+they DRIVE them. A money service never implements a hold, a settle, a
+sweep or an audit book — it SUBSCRIBES: a short authored data manifest
+(**the tenant sheet**) names the service's purses, its settle
+clauses, its publication subset and its census feeds, and the engines
+read the sheet and run the flow. Vant already runs this exact shape —
+one shared escrow state, tools reading config; the port keeps it: one
+shared engine state, many tenants, the sheet as the interface.
+
+**THE TENANT SHEET** (the driver's shape — four fields, data never
+logic):
+
+- **PURSES** — denominations, pool caps, hold timeout, and the
+  provenance/mix policy the Purse Engine tracks through each hold;
+- **SETTLE** — the clause list the record must match (template
+  fields, no free text) and the deterministic judge that reads them;
+- **PUBLICATION** — which Agora chapter the flow prints and which
+  census counters it feeds (read free everywhere, tool-side only);
+- **QOS** — the impulse caps the flow rides (per account, per
+  calendar, the standing QoS family).
+
+**THE NO-WAIVER LAW.** The sheet cannot grant a law away: no field
+exists that disables provenance stamping, return-whole sweeps,
+no-penalty expiry, census observation or the deterministic judge. A
+tenant needing a different law is a NEW SPITBALL, not a field.
+
+**THE CHEAP MACHINE.** A future money spitball therefore lands as one
+tenant sheet + its sink rows + its UI readers + its tests — build
+rounds never fork engine code. The Warrant Board is tenant zero
+(prd-monetization.md sec 33); the Glad Book, the guild vaults and
+every tenant after them author the same four fields. This is how the
+block "drives other services, just like vant": the flow stays the
+engines'; the service only says what flows.
+## 5. Scope and gates
+
+- Every money service travels as a tenant sheet on the Drivers (sec 4); no service ever forks the engine code.
 
 - THE LOOP the engines carry is prd-economy.md, the Living Economy (spitball #23): mint / move / melt through exactly these lanes, the census as pulse; investor tie-back deferred by the owner.
 - Migration order is Purse Engine first (every new sink lands on it),
