@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="NPCData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/npc_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "npc_tidewright_fenwick"
+display_name = "Haven Tidewright"
+description = "Old Fenwick, the shore's plankwright. He built the strait's two moor banks and rebuilt the barque's deck six times, and rents timber out of the same yard slats to whomever the fences pay for."
+npc_type = 6
+level = 1
+faction = "friendly"
+scene_path = "res://scenes/npcs/merchant_general.tscn"
+zone_id = "zone_village_center"
+spawn_offset = Vector3(-3, 0, 2)
+greeting = "Mind the tar bucket, the yard's wet through. Half this village's fence is my hand and the other half is what the tide takes back come the next blow."
+farewell = "Keep clear of the wet slats. The fence outlasts tempers, and it outlasted yours too, most likely."
+shop_title = "Fenwick's Fence & Plank"
+location_type = 0
+base_repair_cost_multiplier = 1.0
+buy_multiplier = 0.5
+sell_multiplier = 1.0
+includes = [
+	{"type": "offering", "ref_id": "vendor_fenwick_planks"},
+	{"type": "dialogue", "dialogue_id": "tidewright_fenwick_intro"}
+]

@@ -1199,8 +1199,13 @@ const VILLAGE_NPC_BATCH: Array = [
 	# The Haven Jeweler (Marsh Piper): the shore's pearl-cutter, the
 	# jewelry line's own stall on the plaza arc (the pearl industry
 	# learned a face). Bearing 110 keeps an open lane: off the
-	# smithy's 44 and the academy's 160, clear sky between stalls.
+	# smithy's 44 and the academy's 160, clear sky between stalls.	
 	["npc_jeweler_haven", 110.0, 0.012],
+	# Old Fenwick, the Haven Tidewright: the shore's plankwright, the
+	# fence & plank yard's own stall on the plaza arc. Bearing 135
+	# keeps the ring lawful: off the jeweler's 110 and the academy's
+	# 160, one open sky-lane between the three.
+	["npc_tidewright_fenwick", 135.0, 0.012],
 ]
 const CAPITOL_NPC_BATCH: Array = [
 	# npc_id, bearing_deg (capitol strand frame), reach_rad

@@ -1,0 +1,48 @@
+[gd_resource type="Resource" script_class="DialogueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "tidewright_fenwick_intro"
+npc_id = "npc_tidewright_fenwick"
+display_name = "Haven Tidewright"
+nodes = [
+	{
+		"speaker": "Haven Tidewright",
+		"text": "Mind the tar bucket, the yard's wet through. Half this village's fence is my hand and the other half is what the tide takes back come the next blow, and I drink to both of them the same.",
+		"choices": [
+			{"text": "What does a plankwright sell?", "next_node": 1},
+			{"text": "You keep the strait's moor banks in working order?", "next_node": 2}
+		]
+	},
+	{
+		"speaker": "Haven Tidewright",
+		"text": "Billets for your own builds, scrap for patching, and -- once a season, while the fingers still braid -- one Shorebow strung with kelp wrap. The bow is the only shelf good I'll miss selling. The billets don't care who hauls them.",
+		"choices": [
+			{"text": "Show me the yard slats.", "next_node": 4, "action_type": 6, "action_data": {"shop_id": "vendor_fenwick_planks"}},
+			{"text": "And you'd buy my haul?", "next_node": 3}
+		]
+	},
+	{
+		"speaker": "Haven Tidewright",
+		"text": "The barque's deck has been my joinery six rebuilds in this span, and both strait moor banks ride one of my fences every storm the sea remembers setting. The sea chews untempered work and spits it under the pier; the shore pays for tempered. That's the whole trade.",
+		"choices": [
+			{"text": "Then you'd know good timber.", "next_node": 3},
+			{"text": "Show me the yard slats.", "next_node": 4, "action_type": 6, "action_data": {"shop_id": "vendor_fenwick_planks"}}
+		]
+	},
+	{
+		"speaker": "Haven Tidewright",
+		"text": "Timber out of the reclaim I'll pay honest coin for, and salt pork if it's salted PROPERLY -- most of what comes off the ferry shelves isn't. What I won't take is warped billets prated off as straight; the fence would laugh at it, and the fence laughs at precious little.",
+		"choices": [
+			{"text": "Show me the yard slats.", "next_node": 4, "action_type": 6, "action_data": {"shop_id": "vendor_fenwick_planks"}},
+			{"text": "Keep the fence standing, Fen.", "next_node": -1}
+		]
+	},
+	{
+		"speaker": "Haven Tidewright",
+		"text": "Slats are out, mind the string if you lift the bow -- kelp wrap is raw and takes a week to set a proper draw. Come storm season I repriced nothing, and the yard's still breathing.",
+		"choices": []
+	}
+]
