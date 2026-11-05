@@ -136,7 +136,8 @@ evidence for the investor tie-back when it lands.
   the Concord count reached TWENTY-SEVEN at the batch
   and TWENTY-EIGHT after the plates (row 28, the Boom — spitball #28),
   and THIRTY-ONE after the market round (rows 29-31, spitballs #29-#31
-  — homed in this PRD's secs 10-12 below).
+  — homed in this PRD's secs 10-12 below), and THIRTY-FIVE after the psy
+  round (rows 32-35, prd-monetization.md secs 39-42).
 - The investor tie-back LANDED (owner order, spitball #27): the
   stool's Legs 2 and 3 absorbed the loop paragraphs and the
   breath-chart evidence, and the Palette leg (the platform answer)

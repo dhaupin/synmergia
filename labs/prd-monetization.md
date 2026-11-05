@@ -385,6 +385,10 @@ decide with data.
 | The Market Day — the crowd's weekly festival on the plates: every stall free on the standard drawer, richer frontage buys display time on the Boom's law (extend never deepen) | AGREED, designed | economy PRD §10 |
 | The Foundry — the creator economy: players author cosmetic template packs (template grammar only), Concord stamps + publishes, gold author split + house take at settle, provenance on every sale row | AGREED, designed | economy PRD §11 |
 | The Wardens' Post — the out-of-game digest seat for away players: witnesslist chapters by email/push, template lines only, the read free in-world forever | AGREED, designed | economy PRD §12 |
+| The Tarry — bought tarry minutes on your own hold's countdown: ownership/price untouched, return-whole intact, QoS-capped, deed-earned slips two-way | AGREED, designed | §39 |
+| The Glance — the read-only provenance pointer on any look: identical price, craft route beside the buy, zero outreach; sells nothing, feeds the Foundry | AGREED, designed | §40 |
+| The House Round — the crowd's next room-hour at an emotional peak: template service-record line, no title, no prefix, two-way earn | AGREED, designed | §41 |
+| The Trader's Cart — weekly rotating curiosities under the eventually-return law: published rotation, fixed plain contents, no lootbox, two-way earn | AGREED, designed | §42 |
 
 ## 12. The wardrobe locker — spitball #2 (2026-11-05)
 
@@ -1202,7 +1206,12 @@ door (the head is a record, never a scalp). The market round went where the
 crowd already is — the Market Day's festival frontage, the Foundry's
 author-gold split and the Wardens' Post away-digest sit in
 prd-economy.md secs 10-12 (rows 29-31): creator and convenience seats
-priced into the loop, none of them a stat. Publishing
+priced into the loop, none of them a stat. And the psy round sells
+the four human moments the tenets can dress — the almost-losing (the
+Tarry, secs 39-42's opener), the covetous (the Glance), the generous
+(the House Round) and the novelty-seeking (the Trader's Cart) —
+impulse spend as product, never prey: every seat caps, every seat
+earns, nothing enemy-facing. Publishing
 cadence is already contractual: seasonal packs authored by an income law that pays the
 shared progression curve, with a level cap that lifts on data, not opinion. Pay-to-win is priced out by construction
 rather than promised away: Mythos exclusives ship with an authored tradeoff toll that
@@ -1373,6 +1382,10 @@ by row, what is sold, what is sanked, and what stays free.
 | 29 | The Market Day | weekly Market Day frontage on the storefront + auction plates (the Boom family) | sigil SKUs, the clock family — deed-earned or bought, two-way | FEAST rows (BOOST family) | every stall posts, browses and sells free on the standard drawer; frontage buys display TIME only | econ §10 |
 | 30 | The Foundry | player-authored cosmetic template packs: the forge seat + concord-stamped publication | pack price set by the author; the house take 10% gold at settle | FOUNDRY rows + gold author split | the forge seat earnable on earned sigils, two-way; craft routes always exist for every pack look | econ §11 |
 | 31 | The Wardens' Post | out-of-world digest of your witnesslist's ledger chapters, by email/push | small monthly seat, real $ | POST rows | the read is free in-world and on the site, always — the post is a convenience copy only | econ §12 |
+| 32 | The Tarry | tarry minutes bought on your OWN hold's countdown (auction lots, freight holds, commission holds) | ~$0.50/minute, per-account per-calendar cap (QoS family) | TARRY rows | deed-earned tarry slips accrue weekly on witnessed deeds — identical potency, identical cap | §39 |
+| 33 | The Glance | read-only provenance pointer on any look shadowed in-world | NO SKU — zero-priced by law | none (a reader row — the melt lands where the shelf and the Foundry's author split already land) | the craft route always printed beside the buy route; provenance only, nothing enemy-facing | §40 |
+| 34 | The House Round | the crowd's next room-hour at a celebration peak (pub evenings, Gladnights, wake ceremonies) | ~$2.50/room-hour, per-account per-almanac-day cap (QoS family) | ROUND rows | the identical room-hour bought on earned sigils, two-way | §41 |
+| 35 | The Trader's Cart | weekly rotating cart of curiosities — fixed contents shown plain, published return rotation | gold or sigil per good; no random draw, no lootbox | CART rows | every cart good deed-earnable or craft-routable on the two-way shapes | §42 |
 
 **How to read the table.** Where money buys the clock (rows 6, 8, 14, 15, 17,
 18), the chartered shape is the toll family and the toll is visible; where
@@ -1380,7 +1393,7 @@ money buys presence (rows 3, 4, 5, 7, 9, 13), no rate moves anywhere; where
 money buys the NOW (rows 10, 11, 12, 18, 19), the same door stands free by
 deed. Two structural rows hold the top: the Charter (row 1) is cosmetic plus
 convenience with an earned-sigils purchase door, and Mythos (row 2) is the
-provenance-graded tradeoff. The count is the pitch: THIRTY-ONE rows stand priced
+provenance-graded tradeoff. The count is the pitch: THIRTY-FIVE rows stand priced
 and NONE turns a stat on by purchase (rows 21-22 sell only the wider SHOT
 at the unopened doors — the Oracles: money cannot buy the act; row 23 is
 the Peal permit celebrating in its second voice — the echo bought, never
@@ -1402,7 +1415,17 @@ gold; nobody buys a rate), and the Wardens' Post (a convenience copy
 for the away — the read never moves, in-world it is free forever); all
 three are crowd seats, none touches a stat, and their canonical home
 is the economy PRD's secs 10-12 — they live in the living economy,
-not the storefront.
+not the storefront); rows 32-35 are the PSY ROUND — impulse spend in
+its lawful dress: the Tarry sells seconds to the holder's own
+almost-losing (return-whole intact, nothing enemy-facing), the Glance
+converts covetousness into honest commerce (identical price, the craft
+route always shown, zero outreach — and it sells nothing, it is
+traffic for the Foundry), the House Round sells generosity (buy the
+crowd's room-hour at the peak; service-record credit, no title, no
+prefix), and the Trader's Cart sells novelty with a published
+eventually-return rotation and fixed plain contents (no lootbox, no
+lying scarcity); every seat caps, every seat earns, every seat buys
+the clock or the read — never a stat.
 
 
 ## 31. The Oracles (spitball #18, 2026-11-05) — the wish to wake, priced in shots
@@ -1871,6 +1894,185 @@ sheets, the Boom clock book on the sinks (BOOST rows), the auction
 rake row (gold, cut at settle), census feeds per plate
 (most-boosted, most-featured — tool-side forever). NO new engine —
 the plates ride the Purse, Settle, Agora and Quorum as they stand.
+
+## 39. The Tarry (spitball #32, 2026-11-05) — the almost-losing seat
+
+> **Status: AGREED — the psy round, all four yay'd.** The first of the four
+> human moments money is allowed to touch: the almost-losing. Losses hurt
+> roughly twice as much as same-size wins delight, and nothing in a game
+> hurts like a countdown that is nearly gone — so the seat sells SECONDS TO
+> THE HOLDER'S OWN FEAR, dressed lawful: the tarry touches the countdown,
+> never the price, never the ownership, never another player.
+
+**THE SEAT.** TARRY MINUTES: at the moment your own hold's ticker burns —
+the auction lot you are winning, the freight hold you are hauling, the
+commission hold you are finishing — a buy adds minutes to that hold's
+timeout. Only to a hold you already hold. The hold itself was entered under
+the standing laws (single-claimant, provenance-stamped, deliverable or
+released); the tarry changes one authored number: how long the reservation
+stays warm.
+
+**THE LAWS.**
+1. **The tarry never touches price or ownership.** It cannot outbid, cannot
+   transfer, cannot buy the lot, cannot extend another player's hold.
+   Return-whole stays return-whole: a tarried hold can still expire, and the
+   sweep releases WHOLE with no penalty row ever (the engines' discipline
+   untouched — the tarry is an authorized countdown extension, never a
+   rescue mint, never a debit).
+2. **Owner-facing only.** Bought BY the holder, ON the holder's hold.
+   Nothing enemy-facing exists in it: no one on the shard is slowed,
+   shortened or out-waited by another wallet (the no-social-engineering law
+   verbatim).
+3. **QoS cap.** Per-account, per-calendar tarry cap on the standing family
+   (impulse caps per account per calendar) — no budget sweeps a deadline
+   family-wide; the cap is a ceiling on minutes, never on fair play.
+4. **Preview never debits.** The countdown and the tarry price are both
+   visible before the buy; nothing charges sight unseen.
+5. **The free lane (two-way).** Witnessed deeds accrue TARRY SLIPS weekly
+   on the earned allotment family — identical potency, identical cap,
+   whichever wallet funds the minutes. Provenance stamps EARNED/BOUGHT on
+   the tx roots per the purse law.
+
+SINK: TARRY rows WITH grant legs (the no-fake-sinks law verbatim).
+IMPLEMENTATION SEAT (build round): the timed extension as an authorized
+write on the Purse Engine's own hold-timeout field (a tenant-sheet action,
+no engine fork), the tarry book + cap ledger, the slip accrual riding the
+deed plate's witnessed-deed feed, one SKU felt ~$0.50/minute (build-seat
+exact, owner veto reserved), the countdown + price both in the reader UI.
+
+## 40. The Glance (spitball #33, 2026-11-05) — the covetous seat
+
+> **Status: AGREED — the psy round.** The strongest unpriced force in a
+> social MMO is envy, and most games monetize it with item-inspection
+> paywalls and "ask to trade" spam. The lawful dress: a READ-ONLY
+> PROVENANCE POINTER that converts looking into commerce with zero
+> outreach — it opens a route, never sends a message, and prices nothing.
+
+**THE SEAT.** Shadow any look in-world — worn dyes, crafted furniture,
+heraldry trims, mount tack, a Foundry pack on a passing player — and the
+GLANCE reads the look's provenance through the tx roots: **crafted** → the
+maker (whose storefront wall the glance opens) and whether the recipe is
+learnable; **bought** → the shelf, opening at the price EVERYONE pays. One
+derivation, many readers (the carrier law verbatim): the glance is another
+reader of engine rows, and what it shows is what the record already says
+about an owned thing.
+
+**THE LAWS.**
+1. **Identical price.** The glance never quotes a private price or a
+   discount — the shelf price is the price everyone pays, always. Fairness
+   salience works FOR the sale: no haggling resentment, no insider deals,
+   nothing to whisper around.
+2. **The craft route always shows.** Every glance prints the earn route
+   beside the buy route — learnable, forgeable, findable. The free lane is
+   never hidden, and no purchase happens from the glance itself.
+3. **Zero outreach.** No whisper, no DM, no "contact the maker" button that
+   messages anyone — the glance points at public surfaces (the storefront
+   plate, the recipe ledger, the Foundry shelf) anyone could have opened
+   anyway. Nothing free-text, nothing spam, nothing to moderate.
+4. **Nothing enemy-facing.** A glance reveals provenance only — no gear
+   score, no stat, no weakness, no comparative read against the looker.
+5. **Species-blind.** Agents shadow and glance through the same derive; the
+   census counts glance-to-routes-opened patterns tool-side forever (the
+   pattern, never the person).
+
+**THE ZERO-PRICE LAW (why row 33 sells nothing on purpose).** The Glance is
+a reader, not a sink: it mints no SKU and carries no sink row — the melt
+lands where the shelf's melt and the Foundry's author-gold already land
+(rows 12-13 and 30's family). Every glance a pack receives is the creator
+economy's distribution: covetousness becomes author traffic, honestly.
+
+## 41. The House Round (spitball #34, 2026-11-05) — the generous seat
+
+> **Status: AGREED — the psy round.** Spending peaks at positive peaks —
+> the win, the wake, the held pub evening. The Round makes celebration
+> money lawful: the buyer buys THE CROWD'S NEXT ROOM-HOUR, and the room's
+> thanks is the product. Nobody's presence is billed, shortened or demoted
+> by another's generosity — and nobody buys an honor.
+
+**THE SEAT.** At any celebration peak — a held pub evening, a Gladnight, a
+wake ceremony's after-room, a made bout's card — a payer buys THE ROUND:
+the evening's clock extends for EVERYONE in the room for the hour bought,
+the host's clock laws (sec 22) dressed as a gift. The room prints ONE
+template line from service record: *"the house round at the Salt Pans is
+Kestrel's"* — authored grammar, no free text, nothing to moderate.
+
+**THE LAWS.**
+1. **Nobody buys an honor.** The line is service-record credit (the sec 23
+   sponsor dress verbatim): no title, no prefix, no suffix, no rank, no
+   permanent anything — the record states the round, nothing mints. The
+   sponsor-stage discipline: fighters may hang a name on a card; they
+   cannot buy their way into the ledger's earned honors, and they don't
+   here either.
+2. **The crowd pays nothing and owes nothing.** The round buys the ROOM'S
+   hour, never any personal drink advantage — no queue-jump, no seat
+   privilege, no perk rides on standing near the payer; no reciprocity UI
+   exists ("owe the payer" mechanics banned — generosity is not debt).
+   Saying thanks is a player's own verb, never a system prompt.
+3. **The clock, never the notch.** A second round EXTENDS the window,
+   never deepens anything (the Kindling's riders law verbatim: every rider
+   identical, the free row rides the bought row).
+4. **Two-way.** The identical room-hour is bought on earned sigils at
+   identical potency (the chartered family) — an earned crew rounds the
+   same way a whale does, and the record line reads the same.
+5. **QoS cap.** Per-account, per-almanac-day cap on the standing family —
+   generosity capped is still generosity; a budget cannot own the room.
+
+SINK: ROUND rows WITH grant legs. IMPLEMENTATION SEAT (build round): the
+round buy on the host's clock book (sec 22 rails), the record line through
+the sec 15 authored-template rails, the cap ledger, one SKU felt ~$2.50
+per room-hour (build-seat, veto reserved).
+
+## 42. The Trader's Cart (spitball #35, 2026-11-05) — the novelty seat
+
+> **Status: AGREED — the psy round.** FOMO is real money and usually a
+> dark pattern. The lawful dress: a WEEKLY CART of curiosities under TWO
+> laws that make the scarcity honest — everything returns on a published
+> rotation, and nothing is ever random. Urgency without lying; novelty
+> without gambling.
+
+**THE SEAT.** A rotating WEEKLY cart of CURIOSITIES — template goods with
+authored names, looks and recipe combinations the standing shelves don't
+stock every week: odd dye palettes, heraldry trims, furniture hall looks,
+field-kit variants, Foundry-pack reprints, mover-flavored comfort verbs on
+the Tide-Mender dress. Prices gold or sigil per good. SHOWS PLAIN: warned
+by nothing, the whole cart is printable before you open it.
+
+**THE HONEST SCARCITY (the two laws).**
+1. **The eventually-return law.** Every cart good returns on the cart's own
+   PUBLISHED rotation — engine-owned schedule, visible template line, the
+   goods REST, never die. Scarcity is the rhythm, never a lie: no
+   "never again" language exists anywhere in the rails, and a good's return
+   week is readable by anyone.
+2. **Fixed contents, plain shown.** What the cart carries this week prints
+   before you open it — nothing random, nothing blind, no lootbox, no pity
+   timer, no draw at all (preview never debits verbatim: you see the whole
+   cart for free).
+
+**THE LAWS.**
+1. **No stat, no power.** The cart sells curiosities — looks, recipes,
+   comfort verbs — never cards, never rates, never a ceiling-lift (the
+   locker laws verbatim; any mover-flavored good keeps the
+   capability-never-rate dress).
+2. **The free lane (two-way).** Every cart good is deed-earnable or
+   craft-routable on the chartered shapes at identical potency: the wallet
+   buys the now, the grind keeps the sooner clock (the ankh's shape
+   verbatim).
+3. **No free text.** Authored names ride the template grammar.
+4. **QoS cap.** Impulse caps per account per calendar on the standing
+   family.
+5. **Species-blind.** Agents shop the cart through the same derive; the
+   census reads cart-basket patterns tool-side forever (the pattern, never
+   the person).
+
+**THE MELT MULTIPLIES (the cart is the loop's fast lane).** A cart good
+bought, used in craft and sold onward through the trade window funds the
+NEXT cart buy (the runner industry's shape — the multiplication law
+verbatim): novelty spend circulates before it hits the wall. SINK: CART
+rows WITH grant legs. IMPLEMENTATION SEAT (build round): the rotation book
+(published schedule, engine-owned), the goods on the chartered SKU family
+(build-seat cents, veto reserved), the deed-earn lane per good on the
+allotment family, the cart page as one more reader over the standing
+derives.
 
 ---
 
