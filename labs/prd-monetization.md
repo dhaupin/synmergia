@@ -354,7 +354,8 @@ decide with data.
 | The Whisper Ledger — the rumor mill + the Peal | AGREED, designed | §15 |
 | Expedition pack — the four-tier storage ladder (deeds earn, coin buys the clock) | AGREED, designed | §16 |
 | The title ropes — prefix/suffix walked back through §§11–16 | AGREED, designed | §17 |
-| The deed plate — the achievement walk-back over the model's earn rails | AGREED, designed | §19 |
+| The deed plate — the achievement walk-back over the model's earn rails | AGREED, designed | §18 |
+| The Homestead Ledger — the deed cottage, the hallmark law and the homestead tolls | AGREED, designed | §19 |
 
 ## 12. The wardrobe locker — spitball #2 (2026-11-05)
 
@@ -669,7 +670,7 @@ lucky-find stamp, the ledger chapter); one cheap sink row for purchasable suffix
 vanity (the baron's shape); `TitleService` already carries unlock/equip/signal
 through; zero new systems, one new proof-of-policy receipt.
 
-## 19. The deed plate — spitball #7 (2026-11-05)
+## 18. The deed plate — spitball #7 (2026-11-05)
 
 > **Status: AGREED.** The owner's pitch: achievements alongside the model — "the
 > Chosen is def achievement territory — get your first Spiritbound item." Buffy's
@@ -705,6 +706,9 @@ through; zero new systems, one new proof-of-policy receipt.
 - **§17 meta → "the Full Rope."** a `required_achievements` chain over the
   rope's prefix plates — the meta-ACHIEVEMENT category's exact purpose.
 
+- **§19 homestead → "Settled."** a player's first front door landed the
+  EARNED way; a chartered buy fires nothing — the plate read stays world-only.
+
 **Laws of the plate:**
 - **The plate reads the world, never the wallet.** No achievement fires on a
   purchase act. The Earnest One is the standing exception and it is a deed
@@ -731,12 +735,93 @@ listeners already track, including the §14 landing event and the fated stamp);
 the item-catalog receipt grows the coupling law — every `title_reward` resolves
 to a real authored TitleData. Zero new systems.
 
+## 19. The Homestead Ledger — spitball #8 (2026-11-05)
+
+> **Status: AGREED.** Buffy pitched housing (the owner's "immediate lasting value"
+> pillar); the owner yay'd all three seats and added the P2W balance by amendment:
+> EARNED housing gets its first deed move FREE, the PAID door carries a +20% move
+> cost, and a catalog signature piece (the special hearth) carries a small luck damp
+> — the §16 chartered shape, verbatim. Rails verified before the write:
+> `DwellingService` stands (plot 50k / house 750k / guard 250k / ankh 100k — ALL
+> priced in gold, with placed stations hosting the real `CraftingService.craft` gate),
+> §11 already names housing furniture among its carriers, and the almanac owns the
+> world's clock. The deed move is NEW furniture authored in this section — nothing
+> relocates a homestead today — with its pricing born inside the toll law.
+
+**THE THREE SEATS (owner amendments folded in):**
+- **Seat 1, the front door — TWO DOORS, ONE COTTAGE.** the deed ladder's flagship
+  reward: a first plot + deed cottage earnable fully FREE by deed milestones
+  (~a month of honest play, the §16 week-per-tier shape). Gold plot prices stay the
+  in-world economy — real money never touches a price tag, only the clock door's SKU.
+  THE CLOCK DOOR: money buys the same cottage NOW — the **chartered homestead**,
+  provenance-stamped in the account ledger — and the clock is the only thing it buys
+  (§16's law holds: money buys the clock, never the ceiling).
+- **Seat 2, the furniture two-lane — THE HALLMARK LAW.** field furniture is
+  craftable (furniture bills at the REAL stations — a placed station gates through
+  the same `CraftingService.craft` a bench runs); catalog kits sell spectacle +
+  breadth only (§11 law verbatim: never exclusivity of a field-reachable look);
+  furniture paint rides the dye lanes; kits ride the §12 locker overlay the moment
+  the overlay decision reaches housing. THE HALLMARK: crafted furniture carries the
+  maker's hallmark and grades Proven by the §10 purse law; catalog furniture is
+  hallmark-less and stamps no deed-truth — a hall dressed wall to wall in kits reads
+  *nice hotel*, and any visitor can see it. Deed-made furniture is worth more, and
+  the crafter industry wins to the kits, not loses.
+- **Seat 3, the deed museum — the earn side stands in the world.** the deed plate
+  (§18) and the Ledger's chapters (§15) get a physical seat — the deed bookshelf
+  station and the front-door plate, readable by visitors. A home is a résumé: walk
+  another's hall and you see the Chosen prefix its owner minted, the pages their
+  finds printed, the rarity lines. Housing becomes the display case the whole earn
+  side already earned.
+
+**THE TOLLS (the owner's amendments, ridden as the §16 chartered shape):**
+- **THE DEED MOVE** (new mechanic, born this section): relocating the homestead —
+  re-stamping the plot deed and hauling placed objects to the new grounds. Pricing
+  reads provenance: the EARNED cottage's first move is FREE (the courtesy a deed
+  buys), later moves at the flat rate; the CHARTERED homestead pays **+20% on every
+  move** — money bought the arrival, never a cheaper road.
+- **THE CHARTER'S TOLL ON SIGNATURES.** catalog signature centerpieces (the special
+  hearth and its showcase line) carry the toll's other face: a small authored luck
+  damp (~5%) while the piece stands placed, riding §14's ONE central roll-time
+  modifier beside the chartered tiers — tolls share the central bucket, never
+  per-item bandaids, and the spiritbind jackpot leg rolls identically beneath all of
+  them (§14's law keeps: nothing buys the jackpot). The damp is visible on the
+  piece's item card and the purchase flow.
+
+**PLATE CROSSING:** §18's walk-back gains one seat, appended there —
+**§19 → "Settled."** the first front door landed the EARNED way; a chartered buy
+fires nothing.
+
+**Laws of the homestead:**
+- **Furniture is a look, never a number.** zero stats, zero function — no
+  home-hearth heal, ever; the signature damp is a tradeoff the buyer carries, never
+  a bonus anything gets.
+- **Placement scopes are service truth and never sold.** nothing real-money
+  confers, widens or pries an access scope.
+- **NOBODY BUYS AN HONOR.** the chartered homestead mints no house name, no gate
+  title, no plaque wording — honors are deed-minted (§17's law walks home).
+- **Prices stay gold.** the in-world economy (plot, walls, guard, ankh) keeps its
+  currency; real money touches only the clock door SKU and catalog looks.
+- **Preview never debits; tolls are authored and visible** on the piece's card and
+  the purchase flows (the §10/§14 shape).
+- **Rarity follows the verb.** the hallmark's grade, the deed truth, the visitor's
+  read — never the wallet.
+
+**Implementation seat (a build round):** the clock door SKU + catalog kit SKUs ride
+the webhook-provider seam (§9's shape); sink rows carry toll fields (§10's
+stamping); the deed move rides `DwellingService` as a relocation command reading
+the account ledger's deed/bought stamps for the FREE/+20% legs; hallmark fields on
+furniture item cards (provenance reuses the purse stamps); the deed bookshelf and
+front-door plate read the SAME account ledger through the deed plate's readers
+(§18 — no new shelf of truth); the cottage's deed ladder rides the deed sources
+§§9–16 already run (quest milestones, ledger appearances, heraldry deeds — one
+book of acts, one new shelf). Zero new services.
+
 ## 20. The investor version (the one-paragraph answer)
 
 *Synmergia's monetization is not a plan, it is an installed, receipt-audited system: a
 wallet, three real-$ SKUs ($4.99–$24.99), a nine-row premium catalog (resurrection
 tickets at $1.00 net per unit, a $7.50–$45 mount ladder, cosmetic titles at $10–25),
-an in-game sigil market, a four-tier expedition storage ladder where deeds earn the slots and the wallet only buys the clock (a chartered buy carries a small authored luck-toll), an achievement plate that reads nothing but the world's verbs (gold, coin and title rewards — never purchasable), and an earned-earn path that keeps F2P honest. Publishing
+an in-game sigil market, a four-tier expedition storage ladder where deeds earn the slots and the wallet only buys the clock (a chartered buy carries a small authored luck-toll), an achievement plate that reads nothing but the world's verbs (gold, coin and title rewards — never purchasable), a homestead with an earned front door (the clock door carries the move-toll and the signature toll, furniture sells breadth under the hallmark law), and an earned-earn path that keeps F2P honest. Publishing
 cadence is already contractual: seasonal packs authored by an income law that pays the
 shared progression curve, with a level cap that lifts on data, not opinion. Pay-to-win is priced out by construction
 rather than promised away: Mythos exclusives ship with an authored tradeoff toll that
