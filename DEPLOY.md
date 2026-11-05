@@ -746,31 +746,52 @@ phases (`labs/prd-shard-mesh.md`); the per-shard wiring is shipped:
 | Shared state | Shipped | `STORAGE_BACKEND=postgres` / `CACHE_BACKEND=redis` + the bridges |
 | Cross-shard bus | Shipped | `SHARD_BUS_BACKEND` (follows `CACHE_BACKEND`); coordinator publishes/drains remote events |
 | Edge transport | Shipped | `EDGE_TRANSPORT=websocket` + nginx `ip_hash` sticky routing |
-| Topology (coordinator + N shards) | Planned | Phase 3 — a dedicated `coordinator` service and N `shard` replicas |
+| Topology (coordinator + N shards) | Shipped | `docker compose --profile mesh up --scale shard=N` -- a `coordinator` service + N `shard` replicas |
 
-#### Per-shard environment
+#### The mesh profile (shipped)
 
-Each shard container sets its identity and points at the shared
-services. The bridges run in-container and talk to Postgres/Redis:
+The topology is an opt-in compose profile, so dev/prod/headless stay
+single-node and unchanged:
+
+```bash
+docker compose --profile mesh up --build --scale shard=4
+```
+
+It brings up a `coordinator` service (owns the shard registry + the
+cross-shard bus; serves NO game port) and N `shard` services. Each shard
+derives a unique id from its container `HOSTNAME` (`MESH_AUTOSHARD`),
+so `--scale shard=N` needs no per-replica `SHARD_ID` (set it explicitly
+to pin one). The bridges run in-container and talk to Postgres/Redis:
 
 ```yaml
 services:
-  shard:
-    image: synmergia
+  coordinator:
+    build: .
+    profiles: [mesh]
     environment:
-      START_MODE: headless
-      SHARD_ID: ${SHARD_ID}          # unique per replica
-      EDGE_TRANSPORT: websocket      # front this shard with nginx
-      STORAGE_BACKEND: postgres
-      CACHE_BACKEND: redis
-      PG_BACKEND: postgres
-      REDIS_BACKEND: redis
-      POSTGRES_HOST: postgres
-      REDIS_HOST: redis
-      REDIS_BRIDGE_URL: http://127.0.0.1:8081
-    deploy:
-      replicas: 4
+      - START_MODE=coordinator      # registry + bus; no game port
+      - STORAGE_BACKEND=postgres
+      - CACHE_BACKEND=redis
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+  shard:
+    build: .
+    profiles: [mesh]
+    environment:
+      - START_MODE=headless
+      - MESH_AUTOSHARD=true         # unique id per replica
+      - EDGE_TRANSPORT=websocket    # front this shard with nginx
+      - STORAGE_BACKEND=postgres
+      - CACHE_BACKEND=redis
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
 ```
+
+The role is resolved from the env by `core/mesh/mesh_role.gd`:
+`START_MODE=coordinator` -> coordinator; `SHARD_ID` set (or `START_MODE`
+in prod/headless/server) -> shard; otherwise `standalone` (dev default).
+The registry spans processes: a shard announces on the bus's
+`coordinator:mesh` topic and the coordinator ingests it.
 
 > The real backends need `python3-psycopg` / `python3-redis`, which are
 > baked into the image.

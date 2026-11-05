@@ -256,6 +256,21 @@ if [[ "$START_MODE" == "prod" ]]; then
     exit 0
 fi
 
+# ── COORDINATOR MODE ───────────────────────────────────────────────────────
+# Shard mesh Phase 3: the coordinator owns the shard registry and the
+# cross-shard bus, but serves NO game port -- it is not a shard. It still
+# needs the shared-state bridges (postgres for the registry, redis for the
+# bus) and boots Godot headless so the engine binds the mesh.
+if [[ "$START_MODE" == "coordinator" ]]; then
+    log "Mode: COORDINATOR — Godot headless (registry + bus; no game port)"
+    _start_state_bridges
+    godot --headless --path /workspace/project/game &
+    log "Coordinator running (no game port; role=${START_MODE})"
+    log "PID: $!"
+    tail -f /dev/null
+    exit 0
+fi
+
 # ── HEADLESS MODE ─────────────────────────────────────────────────────────
 # Godot headless only — no nginx, no VNC. Good for CI runners, bots.
 if [[ "$START_MODE" == "headless" ]]; then
@@ -286,5 +301,5 @@ fi
 
 # ── Unknown mode ────────────────────────────────────────────────────────────
 log "Unknown START_MODE='$START_MODE'"
-log "Valid modes: dev, prod, headless, test"
+log "Valid modes: dev, prod, headless, coordinator, test"
 exit 1

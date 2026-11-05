@@ -102,6 +102,7 @@ services:
     profiles:
       - dev
       - prod
+      - mesh
     environment:
       - POSTGRES_DB=synmergia
       - POSTGRES_USER=synmergia
@@ -140,6 +141,7 @@ services:
     profiles:
       - dev
       - prod
+      - mesh
     command: >
       redis-server
       --appendonly yes
@@ -183,6 +185,82 @@ services:
       -d ${DOMAIN:-localhost}
       --agree-tos --noninteractive --keep-until-expiring
     restart: unless-stopped
+    networks:
+      - synmergia-net
+
+
+  # ── Shard mesh topology (Phase 3, profile: mesh) ───────────────────────────────────────
+  # A coordinator + N shards over shared Postgres (registry) and Redis
+  # (cross-shard bus). This profile is opt-in: dev/prod/headless stay
+  # single-node and byte-identical. Bring it up with:
+  #
+  #   docker compose --profile mesh up --build --scale shard=4
+  #
+  # Each shard derives a UNIQUE id from its container HOSTNAME
+  # (MESH_AUTOSHARD), so --scale needs no per-replica SHARD_ID. Set
+  # SHARD_ID explicitly to pin one. The coordinator serves no game port.
+  coordinator:
+    build: .
+    profiles:
+      - mesh
+    environment:
+      - START_MODE=coordinator
+      - STORAGE_BACKEND=postgres
+      - CACHE_BACKEND=redis
+      - PG_BACKEND=postgres
+      - REDIS_BACKEND=redis
+      - PG_BRIDGE_URL=http://127.0.0.1:8080
+      - REDIS_BRIDGE_URL=http://127.0.0.1:8081
+      - POSTGRES_DB=synmergia
+      - POSTGRES_USER=synmergia
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-synmergia_dev_pass}
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+    volumes:
+      - synmergia-data:/var/lib/synmergia
+      - ./game:/workspace/project/game
+      - ./labs:/workspace/project/labs
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - synmergia-net
+
+  # One shard role; scale it with `--scale shard=N`. No fixed host ports
+  # (the mesh is addressed by service name), so replicas never collide.
+  shard:
+    build: .
+    profiles:
+      - mesh
+    environment:
+      - START_MODE=headless
+      - MESH_AUTOSHARD=true
+      - SHARD_ID=${SHARD_ID:-}
+      - EDGE_TRANSPORT=${EDGE_TRANSPORT:-websocket}
+      - STORAGE_BACKEND=postgres
+      - CACHE_BACKEND=redis
+      - PG_BACKEND=postgres
+      - REDIS_BACKEND=redis
+      - PG_BRIDGE_URL=http://127.0.0.1:8080
+      - REDIS_BRIDGE_URL=http://127.0.0.1:8081
+      - POSTGRES_DB=synmergia
+      - POSTGRES_USER=synmergia
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-synmergia_dev_pass}
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+    volumes:
+      - synmergia-data:/var/lib/synmergia
+      - ./game:/workspace/project/game
+      - ./labs:/workspace/project/labs
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - synmergia-net
 

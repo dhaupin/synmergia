@@ -2,6 +2,7 @@
 ## Manages shard ID, player routing, and cross-shard awareness
 extends Node
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
+const MeshRole = preload("res://core/mesh/mesh_role.gd")
 
 # Shard identification
 var shard_id: String = "shard_1"
@@ -38,8 +39,12 @@ func _ready() -> void:
 ## empty when unset.
 func _apply_env_config() -> void:
 	var config := {}
-	var shard_id := _env_str("SHARD_ID")
-	if shard_id != "":
+	# THE MESH ROLE LAW (Phase 3): MeshRole owns identity resolution. An
+	# explicit SHARD_ID wins; MESH_AUTOSHARD with SHARD_ID unset derives a
+	# unique id from HOSTNAME (docker --scale); neither -> shard_1 (dev
+	# default, byte-identical to before this leg existed).
+	var shard_id := MeshRole.shard_id()
+	if OS.get_environment("SHARD_ID").strip_edges() != "" or MeshRole.autoshard_enabled():
 		config["shard_id"] = shard_id
 		# Name defaults to the id so a mesh reads as shard_2/shard_2, not
 		# shard_2/Alpha, unless SHARD_NAME is given explicitly.
@@ -63,16 +68,28 @@ static func _env_str(name: String) -> String:
 ## Announce this shard to the coordinator so the mesh registry sees it.
 ## CoordinatorService is an earlier autoload (project.godot order), so it
 ## is ready here. Silently skips if it is absent (e.g. isolated tests).
+##
+## A COORDINATOR container is NOT a shard (Phase 3): it runs ShardManager
+## too, but must never register a phantom default shard (its default id is
+## shard_1) into its own registry -- only real shard containers announce.
 func _register_with_coordinator() -> void:
-	var coord = get_node_or_null("/root/CoordinatorService")
-	if coord == null or not coord.has_method("register_shard"):
+	if MeshRole.is_coordinator():
 		return
-	coord.register_shard(shard_id, {
+	var coord = get_node_or_null("/root/CoordinatorService")
+	if coord == null:
+		return
+	var info := {
 		"name": shard_name,
 		"is_primary": is_primary,
 		"world_name": world_name,
 		"max_players": max_players_per_shard,
-	})
+	}
+	if coord.has_method("register_shard"):
+		coord.register_shard(shard_id, info)
+	# Phase 3: also announce on the mesh topic so a coordinator in ANOTHER
+	# process ingests this shard (a no-op in-process / when unwired).
+	if coord.has_method("announce_self_to_mesh"):
+		coord.announce_self_to_mesh(shard_id, info)
 
 static func _env_bool(name: String, default: bool) -> bool:
 	var raw := OS.get_environment(name).strip_edges().to_lower()

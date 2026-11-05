@@ -25,6 +25,7 @@
 extends Node
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 const ShardBusRegistry = preload("res://core/mesh/shard_bus_registry.gd")
+const MeshRole = preload("res://core/mesh/mesh_role.gd")
 
 signal shard_registered(shard_id: String, info: Dictionary)
 signal shard_unregistered(shard_id: String)
@@ -37,6 +38,14 @@ const _kv_prefix := "coordinator:"
 ## message out to every OTHER subscriber, so one topic carries the whole
 ## mesh's cross-shard traffic without echo.
 const BUS_TOPIC := "coordinator:events"
+## Registry traffic rides its OWN topic so mesh bookkeeping never mixes
+## with gameplay events on BUS_TOPIC (the tick consumes those as world
+## events). Every container subscribes; a shard announces here and the
+## coordinator ingests it -- this is what makes the registry span
+## PROCESSES, not just one container's memory.
+const MESH_TOPIC := "coordinator:mesh"
+const MSG_REGISTER := "mesh_register"
+const MSG_UNREGISTER := "mesh_unregister"
 const _RATE_LIMIT_WINDOW_SEC: float = 1.0
 const _RATE_LIMIT_MAX_QUERIES: int = 10
 const _DEFAULT_MAX_PLAYERS_PER_SHARD: int = 5000
@@ -115,11 +124,15 @@ func _bind_bus() -> void:
 	var active = bus()
 	if active == null:
 		return
-	var shard := _autoload("ShardManager")
-	_bus_self_id = str(shard.shard_id) if shard != null and "shard_id" in shard else "shard_1"
+	# Phase 3: the self id is the container's MESH identity -- the
+	# coordinator id for a coordinator, else the shard id -- so registry
+	# traffic and gameplay events key off the same identity the registry
+	# reports. MeshRole owns the law (env-only; dev falls back to shard_1).
+	_bus_self_id = MeshRole.self_id()
 	active.set_self_id(_bus_self_id)
 	active.subscribe(BUS_TOPIC)
-	GameLog.info("CoordinatorService: Cross-shard bus = %s (self=%s)" % [active.get_id(), _bus_self_id])
+	active.subscribe(MESH_TOPIC)
+	GameLog.info("CoordinatorService: Cross-shard bus = %s (self=%s, role=%s)" % [active.get_id(), _bus_self_id, MeshRole.resolve()])
 
 ## Get the current HLC timestamp (physical + logical)
 func _get_hlc_timestamp() -> int:
@@ -199,6 +212,93 @@ func unregister_shard(shard_id: String) -> void:
 	_persist_state()
 	GameLog.info("CoordinatorService: Unregistered shard %s" % shard_id)
 
+## === Cross-process mesh registry (Phase 3) ===
+
+## Announce this shard's registration on the mesh topic so a coordinator
+## in ANOTHER process ingests it. A no-op when the bus is unwired or this
+## container IS the coordinator (the coordinator does not register as a
+## shard). The local registry was already updated by register_shard(), so
+## a standalone boot is unchanged.
+func announce_self_to_mesh(shard_id: String, info: Dictionary) -> void:
+	if MeshRole.is_coordinator():
+		return
+	var active = bus()
+	if active == null:
+		return
+	active.publish(MESH_TOPIC, {
+		"kind": MSG_REGISTER,
+		"shard_id": shard_id,
+		"info": info,
+		"sent_at": Time.get_unix_time_from_system(),
+	})
+
+## Announce a shard's departure on the mesh topic.
+func announce_unregister_to_mesh(shard_id: String) -> void:
+	if MeshRole.is_coordinator():
+		return
+	var active = bus()
+	if active == null:
+		return
+	active.publish(MESH_TOPIC, {
+		"kind": MSG_UNREGISTER,
+		"shard_id": shard_id,
+		"sent_at": Time.get_unix_time_from_system(),
+	})
+
+## Drain the mesh topic and fold remote register/unregister mail into the
+## local registry. This is the leg that makes the registry span PROCESSES:
+## a shard's announce lands here and becomes a normal registry entry. It
+## never re-publishes (no loop) and ignores its own mail (the bus already
+## no-echoes a publisher). Safe to call before the bus binds (no-op).
+func _ingest_mesh_mail() -> void:
+	var active = bus()
+	if active == null:
+		return
+	for msg in active.poll(MESH_TOPIC):
+		if not (msg is Dictionary):
+			continue
+		var kind := str(msg.get("kind", ""))
+		var sid := str(msg.get("shard_id", ""))
+		if sid.is_empty() or sid == MeshRole.COORDINATOR_ID:
+			continue
+		match kind:
+			MSG_REGISTER:
+				var info: Dictionary = msg.get("info", {})
+				_apply_remote_registration(sid, info)
+			MSG_UNREGISTER:
+				_apply_remote_unregistration(sid)
+			_:
+				pass
+
+## Apply a remote shard registration without re-announcing (the coordinator
+## side of announce_self_to_mesh). Idempotent: a repeat announce refreshes
+## the entry rather than duplicating it.
+func _apply_remote_registration(shard_id: String, info: Dictionary) -> void:
+	var shard_info := {
+		"name": info.get("name", "Unnamed"),
+		"player_count": int(info.get("player_count", 0)),
+		"status": str(info.get("status", _DEFAULT_SHARD_STATUS)),
+		"max_players": info.get("max_players", _DEFAULT_MAX_PLAYERS_PER_SHARD),
+		"world_name": info.get("world_name", "Synmergia"),
+		"is_primary": info.get("is_primary", false),
+		"registered_at": Time.get_unix_time_from_system(),
+		"remote": true,
+		"info": info,
+	}
+	_shards[shard_id] = shard_info
+	shard_registered.emit(shard_id, shard_info)
+	shard_status_changed.emit(shard_id, shard_info.status)
+	_persist_state()
+	GameLog.info("CoordinatorService: Ingested remote shard %s (%s)" % [shard_id, shard_info.name])
+
+func _apply_remote_unregistration(shard_id: String) -> void:
+	if not _shards.has(shard_id):
+		return
+	_shards.erase(shard_id)
+	shard_unregistered.emit(shard_id)
+	_persist_state()
+	GameLog.info("CoordinatorService: Remote shard %s left the mesh" % shard_id)
+
 ## Update a shard's player count and status
 func update_shard_info(shard_id: String, player_count: int = -1, status: String = "") -> void:
 	if not _shards.has(shard_id):
@@ -211,15 +311,20 @@ func update_shard_info(shard_id: String, player_count: int = -1, status: String 
 	_persist_state()
 
 ## Get shard info by ID. Returns {name, player_count, status, ...}
+## Ingests remote mesh mail first so a cross-process registration is
+## visible the moment anyone asks (no background poller needed).
 func get_shard_info(shard_id: String) -> Dictionary:
+	_ingest_mesh_mail()
 	return _shards.get(shard_id, {})
 
 ## Get all registered shard IDs
 func get_all_shard_ids() -> Array[String]:
+	_ingest_mesh_mail()
 	return _shards.keys()
 
 ## Get all shard info as a Dictionary
 func get_all_shards() -> Dictionary:
+	_ingest_mesh_mail()
 	return _shards.duplicate()
 
 ## Check if a shard is registered and online
