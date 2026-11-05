@@ -1,0 +1,48 @@
+[gd_resource type="Resource" script_class="DialogueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "jeweler_haven_intro"
+npc_id = "npc_jeweler_haven"
+display_name = "Haven Jeweler"
+nodes = [
+	{
+		"speaker": "Haven Jeweler",
+		"text": "Do wash your hands first, dear. Half this bench is cut pearl and the other half is patience, and I have less patience than cut pearl.",
+		"choices": [
+			{"text": "What do you sell from this bench?", "next_node": 1},
+			{"text": "You look like you know where the money is.", "next_node": 2}
+		]
+	},
+	{
+		"speaker": "Haven Jeweler",
+		"text": "Rings and wards, all honest work. The tidecaller band was braided four rows deep around a smith's iron -- kelp fiber holds a setting better than people expect. The deeper pieces I only stock when the trench sends raw pearl my way, and the deep pieces are what you WISH you could afford.",
+		"choices": [
+			{"text": "And you'd buy my pearls.", "next_node": 3},
+			{"text": "Show me the bench.", "next_node": 3, "action_type": 6, "action_data": {"shop_id": "vendor_haven_jewelry"}}
+		]
+	},
+	{
+		"speaker": "Haven Jeweler",
+		"text": "The money, dear, was never in the gold -- the Concord's signed gold is only worth what its ledger says the village owes. The money is in the SEA. Abyss pearl off a swept trench, cut and set, buys what a signed estoc only promises. The sigils pay for the roads; the pearls pay for the roofs.",
+		"choices": [
+			{"text": "Then I'll dive for you.", "next_node": 3},
+			{"text": "Just point me at the fence.", "next_node": 3}
+		]
+	},
+	{
+		"speaker": "Haven Jeweler",
+		"text": "Bring me a raw pearl intact and I'll pay for the dive, twice over if it's the deep grade. Wreck the setting of anything you bought me and you'll owe me a season's worth of braiding. Now look at the bench, I have shanks standing in the lesson tray.",
+		"choices": [
+			{"text": "I'll look at the bench.", "next_node": 4, "action_type": 6, "action_data": {"shop_id": "vendor_haven_jewelry"}},
+			{"text": "Another time, good luck.", "next_node": -1}
+		]
+	},
+	{
+		"speaker": "Haven Jeweler",
+		"text": "Look all you like. Everything that rides out of this shop has survived the sea or the Concord, and some of it survived both -- the kelp that made that ward rippled through a whole storm without a snap.",
+		"choices": []
+	}
+]

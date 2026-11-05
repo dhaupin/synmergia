@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="NPCOffering" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/npc_offering.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+type = "vendor"
+display_name = "Haven Bench of Pearls"
+stock_mode = "by_item_id"
+catalog_items = [{"item_id": "acc_ring_tidecaller", "qty": 5}, {"item_id": "acc_ring_golden_signet", "qty": 3}, {"item_id": "acc_necklace_paleshard_ward", "qty": 2}, {"item_id": "acc_ring_starbinder", "qty": 1}, {"item_id": "acc_breather_abyss_pearl", "qty": 3}, {"item_id": "res_abyss_pearl", "qty": 8}]
+sell_categories = []
+buy_categories = [2, 4]
+price_multiplier = 1.0
+unlimited_stock = false
+stock_qty = 5
+restock_trigger = "daily"
+restock_amount = -1

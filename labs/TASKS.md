@@ -8502,3 +8502,8 @@ the sea bands). All four landed; one stale probe leg fell with them.
 - pg-bridge fixes from the prior round stand (autocommit + explicit BEGIN/COMMIT tx model, `rowcount > 0 else 0` DDL guard, `%`-escape on no-param SQL) and now carry a regression unit test `TestPgConvertSql` (incl. the `LIKE 'tick:%'` no-param case that used to raise).
 - CLEANUP: scratch probes (`game/tests/_probe_restart.gd`, `_probe_a.gd`, `_probe_b.gd`) removed.
 - Gates this round: shard-mesh receipt 12/0, adapter-http-transport 5/0, adapter suite 10 files rc=0 zero script errors, data-naming 26/0, lint 37/0, pg-bridge 18/0, redis-bridge 20/0, real-postgres boot 5 migrations applied. Full parallel runner NOT run (owner instruction; being reworked).
+
+## 2026-11-05a -- Jeweler shelf round
+- Marsh Piper (npc_jeweler_haven) opens Haven Bench of Pearls in zone_village_center: by_item_id shelf of the four jewelry pieces (row stock 5/3/2/1), the abyss breather, and raw abyss pearl; buy_categories [2,4] so the bench pays for pearls and takes back outgrown jewelry. Scene reuse (merchant_general.tscn), 5-node intro dialogue, roster row added.
+- Also carried the PR #51 (shard mesh Phase 0) landing through staging: merged locally --no-ff as 936c2924 after the local verification batch (shard identity 12/0, adapter HTTP 5/0, naming/lint/catalog green, bridge suites OK), GitHub records the PR as merged.
+- Gates: catalog 10/0, naming 26/0, lint suite exit 0.

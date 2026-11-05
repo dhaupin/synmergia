@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="NPCData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/npc_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "npc_jeweler_haven"
+display_name = "Haven Jeweler"
+description = "Marsh Piper, the shore's pearl-cutting jeweler. She braids kelp, cuts abyss pearls, and prices the Concord's debt steel off her own bench."
+npc_type = 6
+level = 1
+faction = "friendly"
+scene_path = "res://scenes/npcs/merchant_general.tscn"
+zone_id = "zone_village_center"
+spawn_offset = Vector3(3, 0, -2)
+greeting = "Careful with that on my bench, dear. Everything here has already been one tragedy (pearl, dive, or debt)."
+farewell = "Mind the clasp of anything you bought from me. The sea tests hasty work."
+shop_title = "Haven Bench of Pearls"
+location_type = 0
+base_repair_cost_multiplier = 1.0
+buy_multiplier = 0.5
+sell_multiplier = 1.0
+includes = [
+	{"type": "offering", "ref_id": "vendor_haven_jewelry"},
+	{"type": "dialogue", "dialogue_id": "jeweler_haven_intro"}
+]
