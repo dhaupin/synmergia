@@ -24,6 +24,7 @@
 
 extends Node
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
+const ShardBusRegistry = preload("res://core/mesh/shard_bus_registry.gd")
 
 signal shard_registered(shard_id: String, info: Dictionary)
 signal shard_unregistered(shard_id: String)
@@ -32,6 +33,10 @@ signal player_shard_changed(player_id: String, from_shard: String, to_shard: Str
 signal shard_status_changed(shard_id: String, status: String)
 
 const _kv_prefix := "coordinator:"
+## The one broadcast topic every shard subscribes to. publish() fans a
+## message out to every OTHER subscriber, so one topic carries the whole
+## mesh's cross-shard traffic without echo.
+const BUS_TOPIC := "coordinator:events"
 const _RATE_LIMIT_WINDOW_SEC: float = 1.0
 const _RATE_LIMIT_MAX_QUERIES: int = 10
 const _DEFAULT_MAX_PLAYERS_PER_SHARD: int = 5000
@@ -61,6 +66,61 @@ var _initialized: bool = false
 ## HLC logical clock counter (monotonically increasing)
 var _hlc_counter: int = 0
 
+## The cross-shard transport seam (Phase 1 of prd-shard-mesh.md). The
+## registry seeds a MemoryShardBus; the mesh swaps in a RedisShardBus.
+var _bus_registry = null
+var _bus = null
+var _bus_self_id: String = ""
+
+## Runtime autoload lookup (script-mode-safe; bare identifiers fail to
+## compile in --script mode where autoloads are not registered).
+func _autoload(name: String) -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null or tree.root == null:
+		return null
+	return tree.root.get_node_or_null(NodePath(name))
+
+## The transport board. Lazily built so it is safe to call before _ready.
+func bus_registry():
+	if _bus_registry == null:
+		_bus_registry = ShardBusRegistry.new()
+	return _bus_registry
+
+## The active transport (the registry's default).
+func bus():
+	if _bus == null:
+		_bus = bus_registry().get_default_bus()
+	return _bus
+
+## Point the coordinator at a bus and (re)subscribe its self topic. The
+## transport is chosen by SHARD_BUS_BACKEND, which defaults to follow
+## CACHE_BACKEND: "redis" builds a RedisShardBus and, if it connects,
+## makes it the default; anything else (or a failed connect) keeps the
+## seeded memory bus (dev/CI unchanged). The self id comes from
+## ShardManager when present, else a process fallback, so a single-process
+## boot still has a stable inbox key.
+func _bind_bus() -> void:
+	var want := OS.get_environment("SHARD_BUS_BACKEND")
+	if want.is_empty():
+		want = "redis" if OS.get_environment("CACHE_BACKEND") == "redis" else "memory"
+	if want == "redis":
+		var redis_script: GDScript = load("res://core/mesh/redis_shard_bus.gd")
+		if redis_script != null and redis_script.can_instantiate():
+			var rbus = redis_script.new()
+			if rbus.open({}) == 0:
+				bus_registry().register(rbus, true)
+				_bus = rbus
+			else:
+				GameLog.warn("CoordinatorService: redis bus unavailable; using memory bus")
+	var active = bus()
+	if active == null:
+		return
+	var shard := _autoload("ShardManager")
+	_bus_self_id = str(shard.shard_id) if shard != null and "shard_id" in shard else "shard_1"
+	active.set_self_id(_bus_self_id)
+	active.subscribe(BUS_TOPIC)
+	GameLog.info("CoordinatorService: Cross-shard bus = %s (self=%s)" % [active.get_id(), _bus_self_id])
+
 ## Get the current HLC timestamp (physical + logical)
 func _get_hlc_timestamp() -> int:
 	_hlc_counter += 1
@@ -74,6 +134,11 @@ func get_hlc_counter() -> int:
 
 func _ready() -> void:
 	_load_state()
+	# Defer past autoload order: CoordinatorService loads BEFORE ShardManager
+	# in project.godot, so binding synchronously here would read a missing
+	# node and always fall back to "shard_1". The deferred bind sees the real
+	# shard id.
+	_bind_bus.call_deferred()
 	_initialized = true
 	GameLog.info("CoordinatorService: Initialized with %d registered shards" % _shards.size())
 
@@ -234,16 +299,40 @@ func emit_cross_shard_event(event_type: String, source_shard: String, payload: D
 	}
 	_event_queue.append(event)
 	cross_shard_event_emitted.emit(event)
+	# Phase 1: fan the event out to every OTHER shard on the bus. The
+	# publisher's own queue already holds it (no-echo), so the local tick
+	# and the peers each process it exactly once.
+	_publish_event(event)
 	GameLog.debug("CoordinatorService: Cross-shard event %s from %s (hlc=%d)" % [event_type, source_shard, hlc_ts])
 	_persist_state()
+
+## Publish one event onto the bus topic (a no-op when the bus is unwired).
+func _publish_event(event: Dictionary) -> void:
+	var active = bus()
+	if active == null:
+		return
+	active.publish(BUS_TOPIC, event)
+
+## Drain events other shards published, appending them to the pending
+## queue. Called before every get_pending_events so remote mail rides the
+## same exactly-once path as local emits.
+func _drain_bus() -> void:
+	var active = bus()
+	if active == null:
+		return
+	for msg in active.poll(BUS_TOPIC):
+		if msg is Dictionary and msg.has("event_type"):
+			_event_queue.append(msg)
+			cross_shard_event_emitted.emit(msg)
 
 ## Emit a cross-shard event with auto-incremented HLC timestamp
 func emit_cross_shard_event_auto(event_type: String, source_shard: String, payload: Dictionary, source_entity_id: String = "") -> void:
 	var hlc_ts := _get_hlc_timestamp()
 	emit_cross_shard_event(event_type, source_shard, payload, hlc_ts, source_entity_id)
 
-## Get all pending events in the queue
+## Get all pending events in the queue (local emits + drained remote mail)
 func get_pending_events() -> Array:
+	_drain_bus()
 	return _event_queue.duplicate()
 
 ## Clear processed events from the queue

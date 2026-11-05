@@ -150,7 +150,10 @@ func _retry_request(callable: Callable, max_attempts: int = MAX_RETRIES) -> Redi
 
 
 func _blocking_get(path: String) -> bool:
-	var resp: Dictionary = _retry_request(func() -> RedisResult:
+	# .data is Variant (null when the retry loop exhausted its attempts),
+	# so it must NOT be typed as Dictionary -- a typed assignment of null
+	# is a runtime error on the honest unreachable-bridge path.
+	var data = _retry_request(func() -> RedisResult:
 		_pending_queries += 1
 		var r: Dictionary = _sync_request(
 			HTTPClient.METHOD_GET, path, PackedStringArray(["Accept: application/json"]), ""
@@ -160,7 +163,7 @@ func _blocking_get(path: String) -> bool:
 			return RedisResult.err(str(r.get("error", "transport error")), -3)
 		return RedisResult.ok(r)
 	).data
-	return resp is Dictionary and not resp.is_empty()
+	return data is Dictionary and not (data as Dictionary).is_empty()
 
 
 func _blocking_get_with_body(path: String) -> Dictionary:
