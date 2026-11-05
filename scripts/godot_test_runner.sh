@@ -106,6 +106,7 @@ probe_sundered_sea
 test_instance_contract
 test_shard_mesh_identity
 test_adapter_http_transport
+test_shard_bus
 probe_arena_instance
 probe_arena_trigger
 probe_lobby_service
