@@ -88,6 +88,7 @@ back, the round is wrong.
 
 ## 4. Scope and gates
 
+- THE LOOP the engines carry is prd-economy.md, the Living Economy (spitball #23): mint / move / melt through exactly these lanes, the census as pulse; investor tie-back deferred by the owner.
 - Migration order is Purse Engine first (every new sink lands on it),
   then the Settle Engine's sweep semantics, then the Agora
   publication, then the Ledger Quorum. The Warrant Board's

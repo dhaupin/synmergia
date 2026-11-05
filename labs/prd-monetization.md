@@ -371,6 +371,7 @@ decide with data.
 | The Civic Bill — woken ancients accrue stewardship on a TAKE-family book; the Steward's Pledge adopts an ancient, never a toll discount | AGREED, canon | ancients PRD |
 | The Warrant Board — bounties on mysteries (vant-modeled): purses escrow-held never debited, settle a record-read, sweeps return expired purses whole; the Crier buys front-page days, the rake cuts at settle | AGREED, designed | §33 |
 | The Engine Block — the four vant engines ported internal (Purse, Settle, Agora, the Ledger Quorum; MIT attribution carried); the adapter refused — no outside process ever settles a Synmergia purse | AGREED, canon | vant PRD |
+| The Living Economy — the loop binding the Concord's rows between the engines: mint (one door), move (engines only; sigils never trade — the RMT rail is the provenance stamp), melt (multiplier sinks); the payer's first stop is player effort | AGREED, canon | economy PRD |
 
 ## 12. The wardrobe locker — spitball #2 (2026-11-05)
 
