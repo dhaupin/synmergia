@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "quest_tide_salvage"
+display_name = "The Tide's Tithe"
+description = "Fenwick rebuilt six barque decks with salvage the tide took back the first time, so he knows the arithmetic: what the sea keeps standing near it can be hauled off it. The tidecursed keep snagging live fibers in their kelp drag when they haul past the shallows. Clear five of them off the moor lanes and bring the drag's fibers home -- a clean lane is worth a seasonal deck."
+giver_npc_id = "npc_tidewright_fenwick"
+turn_in_npc_id = "npc_tidewright_fenwick"
+min_level = 38
+max_level = 100
+required_quests = []
+required_faction = ""
+required_faction_rank = 0
+zone_restriction = ""
+objectives = [{"id": "clear_the_lanes", "type": 0, "target": "Tidecursed Diver", "count": 5}, {"id": "haul_the_fibers", "type": 1, "target": "Kelp Fiber", "count": 10}]
+rewards = [{"type": "gold", "id": "", "quantity": 2000}, {"type": "experience", "id": "", "quantity": 5000}, {"type": "item", "id": "potion_health_medium", "quantity": 3, "chance": 1.0}]
+reward_choice_count = 0
+gold_reward = 2000
+xp_reward = 5000
+icon_path = "res://icons/quests/tide_salvage.png"
+map_marker = "kill"
+next_quest_id = "quest_sentinel_wake"
+previous_quest_id = ""

@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="LootTable" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/loot_table.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "loot_sunken_salvage"
+name = "Sunken Salvage"
+description = "What a tidecursed body trails up and what the kelp net snagged after them. The dig-grade fibers keep their shape; the pearls stayed whole because the sea wanted them back anyway; and somewhere in the drag someone still had a vial in their teeth."
+level = 40
+min_items_dropped = 1
+max_items_dropped = 3
+base_drop_chance = 1.0
+entries = [{
+"item_id": "res_kelp_fiber",
+"min_quantity": 2,
+"max_quantity": 5,
+"drop_rate": 0.45,
+"rarity_weight": 1.0,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "res_abyss_pearl",
+"min_quantity": 1,
+"max_quantity": 2,
+"drop_rate": 0.35,
+"rarity_weight": 2.0,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "potion_health_medium",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 0.25,
+"rarity_weight": 1.5,
+"is_guaranteed": false,
+"conditions": []
+}]

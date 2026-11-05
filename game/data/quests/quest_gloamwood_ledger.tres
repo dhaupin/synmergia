@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "quest_gloamwood_ledger"
+display_name = "The Gloamwood Ledger"
+description = "Fenwick's last unbalanced line is the Gloomwood: the settlers' iron rolls up through the depths in stalker gullets and comes back as ore nobody hauled down. Six stills dig the same den -- clear the ledger line and bring its mythril up honest, from the mouths that swallowed it."
+giver_npc_id = "npc_tidewright_fenwick"
+turn_in_npc_id = "npc_tidewright_fenwick"
+min_level = 48
+max_level = 100
+required_quests = ["quest_sentinel_wake"]
+required_faction = ""
+required_faction_rank = 0
+zone_restriction = ""
+objectives = [{"id": "balance_the_ledger", "type": 0, "target": "Gloamwood Stalker", "count": 6}]
+rewards = [{"type": "gold", "id": "", "quantity": 4500}, {"type": "experience", "id": "", "quantity": 12000}, {"type": "item", "id": "res_ore_mythril", "quantity": 3, "chance": 1.0}]
+reward_choice_count = 0
+gold_reward = 4500
+xp_reward = 12000
+icon_path = "res://icons/quests/gloamwood_ledger.png"
+map_marker = "kill"
+next_quest_id = ""
+previous_quest_id = "quest_sentinel_wake"
