@@ -51,7 +51,8 @@ you find stuff, extend, etc pls!)"):
    patterns) are proposed on the vant side — the first one was filed
    the day this law landed (the port-review series: #333 settle contracts, #334 trust
    opt-out + settle-verifier seam, #335 publish-only trail +
-   reconcile mode).
+   reconcile mode; #336 memory standing, #337 the economy seam, #338
+   srv wire contract).
 4. **Game logic never goes upstream.** Nothing in `dhaupin/vant`
    should ever learn that Synmergia exists as more than an issue
    number: beyond the share, vant <> synmergia — separate houses, one
@@ -175,3 +176,44 @@ engines'; the service only says what flows.
   two-account data isolation, foreign-origin 403s on the publication
   surface, hold-expiry sweeps proven with no debit, and the
   self-signing-twice refusal proven on the approvals path.
+
+## 6. The framework asks (the palette round) — spitball #27
+
+> **The owner's ruling:** "tell vant what it needs to be, as a
+> framework, so you can do those things it is not. Vant thrives on
+> this stuff! Like vant is a palette, synmergia (or any other user)
+> is the art. Submit vant issues, update prd-economy and the prd
+> investors, and let's look further using those methodologies and
+> systems."
+
+**THE PALETTE LAW.** A palette must hold any brush that paints on it.
+Vant is the palette; any downstream economy — Synmergia or any other
+user — is the art, and the framework must be complete enough that the
+art never has to fork the palette to finish the painting. What the
+art asked for was filed upstream the day this landed (three
+port-review notes; the series line in sec 1 grew the same day):
+
+| Ask (the framework's missing organ) | Upstream | Why the art needs it |
+|---|---|---|
+| Credit-side ledger — the purse's other half (`lib/ledger.js`; the debit side is already disciplined; settlement.js's own header concedes the gap: "credit-side accounting is a deliberate non-goal for v1") | #337 (Port review 4) | a seller must always be able to answer what it has earned and what it holds |
+| Market tape — read-only price discovery over realized settles (count, last-N, median, guardrails), tenant-gated on the #335 exportTrail shape | #337 | boards price from evidence they can re-derive, never word of mouth |
+| Typed economy events — listing/hold/settlement life-cycle as subscribable types over the bus, durable where the bus persists | #337 | the tenant seam: subscribe, don't poll |
+| World-shaped connector — `identities()` / `inventory()` / `txForward()` base contract (neither git-shaped nor compute-shaped) | #337 | a foreign world rides vant without becoming a code path or a hosted service |
+| Memory as standing — a durable state class (no TTL decay touches standing), tombstone receipts on `forget()`, envelope co-authoring as a declared mode | #336 | standing must never decay silently and erasure must leave receipts |
+| srv wire contract pinned as a supported interface (version marker on `/health`) | #338 | the rust/julia sidecars' uniform wire becomes a contract, not a coincidence, before future hot-path seats depend on it |
+
+**THE RESIDUE LAW.** The palette never renders the art: every ask is
+engine-generic (ledgers, tapes, buses, connector contracts, memory
+classes), and the Two-Houses law holds — game logic never goes
+upstream, and nothing in `dhaupin/vant` learns what the art painted.
+The hygiene notes rode inside #337 (kernel-ledger.js is the docs-gates
+witness for kernel.js, not a money ledger — the name misleads every
+integrator; connectors/index.js's qdrant()/weaviate() factories ship
+but throw at call; settlement.js's MAX_PRICE is a hard constant that
+should parameterize).
+
+**GATES:** no engine change in this PRD, no Concord row, no SKU; the
+asks land as upstream code (the palette's own files), and the
+Synmergia side inherits them as consumer laws through the tenant
+sheets (prd-economy.md sec 8) when the palette ships them — the
+framework thrives exactly as the owner said it does.

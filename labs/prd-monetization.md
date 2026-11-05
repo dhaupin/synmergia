@@ -377,6 +377,8 @@ decide with data.
 | The Apeshit Batch: the Guild Contract Board — commissions as clause-held purses on the crafting record (Crier + rake, expiry releases whole) | AGREED, designed | §34 |
 | The Apeshit Batch: the Kindling — the hour the buyer buys for the crowd (shard-wide doubled earned-deed pace for ALL riders; the clock, never the notch; the Stage's title split law) | AGREED, designed | §35 |
 | The Apeshit Batch: the Runner's Exchange — freight holds on the tram record (gold purses, Crier + rake, single-claimant holds, Quorum-fed freight roots) | AGREED, designed | §36 |
+| The Dogfood Loop — the palette doctrine: humans AND agents are players in our own economy under the same laws (no agent rails; dogfooding the pre-human engine test; the species-blind census) | AGREED, designed | §37 |
+| The Framework Asks — what vant must be as a framework: credit-side ledger, market tape, typed economy events, world-shaped connector, memory standing, srv wire contract (upstream notes dhaupin/vant #336–#338) | AGREED, designed | vant PRD §6 |
 
 ## 12. The wardrobe locker — spitball #2 (2026-11-05)
 
@@ -1218,12 +1220,18 @@ cliff — every dollar builds a legend, and legends retain."
 **Leg 2 — the Margin answer (the cost side).** "~$0.04 per DAU-month and ~$0.35 per
 concurrent player-month at 10k CCU, benchmarked against dated publisher-page
 anchors. About 2,000 monthly payers cover the entire infrastructure budget, and the
-rest of every dollar is margin or labor. Costs are measured, not vibes."
+rest of every dollar is margin or labor. Costs are measured, not vibes — and
+the Living Economy's breath chart (prd-economy.md sec 6) is the margin
+instrument: daily mint/move/melt per denomination with dated anchors, so sink
+health and infra cost read in one evidence place."
 
 **Leg 3 — the Cadence answer (the machine).** "Content ships by a signed income
 law: seasonal packs author income against the shared level curve, the cap lifts on
 data not opinion, and publishing cadence is contractual. Investors underwrite a
-schedule, not a hope."
+schedule, not a hope — and cadence now has a second evidence source: the
+sink-alive board and the faucet/sink weekly ledger time the next SKU round the
+way the income law times packs; every new seat is priced into a loop whose
+temperature is already known."
 
 **Leg 4 — the Grudge answer (the spite model — TBA).** Revenge, grudges, rivalry:
 the fourth psychological model — folks spend before thinking when a name is in
@@ -1233,6 +1241,17 @@ landed as §25 (the Grudge Book) — the seats inherit every law in
 this document (no stat purchase, no free text, the authored-tradeoff rule), so the
 investors' line is honest: *impulse spend is the cheapest product we do not yet
 sell.*
+
+**The Palette leg — the platform answer (spitball #27).** "The
+engines themselves are worth more than one game's rent: they are a
+port of vant's MIT architecture, and Synmergia runs as its economy's
+own first tenant — humans and agents play in the same economy under
+identical laws (the Dogfood Loop, §37), every engine seat is
+dogfood-tested by our own agents before players ever reach it, and
+the wider ask is filed upstream (dhaupin/vant #336–#338): the loop
+that runs this game is the same loop another team could run their
+economy on — the platform's return story, authored in public, against
+dated evidence."
 
 
 ## 29. The Tide-Mender Trade (spitball #16, 2026-11-05) — vehicles, worn and woken
@@ -1651,6 +1670,72 @@ verifier over tram tx roots, the Crier rotation, the rake row, the
 census feeds. ENGINES: Purse + Settle + Agora + Quorum (the freight
 roots cross the mesh when the shipper and the door sit on different
 shards).
+
+## 37. The Dogfood Loop (spitball #27, 2026-11-05) — the palette and the art
+
+> **Status:** AGREED. The owner's ruling: "circle back real quick to
+> prd-monetization... Synmergia + vant = dogfooding humans/agents into
+> our own ecosystem, alignment, no friction. Then tell vant what it
+> needs to be, as a framework... vant is a palette, synmergia (or any
+> other user) is the art."
+
+**THE PALETTE DOCTRINE.** Vant is the palette; Synmergia is the art —
+and the art paints inside the economy the palette built for it. The
+Dogfood Loop is that claim made operational: **humans AND agents are
+players in our own economy, under the same laws, on the same rails.**
+An agent's purse earns, holds, settles and melts exactly like any
+other principal's — there are no agent rails, no agent exemptions, no
+side wire anywhere in the loop.
+
+**THE LAWS:**
+
+1. **The anti-dependency shape holds for players too.** If a build
+   round finds itself carving an agent-only rail through the engines
+   (a bespoke agent API, a machine-only settle path), the round is
+   wrong — the same shape as the vant port's anti-dependency law
+   (prd-vant-engines.md sec 3). Agents ride the same doors as humans:
+   the boards, the trade window, the engine holds, the deed plate.
+2. **Dogfooding is the pre-human test.** Every engine seat is
+   exercised by our own agents before any human reaches it — an agent
+   claims the Guild Contract Board, an agent hauls the Runner's
+   Exchange freight, an agent raises the first Warrant Board purse —
+   and whatever a seat leaks, we learn from our own agents first, at
+   zero player cost. The tenant-sheet law holds here too: the sheet
+   that runs the seat is data, and our own agents are the first
+   tenants to read what it says.
+3. **Alignment, no friction: whatever surface works for one principal
+   works for the other.** Nothing machine-keyed, nothing human-keyed —
+   the loop carries one kind of purse for one kind of customer.
+4. **The census stays species-blind.** The wardens' observatory
+   counts ONE population pattern; there is no species read, no "bot
+   sink", no taxonomy sidebar in any publication.
+5. **The framework asks travel upstream (the palette polished).**
+   What the palette owes the art is the art's own asks, filed upstream
+   the same day (dhaupin/vant #336–#338): the credit-side ledger (the
+   purse's other half — settlement.js's own header concedes it,
+   "credit-side accounting is a deliberate non-goal for v1"), the
+   market tape (price discovery out of the record, no new trust), the
+   typed economy events (the subscribe-don't-poll seam), the
+   world-shaped connector (a foreign world rides vant through three
+   verbs — identities, inventory, txForward), and standing in memory
+   (durable state, tombstone receipts). The palette stays ignorant of
+   every painting: two houses, one family, MIT both ways.
+
+CROSSLINKS: the economy-side mirrors (the tape rule, the memory law,
+the species-blind census as economy canon) live in prd-economy.md
+sec 8; the framework asks and the palette law live in
+prd-vant-engines.md sec 6.
+
+IMPLEMENTATION SEAT (build round): zero new rails — the agent
+principal already parses in the engines (the id family already
+exists), the deed plate already reads engine-ground truth, and the
+framework asks travel upstream; the build seat is the dogfood census
+row on the wardens' desk (species-blind, tool-side) plus the dogfood
+test protocol: our own agents run each engine seat once before any
+human does. NO CONCORD ROW — the palette round prices nothing: the
+Dogfood Loop is rail maintenance and a front door, never a SKU.
+ENGINES: unchanged — the loop rides what already carries all four
+motions.
 
 ---
 

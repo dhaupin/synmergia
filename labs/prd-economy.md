@@ -134,13 +134,54 @@ evidence for the investor tie-back when it lands.
   every one a tenant sheet on the Drivers, mint/move/melt riding the
   same engines,
   the Concord count now TWENTY-SEVEN.
-- The investor tie-back is DEFERRED by the owner's order: when it
-  lands, the stool's Legs 2 and 3 (tailwind and cadence) absorb the
-  loop paragraphs and the breath-chart evidence — one text, one
-  landing, no investor doc touched this round.
+- The investor tie-back LANDED (owner order, spitball #27): the
+  stool's Legs 2 and 3 absorbed the loop paragraphs and the
+  breath-chart evidence, and the Palette leg (the platform answer)
+  was authored beside them — one text, in prd-monetization.md sec 28.
 - Build-round tests ride the standing isolation discipline
   (two-account isolation, foreign-origin 403s, hold-expiry proven
   no-debit, self-signing-twice refusal) plus the loop tests: a
   minted unit provenance-complete end to end, a warrant purse proven
   payer-posted → hunter-held → record-settled → raked → melted, and
   a sigil proven un-transferable between accounts.
+
+## 8. The dogfood mirrors — the palette painted downstream (spitball #27)
+
+> **Status:** the owner's ruling: "Synmergia + vant = dogfooding
+> humans/agents into our own ecosystem, alignment, no friction...
+> vant is a palette, synmergia (or any other user) is the art." This
+> section is the economy's side of the Dogfood Loop
+> (prd-monetization.md sec 37): three laws the loop binds onto every
+> future tenant sheet, and no price in them.
+
+**THE TAPE RULE (no open pricing).** No player-facing or agent-facing
+board quotes a price from anywhere but a machine-readable TAPE over
+realized settles — count, last-N realized prices, median with count
+guardrails, tenant-gated (the census's standing shape: publish the
+pattern, never the person). A money surface may quote the tape or
+refuse to quote; it may never quote opinion, hearsay or a
+screenshot. The Crier rows and every future price display on the
+boards ride this rule from birth.
+
+**THE MEMORY LAW (standing is durable).** Standing — deeds, purse-mix
+traced through holds, warrant retirements, guild memory — lives as
+DURABLE state: no TTL decay touches a standing fact, because standing
+that decays on a timer is a bug and standing that is erased silently
+is theft. Multi-writer guild memory rides the ENVELOPE shape
+(revision + writers, conflicts flagged for later readers, never
+silently merged), and a forget is a tombstone with a RECEIPT, never
+silence. The census reads the pattern and prints neither the person
+nor the purge.
+
+**THE SPECIES-BLIND LAW.** The pulse (sec 6) counts one population:
+agents and humans mint, move and melt into the same instruments, and
+no read anywhere distinguishes them — no species field, no "bot
+sink", no machine-rate printer. Alignment is the absence of a special
+case.
+
+**GATES:** no Concord row, no SKU, no engine change — these are
+economy laws riding the tenant sheets (prd-vant-engines.md sec 4),
+and the framework machinery that can power them (the credit-side
+ledger, the market tape, memory standing) travels upstream as the
+palette asks, dhaupin/vant #336–#338 (the Two-Houses law: the art
+never forks the palette to finish the painting).
