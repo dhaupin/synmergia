@@ -236,13 +236,66 @@ services:
 ```
 
 Each shard has no fixed host ports (the mesh is addressed by service
-name), so replicas never collide; `--scale shard=N` gives N shards.
+name), so replicas never collide; `--scale shard=N` gives N shards.### Phase 3.1 -- Per-shard tuning (the "event shard" lever, future)
+
+The mesh's whole point is that shards are interchangeable -- but
+the interesting endgame is the opposite: **shards that are NOT
+interchangeable, on purpose.** Event shards, 100x PvP shards, a
+hardcore shard with a lower cap, a seasonal shard with a raised
+one. Each spun up with its own numbers, each still riding the same
+identity + shared-state + bus + edge we already shipped.
+
+The hook already exists: `ShardParameters` (autoload, D033) is a
+per-`shard_id` parameter store with data-driven definitions in
+`data/roots/world/parameters/*.tres` and a critical/non-critical
+apply contract. It is the natural home for shard-local tuning
+values -- it was built for exactly this ("boss_defeated",
+"respawn_rate_modifier", "season_active", "world_event_active").
+
+**The shape when we wire it:**
+
+- A shard-local **progression override** parameter, e.g.
+  `level_cap_override` (int) and `xp_ratio_override` (float),
+  declared as `ShardParameterDefinition` .tres alongside the
+  existing four.
+- `LevelCurve.max_level()` / `LevelCurve.level_cost()` gain a
+  shard-aware read: env (`LEVEL_CAP`) stays the deployment
+  default; a shard parameter overrides it for that `shard_id`
+  only. No `.tres` content pack changes -- the same law, read
+  through one more layer.
+- Because the cap/curve is already one authority
+  (`game/core/progression/level_curve.gd`), this is a *read-path*
+  change, not a data sweep: every consumer that goes through
+  `LevelCurve` inherits the shard's numbers for free.
+
+**Two honesty rules for whoever wires it:**
+
+1. **Uniform by default.** Absent an override, every shard runs
+   the same curve -- normal shards stay in sync (the requirement
+   above is not negotiable for the default case).
+2. **`ShardParameters` has no read accessor today.** It has
+   `set_param` / `get_definition` / pending-queue reads, but no
+   `get_param(shard_id, name)` returning the effective value;
+   the write path lands in the shard state tree. Wiring the
+   override means adding that read (state-tree lookup with the
+   definition's `default_value` fallback) -- small, but it is
+   new surface, not a call that exists.
+
+**What stays out of scope:** a shard's curve override must not
+leak into cross-shard identity. Shared-state values that the
+mesh hashes (Phase 0) are world-truth and stay uniform; tuning
+is a *local read*, never a *shared write*. If a shard's numbers
+ever need to be shared, that is a different (harder) problem and
+a different note.
 
 ## 5. Out of scope (this note)
 
 - Real HA Postgres/Redis (deployment concern).
 - The dormant Julia orchestrator (separate `prd-multiworld.md`
   and `world-building-arch.md` sec.11.2 deferral).
+- **Per-shard tuning** (Phase 3.1 above) -- the curve/cap surface
+  is deliberately uniform across the mesh for now; the
+  `ShardParameters` hook exists but is not wired.
 
 ## 6. Acceptance for Phase 0
 

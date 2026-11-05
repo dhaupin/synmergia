@@ -193,6 +193,8 @@ real time, like you ride them, or like a gate?")
 
 **Both, honestly labeled.** Three crossing tiers on one route:
 
+0. **The two movers (canon, 2026-11-05).** Ferries are ANCIENT MOVERS: server-owned, server-unlocked, belonging to no player, never priced by a personal SKU — their upkeep is civic (settlement deeds, warden take, Concord sinks). Its wake-key is the visible one: the schedule runs from boot — the ONE wake-key carved in the open; every OTHER ancient rides the MYSTERY GATE (the Mystery Gate's wake-keys -- server puzzles, tram effort, observation, interaction, pure luck; sealed server-side keys included -- canon labs/prd-ancient-movers.md). This stands beside the PERSONAL vs ANCIENT distinction now canon in labs/prd-ancient-movers.md (the vehicles seed is the inspiration shelf, never canon) and prd-monetization.md sec 29.
+
 1. **The real ferry (ride it).** A server-owned vessel on a
    schedule: a deck scope riding a path (the bout physics
    contract -- planar deck, radial world). The crossing is REAL
