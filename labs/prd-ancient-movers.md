@@ -136,6 +136,14 @@ design ("some even the devs don't know").
   Docs may speak of an ancient's FAMILY and its laws (always); docs never
   print a sealed key (never — not to heighten it, not "for the record",
   not even redacted). A sealed key is not a secret; it is a non-record.
+- **The Oracles (paid, and still lawful — prd-monetization.md sec 31).**
+  When a sealed door's wake-key includes a luck leg, two lanes sell the
+  WIDER SHOT and nothing else: the WISDOM CALL (delegated Rust/Julia
+  sidecar batches — attested extra dice, priced to cover their own
+  compute) and the MEDITATION CEREMONY (the Sigil rite's bought ceremony
+  days on the Lucky pot's shape). Both buy dice-COUNT, never a better
+  die; no purchase opens the door, prints a hint, or touches the
+  riddle/effort/watching/interaction keys.
 - **Falsifiable only by the world:** when a sealed mystery is suspected,
   the community's evidence is the same evidence the team has: what the
   world did. No admin panel prints the answer, and no support tool
@@ -157,9 +165,12 @@ row. New ancients join this table by amendment with their open keys only.
 ## 9. The Laws
 
 1. **Nothing purchasable opens a wake-key.** Kits, modifiers, seats,
-   blessings, the ankh's rite — none of the Concord's Table's twenty
-   priced rows wakes the unwoken. The Table prices what exists; the Gate
-   wakes what none of it buys.
+   blessings, the ankh's rite — none of the Concord's Table's twenty-two
+   priced rows wakes the unwoken by purchase. The Oracles (sec 31 of the
+   monetization doc) sell only the WIDER SHOT — more dice in a week —
+   and every account's own week rolls regardless. The Table prices what
+   exists; the Gate wakes on dice, and a wallet buys dice, never the
+   draw.
 2. **The ancients are never a currency, a competition, or a leaderboard.**
    A wake is an event, not a rank; the first waker earns the story, never
    a per-human stat.

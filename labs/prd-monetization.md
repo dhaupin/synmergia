@@ -366,6 +366,7 @@ decide with data.
 | The Tide-Mender Trade — vehicle wear, repair + modifiers; the two movers (personal vs ancient); no engines, all clock | AGREED, designed | §29 |
 | The Concord's Table — the money ladder: every seat, SKU, price, sink kind + earn path on one page | AGREED, canonical | §30 |
 | The Mystery Gate — the ancients' wake-keys: server puzzles, tram effort, observation, interaction, pure luck; some keys sealed server-side even from dev docs; nothing purchasable wakes the unwoken | AGREED, canon | ancients PRD |
+| The Oracles — the wish to wake, priced in shots: sidecar wisdom batches + the Sigil meditation; buy the shot, never the act | AGREED, designed | §31 |
 
 ## 12. The wardrobe locker — spitball #2 (2026-11-05)
 
@@ -1174,7 +1175,7 @@ SKUs). The exact cent is a build-seat number; the owner's veto reserved.
 *Synmergia's monetization is not a plan, it is an installed, receipt-audited system: a
 wallet, three real-$ SKUs ($4.99–$24.99), a nine-row premium catalog (resurrection
 tickets at $1.00 net per unit, a $7.50–$45 mount ladder, cosmetic titles at $10–25),
-an in-game sigil market, a four-tier expedition storage ladder where deeds earn the slots and the wallet only buys the clock (a chartered buy carries a small authored luck-toll), an achievement plate that reads nothing but the world's verbs (gold, coin and title rewards — never purchasable), a homestead with an earned front door (the clock door carries the move-toll and the signature toll, furniture sells breadth under the hallmark law), a public tavern door (the Anchor Room: guilds buy the pub's hour by the clock and the deed grant keeps F2P honest), and a sponsor stage (the $20 public pace stage where the rate is the ceiling and buys stack the clock — paid mints the Investor suffix, the deed route mints the Philanthropist prefix), and an earned-earn path that keeps F2P honest, a vehicle trade under one law (the Tide-Mender Trade: stations mend free, the kit mends the field, modifiers lace capability — never a rate, never an engine), a Mystery Gate that prices nothing (the ancient movers wake by server puzzle, tram effort, observation, interaction or pure luck — some wake-keys sealed server-side, beyond our own docs by design — and no purchase ever opens a gate -- the lab: labs/prd-ancient-movers.md), and its Concord's Table pricing the whole SKU stack on one page. Publishing
+an in-game sigil market, a four-tier expedition storage ladder where deeds earn the slots and the wallet only buys the clock (a chartered buy carries a small authored luck-toll), an achievement plate that reads nothing but the world's verbs (gold, coin and title rewards — never purchasable), a homestead with an earned front door (the clock door carries the move-toll and the signature toll, furniture sells breadth under the hallmark law), a public tavern door (the Anchor Room: guilds buy the pub's hour by the clock and the deed grant keeps F2P honest), and a sponsor stage (the $20 public pace stage where the rate is the ceiling and buys stack the clock — paid mints the Investor suffix, the deed route mints the Philanthropist prefix), and an earned-earn path that keeps F2P honest, a vehicle trade under one law (the Tide-Mender Trade: stations mend free, the kit mends the field, modifiers lace capability — never a rate, never an engine), a Mystery Gate that prices nothing (the ancient movers wake by server puzzle, tram effort, observation, interaction or pure luck — some wake-keys sealed server-side, beyond our own docs by design — and no purchase ever opens a gate; the Oracles (sec 31) lawfully sell only the wider SHOT on the same sealed doors — wisdom batches and meditation days, more dice never a better die -- the lab: labs/prd-ancient-movers.md), and its Concord's Table pricing the whole SKU stack on one page. Publishing
 cadence is already contractual: seasonal packs authored by an income law that pays the
 shared progression curve, with a level cap that lifts on data, not opinion. Pay-to-win is priced out by construction
 rather than promised away: Mythos exclusives ship with an authored tradeoff toll that
@@ -1314,6 +1315,8 @@ by row, what is sold, what is sanked, and what stays free.
 | 18 | Ankh blessing | the Consecrated Ankh, one-time | ~$4.99 | BLESS rows | dedication deed-chain gates the 4h clock (bought 6h) | §27 |
 | 19 | Mender's kit | consumable, identical craft / shelf | ~$0.50 | MEND rows | craft at any repair bench from honest salvage | §29 |
 | 20 | Mover modifiers | chartered shelf verses, capability verbs | build seat, felt number | MODIFIER rows | same modifier earned by crafter bills + deeds, two-way | §29 |
+| 21 | The Wisdom Call | sidecar compute work units (Rust/Julia batches on a named door) | ~$0.25/unit, build-seat | WISDOM rows | small weekly earned allotment via witnessed deeds | §31 |
+| 22 | The Meditation Ceremony | ceremony day, Lucky-pot shape (25 sigils ~$1.25) | small SKU | ATTUNE rows | days 1-2 of every week earned free via deeds | §31 |
 
 **How to read the table.** Where money buys the clock (rows 6, 8, 14, 15, 17,
 18), the chartered shape is the toll family and the toll is visible; where
@@ -1321,8 +1324,65 @@ money buys presence (rows 3, 4, 5, 7, 9, 13), no rate moves anywhere; where
 money buys the NOW (rows 10, 11, 12, 18, 19), the same door stands free by
 deed. Two structural rows hold the top: the Charter (row 1) is cosmetic plus
 convenience with an earned-sigils purchase door, and Mythos (row 2) is the
-provenance-graded tradeoff. The count is the pitch: TWENTY rows stand priced
-and NONE turns a stat on by purchase.
+provenance-graded tradeoff. The count is the pitch: TWENTY-TWO rows stand priced
+and NONE turns a stat on by purchase (rows 21-22 sell only the wider SHOT
+at the unopened doors — the Oracles: money cannot buy the act).
+
+
+## 31. The Oracles (spitball #18, 2026-11-05) — the wish to wake, priced in shots
+
+The owner's pitch, dressed in the world's law: the sealed keys are encrypted
+from every hand — even the server holds only one-way derivations nobody can
+read back (the ancients PRD, sec 7). But the WISH to wake an ancient is
+enormous and patient — and it can lawfully help pay for the servers it
+dreams on. TWO LANES, both answering one law: NOTHING PURCHASABLE OPENS A
+WAKE-KEY — a wallet buys MORE DICE for the week, never the act and never a
+stronger die; the clue, the honest search and the free path stand every
+single account, always.
+
+SEAT 1 — THE WISDOM CALL (delegated wisdom, the sidecar oracle). A Rust/
+Julia sidecar under the standing sidecar plugin law: a bought batch of real
+compute runs attested wake rolls against ONE named door's locked shape —
+which ancient, how big, audited on the receipt. The sidecar NEVER prints a
+hint or a coordinate; it reports only whether the batch's dice made a hit.
+No price makes a single die better — the wallet buys dice-COUNT, not
+dice-QUALITY — and weekly caps ride the QoS family, so no budget cracks the
+door: the sealed shape is far bigger than any bought dice can sweep. PRICE
+FELT: ~$0.25 per work unit (build-seat exact, owner's veto), each batch
+priced to cover its own marginal compute so every bought wish pays its own
+server shed honestly (the owner's "help pay for our servers hehe", signed).
+New WISDOM sink rows on the audited catalog.
+
+SEAT 2 — THE MEDITATION CEREMONY (the Sigil rite). The Lucky pot's shape
+applied to waking: each account owns a weekly wake-tune pot of ceremonies —
+days 1-2 of every week granted FREE via witnessed deeds (the owner's earn
+rule), the rest bought at 25 sigils ~$1.25 (the charm's price shape, the
+same potency whoever pays). A held ceremony day lifts the odds of the LUCK
+lane's wake rolls for that 24 hours — the same odds every account's
+ceremony carries; money buys the door to dice, never a better die. It
+works ONLY where an ancient's wake-key includes a luck leg: riddles, tram
+roads, watching and tablet rituals stay hands' work. ANTI-SMELL: no stat
+anywhere (wake odds are luck-lane facts, never combat numbers), NO WIKI
+(nothing prints how close a door is — rolls spent are yours, truths stay
+the world's), provenance stamped EARNED/BOUGHT on every ceremony through
+the tx roots. New ATTUNE sink rows (no-fake-sinks: the grant legs ship
+with the rows).
+
+IMPLEMENTATION SEAT (build round, gated on a first ancient): the sidecar
+plugin adapter (a Rust/Julia batch runner over the sealed-shape attester),
+the wake-luck rolls reading ONE shared roll bucket beside Sec 14's (never
+per-item bandaids), the attestation receipts, both sink rows with their
+grant legs, the weekly earned allotment (witnessed deeds) for both lanes,
+the QoS cap book, and the meditation charm .tres. PRICING FELT: wisdom
+work unit ~$0.25; ceremony 25 sigils ~$1.25; all build-seat numbers,
+owner's veto reserved.
+
+THE LAWS: nothing purchasable opens a wake-key, at any price (the Oracles
+sell only the wider shot); compute pays its own compute (no subsidy, no
+loss lane); no guarantee exists at any price; no combat stat ever; no
+wiki for a door; no free text ever (wake banner lines print from service
+record only); every roll provenance-stamped; the F2P earn path stands on
+both seats.
 
 ---
 

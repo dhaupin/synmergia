@@ -184,6 +184,7 @@ family and its laws, never of its sealed keys.
 THE LAW: mystery is the momentum (the owner's confession: "our sense of
 mystery is the momentum, everywhere"). NOTHING purchasable opens a wake-key:
 not the kits, not the modifiers, not the seats, not the ankh's blessing —
-the Concord's Table's twenty rows price what exists and none wakes the
-unwoken. Crosslinks: prd-ocean-depths.md's ferry law (the schedule is the
+the Concord's Table's rows price what exists and none wakes the unwoken
+(the Oracles, 2026-11-05 — prd-monetization sec 31 — sell only the
+wider SHOT on luck-leg doors: more dice, never the act). Crosslinks: prd-ocean-depths.md's ferry law (the schedule is the
 ONE wake-key carved in the open) and prd-monetization.md sec 28/29.
