@@ -357,6 +357,8 @@ decide with data.
 | The deed plate — the achievement walk-back over the model's earn rails | AGREED, designed | §18 |
 | The Homestead Ledger — the deed cottage, the hallmark law and the homestead tolls | AGREED, designed | §19 |
 | The Waystone Ledger — the Bender-only recall fix + the three-charge party stone | AGREED, canon landed | §20 |
+| The Anchor Room — the pub's own door: room clock (deed grant vs clock buys), tavern license, hallmark furniture, one-click travel | AGREED, designed | §22 |
+| The Sponsor Stage — the $20 public pace stage; the rate is the ceiling, buys stack the clock; Investor suffix / Philanthropist prefix | AGREED, designed | §23 |
 
 ## 12. The wardrobe locker — spitball #2 (2026-11-05)
 
@@ -906,12 +908,110 @@ fabric; the shelf row joins the RESPAWN-family sink rows (a new TELEPORT row, sa
 no-fake-sinks law: the grant leg ships WITH the row or the row doesn't land).
 DOC-ONLY round: zero .tres, zero service changes, the pack export stands.
 
-## 21. The investor version (the one-paragraph answer)
+## 22. The Anchor Room — the pub's own door (spitball #10, 2026-11-05)
+
+> **Status: AGREED (owner yay on all seats).** The owner's reading is the pitch: "you
+> pay a 'tax' and synmergia allows you to open the pub." A guild (or any standing
+> party) holds a persistent SOCIAL instance — one tavern — and runs it the way a
+> homestead runs a hall: furniture they crafted, a hearth they earned, and a door the
+> world can walk through. Rails real before the seats: `InstanceService` spins live
+> instances today; prd-social-instances.md's social law is presence ambient, action
+> one click; §19 owns the furniture laws.
+
+**Seat 1 — the pub tax (the room clock).** A deed-earned weekly allotment keeps the
+honest door open: several held evenings a week at zero cost (the §16 week-per-tier
+shape). Money buys MORE CLOCK and LONGER HOLDS (the charter-tier shape), never bigger
+rooms, never broker content. Payable from the §13 guild vault (rank-gated, the mix
+tracked) or by the deed holder's own ledger.
+
+**Seat 2 — the tavern license (the owner's tax).** A held room DECLARES itself OPEN:
+the door lists on the world's travel board and anyone may walk in. The deed plate's
+name IS the advertisement — there is no custom signage to buy.
+
+**Seat 3 — the furnished night.** The hallmark law verbatim (§19): field tavern
+goods — bar, long table, lantern rings — craft at the real stations and carry the
+maker's hallmark, grading Proven by the purse; catalog kits sell spectacle + breadth
+only. A hall dressed wall-to-wall in kits reads "nice hotel" to any visitor: crafted
+furniture is worth more and the crafter industry wins.
+
+**Seat 4 — the door that travels.** Entry is one click from ambient presence: a
+friend inside shows "join" (the LFG petition path), the open pub shows on the travel
+board. The pub is a social MODE, not a standing cost — the clock runs while held,
+never while you sleep.
+
+LAWS: a room is a look, never a number — no combat stats, no buffs, no
+my-pub-is-statistically-better; money never buys content the free doors don't also
+get (the early-entry law: never a paid "see things first" stage); tolls orthogonal
+(the Charter never gates a pub); placement scopes are service truth and never sold;
+preview never debits; no free text ever — signage and the queue line read service
+record.
+
+IMPLEMENTATION SEAT (build round): the persistent hold keyed (world, owner, slot)
+through the existing instance lifecycle; the travel-board row as a thin reader of
+that hold record; tavern furniture as furniture carriers on the §19 rails (dye lanes
+and the §12 locker overlay apply); the room clock as a ledger tx leg; a small public
+board page reading service truth only (names, nothing personal).
+
+## 23. The Sponsor Stage — the shard's public rite (spitball #11, 2026-11-05)
+
+> **Status: AGREED (owner pitch, Buffy yay + dress).** The owner's shape: **$20 buys a
+> server-wide stage — +5% drop AND xp for EVERYONE for 40–60 minutes** — with the
+> sponsor's name, guild and faction credited across the whole hour, and the roll
+> public on the website. The ego is the product and the buff is everyone's: nobody
+> buys personal power, the whole shard rides the same clock.
+
+**The rate is the ceiling (the clock law, literal).** Concurrency never stacks the
+rate: a second $20 during a live stage EXTENDS the stage's clock, never makes it
++10%. The ceiling is authored at +5% and no purchase moves it — money buys the clock,
+never the ceiling, in the section that proves the law was written for this.
+
+**The sponsor's credit (the roll).** Name + guild + faction read from the service
+record; the in-world banner and the website's public roll page show the same truth
+(who, when, how long). **NO CUSTOM MESSAGE — the owner's anti-abuse call, become
+law:** the stage has no message slot, period. The no-free-text rule in a sponsorship
+jersey: nothing to moderate and no report flow needed.
+
+**The combat-stat firewall.** The stage never touches duels, arena or rated rooms;
+those read base rates at all times. A personal statistic changes by purchase NOWHERE
+in this section.
+
+**The title split (the owner's fairness model, the §17 ropes shape).** The BUY route
+mints the suffix "the Investor" (the baron's shape: a sale mints a suffix, at most).
+The DEED route — a stage slot bought whole on earned-deed sigils, the §9 charter's
+two-way door — mints the prefix "the Philanthropist," deed-minted only: NOBODY BUYS
+AN HONOR. The wallet can buy the hour; it cannot buy the prefix. A paying player
+earns "the Philanthropist" the same grind way as anyone else and gets nothing early
+for paying — fairness for the grind, exactly as pitched.
+
+**An honest seam, recorded.** §9's no-XP law governs PERSONAL and track purchases.
+This stage's XP leg is the owner's authored exception for the PUBLIC shape: every
+rider, paid or free, shares the identical +5%, so the exception runs ALONGSIDE the
+law (it lifts the shard, never the individual) and is capped to this section. No
+personal XP purchase exists anywhere in the model; nothing else ever lifts XP.
+
+**The F2P door on everything.** The stage slot itself prices two-way ($20 OR its
+earned-deed sigil price — the §9 charter's 300-sigil shape; the exact number is a
+build-seat tuning). The free row never rides worse than the seat next to it.
+
+LAWS: the buff is public-domain (nobody buys personal or party power); the ceiling
+never moves; credit reads service record only; no refund once the stage starts;
+preview shows remaining window + rate BEFORE purchase; no Charter gate; toll
+orthogonal (a sponsor's deed-versus-buy provenance is recorded, graded nothing).
+
+IMPLEMENTATION SEAT (build round): the stage clock keyed on the shard ledger (the tx
+roots stay the spine); the +5% drop leg riding THE SAME central roll-time modifier
+§14's luck charms landed on (one bucket, never per-system bandaids) and the XP leg on
+the gain hook — `LevelCurve` remains the ONE authority (the stage changes the gain,
+never the curve file); the roll page reading service truth; one $20 SKU riding the
+webhook seam + a STAGE sink row; prefix + suffix `TitleData` rows minted per the
+deed/buy split.
+
+## 24. The investor version (the one-paragraph answer)
 
 *Synmergia's monetization is not a plan, it is an installed, receipt-audited system: a
 wallet, three real-$ SKUs ($4.99–$24.99), a nine-row premium catalog (resurrection
 tickets at $1.00 net per unit, a $7.50–$45 mount ladder, cosmetic titles at $10–25),
-an in-game sigil market, a four-tier expedition storage ladder where deeds earn the slots and the wallet only buys the clock (a chartered buy carries a small authored luck-toll), an achievement plate that reads nothing but the world's verbs (gold, coin and title rewards — never purchasable), a homestead with an earned front door (the clock door carries the move-toll and the signature toll, furniture sells breadth under the hallmark law), and an earned-earn path that keeps F2P honest. Publishing
+an in-game sigil market, a four-tier expedition storage ladder where deeds earn the slots and the wallet only buys the clock (a chartered buy carries a small authored luck-toll), an achievement plate that reads nothing but the world's verbs (gold, coin and title rewards — never purchasable), a homestead with an earned front door (the clock door carries the move-toll and the signature toll, furniture sells breadth under the hallmark law), a public tavern door (the Anchor Room: guilds buy the pub's hour by the clock and the deed grant keeps F2P honest), and a sponsor stage (the $20 public pace stage where the rate is the ceiling and buys stack the clock — paid mints the Investor suffix, the deed route mints the Philanthropist prefix), and an earned-earn path that keeps F2P honest. Publishing
 cadence is already contractual: seasonal packs authored by an income law that pays the
 shared progression curve, with a level cap that lifts on data, not opinion. Pay-to-win is priced out by construction
 rather than promised away: Mythos exclusives ship with an authored tradeoff toll that
