@@ -38,11 +38,37 @@ _start_state_bridges() {
 }
 
 # ── Template nginx.conf ────────────────────────────────────────────────────
-# Replace GODOT_UPSTREAM placeholder with the actual value.
+# Expand the upstream server list. GODOT_UPSTREAM may be a single
+# host:port (single-container) or a comma/space-separated list of shard
+# hosts (a mesh behind one nginx). ip_hash in the upstream block gives
+# sticky routing so a WebSocket session stays on one shard.
 # Also configure SSL certs: Let's Encrypt if available, else self-signed.
 _setup_nginx() {
     local upstream="${GODOT_UPSTREAM:-localhost:9000}"
-    if grep -q "GODOT_UPSTREAM" /etc/nginx/nginx.conf 2>/dev/null; then
+
+    # Build the server lines for the upstream block (8-space indent to
+    # match nginx.conf). Commas and spaces both separate hosts.
+    local list="${upstream//,/ }"
+    local servers=""
+    local host
+    for host in $list; do
+        servers="${servers}        server ${host};"$'\n'
+    done
+
+    if grep -q "GODOT_UPSTREAM_SERVERS" /etc/nginx/nginx.conf 2>/dev/null; then
+        python3 - "$servers" <<'PYEOF'
+import sys
+servers = sys.argv[1].rstrip("\n")
+path = "/etc/nginx/nginx.conf"
+with open(path) as fh:
+    content = fh.read()
+content = content.replace("        # GODOT_UPSTREAM_SERVERS", servers)
+with open(path, "w") as fh:
+    fh.write(content)
+PYEOF
+        log "nginx upstream: $upstream"
+    elif grep -q "GODOT_UPSTREAM" /etc/nginx/nginx.conf 2>/dev/null; then
+        # Legacy single-server placeholder (pre-mesh config).
         sed -i "s|GODOT_UPSTREAM|${upstream}|g" /etc/nginx/nginx.conf
         log "nginx upstream: $upstream"
     fi

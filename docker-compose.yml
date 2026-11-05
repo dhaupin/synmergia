@@ -40,7 +40,13 @@ services:
     environment:
       - START_MODE=${START_MODE:-dev}
       - GODOT_PORT=${GODOT_PORT:-9000}
-      - GODOT_UPSTREAM=synmergia:${GODOT_PORT:-9000}
+      - GODOT_UPSTREAM=${GODOT_UPSTREAM:-synmergia:${GODOT_PORT:-9000}}
+      # ── Edge transport (shard mesh Phase 2) ─────────────────────────────────
+      # enet (default) keeps the raw UDP server. websocket lets nginx front
+      # the shard with sticky routing (ip_hash) so browser + native clients
+      # share one L7 entry. A mesh sets EDGE_TRANSPORT=websocket and points
+      # GODOT_UPSTREAM at a comma-separated list of shard hosts.
+      - EDGE_TRANSPORT=${EDGE_TRANSPORT:-enet}
       - POSTGRES_DB=synmergia
       - POSTGRES_USER=synmergia
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-synmergia_dev_pass}

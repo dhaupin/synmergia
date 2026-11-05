@@ -143,7 +143,28 @@ edge (LB + sticky routing) is still Phase 2.
 
 ### Phase 2 -- Edge transport
 
-Pick Option A or B above; wire the LB/nginx and sticky routing.
+**Decision: Option B (WebSocket server + nginx L7).** Option A (ENet
++ L4) is retained for native clients that want UDP directly, but the
+*edge* is websocket: one nginx entry, browser-capable, standard LB.
+
+Shipped: `NetworkManager` selects the server transport from
+`EDGE_TRANSPORT` (`enet` default, `websocket`; aliases `ws`/`wss`,
+case-insensitive; unknown values fall back to `enet` with a warn).
+`_make_server_peer(port)` builds the matching `MultiplayerPeer` --
+`ENetMultiplayerPeer.create_server` or
+`WebSocketMultiplayerPeer.create_server` -- and `start_server` /
+`connect_to_server` ride it unchanged. The client path already spoke
+websocket for browser builds; a mesh now routes native clients there
+too, so one L7 entry serves both.
+
+nginx: the `upstream godot` block carries `ip_hash` (sticky routing,
+so a websocket upgrade and the client's follow-up requests land on the
+same shard). `GODOT_UPSTREAM` is now a comma/space list; the entrypoint
+expands it into one `server` line per shard. A single-container deploy
+passes one host and is byte-identical to before.
+
+Outcome: a client reaches a shard behind nginx over websocket with
+session affinity. Topology (coordinator + N shards) is Phase 3.
 
 ### Phase 3 -- Topology
 
@@ -172,7 +193,6 @@ services:
 
 ## 5. Out of scope (this note)
 
-- The edge transport implementation itself (Phase 2).
 - Real HA Postgres/Redis (deployment concern).
 - The dormant Julia orchestrator (separate `prd-multiworld.md`
   and `world-building-arch.md` sec.11.2 deferral).
@@ -202,3 +222,20 @@ services:
   `CACHE_BACKEND=redis` -> the memory bus (dev/CI stay green).
 
 Receipt: `game/tests/test_shard_bus.gd` (17 legs).
+
+## 8. Acceptance for Phase 2
+
+- No `EDGE_TRANSPORT` -> `enet` (dev/CI byte-identical).
+- `EDGE_TRANSPORT=websocket` (and the `ws`/`wss` aliases, any case)
+  selects the websocket server transport.
+- An empty `EDGE_TRANSPORT` -> `enet`; an unknown value -> `enet`
+  (honest fallback, never a boot failure).
+- `_make_server_peer` builds an `ENetMultiplayerPeer` for enet and a
+  `WebSocketMultiplayerPeer` for websocket; the websocket peer binds
+  (reaches `CONNECTION_CONNECTED`) -- the Option B capability.
+- `get_connection_info()` reports the selected `edge_transport`.
+- nginx carries `ip_hash` on the `godot` upstream, and the entrypoint
+  expands a comma/space `GODOT_UPSTREAM` list into one `server` line
+  per shard (single host == the previous config).
+
+Receipt: `game/tests/test_edge_transport.gd` (14 legs).
