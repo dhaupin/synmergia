@@ -145,6 +145,18 @@ func has_key(key: String) -> bool:
 	return get_value(key) != null
 
 
+# All keys currently in the kv table. Backends with a native listing
+# (memory) override this; the default rides the portable SQL shim, which
+# every SQL backend supports. ~40 services call this on the raw store.
+func all_keys() -> Array:
+	var keys: Array = []
+	for row in query("SELECT key FROM kv", []):
+		var k = row.get("key", "")
+		if k != "":
+			keys.append(k)
+	return keys
+
+
 func erase(key: String) -> void:
 	delete_many([key])
 

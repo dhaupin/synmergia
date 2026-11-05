@@ -46,6 +46,9 @@ def make_handler(backend: CacheBackend):
 
     class RedisBridgeHandler(BaseHTTPRequestHandler):
         server_version = "RedisBridge/1.0.0"
+        # HTTP/1.1 keeps the connection alive; HTTP/1.0 (the default)
+        # closes per response and breaks the Godot client's reuse.
+        protocol_version = "HTTP/1.1"
 
         def _send_json(self, status: int, payload: dict) -> None:
             body = json.dumps(payload).encode("utf-8")

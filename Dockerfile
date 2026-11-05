@@ -58,6 +58,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-liberation \
     # Database clients (app connects to external containers)
     postgresql-client redis-tools \
+    # Python driver deps for the pg/redis bridges. Without these the bridges
+    # can only run their sqlite/inmemory fallbacks, so a shard mesh can never
+    # reach the shared postgres/redis. Versions are pinned by trixie's apt.
+    python3-psycopg python3-redis \
     # Certbot for HTTPS (optional)
     certbot \
     # Misc utilities

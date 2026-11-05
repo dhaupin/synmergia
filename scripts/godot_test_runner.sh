@@ -104,6 +104,8 @@ probe_terrain_backend
 probe_terrain_climate
 probe_sundered_sea
 test_instance_contract
+test_shard_mesh_identity
+test_adapter_http_transport
 probe_arena_instance
 probe_arena_trigger
 probe_lobby_service

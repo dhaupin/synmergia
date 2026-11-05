@@ -48,11 +48,17 @@ class_name RedisStore
 const NotImplemented = "RedisStore: redis-bridge sidecar not yet wired. Use MemoryCacheStore for tests/dev."
 
 var _bridge_url: String = ""
-var _http: HTTPRequest
-var _parent: Node
-var _last_response: Dictionary = {}
-var _last_ok: bool = false
-var _response_received: bool = false
+var _client: HTTPClient = null
+var _host: String = ""
+var _port: int = 80
+var _use_ssl: bool = false
+
+## Synchronous request budget and poll cadence. This store is called from
+## boot and service legs that cannot yield frames, so the transport polls
+## the socket directly instead of waiting on an HTTPRequest signal (which
+## only fires on a processed frame -- a busy-wait never delivers it).
+const SYNC_TIMEOUT_MS: int = 5000
+const SYNC_POLL_STEP_MS: int = 2
 
 # Retry configuration
 const MAX_RETRIES: int = 3
@@ -105,8 +111,6 @@ class RedisResult:
 # --- Retry wrapper with exponential backoff and circuit breaker ---
 
 func _retry_request(callable: Callable, max_attempts: int = MAX_RETRIES) -> RedisResult:
-	if not _http:
-		return RedisResult.err("HTTP client not initialized", -1)
 	if _circuit_breaker_tripped:
 		var now = Time.get_ticks_msec()
 		if now - _circuit_breaker_tripped_time >= _circuit_breaker_reset_timeout_ms:
@@ -146,60 +150,54 @@ func _retry_request(callable: Callable, max_attempts: int = MAX_RETRIES) -> Redi
 
 
 func _blocking_get(path: String) -> bool:
-	return _retry_request(func() -> RedisResult:
+	var resp: Dictionary = _retry_request(func() -> RedisResult:
 		_pending_queries += 1
-		var url := _bridge_url + path
-		var err := _http.request(url, PackedStringArray(["Accept: application/json"]), HTTPClient.METHOD_GET)
-		if err != OK:
-			_pending_queries -= 1
-			return RedisResult.err("HTTP request error: " + str(err), err)
-		var ok := _await_response()
+		var r: Dictionary = _sync_request(
+			HTTPClient.METHOD_GET, path, PackedStringArray(["Accept: application/json"]), ""
+		)
 		_pending_queries -= 1
-		if not ok:
-			return RedisResult.err("Request timeout or failed", -3)
-		return RedisResult.ok(_last_response)
-	).success
+		if r.get("_transport_error", false):
+			return RedisResult.err(str(r.get("error", "transport error")), -3)
+		return RedisResult.ok(r)
+	).data
+	return resp is Dictionary and not resp.is_empty()
 
 
 func _blocking_get_with_body(path: String) -> Dictionary:
-	return _retry_request(func() -> RedisResult:
+	var res: RedisResult = _retry_request(func() -> RedisResult:
 		_pending_queries += 1
-		var url := _bridge_url + path
-		var err := _http.request(url, PackedStringArray(["Accept: application/json"]), HTTPClient.METHOD_GET)
-		if err != OK:
-			_pending_queries -= 1
-			return RedisResult.err("HTTP request error: " + str(err), err)
-		var ok := _await_response()
+		var r: Dictionary = _sync_request(
+			HTTPClient.METHOD_GET, path, PackedStringArray(["Accept: application/json"]), ""
+		)
 		_pending_queries -= 1
-		if not ok:
-			return RedisResult.err("Request timeout or failed", -3)
-		return RedisResult.ok(_last_response)
-	).data
+		if r.get("_transport_error", false):
+			return RedisResult.err(str(r.get("error", "transport error")), -3)
+		return RedisResult.ok(r)
+	)
+	return res.data if res.success and res.data is Dictionary else {}
 
 
 func _blocking_post(path: String, body: Dictionary) -> Dictionary:
-	return _retry_request(func() -> RedisResult:
+	var res: RedisResult = _retry_request(func() -> RedisResult:
 		_pending_queries += 1
-		var url := _bridge_url + path
 		var json := JSON.stringify(body)
 		var headers := PackedStringArray([
 			"Content-Type: application/json",
 			"Accept: application/json",
 		])
-		var err := _http.request(url, headers, HTTPClient.METHOD_POST, json)
-		if err != OK:
-			_pending_queries -= 1
-			return RedisResult.err("HTTP request error: " + str(err), err)
-		if not _await_response():
-			_pending_queries -= 1
-			return RedisResult.err("Request timeout or failed", -3)
+		var r: Dictionary = _sync_request(HTTPClient.METHOD_POST, path, headers, json)
 		_pending_queries -= 1
-		return RedisResult.ok(_last_response)
-	).data
+		if r.get("_transport_error", false):
+			return RedisResult.err(str(r.get("error", "transport error")), -3)
+		return RedisResult.ok(r)
+	)
+	return res.data if res.success and res.data is Dictionary else {}
 
 
-func _init(parent: Node = null) -> void:
-	_parent = parent
+func _init(_parent: Node = null) -> void:
+	# `parent` is retained for call-site compatibility; the synchronous
+	# HTTPClient transport needs no scene-tree node.
+	pass
 
 
 func open(config: Dictionary) -> int:
@@ -207,14 +205,9 @@ func open(config: Dictionary) -> int:
 	if _bridge_url == "":
 		push_error(NotImplemented)
 		return -1
-	if not _parent:
-		_parent = Engine.get_main_loop().root if Engine.get_main_loop() else null
-	if not _parent:
-		push_error("RedisStore: no parent Node for HTTPRequest")
+	if not _parse_url(_bridge_url):
+		push_error("RedisStore: malformed bridge_url %s" % _bridge_url)
 		return -1
-	_http = HTTPRequest.new()
-	_parent.add_child(_http)
-	_http.request_completed.connect(_on_response)
 	if not _blocking_get("/health"):
 		push_error("RedisStore: bridge %s not reachable" % _bridge_url)
 		return -1
@@ -223,9 +216,9 @@ func open(config: Dictionary) -> int:
 
 
 func close() -> void:
-	if _http and is_instance_valid(_http):
-		_http.queue_free()
-		_http = null
+	if _client:
+		_client.close()
+		_client = null
 	_active_connections = 0
 	_pending_queries = 0
 	_circuit_breaker_failures = 0
@@ -234,7 +227,7 @@ func close() -> void:
 
 
 func healthy() -> bool:
-	if not _http:
+	if _client == null:
 		return false
 	# Check circuit breaker
 	if _circuit_breaker_tripped:
@@ -251,9 +244,9 @@ func healthy() -> bool:
 # --- Basic KV ---
 
 func fetch(key: String) -> Variant:
+	# /get answers {"value": ...} (a missing key is value: null); there is
+	# no "ok" envelope here, so read "value" directly.
 	var resp := _blocking_get_with_body("/get?key=" + _url_escape(key))
-	if not resp.get("ok", false):
-		return null
 	return resp.get("value", null)
 
 
@@ -429,31 +422,93 @@ func delete_many(keys: Array) -> int:
 	return int(resp.get("deleted", 0))
 
 
-func _on_response(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
-	_last_response = {}
-	_last_ok = (result == HTTPRequest.RESULT_SUCCESS and response_code == 200)
-	if _last_ok and body.size() > 0:
-		var text := body.get_string_from_utf8()
-		var parsed = JSON.parse_string(text)
+## Parse "http://host:port" (or https) into connection fields.
+func _parse_url(url: String) -> bool:
+	var rest: String = url
+	_use_ssl = false
+	if rest.begins_with("https://"):
+		_use_ssl = true
+		rest = rest.substr(8)
+	elif rest.begins_with("http://"):
+		rest = rest.substr(7)
+	var slash: int = rest.find("/")
+	if slash >= 0:
+		rest = rest.substr(0, slash)
+	var colon: int = rest.rfind(":")
+	if colon >= 0:
+		_host = rest.substr(0, colon)
+		_port = int(rest.substr(colon + 1))
+	else:
+		_host = rest
+		_port = 443 if _use_ssl else 80
+	return _host != "" and _port > 0
+
+
+## One synchronous request: connect (if needed), send, poll until the
+## response arrives or the budget expires. No frame pumping required --
+## this is what lets the store connect during boot and from any service leg.
+## A dropped keep-alive is retried once on a fresh socket.
+func _sync_request(method: int, path: String, headers: PackedStringArray, body: String) -> Dictionary:
+	for attempt in range(2):
+		if _client == null or _client.get_status() == HTTPClient.STATUS_DISCONNECTED:
+			if not _connect():
+				return {"_transport_error": true, "error": "connection timed out"}
+		if _client.get_status() != HTTPClient.STATUS_CONNECTED:
+			_client.close()
+			_client = null
+			continue
+		var rerr: int = _client.request(method, path, headers, body)
+		if rerr != OK:
+			_client.close()
+			_client = null
+			continue
+		if not _pump_until([HTTPClient.STATUS_BODY, HTTPClient.STATUS_CONNECTED], [HTTPClient.STATUS_REQUESTING]):
+			return {"_transport_error": true, "error": "request timed out"}
+		if _client.get_status() == HTTPClient.STATUS_DISCONNECTED:
+			_client = null
+			continue
+		var code: int = _client.get_response_code()
+		var payload: String = ""
+		if _client.has_response():
+			var buf := PackedByteArray()
+			while _client.get_status() == HTTPClient.STATUS_BODY:
+				_client.poll()
+				var chunk: PackedByteArray = _client.read_response_body_chunk()
+				if chunk.size() == 0:
+					OS.delay_msec(SYNC_POLL_STEP_MS)
+				else:
+					buf.append_array(chunk)
+			payload = buf.get_string_from_utf8()
+		if code != 200:
+			return {"_transport_error": true, "error": "http %d: %s" % [code, payload]}
+		var parsed: Variant = JSON.parse_string(payload)
 		if parsed is Dictionary:
-			_last_response = parsed
-		elif parsed != null:
-			# Some endpoints return { value: <scalar> } wrapped; the
-			# caller reads resp.get(...) so this is fine as-is.
-			_last_response = {"value": parsed}
-	_response_received = true
+			return parsed
+		if parsed != null:
+			return {"value": parsed}
+		return {}
+	return {"_transport_error": true, "error": "connection reset"}
 
 
-func _await_response() -> bool:
-	_response_received = false
-	_last_response = {}
-	_last_ok = false
-	var timeout_ms := 5000
-	var elapsed := 0
-	while not _response_received and elapsed < timeout_ms:
-		OS.delay_msec(10)
-		elapsed += 10
-	return _last_ok
+## Open a fresh connection to the bridge. Returns false on timeout.
+func _connect() -> bool:
+	if _client:
+		_client.close()
+	_client = HTTPClient.new()
+	var cerr: int = _client.connect_to_host(_host, _port, TLSOptions.client() if _use_ssl else null)
+	if cerr != OK:
+		return false
+	return _pump_until([HTTPClient.STATUS_CONNECTED], [HTTPClient.STATUS_CONNECTING, HTTPClient.STATUS_RESOLVING])
+
+
+## Poll the socket until the status leaves `from_states` or the budget expires.
+func _pump_until(accept: Array, from_states: Array) -> bool:
+	var elapsed: int = 0
+	while _client.get_status() in from_states and elapsed < SYNC_TIMEOUT_MS:
+		_client.poll()
+		OS.delay_msec(SYNC_POLL_STEP_MS)
+		elapsed += SYNC_POLL_STEP_MS
+	return _client.get_status() in accept or not (_client.get_status() in from_states)
 
 
 func _record_success() -> void:

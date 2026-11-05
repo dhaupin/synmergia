@@ -28,6 +28,25 @@ stop: the mechanics of actually RUNNING things.
 - **systemctl, julia, release tools NOT needed** for the code-side dev
   loop (Julia is a sidecar only; skip it during code-only repair rounds).
 
+### Running as a shard (multi-container)
+
+The image runs a dev env and a single server out of the box. To run a
+container as one shard of a mesh, set per container:
+
+```bash
+SHARD_ID=shard_2 SHARD_NAME=Beta IS_PRIMARY=false \
+STORAGE_BACKEND=postgres CACHE_BACKEND=redis \
+PG_BACKEND=postgres REDIS_BACKEND=redis \
+POSTGRES_HOST=postgres REDIS_HOST=redis \
+docker compose --profile headless up
+```
+
+Unset -> `shard_1`/"Alpha" and in-process memory (the single-node
+default). The bridges' real backends need `python3-psycopg` /
+`python3-redis` (baked into the image). See `labs/prd-shard-mesh.md`
+for the intent-vs-reality audit and the phased path (cross-shard bus
+and the edge transport are Phase 1+).
+
 ## 2. Golden-path commands (from `game/`)
 
 ```bash

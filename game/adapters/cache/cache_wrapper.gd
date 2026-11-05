@@ -11,10 +11,20 @@ static var _adapter_registry = null
 static func set_adapter_registry(reg) -> void:
 	_adapter_registry = reg
 
+# Resolve the AdapterRegistry to use; see DictStore._resolve_registry for
+# why the static hook alone is not enough in --script mode.
+func _resolve_registry():
+	if _adapter_registry != null:
+		return _adapter_registry
+	var loop = Engine.get_main_loop()
+	if loop is SceneTree:
+		return loop.get_root().get_node_or_null("AdapterRegistry")
+	return null
+
 func _ensure_store() -> void:
 	if _store != null:
 		return
-	var reg = _adapter_registry
+	var reg = _resolve_registry()
 	if reg == null:
 		# Fallback to memory store if registry not available yet
 		_store = MemoryCacheStore.new()

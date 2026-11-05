@@ -14,6 +14,29 @@ mkdir -p /workspace/project/game/captures/videos
 
 log() { echo "[entrypoint] $*"; }
 
+# ── Shared-state sidecars ──────────────────────────────────────────────────
+# The engine talks to these over HTTP on 127.0.0.1:8080/8081. They read
+# PG_BACKEND / REDIS_BACKEND (sqlite|postgres, inmemory|redis) plus the
+# POSTGRES_* / REDIS_* connection env. Defaults stay sqlite/inmemory so a
+# single-node dev/CI boot is unchanged; a shard mesh sets the backends to
+# postgres/redis and points POSTGRES_HOST/REDIS_HOST at the shared services.
+_start_state_bridges() {
+    log "Starting pg-bridge (PG_BACKEND=${PG_BACKEND:-sqlite})..."
+    PG_BACKEND="${PG_BACKEND:-sqlite}" \
+    PG_BRIDGE_HOST="127.0.0.1" PG_BRIDGE_PORT="8080" \
+    python3 /workspace/project/srv/pg-bridge/main.py &
+    PG_BRIDGE_PID=$!
+
+    log "Starting redis-bridge (REDIS_BACKEND=${REDIS_BACKEND:-inmemory})..."
+    REDIS_BACKEND="${REDIS_BACKEND:-inmemory}" \
+    REDIS_BRIDGE_HOST="127.0.0.1" REDIS_BRIDGE_PORT="8081" \
+    python3 /workspace/project/srv/redis-bridge/main.py &
+    REDIS_BRIDGE_PID=$!
+
+    sleep 1
+    log "pg-bridge pid=$PG_BRIDGE_PID  redis-bridge pid=$REDIS_BRIDGE_PID"
+}
+
 # ── Template nginx.conf ────────────────────────────────────────────────────
 # Replace GODOT_UPSTREAM placeholder with the actual value.
 # Also configure SSL certs: Let's Encrypt if available, else self-signed.
@@ -158,17 +181,7 @@ if [[ "$START_MODE" == "prod" ]]; then
 
     # Start pg-bridge and redis-bridge sidecars as background processes.
     # These are Python services already installed in the Docker image.
-    log "Starting pg-bridge..."
-    PG_BACKEND="${PG_BACKEND:-sqlite}" \
-    PG_BRIDGE_HOST="127.0.0.1" PG_BRIDGE_PORT="8080" \
-    python3 /workspace/project/srv/pg-bridge/main.py &
-    PG_BRIDGE_PID=$!
-
-    log "Starting redis-bridge..."
-    REDIS_BACKEND="${REDIS_BACKEND:-inmemory}" \
-    REDIS_BRIDGE_HOST="127.0.0.1" REDIS_BRIDGE_PORT="8081" \
-    python3 /workspace/project/srv/redis-bridge/main.py &
-    REDIS_BRIDGE_PID=$!
+    _start_state_bridges
 
     # NOAA Kp sidecar: feeds the CosmicService flywheel with real
     # planetary K-index (solar wind -> weather). Fails soft: the game
@@ -222,9 +235,14 @@ fi
 if [[ "$START_MODE" == "headless" ]]; then
     log "Mode: HEADLESS — Godot headless only"
 
+    # A headless container is the shard role: it needs the shared-state
+    # bridges up before Godot boots so the engine can reach postgres/redis
+    # (or the sqlite/inmemory fallbacks when unset).
+    _start_state_bridges
+
     godot --headless --path /workspace/project/game &
 
-    log "Godot headless running on port ${GODOT_PORT:-9000}"
+    log "Godot headless running on port ${GODOT_PORT:-9000} (shard ${SHARD_ID:-shard_1})"
     log "PID: $!"
 
     tail -f /dev/null

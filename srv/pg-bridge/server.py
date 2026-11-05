@@ -30,6 +30,10 @@ def make_handler(backend: Backend):
 
     class PgBridgeHandler(BaseHTTPRequestHandler):
         server_version = "PgBridge/1.0.0"
+        # HTTP/1.1 keeps the connection alive between calls. The default
+        # (HTTP/1.0) closes after every response, which forces the Godot
+        # client to reconnect per request and breaks its keep-alive reuse.
+        protocol_version = "HTTP/1.1"
 
         def _send_json(self, status: int, payload: dict) -> None:
             body = json.dumps(payload).encode("utf-8")

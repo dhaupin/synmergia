@@ -36,6 +36,11 @@ const MigrationRunner = preload("res://adapters/migrations/migration_runner.gd")
 
 const MemoryPersistenceStore = preload("res://adapters/persistence/memory_persistence_store.gd")
 const PostgresStore = preload("res://adapters/persistence/postgres_store.gd")
+## KV view helpers. Their static registry hook must be pointed at the
+## AdapterRegistry at boot, or every DictStore/CacheWrapper falls through
+## to a process-local memory fallback (see boot_defaults).
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
+const CacheWrapper = preload("res://adapters/cache/cache_wrapper.gd")
 ## The reload-durable store (R48): memory semantics + a user:// JSON
 ## snapshot on every write. Web builds: user:// is IndexedDB, so the
 ## snapshot survives a page reload. Registered ONLY for the store
@@ -178,6 +183,13 @@ func boot_defaults() -> void:
 		push_error("BackendFactory: AdapterRegistry autoload not found")
 		return
 
+	# Point the static KV views at this registry. Without this, DictStore and
+	# CacheWrapper never resolve a store and silently fall back to per-process
+	# memory -- which breaks every shared-state consumer (shard/coordinator
+	# registries) the moment more than one process is running.
+	DictStore.set_adapter_registry(reg)
+	CacheWrapper.set_adapter_registry(reg)
+
 	# Register all persistence store names with the same backing.
 	for store_name in STORE_MANIFEST:
 		# Skip cache-only and memory-only entries.
@@ -192,6 +204,13 @@ func boot_defaults() -> void:
 				reg.register_persistence(store_name, durable)
 				continue
 		reg.register_persistence(store_name, persistence_store)
+
+	# "default" is the store name DictStore uses when a caller does not
+	# name its own. It is not in STORE_MANIFEST, so without this leg every
+	# DictStore fell through to a process-local memory fallback -- shard and
+	# coordinator registries stayed per-process even under postgres. Register
+	# it with the chosen backend so a shard mesh shares one store.
+	reg.register_persistence("default", persistence_store)
 
 	# Run schema migrations against the persistence backend (blocking
 	# at boot per prd-db.md sec.9.2). Memory backend: migrations are

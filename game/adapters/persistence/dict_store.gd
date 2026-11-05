@@ -23,10 +23,25 @@ static var _shared_fallback: PersistenceStore = null
 static func set_adapter_registry(reg) -> void:
 	_adapter_registry = reg
 
+# Resolve the AdapterRegistry to use. The static hook is set by
+# BackendFactory.boot_defaults on the autoload's script instance; in
+# --script mode a caller's load() can resolve a different instance whose
+# static is still null, silently falling back to process-local memory.
+# Falling back to the live autoload in the tree makes the resolution
+# instance-independent (the receipt's "shared store" leg then exercises
+# the registered store instead of a memory fallback).
+func _resolve_registry():
+	if _adapter_registry != null:
+		return _adapter_registry
+	var loop = Engine.get_main_loop()
+	if loop is SceneTree:
+		return loop.get_root().get_node_or_null("AdapterRegistry")
+	return null
+
 func _ensure_store() -> void:
 	if _store != null:
 		return
-	var reg = _adapter_registry
+	var reg = _resolve_registry()
 	if reg == null:
 		# Fallback to shared memory store if registry not available yet
 		if _shared_fallback == null:

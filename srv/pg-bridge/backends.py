@@ -81,6 +81,42 @@ def _convert_sql(sql: str, params: Sequence[Any] | None) -> tuple[str, list]:
     return out, list(params)
 
 
+def _pg_convert_sql(sql: str, params: Sequence[Any] | None) -> tuple[str, list]:
+    """Translate $N positional params to %s for psycopg3.
+
+    psycopg3 speaks %s placeholders, not $N. Scan for $N tokens in order
+    and rebuild the parameter list, duplicating a param when its $N repeats.
+    Literal '%' in the SQL is escaped to '%%' because psycopg treats '%' as
+    the placeholder introducer -- even when no params are supplied (a bare
+    "LIKE 'tick:%'" would otherwise raise "only '%s', '%b', '%t' are
+    allowed as placeholders").
+    """
+    import re
+
+    if not params:
+        return sql.replace("%", "%%"), []
+
+    values = list(params)
+    ordered: list = []
+    out_parts: list[str] = []
+    last = 0
+    for m in re.finditer(r"\$(\d+)", sql):
+        idx = int(m.group(1)) - 1
+        out_parts.append(sql[last:m.start()].replace("%", "%%"))
+        out_parts.append("%s")
+        ordered.append(values[idx] if 0 <= idx < len(values) else None)
+        last = m.end()
+    out_parts.append(sql[last:].replace("%", "%%"))
+    return "".join(out_parts), ordered
+
+
+def _stmt_to_sql_params(stmt: Any) -> tuple[str, list]:
+    """Normalize a batch statement: either a SQL string or {sql, params}."""
+    if isinstance(stmt, dict):
+        return stmt.get("sql", ""), list(stmt.get("params", []) or [])
+    return str(stmt), []
+
+
 class SQLiteBackend(Backend):
     """In-memory SQLite backend. Mirrors pg-bridge's SQL surface for dev/test."""
 
@@ -169,8 +205,10 @@ class SQLiteBackend(Backend):
         con = self._tx if self._tx else self._con
         try:
             for stmt in statements:
-                if stmt.strip():
-                    con.execute(stmt)
+                sql, params = _stmt_to_sql_params(stmt)
+                if sql.strip():
+                    s, p = _convert_sql(sql, params)
+                    con.execute(s, p)
             return True
         except sqlite3.Error:
             return False
@@ -180,12 +218,21 @@ class SQLiteBackend(Backend):
 # Lazy-imported so the module loads (and tests run) without psycopg3 installed.
 
 class PostgresBackend(Backend):
-    """Real Postgres backend via psycopg3. Installed in the Docker image."""
+    """Real Postgres backend via psycopg3. Installed in the Docker image.
+
+    Transaction model mirrors SQLiteBackend: one primary connection runs in
+    autocommit mode, and an explicit transaction is opened with a literal
+    BEGIN and closed with COMMIT/ROLLBACK. psycopg3 defaults to
+    autocommit=False, which would leave every statement in an uncommitted
+    implicit transaction; the bridge would then fail to start an explicit
+    transaction ("can't change 'autocommit' now: connection in transaction
+    status INTRANS") and poison the connection for every later call.
+    """
 
     def __init__(self) -> None:
-        self._pool: list = []
-        self._tx_conns: dict[int, Any] = {}
-        self._next_tx = 0
+        self._con: Any = None
+        self._tx_active: bool = False
+        self._next_tx: int = 0
         self._dsn: str = ""
 
     def connect(self, config: dict) -> int:
@@ -200,70 +247,72 @@ class PostgresBackend(Backend):
             "dsn", "host=postgres port=5432 dbname=synmergia user=synmergia "
             "password=synmergia_dev_pass"
         )
-        self._pool = [psycopg.connect(self._dsn) for _ in range(config.get("pool_size", 8))]
+        self._con = psycopg.connect(self._dsn, autocommit=True)
         self._next_tx = 0
+        self._tx_active = False
         return 0
 
     def close(self) -> None:
-        for c in self._tx_conns.values():
-            c.close()
-        self._tx_conns.clear()
-        for c in self._pool:
-            c.close()
-        self._pool.clear()
+        if self._con is not None:
+            if self._tx_active:
+                try:
+                    self._con.rollback()
+                except Exception:
+                    pass
+            self._con.close()
+        self._con = None
+        self._tx_active = False
 
     def healthy(self) -> bool:
-        if not self._pool:
+        if self._con is None:
             return False
         try:
-            self._pool[0].execute("SELECT 1")
+            self._con.execute("SELECT 1")
             return True
         except Exception:
             return False
 
-    def _conn(self):
-        return self._pool[0]
-
     def query(self, sql: str, params=None) -> list[dict]:
-        with self._conn().cursor() as cur:
-            cur.execute(sql, params or [])
+        s, p = _pg_convert_sql(sql, params)
+        with self._con.cursor() as cur:
+            cur.execute(s, p)
             cols = [d[0] for d in cur.description]
             return [dict(zip(cols, row)) for row in cur.fetchall()]
 
     def execute(self, sql: str, params=None) -> int:
-        with self._conn().cursor() as cur:
-            cur.execute(sql, params or [])
-            return cur.rowcount
+        s, p = _pg_convert_sql(sql, params)
+        with self._con.cursor() as cur:
+            cur.execute(s, p)
+            # psycopg3 reports rowcount -1 for statements with no row count
+            # (DDL like CREATE TABLE). The store reads -1 as failure, so
+            # normalize to 0 the way SQLiteBackend does.
+            return cur.rowcount if cur.rowcount > 0 else 0
 
     def begin(self) -> int:
-        import psycopg  # type: ignore
+        if self._tx_active:
+            raise RuntimeError("transaction already active")
         self._next_tx += 1
-        c = self._pool[0]
-        c.autocommit = False
-        c.execute("BEGIN")
-        self._tx_conns[self._next_tx] = c
+        # autocommit stays True; a literal BEGIN opens a server-side block
+        # that the following statements join until COMMIT/ROLLBACK.
+        self._con.execute("BEGIN")
+        self._tx_active = True
         return self._next_tx
 
     def commit(self, tx_id: int) -> bool:
-        c = self._tx_conns.pop(tx_id, None)
-        if c is None:
+        if not self._tx_active:
             return False
-        try:
-            c.execute("COMMIT")
-        except Exception:
-            pass
-        c.autocommit = True
+        self._con.execute("COMMIT")
+        self._tx_active = False
         return True
 
     def rollback(self, tx_id: int) -> bool:
-        c = self._tx_conns.pop(tx_id, None)
-        if c is None:
+        if not self._tx_active:
             return False
         try:
-            c.execute("ROLLBACK")
+            self._con.execute("ROLLBACK")
         except Exception:
             pass
-        c.autocommit = True
+        self._tx_active = False
         return True
 
     def insert_many(self, table: str, rows, columns: list[str]) -> int:
@@ -272,13 +321,15 @@ class PostgresBackend(Backend):
         placeholders = ",".join(["%s"] * len(columns))
         cols = ",".join(columns)
         sql = "INSERT INTO %s (%s) VALUES (%s)" % (table, cols, placeholders)
-        with self._conn().cursor() as cur:
+        with self._con.cursor() as cur:
             cur.executemany(sql, [list(r[:len(columns)]) for r in rows])
             return cur.rowcount
 
     def execute_batch(self, statements: list[str]) -> bool:
-        with self._conn().cursor() as cur:
+        with self._con.cursor() as cur:
             for stmt in statements:
-                if stmt.strip():
-                    cur.execute(stmt)
+                sql, params = _stmt_to_sql_params(stmt)
+                if sql.strip():
+                    s, p = _pg_convert_sql(sql, params)
+                    cur.execute(s, p)
             return True

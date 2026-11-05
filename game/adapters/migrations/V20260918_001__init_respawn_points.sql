@@ -11,10 +11,12 @@
 -- Hot reads go through Redis cache (player death to nearest ankh).
 CREATE TABLE IF NOT EXISTS respawn_points (
     id              TEXT PRIMARY KEY,
-    zone_id         TEXT NOT NULL REFERENCES zones(id),
+    zone_id         TEXT NOT NULL,
     name            TEXT NOT NULL,
-    position        VECTOR3 NOT NULL,
-    faction_id      TEXT REFERENCES factions(id),
+    position_x      REAL NOT NULL DEFAULT 0,
+    position_y      REAL NOT NULL DEFAULT 0,
+    position_z      REAL NOT NULL DEFAULT 0,
+    faction_id      TEXT,
     bind_cost       INTEGER DEFAULT 0,
     cooldowns       JSONB DEFAULT '{}',
     enabled         BOOLEAN DEFAULT TRUE,

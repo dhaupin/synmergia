@@ -26,8 +26,59 @@ signal shard_status_changed(shard_id: String, status: String)
 signal player_count_changed(count: int)
 
 func _ready() -> void:
+	_apply_env_config()
 	_load_shards()
+	_register_with_coordinator()
 	GameLog.info("ShardManager: Ready as %s (%s)" % [shard_id, shard_name])
+
+## Apply deployment identity from the environment (container mesh).
+## Absent env vars leave the defaults untouched, so dev/CI boots are
+## byte-identical to before this leg existed. An EMPTY value counts as
+## absent: compose passes `SHARD_ID=${SHARD_ID:-}`, which is present but
+## empty when unset.
+func _apply_env_config() -> void:
+	var config := {}
+	var shard_id := _env_str("SHARD_ID")
+	if shard_id != "":
+		config["shard_id"] = shard_id
+		# Name defaults to the id so a mesh reads as shard_2/shard_2, not
+		# shard_2/Alpha, unless SHARD_NAME is given explicitly.
+		config["shard_name"] = _env_str("SHARD_NAME") if _env_str("SHARD_NAME") != "" else shard_id
+	elif _env_str("SHARD_NAME") != "":
+		config["shard_name"] = _env_str("SHARD_NAME")
+	if _env_str("IS_PRIMARY") != "":
+		config["is_primary"] = _env_bool("IS_PRIMARY", true)
+	if _env_str("WORLD_SIZE_KM2") != "":
+		config["world_size_km2"] = float(_env_str("WORLD_SIZE_KM2"))
+	if _env_str("MAX_PLAYERS_PER_SHARD") != "":
+		config["max_players_per_shard"] = int(_env_str("MAX_PLAYERS_PER_SHARD"))
+	if config.is_empty():
+		return
+	configure(config)
+
+## Read an env var, treating empty/whitespace as absent.
+static func _env_str(name: String) -> String:
+	return OS.get_environment(name).strip_edges()
+
+## Announce this shard to the coordinator so the mesh registry sees it.
+## CoordinatorService is an earlier autoload (project.godot order), so it
+## is ready here. Silently skips if it is absent (e.g. isolated tests).
+func _register_with_coordinator() -> void:
+	var coord = get_node_or_null("/root/CoordinatorService")
+	if coord == null or not coord.has_method("register_shard"):
+		return
+	coord.register_shard(shard_id, {
+		"name": shard_name,
+		"is_primary": is_primary,
+		"world_name": world_name,
+		"max_players": max_players_per_shard,
+	})
+
+static func _env_bool(name: String, default: bool) -> bool:
+	var raw := OS.get_environment(name).strip_edges().to_lower()
+	if raw == "":
+		return default
+	return raw in ["1", "true", "yes", "on"]
 
 ## Configure this shard
 func configure(config: Dictionary) -> void:
