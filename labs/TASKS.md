@@ -8507,3 +8507,9 @@ the sea bands). All four landed; one stale probe leg fell with them.
 - Marsh Piper (npc_jeweler_haven) opens Haven Bench of Pearls in zone_village_center: by_item_id shelf of the four jewelry pieces (row stock 5/3/2/1), the abyss breather, and raw abyss pearl; buy_categories [2,4] so the bench pays for pearls and takes back outgrown jewelry. Scene reuse (merchant_general.tscn), 5-node intro dialogue, roster row added.
 - Also carried the PR #51 (shard mesh Phase 0) landing through staging: merged locally --no-ff as 936c2924 after the local verification batch (shard identity 12/0, adapter HTTP 5/0, naming/lint/catalog green, bridge suites OK), GitHub records the PR as merged.
 - Gates: catalog 10/0, naming 26/0, lint suite exit 0.
+
+## 2026-11-05b -- Jeweler world-seat fix + live web-client boot
+- Manual client test through the repo web shell (fresh staging pack via --export-pack, hash re-stamped): login/guest -> lobby -> class pick -> globe boot works in-browser (HUD, weather, NPC rosters, Gull Island entry all logged).
+- Caught: the Haven Jeweler never spawned on the globe -- globe_world.gd's VILLAGE_NPC_BATCH is the globe's seat law; the zone .tres roster row only places NPCs on planar zones. Added npc_jeweler_haven (bearing 110, reach 0.012), the plaza's open lane between smithy and academy.
+- Gates: lint 37/0 (GODOT must point at the local binary; the suite's /tmp default is stale and 5/5 "CRASH: no RESULTS" is an environment failure, not a code failure).
+- Deferred: walking to the jeweler and opening the shop inside the browser session (terrain derive saturates this VM mid-session); the boot + roster leg is verified.

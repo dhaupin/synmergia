@@ -1196,6 +1196,11 @@ const VILLAGE_NPC_BATCH: Array = [
 	["npc_herbalist_village", 20.0, 0.012],
 	["npc_banker_village", -60.0, 0.011],
 	["npc_skill_academy_village", 160.0, 0.012],
+	# The Haven Jeweler (Marsh Piper): the shore's pearl-cutter, the
+	# jewelry line's own stall on the plaza arc (the pearl industry
+	# learned a face). Bearing 110 keeps an open lane: off the
+	# smithy's 44 and the academy's 160, clear sky between stalls.
+	["npc_jeweler_haven", 110.0, 0.012],
 ]
 const CAPITOL_NPC_BATCH: Array = [
 	# npc_id, bearing_deg (capitol strand frame), reach_rad
