@@ -1,0 +1,51 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/enemy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "drowned_custodian"
+display_name = "Drowned Custodian"
+description = "The sea keeps her clerks too: a custodian who went under with her ledger and never stopped filing. She writes the accounts of what the tide takes and demands payment on the spot."
+enemy_type = 0
+level = 55
+faction = "hostile"
+health = 4200
+mana = 336
+stamina = 252
+strength = 70
+agility = 44
+intelligence = 46
+vitality = 66
+attack_power = 140
+spell_power = 96
+armor = 44
+resistance = 36
+attack_range = 2.5
+attack_speed = 1.00
+move_speed = 4.2
+aggro_range = 14.0
+chase_range = 32.0
+wander_range = 8.0
+see_stealth = false
+is_aggressive = true
+is_passive = false
+is_elite = false
+is_boss = false
+is_social = false
+loot_table_id = "loot_sunken_salvage"
+secondary_loot_table_id = "loot_elite_ore"
+gold_min = 450
+gold_max = 780
+xp_reward = 4600
+skills = []
+movement_profile_id = ""
+hitbox_profile_id = ""
+model_path = ""
+icon_path = ""
+scale = 1.1
+animation_set = "humanoid"
+respawn_time = 540.0
+despawn_time = 0.0
+difficulty_modifier = 2.2
+

@@ -1,0 +1,51 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/enemy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "tidebound_ancient"
+display_name = "Tidebound Ancient"
+description = "The sea's oldest paid hand: a swimmer the tide hired so long ago it forgot which direction the shore is. Its shell is barnacle and its gullet is mythril-wet, and it still clocks in with the standing tide."
+enemy_type = 1
+level = 60
+faction = "hostile"
+health = 5200
+mana = 416
+stamina = 312
+strength = 78
+agility = 50
+intelligence = 52
+vitality = 74
+attack_power = 158
+spell_power = 104
+armor = 52
+resistance = 44
+attack_range = 2.5
+attack_speed = 0.90
+move_speed = 4.0
+aggro_range = 16.0
+chase_range = 36.0
+wander_range = 8.0
+see_stealth = false
+is_aggressive = true
+is_passive = false
+is_elite = true
+is_boss = false
+is_social = false
+loot_table_id = "loot_sunken_salvage"
+secondary_loot_table_id = "loot_elite_ore"
+gold_min = 700
+gold_max = 1200
+xp_reward = 5500
+skills = []
+movement_profile_id = ""
+hitbox_profile_id = ""
+model_path = ""
+icon_path = ""
+scale = 1.5
+animation_set = "void"
+respawn_time = 600.0
+despawn_time = 0.0
+difficulty_modifier = 2.5
+

@@ -1,0 +1,51 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/enemy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "field_hopper"
+display_name = "Field Hopper"
+description = "The meadow's first tenant: long back legs, big eyes, and a talent for vanishing before the arrow leaves the string. It fights only when cornered, and even then it fights to escape."
+enemy_type = 0
+level = 5
+faction = "hostile"
+health = 70
+mana = 5
+stamina = 4
+strength = 8
+agility = 18
+intelligence = 4
+vitality = 8
+attack_power = 10
+spell_power = 0
+armor = 2
+resistance = 0
+attack_range = 2.5
+attack_speed = 1.60
+move_speed = 5.2
+aggro_range = 10.0
+chase_range = 22.0
+wander_range = 8.0
+see_stealth = false
+is_aggressive = true
+is_passive = true
+is_elite = false
+is_boss = false
+is_social = true
+loot_table_id = "loot_meadow_litter"
+secondary_loot_table_id = ""
+gold_min = 5
+gold_max = 12
+xp_reward = 60
+skills = []
+movement_profile_id = ""
+hitbox_profile_id = ""
+model_path = ""
+icon_path = ""
+scale = 0.9
+animation_set = "wolf"
+respawn_time = 240.0
+despawn_time = 0.0
+difficulty_modifier = 1.2
+
