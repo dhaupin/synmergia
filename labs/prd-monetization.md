@@ -359,7 +359,8 @@ decide with data.
 | The Waystone Ledger — the Bender-only recall fix + the three-charge party stone | AGREED, canon landed | §20 |
 | The Anchor Room — the pub's own door: room clock (deed grant vs clock buys), tavern license, hallmark furniture, one-click travel | AGREED, designed | §22 |
 | The Sponsor Stage — the $20 public pace stage; the rate is the ceiling, buys stack the clock; Investor suffix / Philanthropist prefix | AGREED, designed | §23 |
-| The Investor Stool — reorganized into the focal answers (Hearts / Margin / Cadence / Grudge) | AGREED, doc-only | §27 |
+| The Investor Stool — reorganized into the focal answers (Hearts / Margin / Cadence / Grudge) | AGREED, doc-only | §28 |
+| The Consecrated Ankh — home respawn; dedication earn → 4h clock, bought blessing → 6h clock; permanent | AGREED, designed | §27 |
 | The Grudge Book — belfry rites, pledged rivalries, "the Unforgiving" / "the Spiteful" split | AGREED, designed | §25 |
 | The Glad Ring — announced bouts, best-of-5 rounds, gold-only book, purse + rake | AGREED, designed | §26 |
 
@@ -1104,7 +1105,68 @@ lifecycle, the card and odds reader beside the travel board on the almanac's
 schedule page face, the wager window + cap on the account ledger through the tx
 roots, the rake + Gladnight sink rows, the made-bout board.
 
-## 27. The investor version (the one-paragraph answer)
+## 27. The Consecrated Ankh (spitball #15, 2026-11-05)
+
+The owner's easy win, the house's oldest seat: the ANKH item already exists --
+DwellingService prices it gold (100k) and the sec 19 homestead rails carry the
+placement. What never existed is the BLESSING: a plain ankh is an inert device.
+This section authors it: resurrection at your own house, the death screen's third
+door, and the clocks are the toll.
+
+**Seat 1 -- the Door.** When a fighter falls and holds a CONSECRATED ankh, the
+death screen gains a line: "Ankh at Home" -- stand up at the ankh's placement in
+the held cottage. The fall never teleports the living; the death door is the
+door. The cooldown book is read BEFORE the door shows green: a cold ankh greys
+with a tooltip (the social doc's parked shape -- greyed, never hidden), the
+screen prints remaining time, and looking costs nothing (preview never debits).
+No charge takes while the door is dim.
+
+**Seat 2 -- two blessings, one ankh, the clocks honest.** The blessing is EARNED
+or BOUGHT -- never both at once, never a subscription.
+
+THE EARN -- THE DEDICATION: after achieving a house, the clergy opens a
+dedication chain -- a couple of weeks of earned deeds (the sec 16 week-per-tier
+shape) gated on the actual DwellingService dwelling record, not a receipt,
+riding the real quest rails. The earned blessing runs the FASTER clock: house
+respawn every FOUR HOURS.
+
+THE BUY -- THE CHARTERED BLESSING: money skips the dedication and consecrates
+TODAY. The bought blessing carries the toll in its only lawful dress, TIME (the
+sec 16 chartered shape verbatim): house respawn every SIX HOURS. Same door as
+the grinder's -- the grind keeps the sooner clock, the wallet buys the door NOW.
+Nobody buys a better ceiling; they buy today.
+
+**Provenance and cooldown.** ONE blessing per homestead, PERMANENT (a purchase,
+never a lease, purchases-permanent law), stamped in the account ledger through
+the tx roots as EARNED (4h) or BOUGHT (6h) beside the dwelling record -- provenance
+reused, the sec 10 purse law. The cooldown is ONE keyed book per account
+(CooldownService's book, NOT the central roll-time modifier -- this is a clock,
+never a die); it starts at use and prints concrete remaining time at the death
+screen. The blessing is keyed to the DWELLING, not the plot: a sec 19 deed move
+carries the blessing intact (the earned blessing moves free the first time; a
+chartered homestead's move toll applies as authored already -- the blessing
+never re-bills).
+
+**LAWS:** convenience never power (no XP gain, no gold-per-death, no stat, no
+combat rate touched -- the sec 9 charter family holds ankh-side); the ankh
+resurrects, it never TRAVELS the living (a revival door, never a travel door --
+the sec 20 map's-hold-is-the-door scope stays separate); death never loses its
+free doors (zone spawn and the shipped stand-up remain every account's constant
+floor -- the ankh is a THIRD door, never a toll-gated only door).
+
+IMPLEMENTATION SEAT (build round): the door-routing on RespawnService's
+death-screen reader (ownership + ankh-placed + the blessing, read from
+DwellingService), the cooldown book on the account ledger via the tx roots, the
+dedication quest chain on the quest .tres rails gating the dwelling record, one
+webhook SKU + a new sink row (BLESS family, the no-fake-sinks law: ship the
+grant leg with the row), the blessing field on the ledger's provenance print,
+and the death-screen line + a11y remaining-time text.
+
+PRICE FELT: the bought blessing sits at the doc's small-SKU top -- a one-time
+~$4.99 (the Charter's own price point riding the existing webhook processor
+SKUs). The exact cent is a build-seat number; the owner's veto reserved.
+
+## 28. The investor version (the one-paragraph answer)
 
 *Synmergia's monetization is not a plan, it is an installed, receipt-audited system: a
 wallet, three real-$ SKUs ($4.99–$24.99), a nine-row premium catalog (resurrection
