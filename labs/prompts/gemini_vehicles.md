@@ -129,3 +129,62 @@ Labels: "THE DEPARTURE" only. No other text.
       multi-rider, not solo mounts
 - [ ] Same ink weight as the mounts sheet
 - [ ] Drop in Drive, attach favorites for critique
+
+---
+
+## The two movers (canon, 2026-11-05, from the monetization trade)
+
+> **Canon home: `labs/prd-ancient-movers.md`** -- this seed is the inspiration
+> shelf; the lab PRD carries the law.
+
+Standing law, recorded wherever vehicles are recorded. PERSONAL MOVERS are
+player-owned: a platform woken by YOUR tablet, a mount, a glider, a breather
+helmet. They wear honestly, repair FREE at stations, take Mender's Kits into
+the field and modifiers at the bench. ANCIENT MOVERS are the server-unlocked
+ancients: the ferries on their honesty law, the dormant ruin movers, the
+orb-borne islet lifters already loose in the world before anyone claims them.
+An ANCIENT mover belongs to no player and never prices a personal SKU — its
+bill is a CIVIC bill (settlement deeds, warden take, Concord sinks). No engine
+exists to fuel in either lane: a MEND is binding work, a MODIFIER is verse
+work; see prd-monetization.md sec 29 for the trade's prices and laws.
+
+## The Mystery Gate (the ancients' wake-keys, canon 2026-11-05)
+
+> **Canon home: `labs/prd-ancient-movers.md`** (secs 5-8: lifecycle, wake-keys,
+> sealed keys, the known ancients table). This seed keeps its briefs and its
+> wake-verbs as inspiration only.
+
+The gap the owner flagged: the two-movers canon said the ancients are DORMANT,
+but no PRD ever wrote what wakes them. THE MYSTERY GATE closes the pipe.
+EVERY server-unlocked thing — ancient movers, sealed gates, hidden abilities,
+dormant world physics, anything deep — holds its wake-key behind the world,
+never before the store.
+
+THE FIVE WAKE-KEYS (each an open lane; an ancient may hold one or many):
+1. THE PUZZLE — a server puzzle wakes it: a riddle spread across the world's
+   own texts, monuments and seasons, solved by players, not by walkthroughs
+   the servers ever published.
+2. THE TRAM EFFORT — the effortful road wakes it: trips walked, hauls made,
+   crowds carried — a route's honest use is itself the key, so the road
+   wakes what the road serves.
+3. THE OBSERVATION — the patient watcher wakes it: things noticed where
+   nobody looks (a moon's shadow at a bearing, a light under an islet's
+   root), reporting and reading rewarded.
+4. THE INTERACTION — the ritual hand wakes it: gestures, offerings, tablet
+   statutes touched in the right order at the right ground.
+5. THE PURE LUCK — nobody wakes it; it wakes: a rare spawn or a season
+   rolls its own chance, and who was standing there was the key.
+
+THE SEALED KEYS: some wake conditions are written ONLY server-side — absent
+from design docs by design, and sometimes beyond any one dev's knowledge by
+design (the owner's line: "some even the devs don't know"). The team
+discovers alongside the players; docs may speak of a SOUL in terms of its
+family and its laws, never of its sealed keys.
+
+THE LAW: mystery is the momentum (the owner's confession: "our sense of
+mystery is the momentum, everywhere"). NOTHING purchasable opens a wake-key:
+not the kits, not the modifiers, not the seats, not the ankh's blessing —
+the Concord's Table's rows price what exists and none wakes the unwoken
+(the Oracles, 2026-11-05 — prd-monetization sec 31 — sell only the
+wider SHOT on luck-leg doors: more dice, never the act). Crosslinks: prd-ocean-depths.md's ferry law (the schedule is the
+ONE wake-key carved in the open) and prd-monetization.md sec 28/29.

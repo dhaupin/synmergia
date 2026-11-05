@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "item_soulbind_ticket"
+display_name = "Soulbinder's Ticket"
+description = "A pillared stub of Concord lead, sealed with the Soulbinder's mark. Present it at the death screen and you stand up where you fell (a death the sea owns buys back a safe ground nearby), or kneel by a fallen ally with no healer in reach and pay it to stand them. Spent once, soulbound to the hand that holds it, never vendored -- the pillar shrine's ledger gate is its only door."
+icon_path = "res://icons/items/ticket_soulbind.png"
+item_category = 3
+rarity = 4
+equip_slot = 0
+stack_size = 10
+sell_price = 0
+buy_price = 0
+required_level = 0
+is_bound = true
+is_quest_item = true
+soulbound = true

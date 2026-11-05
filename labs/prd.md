@@ -511,6 +511,13 @@ See `game/data/species/` for implemented species.
 
 Plus 3 GM classes (Akkan, Human, Synthetic) with `role = 0`.
 
+**Canon: the Bender teleport.** Benders are the only class family that can
+teleport party members — one verb, three voices (the Akkan Seer's spatial fold,
+the Human Temporalist's slip, the Synthetic Overclocker's blink). No other class
+teleports the party. **Waystones** (see `prd-monetization.md` §20) are the
+no-Bender fallback door: slower, charge-bound, mark-scoped — never a replacement
+for the class verb.
+
 See `game/data/classes/` for implemented classes.
 
 ### 6.3 Skill Academy

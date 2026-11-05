@@ -1,0 +1,51 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/enemy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mirage_hound"
+display_name = "Mirage Hound"
+description = "Runs better in heat than in truth. The hound's outline swims in the pans' shimmer, so the first sight of it is always slightly left of where it really stands."
+enemy_type = 0
+level = 25
+faction = "hostile"
+health = 720
+mana = 57
+stamina = 43
+strength = 30
+agility = 38
+intelligence = 8
+vitality = 26
+attack_power = 68
+spell_power = 10
+armor = 20
+resistance = 8
+attack_range = 2.5
+attack_speed = 1.30
+move_speed = 5.6
+aggro_range = 15.0
+chase_range = 36.0
+wander_range = 8.0
+see_stealth = true
+is_aggressive = true
+is_passive = false
+is_elite = false
+is_boss = false
+is_social = true
+loot_table_id = "loot_pan_dust"
+secondary_loot_table_id = ""
+gold_min = 85
+gold_max = 140
+xp_reward = 490
+skills = []
+movement_profile_id = ""
+hitbox_profile_id = ""
+model_path = ""
+icon_path = ""
+scale = 1.0
+animation_set = "wolf"
+respawn_time = 360.0
+despawn_time = 0.0
+difficulty_modifier = 1.6
+

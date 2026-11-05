@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "quest_deep_toll"
+display_name = "The Market Toll"
+description = "Marsh Piper has a standing order and no patience for negotiation at the shelf: three raw abyss grades a day, bought before anyone asks. The trench beds pay the squeeze line back every waking, so the honest toll is a dive, not a haggling. Bring the grades and the bench keeps the market open for you."
+giver_npc_id = "npc_jeweler_haven"
+turn_in_npc_id = "npc_jeweler_haven"
+min_level = 35
+max_level = 100
+required_quests = []
+required_faction = ""
+required_faction_rank = 0
+zone_restriction = ""
+objectives = [{"id": "pay_the_toll", "type": 1, "target": "Abyss Pearl", "count": 3}]
+rewards = [{"type": "gold", "id": "", "quantity": 2800}, {"type": "experience", "id": "", "quantity": 3500}, {"type": "item", "id": "tea_mooncap_steep", "quantity": 3, "chance": 1.0}]
+reward_choice_count = 0
+gold_reward = 2800
+xp_reward = 3500
+icon_path = "res://icons/quests/deep_toll.png"
+map_marker = "collect"
+previous_quest_id = ""

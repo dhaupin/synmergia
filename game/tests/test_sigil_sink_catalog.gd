@@ -64,8 +64,8 @@ func _run() -> void:
 		_fail("SigilSinkService.singleton() unavailable")
 		return
 	var catalog: Array = sinks.get_catalog("sink_probe")
-	if catalog.size() != 7:
-		_fail("the catalog is not seven honest rows: %d" % catalog.size())
+	if catalog.size() != 9:
+		_fail("the catalog is not nine honest rows: %d" % catalog.size())
 		return
 	var ds: Node = root.get_node_or_null("DataService")
 	if ds == null:
@@ -92,6 +92,10 @@ func _run() -> void:
 			if int(mount.get("source")) == 5:
 				_fail("the Skywarden's mount is priced: %s" % sid)
 				return
+		elif str(row.get("kind_name")) == "respawn":
+			if ds.call("get_item", "item_soulbind_ticket") == null:
+				_fail("the Soulbinder's Ticket has no datum behind row %s" % sid)
+				return
 		else:
 			var title = title_svc.call("get_title", sinks._title_data_id(sid))
 			if title == null:
@@ -100,7 +104,7 @@ func _run() -> void:
 			if int(title.get("unlock_method")) != 6:
 				_fail("%s is not a PURCHASE degree" % sid)
 				return
-	print("[OK] catalog truth: 7 rows, every steed and degree real, no GM mount priced")
+	print("[OK] catalog truth: 9 rows, every steed, degree and resurrection permit real, no GM mount priced")
 
 	# 2. GATES BEFORE BOOKS.
 	var ghost: Dictionary = sinks.buy_sink("sink_probe", "mount_ghost_x")
@@ -163,9 +167,46 @@ func _run() -> void:
 	if not bool(title_svc.call("_do_equip", "sink_probe", "pillarsworn", "suffix")):
 		_fail("the purchased degree could not ride the real equip surface")
 		return
-	print("[OK] the herald leg: Pillarsworn for exactly 200, dupe refused, equips in the real surface")
+	print("[OK] the herald leg: Pillarsworn for exactly 200, dupe refused, equips in the real surface")# 3b. THE RESPAWN LEG (the Soulbinder's Ticket): prepaid permits buy
+# by the stack, are never OWNED-gated, and stamp REAL bag rows.
+	var _soulbind_held := func(inv, want_id: String) -> int:
+			var n: int = 0
+			for it in inv.call("get_all_items"):
+				if it != null and str(it.get("id")) == want_id:
+					var cs = it.get("current_stack")
+					n += maxi(1, int(cs) if cs != null else 1)
+			return n
+	var ticket: Dictionary = sinks.buy_sink("sink_probe", "respawn_soulbind_ticket")
+	if not bool(ticket.get("success")):
+		_fail("the honest ticket was refused: " + str(ticket.get("reason")))
+		return
+	if int(purse.call("get_currency_amount", CURRENCY_ID)) != 625:
+		_fail("the ticket debit moved wrong: %d (need 625)" % int(purse.call("get_currency_amount", CURRENCY_ID)))
+		return
+	if int(_soulbind_held.call(purse, "item_soulbind_ticket")) != 1:
+		_fail("the ticket grant stamped %d, not 1" % int(_soulbind_held.call(purse, "item_soulbind_ticket")))
+		return
+	var pack: Dictionary = sinks.buy_sink("sink_probe", "respawn_soulbind_eight")
+	if not bool(pack.get("success")):
+		_fail("the honest slice was refused: " + str(pack.get("reason")))
+		return
+	if int(purse.call("get_currency_amount", CURRENCY_ID)) != 475:
+		_fail("the slice debit moved wrong: %d (need 475)" % int(purse.call("get_currency_amount", CURRENCY_ID)))
+		return
+	if int(_soulbind_held.call(purse, "item_soulbind_ticket")) != 9:
+		_fail("the slice grant stamped %d, not 9" % int(_soulbind_held.call(purse, "item_soulbind_ticket")))
+		return
+	var again: Dictionary = sinks.buy_sink("sink_probe", "respawn_soulbind_ticket")
+	if not bool(again.get("success")):
+		_fail("a repeat permit sale was OWNED-gated: " + str(again.get("reason")))
+		return
+	if int(purse.call("get_currency_amount", CURRENCY_ID)) != 450 or int(_soulbind_held.call(purse, "item_soulbind_ticket")) != 10:
+		_fail("the repeat permit sale moved the books wrong")
+		return
+	print("[OK] the respawn leg: one ticket for 25, a x8 slice for 150, permits stack to 10 and never OWNED-gate")
 
-	# 4. THE REFUND LAW (both grant legs, stub doors that refuse).
+	# 4. THE REFUND LAW (both grant legs, stub doors that refuse) + the
+	# bag door's own refusal: a FULL bag rewinds every sigil too.
 	var cold = load(SinkServicePath).new()
 	var stable_stub := StubStable.new()
 	root.add_child(stable_stub)
@@ -175,17 +216,23 @@ func _run() -> void:
 	if bool(refund1.get("success")) or not str(refund1.get("reason")).contains("refunded"):
 		_fail("the refused stable leg did not name the refund: " + str(refund1))
 		return
-	if int(purse.call("get_currency_amount", CURRENCY_ID)) != 650:
-		_fail("the stable refund left books owed: %d (need 650)" % int(purse.call("get_currency_amount", CURRENCY_ID)))
+	if int(purse.call("get_currency_amount", CURRENCY_ID)) != 450:
+		_fail("the stable refund left books owed: %d (need 450)" % int(purse.call("get_currency_amount", CURRENCY_ID)))
 		return
 	cold._title_resolver = func(_player_id: String, _title_id: String) -> bool:
 		return false
+	# The respawn legs emptied the purse honestly; the refund legs only
+	# exercise stub-debit-then-refund, so a labeled truth seed tops it
+	# up for the 500-sigil degree (the refund nets the books back here).
+	if not purse.call("add_currency", CURRENCY_ID, 500):
+		_fail("the refund seed purse refused its topping")
+		return
 	var refund2: Dictionary = cold.buy_sink("sink_probe", "title_deepseabaron")
 	if bool(refund2.get("success")) or not str(refund2.get("reason")).contains("refunded"):
 		_fail("the refused herald leg did not name the refund: " + str(refund2))
 		return
-	if int(purse.call("get_currency_amount", CURRENCY_ID)) != 650:
-		_fail("the herald refund left books owed: %d" % int(purse.call("get_currency_amount", CURRENCY_ID)))
+	if int(purse.call("get_currency_amount", CURRENCY_ID)) != 950:
+		_fail("the herald refund left books owed: %d (need 950)" % int(purse.call("get_currency_amount", CURRENCY_ID)))
 		return
 	if bool(ride.call("owns_mount", "sink_probe", "mount_plains_runner")):
 		_fail("a refused stub granted a real steed")
@@ -195,15 +242,46 @@ func _run() -> void:
 		return
 	print("[OK] the refund law: both refused doors rewound every sigil, books whole, no phantom prize")
 
+	# The bag door's refund: a full bag REFUSES the add and the sink
+	# law rewinds the debit (the same book, third gate leg).
+	var vault_comp = load(InventoryCompPath).new()
+	vault_comp.max_inventory_slots = 1
+	if not vault_comp.add_item(load("res://data/consumables/potion_health_small.tres"), 1):
+		_fail("the vault stub refused its filler (bag law moved)")
+		return
+	inv_svc.call("register_inventory", "sink_probe_vault", vault_comp)
+	var vault_purse = vault_comp
+	vault_purse.add_currency(CURRENCY_ID, 50)
+	var full_bag: Dictionary = sinks.buy_sink("sink_probe_vault", "respawn_soulbind_ticket")
+	if bool(full_bag.get("success")) or not str(full_bag.get("reason")).contains("refunded"):
+		_fail("a full bag did not name the refund: " + str(full_bag))
+		return
+	if int(vault_purse.call("get_currency_amount", CURRENCY_ID)) != 50:
+		_fail("the full-bag refund left books owed: %d (need 50)" % int(vault_purse.call("get_currency_amount", CURRENCY_ID)))
+		return
+	if int(_soulbind_held.call(vault_purse, "item_soulbind_ticket")) != 0:
+		_fail("a full bag stamped a phantom ticket")
+		return
+	print("[OK] the bag door's refund: a full bag paid nothing and stamped nothing, books whole")
+
 	# 5. THE SALE SPEAKS (and the panel surface renders the truth rows).
-	if heard.size() != 2:
-		_fail("the purchase voice spoke %d times of two sales" % heard.size())
+	if heard.size() != 5:
+		_fail("the purchase voice spoke %d times of five sales" % heard.size())
 		return
 	if str(heard[0].get("sink_id")) != "mount_meadow_pacer" or int(heard[0].get("sigils")) != 150:
 		_fail("the voice mispriced the pacer: " + str(heard[0]))
 		return
 	if str(heard[1].get("sink_id")) != "title_pillarsworn" or int(heard[1].get("sigils")) != 200:
 		_fail("the voice mispriced the degree: " + str(heard[1]))
+		return
+	if str(heard[2].get("sink_id")) != "respawn_soulbind_ticket" or int(heard[2].get("sigils")) != 25:
+		_fail("the voice mispriced the ticket: " + str(heard[2]))
+		return
+	if str(heard[3].get("sink_id")) != "respawn_soulbind_eight" or int(heard[3].get("sigils")) != 150:
+		_fail("the voice mispriced the slice: " + str(heard[3]))
+		return
+	if str(heard[4].get("sink_id")) != "respawn_soulbind_ticket" or int(heard[4].get("sigils")) != 25:
+		_fail("the voice mispriced the repeat permit: " + str(heard[4]))
 		return
 	var panel = load("res://ui/components/premium_shop_ui.gd").new()
 	root.add_child(panel)
@@ -212,10 +290,11 @@ func _run() -> void:
 		_fail("the sink surface never built inside the vault panel")
 		return
 	var sink_rows: int = panel.get_node("Panel/Main/SinksBox").get_child_count()
-	if sink_rows < 8:
+	if sink_rows < 10:
 		_fail("the sink surface rendered %d rows, not the catalog" % sink_rows)
 		return
-	# An owned row tells the truth (the pacer's Buy is disabled).
+	# An owned row tells the truth (the pacer's and the degree's Buys are
+	# disabled; permit rows never read owned).
 	var with_owned: Array = sinks.get_catalog("sink_probe")
 	var owned_rows: Array = with_owned.filter(func(r): return bool(r.get("owned")))
 	if owned_rows.size() < 2:
@@ -228,5 +307,6 @@ func _run() -> void:
 	panel.free()
 	inv_svc.call("unregister_inventory", "sink_probe")
 	inv_svc.call("unregister_inventory", "sink_probe_yak")
+	inv_svc.call("unregister_inventory", "sink_probe_vault")
 	print("SIGIL-SINK-CATALOG-ALL-OK")
 	quit(0)

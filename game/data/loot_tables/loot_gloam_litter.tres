@@ -1,0 +1,46 @@
+[gd_resource type="Resource" script_class="LootTable" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/loot_table.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "loot_gloam_litter"
+name = "Gloam Litter"
+description = "The gloam holds what its tenants scraped up: iron out of old field burrows, silver the roots bit, and the mushrooms nobody harvests honest."
+level = 10
+min_items_dropped = 1
+max_items_dropped = 3
+base_drop_chance = 1.0
+entries = [{
+"item_id": "res_iron_ore",
+"min_quantity": 1,
+"max_quantity": 2,
+"drop_rate": 0.30,
+"rarity_weight": 1.5,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "res_mooncap",
+"min_quantity": 1,
+"max_quantity": 2,
+"drop_rate": 0.25,
+"rarity_weight": 1.2,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "potion_health_small",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 0.20,
+"rarity_weight": 1.0,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "res_ore_silver",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 0.12,
+"rarity_weight": 0.8,
+"is_guaranteed": false,
+"conditions": []
+}]

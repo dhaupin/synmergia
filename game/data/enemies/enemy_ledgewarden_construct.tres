@@ -1,0 +1,51 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/enemy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "ledgewarden_construct"
+display_name = "The Ledgewarden"
+description = "A riveted construct of the old order, still keeping the depths' ledges with the ledger's patience. Its joints creak a bell-tone; its orders signed so long ago that the ink thinks for itself."
+enemy_type = 1
+level = 57
+faction = "hostile"
+health = 3800
+mana = 304
+stamina = 228
+strength = 66
+agility = 34
+intelligence = 40
+vitality = 72
+attack_power = 136
+spell_power = 92
+armor = 48
+resistance = 40
+attack_range = 2.5
+attack_speed = 1.10
+move_speed = 3.8
+aggro_range = 13.0
+chase_range = 30.0
+wander_range = 8.0
+see_stealth = true
+is_aggressive = true
+is_passive = false
+is_elite = true
+is_boss = false
+is_social = false
+loot_table_id = ""
+secondary_loot_table_id = "loot_elite_ore"
+gold_min = 500
+gold_max = 900
+xp_reward = 4800
+skills = []
+movement_profile_id = ""
+hitbox_profile_id = ""
+model_path = ""
+icon_path = ""
+scale = 1.3
+animation_set = "void"
+respawn_time = 540.0
+despawn_time = 0.0
+difficulty_modifier = 2.3
+
