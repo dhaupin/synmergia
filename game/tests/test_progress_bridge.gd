@@ -49,6 +49,21 @@ func _run() -> void:
 	_assert(BridgeScript.xp_to_next(1) == 1000, "xp curve level 1 = 1000")
 	_assert(BridgeScript.xp_to_next(3) == 2250, "xp curve level 3 = 2250")
 
+	# ---- THE PAST-BAND LAW IS THE CURVE'S, NOT THE OLD 1.5^n (#54) --------
+	# The shipped old pin (1000 / 2250) is band-byte-equal under BOTH laws;
+	# these legs keep the bridge pinned to LevelCurve past the band, where
+	# the breathing ratio diverges from the old 1.5^n explosion.
+	var CurveLaw = load("res://core/progression/level_curve.gd")
+	var band_top: int = int(float(1000) * pow(1.5, 9))
+	_assert(BridgeScript.xp_to_next(11) == CurveLaw.level_cost(11),
+			"past-band cost = the breathing band law (band_top x 1.03)")
+	_assert(BridgeScript.xp_to_next(11) == int(float(band_top) * pow(1.03, 1)),
+			"level 11 = anchored breathing ratio, not 1.5^n (%d)" % BridgeScript.xp_to_next(11))
+	_assert(BridgeScript.xp_to_next(12) == int(float(band_top) * pow(1.03, 2)),
+			"level 12 compounds the ratio, not the old 1.5")
+	_assert(BridgeScript.xp_to_next(12) < int(float(1000) * pow(1.5, 11)),
+			"the bridge no longer explodes past the band (curve < old 1.5^n)")
+
 	# No-usable-fields snapshot maps to nothing.
 	_assert(BridgeScript.snapshot_to_payloads({}).is_empty(), "empty snapshot maps to {}")
 	_assert(BridgeScript.snapshot_to_payloads({"reason": "kill"}).is_empty(),

@@ -15,6 +15,10 @@ func _glog() -> Node:
 
 const _ac_script = preload("res://core/services/anticheat_service.gd")
 
+## THE PROGRESSION RATIO LAW's preloads (mirror _pmgr()): the cap and the
+## curve live in ONE authority; the node consults it, never forks it.
+const LevelCurveScript = preload("res://core/progression/level_curve.gd")
+
 ## Runtime autoload lookup (script-mode-safe).
 func _anti_cheat() -> Node:
 	var tree := Engine.get_main_loop() as SceneTree
@@ -1765,10 +1769,20 @@ func add_experience(amount: int) -> void:
 	if amount <= 0:
 		return
 	experience += amount
-	while experience >= experience_to_next_level:
+	# THE CAP LAW mirrors _pmgr() (#54): the node never encodes the cap --
+	# LevelCurve is the ONE authority. Overflow XP past the cap banks (the
+	# experience field keeps its value; no level, no stat, no heal), so a
+	# seasonal cap raise pays out from what the body already banked.
+	while experience >= experience_to_next_level \
+			and level < LevelCurveScript.max_level():
 		experience -= experience_to_next_level
 		level += 1
-		experience_to_next_level = int(experience_to_next_level * 1.5)
+		# The curve (not a compounding drift) owns the next level's cost: a
+		# body AT `level` carries level_cost(level) -- the level_curve
+		# docstring law, byte-equal to the shipped 1.5^n band pin the quest
+		# authors assume. (#54: the old inline int(1.5x) compounding never
+		# consulted the cap and unstoppered past-band growth.)
+		experience_to_next_level = LevelCurveScript.level_cost(level)
 		# Full restore on level up, mirroring _pmgr().
 		if health_component != null:
 			max_health += 10

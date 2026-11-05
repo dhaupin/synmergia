@@ -29,6 +29,11 @@ extends RefCounted
 const StateSchemaScript = preload("res://core/frame/schemas/state_schema.gd")
 const StateTreeScript = preload("res://core/frame/kv/state_tree.gd")
 
+## THE PROGRESSION RATIO LAW's preload (#54): the bridge derives the
+## health node's max from the ONE curve authority, not a mirror copy --
+## the old inline 1.5x loop kept an old envelope past the breathing band.
+const LevelCurveScript = preload("res://core/progression/level_curve.gd")
+
 ## Schema instance shared by every node this bridge writes: node hashes
 ## fold the schema id, so per-node schema instances would make roots
 ## incomparable across writes.
@@ -57,13 +62,11 @@ func get_tree() -> StateTreeScript:
 ## Snapshot -> node payloads (pure; also used by tests)
 ## ---------------------------------------------------------------------------
 
-## XP needed to reach the next level: must mirror the player surface
-## (PlayerProgress.restore_player curve: 1000 base, 1.5x per level).
+## XP needed to reach the next level for a body at `level`: derived from
+## LevelCurve (#54) -- the one authority, identical to the node surface
+## and the restore path (see test_progress_bridge.gd for the past-band pin).
 static func xp_to_next(level: int) -> int:
-	var need := 1000
-	for _i in range(maxi(0, level - 1)):
-		need = int(need * 1.5)
-	return need
+	return LevelCurveScript.level_cost(maxi(1, level))
 
 
 ## Quantize a coordinate onto the 0.01m grid (float only; ints pass).

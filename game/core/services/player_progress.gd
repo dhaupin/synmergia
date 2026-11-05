@@ -22,6 +22,12 @@ extends Node
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 const ProgressBridgeScript = preload("res://core/frame/bridge/progress_bridge.gd")
 
+## THE PROGRESSION RATIO LAW's preload (#54): a restored body's next-level
+## cost comes from the one curve authority, never a re-derivation -- the
+## old inline 1.5x loop handed a restored body the old envelope (and would
+## have frozen it there the day the cap or ratio is tuned).
+const LevelCurveScript = preload("res://core/progression/level_curve.gd")
+
 ## Character-node id -> last saved snapshot (dedupe + diagnostics).
 var _last_saved: Dictionary = {}
 
@@ -171,12 +177,12 @@ func restore_player(player: Node, restore_position: bool = true) -> bool:
 		player.gold = int(progress["gold"])
 	if progress.has("level") and "level" in player:
 		player.level = int(progress["level"])
-		# Keep the level curve consistent with the restored level: XP
-		# needed grows 1.5x per level from the 1000 base.
+		# Keep the level curve consistent with the restored level (#54):
+		# the one curve authority derives it -- a body AT `level` carries
+		# level_cost(level), byte-equal to the shipped band in-band.
 		if "experience_to_next_level" in player:
-			player.experience_to_next_level = 1000
-			for _i in range(maxi(0, player.level - 1)):
-				player.experience_to_next_level = int(player.experience_to_next_level * 1.5)
+			player.experience_to_next_level = \
+					LevelCurveScript.level_cost(maxi(1, player.level))
 
 	if restore_position and progress.has("position") and player is Node3D:
 		var pos: Dictionary = progress["position"]
@@ -203,9 +209,8 @@ func restore_player(player: Node, restore_position: bool = true) -> bool:
 			if "level" in pm:
 				pm.level = int(progress.get("level", 1))
 			if "experience_to_next_level" in pm:
-				pm.experience_to_next_level = 1000
-				for _i in range(maxi(0, int(progress.get("level", 1)) - 1)):
-					pm.experience_to_next_level = int(pm.experience_to_next_level * 1.5)
+				pm.experience_to_next_level = \
+						LevelCurveScript.level_cost(maxi(1, int(progress.get("level", 1))))
 			if pm.has_signal("experience_changed"):
 				pm.experience_changed.emit(pm.experience, pm.level)
 

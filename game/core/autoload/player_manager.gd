@@ -169,8 +169,13 @@ func level_up_function() -> void:
 	experience -= experience_to_next_level
 	level += 1
 
-	# The curve (not a compounding drift) owns the next level's cost.
-	experience_to_next_level = LevelCurve.level_cost(level + 1)
+	# The curve (not a compounding drift) owns the next level's cost: a
+	# body AT `level` carries level_cost(level) -- the level_curve docstring
+	# law, the same values the restored snapshot path, the node surface,
+	# and the frame bridge all derive. (#54: the old post-up call was
+	# level_cost(level + 1), charging a body at L the L+1 envelope -- the
+	# off-by-one that made the live mirror disagree with every restore.)
+	experience_to_next_level = LevelCurve.level_cost(level)
 
 	# Stat increases
 	add_stat("strength", 1)

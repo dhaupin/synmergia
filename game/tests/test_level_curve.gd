@@ -68,8 +68,28 @@ func _init() -> void:
 		"player_manager preloads the curve law")
 	_ok(pm_src.contains("level < LevelCurve.max_level()"),
 		"the add_experience loop is cap-guarded by the curve")
-	_ok(pm_src.contains("LevelCurve.level_cost(level + 1)"),
-		"the next level's cost comes from the curve, not a compounding drift")
+	_ok(pm_src.contains("LevelCurve.level_cost(level)"),
+		"the next level's cost comes from the curve, not a compounding drift (#54: the post-up call was level + 1, the off-by-one that made the live mirror disagree with every restore)")
+
+	# ---- THE THREE DRIFT SITES STAY OUTLAWED (text receipts) --------------
+	# #54: player_controller / player_progress restore / progress_bridge
+	# used to inline the old 1000*1.5^(l-1) envelope. They now consult the
+	# ONE authority; these pins keep them from re-forking the law.
+	var pc_src := FileAccess.open("res://entities/player/player_controller.gd", FileAccess.READ).get_as_text()
+	_ok(pc_src.contains("level < LevelCurveScript.max_level()"),
+		"the node level-up loop is cap-guarded by the curve (no cap bypass)")
+	_ok(pc_src.contains("LevelCurveScript.level_cost(level)"),
+		"the node's next level cost comes from the curve, not int(1.5x) drift")
+	var pp_src := FileAccess.open("res://core/services/player_progress.gd", FileAccess.READ).get_as_text()
+	_ok(pp_src.contains("LevelCurveScript.level_cost(maxi(1, player.level))"),
+		"the restore path derives the restored body's cost from the curve")
+	_ok(not pp_src.contains("experience_to_next_level * 1.5"),
+		"the restore path no longer re-derives the old 1.5x envelope")
+	var pb_src := FileAccess.open("res://core/frame/bridge/progress_bridge.gd", FileAccess.READ).get_as_text()
+	_ok(pb_src.contains("LevelCurveScript.level_cost"),
+		"the snapshot bridge derives xp_to_next from the curve")
+	_ok(not pb_src.contains("need * 1.5"),
+		"the snapshot bridge no longer mirrors the old 1.5x envelope")
 
 	# ---- NO RE-BAKED CONTENT CEILING (data law) ------------------------
 	# Tutorial gates are allowed as authored (5/8/10/12 = the walk order);
