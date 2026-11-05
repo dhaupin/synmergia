@@ -243,6 +243,26 @@ func _run() -> void:
 		_ok("Complete tab lists both awaiting-turn-in and turned-in quests")
 	else:
 		_fail("Complete tab dropped a turned-in quest (saw %s)" % str(completed_names.keys()))
+	# The PEARL CHAIN (pearl-industry round): quest_tideline_kelp requires
+	# quest_pearl_dive. A level-12 tester with an empty book must see the
+	# dive in the roster (its only gate up here is level) while the kelp
+	# daily stays chain-locked; after the dive reads REWARDED, the chain
+	# gate opens and the kelp daily joins the roster in its place.
+	fake_player.level = 12
+	qs._player_quests[pid] = {}
+	var chain_before: Array = qs._get_available_quest_ids(pid)
+	if chain_before.has("quest_pearl_dive") and not chain_before.has("quest_tideline_kelp"):
+		_ok("pearl dive available at level 12 while the kelp daily stays chain-locked")
+	else:
+		_fail("pearl chain availability wrong at level 12: %s" % str(chain_before))
+	qs._player_quests[pid]["quest_pearl_dive"] = {"state": qs.QuestData.QuestState.REWARDED, "objectives": []}
+	var chain_after: Array = qs._get_available_quest_ids(pid)
+	if chain_after.has("quest_tideline_kelp") and not chain_after.has("quest_pearl_dive"):
+		_ok("finishing the dive opens the tideline daily in the roster")
+	else:
+		_fail("tideline chain gate did not open after the dive: %s" % str(chain_after))
+	fake_player.level = 1
+
 	qui.queue_free()
 
 	_finish()

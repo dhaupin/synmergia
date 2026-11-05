@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "quest_pearl_dive"
+display_name = "A Pearl for the Piper"
+description = "Marsh Piper wants abyss pearl INTACT -- the trench beds sit past the squeeze line, so a breather is not a suggestion, it is the entry fee. Bring her two raw grades and the bench's tidecaller seat stops being window talk."
+quest_type = 1
+difficulty = 2
+giver_npc_id = "npc_jeweler_haven"
+turn_in_npc_id = "npc_jeweler_haven"
+min_level = 8
+max_level = 100
+required_quests = []
+required_faction = ""
+required_faction_rank = 0
+zone_restriction = "zone_village_center"
+objectives = [{"id": "dive_the_trench", "type": 1, "target": "Abyss Pearl", "count": 2}, {"id": "set_the_pearl", "type": 5, "target": "npc_jeweler_haven", "count": 1}]
+rewards = [{"type": "gold", "id": "", "quantity": 250}, {"type": "experience", "id": "", "quantity": 400}, {"type": "item", "id": "acc_ring_tidecaller", "quantity": 1, "chance": 1.0}]
+reward_choice_count = 0
+gold_reward = 250
+xp_reward = 400
+icon_path = "res://icons/quests/pearl_dive.png"
+map_marker = "collect"
+next_quest_id = "quest_tideline_kelp"
+previous_quest_id = ""

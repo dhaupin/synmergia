@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "quest_tideline_kelp"
+display_name = "Tideline Gather"
+description = "The Piper's braid stocks run dry by dusk. Six honest kelp threads off the strait's shelf beds -- cut near the holdfast, not shredded storm wreck -- and the braiding bench keeps its week. Darers who pay the deep beds with pearls already know where the shelf is."
+quest_type = 2
+difficulty = 1
+giver_npc_id = "npc_jeweler_haven"
+turn_in_npc_id = "npc_jeweler_haven"
+min_level = 8
+max_level = 100
+required_quests = ["quest_pearl_dive"]
+required_faction = ""
+required_faction_rank = 0
+zone_restriction = "zone_village_center"
+objectives = [{"id": "gather_kelp", "type": 1, "target": "Kelp Fiber", "count": 6}]
+rewards = [{"type": "gold", "id": "", "quantity": 80}, {"type": "experience", "id": "", "quantity": 120}, {"type": "item", "id": "tea_mooncap_steep", "quantity": 2, "chance": 1.0}]
+reward_choice_count = 0
+gold_reward = 80
+xp_reward = 120
+icon_path = "res://icons/quests/tideline.png"
+map_marker = "collect"
+next_quest_id = ""
+previous_quest_id = "quest_pearl_dive"
+is_repeatable = true
+cooldown = 86400.0
