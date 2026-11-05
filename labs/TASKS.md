@@ -8706,3 +8706,8 @@ the sea bands). All four landed; one stale probe leg fell with them.
 - OWNER CALL: "+5% is too low and weird stingy; bump the $20 / grind to a 10% server boost." Landed: sec 23 authors +10% drop AND xp (intro, ceiling law, stack example now +20%, honest seam, the implementation seat's drop leg); the deed route rides the same +10%; the rate-is-the-ceiling law and the combat firewall untouched.
 - Historical round notes keep contemporaneous 5% lines (waystone-market precedent).
 - DOC-ONLY round: zero .tres, zero service changes, the pack export stands.
+
+## 2026-11-05y -- spitball #12: The Investor Stool (prd sec 24 grows the focal answers)
+- BUFFY PITCHED, OWNER YAY + 4th LEG: the stool reorganizes the investor read into one-per-investor-kind answers. Landed as a new subsection under sec 24 (the one-paragraph answer stays whole above it): Leg 1 HEARTS (ego economy / presence), Leg 2 MARGIN (cost side, dated anchors, ~2,000 payers), Leg 3 CADENCE (income law, cap on data, contractual schedule).
+- LEG 4 OWNER-ADDED, THE GRUDGE ANSWER (the spite model, TBA): revenge / grudges / rivalry -- folks spend before thinking when a name is in front of them. Rails already stand: recent-players heated-rival list + one-click Rematch. Concrete spend seats deliberately TBA -- own spitball later, inheriting all laws (no stat purchase, no free text, authored tradeoffs). Investors' line: impulse spend is the cheapest product we do not yet sell.
+- NUMBERS: bench now THIRTEEN rows (stool). DOC-ONLY round: zero .tres, zero service changes, the pack export stands.

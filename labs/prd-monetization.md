@@ -359,6 +359,7 @@ decide with data.
 | The Waystone Ledger — the Bender-only recall fix + the three-charge party stone | AGREED, canon landed | §20 |
 | The Anchor Room — the pub's own door: room clock (deed grant vs clock buys), tavern license, hallmark furniture, one-click travel | AGREED, designed | §22 |
 | The Sponsor Stage — the $20 public pace stage; the rate is the ceiling, buys stack the clock; Investor suffix / Philanthropist prefix | AGREED, designed | §23 |
+| The Investor Stool — §24 reorganized into the focal answers (Hearts / Margin / Cadence / the Grudge leg TBA) | AGREED, doc-only | §24 |
 
 ## 12. The wardrobe locker — spitball #2 (2026-11-05)
 
@@ -1024,6 +1025,37 @@ $2,800–4,200/month at 10,000 concurrent players (~$0.35 per concurrent player-
 ~$0.04 per DAU-month), meaning roughly 2,000 monthly payers cover it entirely and the
 rest of the budget is labor — which is exactly the conversation this document is a
 baseline for.*
+### The investor stool — the four focal answers (spitball #12, 2026-11-05)
+
+One model, four hats: an investor hears the one they sit on. Every answer below is
+honest on its own — no leg contradicts the paragraph above it, because they are all
+readings of the same math.
+
+**Leg 1 — the Hearts answer (the ego economy).** "Players never rent power here —
+they buy *presence*: their pub's door on the world's travel board, their guild and
+name over the shard's +10% stage, a waystone that remembers a place and passes hand
+to hand. Emotional spend means no pay-to-win lawsuit surface and no whale churn
+cliff — every dollar builds a legend, and legends retain."
+
+**Leg 2 — the Margin answer (the cost side).** "~$0.04 per DAU-month and ~$0.35 per
+concurrent player-month at 10k CCU, benchmarked against dated publisher-page
+anchors. About 2,000 monthly payers cover the entire infrastructure budget, and the
+rest of every dollar is margin or labor. Costs are measured, not vibes."
+
+**Leg 3 — the Cadence answer (the machine).** "Content ships by a signed income
+law: seasonal packs author income against the shared level curve, the cap lifts on
+data not opinion, and publishing cadence is contractual. Investors underwrite a
+schedule, not a hope."
+
+**Leg 4 — the Grudge answer (the spite model — TBA).** Revenge, grudges, rivalry:
+the fourth psychological model — folks spend before thinking when a name is in
+front of them. The rails already stand: the recent-players heated-rival list and
+its one-click Rematch are this psychology's front door. The concrete spend seats
+are deliberately TBA — they land on their own spitball and inherit every law in
+this document (no stat purchase, no free text, the authored-tradeoff rule), so the
+investors' line is honest: *impulse spend is the cheapest product we do not yet
+sell.*
+
 
 ---
 
