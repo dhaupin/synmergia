@@ -348,8 +348,88 @@ decide with data.
 |---|---|---|
 | Dyes — two-lane color economy + the colorist's license | AGREED, designed | §11 |
 | *(next spitballs land here, one row per agreed idea)* | — | — |
+| Wardrobe locker — carry owned looks across owned items | AGREED, designed | §12 |
+| Guild heraldry packs — crew-bought social cosmetics | AGREED, designed | §13 |
 
-## 12. The investor version (the one-paragraph answer)
+## 12. The wardrobe locker — spitball #2 (2026-11-05)
+
+> **Status: AGREED.** The transmog seat: one unlock lets a player carry any cosmetic
+> look they OWN across any item they OWN. It multiplies the value of every cosmetic
+> already sold (dyes, Charter suites, Mythos looks) without needing to sell anything new
+> — pure convenience over the collection, which is the cleanest way for premium to grow.
+
+**What the unlock does (per account, once):** looks live on the account, not stamped
+into items. Own a look once (its unlock is a receipt-style registry row), apply it to
+any carrier you own at the locker (§11's carrier law applies here too: one locker for
+weps/armors/wearables/accessories/mount tack/gliders/furniture), and re-skin as often
+as you like — the underlying item keeps all its own truth.
+
+**It rides the cross-account transaction roots (the owner's rail).** Provenance already
+exists stamped at the purse layer (§10: coin-sigil vs deed-sigil). The locker's
+ownership and history checks run on the SAME roots: a look's unlock persists as
+ledger lines inside the same account-scoped transaction family — not as item copies
+surviving inventory moves. A deed-earned look stays graded exactly as §10 grades
+earned-vs-bought; nothing converts into something stronger by passing through the
+locker.
+
+**Laws (a look is never a stat; the free lane stays real):**
+1. A transmog look is cosmetic ONLY — the carrier keeps its own card's numbers. No
+   look may smuggle a stat onto a free item, or the expensive tier's card onto a
+   cheap one.
+2. **The free lane:** field-crafted looks (the dye lane's mundane palette, plus
+   craft-authored looks) are always locker-eligible and store free in a small set of
+   slots; the paid unlock grows the slot count (unlimited), never the look access.
+3. Charter cosmetics save looks too, free-tracked: owning the Charter must never be
+   required to use the locker on a look the player already owns.
+4. **Preview never debits** — §11's law, restated for the locker.
+5. Provenance/toll stays orthogonal (§10): a graded item re-grades by its own purse
+   truth; moving a look never touches the ledger.
+
+**Implementation seat (a build round):** the look registry as an account-scoped ledger
+(tx-root keyed, per the purse law), the locker UI over §11's wardrobe-overlay decision
+(the overlay shape makes the locker nearly free — looks and dyes get ONE surface
+patch), and the item-catalog receipt gains a locker leg (every look resolves a carrier
+family, and the unlock leg follows the preview-free + refund laws).
+
+## 13. Guild heraldry packs — spitball #3 (2026-11-05)
+
+> **Status: AGREED.** Social cosmetics bought by the crew: banners on guild halls,
+> barque-sail flags, house plaques, and heraldry trims. Ten dollars is nothing to a
+> serious crew for a feature/flair/polish the whole party gets — the price scales by
+> the group, not by one member's wallet (and groups churn less than solo players, so
+> the payers the kit keeps are the durable ones).
+
+**What ships:** kits of a guild's own marks (emblem + colors + motto) as looks applied
+to the visible surface itself — the flag, not each frame's armor. Banners for the
+guild hall, sail flags on the barque, house plaques for player housing, and matching
+heraldry trims for member armor.
+
+**The purchase shape (guild vault, not one wallet):** the kit is bought FROM the guild
+vault, into which any member can deposit. The vault tracks its own earned-vs-bought
+provenance mix per the §10 purse law, so an earned-crew guild buys kits wholly on deed
+sigils, a bought-rich guild pays the Mythos toll per §10, and no member ever has to be
+online to make the purchase unlock for everybody. The buyer permission is rank-gated
+(leader/officer rank only) — never a random rank gamble.
+
+**Laws:**
+1. **Heraldry is a look, never a buff.** No buffs on flags, no damage bonuses for
+   banner bearers. A flag's value is that everyone can see it.
+2. **A guild owns its own emblems.** Hateful or misleading guild marks are real
+   moderation work — the heraldry system ships with a report + takedown flow for
+   hall flags, sails, and plaques from the first build round.
+3. **The free lane:** every guild earns ONE standard-emblem banner for free at guild
+   creation; the Concord kits widen the look range (animated sail seams, glossy
+   plaques, legacy dread banners), never gating the guild badge itself.
+4. The guild does not grade its kits (§10 stays orthogonal) and nothing requires the
+   Charter — a whole pool can pay Charter-price in deed sigils if the crew wants to.
+
+**Implementation seat (a build round):** a guild ledger table (or reuse the existing
+persistence ledger service), the guild-vault deposit and kit-purchase as double-entry
+tx legs with provenance stamps, the rank-gated buy permit, and the look surface riding
+the same wardrobe-overlay recolor seat as §§11-12 so there is exactly ONE
+cosmetic-on-surface patch designed once, reused thrice.
+
+## 14. The investor version (the one-paragraph answer)
 
 *Synmergia's monetization is not a plan, it is an installed, receipt-audited system: a
 wallet, three real-$ SKUs ($4.99–$24.99), a nine-row premium catalog (resurrection
