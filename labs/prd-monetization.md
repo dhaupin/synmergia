@@ -359,7 +359,9 @@ decide with data.
 | The Waystone Ledger — the Bender-only recall fix + the three-charge party stone | AGREED, canon landed | §20 |
 | The Anchor Room — the pub's own door: room clock (deed grant vs clock buys), tavern license, hallmark furniture, one-click travel | AGREED, designed | §22 |
 | The Sponsor Stage — the $20 public pace stage; the rate is the ceiling, buys stack the clock; Investor suffix / Philanthropist prefix | AGREED, designed | §23 |
-| The Investor Stool — §24 reorganized into the focal answers (Hearts / Margin / Cadence / the Grudge leg TBA) | AGREED, doc-only | §24 |
+| The Investor Stool — reorganized into the focal answers (Hearts / Margin / Cadence / Grudge) | AGREED, doc-only | §27 |
+| The Grudge Book — belfry rites, pledged rivalries, "the Unforgiving" / "the Spiteful" split | AGREED, designed | §25 |
+| The Glad Ring — announced bouts, best-of-5 rounds, gold-only book, purse + rake | AGREED, designed | §26 |
 
 ## 12. The wardrobe locker — spitball #2 (2026-11-05)
 
@@ -1007,7 +1009,102 @@ never the curve file); the roll page reading service truth; one $20 SKU riding t
 webhook seam + a STAGE sink row; prefix + suffix `TitleData` rows minted per the
 deed/buy split.
 
-## 24. The investor version (the one-paragraph answer)
+## 25. The Grudge Book (spitball #13, 2026-11-05)
+
+The spite model, seated. The rails stand verified: ArenaRoomService records
+RECENT_PLAYERS per participant on every bout_ended (zone, mode, result, when, the
+head-to-head line), the one-click Rematch is SHIPPED, and every consent path is
+hard law. The stool's Leg 4 clears its TBA here.
+
+**Seat 1 -- the Rematch Belfry.** The duel never changes and never costs anything:
+same arena ladder, same consent, base rates. What is sold is the event wound
+around it. For a bout between two fighters on each other's heated-rival list,
+either side may ring the Belfry -- a zone bell, then a banner in the sec 15
+Whisper Ledger's exact dress: an authored template sentence filled from the
+service record ("Belfry: Kestrel and Oldwren settle their grudge at the Salt Pans
+-- 2 losses in the book"). NO FREE TEXT EVER runs here verbatim: the line reads
+the record, never a vendor's promise. The rite is a one-time consumable, priced
+on the pot charm's affordable impulse shape (~$1.25 net), deed-or-buy two-way.
+
+**Seat 2 -- the Grudge Book proper.** The shipped ring buffer stands free (twenty
+bouts, FIFO). New free rail: any player may PLEDGE one active rival -- recorded
+server-truth, both fighters see it, zero cost, unpledging free. The paid leg is
+CAPACITY: each additional pledge is a spare row in the book, every slot
+deed-earnable in roughly a week or bought on the chartered family with the
+central-bucket toll (the sec 16 expedition pack's own shape). Capacity, never a
+stat; the pledge itself is never sold as privilege -- everyone owns one.
+
+**Seat 3 -- the Settled Score.** Title split, the owner's fairness model verbatim:
+a PLEDGED grudge settled by winning mints the prefix "the Unforgiving" -- deed by
+construction, NOBODY BUYS AN HONOR. The belfry rites (the buy route) mint at most
+the suffix "the Spiteful" -- the baron's shape. The same grind reaches the good
+name whether paid or not.
+
+**LAWS (the spite firewall).** Nobody buys power over another player: no curses,
+no debuffs, no enemy-facing anything ("no enemy-facing aura debuffs, no social
+engineering", the sec 9 charter verbatim) -- spite is CELEBRATED, never
+WEAPONIZED. The Rematch click and every consent path stay free forever. Banners
+are server truth. AppFirewall's one-duel rate limit rides untouched. Spectate
+seats stay the social doc's parked shape (greyed with a tooltip, never hidden)
+until spectating ships.
+
+IMPLEMENTATION SEAT (build round): the pledge leg on the recent-players ledger
+(ids and standing stamp only, the security note verbatim), the belfry rite .tres
++ its sink row + the zone event + the banner line through the sec 15 broadcast
+rails, the pledge-slot SKU on the chartered family, two TitleData rows on the
+sec 17 shape.
+
+## 26. The Glad Ring (spitball #14, 2026-11-05)
+
+The owner's ball: gladiator-style spectator wagering on certain duels -- the
+high-profile bouts are PLANNED and ANNOUNCED ahead of time, fought over multiple
+rounds like boxing. The fighters make out well, the engine makes out well.
+
+**Seat 1 -- the Gladnight (the venue clock)** rides the sec 22 Anchor Room shape
+verbatim: on a held pub evening the open ring runs as the Glad Ring. The
+deed-earned allotment runs it free; money buys a LONGER clock and extra announced
+weeks -- never better floors, never broker content. The clock door is the pub
+tax's own jersey.
+
+**Seat 2 -- the Made Bout (the fight card).** A fighter with an active sec 25
+pledge may MAKE the bout: a Glad Ring match scheduled to an almanac day and
+announced ahead on the schedule board -- both fighters' names, the rounds format
+(BEST-OF-FIVE, 60-second break between rounds), and the feud's head-to-head line
+printed from service record. Both fighters sign consent; the board announces to
+the shard. NO FREE TEXT: the card reads the pledge and the record, never a
+promoter's blurb.
+
+**Seat 3 -- the Book (the wagering).** GOLD ONLY: real money never places a bet
+and no sigils touch the felt (the RMT firewall -- gold in, gold out, the house
+takes its cut). Odds are SERVER TRUTH: the same head-to-head ledger the Grudge
+Book reads, printed as authored template lines the almanac carries beside the
+card ("the pans book called it 3-to-1"). Bets open when the card posts and close
+at the first bell (the closed-book law -- no mid-round action), settling per
+round and for the bout. A per-account, per-almanac-day wager cap (small, the QoS
+rate-limit family's own shape) keeps impulse lawful.
+
+**Seat 4 -- the Purse and the Rake.** The winner's purse is the bet pool minus
+the rake; the RAKE (authored 10%) is gold to Concord -- a new sink row under the
+no-fake-sinks law, audited beside the roll board. Fighters may hang a SPONSOR'S
+NAME on the card -- the sec 23 dress verbatim: service-record credit, no custom
+message, nothing to moderate. THE COMBAT FIREWALL IS VERBATIM HERE: duels, made
+bouts, rated rooms and the Book read BASE RATES always -- no rate ever moves by
+bet, bell or banner.
+
+**The Undisputed.** A champion of made bouts mints the suffix "the Undisputed" --
+deed by construction (winning is a verb); no purchase route exists for it at
+all. The prefixes of this economy were minted in sec 25 and stay deed-only.
+
+LAWS: both fighters consent and either may walk before the first bell; no
+fighter wagers on their own bout; the rounds format is identical for every bout
+(money never authors a friendlier shape); the rake is authored and visible.
+
+IMPLEMENTATION SEAT (build round): the rounds format + break clock on the duel
+lifecycle, the card and odds reader beside the travel board on the almanac's
+schedule page face, the wager window + cap on the account ledger through the tx
+roots, the rake + Gladnight sink rows, the made-bout board.
+
+## 27. The investor version (the one-paragraph answer)
 
 *Synmergia's monetization is not a plan, it is an installed, receipt-audited system: a
 wallet, three real-$ SKUs ($4.99–$24.99), a nine-row premium catalog (resurrection
@@ -1051,7 +1148,7 @@ schedule, not a hope."
 the fourth psychological model — folks spend before thinking when a name is in
 front of them. The rails already stand: the recent-players heated-rival list and
 its one-click Rematch are this psychology's front door. The concrete spend seats
-are deliberately TBA — they land on their own spitball and inherit every law in
+landed as §25 (the Grudge Book) — the seats inherit every law in
 this document (no stat purchase, no free text, the authored-tradeoff rule), so the
 investors' line is honest: *impulse spend is the cheapest product we do not yet
 sell.*
