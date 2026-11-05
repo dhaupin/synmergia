@@ -193,6 +193,8 @@ real time, like you ride them, or like a gate?")
 
 **Both, honestly labeled.** Three crossing tiers on one route:
 
+0. **The two movers (canon, 2026-11-05).** Ferries are ANCIENT MOVERS: server-owned, server-unlocked, belonging to no player, never priced by a personal SKU — their upkeep is civic (settlement deeds, warden take, Concord sinks). This stands beside the PERSONAL vs ANCIENT distinction now canon in the vehicles seed (labs/prompts/gemini_vehicles.md) and prd-monetization.md sec 29.
+
 1. **The real ferry (ride it).** A server-owned vessel on a
    schedule: a deck scope riding a path (the bout physics
    contract -- planar deck, radial world). The crossing is REAL

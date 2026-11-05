@@ -363,6 +363,8 @@ decide with data.
 | The Consecrated Ankh — home respawn; dedication earn → 4h clock, bought blessing → 6h clock; permanent | AGREED, designed | §27 |
 | The Grudge Book — belfry rites, pledged rivalries, "the Unforgiving" / "the Spiteful" split | AGREED, designed | §25 |
 | The Glad Ring — announced bouts, best-of-5 rounds, gold-only book, purse + rake | AGREED, designed | §26 |
+| The Tide-Mender Trade — vehicle wear, repair + modifiers; the two movers (personal vs ancient); no engines, all clock | AGREED, designed | §29 |
+| The Concord's Table — the money ladder: every seat, SKU, price, sink kind + earn path on one page | AGREED, canonical | §30 |
 
 ## 12. The wardrobe locker — spitball #2 (2026-11-05)
 
@@ -1171,7 +1173,7 @@ SKUs). The exact cent is a build-seat number; the owner's veto reserved.
 *Synmergia's monetization is not a plan, it is an installed, receipt-audited system: a
 wallet, three real-$ SKUs ($4.99–$24.99), a nine-row premium catalog (resurrection
 tickets at $1.00 net per unit, a $7.50–$45 mount ladder, cosmetic titles at $10–25),
-an in-game sigil market, a four-tier expedition storage ladder where deeds earn the slots and the wallet only buys the clock (a chartered buy carries a small authored luck-toll), an achievement plate that reads nothing but the world's verbs (gold, coin and title rewards — never purchasable), a homestead with an earned front door (the clock door carries the move-toll and the signature toll, furniture sells breadth under the hallmark law), a public tavern door (the Anchor Room: guilds buy the pub's hour by the clock and the deed grant keeps F2P honest), and a sponsor stage (the $20 public pace stage where the rate is the ceiling and buys stack the clock — paid mints the Investor suffix, the deed route mints the Philanthropist prefix), and an earned-earn path that keeps F2P honest. Publishing
+an in-game sigil market, a four-tier expedition storage ladder where deeds earn the slots and the wallet only buys the clock (a chartered buy carries a small authored luck-toll), an achievement plate that reads nothing but the world's verbs (gold, coin and title rewards — never purchasable), a homestead with an earned front door (the clock door carries the move-toll and the signature toll, furniture sells breadth under the hallmark law), a public tavern door (the Anchor Room: guilds buy the pub's hour by the clock and the deed grant keeps F2P honest), and a sponsor stage (the $20 public pace stage where the rate is the ceiling and buys stack the clock — paid mints the Investor suffix, the deed route mints the Philanthropist prefix), and an earned-earn path that keeps F2P honest, a vehicle trade under one law (the Tide-Mender Trade: stations mend free, the kit mends the field, modifiers lace capability — never a rate, never an engine), and its Concord's Table pricing the whole SKU stack on one page. Publishing
 cadence is already contractual: seasonal packs authored by an income law that pays the
 shared progression curve, with a level cap that lifts on data, not opinion. Pay-to-win is priced out by construction
 rather than promised away: Mythos exclusives ship with an authored tradeoff toll that
@@ -1215,6 +1217,111 @@ this document (no stat purchase, no free text, the authored-tradeoff rule), so t
 investors' line is honest: *impulse spend is the cheapest product we do not yet
 sell.*
 
+
+## 29. The Tide-Mender Trade (spitball #16, 2026-11-05) — vehicles, worn and woken
+
+The owner's abstract, adopted whole: the Mender's Kit is not a boat story. It is
+the standing TRADE for every mover Synmergia has and every mover it will add —
+vessels, mounts and tack, gliders, breather helmets, and the woken platforms
+(the Conduit Glider, Islet Lifter and Caravan Crawler ride the gemini vehicles
+seed rails: multi-passenger platforms woken by a tablet, never built or fueled).
+One trade law, every mover, the kit grows to fit.
+
+**The two movers (canon from this round; world-building PRDs make the
+distinction wherever they speak of vehicles).** PERSONAL MOVERS: a player-owned
+mover — a granted mount on the RideService ledger (single-rider, the riding
+layer's one ledger), a platform woken by YOUR tablet, a glider you own, a
+helmet in your bag. Personal movers wear honestly, repair freely at stations,
+take kits into the field, and take modifiers at the bench. ANCIENT MOVERS: the
+server-unlocked ancients — the ferries (the Gullwing has run the Haven lane
+since the first sailing law; the ferry honesty law's "server-owned vessel" is
+this canon's first verse), the dormant ruin movers, the islets' orb machines.
+An ANCIENT mover belongs to no player, never prices a personal SKU, and is
+never sold to one — its bill is a CIVIC bill: settlement deeds, warden take,
+the same audited Concord sink rows every other civic duty pays. Movers are
+kept in two lanes forever, and the lanes never cross in a price tag.
+
+**The no-technology law was already canon.** The vehicles pack wrote it first
+("vehicles are woken, never built, fueled or manufactured; no engines, no
+wheels, no fuel") — so the owner's extension lands along the SAME lane: in
+this world a MEND is binding work, not tech work — re-binding root and
+wrapper, re-blessing the orb, re-lacing a conduit seam. A MODIFIER is the same
+craft in the other direction: verse work — knot-charms, tablet statutes,
+conduit arcanum laced through the mover's own dormant body. NEITHER touches an
+engine, because there are no engines to touch.
+
+**Seat 1 — the station bill.** Repairs at any repair station are FREE forever.
+Fenwick's pending tide-side service is this trade's first desk: dock-side,
+free, the honest wear of a used hull settled at the bench.
+
+**Seat 2 — the field kit.** A Mender's Kit is a CRAFTABLE CONSUMABLE: built at
+Fenwick's bench from an honest salvage haul (things that were wet get mended
+with wreck things), good for exactly one field mend on any class of personal
+mover — vessel, mount, glider or helmet. The IDENTICAL kit sits on the Concord
+shelf for the took-it-now player (the waystone row's sink shape, ~$0.50, felt
+number in the owner's hands). Two-way by construction: every shelf kit is
+craftable and every craft is free; no coin ever mends a kit better and no kit
+ever knows it was bought.
+
+**Seat 3 — the modifiers lane.** The owner's extension, dressed in the world's
+own voice — capability, never tech tuning. Laws before any SKU: (a) a modifier
+NEVER moves a combat rate, not one tick; (b) a modifier NEVER raises a
+travel-speed ceiling — movement profiles are the one derivation and they stay
+data; (c) what a modifier may buy is capability and comfort verbs — a
+deep-lung verse for the breather, a quiet sail, a grip that holds through
+swell — capability, and time, never the rate family; (d) two-way: the same
+modifier is earned by crafter bills and deeds or bought on the chartered
+shape, an authored, visible toll in the chartered family's currency (the clock
+runs the verb's quiet stretch, never the verb's strength); (e) provenance
+stamped EARNED/BOUGHT in the account ledger beside the mover's own record.
+
+IMPLEMENTATION SEAT (build rounds, gated on movers that exist to mend): the
+kit .tres + a shelf row + a new MEND sink family (the grant leg ships with the
+row), Fenwick's repair service as the trade's first station, wear and cooldown
+books on the mover's ledger through the tx roots, modifier verses on the
+chartered family. PRICING FELT: kit ~$0.50 shelf; modifier prices felt when
+the first woken platform ships — all build-seat numbers, owner's veto
+reserved.
+
+## 30. The Concord's Table (spitball #17, 2026-11-05) — the money ladder, canonical
+
+The owner's second yay: the doc has earned the investor hat — the whole
+machine on one page, one row per seat, each row carrying its SKU, its felt
+price, its audited sink and its honest earn path. The F2P trust floor stops
+being a promise and becomes a COUNT — investors read the table and see, row
+by row, what is sold, what is sanked, and what stays free.
+
+| # | Seat | SKU / how it is sold | Price felt | Sink kind | Earn path (the free door) | Home |
+|---|---|---|---|---|---|---|
+| 1 | Season Charter | one purchase per season, real $ | ~$8.99 | catalog receipt | purchasable whole on ~300 earned sigils (F2P two-way) | §9 |
+| 2 | Mythos exclusives | catalog exclusives, charter-free buys | exclusive-priced | toll fields in sink rows | craft / find routes always exist; earned grades Proven, bought grades Bought | §10 |
+| 3 | Dye spectacle + colorist license | shelf dyes + reusable permit | kit SKUs, ticket-shaped permit | COLOR rows | every field look craftable free from harvests | §11 |
+| 4 | Wardrobe locker | per-account unlock, one buy | small SKU | cosmetic | field-crafted looks always locker-eligible free | §12 |
+| 5 | Guild heraldry packs | vault-bought kits, rank-gated | scales by group | GUILD rows | every guild earns ONE standard banner free | §13 |
+| 6 | Lucky | 24h charm x 5 per weekly pot | 25 sigils (~$1.25) each | LUCK rows | days 1-2 of every pot earned nearly free via deeds | §14 |
+| 7 | The Peal | permit, deed-earned or bought | ticket-shaped | REVEL rows | the landing rumors FREE to every account, always | §15 |
+| 8 | Expedition pack | 4 tiers on the shelf | per-tier, small SKUs | capacity rows | every tier deed-earnable ~a week; the full ladder ~a month free | §16 |
+| 9 | Cosmetic titles | suffix-only purchases | ~$10-25 | TITLE rows | every prefix deed-minted ONLY; suffixes by deed, by name, not sold | §17 |
+| 10 | Resurrection ticket | 25 sigils (~$1.00 net) x1, x8 at 150 | small SKU | RESPAWN rows | zone spawn + the shipped stand-up free floor, always | §3 |
+| 11 | Waystone | Concord shelf | 15 sigils (~$0.70 gross / ~$0.50 net) | TELEPORT rows | craft at the alchemy bench from honest reagents | §20 |
+| 12 | Homestead clock door + signature tolls | the chartered homestead, one-time | front-door range | HOMESTEAD rows | full cottage earnable free by deed milestones (~a month) | §19 |
+| 13 | Furniture kits + hall dyes | hall kits, catalog looks | breadth SKUs | cosmetic | field furniture craftable; hallmark law: the craft rolls Proven | §19 |
+| 14 | The pub's clock | Anchor Room room clock | room-hour SKUs | TAVERN rows | deed-earned weekly allotment opens the pub free several evenings | §22 |
+| 15 | The sponsor's stage | 40-60 min +10% shard-wide stage | ~$20 | STAGE rows | ride free like everyone; the deed route mints the Philanthropist prefix | §23 |
+| 16 | Grudge seats | Belfry rite (~$1.25), pledge capacity rows | small SKUs | REMATCH + capacity rows | the rematch, the pledge and the prefix all free by construction | §25 |
+| 17 | Glad seats | longer clocks, more announced weeks | clock SKUs | GLAD rows | venue, bouts and the book run free on the deed allotment; wagers GOLD only | §26 |
+| 18 | Ankh blessing | the Consecrated Ankh, one-time | ~$4.99 | BLESS rows | dedication deed-chain gates the 4h clock (bought 6h) | §27 |
+| 19 | Mender's kit | consumable, identical craft / shelf | ~$0.50 | MEND rows | craft at any repair bench from honest salvage | §29 |
+| 20 | Mover modifiers | chartered shelf verses, capability verbs | build seat, felt number | MODIFIER rows | same modifier earned by crafter bills + deeds, two-way | §29 |
+
+**How to read the table.** Where money buys the clock (rows 6, 8, 14, 15, 17,
+18), the chartered shape is the toll family and the toll is visible; where
+money buys presence (rows 3, 4, 5, 7, 9, 13), no rate moves anywhere; where
+money buys the NOW (rows 10, 11, 12, 18, 19), the same door stands free by
+deed. Two structural rows hold the top: the Charter (row 1) is cosmetic plus
+convenience with an earned-sigils purchase door, and Mythos (row 2) is the
+provenance-graded tradeoff. The count is the pitch: TWENTY rows stand priced
+and NONE turns a stat on by purchase.
 
 ---
 

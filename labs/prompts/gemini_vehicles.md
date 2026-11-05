@@ -129,3 +129,18 @@ Labels: "THE DEPARTURE" only. No other text.
       multi-rider, not solo mounts
 - [ ] Same ink weight as the mounts sheet
 - [ ] Drop in Drive, attach favorites for critique
+
+---
+
+## The two movers (canon, 2026-11-05, from the monetization trade)
+
+Standing law, recorded wherever vehicles are recorded. PERSONAL MOVERS are
+player-owned: a platform woken by YOUR tablet, a mount, a glider, a breather
+helmet. They wear honestly, repair FREE at stations, take Mender's Kits into
+the field and modifiers at the bench. ANCIENT MOVERS are the server-unlocked
+ancients: the ferries on their honesty law, the dormant ruin movers, the
+orb-borne islet lifters already loose in the world before anyone claims them.
+An ANCIENT mover belongs to no player and never prices a personal SKU — its
+bill is a CIVIC bill (settlement deeds, warden take, Concord sinks). No engine
+exists to fuel in either lane: a MEND is binding work, a MODIFIER is verse
+work; see prd-monetization.md sec 29 for the trade's prices and laws.
