@@ -49,7 +49,9 @@ you find stuff, extend, etc pls!)"):
 3. **Extensions travel upstream too.** Capabilities general enough to
    serve vant users beyond the game (deterministic settle, census
    patterns) are proposed on the vant side — the first one was filed
-   the day this law landed (the settle-contract proposal, dhaupin/vant #333).
+   the day this law landed (the port-review series: #333 settle contracts, #334 trust
+   opt-out + settle-verifier seam, #335 publish-only trail +
+   reconcile mode).
 4. **Game logic never goes upstream.** Nothing in `dhaupin/vant`
    should ever learn that Synmergia exists as more than an issue
    number: beyond the share, vant <> synmergia — separate houses, one

@@ -128,6 +128,12 @@ evidence for the investor tie-back when it lands.
   order (Purse first, then Settle, then Agora, then Quorum); no row
   lands before its engine, and no engine lands without the census
   seat beside it.
+- THE APESHIT BATCH (spitball #26) is the loop's first children
+  beyond tenant zero: the Guild Contract Board (prd-monetization.md
+  sec 34), the Kindling (sec 35) and the Runner's Exchange (sec 36) —
+  every one a tenant sheet on the Drivers, mint/move/melt riding the
+  same engines,
+  the Concord count now TWENTY-SEVEN.
 - The investor tie-back is DEFERRED by the owner's order: when it
   lands, the stool's Legs 2 and 3 (tailwind and cadence) absorb the
   loop paragraphs and the breath-chart evidence — one text, one

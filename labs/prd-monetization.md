@@ -374,6 +374,9 @@ decide with data.
 | The Living Economy — the loop binding the Concord's rows between the engines: mint (one door), move (engines only; sigils never trade — the RMT rail is the provenance stamp), melt (multiplier sinks); the payer's first stop is player effort | AGREED, canon | economy PRD |
 | The Drivers — the Engine Block promoted to the spine: every money service subscribes through an authored tenant sheet (purses, settle clauses, publication, caps); no service reimplements a hold, settle or sweep, and no sheet can waive a law | AGREED, canon | vant PRD §4 |
 | The Two Houses — the repo boundary: vant is family (Buffy-built, MIT); build on it with attribution carried, port-found bugs and general capability extensions travel upstream as issues, game logic never goes upstream | AGREED, canon | vant PRD |
+| The Apeshit Batch: the Guild Contract Board — commissions as clause-held purses on the crafting record (Crier + rake, expiry releases whole) | AGREED, designed | §34 |
+| The Apeshit Batch: the Kindling — the hour the buyer buys for the crowd (shard-wide doubled earned-deed pace for ALL riders; the clock, never the notch; the Stage's title split law) | AGREED, designed | §35 |
+| The Apeshit Batch: the Runner's Exchange — freight holds on the tram record (gold purses, Crier + rake, single-claimant holds, Quorum-fed freight roots) | AGREED, designed | §36 |
 
 ## 12. The wardrobe locker — spitball #2 (2026-11-05)
 
@@ -1331,6 +1334,9 @@ by row, what is sold, what is sanked, and what stays free.
 | 22 | The Meditation Ceremony | ceremony day, Lucky-pot shape (25 sigils ~$1.25) | small SKU | ATTUNE rows | days 1-2 of every week earned free via deeds | §31 |
 | 23 | The Wake Peal | the standing Peal permit, rung at a wake (celebration voice) | same Peal permit (deed-earned or bought) | PEAL rows (second voice) | the Peal permit's earn path covers both voices | §32 |
 | 24 | The Warrant Board | warrant purses (announced, escrow-held) + the Crier toll + the house rake at settle | purse chosen by the poster; the Crier a small clock SKU | MERIT + CRIER rows | the hunt and every claim are free; bounties are purses posted into a hold, never purchases | §33 |
+| 25 | The Guild Contract Board | commission purses (clause-held, escrow) + the Crier toll + the rake at settle | purse chosen by the poster; the Crier a small clock SKU | CONTRACT + CRIER rows | browsing, claiming and posting small orders free; a commission is a hold on the crafting record, never a purchase | §34 |
+| 26 | The Kindling | one Kindled Hour — a shard-wide doubled earned-deed ledger for ALL riders, deed-earnable or bought | ~$10 felt, the clock family | KINDLE row | every rider rides identical free — the buyer buys the hour for the crowd, never the notch for himself | §35 |
+| 27 | The Runner's Exchange | freight holds (escrow-held, gold) + the Crier toll + the rake at settle | hold chosen by the shipper; the Crier a small clock SKU | FREIGHT + CRIER rows | posting and hauling free; freight is a hold on the tram record, never a purchase | §36 |
 
 **How to read the table.** Where money buys the clock (rows 6, 8, 14, 15, 17,
 18), the chartered shape is the toll family and the toll is visible; where
@@ -1338,14 +1344,19 @@ money buys presence (rows 3, 4, 5, 7, 9, 13), no rate moves anywhere; where
 money buys the NOW (rows 10, 11, 12, 18, 19), the same door stands free by
 deed. Two structural rows hold the top: the Charter (row 1) is cosmetic plus
 convenience with an earned-sigils purchase door, and Mythos (row 2) is the
-provenance-graded tradeoff. The count is the pitch: TWENTY-FOUR rows stand priced
+provenance-graded tradeoff. The count is the pitch: TWENTY-SEVEN rows stand priced
 and NONE turns a stat on by purchase (rows 21-22 sell only the wider SHOT
 at the unopened doors — the Oracles: money cannot buy the act; row 23 is
 the Peal permit celebrating in its second voice — the echo bought, never
 the event; row 24 posts purses on mysteries — the Crier buys front-page
 days (the clock, never rank), the rake cuts only at a record-certified
 settle, and the verdict is certified by the ledger itself — the hunt is
-the free door, the head a record not a scalp).
+the free door, the head a record not a scalp; rows 25-27 are the apeshit
+batch — the Board holds commissions on the crafting record, the Kindling
+doubles the earned lane for the whole shard at the buyer's hour (every
+rider identical), and the Exchange holds freight on the tram record —
+all three rides of the Loop's engines, the engines' no-debit/whole-
+return discipline carrying every one).
 
 
 ## 31. The Oracles (spitball #18, 2026-11-05) — the wish to wake, priced in shots
@@ -1531,7 +1542,116 @@ verifier over deed tx roots, the sweep job, the front-page
 derivation, the merit-chapter file, the census surface, and both sink
 rows. ENGINES: the ledger and the verifier build ON the vant port —
 the Purse and Settle engines (labs/prd-vant-engines.md) — and the
+
+IMPLEMENTATION SEAT (build round, gated on the first warrant): the
+warrant ledger on the keyed account-ledger family (hold / timeout /
+claim state, purse-mix tracked through the hold), the deterministic
+verifier over deed tx roots, the sweep job, the front-page
+derivation, the merit-chapter file, the census surface, and both sink
+rows. ENGINES: the ledger and the verifier build ON the vant port —
+the Purse and Settle engines (labs/prd-vant-engines.md) — and the
 Board is the port's first tenant.
+
+## 34. The Guild Contract Board (spitball #26, 2026-11-05) — commissions as clause-held purses
+
+> **Status:** the APESHIT BATCH, first child of the Loop (the owner's
+> order: "go apeshit on our economy systems before we circle back;
+> push as much back to vant as you can"). A tenant sheet on the
+> Drivers (prd-vant-engines.md sec 4) — no engine fork, no new rails.
+
+The commission board: a buyer POSTS a craft order — what, by what
+grade floor, whose hallmark, delivered to where, by which almanac day
+— every field a template clause, NO FREE TEXT; a purse joins it.
+**THE HOLD LAW (loop-borrowed verbatim):** posting reserves the purse
+into a hold, never a debit; ONE crafter may claim (single-claimant
+hold, claim = reservation with a countdown); delivery = the crafting
+tx roots match the clause list, and the Settle Engine settles
+DETERMINISTICALLY (vant's contract-mental shape — settle judged by
+the record, not by a hand); refusal or expiry releases WHOLE, no
+penalty row, no trust mark ever. *Provenance rides through: the maker's
+hallmark and proof-grade Proven are the crafting ledger's own stamps,
+so the chapter prints truth, not promises.*
+
+**PAID LEGS:** a CRIER seat (a commission featured on the front page
+buys DAYS in the board's rotation — money buys the clock, never rank,
+never a ceiling) + THE RAKE AT SETTLE (the Book's 10% shape, only on
+a record-certified settle; an expired purse pays nothing). **F2P
+FLOOR = the whole service:** browsing, claiming, posting small orders
+is free; the maker earns the purse and the maker's hallmark is the
+badge that outranks any kit. **CENSUS:** top-claimant and top-poster
+share of settled purses (tool-side, never printed at players); every
+settle files an AGORA chapter (template line in the Whipper ledger's
+merit-chapter family). SINK KINDS: CONTRACT rows + CRIER rows (grant
+legs ship WITH the rows — no fake sinks).
+
+IMPLEMENTATION SEAT (build round, gated on the Board's engines): the
+contract ledger (single-claimant holds), the clause verifier over
+crafting tx roots, the Crier rotation, the house rake row, the census
+feeds. ENGINES: Purse + Settle + Agora.
+
+## 35. The Kindling (spitball #26) — the hour the buyer buys for the crowd
+
+> **Status:** APESHIT BATCH, second child. The payer-as-munificer on
+> the earn lane: the inverse of the Sponsor Stage's punch — the shard
+> BENEFITS on a rubric the free riders hold.
+
+A patron buys a KINDLED HOUR: for one hour, EVERY account's
+earned-deed ledger — witnessed deeds, tram-effort trips, Lucky
+pot earned days, allotment meters — runs at double pace, SHARD-WIDE.
+
+**THE RIDERS LAW (the Stage's own shape, verbatim):** every rider is
+identical — the free row rides exactly the bought row; the payer buys
+the HOUR (clock, never the notch; a second purchase during a live
+hour EXTENDS the clock, never deepens it). **THE LANE LAW:** the
+Kindling touches the deed-earn lane ONLY — no XP, no drop rates, no
+charts; the Stage's XP exception stays capped to sec 23 and does NOT
+extend here. **NOBODY BUYS AN HONOR** — the title split rides the
+Stage's own law: the deed route (an hour bought wholly on earned
+sigils) mints the PREFIX "the Kindled"; the purchase route mints the
+suffix "the Kindler"; a bought hour mints no prefix, no plate, no
+other honor. The Kindler's name carries on the wardens' desk and the
+Agora publish — SERVICE-RECORD credit, template line, no free text,
+the sec 23 dress applied to the earned lane. **F2P FLOOR:** riders
+ride free by construction; the earned route lets a full deck player
+kindle their own hour. Sink kind: KINDLE (grant leg with the row).
+PRICE FELT ~$10 (the Stage's family; exact cent build-seat, veto
+reserved). IMPLEMENTATION SEAT (build round): the hour book (one
+kind per shard at once; overlap legal — the paces multiply to 4x
+during the overlap? NO: the notch is the ceiling, two Kindled hours
+RUN PARALLEL EXTEND the wall-clock window, never stack) — the pace
+lift rides the deed-ledger apply bucket, the Kinde row, census feeds
+(kindled hours / week, deed counts during), the Agora publish (the
+name carried, template line), title rows.
+
+## 36. The Runner's Exchange (spitball #26) — freight holds on the tram record
+
+> **Status:** APESHIT BATCH, third child. The most vant-native sheet:
+> escrow + market + forum + census = couriers hauling freight.
+
+A shipper posts a FREIGHT HOLD: what cargo, from which berth to which
+door, by which almanac day — template clauses only, NO FREE TEXT; a
+gold purse in the hold (denomination chosen by the shipper; purse-mix
+tracked through the hold by the purse law). A hauler CLAIMS
+(single-claimant hold); delivery = the tram record's deed tx roots
+match the clause list (honest route use, the tram effort law's
+record); the Settle Engine settles DETERMINISTICALLY; refusal or
+expiry releases WHOLE — no rake, no penalty, no trust mark ever.
+
+**PAID LEGS:** a CRIER seat (featured freight buys DAYS on the
+exchange's front page — clock, never rank) + THE RAKE AT SETTLE (the
+Book's 10% gold shape; an expired hold pays nothing). **F2P FLOOR:**
+posting and hauling free; the runner industry's supply chain multiplies
+(the exchange feeds it: a freight hold earns gold, gold buys station
+bills and blanks, blanks pull reagents — the melt feeds back through
+other players). **CENSUS:** top-hauler and top-shipper share
+(tool-side). Sink kinds: FREIGHT + CRIER rows (grant legs WITH the
+rows). IMPLEMENTATION SEAT (build round, gated on the tram record's
+tx roots): the freight ledger (single-claimant holds), the clause
+verifier over tram tx roots, the Crier rotation, the rake row, the
+census feeds. ENGINES: Purse + Settle + Agora + Quorum (the freight
+roots cross the mesh when the shipper and the door sit on different
+shards).
+
 ---
 
 **Sources (server-price anchors, read 2026-11-05):** Hetzner cloud lineup
