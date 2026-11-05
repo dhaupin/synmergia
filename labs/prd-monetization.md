@@ -296,7 +296,60 @@ never become rentable via RMT); the 75/100 tier thresholds are a tuning dial, no
 law; whether cosmetics ever ride the same provenance grade (a burned-in
 "deeds-imprinted" finish at Proven) is an open aesthetic call, not a decided one.
 
-## 11. The investor version (the one-paragraph answer)
+## 11. The dye economy — the first agreed spitball (2026-11-05)
+
+> **Status: AGREED.** Pure-visual by construction — zero stat hooks — so it is the
+> safest premium category the catalog can carry, and it bolts premium money onto systems
+> that already exist (craft, mounts, accessories, housing) instead of inventing new ones.
+
+**The carrier law:** one dye slot, many carriers. Every dyeable carrier — weapons,
+armors, wearables, accessories, mount tack, gliders, housing furniture — takes the same
+dye treatment. A dye applies a **look**, never a number.
+
+**The two-lane color law (free lane first):**
+- **Field dyes (craftable, free).** Crafted at the bench from harvests — moonpetal reds,
+  kelp greens, pan-salt whites, ironblacks, the faint pearl shimmer. Honest coverage of
+  the mundane palette; dyes become a real trade good on vendor shelves (the resource
+  category already exists). A crafter can run a dye *industry*.
+- **Concord dyes (sigils, premium breadth + motion).** The wild palette: iridescence,
+  animated gradients, seasonal glitters, and camo/fielding patterns for weapons, armors
+  and wearables. Premium buys spectacle and selection — never exclusivity of a look the
+  field lane can reach.
+
+**The colorist's license (the custom-chooser SKU).** The full-spectrum custom color
+chooser (choose-your-own hue/saturation, pattern seat) for weps/armors/wearables is
+priced as a **reusable permit**, not per-item nickels-and-dimes — the permit shape is
+already proven by the Soulbinder's ticket and the stackable sink rows. Seasonal pattern
+packs restock like vendor shelves do.
+
+**Laws (§10's anti-smell tenets, restated for color):**
+1. A dye is a look, never a stat — ever. No "dyed for +hit", no tuned-failure nonsense.
+2. Field dyes reach every carrier type premium dyes can. Color *choice* may be limited;
+   access never is.
+3. **Preview never debits.** Try-on shows the dyed look on *your* item before purchase;
+   a failed application refunds per the sink refund law.
+4. Dyes ride the Charter but never require it: §9's free track ships a field-dye kit;
+   the premium suite ships a seasonal wild dye; the dye economy stands on its own.
+5. Provenance and the Toll (§10) are orthogonal — dyes do not grade, and grades do not
+   gate color.
+
+**Implementation seat (a build round):** a dye slot on the appearance record (mounts and
+furniture need carriers beyond the item schema); dye .tres items in the consumable
+family with their own stack behavior + the license permit; the item-catalog receipt
+gains dye-legs (every dye resolves a look id, the preview-is-free leg, the refund leg);
+icon minting rides the palette law. **Open question for that round:** is the dyed look
+stamped on the item or kept as a wardrobe overlay layer? The overlay is the stronger
+product (crafted gear keeps its authored look under paint) but touches persistence —
+decide with data.
+
+### The spitball bench
+
+| Idea | Status | Home |
+|---|---|---|
+| Dyes — two-lane color economy + the colorist's license | AGREED, designed | §11 |
+| *(next spitballs land here, one row per agreed idea)* | — | — |
+
+## 12. The investor version (the one-paragraph answer)
 
 *Synmergia's monetization is not a plan, it is an installed, receipt-audited system: a
 wallet, three real-$ SKUs ($4.99–$24.99), a nine-row premium catalog (resurrection
