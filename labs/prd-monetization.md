@@ -356,6 +356,7 @@ decide with data.
 | The title ropes — prefix/suffix walked back through §§11–16 | AGREED, designed | §17 |
 | The deed plate — the achievement walk-back over the model's earn rails | AGREED, designed | §18 |
 | The Homestead Ledger — the deed cottage, the hallmark law and the homestead tolls | AGREED, designed | §19 |
+| The Waystone Ledger — the Bender-only recall fix + the three-charge party stone | AGREED, canon landed | §20 |
 
 ## 12. The wardrobe locker — spitball #2 (2026-11-05)
 
@@ -816,7 +817,71 @@ front-door plate read the SAME account ledger through the deed plate's readers
 §§9–16 already run (quest milestones, ledger appearances, heraldry deeds — one
 book of acts, one new shelf). Zero new services.
 
-## 20. The investor version (the one-paragraph answer)
+## 20. The Waystone Ledger — spitball #9 (2026-11-05)
+
+> **Status: AGREED.** the owner pitched the FIELD DOOR: UO-style recall runes landing
+> through the res shape ("instead of res, ~3 teleports on a stone — then the stone
+> dies"), scoped to the decision from the project's ancient times: BENDERS were the
+> only class that could teleport its party, and everyone else deserved a door. RAILS
+> VERIFIED: the res rails stand (`item_soulbind_ticket`, stack 10, soulbound, 25-sigil
+> sink ≈ $1.25); the class family table carries the Bender row (Akkan → Seer, Human →
+> Temporalist, Synthetic → Overclocker, role = 5); and the "benders port the party"
+> canon line existed ONLY as institutional memory — the grep found nothing in any PRD
+> or class data — so this section writes it into the canon BEFORE it sells anything.
+
+**THE CANON FIX, FIRST.** `prd.md`'s class table gains the standing line it always
+deserved: **Benders are the only class family that can teleport party members** —
+one verb, three voices (the Seer's spatial fold, the Temporalist's slip, the
+Overclocker's blink). The waystones below are the door for everyone else, and they
+never dilute the class edge: a stone is slower (a 6-second channel, never instant),
+charge-bound, and mark-scoped — a Bender ports faster, farther, free. The class
+stays better at its own verb.
+
+**THE STONE (three seats, one item family):**
+- **MARK.** a blank stone kneels and inscribes (3-second channel): the player's
+  CURRENT standing ground is written in, one place per stone — the item speaks its
+  mark on its own card ("Waystone: the Salt Pans"). UO's rune-marking, authored.
+- **RECALL.** the charge spend: three charges, then the stone crumbles to dust and
+  the mark dies WITH it (no orphaned marks — the world forgets at the same pace the
+  stone does). Any party member may inscribe; the recall is a PARTY CALL — the
+  caller pulls their own party to the mark, each member answers through a 10-second
+  consent prompt (never forced displacement — the honor edge), solo use stays legal.
+- **THE PRICE (the owner's felt balance, signed into law).** the stone is BOTH:
+  craftable at the alchemy bench from honest reagents (the hours-farm lane), AND on
+  the Concord shelf at **15 sigils ≈ $0.70 gross ≈ $0.50 net** (the res row's
+  sink shape). The two lanes brew the exact hesitation the owner named — "worth it
+  right now? it'll cost me hours to forge another, but then again it's only $0.50"
+  — THE WORTH-IT SCISSORS: a sink earns its keep only when the price tugs.
+
+**LAWS:**
+- **Convenience, never power.** a recall unsticks nobody's math: no XP, no gold, no
+  stat, no cooldown shortcut on anything the world sells — the §9 charter family's
+  law holds stone-side.
+- **The map's hold is the door.** marks refuse to INSIDE drifts and disputed grounds
+  (dungeon entrances, instance doors, warded holds — the recall leg refuses there by
+  name); the sea keeps its res law: a recall that would land IN the sea or inside
+  rock resolves to the nearest safe ground, never through the world.
+- **Consent and cooldown.** party members are never yanked unbidden (the 10-second
+  prompt); the recall leg rides the game's own QoS rate gate (the roll board's
+  `CooldownService` law) so a stone is a door, never a spell macro.
+- **No charter gate, no toll, no grade.** the stone is a one-time sink like the res
+  ticket — money never mints permanence here, so the §16 chartered shape does not
+  apply; the shelf row and the bench bill are priced as sinks, period.
+- **Preview never debits.** the stone's card shows its charges remaining and its
+  mark, the shelf shows the price before any click, and the consent prompt shows
+  the destination before any accept.
+
+**Implementation seat (a build round):** `item_waystone` blank + the inscribed state
+ride the res-ticket .tres shape; per-item mark storage is the OPEN SEAT (per-slot
+item meta does not exist in the bag schema today — the honest fallback if it stays
+absent is a fixed owner-home stone, one mark per character, the instancing decision
+deferred to its own round); the recall leg rides the existing
+`PlayerLockService.cancel_on_teleport` chain; the consent prompt rides the party UI
+fabric; the shelf row joins the RESPAWN-family sink rows (a new TELEPORT row, same
+no-fake-sinks law: the grant leg ships WITH the row or the row doesn't land).
+DOC-ONLY round: zero .tres, zero service changes, the pack export stands.
+
+## 21. The investor version (the one-paragraph answer)
 
 *Synmergia's monetization is not a plan, it is an installed, receipt-audited system: a
 wallet, three real-$ SKUs ($4.99–$24.99), a nine-row premium catalog (resurrection
