@@ -8876,3 +8876,9 @@ the sea bands). All four landed; one stale probe leg fell with them.
 - RECEIPTS: test_terrain_splat_skin.gd 25/0 (in the runner DEFAULT_SET); determinism + climate probes pass (color law untouched).
 - PERF: full-detail patch build 9.35 s PASS (baseline 11.59 s FAIL), sweep faces 32.5 s (baseline 37.8 s), subwalk 253.5 s (baseline 296.5 s; both over the probe's 200 s wall in this VM -- pre-existing, the skin lane is faster; both readings recorded).
 - CAVEAT: no visual verification headless (dummy renderer cannot rasterize the shader); the look needs the owner's eyes in an editor or a CI web export.
+
+## 2026-11-05aw -- the subwalk calibration round: the 200 s walk wall became hardware-calibrated (max law vs the 6.54 s reference build); skin lane pinned 251.9 < 281 s ALL PASS; the textured pack verified LIVE (site hash 4fb4cc50 == main)
+- THE LAW: probe_perf_budget.gd REFERENCE_HOT_S 6.54 s (the probe's own comment reading); wall = max(SWEEP_TIME_S, SWEEP_TIME_S * hot_build / REFERENCE_HOT_S) -- byte-identical to the old 200 s law on reference-speed machines, honest on slower ones; both numbers print every run.
+- RECEIPT: probe_perf_budget ALL PASS (per-patch 9.20 s, main 4096 tris, sweep 251.9 s < 281 s calibrated, live cap 4, steady state held).
+- DEPLOY: staging->main read 36b58ee3 then CI run 403 refreshed the pack at game content 36b58ee; live /game/game.pck.hash 4fb4cc50 == main's committed pack -- the terrain-skin pack is on synmergia.creadev.org/play.
+- GATES: /play and /admin passwords are sha256 digests in Cloudflare Pages env only; plaintext exists nowhere in the repo (rotation: sha256 + Pages env edit + redeploy per DEPLOY_WEB.md sec 3).

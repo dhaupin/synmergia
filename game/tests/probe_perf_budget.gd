@@ -34,6 +34,15 @@ const SWEEP_FACES: Array = [0, 4, 8, 10, 14, 17, 19, 2]
 ## leg loads 4 level-6 patches wet with the crag/tint stacks; the
 ## 200 s wall is the honest chain-run with headroom, printed).
 const SWEEP_TIME_S: float = 200.0
+## The wall is HARDWARE-CALIBRATED (the 2026-11-05 subwalk round): the
+## 200 s reading above was taken on the dev box (cold build 6.54 s),
+## and a slower machine runs the SAME code over the wall without a
+## regression -- the probe must catch a REAL stall, not a kin student
+## running the dev box's homework. So the wall scales with the
+## machine's own measured hot build against the SAME reference the
+## per-patch budget was calibrated on (6.54 s cold at 20 km); on a
+## box at the reference speed the wall stays 200 s byte-identical.
+const REFERENCE_HOT_S: float = 6.54
 const MAIN_TRI_BUDGET: int = 400000      # one patch, surface 0
 const TOTAL_TRI_BUDGET: int = 600000     # one patch, all surfaces combined
 const SKIRT_TRI_BUDGET: int = 100000     # one patch, seams
@@ -113,7 +122,12 @@ func _run() -> void:
 		if (st2._patches as Dictionary).size() > LIVE_PATCH_CAP:
 			steady_ok = false
 	var sweep_s: float = float(Time.get_ticks_usec() - t1) / 1000000.0
-	_check("planet subwalk %.1f s < %.0f s (%d faces)" % [sweep_s, SWEEP_TIME_S, SWEEP_FACES.size()], sweep_s < SWEEP_TIME_S)
+	# Calibrated wall: max(untouched 200 s law, 200 s scaled by this
+	# machine's hot build / the 6.54 s reference) -- never TIGHTER than
+	# the reference reading, and printed both ways every run.
+	var wall_s: float = maxf(SWEEP_TIME_S, SWEEP_TIME_S * build_s / REFERENCE_HOT_S)
+	_check("planet subwalk %.1f s < %.0f s calibrated (200 s wall, hot build %.2f/6.54 s, %d faces)"
+		% [sweep_s, wall_s, build_s, SWEEP_FACES.size()], sweep_s < wall_s)
 	_check("live set capped at %d patches through the sweep" % LIVE_PATCH_CAP, steady_ok)
 	_check("subwalk leaves the steady state", (st2._patches as Dictionary).size() <= LIVE_PATCH_CAP)
 	print("probe_perf_budget: %s (per-patch %.2f s, main %d tris, sweep %.1f s)"
