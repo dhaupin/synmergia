@@ -134,6 +134,9 @@ Labels: "THE DEPARTURE" only. No other text.
 
 ## The two movers (canon, 2026-11-05, from the monetization trade)
 
+> **Canon home: `labs/prd-ancient-movers.md`** -- this seed is the inspiration
+> shelf; the lab PRD carries the law.
+
 Standing law, recorded wherever vehicles are recorded. PERSONAL MOVERS are
 player-owned: a platform woken by YOUR tablet, a mount, a glider, a breather
 helmet. They wear honestly, repair FREE at stations, take Mender's Kits into
@@ -146,6 +149,10 @@ exists to fuel in either lane: a MEND is binding work, a MODIFIER is verse
 work; see prd-monetization.md sec 29 for the trade's prices and laws.
 
 ## The Mystery Gate (the ancients' wake-keys, canon 2026-11-05)
+
+> **Canon home: `labs/prd-ancient-movers.md`** (secs 5-8: lifecycle, wake-keys,
+> sealed keys, the known ancients table). This seed keeps its briefs and its
+> wake-verbs as inspiration only.
 
 The gap the owner flagged: the two-movers canon said the ancients are DORMANT,
 but no PRD ever wrote what wakes them. THE MYSTERY GATE closes the pipe.
