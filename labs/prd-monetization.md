@@ -350,6 +350,7 @@ decide with data.
 | *(next spitballs land here, one row per agreed idea)* | — | — |
 | Wardrobe locker — carry owned looks across owned items | AGREED, designed | §12 |
 | Guild heraldry packs — crew-bought social cosmetics | AGREED, designed | §13 |
+| Lucky — the weekly luck pot (7 days: 2 earned, 5 bought) | AGREED, designed | §14 |
 
 ## 12. The wardrobe locker — spitball #2 (2026-11-05)
 
@@ -429,7 +430,57 @@ tx legs with provenance stamps, the rank-gated buy permit, and the look surface 
 the same wardrobe-overlay recolor seat as §§11-12 so there is exactly ONE
 cosmetic-on-surface patch designed once, reused thrice.
 
-## 14. The investor version (the one-paragraph answer)
+## 14. Lucky — the weekly luck pot (spitball #4, 2026-11-05)
+
+> **Status: AGREED — the owner's shape plus two cuts.** A cheap burst of good
+> fortune: each charm buys 24 hours of raised drop luck across the WHOLE economy —
+> materials, craft inputs, weapons, armor, rare loot, the black-market roll — not just
+> one gear chain. Affordable to grinders, and the earn law keeps what normal/moderate
+> play can luck-earn to 2 of the 7 weekly pot days.
+
+**The pot law (the reframe that keeps it honest).** Every account owns a weekly luck
+pot — 7 luck-days per week, ALL at the same potency. Days 1-2 are earned nearly free
+through deeds (the owner's earn rule: normal/moderate play lucks them in); days 3-7 are
+bought at 25 sigils per 24-hour charm — the Soulbinder ticket's own price shape ($1.25
+gross, ≈$1.00 net) and an existing sink row class. Money buys the CLOCK — skip the
+deeds — never more luck than the same ceiling every account has access to. A charm
+lasts 24 hours from activation; the pot resets on the world's weekly tick, not on a
+purchase.
+
+**The two cuts:**
+1. **No XP leg.** Luck raises drop odds only — never XP gain, never gold-per-kill
+   rates. §9's hard law (no XP purchase) does not bend for $1.25, and neither does the
+   no-XP-pace tenet.
+2. **The stat-only law needs its authored tradeoff, so Lucky carries a stamp.**
+   Rare finds under a BOUGHT charm come out **fated** — bind-on-luck, soulbound, item
+   card says so. Finds under a DEED-earned day trade free. Money cannot mint tradable
+   wealth at scale, the economy stays purchase-proof, and deed luck is strictly better
+   — the standing tenet that earned is worth more, applied to fortune itself.
+
+**Laws:**
+1. Luck is ONE central roll-time modifier over the drop sources (loot tables, the
+   black-market board, harvest bounty) — never a per-item bandaid. The black market's
+   3/12 roll board gets the lift at modest odds only; flagged as the charm's loudest
+   touchpoint.
+2. **The pot is preshown.** The pot UI lists remaining earned/bought days BEFORE any
+   purchase — the preview-never-debits law, in its cheapest dress.
+3. The charm is a consumable with its own stack behavior; the day-purchase joins the
+   sink catalog with the refund + receipt legs. No refund once a charm's 24 hours
+   have started.
+4. The weekly pot lives on the account ledger (the tx roots), each pot day stamped
+   deed or bought — the provenance law reused.
+5. Toll orthogonal (§10): Lucky never grades an item; the purse grades exactly as
+   before. Lucky never requires the Charter; the free lane is the pot's own floor
+   (2 deed days every week, forever).
+
+**Implementation seat (a build round):** the weekly pot meter in the account ledger,
+the charm .tres in the consumable family + the sink row (25-sigil day, economics
+already in §2), the central drop-modifier resolution point (one function loot tables
+and the market board both consult), the fated stamp on lucky-found premium rares, and
+the pot UI. **Open question for that round:** does the charm lift HARVEST node yields
+too, or only kill/roll drops? (Harvest-skip is the shape that starts to smell.)
+
+## 15. The investor version (the one-paragraph answer)
 
 *Synmergia's monetization is not a plan, it is an installed, receipt-audited system: a
 wallet, three real-$ SKUs ($4.99–$24.99), a nine-row premium catalog (resurrection
