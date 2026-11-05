@@ -81,11 +81,37 @@ published as progress:
   inert.
 - **WOKEN** — the keys turned: it runs. The wake is an EVENT the world
   prints (a rise, a light, a route opening), authored by the ancient's own
-  event family. Its civic bill begins.
+  event family. Its civic bill begins (the standing bill: the Civic Bill
+  below).
 - **AT REST** — long disuse lowers it again: the road forgets what the road
   no longer serves, and the ancient re-sleeps SIGHTED, its route closed,
   the same keys able to wake it again later. An ancient is never deleted;
   dormancy is its natural home.
+
+### The Civic Bill and the Steward's Pledge (spitball #21, 2026-11-05)
+
+An ancient's upcost is civic and it is LEDGERED: every woken ancient
+accrues STEWARDSHIP through the audited sink rows (a TAKE-family book
+beside the roll board) — settlement deeds pay most of it, the warden
+take covers roads and crossings. An ancient whose stewardship runs dry
+takes the AT REST drift on its own schedule: the road forgets what the
+road no longer serves, the same keys wake it again. The bill is never a
+punishment and never a countdown printed at players (no wiki law).
+
+THE STEWARD'S PLEDGE: a settlement formally ADOPTS one ancient —
+rank-gated and vault-payable on the heraldry shape, mix-tracked by the
+purse law (an earned crew holds the identical pledge wholly on earned
+sigils). The pledging settlement's deed plate reads the adoption as
+file truth ("the pans keep the Gullwing" — authored template, no free
+text). The pledge buys nothing but SEQUENCE: no ceiling, no rank, no
+stat, no cheaper bill — and NO DISCOUNT ON ANY TOLL: stewardship is its
+own ledger, never a pass on the permits, deeds and gates the world
+already prices (tolls orthogonal; what is bought is the ancient's
+continued care, never relief on anything else). And when care is
+relief's cousin — the owner's framing is "a great opt on way to ease
+the PAIN of being taxed" — the ease is ADOPTION, not exemption: paying
+the ancients' bill is joining the civilization instead of merely
+inhabiting it.
 
 ## 6. The Mystery Gate
 
@@ -173,7 +199,10 @@ row. New ancients join this table by amendment with their open keys only.
    draw.
 2. **The ancients are never a currency, a competition, or a leaderboard.**
    A wake is an event, not a rank; the first waker earns the story, never
-   a per-human stat.
+   a per-human stat. The story is REAL CREDIT, law-dressed by the wake
+   event (prd-monetization.md sec 32): the wake record names the first
+   waker FOREVER — service-record credit, never custom text — and mints
+   a suffix deed by construction, purchasable at nothing.
 3. **No ancient furnishes a combat stat** to any who wake, ride or hold
    it — an ancient mover is a mover of PEOPLE, never a weapon platform.
 4. **No wiki in-game.** No progress bar, no checklist, no achievement
@@ -200,12 +229,22 @@ the events that wake) with no SKU attached and no P2W surface anywhere.
 The investor clause already crosslinks: "a Mystery Gate that prices
 nothing... and no purchase ever opens a gate."
 
+The owner named the wake event's psy for the investors, verbatim: "a
+permanent ledger, stokes the ego, easy spend, hair trigger" — the wake
+record names the first waker forever (a permanent ledger), the suffix
+mints by the record itself (the ego stoked), and the celebration permit
+sells at the emotional peak (an easy spend on a hair trigger). The
+Civic Bill is the keeper line: ancients bill civically and the
+Steward's Pledge turns their upkeep into an owned identity a settlement
+pays to keep — care is the bill, mystery follows care.
+
 ## 11. Implementation Seats (deferred build rounds)
 
 Nothing this round. When the first ancient ships: the SLEEPING/SIGHTED/
 WOKEN/AT REST state ledger server-side (keyed, sealed reads), the
-`ancient_wake_*` event family riding the honest print rails, the civic bill
-route per family, and the sealed-key derivation seat proposed in sec 7 —
+`ancient_wake_*` event family riding the honest print rails, the civic bill route per
+family (the stewardship ledger book + the Steward's Pledge on the
+heraldry rails), and the sealed-key derivation seat proposed in sec 7 —
 each landing with its own build round and its own keys.
 
 ## 12. Open Questions

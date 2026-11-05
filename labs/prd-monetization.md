@@ -367,6 +367,8 @@ decide with data.
 | The Concord's Table — the money ladder: every seat, SKU, price, sink kind + earn path on one page | AGREED, canonical | §30 |
 | The Mystery Gate — the ancients' wake-keys: server puzzles, tram effort, observation, interaction, pure luck; some keys sealed server-side even from dev docs; nothing purchasable wakes the unwoken | AGREED, canon | ancients PRD |
 | The Oracles — the wish to wake, priced in shots: sidecar wisdom batches + the Sigil meditation; buy the shot, never the act | AGREED, designed | §31 |
+| The Wake Event — every wake prints a free ceremony, the record names the first waker forever; the Peal's second voice sells the echo | AGREED, canon | §32 |
+| The Civic Bill — woken ancients accrue stewardship on a TAKE-family book; the Steward's Pledge adopts an ancient, never a toll discount | AGREED, canon | ancients PRD |
 
 ## 12. The wardrobe locker — spitball #2 (2026-11-05)
 
@@ -1175,7 +1177,7 @@ SKUs). The exact cent is a build-seat number; the owner's veto reserved.
 *Synmergia's monetization is not a plan, it is an installed, receipt-audited system: a
 wallet, three real-$ SKUs ($4.99–$24.99), a nine-row premium catalog (resurrection
 tickets at $1.00 net per unit, a $7.50–$45 mount ladder, cosmetic titles at $10–25),
-an in-game sigil market, a four-tier expedition storage ladder where deeds earn the slots and the wallet only buys the clock (a chartered buy carries a small authored luck-toll), an achievement plate that reads nothing but the world's verbs (gold, coin and title rewards — never purchasable), a homestead with an earned front door (the clock door carries the move-toll and the signature toll, furniture sells breadth under the hallmark law), a public tavern door (the Anchor Room: guilds buy the pub's hour by the clock and the deed grant keeps F2P honest), and a sponsor stage (the $20 public pace stage where the rate is the ceiling and buys stack the clock — paid mints the Investor suffix, the deed route mints the Philanthropist prefix), and an earned-earn path that keeps F2P honest, a vehicle trade under one law (the Tide-Mender Trade: stations mend free, the kit mends the field, modifiers lace capability — never a rate, never an engine), a Mystery Gate that prices nothing (the ancient movers wake by server puzzle, tram effort, observation, interaction or pure luck — some wake-keys sealed server-side, beyond our own docs by design — and no purchase ever opens a gate; the Oracles (sec 31) lawfully sell only the wider SHOT on the same sealed doors — wisdom batches and meditation days, more dice never a better die -- the lab: labs/prd-ancient-movers.md), and its Concord's Table pricing the whole SKU stack on one page. Publishing
+an in-game sigil market, a four-tier expedition storage ladder where deeds earn the slots and the wallet only buys the clock (a chartered buy carries a small authored luck-toll), an achievement plate that reads nothing but the world's verbs (gold, coin and title rewards — never purchasable), a homestead with an earned front door (the clock door carries the move-toll and the signature toll, furniture sells breadth under the hallmark law), a public tavern door (the Anchor Room: guilds buy the pub's hour by the clock and the deed grant keeps F2P honest), and a sponsor stage (the $20 public pace stage where the rate is the ceiling and buys stack the clock — paid mints the Investor suffix, the deed route mints the Philanthropist prefix), and an earned-earn path that keeps F2P honest, a vehicle trade under one law (the Tide-Mender Trade: stations mend free, the kit mends the field, modifiers lace capability — never a rate, never an engine), a Mystery Gate that prices nothing (the ancient movers wake by server puzzle, tram effort, observation, interaction or pure luck — some wake-keys sealed server-side, beyond our own docs by design — and no purchase ever opens a gate; the Oracles (sec 31) lawfully sell only the wider SHOT on the same sealed doors — wisdom batches and meditation days, more dice never a better die; and the wake event (sec 32) is the owner's investor leg ON PURPOSE — a permanent ledger (first-waker names ride the wake record forever, the ego stoked by a suffix minted by the record itself), an easy spend on a hair trigger — the celebration permit bought at the emotional peak -- the lab: labs/prd-ancient-movers.md), and its Concord's Table pricing the whole SKU stack on one page. Publishing
 cadence is already contractual: seasonal packs authored by an income law that pays the
 shared progression curve, with a level cap that lifts on data, not opinion. Pay-to-win is priced out by construction
 rather than promised away: Mythos exclusives ship with an authored tradeoff toll that
@@ -1317,6 +1319,7 @@ by row, what is sold, what is sanked, and what stays free.
 | 20 | Mover modifiers | chartered shelf verses, capability verbs | build seat, felt number | MODIFIER rows | same modifier earned by crafter bills + deeds, two-way | §29 |
 | 21 | The Wisdom Call | sidecar compute work units (Rust/Julia batches on a named door) | ~$0.25/unit, build-seat | WISDOM rows | small weekly earned allotment via witnessed deeds | §31 |
 | 22 | The Meditation Ceremony | ceremony day, Lucky-pot shape (25 sigils ~$1.25) | small SKU | ATTUNE rows | days 1-2 of every week earned free via deeds | §31 |
+| 23 | The Wake Peal | the standing Peal permit, rung at a wake (celebration voice) | same Peal permit (deed-earned or bought) | PEAL rows (second voice) | the Peal permit's earn path covers both voices | §32 |
 
 **How to read the table.** Where money buys the clock (rows 6, 8, 14, 15, 17,
 18), the chartered shape is the toll family and the toll is visible; where
@@ -1324,9 +1327,11 @@ money buys presence (rows 3, 4, 5, 7, 9, 13), no rate moves anywhere; where
 money buys the NOW (rows 10, 11, 12, 18, 19), the same door stands free by
 deed. Two structural rows hold the top: the Charter (row 1) is cosmetic plus
 convenience with an earned-sigils purchase door, and Mythos (row 2) is the
-provenance-graded tradeoff. The count is the pitch: TWENTY-TWO rows stand priced
+provenance-graded tradeoff. The count is the pitch: TWENTY-THREE rows stand priced
 and NONE turns a stat on by purchase (rows 21-22 sell only the wider SHOT
-at the unopened doors — the Oracles: money cannot buy the act).
+at the unopened doors — the Oracles: money cannot buy the act; row 23 is
+the Peal permit celebrating in its second voice — the echo bought, never
+the event).
 
 
 ## 31. The Oracles (spitball #18, 2026-11-05) — the wish to wake, priced in shots
@@ -1384,6 +1389,51 @@ wiki for a door; no free text ever (wake banner lines print from service
 record only); every roll provenance-stamped; the F2P earn path stands on
 both seats.
 
+
+## 32. The Wake Event (spitball #19, 2026-11-05) — the echo after the door turns
+
+When ANY wake fires — sealed or carved, luck or ledger, ancient or hidden
+verb — the world prints ONE ceremony, and the ceremony is where the money
+lawfully lives.
+
+THE FREE EVENT (never sold): a zone-visible rise — the islet lifting free
+of its overgrowth, the ruin mover's first breath of dust, the hidden verb
+unbinding at its ground — and the wake files as a WHISPER LEDGER CHAPTER
+on the sky almanac rails (one derivation, two readers, the carrier law
+verbatim). Every witness reads it free, forever.
+
+THE FIRST WAKER: the wake RECORD names the first waker forever —
+service-record credit, never custom text — and the record itself mints a
+SUFFIX deed by construction ("the Dawner", the Spiteful's shape: titles
+are minted by deeds only). NOBODY BUYS AN HONOR applies at its sharpest:
+the suffix cannot be bought, gifted, reserved or traded, and a bought
+peal never mints anything.
+
+THE PAID LEG — THE WAKE PEAL: the standing Peal permit's SECOND VOICE
+(the mourning SKU rung in celebration — one permit, two voices, no new
+SKU, no new payment code; deed-earned or bought, never Charter-gated):
+a bigger bell, a longer echo, and the finder's name carried in the
+celebration line. Money buys the echo, never the event.
+
+THE INVESTOR LEG (owned, verbatim, on purpose — "make investors know the
+psy"): a PERMANENT LEDGER (first-waker names ride the wake record
+forever — the ego stoked by a suffix minted by the record itself), an
+EASY SPEND on a HAIR TRIGGER (the celebration permit bought at the
+emotional peak, in the moment the story is made). Social proof
+monetized without a single number shown to any onlooker.
+
+LAWS: no stat anywhere (a wake is a ceremony, never a rating); no wiki;
+no free text (every wake banner and ledger line authored from service
+record only); provenance EARNED/BOUGHT on every ring through the tx
+roots; the F2P floor is the WHOLE event — the rise, the ledger chapter
+and the suffix are free by construction; the peal re-sells the same
+permit the mourning seat already sells (tolls orthogonal, one SKU).
+
+IMPLEMENTATION SEAT (build round, gated on the first wake): the wake
+banner through the sec 15 print rails, the ledger-chapter leg on the
+almanac derivation, the suffix mint condition reading the wake record,
+and the Peal permit's celebration-voice binding (the existing .tres, a
+second use-case; zero new payment code).
 ---
 
 **Sources (server-price anchors, read 2026-11-05):** Hetzner cloud lineup
