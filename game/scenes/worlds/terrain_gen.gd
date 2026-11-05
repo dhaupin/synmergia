@@ -46,6 +46,7 @@ const SECTOR_CACHE = preload("res://core/frame/kv/sector_cache.gd")
 static var _height_cache = SECTOR_CACHE.new()
 static var _water_surface_cache = SECTOR_CACHE.new()
 static var _blend_cache = SECTOR_CACHE.new()
+static var _skin_cache = SECTOR_CACHE.new()  # the splat class weights (skin law, same law)
 static var _channel_cache = SECTOR_CACHE.new()
 static var _crag_cache = SECTOR_CACHE.new()
 static var _river_spec_cache = LRU_CACHE.new(8)
@@ -1399,6 +1400,119 @@ static func vertex_color(d: Vector3, world_seed: PackedByteArray, lift: float, s
 		c = c.lerp(Color(0.42, 0.38, 0.32), bluff)
 		c = c.darkened(bluff * 0.5 * (1.0 - smoothstep(sea - 0.4, sea + 1.6, lift)))
 	return c
+
+
+## THE TEXTURE SKIN LAW (the spike round's splat export): the SAME
+## physics vertex_color reads -- the climate weights, the slope rock,
+## the snowline, the wet dim, the foam band, the waterfall seam, the
+## road packed-earth, the bluff shading -- exported as SPLAT WEIGHTS
+## instead of a palette color, so the terrain shader blends tileable
+## texture skins UNDER our law-proven bones instead of overwriting
+## them. Returns {"splat": Color(grass, dirt, rock, sand)} for the
+## vertex COLOR and {"aux": Vector2(snow, bright)} for UV2, where
+## bright folds every post-blend dimming into ONE faithful multiplier.
+## THE LAWFUL SUBSET note (honest spike ledger): the vertex-color
+## micro-tones (the tuft sparkle, the macro tone polish, the tint
+## wobble salt, the crag strata/fracture dimming) stay COLOR-lane
+## only -- the tileable skins carry their own grain, and the receipts
+## pin exactly what moved and what did not. The color law itself is
+## byte-identical: the spike adds a lane, never edits the law.
+## Toggle: SPLAT_SKIN (below); the streamer's skin lane reads it.
+const SPLAT_SKIN := true
+
+static func skin_classes(d: Vector3, world_seed: PackedByteArray) -> Color:
+	# THE CLASS MEMO (the blend-cache law verbatim): the texture-class
+	# read is pure per quantized direction + seed, so it memoizes the
+	# same probability the color law rides -- uncached, the full-detail
+	# budget loses its headroom (the perf probe caught it first run).
+	d = d.normalized()
+	var cached = _skin_cache.get_value(d, world_seed)
+	if cached is Color:
+		return cached
+	var weights: Dictionary = climate_biome_weights(d, world_seed)
+	var w_grass: float = 0.0
+	var w_dirt: float = 0.0
+	var w_rock: float = 0.0
+	var w_sand: float = 0.0
+	for id in weights:
+		var w: float = float(weights[id])
+		match int(id):
+			BiomeId.GRASSLAND, BiomeId.ALPINE_MEADOW, BiomeId.STEPPE, \
+			BiomeId.JUNGLE, BiomeId.FOREST, BiomeId.TAIGA, BiomeId.SWAMP, \
+			BiomeId.TUNDRA:
+				w_grass += w
+			BiomeId.SAVANNA:
+				w_grass += w * 0.6
+				w_sand += w * 0.4
+			BiomeId.ALPINE, BiomeId.BADLANDS:
+				w_rock += w
+			BiomeId.SHORE, BiomeId.DESERT:
+				w_sand += w
+			BiomeId.OCEAN_DEEP, BiomeId.OCEAN_SHELF, BiomeId.LAKE, \
+			BiomeId.RIVER:
+				w_sand += w  # beds read sand through the water dim
+			_:
+				w_dirt += w
+	var out := Color(clampf(w_grass, 0.0, 1.0), clampf(w_dirt, 0.0, 1.0), clampf(w_rock, 0.0, 1.0), clampf(w_sand, 0.0, 1.0))
+	_skin_cache.set_value(d, world_seed, out)  # bounds evict, never clear
+	return out
+
+
+static func splat_skin(d: Vector3, world_seed: PackedByteArray, lift: float, steep: float) -> Dictionary:
+	d = d.normalized()
+	var cls := skin_classes(d, world_seed)
+	var w_grass: float = cls.r
+	var w_dirt: float = cls.g
+	var w_rock: float = cls.b
+	var w_sand: float = cls.a
+	var sea: float = sea_level(world_seed)
+	# THE SLOPE PHYSICS: the same rock lerp factor vertex_color rides.
+	var f_rock: float = clampf(steep * 0.75, 0.0, 1.0)
+	w_grass *= 1.0 - f_rock
+	w_dirt *= 1.0 - f_rock
+	w_sand *= 1.0 - f_rock
+	w_rock = w_rock + (1.0 - w_rock) * f_rock
+	var aux: Vector2 = Vector2(0.0, 1.0)
+	# THE SNOWLINE (same law: temperature, spawn apron dry-green).
+	var t: float = climate_temperature(d, world_seed)
+	if t < SNOWLINE_T + 0.04:
+		var ang_spawn: float = d.normalized().angle_to(SPAWN_CENTER)
+		if ang_spawn > SPAWN_APRON_OUTER_ANG:
+			aux.x = clampf((SNOWLINE_T + 0.04 - t) / 0.08, 0.0, 1.0) * 0.85
+	# THE DIMMING STACK (post-blend leg), folded into aux.y:
+	var cn: Vector4 = _crag_noise(d, world_seed)
+	if lift < sea - 0.2:
+		aux.y *= 0.55  # the under-shell wet dim (darkest leg)
+	var surf: float = hydro_water_surface(d, world_seed)
+	var under_g: float = surf - terrain_height(d, world_seed)
+	if under_g > 0.0 and under_g < 1.5:
+		aux.y *= 1.0 - (1.0 - under_g / 1.5) * 0.5  # the wet ring
+	# THE SHORE FOAM + WATERFALL SEAM: both pale-white washes ride the
+	# snow slot in weight space (the color law lerps them toward the
+	# same pale palette the snow phase sits on).
+	var under: float = maxf(under_g, sea - lift if lift < sea else 0.0)
+	if under > 0.0 and under < 0.45:
+		var foam: float = (1.0 - under / 0.45) * 0.85 * smoothstep(0.45, 0.72, cn.w)
+		aux.x = clampf(aux.x + foam, 0.0, 1.0)
+	var seam: float = waterfall_seam_at(d, world_seed)
+	if seam > 0.01:
+		aux.x = clampf(aux.x + seam * (0.55 + 0.4 * smoothstep(0.4, 0.8, cn.w)), 0.0, 1.0)
+	# THE ROAD LAW TINT: the cartway reads packed earth (dirt skin).
+	var road_state: Vector3 = road_state_at(d, world_seed)
+	if road_state.x > 0.0 and d.angle_to(SPAWN_CENTER) >= SPAWN_APRON_OUTER_ANG:
+		var f_road: float = road_state.x * 0.85
+		w_grass *= 1.0 - f_road
+		w_rock *= 1.0 - f_road
+		w_sand *= 1.0 - f_road
+		w_dirt = w_dirt + (1.0 - w_dirt) * f_road
+	# THE COASTAL BLUFF RIDER: sea-cut faces darken (multiply, not mix).
+	var bluff2 := smoothstep(0.5, 0.8, steep) * (1.0 - smoothstep(sea + 0.5, sea + 9.0, lift))
+	if lift < sea + 9.0 and bluff2 > 0.01:
+		aux.y *= 1.0 - bluff2 * 0.5 * (1.0 - smoothstep(sea - 0.4, sea + 1.6, lift))
+	return {
+		"splat": Color(w_grass, w_dirt, w_rock, w_sand),
+		"aux": aux,
+	}
 
 
 ## BLEND WEIGHTS for rendering (slice 2): a Dictionary of biome ->

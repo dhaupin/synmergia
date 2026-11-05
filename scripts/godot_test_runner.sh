@@ -101,6 +101,7 @@ probe_planet_walk_20km
 probe_planet_rebase_20km
 test_world_shape
 test_terrain_determinism
+test_terrain_splat_skin
 probe_terrain_planet
 probe_terrain_backend
 probe_terrain_climate

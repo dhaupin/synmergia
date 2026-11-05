@@ -84,7 +84,19 @@ var _patches := {}  # int face -> MeshInstance3D
 var _face_tints := {}  # int face -> Color (deterministic per face)
 var _patch_rocks := {}  # int face -> Array of rock MeshInstance3D
 var _patch_boulders := {}  # int face -> Array of boulder MeshInstance3D
+## THE SKIN LANE (the spike round): when TerrainGen.SPLAT_SKIN is law
+## and a face built terrain_on, the tint pass exports splat WEIGHTS
+## (COLOR = grass/dirt/rock/sand, UV2 = snow/bright) and the patch
+## rides the tileable skin shader below; the legacy color lane stays
+## byte-identical for the prototype faces and any law turn-off.
+const _skin_shader = preload("res://assets/shaders/terrain_splat.gdshader")
+const _tex_grass = preload("res://assets/textures/terrain/grass.png")
+const _tex_dirt = preload("res://assets/textures/terrain/dirt.png")
+const _tex_rock = preload("res://assets/textures/terrain/rock.png")
+const _tex_sand = preload("res://assets/textures/terrain/sand.png")
+const _tex_snow = preload("res://assets/textures/terrain/snow.png")
 var _patch_mats := {}  # int face -> StandardMaterial3D (per-face cache)
+var _skin_mat: ShaderMaterial  # the ONE splat skin (shared across faces)
 ## Terrain arc: the heightfield displaces tile vertices when on
 ## (planet scale -- the scene flips it; prototype stays the flat
 ## shell so every S5b/S8 probe contract keeps its geometry).
@@ -605,6 +617,7 @@ func _derive_mesh_data(face: int, use_lvl: int) -> Dictionary:
 	## the QUANTIZED key reads (the pre-pass above populated them), so
 	## the tint pass is dict-only.
 	var st := SurfaceTool.new()
+	var face_skin := false  # the skin lane rode any vertex of the pass
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for tri in verts:
 		for i in range(3):
@@ -622,12 +635,21 @@ func _derive_mesh_data(face: int, use_lvl: int) -> Dictionary:
 		## S7 face tints. Slope comes from the height cache: gradient of
 		## the two nearest sampled neighbors.
 			var col: Color = _tint_for_pure(face)
+			var aux: Vector2 = Vector2(0.0, 1.0)
 			if terrain_on:
 				# Slope: read from the fused per-corner cache (dict-only
 				# after the corner fusion above).
 				var h_here: float = r_abs - tile_r
 				var slope_seed: float = dir_slope[key]
-				col = TerrainGen.vertex_color(d_abs, world_seed, h_here, slope_seed)
+				if TerrainGen.SPLAT_SKIN:
+					# THE SKIN LANE: splat weights for the skin shader.
+					var skin_d: Dictionary = TerrainGen.splat_skin(d_abs, world_seed, h_here, slope_seed)
+					col = skin_d["splat"]
+					aux = skin_d["aux"]
+					face_skin = true
+				else:
+					col = TerrainGen.vertex_color(d_abs, world_seed, h_here, slope_seed)
+			st.set_uv2(aux)
 			st.set_color(col)
 			# Planar UVs wrapped to [0,1) (the round-12 web law).
 			st.set_uv(Vector2(fposmod(v.x * 0.0015, 1.0), fposmod(v.z * 0.0015, 1.0)))
@@ -719,6 +741,7 @@ func _derive_mesh_data(face: int, use_lvl: int) -> Dictionary:
 	var deck_d: Dictionary = _derive_deck(face, center)
 	return {
 		"center": center,
+		"skin": face_skin and terrain_on,
 		"tris": verts.size(),
 		"main_arrays": main_arrays,
 		"skirt_arrays": skirt_arrays,
@@ -744,15 +767,28 @@ func _erect_mesh(face: int, use_lvl: int, d: Dictionary) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
 	mi.name = "Patch%d" % face
-	var mat: StandardMaterial3D = _patch_mats.get(face)
-	if mat == null:
-		mat = StandardMaterial3D.new()
-		mat.vertex_color_use_as_albedo = true
-		mat.roughness = 0.95
-		mat.albedo_texture = _make_checker_texture()
-		mat.uv1_scale = Vector3(1, 1, 1)
-		_patch_mats[face] = mat
-	mi.set_surface_override_material(0, mat)
+	if bool(d.get("skin", false)):
+		# THE SKIN LANE: the ONE shared splat material (weights ride the
+		# vertex COLOR, the dims ride UV2; textures tile world-planar).
+		if _skin_mat == null:
+			_skin_mat = ShaderMaterial.new()
+			_skin_mat.shader = _skin_shader
+			_skin_mat.set_shader_parameter("tex_grass", _tex_grass)
+			_skin_mat.set_shader_parameter("tex_dirt", _tex_dirt)
+			_skin_mat.set_shader_parameter("tex_rock", _tex_rock)
+			_skin_mat.set_shader_parameter("tex_sand", _tex_sand)
+			_skin_mat.set_shader_parameter("tex_snow", _tex_snow)
+		mi.set_surface_override_material(0, _skin_mat)
+	else:
+		var mat: StandardMaterial3D = _patch_mats.get(face)
+		if mat == null:
+			mat = StandardMaterial3D.new()
+			mat.vertex_color_use_as_albedo = true
+			mat.roughness = 0.95
+			mat.albedo_texture = _make_checker_texture()
+			mat.uv1_scale = Vector3(1, 1, 1)
+			_patch_mats[face] = mat
+		mi.set_surface_override_material(0, mat)
 	mi.position = d["center"]
 	if d["skirt_arrays"] != null:
 		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, d["skirt_arrays"])

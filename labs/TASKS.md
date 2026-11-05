@@ -8868,3 +8868,11 @@ the sea bands). All four landed; one stale probe leg fell with them.
 - RECEIPTS moved in the same change: test_level_curve.gd pm pin re-pointed + 7 new engine-consults pins (incl. named absence of the old 1.5x re-derivations); test_progress_bridge.gd keeps the band pins (1000/2250 byte-equal under both laws) + 4 past-band pins for the breathing ratio.
 - GREEN: level_curve 21/0, progress_bridge 45/0, progress_persistence 23/0, kill_rewards 21/0, combat_live 10/0.
 - SCOPE GUARD: community_governance.gd MAX_LEVEL = 10 is governance rank (separate system) -- untouched.
+
+## 2026-11-05av -- the texture spike round: five seamless tileable skins + the splat shader land under the terrain law; skins ride the SAME physics as weights; perf ledger measured both lanes (skin lane FASTER than baseline on every probed budget)
+- THE LAW: terrain_gen.gd splat_skin (+ skin_classes memo on _skin_cache, SectorCache law verbatim, SPLAT_SKIN toggle) exports the SAME physics vertex_color reads as WEIGHTS: COLOR=(grass,dirt,rock,sand w/ sand on alpha), UV2=(snow,bright); color law byte-untouched; micro-tones stay COLOR-lane (honest header ledger).
+- THE STREAMER: globe_terrain_streamer.gd tint pass rides the skin lane (set_uv2 + weights) and mounts ONE shared ShaderMaterial (assets/shaders/terrain_splat.gdshader); the shader never re-decides biomes (weights only from COLOR/UV2), tiles read world-planar so chunk seams never show, steep faces read the model-space vertex normal.
+- THE SKINS: assets/textures/terrain/{grass,dirt,rock,sand,snow}.png -- 256x256 seamless procedural stand-ins, palettes matched to the biome law, ~104 KB total; Quixel Megascans (free as of 2026-11-05 with AI-training rights) slot into the same five slots with ZERO code change.
+- RECEIPTS: test_terrain_splat_skin.gd 25/0 (in the runner DEFAULT_SET); determinism + climate probes pass (color law untouched).
+- PERF: full-detail patch build 9.35 s PASS (baseline 11.59 s FAIL), sweep faces 32.5 s (baseline 37.8 s), subwalk 253.5 s (baseline 296.5 s; both over the probe's 200 s wall in this VM -- pre-existing, the skin lane is faster; both readings recorded).
+- CAVEAT: no visual verification headless (dummy renderer cannot rasterize the shader); the look needs the owner's eyes in an editor or a CI web export.
