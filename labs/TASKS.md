@@ -8701,3 +8701,8 @@ the sea bands). All four landed; one stale probe leg fell with them.
 - HONEST SEAM RECORDED: sec 9's no-XP law governs personal/track purchases; the stage's XP leg is the owner's authored exception for the public everyone-rides shape, capped to this section; no personal XP purchase exists anywhere else.
 - NUMBERING + BENCH: investor paragraph renumbered sec 21 -> sec 24 (+ two clauses: the pub and the stage); bench now TWELVE rows.
 - DOC-ONLY round: zero .tres, zero service changes, the pack export stands.
+
+## 2026-11-05x -- spitball #11 amendment: the stage ceiling bumped 5% -> 10% (owner veto on stingy)
+- OWNER CALL: "+5% is too low and weird stingy; bump the $20 / grind to a 10% server boost." Landed: sec 23 authors +10% drop AND xp (intro, ceiling law, stack example now +20%, honest seam, the implementation seat's drop leg); the deed route rides the same +10%; the rate-is-the-ceiling law and the combat firewall untouched.
+- Historical round notes keep contemporaneous 5% lines (waystone-market precedent).
+- DOC-ONLY round: zero .tres, zero service changes, the pack export stands.

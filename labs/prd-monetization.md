@@ -955,14 +955,14 @@ board page reading service truth only (names, nothing personal).
 ## 23. The Sponsor Stage — the shard's public rite (spitball #11, 2026-11-05)
 
 > **Status: AGREED (owner pitch, Buffy yay + dress).** The owner's shape: **$20 buys a
-> server-wide stage — +5% drop AND xp for EVERYONE for 40–60 minutes** — with the
+> server-wide stage — +10% drop AND xp for EVERYONE for 40–60 minutes** — with the
 > sponsor's name, guild and faction credited across the whole hour, and the roll
 > public on the website. The ego is the product and the buff is everyone's: nobody
 > buys personal power, the whole shard rides the same clock.
 
 **The rate is the ceiling (the clock law, literal).** Concurrency never stacks the
 rate: a second $20 during a live stage EXTENDS the stage's clock, never makes it
-+10%. The ceiling is authored at +5% and no purchase moves it — money buys the clock,
++20%. The ceiling is authored at +10% and no purchase moves it — money buys the clock,
 never the ceiling, in the section that proves the law was written for this.
 
 **The sponsor's credit (the roll).** Name + guild + faction read from the service
@@ -985,7 +985,7 @@ for paying — fairness for the grind, exactly as pitched.
 
 **An honest seam, recorded.** §9's no-XP law governs PERSONAL and track purchases.
 This stage's XP leg is the owner's authored exception for the PUBLIC shape: every
-rider, paid or free, shares the identical +5%, so the exception runs ALONGSIDE the
+rider, paid or free, shares the identical +10%, so the exception runs ALONGSIDE the
 law (it lifts the shard, never the individual) and is capped to this section. No
 personal XP purchase exists anywhere in the model; nothing else ever lifts XP.
 
@@ -999,7 +999,7 @@ preview shows remaining window + rate BEFORE purchase; no Charter gate; toll
 orthogonal (a sponsor's deed-versus-buy provenance is recorded, graded nothing).
 
 IMPLEMENTATION SEAT (build round): the stage clock keyed on the shard ledger (the tx
-roots stay the spine); the +5% drop leg riding THE SAME central roll-time modifier
+roots stay the spine); the +10% drop leg riding THE SAME central roll-time modifier
 §14's luck charms landed on (one bucket, never per-system bandaids) and the XP leg on
 the gain hook — `LevelCurve` remains the ONE authority (the stage changes the gain,
 never the curve file); the roll page reading service truth; one $20 SKU riding the
