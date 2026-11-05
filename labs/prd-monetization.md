@@ -354,6 +354,7 @@ decide with data.
 | The Whisper Ledger — the rumor mill + the Peal | AGREED, designed | §15 |
 | Expedition pack — the four-tier storage ladder (deeds earn, coin buys the clock) | AGREED, designed | §16 |
 | The title ropes — prefix/suffix walked back through §§11–16 | AGREED, designed | §17 |
+| The deed plate — the achievement walk-back over the model's earn rails | AGREED, designed | §19 |
 
 ## 12. The wardrobe locker — spitball #2 (2026-11-05)
 
@@ -668,12 +669,74 @@ lucky-find stamp, the ledger chapter); one cheap sink row for purchasable suffix
 vanity (the baron's shape); `TitleService` already carries unlock/equip/signal
 through; zero new systems, one new proof-of-policy receipt.
 
-## 18. The investor version (the one-paragraph answer)
+## 19. The deed plate — spitball #7 (2026-11-05)
+
+> **Status: AGREED.** The owner's pitch: achievements alongside the model — "the
+> Chosen is def achievement territory — get your first Spiritbound item." Buffy's
+> yay with one sharpening: the plate is not a new economy, it is the EARN SIDE
+> the model already runs, made visible. The schema was built for this and never
+> met a customer: `AchievementData` carries Rarity tiers, `title_reward`,
+> `hidden` + `secret_description`, a meta-ACHIEVEMENT category with
+> `required_achievements` chains, and 32 authored definitions already ride
+> `AchievementService` + its listeners. The plate needs laws, not a system.
+
+**THE WALK-BACK (the plate's seats across §§9–17):**
+- **§14 Lucky → "the First Landing."** the owner's own: first spiritbound item —
+  HIDDEN until landed (the schema's mystery fields; the "hehe" economy is
+  fielded), LEGENDARY by construction, and the Chosen prefix (§17) mints from
+  the SAME trigger — the plate and the title are one fact read twice.
+- **§14 fated stamp → "the Fated Find."** a rare item stamped bind-on-luck; the
+  find is celebrated, the charm that enabled it never is.
+- **§10 Mythos → "Proven."** own a Mythos exclusive graded Proven (100% deed
+  pooling) — the purse grade becomes a trophy the wallet cannot fake.
+- **§9 Charter → "the Earnest One."** a Charter bought WHOLLY on 300
+  earned-only sigils — the F2P door exercised as an event. The single
+  purchase-adjacent seat, and it is still a deed story: deeds did the buying.
+- **§11 dyes → "Full Spectrum."** a complete authored dye family carried across
+  the carriers.
+- **§12 wardrobe → "Handled."** the first locker move: an owned look carried
+  across owned carriers.
+- **§13 heraldry → "the Standard Bearer."** your crew's kit flying in a world
+  event.
+- **§15 Whisper Ledger → "Named on a Page."** the Peal'd finder reads their own
+  name at the almanac's dawn — the record becomes the trophy.
+- **§16 expedition pack → "Expeditioneer."** a PROGRESS chain mirroring the four
+  deed tiers; chartered holds light nothing (§16's law keeps).
+- **§17 meta → "the Full Rope."** a `required_achievements` chain over the
+  rope's prefix plates — the meta-ACHIEVEMENT category's exact purpose.
+
+**Laws of the plate:**
+- **The plate reads the world, never the wallet.** No achievement fires on a
+  purchase act. The Earnest One is the standing exception and it is a deed
+  story (earned sigils doing the buying). Chartered holds, bought suffixes and
+  kit wallets mint nothing — the quiet seats stay quiet.
+- **Verbs, never grinders.** The canon quest law verbatim: "collect 10,000
+  herbs" stays banned; every plate answers one of the world's own verbs (a
+  landing, a find, a glide, a page, a banner).
+- **One derivation, three readers.** The trigger fact is read by the title mint
+  (§17), the Ledger chapter (§15) and the plate — never a parallel counter. The
+  honesty-law pattern, now in its third dress.
+- **Every plate free by construction.** Money never lifts, skips or buys
+  progress (the jackpot law extended plate-wide); rewards pay through the
+  schema's own gold/xp fields — earned by act, never by invoice.
+- **Rarity follows the verb.** How rarely the world does the thing, not how
+  much was spent (the title law extended).
+- **No new fields.** Mystery = `hidden` + `secret_description`; trophy titles =
+  `title_reward` resolving to the SAME authored TitleData `.tres` the ropes
+  mint — never a copy.
+
+**Implementation seat (a build round):** authored achievement `.tres` riding the
+existing `AchievementListeners` bridges (the plates subscribe to events the
+listeners already track, including the §14 landing event and the fated stamp);
+the item-catalog receipt grows the coupling law — every `title_reward` resolves
+to a real authored TitleData. Zero new systems.
+
+## 20. The investor version (the one-paragraph answer)
 
 *Synmergia's monetization is not a plan, it is an installed, receipt-audited system: a
 wallet, three real-$ SKUs ($4.99–$24.99), a nine-row premium catalog (resurrection
 tickets at $1.00 net per unit, a $7.50–$45 mount ladder, cosmetic titles at $10–25),
-an in-game sigil market, a four-tier expedition storage ladder where deeds earn the slots and the wallet only buys the clock (a chartered buy carries a small authored luck-toll), and an earned-earn path that keeps F2P honest. Publishing
+an in-game sigil market, a four-tier expedition storage ladder where deeds earn the slots and the wallet only buys the clock (a chartered buy carries a small authored luck-toll), an achievement plate that reads nothing but the world's verbs (gold, coin and title rewards — never purchasable), and an earned-earn path that keeps F2P honest. Publishing
 cadence is already contractual: seasonal packs authored by an income law that pays the
 shared progression curve, with a level cap that lifts on data, not opinion. Pay-to-win is priced out by construction
 rather than promised away: Mythos exclusives ship with an authored tradeoff toll that
