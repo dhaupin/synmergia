@@ -80,7 +80,7 @@ func _populate_options() -> void:
 			A11yStyles.apply_accessibility(
 				button,
 				"Respawn: %s" % label,
-				"Returns you to the world via %s" % ("your bound Ankh" if mode == "ankh" else ("the closest Ankh" if mode == "nearest_ankh" else ("the death spot, faster" if mode == "near_corpse" else "the zone's respawn rules")))
+				"Returns you to the world via %s" % ("your bound Ankh" if mode == "ankh" else ("the closest Ankh" if mode == "nearest_ankh" else ("the death spot, faster" if mode == "near_corpse" else ("the death spot, instantly -- one Soulbinder's Ticket is spent" if mode == "soulbind" else "the zone's respawn rules"))))
 			)
 		_options_container.add_child(button)
 
@@ -96,6 +96,8 @@ func _get_option_display(option: Dictionary) -> String:
 			return "[NEAREST ANKH] %s" % name
 		"near_corpse":
 			return "[CORPSE] Near death location"
+		"soulbind":
+			return "[SOULBIND] %s" % name
 		"gateway":
 			return "[GATEWAY] %s" % name
 		"safe_zone":

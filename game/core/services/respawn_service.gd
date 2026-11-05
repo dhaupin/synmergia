@@ -64,6 +64,70 @@ const REVIVE_KARMA_REWARD: int = 10  # Karma for friendly revive
 const REVIVE_KARMA_PENALTY_CROSS_FACTION: int = 5  # Extra karma for cross-faction revive
 
 ## Context-aware abuse detection thresholds
+
+## --- THE SOULBIND BOOK ------------------------------------------------
+## The Soulbinder's Ticket (data/items/item_soulbind_ticket.tres) is a
+## PREPAID resurrection permit: the Concord sink's RESPAWN grant leg
+## stamps it into the bag with real sigils, and these two legs are the
+## ONLY consumers -- the death screen's SELF_REVIVE stand-up (self, at
+## the death spot; a sea-owned death spot pays back the zone spawn) and
+## the party lifeline in start_revival (pay at a fallen ally when no
+## healer reaches). Never vendored, never drunk at the bag's use door.
+const SOULBIND_TICKET_ID := "item_soulbind_ticket"
+const SOULBIND_RESPAWN_DELAY: float = 3.0
+
+func _soulbind_inventory_of(entity) -> Node:
+	var inv_svc: Node = InventoryService if InventoryService else null
+	if entity == null or not ("entity_id" in entity) or inv_svc == null:
+		return null
+	return inv_svc.get_inventory(entity.entity_id)
+
+## How many tickets a body holds (0 in headless/stub boots: the count
+## is honest about absent doors, never invented).
+func soulbind_count(entity) -> int:
+	var inv: Node = _soulbind_inventory_of(entity)
+	if inv == null:
+		return 0
+	if inv.has_method("count_item"):
+		return int(inv.call("count_item", SOULBIND_TICKET_ID))
+	if not inv.has_method("get_all_items"):
+		return 0
+	var held: int = 0
+	for it in inv.call("get_all_items"):
+		if it != null and str(it.get("id")) == SOULBIND_TICKET_ID:
+			var cs = it.get("current_stack")
+			held += maxi(1, int(cs) if cs != null else 1)
+	return held
+
+## DEBIT BEFORE GRANT: one ticket out, then the cycle schedules. A
+## refused consume refuses the respawn by name; the books never half-pay.
+func _consume_soulbind(entity) -> bool:
+	var inv: Node = _soulbind_inventory_of(entity)
+	if inv == null or not inv.has_method("remove_item_by_id"):
+		return false
+	return bool(inv.call("remove_item_by_id", SOULBIND_TICKET_ID, 1))
+
+## The stand-up site law: a body that fell under the sea never drowns
+## twice, and a body that fell inside the rock needs a door. Both buy
+## back the zone spawn ("a safe place near"); honest dry falls stand
+## in place. Absent ocean door = dry by default (fail-dry, not fail-up).
+## The depth read is injectable (the transport-seam law): receipts ride
+## _depth_resolver; runtime rides the default ocean chain.
+var _depth_resolver = null
+
+func _spot_refuses_a_stand_up(pos: Vector3) -> bool:
+	var depth
+	if _depth_resolver != null:
+		depth = _depth_resolver.call(pos)
+	else:
+		var ocean: Node = OceanService if OceanService else null
+		if ocean == null or not ocean.has_method("sample_depth"):
+			return false
+		depth = ocean.call("sample_depth", pos)
+	if depth == null or not (typeof(depth) == TYPE_FLOAT or typeof(depth) == TYPE_INT):
+		return false
+	var d := float(depth)
+	return bool(d >= 0.0 or d <= -1.0)
 ## Different zones/modes have different expected revive frequencies
 class ReviveAbuseConfig:
 	var revives_per_hour: int = 20      # Threshold before flagging
@@ -295,6 +359,26 @@ func initiate_respawn(player, zone_id: String = "") -> bool:
 				"respawn_time": config.timed_respawn_seconds,
 				"position": _get_default_respawn_position(player)
 			}
+		RespawnMode.SELF_REVIVE:
+			# THE SOULBIND STAND-UP: where you fell, three seconds later
+			# -- or the zone spawn when the fall was sea/rock (a safe
+			# place near). DEBIT BEFORE GRANT: the ticket leaves the bag
+			# before the cycle schedules; a refused consume refuses the
+			# respawn by name and the rider picks another rail.
+			var soul_pos: Vector3 = _get_default_respawn_position(player)
+			if selected.has("position") and selected["position"] is Vector3 \
+					and (selected["position"] as Vector3) != Vector3.ZERO:
+				soul_pos = selected["position"]
+			if _spot_refuses_a_stand_up(soul_pos):
+				soul_pos = _get_default_respawn_position(player)
+			if not _consume_soulbind(player):
+				GameLog.warn("RespawnService: %s's soulbind consume refused after gates; respawn denied" % player.display_name)
+				return false
+			respawn_data = {
+				"respawn_time": SOULBIND_RESPAWN_DELAY,
+				"position": soul_pos,
+				"soulbind": true
+			}
 		_:
 			# SELF_REVIVE / CONTESTED have no cycle yet: fall back to the
 			# zone spawn point rather than crashing the executor.
@@ -356,6 +440,13 @@ func get_available_respawn_modes(player, zone_id: String = "") -> Array[RespawnM
 	if not healers.is_empty():
 		available.append(RespawnMode.REVIVE)
 
+	# Soulbinder (self): a ticket in the bag offers the death-spot
+	# stand-up. The free rails (timed/near_corpse) stay untouched and
+	# free; the ticket buys the INSTANT leg, sea-safe (see
+	# initiate_respawn's SELF_REVIVE arm).
+	if soulbind_count(player) > 0:
+		available.append(RespawnMode.SELF_REVIVE)
+
 	return available
 
 ## Start a revival attempt (healer initiates)
@@ -363,10 +454,19 @@ func start_revival(healer, target, context: String = "") -> bool:
 	if context == "":
 		context = _current_context
 
-	# Check if healer can revive others in this context
+	# Check if healer can revive others in this context. The clergy leg
+	# keeps its free path; a holder of a Soulbinder's Ticket may pay a
+	# LIFELINE through the gate instead (consumed at the book below, after
+	# every other gate holds, so a ranged or abusive attempt spends
+	# nothing).
+	var lifeline := false
 	if not can_revive_others(healer, context):
-		GameLog.warn("RespawnService: %s cannot revive others in %s context" % [healer.display_name, context])
-		return false
+		if soulbind_count(healer) > 0:
+			lifeline = true
+			GameLog.info("RespawnService: %s offers a soulbind lifeline in %s (ticket paid at the book)" % [healer.display_name, context])
+		else:
+			GameLog.warn("RespawnService: %s cannot revive others in %s context" % [healer.display_name, context])
+			return false
 
 	# Check if target can be revived in this context
 	if not can_be_revived(target, context):
@@ -411,7 +511,13 @@ func start_revival(healer, target, context: String = "") -> bool:
 		GameLog.warn("RespawnService: Revive abuse detected for %s in %s context" % [healer.display_name, context])
 		return false
 
-	# Start revive
+	# Start revive. The lifeline pays HERE (DEBIT BEFORE GRANT): every
+	# gate above has held, so the ticket buys this cast and nothing else.
+	if lifeline:
+		if not _consume_soulbind(healer):
+			GameLog.warn("RespawnService: %s's soulbind lifeline consume refused after gates" % healer.display_name)
+			return false
+		GameLog.info("RespawnService: SOULBIND LIFELINE -- %s paid one ticket to stand %s up (%s context)" % [healer.display_name, target.display_name, context])
 	_active_revives[target.entity_id] = {
 		"healer": healer,
 		"target": target,
@@ -673,6 +779,8 @@ func _mode_for_choice(selected: Dictionary) -> RespawnMode:
 			return RespawnMode.ANKH
 		"revive":
 			return RespawnMode.REVIVE
+		"soulbind":
+			return RespawnMode.SELF_REVIVE
 		"gateway":
 			return RespawnMode.GATEWAY
 		"safe_zone":

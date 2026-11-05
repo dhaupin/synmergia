@@ -11,6 +11,15 @@
 ##   - Titles: TitleService.unlock (data/titles/ defs; the two premium
 ##     editions declare UnlockMethod.PURCHASE -- a schema value that existed
 ##     at birth and now earns its emit-leg).
+##   - Resurrection: the Soulbinder's Ticket. The RESPAWN kind's grant leg
+##     stamps `item_soulbind_ticket` copies into the rider's BAG (InventoryService
+##     -- the one purse law holds; ticket stacks are stamped as per-slot
+##     duplicates like every bag add). The ticket itself is a PREPAID permit:
+##     it is consumed by RespawnService's death cycle (SELF_REVIVE at the
+##     death screen, or the party lifeline in start_revival), never by
+##     hand at the bag's use door -- an inert book is honest for a permit.
+##     RESPAWN rows are stackable permits, so the ALREADY-OWNED law does
+##     not gate them: a raider buys charges, not a duplicate prize.
 ##
 ## Book law (the economy audit talks): every purchase is GATE BEFORE BOOKS
 ## (availability, unknown id, already owned, exact-need affordability, QoS
@@ -38,12 +47,13 @@ static func singleton():
 
 const PremiumShopServiceScript = preload("res://core/services/premium_shop_service.gd")
 const CURRENCY_ID := "currency_concord_sigil"
+const SOULBIND_ITEM_ID := "item_soulbind_ticket"
 const RATE_LIMIT_ACTION := "sigil_sink_purchase"
 
 ## The kinds a catalog row can ride. "mount" and "title" are the only
 ## grant legs implemented; anything else must not ship until its grant
 ## leg ships WITH it (no fake sinks).
-enum SinkKind { MOUNT, TITLE }
+enum SinkKind { MOUNT, TITLE, RESPAWN }
 
 ## THE CATALOG: priced against the processor SKUs (sigil_100 is the $4.99
 ## floor, 650 is the $24.99 pack). Ladder: the honest entry ride sits at
@@ -52,6 +62,14 @@ enum SinkKind { MOUNT, TITLE }
 ## source == MountSource.VENDOR are sold here; DROP/QUEST/EVENT/FACTION/GM
 ## sources keep their earn paths.
 const SINKS := [
+	{"sink_id": "respawn_soulbind_ticket", "kind": SinkKind.RESPAWN, "sigils": 25,
+	"quantity": 1,
+	"display_name": "Soulbinder's Ticket",
+	"detail": "One in-place resurrection: stand up where you fell (the sea's spot pays back a safe ground nearby), or pay it at a fallen ally when no healer reaches."},
+	{"sink_id": "respawn_soulbind_eight", "kind": SinkKind.RESPAWN, "sigils": 150,
+	"quantity": 8,
+	"display_name": "Soulbinder's Slice (x8)",
+	"detail": "Eight Soulbinder's Tickets for the price of six -- the raider's pocket set."},
 	{"sink_id": "mount_meadow_pacer", "kind": SinkKind.MOUNT, "sigils": 150,
 	"display_name": "Meadow Pacer",
 	"detail": "Every rider's first horse -- bought at the pillar shrine of the Concord."},
@@ -110,7 +128,7 @@ func get_catalog(player_id: String = "") -> Array:
 		var row: Dictionary = {
 			"sink_id": str(sink.get("sink_id")),
 			"kind": sink.get("kind"),
-			"kind_name": "mount" if sink.get("kind") == SinkKind.MOUNT else "title",
+			"kind_name": "mount" if sink.get("kind") == SinkKind.MOUNT else ("respawn" if sink.get("kind") == SinkKind.RESPAWN else "title"),
 			"sigils": int(sink.get("sigils", 0)),
 			"display_name": str(sink.get("display_name", "")),
 			"detail": str(sink.get("detail", "")),
@@ -186,13 +204,17 @@ func buy_sink(player_id: String, sink_id: String) -> Dictionary:
 		return refused.merged({"reason": "the mounted-stable door is not available"})
 	if sink.get("kind") == SinkKind.TITLE and _title_data_id(sink_id).is_empty():
 		return refused.merged({"reason": "no such degree"})
-	# ALREADY OWNED: the truth exists and the dupe refuses BEFORE the debit.
-	if _owned(player_id, {"kind": sink.get("kind"), "sink_id": sink_id}):
+	var ds := _data_svc()
+	if sink.get("kind") == SinkKind.RESPAWN and (ds == null or not ds.has_method("get_item") or ds.call("get_item", SOULBIND_ITEM_ID) == null):
+		return refused.merged({"reason": "the Soulbinder's Ticket has no datum"})
+	# ALREADY OWNED: the truth exists and the dupe refuses BEFORE the
+	# debit. Respawn permits are stackable charges, not one-per-rider
+	# prizes -- a raider buys tickets three times and holds three.
+	if sink.get("kind") != SinkKind.RESPAWN and _owned(player_id, {"kind": sink.get("kind"), "sink_id": sink_id}):
 		return refused.merged({"reason": "already owned"})
 
 	# The GM wyrd mount is never purchasable (one gate EARLIER than the
 	# service's fail-closed -- the buyer never gets within a debit of it).
-	var ds := _data_svc()
 	if sink.get("kind") == SinkKind.MOUNT and ds != null and ds.has_method("get_mount"):
 		var mount = ds.call("get_mount", sink_id)
 		if mount == null:
@@ -231,6 +253,10 @@ func buy_sink(player_id: String, sink_id: String) -> Dictionary:
 		SinkKind.TITLE:
 			granted = _title_unlock(player_id, _title_data_id(sink_id))
 			grant_detail = "herald"
+		SinkKind.RESPAWN:
+			var ticket = ds.call("get_item", SOULBIND_ITEM_ID)
+			granted = bool(inv.add_item(ticket, int(sink.get("quantity", 1))))
+			grant_detail = "bag"
 	if not granted:
 		var balance_after: int = int(inv.get_currency_amount(CURRENCY_ID))
 		var refund_ok: bool = inv.add_currency(CURRENCY_ID, cost)

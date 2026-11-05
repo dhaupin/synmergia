@@ -115,6 +115,18 @@ func _get_respawn_options(player) -> Array[Dictionary]:
 			"position": player.global_position
 		})
 
+	# Soulbinder (premium permit): when the service offers SELF_REVIVE
+	# (a ticket rides in the bag), the death spot stands up instantly --
+	# or the zone spawn when the fall was sea/rock. The row shows the
+	# rider's own held count; the server re-validates and consumes the
+	# ticket at initiate, so a stale UI signal stays free.
+	if RespawnService.RespawnMode.SELF_REVIVE in available_modes:
+		options.append({
+			"mode": "soulbind",
+			"name": "Soulbind at the Fall (Ticket x%d)" % RespawnService.soulbind_count(player),
+			"position": player.global_position
+		})
+
 	# Nearest-ankh death law: offer the closest ankh whenever one
 	# exists in the world (even with no saved bind). The service
 	# translates this option onto the ANKH arm.
