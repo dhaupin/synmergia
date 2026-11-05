@@ -370,6 +370,7 @@ decide with data.
 | The Wake Event — every wake prints a free ceremony, the record names the first waker forever; the Peal's second voice sells the echo | AGREED, canon | §32 |
 | The Civic Bill — woken ancients accrue stewardship on a TAKE-family book; the Steward's Pledge adopts an ancient, never a toll discount | AGREED, canon | ancients PRD |
 | The Warrant Board — bounties on mysteries (vant-modeled): purses escrow-held never debited, settle a record-read, sweeps return expired purses whole; the Crier buys front-page days, the rake cuts at settle | AGREED, designed | §33 |
+| The Engine Block — the four vant engines ported internal (Purse, Settle, Agora, the Ledger Quorum; MIT attribution carried); the adapter refused — no outside process ever settles a Synmergia purse | AGREED, canon | vant PRD |
 
 ## 12. The wardrobe locker — spitball #2 (2026-11-05)
 
@@ -1525,7 +1526,9 @@ warrant ledger on the keyed account-ledger family (hold / timeout /
 claim state, purse-mix tracked through the hold), the deterministic
 verifier over deed tx roots, the sweep job, the front-page
 derivation, the merit-chapter file, the census surface, and both sink
-rows.
+rows. ENGINES: the ledger and the verifier build ON the vant port —
+the Purse and Settle engines (labs/prd-vant-engines.md) — and the
+Board is the port's first tenant.
 ---
 
 **Sources (server-price anchors, read 2026-11-05):** Hetzner cloud lineup
