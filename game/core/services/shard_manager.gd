@@ -68,7 +68,13 @@ static func _env_str(name: String) -> String:
 ## Announce this shard to the coordinator so the mesh registry sees it.
 ## CoordinatorService is an earlier autoload (project.godot order), so it
 ## is ready here. Silently skips if it is absent (e.g. isolated tests).
+##
+## A COORDINATOR container is NOT a shard (Phase 3): it runs ShardManager
+## too, but must never register a phantom default shard (its default id is
+## shard_1) into its own registry -- only real shard containers announce.
 func _register_with_coordinator() -> void:
+	if MeshRole.is_coordinator():
+		return
 	var coord = get_node_or_null("/root/CoordinatorService")
 	if coord == null:
 		return

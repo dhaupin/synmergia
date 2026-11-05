@@ -40,6 +40,7 @@ func _initialize() -> void:
 	await _test_idempotent_reannounce()
 	await _test_departure()
 	await _test_coordinator_does_not_announce()
+	await _test_shard_manager_role_gate()
 	_clear_env()
 	_finish()
 
@@ -187,6 +188,37 @@ func _test_coordinator_does_not_announce() -> void:
 	_assert(not ids.has("coordinator"), "the coordinator does not register as a shard")
 
 	peer.queue_free()
+	_clear_env()
+
+
+## A coordinator container runs ShardManager too; the role gate must stop it
+## from registering a phantom default shard (shard_1) into its own registry,
+## while a real shard registers through the same path.
+func _test_shard_manager_role_gate() -> void:
+	_clear_env()
+	var sm = root.get_node_or_null("ShardManager")
+	if sm == null:
+		_fail("ShardManager autoload missing")
+		return
+	var coord = root.get_node_or_null("CoordinatorService")
+	if coord == null:
+		_fail("CoordinatorService autoload missing")
+		return
+
+	OS.set_environment("START_MODE", "coordinator")
+	sm.shard_id = "shard_phantom"
+	sm.shard_name = "Phantom"
+	coord.unregister_shard("shard_phantom")
+	sm._register_with_coordinator()
+	_assert(not coord.get_all_shard_ids().has("shard_phantom"), "a coordinator does not register a phantom shard")
+
+	OS.set_environment("START_MODE", "headless")
+	OS.set_environment("SHARD_ID", "shard_gate")
+	sm.shard_id = "shard_gate"
+	sm.shard_name = "Gate"
+	sm._register_with_coordinator()
+	_assert(coord.get_all_shard_ids().has("shard_gate"), "a shard DOES register through the same path")
+	coord.unregister_shard("shard_gate")
 	_clear_env()
 
 

@@ -299,7 +299,7 @@ Receipt: `game/tests/test_edge_transport.gd` (14 legs).
   instance ingests it -- the registry spans processes.
 - A repeat announce is idempotent (one entry, refreshed).
 - A departure announce removes the shard from the registry.
-- The coordinator does not register itself as a shard.
+- The coordinator does not register itself as a shard, and a coordinator container running ShardManager does not plant a phantom default shard into the registry.
 - Defaults unchanged: no mesh env -> the single-node boot.
 
-Receipt: `game/tests/test_shard_mesh_topology.gd` (18 legs).
+Receipt: `game/tests/test_shard_mesh_topology.gd` (20 legs).
