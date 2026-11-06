@@ -84,6 +84,7 @@ func _run() -> void:
         _test_enemy_gate(local)
         _test_gate_is_local(local)
         await _test_operator_surface(local)
+        _test_added_assertions(local)
 
 ## ---- the pack data resolves against DataService truth ------------------
 func _test_data_integrity() -> void:
@@ -200,6 +201,53 @@ func _test_operator_surface(local: String) -> void:
         _fired.clear()
         _cs._handle_command("pack_admin", 9, "contentpack no_such_pack disable", "")
         _ok(_said("Unknown pack"), "unknown pack refused by name")
+
+## ---- ADDED ASSERTIONS (exercise real code paths) ----------------------
+## Three new checks added on top of the receipt; existing assertions are
+## untouched. Each drives a production entry point rather than a mock.
+func _test_added_assertions(local: String) -> void:
+        # (1) local_enemy_enabled -- the REAL gate SpawnService (x3) and
+        # HordeEventService call. It resolves shard_id + ShardParameters
+        # from the running tree itself, so a disable on the LOCAL shard
+        # must flip it false, and clearing the disable must flip it back.
+        ContentPacks.write_disabled(local, [PACK], _sp, "test")
+        var local_blocked: bool = ContentPacks.local_enemy_enabled("tidecursed_diver")
+        ContentPacks.write_disabled(local, [], _sp, "test")
+        var local_allowed: bool = ContentPacks.local_enemy_enabled("tidecursed_diver")
+        _ok(not local_blocked and local_allowed,
+                "local_enemy_enabled follows the local shard's disable (real spawn gate)")
+
+        # (2) board() -- the operator board the /contentpack command renders.
+        # With the pack disabled the row must carry the true owned counts
+        # (3 enemies / 4 quests) AND a disabled=true flag; after re-enabling
+        # the same row must report disabled=false. Both read live data.
+        ContentPacks.write_disabled(local, [PACK], _sp, "test")
+        var off_row: Dictionary = _board_row(ContentPacks.board(local, _sp), PACK)
+        ContentPacks.write_disabled(local, [], _sp, "test")
+        var on_row: Dictionary = _board_row(ContentPacks.board(local, _sp), PACK)
+        _ok(off_row.get("disabled", false) == true and on_row.get("disabled", true) == false
+                        and int(off_row.get("enemy_count", -1)) == 3
+                        and int(off_row.get("quest_count", -1)) == 4,
+                "board row tracks the local disable and reports the real owned counts")
+
+        # (3) write_disabled round-trip -- the lever write is readable back
+        # through disabled_set as a deduped, sorted set, and a second id
+        # joins it. This is the exact path an operator /contentpack write
+        # takes into ShardParameters.
+        ContentPacks.write_disabled(local, [PACK, PACK, "  "], _sp, "test")
+        var single: Dictionary = ContentPacks.disabled_set(local, _sp)
+        ContentPacks.write_disabled(local, [PACK, "pack_zzz_probe"], _sp, "test")
+        var pair: Dictionary = ContentPacks.disabled_set(local, _sp)
+        _ok(single.size() == 1 and single.has(PACK) and pair.size() == 2 and pair.has("pack_zzz_probe"),
+                "write_disabled round-trips a deduped set through ShardParameters")
+        ContentPacks.write_disabled(local, [], _sp, "test")
+
+## The board row with this id, or {} when absent.
+func _board_row(rows: Array, pack_id: String) -> Dictionary:
+        for row in rows:
+                if str(row.get("id", "")) == pack_id:
+                        return row
+        return {}
 
 func _cleanup() -> void:
         var local: String = str(_sm.shard_id)

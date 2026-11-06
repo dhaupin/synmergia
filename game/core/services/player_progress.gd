@@ -291,7 +291,14 @@ func _find_tracked_player(character_id: String) -> Node:
 			return found
 	if get_tree() == null:
 		return null
-	return get_tree().get_first_node_in_group("players")
+	var fallback = get_tree().get_first_node_in_group("players")
+	# A body without the progression surface cannot be saved honestly:
+	# save_player would fabricate a 0/0/1 snapshot over the character's
+	# real one. The globe body joins "players" (for ActionBar) but carries
+	# no experience/gold/level, so reject it here.
+	if fallback != null and not ("experience" in fallback):
+		return null
+	return fallback
 
 
 ## Direct set for tests that need to simulate a stale save.

@@ -9,6 +9,10 @@ how do we run parallel lanes without spending money we did not intend to.
 - **Subagents work** -- verified end-to-end this session. A child
   conversation spawned in its own git worktree, ran a task, and returned
   the right answer.
+- **The `start_child_conversation` tool is NOT in this profile** -- the
+  agent cannot add it, and no env var enables it (see "The subagent-tool
+  question, settled" below). Lanes still run because the agent calls the
+  same endpoint the tool wraps.
 - **The blocker was our own dead Git LFS vestige**, not the platform. The
   LFS `post-checkout` hook exited 2 because the agent server's PATH has no
   `git-lfs`, so `git worktree add` (how lanes get a checkout) returned
@@ -53,6 +57,51 @@ POST /api/conversations/<parent_id>/children
 In an agent turn the equivalent is simply calling the
 `start_child_conversation` tool (same endpoint). It is exposed only when
 the profile grants the `task` / `start_child_conversation` tools.
+
+## The subagent-tool question, settled (2026-11-06)
+
+**Can the agent create its own subagent tooling? No. Does the owner have to
+set an env var? No.** The evidence, all from this session's probes:
+
+- The agent-server advertises `task_tool_set`, `task`, and
+  `start_child_conversation` in `GET /server_info.usable_tools`
+  (server v1.58.1). So the *capability* is present on the box.
+- A child spawned through `POST /api/conversations/<parent>/children`
+  inherits the parent's agent settings, which carry the **default exec
+  toolset -- no subagent tool**. Asked to list its tools, a child returned
+  terminal/file_editor/task_tracker/browser/... and said, verbatim, "I do
+  not have a tool named `task`, `task_tool_set`, or
+  `start_child_conversation`."
+- `POST /api/conversations` (full creation) DOES accept an explicit
+  `agent_settings.tools` list, and a conversation created with
+  `{"name":"task_tool_set"}` genuinely reports `task_tool_set` among its
+  tools. **But** that conversation needs its own LLM credentials: with
+  `parent_conversation_id` set for inheritance it fails at creation
+  ("belongs to a different workspace"), and without inheritance it errors
+  on the first turn with `LLMAuthenticationError` -- the platform injects
+  the LLM key at the serving layer, not into `agent_settings.llm.api_key`
+  (that field comes back null even under `X-Expose-Secrets: encrypted`).
+- `PATCH /api/settings` accepts only an `agent_settings_diff` whose schema
+  exposes `mcp_config` (plus `additionalProperties`); there is no
+  `enable_sub_agents` field in the openhands `AgentSettings` schema
+  (`/api/settings/agent-schema` lists `tools`,
+  `enable_classify_and_switch_llm_tool`, `active_meta_profile`, ... -- no
+  subagent switch). So there is no settings knob to flip either.
+
+**Conclusion.** The `start_child_conversation` tool is granted by the
+*profile* the conversation runs under, and this profile does not include
+it. Neither the agent nor an env var can add it -- it is a server-side
+profile setting on OpenHands Cloud. The owner's Google-Gemini note is
+right that Cloud needs no manual enablement *in the normal case*: the tool
+ships when the profile carries it. It is simply not in this conversation's
+profile.
+
+**Workaround (what we actually do).** The agent drives lanes through the
+same endpoint the tool wraps -- `POST /api/conversations/<parent>/children`
+with the session key -- so parallel lanes work TODAY without the tool. The
+only cost of not having the tool is that lane-spawning is a shell call, not
+a native tool call. Ask OpenHands support to add the `task` /
+`start_child_conversation` tools to the profile to get the native version.
 
 ## The three lanes
 
