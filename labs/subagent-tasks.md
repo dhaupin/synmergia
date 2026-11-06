@@ -1,4 +1,8 @@
-# Subagent Task Board (Solar Pro 4 + friends)
+# Subagent Task Board
+
+Docs-only research tasks that can be handed to a subagent (OpenHands child
+conversation) or worked inline. See `labs/prd-openhands-canvas.md` for how
+subagent lanes run.
 
 ## How to use this board
 
@@ -6,7 +10,7 @@
   Treat `game/` as **read-only context** for research — never edit GDScript,
   `.tscn`, `.tres`, or anything under `core/`, `scenes/`, `entities/`, `ui/`,
   `adapters/`. Never run terminal commands and never commit — produce docs;
-  a human or the main agent lands the good parts in data files and code.
+  the maintainer (the dev lane) lands the good parts in data files and code.
 - **Grounding:** read the files referenced in each task before writing, and
   keep every name, place, and fact you invent consistent with what they say.
   The world already has laws — extend them, don't contradict them.

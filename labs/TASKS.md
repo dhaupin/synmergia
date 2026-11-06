@@ -6,29 +6,41 @@ Persistent memory across resets for Synmergia development.
 commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
-## Orchestration (Kilo Code Towns)
+## Orchestration (single dev lane)
 
 ### Branching model
-- `main`  -  shared integration branch. Always pull before starting.
-- `labs/*`  -  experimental / docs work. Push here first.
-- Feature branches: `kilo/<topic>` or `town/<topic>`. One branch per town.
-- Never rebase `main` while another town is working. Use merge commits.
+- `staging`  -  the active development branch. Work here directly.
+  (Owner-approved: no PRs for routine work.)
+- `main`  -  the shared integration branch. Keep `staging` at parity
+  with `main` plus the in-flight work.
+- `labs/*`  -  experimental / docs work.
+- Feature branches: `kilo/<topic>` or `town/<topic>` for isolated work.
+- Never rebase a shared branch while other work is in flight; use merge
+  commits.
 
 ### Before you start a task
-1. Pull latest `main`  -  check for parallel work.
+1. Pull the latest `staging` (and check `main` for drift).
 2. Read this file for current state + the archive for history.
 3. Check `prd-db.md` section 2 + section 8 for service ownership.
-4. Mark your task `in_progress` with your town name + timestamp.
-5. If the task touches `game/` AND `labs/`, coordinate with both towns.
+4. Confirm the work is not already covered by an open round note.
 
-### Task ownership tags
-- `[town:core]`  -  core services, autoloads, entities, login/seed flow
-- `[town:frame]`  -  T3 substrate, seed chain, state tree, scope engine, geometry
-- `[town:adapter]`  -  persistence/cache/memory adapters
-- `[town:bridge]`  -  pg-bridge, redis-bridge, docker, backup scripts
-- `[town:web]`  -  HUD, panels, portal, admin dashboard, WASM client
-- `[town:docs]`  -  TASKS.md, world-building PRDs, arch specs
-- `[town:test]`  -  lint, syntax, smoke, unit & integration tests
+### One dev lane (the agent)
+
+There is a single development lane. Do not assume a parallel agent is
+working the same tree. If parallel work is ever wanted, it runs as
+OpenHands **subagent lanes** -- separate child conversations in their own
+git worktrees -- see `labs/prd-openhands-canvas.md`. When lanes are used,
+the parent owns the shared files (`scripts/godot_test_runner.sh`,
+`AGENTS.md`, this file) and merges the lanes' worktrees.
+
+### Area tags (for orienting a task, not for town ownership)
+- `[area:core]`  -  core services, autoloads, entities, login/seed flow
+- `[area:frame]`  -  T3 substrate, seed chain, state tree, scope engine, geometry
+- `[area:adapter]`  -  persistence/cache/memory adapters
+- `[area:bridge]`  -  pg-bridge, redis-bridge, docker, backup scripts
+- `[area:web]`  -  HUD, panels, portal, admin dashboard, WASM client
+- `[area:docs]`  -  TASKS.md, world-building PRDs, arch specs
+- `[area:test]`  -  lint, syntax, smoke, unit & integration tests
 
 ---
 
@@ -8968,3 +8980,12 @@ the sea bands). All four landed; one stale probe leg fell with them.
 - THE PROVISIONING FIX (scripts/setup-dev.sh): install_git_lfs follows the godot/node/bun download-and-symlink pattern, resolves the latest release tag, installs into the user prefix, and joins the toolchain summary + dry-run plan. This is the durable fix -- a fresh dev box now provisions git-lfs from the repo alone, so the hooks never bite again.
 - GATES: item_catalog 10/0, lint 37/0. Both commits pushed to staging (`25c5402d`, `157ad9a1`); remote == local.
 - NEXT: OpenHands Canvas / subagent exploration (the third directive) -- findings in labs/prd-openhands-canvas.md.
+
+## 2026-11-06bf -- the subagent-lane round: the LFS vestige that was blocking lanes is gone, and lanes are verified working
+- THE FINDING: SUBAGENTS WORK, and the thing blocking them was OUR OWN dead LFS vestige. Spawning a child conversation (`POST /api/conversations/{id}/children`, `isolation: worktree`) first failed with `Git command failed: git worktree add ...`. Root cause: `git lfs install` had written pre-push/post-commit/post-checkout/post-merge hooks into `.git/hooks`, and the agent server runs with `PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin` -- no `~/.local/bin`, so no `git-lfs`. The `post-checkout` hook `exit 2`'d, `git worktree add` returned non-zero, and the spawn aborted (the worktree WAS created; only the hook's status failed the call).
+- THE ANSWER TO "WHY LFS": we do not need it. The `.gitattributes` pattern (`Godot_v4.7.2-stable_linux.x86_64 filter=lfs`, commit 805317cd by kiloconnect[bot]) points at a file that is gitignored under `tools/` and was never committed -- ZERO LFS objects ever existed. It was inert but not harmless (see above). LFS is also a SEPARATE billing meter from Actions minutes (private repo: 10 GiB bandwidth + 10 GiB storage free/month) -- but since no object exists and CI never sets `lfs: true`, it was never costing anything either way. Removed for good: `.gitattributes` now carries only a comment explaining why LFS is unused; `scripts/setup-dev.sh` swaps `install_git_lfs` for `strip_lfs_hooks`, which deletes any git-lfs-written hook (never a hand-authored one) so a fresh/rebooted box can always run `git worktree add` and plain `git push`.
+- LANES VERIFIED END-TO-END: after the hooks were removed, the child conversation spawned in its own worktree (`/tmp/conversation-worktrees/<id>/synmergia`), ran to `finished`, and returned the exact HEAD hash `b9f0629f...`. The test child was deleted; nothing leaked.
+- THE THREE LANES (documented in labs/prd-openhands-canvas.md): A = high-level systems (`game/core/**`, `game/adapters/**`, `labs/prd-*.md`); B = game loop / wiring (`game/scenes/worlds/**`, `game/entities/**`, `game/ui/**`, `game/core/components/**`); C = world/data building (`game/data/**`, `game/core/schemas/**`). Disjoint file ownership is the rule; the parent owns shared files (runner DEFAULT_SET, AGENTS.md, TASKS.md) and merges the worktrees. COST HONESTY: lanes share the parent sandbox (no extra VM charge) but each is a full agent run, so they consume LLM tokens -- not free, and automations bill the same way (we have 0 configured and need none).
+- THE SINGLE-DEV-LANE CLEANUP (owner directive: "you are the dev lane now"): dropped the parallel-agent framing. `labs/TASKS.md`'s "Orchestration (Kilo Code Towns)" section became "Orchestration (single dev lane)" -- `staging` is the active branch (no PRs), the `[town:*]` ownership tags became `[area:*]` orientation tags, and the section states plainly that there is ONE lane and parallel work only ever means OpenHands subagent lanes. AGENTS.md's session-hygiene line dropped the "Freebuff's GitHub App mints the credential" claim (the sandbox provides `GITHUB_TOKEN`) and now warns against `--no-verify`; a new "No Git LFS -- and why" section records the whole story so no future agent re-adds it. `labs/subagent-tasks.md` lost its "(Solar Pro 4 + friends)" framing.
+- GATES: setup-dev.sh `bash -n` OK, `--dry-run` clean, `strip_lfs_hooks` unit-tested (removes an LFS hook, keeps a hand-authored one). Commits pushed to staging: `3b37efec` (LFS vestige removal), plus this round's doc commit.
+- NEXT: lanes are ready when a task genuinely decomposes into independent, receipt-gated work; the owner may want the subagent tools enabled on the profile that runs Synmergia work.
