@@ -16,6 +16,10 @@ const NotifKind = preload("res://core/notifications/notification_kind.gd").Notif
 const EnemyScript = preload("res://entities/enemy.gd")
 const FloatingName = preload("res://entities/floating_name.gd")
 const EnemyAIScript = preload("res://core/ai/enemy_ai.gd")
+# Phase 3.2: the per-shard content-pack gate (labs/prd-shard-mesh.md
+# sec.3.2). An enemy owned by a pack disabled on the LOCAL shard never
+# spawns -- through ANY route (spawn point, direct, or boss schedule).
+const ContentPacks = preload("res://core/mesh/content_packs.gd")
 # Spawn points organized by zone (zone_id -> [SpawnPoint])
 var _spawn_points: Dictionary = {}
 
@@ -535,6 +539,11 @@ func spawn_boss(
 	if boss_data == null:
 		GameLog.warn("SpawnService: Boss template %s not found" % boss_template_id)
 		return null
+	# Phase 3.2 content-pack gate (LOCAL read): a disabled pack's boss
+	# does not spawn (e.g. the Trench Sentinel on an event shard).
+	if not ContentPacks.local_enemy_enabled(boss_template_id):
+		GameLog.info("SpawnService: boss %s is in a disabled content pack on this shard" % boss_template_id)
+		return null
 
 	var boss = Entity.new()
 	boss.display_name = boss_name if boss_name != "" else boss_data.display_name
@@ -703,6 +712,11 @@ func spawn_enemy_direct(
 	var template = data_service.get_enemy(template_id)
 	if template == null:
 		GameLog.warn("SpawnService: Direct spawn template %s not found" % template_id)
+		return null
+	# Phase 3.2 content-pack gate (LOCAL read): a disabled pack's enemy
+	# is refused on this shard.
+	if not ContentPacks.local_enemy_enabled(template_id):
+		GameLog.info("SpawnService: %s is in a disabled content pack on this shard" % template_id)
 		return null
 
 	var enemy = EnemyScript.new()
@@ -995,6 +1009,10 @@ func _clear_spawn_point(spawn_point: SpawnPoint) -> void:
 func _create_enemy(spawn_point: SpawnPoint) -> Variant:
 	if spawn_point.enemy_data == null:
 		GameLog.warn("SpawnService: No enemy data for template %s" % spawn_point.enemy_template_id)
+		return null
+	# Phase 3.2 content-pack gate (LOCAL read): a spawn point whose template
+	# sits in a disabled pack yields nothing on this shard.
+	if not ContentPacks.local_enemy_enabled(spawn_point.enemy_template_id):
 		return null
 
 	# Full Enemy class (has HealthComponent + AggroComponent + damage

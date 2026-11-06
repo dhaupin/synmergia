@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ContentPackData" load_steps=2 format=3 uid="uid://pack_tide_season"]
+
+[ext_resource type="Script" path="res://core/schemas/content_pack_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "pack_tide_season"
+display_name = "Tide Season"
+description = "The first seasonal content pack: the Sundered Sea's band-40/50/60 income lane (the tidecursed divers, the Gloamwood stalkers, the Trench Sentinel world boss) and the four quests that pay the breathing band. Disable it on an event shard to keep the deep closed."
+enemy_ids = ["tidecursed_diver", "gloamwood_stalker", "trench_sentinel"]
+quest_ids = ["quest_tide_salvage", "quest_sentinel_wake", "quest_deep_toll", "quest_gloamwood_ledger"]

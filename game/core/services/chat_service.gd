@@ -23,6 +23,11 @@ const ReportKind = preload("res://core/admin/player_reporter.gd")
 # Phase 3.1 tuning resolver: the /shardparam operator surface applies a
 # shard's progression overrides into LevelCurve through this.
 const ShardTuning = preload("res://core/progression/shard_tuning.gd")
+# Phase 3.2 content packs: the /contentpack operator surface reads/writes
+# the per-shard pack gate through the same shard-mesh lever.
+const ContentPacks = preload("res://core/mesh/content_packs.gd")
+# Phase 3 mesh visibility: /mesh reports role, registry, and bus state.
+const MeshRole = preload("res://core/mesh/mesh_role.gd")
 
 ## Runtime autoload lookups (script-mode-safe; the bare identifiers
 ## fail compile when autoloads are absent -- test_islands).
@@ -519,6 +524,10 @@ func _handle_command(sender_id: String, channel: Channel, command: String, targe
 			return _cmd_spawn(sender_id, args)
 		"shardparam":
 			return _cmd_shardparam(sender_id, args)
+		"contentpack":
+			return _cmd_contentpack(sender_id, args)
+		"mesh":
+			return _cmd_mesh(sender_id, args)
 
 	return false
 
@@ -942,6 +951,138 @@ func _shardparam_board(sm: Node, sp: Node) -> String:
 	for sid in ids:
 		lines.append("  " + _shardparam_line(sm, sp, str(sid)))
 	return "\n".join(lines)
+
+## Command: /contentpack -- THE PHASE 3.2 OPERATOR SURFACE for per-shard
+## content packs (labs/prd-shard-mesh.md sec.3.2).
+##   /contentpack                    - the board (every pack, enabled/disabled)
+##   /contentpack <pack_id>          - one pack's state + owned id counts
+##   /contentpack <pack_id> enable   - re-enable the pack on this shard
+##   /contentpack <pack_id> disable  - disable the pack on this shard
+## The write rides the SAME shard-mesh lever as the tuning override: the
+## LOCAL shard's `disabled_content_packs` ShardParameter (critical, so it
+## is effective + readable immediately). The lever stays LOCAL -- a
+## non-local shard's disable never touches this process.
+## Permission: admins only.
+func _cmd_contentpack(sender_id: String, args: Array) -> bool:
+	var sp = get_node_or_null(NodePath("/root/ShardParameters"))
+	if sp == null or not sp.has_method("get_param"):
+		_send_system_message(sender_id, "[contentpack] ShardParameters unavailable.")
+		return true
+	if not _require_admin(sender_id, "contentpack"):
+		return true
+	var sm = get_node_or_null(NodePath("/root/ShardManager"))
+	var local := _local_shard_id(sm)
+
+	# No args -> the board.
+	if args.is_empty() or str(args[0]).strip_edges() == "":
+		_send_system_message(sender_id, _contentpack_board(local, sp))
+		return true
+
+	var pack_id := str(args[0]).strip_edges()
+	var verb := str(args[1]).to_lower() if args.size() > 1 else ""
+
+	if ContentPacks.get_pack(pack_id) == null:
+		_send_system_message(sender_id, "[contentpack] Unknown pack '%s'." % pack_id)
+		return true
+
+	# enable / disable -> write the local disabled set.
+	if verb == "enable" or verb == "disable":
+		if local == "":
+			_send_system_message(sender_id, "[contentpack] No local shard to tune.")
+			return true
+		var ids: Array = ContentPacks.disabled_set(local, sp).keys()
+		if verb == "disable":
+			if not ids.has(pack_id):
+				ids.append(pack_id)
+		else:
+			ids.erase(pack_id)
+		ContentPacks.write_disabled(local, ids, sp, sender_id)
+		_send_system_message(sender_id, "[contentpack] %s %sd on %s." % [pack_id, verb, local])
+		return true
+
+	# Read-only one-pack view.
+	_send_system_message(sender_id, _contentpack_line(local, sp, pack_id))
+	return true
+
+## One pack's line: id, name, enabled/disabled, owned-id counts.
+func _contentpack_line(local: String, sp: Node, pack_id: String) -> String:
+	var pack: Resource = ContentPacks.get_pack(pack_id)
+	if pack == null:
+		return "[contentpack] Unknown pack '%s'." % pack_id
+	var disabled := ContentPacks.is_pack_disabled(pack_id, local, sp)
+	return "%s (%s): %s -- %d enemies, %d quests" % [
+		pack_id, str(pack.display_name),
+		"disabled" if disabled else "enabled",
+		pack.enemy_ids.size(), pack.quest_ids.size()]
+
+## The board: one line per pack for the LOCAL shard.
+func _contentpack_board(local: String, sp: Node) -> String:
+	var rows: Array = ContentPacks.board(local, sp)
+	if rows.is_empty():
+		return "[contentpack] No packs authored."
+	var lines: Array = ["[contentpack] %s packs (shard %s):" % [rows.size(), local]]
+	for row in rows:
+		lines.append("  %s (%s): %s" % [
+			str(row["id"]), str(row["name"]),
+			"disabled" if bool(row["disabled"]) else "enabled"])
+	return "\n".join(lines)
+
+## Command: /mesh -- READ-ONLY mesh visibility (labs/prd-shard-mesh.md
+## Phase 3). Reports this container's mesh role + self id, the shard
+## registry (from CoordinatorService), and the bus transport in use.
+## No writes: a status read for an operator watching the mesh.
+## Permission: admins only.
+func _cmd_mesh(sender_id: String, args: Array) -> bool:
+	if not _require_admin(sender_id, "mesh"):
+		return true
+	_send_system_message(sender_id, _mesh_report())
+	return true
+
+## The mesh status report: role, self, registry, bus.
+func _mesh_report() -> String:
+	var lines: Array = ["[mesh] status:"]
+	var role := MeshRole.resolve()
+	lines.append("  role: %s" % role)
+	lines.append("  self_id: %s" % MeshRole.self_id())
+	lines.append("  shard_id: %s" % MeshRole.shard_id())
+
+	var coord = get_node_or_null(NodePath("/root/CoordinatorService"))
+	if coord == null:
+		lines.append("  registry: (CoordinatorService absent)")
+	else:
+		var ids: Array = []
+		if coord.has_method("get_all_shard_ids"):
+			ids = coord.get_all_shard_ids()
+		ids.sort()
+		lines.append("  registry: %d shard(s) -- %s" % [
+			ids.size(), ", ".join(ids) if not ids.is_empty() else "(none)"])
+
+	var bus := _mesh_bus_line()
+	lines.append("  " + bus)
+	return "\n".join(lines)
+
+## The bus line: the default bus id from CoordinatorService's registry.
+func _mesh_bus_line() -> String:
+	var coord = get_node_or_null(NodePath("/root/CoordinatorService"))
+	if coord == null:
+		return "bus: (CoordinatorService absent)"
+	var registry = null
+	if coord.has_method("bus_registry"):
+		registry = coord.bus_registry()
+	if registry == null:
+		return "bus: (no registry)"
+	var bus_id := ""
+	if registry.has_method("get_default_bus_id"):
+		bus_id = str(registry.get_default_bus_id())
+	var bus = null
+	if registry.has_method("get_default_bus"):
+		bus = registry.get_default_bus()
+	var transport := ""
+	if bus != null and bus.has_method("get_display_name"):
+		transport = str(bus.get_display_name())
+	return "bus: %s%s" % [
+		bus_id if bus_id != "" else "(none)",
+		" (%s)" % transport if transport != "" else ""]
 
 ## Command: /horde [<config_id>|status|stop] [zone_id] [alert]
 ## Live trigger for data-driven horde events (data/hordes/*.tres).

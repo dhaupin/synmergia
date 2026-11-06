@@ -332,6 +332,10 @@ func _run() -> void:
 	_has_prefix(mount_ids, "mount_", "Mounts")
 	_has_prefix(vehicle_ids, "veh_", "Vehicles")
 
+	# --- Content packs (Phase 3.2): pack_ prefix, filename == id ---
+	var pack_ids := _load_ids("data/content_packs")
+	_has_prefix(pack_ids, "pack_", "Content packs")
+
 	# Currency refs on mounts/vehicles must resolve.
 	var currency_id_set := {}
 	for cb in currency_ids:

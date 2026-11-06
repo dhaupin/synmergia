@@ -318,6 +318,64 @@ cross-shard identity. Shared-state values that the mesh hashes (Phase 0)
 are world-truth and stay uniform; tuning is a *local read*, never a
 *shared write*.
 
+### Phase 3.2 -- Per-shard content packs (SHIPPED)
+
+**The second lever.** Phase 3.1 raised and lowered the CURVE per shard.
+Phase 3.2 turns whole CONTENT BUNDLES on and off per shard through the
+SAME lever -- `ShardParameters` -- so an event shard can close a season,
+a hardcore shard can drop a reward lane, and the shared mesh identity
+stays uniform.
+
+Shipped:
+
+- `ContentPackData` (`game/core/schemas/content_pack_data.gd`): a named
+  bundle of `enemy_ids` + `quest_ids`; `missing_refs(ds)` reports ids
+  that name no content (the phantom-SKU guard).
+- `ContentPacks` (`game/core/mesh/content_packs.gd`): the resolver.
+  `load_packs()` scans `data/content_packs/*.tres`; `disabled_set()` /
+  `is_pack_disabled()` parse the shard's `disabled_content_packs`
+  ShardParameter (comma-separated); `enemy_enabled()` / `quest_enabled()`
+  are the gate predicates; `local_*_enabled()` resolve the LOCAL shard
+  from the tree; `board()` feeds the operator view.
+- A new critical parameter definition `disabled_content_packs` (string,
+  default `""`). Critical so an operator's write is immediately effective
+  and immediately readable -- same contract as the tuning params.
+- One pack authored: `pack_tide_season` (the Sundered Sea's band-40/50/60
+  income lane -- `tidecursed_diver`, `gloamwood_stalker`,
+  `trench_sentinel` + `quest_tide_salvage`, `quest_sentinel_wake`,
+  `quest_deep_toll`, `quest_gloamwood_ledger`).
+
+**The gates.** A disabled pack hides its content on every real route:
+
+- `QuestService` -- `_get_available_quest_ids`, `get_available_quests`
+  (the offered roster), and `check_quest_availability` (the accept gate,
+  which refuses by name: "Content pack disabled on this shard").
+- `SpawnService` -- `spawn_enemy_direct`, `spawn_boss`, and `_create_enemy`
+  (the spawn-point path).
+- `HordeEventService` -- `_produce_mob` (the wave-mob path; the wave
+  boss also rides `spawn_boss`).
+
+An id owned by NO pack is always allowed, so a typo never silently
+removes content.
+
+**The operator surface.** `/contentpack` (admin-only, `ChatService`):
+
+- `/contentpack` -- the board: one line per pack for the LOCAL shard.
+- `/contentpack <pack_id>` -- one pack's state + owned-id counts.
+- `/contentpack <pack_id> enable|disable` -- toggle the pack on THIS
+  shard through the ShardParameters lever.
+
+**Mesh visibility.** `/mesh` (admin-only) reports the container's mesh
+identity read-only: role + self id (`MeshRole`), the shard registry
+(`CoordinatorService.get_all_shard_ids()`), and the active bus
+(`get_default_bus_id()` / `get_display_name()`). No writes.
+
+**Two honesty rules, both enforced by the receipt:**
+
+1. **Uniform by default.** Absent a disable every pack is enabled.
+2. **Local, never shared.** A disable is a *read* on one process; the
+   receipt resolves a second shard and proves it stays uniform.
+
 ## 5. Out of scope (this note)
 
 - Real HA Postgres/Redis (deployment concern).
@@ -419,3 +477,33 @@ Operator surface (`/shardparam`):
 
 Receipts: `game/tests/test_shard_tuning.gd` (38 legs) +
 `game/tests/test_shard_tuning_admin.gd` (22 legs).
+
+## 11. Acceptance for Phase 3.2
+
+- The pack data loads and every owned id resolves DataService truth
+  (no phantom SKUs); the `pack_` prefix + filename==id rule holds.
+- Uniform by default: absent a disable every pack is enabled.
+- A disabled pack hides its quests from the offered roster AND the
+  accept gate (refused by name), and its enemies from every spawn route
+  (`spawn_enemy_direct`, `spawn_boss`, the spawn-point path, horde mobs).
+- An id owned by NO pack is unaffected by any disable.
+- The gate is LOCAL: a second shard stays uniform.
+
+Operator surface (`/contentpack`):
+
+- A non-admin sender is refused; the write does not land.
+- An admin disable lands on the local shard and is readable immediately
+  (the critical-param contract); enable clears it.
+- The board lists every pack; the read view reports state + counts.
+- An unknown pack id is refused by name.
+
+Mesh visibility (`/mesh`):
+
+- A non-admin sender is refused.
+- An admin report names role + self id (matching `MeshRole`), the
+  registry (matching `CoordinatorService.get_all_shard_ids()`), and the
+  active bus (`get_display_name()`).
+- The report is read-only (the registry is unchanged after it).
+
+Receipts: `game/tests/test_content_packs.gd` (35 legs) +
+`game/tests/test_mesh_command.gd` (11 legs).

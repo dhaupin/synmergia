@@ -1,0 +1,12 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://disabled_content_packs_param"]
+
+[ext_resource path="res://core/schemas/shard_parameter_definition.gd" type="Script" id=1]
+
+[resource]
+script = ExtResource("1")
+name = "disabled_content_packs"
+type = "string"
+default_value = ""
+critical = true
+description = "Comma-separated content-pack ids disabled on this shard (empty = all enabled). LOCAL read only; never shared/hashed. Critical so an operator's change is immediately effective and readable."
+version = 1

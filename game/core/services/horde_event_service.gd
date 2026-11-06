@@ -29,6 +29,10 @@ const EnemyAIScript = preload("res://core/ai/enemy_ai.gd")
 const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 const HordeDataResolver = preload("res://core/schemas/horde_data_resolver.gd")
+# Phase 3.2: the per-shard content-pack gate (labs/prd-shard-mesh.md
+# sec.3.2). A horde mob/boss whose template sits in a pack disabled on
+# the LOCAL shard is refused here (the boss path also gates in spawn_boss).
+const ContentPacks = preload("res://core/mesh/content_packs.gd")
 
 ## Mob production limits per wave tick (all-or-nothing batch would
 ## hitch the frame; this spreads 100 mobs over several frames).
@@ -433,6 +437,9 @@ func _produce_mob(h: Dictionary, pos: Vector3, extra_level: int, template_id: St
 	if ds != null and ds.has_method("get_enemy"):
 		template = ds.get_enemy(template_id)
 	if template == null:
+		return null
+	# Phase 3.2 content-pack gate (LOCAL read).
+	if not ContentPacks.local_enemy_enabled(template_id):
 		return null
 
 	var enemy = EnemyScript.new()

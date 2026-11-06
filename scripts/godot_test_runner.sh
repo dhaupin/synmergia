@@ -114,6 +114,8 @@ test_edge_transport
 test_shard_mesh_topology
 test_shard_tuning
 test_shard_tuning_admin
+test_content_packs
+test_mesh_command
 probe_arena_instance
 probe_arena_trigger
 probe_lobby_service

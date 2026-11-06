@@ -5,6 +5,9 @@ extends Node
 const QoSService = preload("res://core/autoload/qos_service.gd")
 
 const QuestData = preload("res://core/schemas/quest_data.gd")
+# Phase 3.2: the per-shard content-pack gate (labs/prd-shard-mesh.md sec.3.2).
+# A pack disabled on the LOCAL shard hides its quests from every roster/gate.
+const ContentPacks = preload("res://core/mesh/content_packs.gd")
 # UIStyles is not an autoload (class_name only). QuestService
 # references UIStyles.COLORS.X in BBColor formatting, which requires
 # the class_name registered at parse time. Preload it here.
@@ -356,6 +359,10 @@ func _get_available_quest_ids(player_id: String) -> Array:
 			# Check level requirement
 			if player_level < int(quest.min_level):
 				continue
+			# Phase 3.2 content-pack gate: a quest owned by a pack disabled
+			# on THIS shard is not offered (LOCAL read, never shared).
+			if not ContentPacks.local_quest_enabled(qid):
+				continue
 			# Chain gate (same rule as check_quest_availability).
 			if not _first_unmet_prereq(player_data, quest).is_empty():
 				continue
@@ -401,6 +408,10 @@ func get_available_quests(player_id: String) -> Array:
 			var min_level: int = int(quest.min_level)
 			if player_level < min_level:
 				continue
+			# Phase 3.2 content-pack gate (LOCAL read; a disabled pack's
+			# quests are hidden from the offered roster).
+			if not ContentPacks.local_quest_enabled(qid):
+				continue
 			# Chain gate: the roster must not offer a quest whose authored
 			# prerequisite is unmet, or the UI would list a quest the accept
 			# gate then refuses.
@@ -440,6 +451,11 @@ func check_quest_availability(player_id: String, quest_id: String) -> Dictionary
 			result.reason = "Already completed"
 			return result
 
+	# Phase 3.2 content-pack gate: a quest owned by a pack disabled on
+	# THIS shard is refused by name (LOCAL read, never shared).
+	if not ContentPacks.local_quest_enabled(quest_id):
+		result.reason = "Content pack disabled on this shard"
+		return result
 	# Check level requirements (the helper exists and drives the
 	# availability roster already; the gate was left commented there).
 	var player_level := _get_player_level(player_id)
