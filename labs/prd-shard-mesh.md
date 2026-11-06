@@ -288,6 +288,22 @@ Shipped:
   `param_applied` for a tuning param of its own shard, so a running
   shard's numbers can flip without a reboot.
 
+**The operator surface.** The lever shipped with a data path but no
+handle; `/shardparam` (admin-only, `ChatService`) closes that:
+
+- `/shardparam` -- the state board: one line per known shard
+  (`ShardManager.mesh_shards()`: itself + connected, deduped), each
+  showing the effective cap/ratio and whether a local override is in
+  force.
+- `/shardparam <shard_id>` -- one shard's tuning numbers.
+- `/shardparam <shard_id> <cap> [ratio]` -- set the cap (>= 2) and/or
+  the post-band XP ratio (>= 0), then the local curve re-reads through
+  the `param_applied` listener (no explicit re-apply needed; the lever
+  is local, so a non-local shard's curve is untouched).
+- `/shardparam <shard_id> reset` -- drop the overrides (uniform curve).
+- Absurd values (cap < 2, negative ratio) are refused by name with the
+  prior value intact.
+
 **Two honesty rules, both enforced by the receipt:**
 
 1. **Uniform by default.** Absent an override every shard runs the same
@@ -391,4 +407,15 @@ Receipt: `game/tests/test_shard_mesh_topology.gd` (20 legs).
 - An absurd cap (< 2) or a negative ratio is ignored (uniform).
 - Clearing the override restores the uniform curve.
 
-Receipt: `game/tests/test_shard_tuning.gd` (38 legs).
+Operator surface (`/shardparam`):
+
+- A non-admin sender is refused; the write does not land.
+- An admin set lands the cap and the local curve re-reads it live (the
+  `param_applied` signal path fires for the write).
+- The read view and the state board report the numbers.
+- The set is LOCAL: a second shard stays uniform.
+- An absurd cap is refused by name with the prior value intact.
+- Reset restores `DEFAULT_CAP` and clears `has_shard_tuning()`.
+
+Receipts: `game/tests/test_shard_tuning.gd` (38 legs) +
+`game/tests/test_shard_tuning_admin.gd` (22 legs).

@@ -132,7 +132,7 @@ func _mesh_at(st, F, tile_r: float, d: Vector3, edge_m: float, Gen, seed_b: Pack
 				var dir_v: Vector3 = (wv - pc).normalized()
 				min_vert_ang = minf(min_vert_ang, dir_v.angle_to(d))
 				score_sum += absf(wv.distance_to(pc) - tile_r \
-					 - Gen.terrain_height(dir_v, seed_b))
+					- Gen.terrain_height(dir_v, seed_b))
 				score_n += 1
 			var score: float = (score_sum / float(maxi(1, score_n)))
 			surf_data.append({"verts": verts, "idx": idx, "stride": stride, "n": n,
