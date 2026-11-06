@@ -142,14 +142,27 @@ func _run() -> void:
 			abad.append(String(a.id) + " armor value")
 	_check("armor values lawful", abad.is_empty())
 
-	# THE PRICE LADDER: buy climbs with item_level inside each family
+	# THE PRICE LADDER: buy climbs with item_level inside each family.
+	# Same-level items may differ in price (a belt vs a chest both at L5);
+	# the law is banded -- the cheapest item at a higher level never
+	# undercuts the priciest item at the level below.
 	var pbad: Array = []
 	for fam in ["weapon", "armor"]:
-		var rows: Array = families.get(fam, []).duplicate()
-		rows.sort_custom(func(x, y): return int(x.item_level) < int(y.item_level))
-		for i2 in range(1, rows.size()):
-			if int(rows[i2].buy_price) < int(rows[i2 - 1].buy_price):
-				pbad.append("%s(%d) below %s(%d)" % [rows[i2].id, rows[i2].item_level, rows[i2 - 1].id, rows[i2 - 1].item_level])
+		var bands: Dictionary = {}  # item_level -> Array[int] buy prices
+		for row in families.get(fam, []):
+			var lvl: int = int(row.item_level)
+			if not bands.has(lvl):
+				bands[lvl] = []
+			bands[lvl].append(int(row.buy_price))
+		var lvls: Array = bands.keys()
+		lvls.sort()
+		for i2 in range(1, lvls.size()):
+			var lo: int = lvls[i2 - 1]
+			var hi: int = lvls[i2]
+			var lo_max: int = (bands[lo] as Array).max()
+			var hi_min: int = (bands[hi] as Array).min()
+			if hi_min < lo_max:
+				pbad.append("%s: L%d cheapest %d undercuts L%d priciest %d" % [fam, hi, hi_min, lo, lo_max])
 	_check("buy price climbs with item_level (weapons + armors)", pbad.is_empty())
 
 	# SERVICE TRUTH: every family id get_item()s as the SAME object law
