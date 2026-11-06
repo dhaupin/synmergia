@@ -860,7 +860,7 @@ func _living_mob_count(h: Dictionary) -> int:
 		var e = es.get_entity(str(eid))
 		if e == null or not is_instance_valid(e):
 			continue
-		var dead: bool = bool(e.is_dead) if "is_dead" in e else false
+		var dead: bool = bool(e.get("is_dead")) if "is_dead" in e else false
 		if not dead:
 			living += 1
 	return living

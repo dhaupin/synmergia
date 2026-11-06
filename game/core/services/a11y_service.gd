@@ -209,8 +209,13 @@ func _append_world_entries(out: Array) -> void:
 				continue
 			if entity == player:
 				continue
-			if "is_dead" in entity and bool(entity.is_dead):
-				continue
+			# `is_dead` is a property on Entity but a method on PlayerBase.
+			# Call the method when present; otherwise read the property.
+			# Never hand a Callable to bool() (the old bug).
+			if "is_dead" in entity:
+				var _dead: bool = bool(entity.is_dead()) if entity.has_method("is_dead") else bool(entity.get("is_dead"))
+				if _dead:
+					continue
 			var label: String = str(entity.display_name) if "display_name" in entity else str(entity.entity_id)
 			var dist: float = origin.distance_to(entity.global_position)
 			var verb: String = _entity_verb(entity)

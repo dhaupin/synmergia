@@ -684,7 +684,13 @@ func _regen_entities() -> void:
 		var eid: String = str(entity.entity_id)
 		if eid == "":
 			continue
-		if entity.current_health < entity.max_health:
+		# The health surface is optional: a live Entity exposes
+		# current_health/max_health directly, but a body that only
+		# carries a health_component (stub mobs) does not. Guard so
+		# regen skips those instead of erroring on a missing field.
+		var has_health: bool = "current_health" in entity and "max_health" in entity
+		var has_mana: bool = "current_mana" in entity and "max_mana" in entity
+		if has_health and entity.current_health < entity.max_health:
 			var h_acc: float = float(_regen_health_acc.get(eid, 0.0)) + float(entity.max_health) * REGEN_HEALTH_PCT_PER_SEC * dt
 			while h_acc >= 1.0:
 				h_acc -= 1.0
@@ -692,7 +698,7 @@ func _regen_entities() -> void:
 			_regen_health_acc[eid] = h_acc
 		else:
 			_regen_health_acc.erase(eid)
-		if entity.current_mana < entity.max_mana:
+		if has_mana and entity.current_mana < entity.max_mana:
 			var m_acc: float = float(_regen_mana_acc.get(eid, 0.0)) + float(entity.max_mana) * REGEN_MANA_PCT_PER_SEC * dt
 			while m_acc >= 1.0:
 				m_acc -= 1.0

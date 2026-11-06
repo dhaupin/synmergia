@@ -74,11 +74,13 @@ func _init() -> void:
 	# ---- THE THREE DRIFT SITES STAY OUTLAWED (text receipts) --------------
 	# #54: player_controller / player_progress restore / progress_bridge
 	# used to inline the old 1000*1.5^(l-1) envelope. They now consult the
-	# ONE authority; these pins keep them from re-forking the law.
-	var pc_src := FileAccess.open("res://entities/player/player_controller.gd", FileAccess.READ).get_as_text()
-	_ok(pc_src.contains("level < LevelCurveScript.max_level()"),
+	# ONE authority; these pins keep them from re-forking the law. The node
+	# level-up loop now lives in PlayerBase (both bodies inherit it), so the
+	# node pin reads player_base.gd -- the file that actually carries it.
+	var pbase_src := FileAccess.open("res://entities/player/player_base.gd", FileAccess.READ).get_as_text()
+	_ok(pbase_src.contains("level < LevelCurveScript.max_level()"),
 		"the node level-up loop is cap-guarded by the curve (no cap bypass)")
-	_ok(pc_src.contains("LevelCurveScript.level_cost(level)"),
+	_ok(pbase_src.contains("LevelCurveScript.level_cost(level)"),
 		"the node's next level cost comes from the curve, not int(1.5x) drift")
 	var pp_src := FileAccess.open("res://core/services/player_progress.gd", FileAccess.READ).get_as_text()
 	_ok(pp_src.contains("LevelCurveScript.level_cost(maxi(1, player.level))"),

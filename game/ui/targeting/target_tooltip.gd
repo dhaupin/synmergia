@@ -124,9 +124,12 @@ func _on_target_updated(target: TargetingScript.TargetInfo) -> void:
 	if _current_target_id != "" and target.id == _current_target_id:
 		_refresh_tooltip()
 
-func _on_target_type_changed(target_id: String, old_type: int, new_type: int) -> void:
-	# Refresh tooltip when target type changes (e.g., player goes offline)
-	if target_id == _current_target_id:
+func _on_target_type_changed(new_type: int) -> void:
+	# target_type_changed fires for the CURRENT target on a type flip and
+	# carries only the new type; keep the cached type in sync and refresh
+	# so the tooltip's type row updates.
+	_current_entity_type = new_type
+	if _current_target_id != "":
 		_refresh_tooltip()
 
 func _on_interaction_tap(position: Vector2) -> void:

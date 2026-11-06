@@ -89,6 +89,20 @@ if [ "${JOBS}" -gt "${JOBS_MAX}" ]; then
 	echo "[runner] JOBS ${JOBS} > 2x cores (${JOBS_MAX}), capped"
 	JOBS="${JOBS_MAX}"
 fi
+# MEMORY CAP: a worker is a full godot boot (measured ~1-1.5 GiB peak);
+# beyond what MemAvailable holds the box swaps and every worker crawls.
+# Cores are the usual ceiling, but on a small-RAM host this is the real
+# one -- the parallel runner must not be the thing that OOMs the box.
+MEM_PER_JOB_MB=1536
+MEM_AVAIL_MB=$(awk '/MemAvailable/{print int($2/1024)}' /proc/meminfo 2>/dev/null || echo 0)
+if [ "${MEM_AVAIL_MB}" -gt 0 ]; then
+	MEM_MAX=$((MEM_AVAIL_MB / MEM_PER_JOB_MB))
+	[ "${MEM_MAX}" -lt 1 ] && MEM_MAX=1
+	if [ "${JOBS}" -gt "${MEM_MAX}" ]; then
+		echo "[runner] JOBS ${JOBS} > RAM budget (${MEM_MAX} x ${MEM_PER_JOB_MB} MiB of ${MEM_AVAIL_MB} MiB), capped"
+		JOBS="${MEM_MAX}"
+	fi
+fi
 
 # ------------------------------------------------------- default set
 if [ -z "${tests_named}" ]; then
@@ -136,12 +150,22 @@ fi
 
 # ------------------------------------------- warm the import (1 boot)
 # The one serial boot: makes every worker's cache lookups read-only.
-godot --headless --path "${GAME_DIR}" --import >/tmp/syn_warm_import.log 2>&1 ||
-	echo "[runner] WARN: warm import nonzero (see /tmp/syn_warm_import.log)"
+# SKIP_WARM=1 skips it for fast local iteration (only safe when the
+# cache was already warmed by a prior run).
+if [ "${SKIP_WARM:-0}" = "1" ]; then
+	echo "[runner] warm import: skipped (SKIP_WARM=1)"
+else
+	warm_t0=$(date +%s)
+	godot --headless --path "${GAME_DIR}" --import >/tmp/syn_warm_import.log 2>&1 ||
+		echo "[runner] WARN: warm import nonzero (see /tmp/syn_warm_import.log)"
+	echo "[runner] warm import: $(( $(date +%s) - warm_t0 ))s"
+fi
 
 # ------------------------------------------------------------ workers
 status_dir="$(mktemp -d /tmp/syn_par.XXXXXX)"
+trap 'rm -rf "${status_dir}"' EXIT INT TERM
 export status_dir GAME_DIR
+run_t0=$(date +%s)
 
 run_one() {
 	t="$1"
@@ -161,12 +185,13 @@ run_one() {
 	probe_stream_continent_a|probe_stream_continent_b|probe_stream_continent_c|probe_stream_continent_d) PER_TIMEOUT=600 ;;
 	esac
 	slug="$(printf '%s' "${t}" | tr '/' '_')"
+	t0=$(date +%s)
 	if (cd "${GAME_DIR}" && timeout "${PER_TIMEOUT}" godot --headless --path . --script "${RES_PATH}" >"/tmp/syn_${slug}.log" 2>&1); then
-		echo "[runner]    PASS ${t}"
+		echo "[runner]    PASS ${t} ($(( $(date +%s) - t0 ))s)"
 		echo "pass" >"${status_dir}/${slug}"
 		echo "${t}" >>"${RESUME_APPEND}"
 	else
-		echo "[runner]    FAIL ${t} (log: /tmp/syn_${slug}.log)"
+		echo "[runner]    FAIL ${t} ($(( $(date +%s) - t0 ))s, log: /tmp/syn_${slug}.log)"
 		grep -E "FAIL|SCRIPT ERROR|Parse Error" "/tmp/syn_${slug}.log" 2>/dev/null | head -3
 		echo "fail" >"${status_dir}/${slug}"
 	fi
@@ -204,4 +229,5 @@ fi
 rm -rf "${status_dir}"
 
 echo "[runner] ${pass} passed, ${fail} failed${failed_names:+ [${failed_names}]}${missing:+ (${missing} unresolvable names)}"
+echo "[runner] wall time: $(( $(date +%s) - run_t0 ))s (${JOBS} jobs)"
 [ "${fail}" -eq 0 ] && [ "${missing}" -eq 0 ]

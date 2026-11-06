@@ -17,6 +17,20 @@ extends Node3D
 ## Named collision bits (round 10): data/physics_layers/ LayerProfile.
 const Layers = preload("res://core/schemas/layer_profile.gd")
 
+## Runtime autoload lookups (script-mode-safe; the bare identifiers fail
+## to compile when autoloads are absent -- same law as the player bodies).
+func _glog() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
+
+func _im() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("InputManager")) if tree and tree.root else null
+
+func _sign() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("SignService")) if tree and tree.root else null
+
 const PLAYER_SKIN: float = 1.0
 ## Visual shell sits slightly above the collider to avoid z-fighting.
 const SKIN_THICKNESS: float = 0.5
@@ -294,7 +308,9 @@ func _install_hud() -> void:
 	HudLayer.ensure_installed(self)
 	hud = get_node_or_null("HudLayer") as CanvasLayer
 	if hud != null:
-		GameLog.info("GlobeWorld: playable HUD installed")
+		var _gl := _glog()
+		if _gl:
+			_gl.info("GlobeWorld: playable HUD installed")
 
 
 ## Bridge the touch HUD into the globe player's camera (same shape as
@@ -304,7 +320,8 @@ func _install_hud() -> void:
 func _setup_touch_hud() -> void:
 	if player == null or not player.has_method("orbit_camera"):
 		return
-	var joystick = InputManager.get_virtual_joystick() if InputManager else null
+	var im := _im()
+	var joystick = im.get_virtual_joystick() if im else null
 	if joystick == null:
 		return
 	var cam_speed: float = 0.003
@@ -316,7 +333,9 @@ func _setup_touch_hud() -> void:
 			delta_px.y * cam_speed * 1.5 * sensitivity)
 	if not joystick.camera_look.is_connected(look_handler):
 		joystick.camera_look.connect(look_handler)
-	GameLog.info("GlobeWorld: touch HUD wired to orbit_camera")
+	var _gl := _glog()
+	if _gl:
+		_gl.info("GlobeWorld: touch HUD wired to orbit_camera")
 
 
 ## THE STREAMER FENCE (issue #19): when the world leaves the tree --
@@ -1025,7 +1044,8 @@ func _barque_ferry_tick(per_day: int, first_h: float, cross_h: float) -> void:
 	if sund_ferry_vessel == null:
 		return
 	var Schedule = load("res://core/frame/srv/ferry_schedule.gd")
-	var epoch: float = SignService.sky_epoch_days() if SignService else \
+	var sign_svc := _sign()
+	var epoch: float = sign_svc.sky_epoch_days() if sign_svc else \
 		float(Time.get_unix_time_from_system()) / 86400.0
 	var t: float = Schedule.vessel_t(per_day, first_h, cross_h, epoch)
 	FERRY_VESSEL_LAW.place(sund_ferry_vessel, t)
@@ -1086,7 +1106,8 @@ func _pans_ferry_tick(per_day: int, first_h: float, cross_h: float) -> void:
 	if pans_ferry_vessel == null:
 		return
 	var Schedule = load("res://core/frame/srv/ferry_schedule.gd")
-	var epoch: float = SignService.sky_epoch_days() if SignService else \
+	var sign_svc := _sign()
+	var epoch: float = sign_svc.sky_epoch_days() if sign_svc else \
 		float(Time.get_unix_time_from_system()) / 86400.0
 	var t: float = Schedule.vessel_t(per_day, first_h, cross_h, epoch)
 	FERRY_VESSEL_LAW.place(pans_ferry_vessel, t)
@@ -1320,7 +1341,9 @@ func _setup_ambience() -> void:
 	amb.set_script(amb_script)
 	add_child(amb)
 	_setup_weather_events()
-	GameLog.info("GlobeWorld: ambience driver active (the weather sings)")
+	var _gl := _glog()
+	if _gl:
+		_gl.info("GlobeWorld: ambience driver active (the weather sings)")
 
 
 ## WeatherEventService (core/services/weather_event_service.gd): the
