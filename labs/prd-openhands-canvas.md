@@ -101,6 +101,38 @@ lanes land. That is the merge point, not a lane's job.
   independent, receipt-gated work (e.g. "author 5 quests" beside "fix the
   mesh bus"). Do not fan out a single small change.
 
+## Smoke test results (2026-11-06) -- LANES WORK
+
+Ran the three lanes for real, each a small read-only task with a docs-only
+receipt. All three spawned in parallel, ran to `finished`, wrote exactly
+one file in their OWN worktree, and touched nothing else.
+
+| Lane | Task | Outcome |
+|---|---|---|
+| A systems | inventory the shard-mesh phases -> file map | 139-line map; found all 6 phases implemented + their receipts; flagged the un-run receipts honestly |
+| B game-loop | trace player boot + input->movement | 128-line map; surfaced a REAL bug candidate (below) |
+| C data | audit item naming + refs | 94-line audit; 8/8 filename==id, zero dangling refs, 2 soft data-semantics notes |
+
+**What blew up:** nothing. Isolation held (each lane wrote only in
+`/tmp/conversation-worktrees/<id>/synmergia`; the parent `staging` tree
+stayed clean). The only friction was environmental and pre-fixed: `godot`
+and `bun` had to be on the SERVER's PATH (`/usr/local/bin` symlinks) or a
+lane that runs a receipt would fail -- a lane that only reads files does
+not need them.
+
+**The bug Lane B found (confirmed by the parent):** `globe_player.gd` never
+calls `add_to_group("players")`, while the planar `player_controller.gd:452`
+does. `ActionBar._on_player_input()` resolves its caster via
+`get_first_node_in_group("players")` (`action_bar.gd:431`), so on the globe
+that lookup cannot find the local body. Real wiring gap, not a lane
+hallucination.
+
+**Harvested artifacts:** `labs/lane-smoke/` (the three maps, kept as
+evidence + reference).
+
+**Cost:** three lanes = three agent runs. Fine for a smoke test; for real
+work, size the lane to the value.
+
 ## Preconditions for lanes on this repo
 
 1. No Git LFS hooks (fixed: `3b37efec`; `scripts/setup-dev.sh`
