@@ -20,6 +20,9 @@ const BlessedMarkScript = preload("res://entities/blessed_mark.gd")
 # the Kind is SECURITY_BLOCKED uniformly.
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 const ReportKind = preload("res://core/admin/player_reporter.gd")
+# Phase 3.1 tuning resolver: the /shardparam operator surface applies a
+# shard's progression overrides into LevelCurve through this.
+const ShardTuning = preload("res://core/progression/shard_tuning.gd")
 
 ## Runtime autoload lookups (script-mode-safe; the bare identifiers
 ## fail compile when autoloads are absent -- test_islands).
@@ -514,6 +517,8 @@ func _handle_command(sender_id: String, channel: Channel, command: String, targe
 			return _cmd_boss(sender_id, args)
 		"spawn":
 			return _cmd_spawn(sender_id, args)
+		"shardparam":
+			return _cmd_shardparam(sender_id, args)
 
 	return false
 
@@ -843,6 +848,100 @@ func _cmd_spawn(sender_id: String, args: Array) -> bool:
 		spawned, count, template_id, zone_id,
 		" (level %d)" % level if level > 0 else ""])
 	return true
+
+## Command: /shardparam -- THE PHASE 3.1 OPERATOR SURFACE for the
+## per-shard tuning lever (labs/prd-shard-mesh.md sec.3.1).
+##   /shardparam                     - the state board (every known shard)
+##   /shardparam <shard_id>          - one shard's tuning numbers
+##   /shardparam <shard_id> reset    - drop the overrides (uniform curve)
+##   /shardparam <shard_id> <cap> [ratio] - set the cap and/or post-band
+##                                    XP ratio, then re-apply the curve
+## The write lands in the shard's LOCAL ShardParameters tree and is folded
+## into LevelCurve through ShardTuning; both tuning params are critical, so
+## the change is effective (and readable) immediately -- no reboot.
+## Permission: admins only.
+func _cmd_shardparam(sender_id: String, args: Array) -> bool:
+	var sp = get_node_or_null(NodePath("/root/ShardParameters"))
+	if sp == null or not sp.has_method("get_param"):
+		_send_system_message(sender_id, "[shardparam] ShardParameters unavailable.")
+		return true
+	if not _require_admin(sender_id, "shardparam"):
+		return true
+	var sm = get_node_or_null(NodePath("/root/ShardManager"))
+
+	# No args -> the state board.
+	if args.is_empty() or str(args[0]).strip_edges() == "":
+		_send_system_message(sender_id, _shardparam_board(sm, sp))
+		return true
+
+	var sid := str(args[0]).strip_edges()
+	var verb := str(args[1]).to_lower() if args.size() > 1 else ""
+
+	# reset -> drop the overrides.
+	if verb == "reset":
+		sp.set_param(sid, ShardTuning.CAP_PARAM, 0, sender_id)
+		sp.set_param(sid, ShardTuning.XP_RATIO_PARAM, 0.0, sender_id)
+		_send_system_message(sender_id, "[shardparam] %s reset -- uniform curve." % sid)
+		return true
+
+	# Read-only one-shard view.
+	if verb == "":
+		_send_system_message(sender_id, _shardparam_line(sm, sp, sid))
+		return true
+
+	# Set: /shardparam <shard> <cap> [ratio]
+	var cap := int(verb)
+	if cap < 2:
+		_send_system_message(sender_id, "[shardparam] Cap must be >= 2 (got %d)." % cap)
+		return true
+	var ratio := 0.0
+	if args.size() > 2:
+		ratio = float(str(args[2]))
+		if ratio < 0.0:
+			_send_system_message(sender_id, "[shardparam] Ratio must be >= 0 (got %.3f)." % ratio)
+			return true
+	sp.set_param(sid, ShardTuning.CAP_PARAM, cap, sender_id)
+	sp.set_param(sid, ShardTuning.XP_RATIO_PARAM, ratio, sender_id)
+	# The local shard's curve re-reads through ShardManager's param_applied
+	# listener (a non-local shard's curve is untouched -- the lever is local).
+	_send_system_message(sender_id, "[shardparam] %s <- %s" % [sid, _shardparam_line(sm, sp, sid)])
+	return true
+
+## The local shard id ("" when no ShardManager, e.g. a bare harness).
+func _local_shard_id(sm: Node) -> String:
+	if sm != null and "shard_id" in sm:
+		return str(sm.shard_id)
+	return ""
+
+## One shard's tuning line: id, effective cap, effective ratio, whether a
+## local override is in force, and its position vs the uniform default.
+func _shardparam_line(sm: Node, sp: Node, sid: String) -> String:
+	var cap := int(sp.get_param(sid, ShardTuning.CAP_PARAM))
+	var ratio := float(sp.get_param(sid, ShardTuning.XP_RATIO_PARAM))
+	var overridden := cap >= 2 or ratio > 0.0
+	var local := sid == _local_shard_id(sm)
+	var tail := ""
+	if overridden:
+		tail = "cap=%d%s" % [cap, "" if ratio <= 0.0 else " ratio=%.3f" % ratio]
+	else:
+		tail = "uniform (cap=%d ratio=%.3f)" % [
+			ShardTuning.LevelCurveScript.max_level(),
+			ShardTuning.LevelCurveScript.effective_band_step()]
+	return "%s%s: %s" % [sid, " [local]" if local else "", tail]
+
+## The state board: one line per known shard.
+func _shardparam_board(sm: Node, sp: Node) -> String:
+	var ids: Array = []
+	if sm != null and sm.has_method("mesh_shards"):
+		ids = sm.mesh_shards()
+	elif _local_shard_id(sm) != "":
+		ids = [_local_shard_id(sm)]
+	if ids.is_empty():
+		return "[shardparam] No shards known."
+	var lines: Array = ["[shardparam] shard tuning:"]
+	for sid in ids:
+		lines.append("  " + _shardparam_line(sm, sp, str(sid)))
+	return "\n".join(lines)
 
 ## Command: /horde [<config_id>|status|stop] [zone_id] [alert]
 ## Live trigger for data-driven horde events (data/hordes/*.tres).

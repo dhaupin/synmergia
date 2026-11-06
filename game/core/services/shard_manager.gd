@@ -187,6 +187,20 @@ func unregister_shard(other_shard_id: String) -> void:
 func get_connected_shards() -> Array[String]:
 	return _connected_shards
 
+
+## Every shard id this process knows: itself first, then the connected
+## (registry) shards, deduped and sorted. The operator tuning surface
+## lists these; unknown ids still resolve a parameter (local tree).
+func mesh_shards() -> Array[String]:
+	var out: Array[String] = []
+	if shard_id != "":
+		out.append(shard_id)
+	for sid in _connected_shards:
+		if not out.has(sid):
+			out.append(sid)
+	out.sort()
+	return out
+
 func get_shard_info(shard_id: String) -> Dictionary:
 	return _shard_info.get(shard_id, {})
 
