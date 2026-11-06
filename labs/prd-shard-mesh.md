@@ -233,69 +233,83 @@ services:
       - CACHE_BACKEND=redis
       - POSTGRES_HOST=postgres
       - REDIS_HOST=redis
+  edge:                            # Phase 3.1: the ONE client entry
+    build: .
+    profiles: [mesh]
+    ports:
+      - "${EDGE_HTTP_PORT:-8088}:80"
+      - "${EDGE_HTTPS_PORT:-8443}:443"
+    environment:
+      - START_MODE=edge            # nginx only; no Godot, no game port
+      - GODOT_UPSTREAM=shard:9000  # expanded to ip_hash upstream servers
 ```
 
 Each shard has no fixed host ports (the mesh is addressed by service
-name), so replicas never collide; `--scale shard=N` gives N shards.### Phase 3.1 -- Per-shard tuning (the "event shard" lever, future)
+name), so replicas never collide; `--scale shard=N` gives N shards. The
+`edge` service is the single client entry, sticky-routing to the shards.
 
-The mesh's whole point is that shards are interchangeable -- but
-the interesting endgame is the opposite: **shards that are NOT
-interchangeable, on purpose.** Event shards, 100x PvP shards, a
-hardcore shard with a lower cap, a seasonal shard with a raised
-one. Each spun up with its own numbers, each still riding the same
-identity + shared-state + bus + edge we already shipped.
+### Phase 3.1 -- Edge proxy + per-shard tuning (SHIPPED)
 
-The hook already exists: `ShardParameters` (autoload, D033) is a
-per-`shard_id` parameter store with data-driven definitions in
-`data/roots/world/parameters/*.tres` and a critical/non-critical
-apply contract. It is the natural home for shard-local tuning
-values -- it was built for exactly this ("boss_defeated",
-"respawn_rate_modifier", "season_active", "world_event_active").
+**The edge proxy.** Phase 2 shipped the websocket transport and the
+`ip_hash` upstream block; Phase 3.1 adds the container that USES it.
+`START_MODE=edge` boots nginx only (no Godot, no game port of its own)
+and fronts the shard replicas with sticky routing, so a WebSocket
+upgrade and the client's follow-up requests land on the SAME shard. The
+`mesh` compose profile gains an `edge` service publishing
+`${EDGE_HTTP_PORT:-8088}`/`${EDGE_HTTPS_PORT:-8443}` and passing
+`GODOT_UPSTREAM` (default `shard:9000`); the entrypoint's existing
+`_setup_nginx` expands the list into upstream `server` lines. One entry
+into the mesh, standard L7, browser-capable.
 
-**The shape when we wire it:**
+**The tuning lever.** The mesh's default is interchangeable shards, but
+the endgame is shards that are NOT interchangeable ON PURPOSE -- an event
+shard, a hardcore shard with a lower cap, a seasonal shard with a raised
+one. The hook is `ShardParameters` (autoload, D033), a per-`shard_id`
+parameter store with data-driven `ShardParameterDefinition` .tres.
 
-- A shard-local **progression override** parameter, e.g.
-  `level_cap_override` (int) and `xp_ratio_override` (float),
-  declared as `ShardParameterDefinition` .tres alongside the
-  existing four.
-- `LevelCurve.max_level()` / `LevelCurve.level_cost()` gain a
-  shard-aware read: env (`LEVEL_CAP`) stays the deployment
-  default; a shard parameter overrides it for that `shard_id`
-  only. No `.tres` content pack changes -- the same law, read
-  through one more layer.
-- Because the cap/curve is already one authority
-  (`game/core/progression/level_curve.gd`), this is a *read-path*
-  change, not a data sweep: every consumer that goes through
-  `LevelCurve` inherits the shard's numbers for free.
+Shipped:
 
-**Two honesty rules for whoever wires it:**
+- `ShardParameters.get_param(shard_id, name)` -- the read accessor the
+  note flagged as missing. It returns the applied state-tree value, else
+  the definition's `default_value`, else null. (The write path lands in
+  the shard state tree; a local read must see it without touching shared
+  state.)
+- Two parameter definitions: `level_cap_override` (int, critical) and
+  `xp_ratio_override` (float, critical). Critical so an operator's write
+  is immediately effective AND immediately readable.
+- `LevelCurve` gains a shard-aware read: `set_shard_tuning(cap, ratio)`
+  / `clear_shard_tuning()` / `has_shard_tuning()`. `max_level()`
+  precedence is shard override -> `LEVEL_CAP` env -> `DEFAULT_CAP`;
+  `level_cost()` compounds the post-band ratio through
+  `effective_band_step()`. The in-band (1..10) law is untouched.
+- `ShardTuning` (`game/core/progression/shard_tuning.gd`) is the
+  resolver: `apply(shard_id, sp)` folds the shard's overrides into the
+  curve. `ShardManager` calls it at boot and re-applies on
+  `param_applied` for a tuning param of its own shard, so a running
+  shard's numbers can flip without a reboot.
 
-1. **Uniform by default.** Absent an override, every shard runs
-   the same curve -- normal shards stay in sync (the requirement
-   above is not negotiable for the default case).
-2. **`ShardParameters` has no read accessor today.** It has
-   `set_param` / `get_definition` / pending-queue reads, but no
-   `get_param(shard_id, name)` returning the effective value;
-   the write path lands in the shard state tree. Wiring the
-   override means adding that read (state-tree lookup with the
-   definition's `default_value` fallback) -- small, but it is
-   new surface, not a call that exists.
+**Two honesty rules, both enforced by the receipt:**
 
-**What stays out of scope:** a shard's curve override must not
-leak into cross-shard identity. Shared-state values that the
-mesh hashes (Phase 0) are world-truth and stay uniform; tuning
-is a *local read*, never a *shared write*. If a shard's numbers
-ever need to be shared, that is a different (harder) problem and
-a different note.
+1. **Uniform by default.** Absent an override every shard runs the same
+   curve (`DEFAULT_CAP`, `BAND_STEP`). A cap-only override leaves the
+   ratio alone; a ratio-only override leaves the cap alone.
+2. **Local, never shared.** An override is a *read* on one process; it
+   never leaks into cross-shard identity or the mesh's hashed state. The
+   receipt resolves a second shard and proves it stays uniform.
+
+**What stays out of scope:** a shard's curve override must not leak into
+cross-shard identity. Shared-state values that the mesh hashes (Phase 0)
+are world-truth and stay uniform; tuning is a *local read*, never a
+*shared write*.
 
 ## 5. Out of scope (this note)
 
 - Real HA Postgres/Redis (deployment concern).
 - The dormant Julia orchestrator (separate `prd-multiworld.md`
   and `world-building-arch.md` sec.11.2 deferral).
-- **Per-shard tuning** (Phase 3.1 above) -- the curve/cap surface
-  is deliberately uniform across the mesh for now; the
-  `ShardParameters` hook exists but is not wired.
+- **Per-shard tuning** is now WIRED (Phase 3.1 above) for the curve/cap
+  surface. It remains a LOCAL read only; any tuning value that must be
+  shared is a different (harder) problem and a different note.
 
 ## 6. Acceptance for Phase 0
 
@@ -356,3 +370,25 @@ Receipt: `game/tests/test_edge_transport.gd` (14 legs).
 - Defaults unchanged: no mesh env -> the single-node boot.
 
 Receipt: `game/tests/test_shard_mesh_topology.gd` (20 legs).
+
+## 10. Acceptance for Phase 3.1
+
+- `START_MODE=edge` boots nginx only (no Godot, no game port) and
+  fronts the shards with the `ip_hash` upstream; the `mesh` compose
+  profile defines an `edge` service passing `GODOT_UPSTREAM`.
+- `ShardParameters.get_param(shard_id, name)` returns the applied
+  state-tree value, else the definition `default_value`, else null.
+- The two tuning definitions load (`level_cap_override` int,
+  `xp_ratio_override` float), both critical.
+- Uniform by default: absent an override `max_level()` is `DEFAULT_CAP`
+  and the post-band ratio is `BAND_STEP`.
+- A cap override sets `max_level()` and leaves the in-band law and the
+  ratio untouched; a ratio override compounds the post-band cost and
+  leaves the cap at `DEFAULT_CAP`.
+- A shard override outranks the `LEVEL_CAP` env.
+- The override is LOCAL: resolving a second, override-free shard
+  returns the uniform curve.
+- An absurd cap (< 2) or a negative ratio is ignored (uniform).
+- Clearing the override restores the uniform curve.
+
+Receipt: `game/tests/test_shard_tuning.gd` (38 legs).

@@ -75,6 +75,29 @@ func get_definition(param_name: String) -> ShardParameterDefinitionScript:
 	return _definitions.get(param_name)
 
 
+## Read the EFFECTIVE value of a shard parameter: the applied state-tree
+## value if written, else the definition's default_value, else null. This
+## is the read accessor Phase 3.1 needs -- the write path lands in the
+## shard state tree, and a local read (e.g. a shard-local progression
+## override) must see it without touching shared state.
+func get_param(shard_id: String, param_name: String) -> Variant:
+	var def := get_definition(param_name)
+	var default_value: Variant = null
+	if def != null:
+		default_value = def.default_value
+	var path := "%s/%s/parameters/%s" % [_PARAM_PATH_PREFIX, shard_id, param_name]
+	var tree: Variant = _get_state_tree(shard_id)
+	if tree == null:
+		return default_value
+	var state: Dictionary = tree.get_state(path)
+	if state.is_empty():
+		return default_value
+	var payload: Variant = state.get("payload", null)
+	if payload is Dictionary and payload.has("value"):
+		return payload["value"]
+	return default_value
+
+
 ## Set a shard parameter's value.
 ##
 ## Criticality is read from the parameter's .tres definition, never from

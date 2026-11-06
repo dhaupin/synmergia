@@ -1,0 +1,12 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://level_cap_override_param"]
+
+[ext_resource path="res://core/schemas/shard_parameter_definition.gd" type="Script" id=1]
+
+[resource]
+script = ExtResource("1")
+name = "level_cap_override"
+type = "int"
+default_value = 0
+critical = true
+description = "Shard-local level cap override (0 = uniform). LOCAL read only; never shared/hashed."
+version = 1
