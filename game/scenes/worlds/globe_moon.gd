@@ -7,7 +7,7 @@
 ## stuff on the moon lol, so the world is clean").
 ##
 ## The globe is the sphere pattern at lunar scale (radius 1.2 km from
-## world_moon.tres, well under PLANAR_SHELL_MAX_R so the sphere
+## world_moon.tres (a small terrain globe; the planar prototype is gone)
 ## collider IS the physics truth -- no surface pad needed). The
 ## visitor's body is a globe_player bound to "moon": the 6 m/s^2 law
 ## adopts from WorldData (S16.4), the wing stays stowed (no

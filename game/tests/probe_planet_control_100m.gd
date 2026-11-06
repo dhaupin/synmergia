@@ -3,7 +3,7 @@
 ## to keep each chunk inside the sandbox/CI wall-clock. This chunk
 ## pins prototype radius STA A: 100 m globe, snap on, walk 30 m. The
 ## baseline proves the radial-snap walker works at prototype scale on
-## the megasphere shell (enabled below PLANAR_SHELL_MAX_R). The 20 km
+## the megasphere shell (the planar prototype is gone). The 20 km
 ## chunks: probe_planet_walk_20km.gd (chunks B+C) and
 ## probe_planet_rebase_20km.gd (stage D+E).
 ## Walk metric: ARC distance (acos(dot(start_dir,end_dir)) * R) -- the
@@ -46,13 +46,18 @@ func _run() -> void:
 	ok = _check("control: 100 m walk reaches ~30 m (got %.1f)" % walkedA, \
 		walkedA >= WALK_TARGET_M * 0.8) and ok
 	ok = _check("control: glued after walk", pA.is_glued(0.5)) and ok
-	ok = _check("control: megasphere collider ENABLED at 100 m", \
-		not _globe.shell_col.disabled) and ok
-	ok = _check("control: no surface pad at prototype scale", \
-		_globe.surface_pad == null) and ok
+	ok = _check("control: megasphere collider DISABLED at every scale (surface pad is physics truth)", \
+		_globe.shell_col.disabled) and ok
+	ok = _check("control: surface pad built at every scale (planar mode removed)", \
+		_globe.surface_pad != null) and ok
 	await _free_globe()
 
-	if not ok:
+	# THE VERDICT-AND-EXIT LAW: the green path used to fall through this
+	# guard and NEVER call quit(), so a passing run left the tree alive
+	# until the engine died at teardown (exit 139, no verdict line).
+	if ok:
+		print("PLANET CONTROL PROBE: ALL PASS")
+	else:
 		push_error("PLANET CONTROL PROBE FAILED")
 	quit(0 if ok else 1)
 

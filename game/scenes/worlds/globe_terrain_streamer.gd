@@ -26,7 +26,6 @@ const TerrainGen = preload("res://scenes/worlds/terrain_gen.gd")
 ## One-law prop collision + climbable registration (play-day:
 ## "stuff shouldn't be walk-through"). RefCounted helper, no autoload.
 const PropCollider = preload("res://entities/prop_collider.gd")
-const MESH_CACHE = preload("res://core/frame/kv/lru_cache.gd")
 
 ## Tiles render just above the scene's visual sphere shell (which sits
 ## at radius + SKIN_THICKNESS = +0.5) so they never hide inside it.
@@ -348,17 +347,35 @@ func update(player_pos: Vector3) -> Dictionary:
 	var f: int = FacePatches.face_for_position(player_pos, radius)
 	var player_dir: Vector3 = player_pos.normalized()  # the NEAR law's direction (not the face center)
 	_last_player_dir = player_dir
+	var want := {f: true}
+	for n in FacePatches.neighbors(f):
+		want[n] = true
 	var lod_changed: Array = []
 	if f == current_face:
+		# THE WANT-SET REPAIR (cache-lane cull round): a cold async
+		# result that lands stale or unwanted is DROPPED and its pending
+		# flag clears WITHOUT installing. The cull removed the ring that
+		# used to bank such a node, but nothing ever put the face in
+		# `_patches` either -- so a standing player kept only the faces
+		# that happened to survive their derive and the hole healed only
+		# on the next FACE CHANGE (measured at boot: 2 of 4 faces live
+		# for 240 frames). Re-demand every missing want face every tick
+		# at the CURRENT demand (read here, not at kick time), so a
+		# retry can never spin at a level the law no longer asks for.
+		for face in want:
+			if _patches.has(face) or _mesh_jobs.has(face) or _mesh_results.has(face):
+				continue
+			var dem_r: int = _demanded_level(face, player_dir, int(_patch_lvl.get(face, -1)))
+			if face == f or not _mesh_async():
+				_load_patch(face, dem_r)
+			else:
+				_kick_mesh_derivation(face, dem_r)
+			lod_changed.append(face)
 		_lod_enforce(player_dir, lod_changed)
 		last_update_ms += Time.get_ticks_msec() - _t_ms
 		return {"face": f, "loaded": lod_changed, "unloaded": [], "active": _patches.keys()}
 	var old: int = current_face
 	current_face = f
-
-	var want := {f: true}
-	for n in FacePatches.neighbors(f):
-		want[n] = true
 
 	var loaded: Array = []
 	var unloaded: Array = []
@@ -523,11 +540,6 @@ func _lod_enforce(player_dir: Vector3, out_loaded: Array) -> void:
 				_kick_mesh_derivation(face, want_lvl)
 				out_loaded.append(face)
 				continue
-			# THE PERF-LEG STASH: the demoting/re-promoting node's built
-			# geometry lands in the (face, level) ring before the
-			# rebuild runs, so the ping-pong climb-back is a graft,
-			# not a corner re-derivation.
-			_mesh_cache_stash(face, _patches.get(face))
 			# HOT PATH: level changes rebuild ONLY the mesh; the prop
 			# holder (rocks/trees/boulders/colliders) grafts across
 			# corpse-free. The cold path (full spawn) only fires when the
@@ -612,11 +624,6 @@ func _hot_reload(face: int, use_lvl: int) -> bool:
 	if old_mi == null or not is_instance_valid(old_mi):
 		_prop_holders.erase(face)
 		return false
-	# THE PERF-LEG STASH: the old level's built geometry lands in the
-	# (face, level) ring before its replacement builds, so a level
-	# ping-pong never re-derives corners for content this machine
-	# already built this session.
-	_mesh_cache_stash(face, old_mi)
 	var fresh := _build_mesh(face, use_lvl)
 	# Re-parent the holder (props + colliders) corpse-free: the rock
 	# positions ride the ANALYTIC law, so they are identical on the
@@ -1136,16 +1143,10 @@ func _load_patch(face: int, level: int = -1) -> void:
 	if _hot_reload(face, use_lvl):
 		patch_loaded.emit(face)
 		return
-	# THE WARM-MESH CACHE (the perf-leg law): a face's BUILT MESH NODE
-	# (geometry + skirts + deck) is kept on a bounded ring keyed
-	# (face, level) when it streams out or demotes, and re-stocked
-	# wholesale on the revisit. The heavy mesh pass (corner derivation
-	# + subdivision + vertex tint) never runs twice for the same
-	# content; the ring bounds memory so the walk evicts the tail
-	# instead of holding the planet. The stock rewrites the
-	# bookkeeping like _hot_reload does.
-	var mi: MeshInstance3D = _mesh_cache_stock(face, use_lvl)
-	_install_loaded_mesh(face, use_lvl, mi)
+	# THE CACHE-LANE CULL: the warm-mesh ring is gone -- a cold load
+	# builds fresh. The derive is deterministic, so the only cost is
+	# the rebuild itself (the streamed set keeps revisits rare).
+	_install_loaded_mesh(face, use_lvl, _build_mesh(face, use_lvl))
 
 
 ## The install tail shared by the COLD path (fresh mesh node straight
@@ -3619,13 +3620,8 @@ func visible_patch_count() -> int:
 func _unload_patch(face: int) -> void:
 	var mi: MeshInstance3D = _patches.get(face)
 	if mi and is_instance_valid(mi):
-		# THE WARM-MESH STASH (the perf-leg law): before freeing, offer
-		# the built mesh node to the (face, level) LRU -- the walk law
-		# re-stocks on the revisit without a rebuild. The node is
-		# detached from the tree but ALIVE; its next stock re-grafts
-		# it. Cache miss/overflow is invisible: the node frees as
-		# before and the next load re-derives (see _mesh_cache_stock).
-		_mesh_cache_stash(face, mi)
+		# THE CACHE-LANE CULL: the unloaded node is freed (no ring).
+		mi.queue_free()
 	_patches.erase(face)
 	_patch_tris.erase(face)
 	_patch_rocks.erase(face)
@@ -3637,145 +3633,6 @@ func _unload_patch(face: int) -> void:
 	_skirt_mats.erase(face)
 	_prop_holders.erase(face)
 	patch_unloaded.emit(face)
-
-
-## ===== THE WARM-MESH CACHE (perf leg v8: the built-patch reuse) ===
-## A face's built MeshInstance3D is EXPENSIVE (corner derivation rides
-## the terrain field; at level 7 that's ~8.4k unique corners + ~17k
-## slope reads per face, each ~350 us cold) and the streaming walk
-## legitimately rebuilds the SAME geometry when a face unloads and
-## revisits, or demotes and re-promotes. The cache keeps the BUILT
-## NODE per (face, level) in a bounded ring; a stash on unload/demote
-## and a stock on load turn those rebuilds into grafts.
-##
-## THE DETERMINISM LAW: the node is a pure product of (face, level,
-## seed, terrain-law version), so a stock and a fresh build agree
-## bit-for-bit. A law change invalidates by construction: the terrain
-## reinstall seam clears terrain caches AND this cache (same body).
-##
-## THE LIFECYCLE LAW: a stashed node is DETACHED from the tree but
-## alive under the cache's strong reference; eviction queue_free()s
-## the detached node (no leak, no corpse in the tree). A re-stash of
-## the same key frees the old held node. The prop holder grafts back
-## onto a stocked node; the stock rewrites the bookkeeping exactly
-## like _hot_reload does. The caller add_child()s the stocked node.
-##
-## BOUNDS: 24 entries -- the streamed set + neighbors + margin fit;
-## a planet sweep evicts the tail honestly.
-const MESH_CACHE_MAX: int = 24
-
-var _mesh_cache: Dictionary = {}   # key -> entry (ring storage)
-var _mesh_cache_order: Array = []  # key ring, MRU first
-var _mesh_cache_epoch: int = -1    # the law epoch the ring was built under
-
-## THE EPOCH GUARD (the law-change law): any stash/stock checks the
-## terrain law's epoch FIRST -- a mismatch means the ring's content
-## is a product of a law this process no longer runs, so the ring
-## self-flushes before the operation. Covers uninstall (and any
-## future backend swap) without wiring a flush into every seam.
-func _mesh_cache_epoch_valid() -> bool:
-	var epoch: int = TerrainGen.LAW_EPOCH
-	if epoch != _mesh_cache_epoch:
-		_mesh_cache_epoch = epoch
-		for key in _mesh_cache_order.duplicate():
-			var e = _mesh_cache.get(key)
-			if e != null and is_instance_valid(e.get("mi")):
-				e["mi"].queue_free()
-		_mesh_cache.clear()
-		_mesh_cache_order.clear()
-	return true
-
-func _mesh_cache_key(face: int, lvl: int) -> String:
-	return "%d@%d" % [face, lvl]
-
-## Offer a built mesh node to the cache. Records its level (the
-## builder's stamp), detaches it from the tree, and frees evicted
-## ring tails at the bound. `lvl_hint` lets the ASYNC applier bank a
-## stale-level node WITHOUT touching the live `_patch_lvl` stamp (the
-## live node's level is the truth; the banked node carries its own).
-func _mesh_cache_stash(face: int, mi: MeshInstance3D, lvl_hint: int = -1) -> void:
-	if mi == null or not is_instance_valid(mi):
-		return
-	_mesh_cache_epoch_valid()
-	var lvl: int = lvl_hint if lvl_hint >= 0 else int(_patch_lvl.get(face, -1))
-	if lvl < 0:
-		mi.queue_free()
-		return  # half-built: nothing stockable
-	var key: String = _mesh_cache_key(face, lvl)
-	if _face16_traced(face):
-		_face16_print("STASH face=%d lvl=%d %s" % [face, lvl, _face16_fp(mi)])
-	if _mesh_cache.has(key):
-		# Same-key re-stash: the held node dies (fresh content won).
-		var old = _mesh_cache[key].get("mi")
-		_mesh_cache_order.erase(key)
-		if old != null and is_instance_valid(old):
-			old.queue_free()
-	_mesh_cache[key] = {
-		"mi": mi,
-		"holder": _prop_holders.get(face),
-		"patch_tris": int(_patch_tris.get(face, 0)),
-		"skirt_tris": int(_patch_skirt_tris.get(face, 0)),
-	}
-	_mesh_cache_order.push_front(key)
-	if mi.get_parent() != null:
-		mi.get_parent().remove_child(mi)
-	while _mesh_cache_order.size() > MESH_CACHE_MAX:
-		var evict: String = _mesh_cache_order.pop_back()
-		var e = _mesh_cache.get(evict)
-		_mesh_cache.erase(evict)
-		if e != null and is_instance_valid(e.get("mi")):
-			e["mi"].queue_free()
-
-## THE SEAM HOOK: the terrain backend install/uninstall seam flushes
-## the warm-mesh ring too -- the cached nodes are products of the OLD
-## law, so a law change must not stock them anywhere. The streamer
-## wires this from globe_world (the ring lives on the instance, not
-## the class).
-func _mesh_cache_flush() -> void:
-	for key in _mesh_cache_order.duplicate():
-		var e = _mesh_cache.get(key)
-		if e != null and is_instance_valid(e.get("mi")):
-			e["mi"].queue_free()
-	_mesh_cache.clear()
-	_mesh_cache_order.clear()
-
-## Stock a face's mesh: a cache hit grafts the node back (with its
-## prop holder) and rewrites the bookkeeping exactly like
-## _hot_reload; a miss builds fresh. The hit is CONSUMED (no
-## double-stock beach). Returns the ready node; the caller
-## add_child()s it. NOTE on a miss: _patch_tris is set by the caller
-## from the builder's meta (the existing law); the walk closure and
-## holder wiring stay the caller's job (same as always).
-func _mesh_cache_stock(face: int, use_lvl: int) -> MeshInstance3D:
-	_mesh_cache_epoch_valid()
-	var key: String = _mesh_cache_key(face, use_lvl)
-	var entry = _mesh_cache.get(key)
-	if _face16_traced(face):
-		_face16_print("STOCK face=%d lvl=%d hit=%s" % [face, use_lvl, _face16_fp(entry.get("mi")) if entry != null else "MISS"])
-	if entry != null:
-		_mesh_cache.erase(key)
-		_mesh_cache_order.erase(key)
-		var mi2: MeshInstance3D = entry.get("mi")
-		if mi2 != null and is_instance_valid(mi2):
-			var holder2 = entry.get("holder")
-			var holder_ok: bool = holder2 != null and is_instance_valid(holder2)
-			if holder_ok and holder2.get_parent() != null \
-					and holder2.get_parent() != mi2:
-				holder2.get_parent().remove_child(holder2)
-			if holder_ok and holder2.get_parent() != mi2:
-				mi2.add_child(holder2)  # already grafted: re-add is an engine ERROR
-			_prop_holders[face] = holder2 if holder_ok else null
-			_patch_tris[face] = int(entry.get("patch_tris", 0))
-			_patch_skirt_tris[face] = int(entry.get("skirt_tris", 0))
-			_patch_mats[face] = _patch_mats.get(face)  # untouched on hit
-			# THE TRACE GATE (see the audit's hard gate): `_face16_traced`
-			# owns both the env gate and the per-face budget; its ANSWER is
-			# the call condition. Testing the budget dict here read the
-			# default 0 < 24 as true and audited on every stock, trace off.
-			if _face16_traced(face):
-				_face16_audit(mi2.mesh, face)
-			return mi2
-	return _build_mesh(face, use_lvl)
 
 
 ## ===== THE MESH THREAD (v9: the cold-build lane, mirror of v6) =====
@@ -3911,12 +3768,11 @@ func _apply_derived_mesh(face: int) -> void:
 	var demanded: int = _demanded_level(face, _last_player_dir, live_lvl)
 	if _patches.has(face):
 		if demanded != use_lvl:
-			# Stale hot result: bank it, keep the live node; the next
-			# _lod_enforce tick re-kicks at the demanded level.
-			var stale_mi: MeshInstance3D = _erect_mesh(face, use_lvl, packed["data"])
-			_mesh_cache_stash(face, stale_mi, use_lvl)
+			# Stale hot result: dropped, live node kept; the next
+			# _lod_enforce tick re-kicks at the demanded level (the
+			# cache-lane cull banks nothing).
 			if _boot_trace:
-				print("[bootapply] face=%d lvl=%d stale-hot banked in %d ms" % [face, use_lvl, Time.get_ticks_msec() - _ta0])
+				print("[bootapply] face=%d lvl=%d stale-hot dropped in %d ms" % [face, use_lvl, Time.get_ticks_msec() - _ta0])
 			_mesh_jobs.erase(face)
 			return
 		# THE HOT SWAP: rebuild ONLY the mesh node; the prop holder
@@ -3928,7 +3784,6 @@ func _apply_derived_mesh(face: int) -> void:
 			# audit obeys the traced answer, never the budget default.
 			if _face16_traced(face):
 				_face16_audit(old_mi.mesh, face)
-			_mesh_cache_stash(face, old_mi)
 		var _te0: int = Time.get_ticks_msec()
 		var fresh: MeshInstance3D = _erect_mesh(face, use_lvl, packed["data"])
 		if _boot_trace:
@@ -3957,10 +3812,10 @@ func _apply_derived_mesh(face: int) -> void:
 			and (current_face == face \
 				or FacePatches.neighbors(current_face).has(face))
 		if demanded != use_lvl or not want_face:
-			var stale_cold: MeshInstance3D = _erect_mesh(face, use_lvl, packed["data"])
-			_mesh_cache_stash(face, stale_cold, use_lvl)
+			# The cache-lane cull: an unwanted cold result is dropped,
+			# not banked (no warm ring to hold it).
 			if _boot_trace:
-				print("[bootapply] face=%d lvl=%d stale-cold banked in %d ms" % [face, use_lvl, Time.get_ticks_msec() - _ta0])
+				print("[bootapply] face=%d lvl=%d stale-cold dropped in %d ms" % [face, use_lvl, Time.get_ticks_msec() - _ta0])
 			_mesh_jobs.erase(face)
 			return
 		# THE RING GRAFT ON A COLD LANDING: the revisit flows stock the
@@ -3969,10 +3824,7 @@ func _apply_derived_mesh(face: int) -> void:
 		# fresh derive only fills the miss. Same content by the same
 		# law, so a stocked graft and a worker erect are identical.
 		var _tc0: int = Time.get_ticks_msec()
-		if _mesh_cache.has(_mesh_cache_key(face, use_lvl)):
-			_install_loaded_mesh(face, use_lvl, _mesh_cache_stock(face, use_lvl))
-		else:
-			_install_loaded_mesh(face, use_lvl, _erect_mesh(face, use_lvl, packed["data"]))
+		_install_loaded_mesh(face, use_lvl, _erect_mesh(face, use_lvl, packed["data"]))
 		if _boot_trace:
 			print("[bootapply] face=%d lvl=%d cold-install=%d ms total=%d" % [face, use_lvl, Time.get_ticks_msec() - _tc0, Time.get_ticks_msec() - _ta0])
 	_mesh_jobs.erase(face)

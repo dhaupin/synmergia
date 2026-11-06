@@ -92,7 +92,23 @@ func _run() -> void:
 	var packed: PackedScene = load(GLOBE_SCENE)
 	var globe = packed.instantiate()
 	root.add_child(globe)
-	await process_frame
+	# THE BOOT-WAVE LAW (the loading-speed round): the playable core boots
+	# in _ready and the nine ensuite builds -- the starter village and the
+	# capitol monolith among them -- ride _boot_waves() one per frame. Any
+	# scene-layer read before the waves-done stamp sees a half-built world
+	# (this probe used to wait two frames and read the village alone).
+	var waves_deadline: int = Time.get_ticks_msec() + 60000
+	while not globe.has_meta("boot_waves_done_ms") and Time.get_ticks_msec() < waves_deadline:
+		await process_frame
+	_check("the boot waves finish (the world dresses)", globe.has_meta("boot_waves_done_ms"))
+	# THE LANE-DRAIN LAW: the async mesh lane must be quiet before the read
+	# AND before quit -- a probe that exits with a derive still in flight
+	# makes the engine tear down around a live worker thread (the stray
+	# "nonexistent function" / null-Time errors at shutdown).
+	var st_probe = globe.get("streamer")
+	var drain_deadline: int = Time.get_ticks_msec() + 60000
+	while st_probe != null and st_probe._mesh_pending() > 0 and Time.get_ticks_msec() < drain_deadline:
+		await process_frame
 	await process_frame
 
 	var world_root: Node = globe.get("world_root")

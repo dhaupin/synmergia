@@ -49,8 +49,13 @@ func _run() -> void:
 	# --- Invariant 1: initial active set = spawn face + 3 neighbors.
 	var F0 = load(FacesScript)
 	var spawn_face: int = F0.face_for_direction(_globe.player.global_position)
+	# THE ASYNC WANT SET (planar mode removed): the prototype globe is a
+	# REAL terrain globe now, so the current face mounts sync and its 3
+	# neighbors ride the worker lane. The 4-patch law is a SETTLE law,
+	# not a first-frame law -- wait for the lane to drain, then read.
+	await _settle()
 	var initial: Array = _globe.stream_active_faces()
-	ok = _check("initial active == 4 patches (got %d)" % initial.size(), initial.size() == 4) and ok
+	ok = _check("initial want set settles at 4 patches (got %d)" % initial.size(), initial.size() == 4) and ok
 	ok = _check("spawn face %d active" % spawn_face, streamer.is_loaded(spawn_face)) and ok
 	var tris: int = _globe.stream_triangle_count()
 	ok = _check("patch geometry present (%d tris)" % tris, tris > 500) and ok
@@ -116,20 +121,25 @@ func _run() -> void:
 		if not after_set.has(f):
 			changed = true
 	ok = _check("stale patch unloaded on crossing", changed) and ok
-	ok = _check("steady state holds 4 patches (got %d)" % _globe.stream_active_faces().size(), \
+	await _settle()
+	ok = _check("steady state settles at 4 patches (got %d)" % _globe.stream_active_faces().size(), \
 		_globe.stream_active_faces().size() == 4) and ok
 
-	# TERRAIN LOD (the NEAR law): after a mid-face crossing point on a
-	# 100 m prototype knob... the prototype is TERRAIN OFF, so the
-	# lean must be level-neutral there. The planet-scale demotion is
-	# pinned by probe_terrain_planet via the mesh-vertex spacing; here
-	# we pin that terrain_off keeps every patch at the base level.
+	# TERRAIN LOD (the NEAR law) -- the inverse of the old prototype pin:
+	# with planar mode removed the 100 m globe IS a terrain globe, so the
+	# LOD lane must be LIVE here. The near face sits at the base level and
+	# every other live face sits at the base level or the floor clamp. The
+	# floor is a planet-scale constant and reads FINER than the prototype
+	# base; that inversion is the standing clamp law, recorded rather than
+	# hidden.
 	var base_lvl: int = streamer._level_for_edge()
-	var lvl_ok := true
+	var floor_lvl: int = streamer.LOD_FLOOR_LEVEL
+	var lvl_ok: bool = int(streamer._patch_lvl.get(streamer.current_face, -1)) == base_lvl
 	for f in streamer.active_faces():
-		if int(streamer._patch_lvl.get(f, -1)) != base_lvl:
+		var lv: int = int(streamer._patch_lvl.get(f, -1))
+		if lv != base_lvl and lv != floor_lvl:
 			lvl_ok = false
-	ok = _check("terrain-off globe keeps uniform detail (LOD dormant)", lvl_ok) and ok
+	ok = _check("terrain globe runs the LOD law (base %d, floor %d)" % [base_lvl, floor_lvl], lvl_ok) and ok
 	ok = _check("current face is loaded", streamer.is_loaded(streamer.current_face)) and ok
 	_shoot("stream_stage2")
 
@@ -142,14 +152,62 @@ func _run() -> void:
 		if streamer.current_face != f or not streamer.is_loaded(f):
 			sweep_ok = false
 			break
-		if stats["active"].size() != 4:
+		# The want set never exceeds the 4-face law; its neighbors land
+		# on the lane (the settle below pins the completion).
+		if stats["active"].size() > 4:
 			sweep_ok = false
 			break
-	ok = _check("all 20 faces stream (4-patch steady state)", sweep_ok) and ok
+	ok = _check("all 20 faces stream (sync current face, 4-face want bound)", sweep_ok) and ok
+	# The sweep drives update() by hand; the globe's own per-frame update
+	# then takes the wheel back and re-demands the PLAYER's want set. Pin
+	# that the streamer re-settles to exactly that set (waiting on a bare
+	# pending count here would race the hand-back).
+	ok = _check("post-sweep world re-settles the player's want set", await _settle_want()) and ok
 
 	if not ok:
 		push_error("TERRAIN STREAM FLOW PROBE FAILED")
 	quit(0 if ok else 1)
+
+
+## Bounded lane settle: cold installs land on later frames, so the
+## 4-face want set is a SETTLE law. Waits on the MESH lane only (the
+## prop lane is a separate, slower census) plus a few frames for the
+## deferred applies to run.
+func _settle(seconds: float = 30.0) -> void:
+	var st = _globe.get("streamer")
+	var waited: float = 0.0
+	while st != null and st._mesh_pending() > 0 and waited < seconds:
+		await root.get_tree().physics_frame
+		waited += 1.0 / 60.0
+	for _i in range(4):
+		await root.get_tree().physics_frame
+
+
+## Wait until the MESH lane is idle AND the live set is exactly the
+## current face's want set (face + 3 neighbors). Bounded at 60 s: the
+## headless VM's derives are multi-second, so this is a settle law.
+func _settle_want(seconds: float = 60.0) -> bool:
+	var F = load(FacesScript)
+	var st = _globe.get("streamer")
+	var waited: float = 0.0
+	while waited < seconds:
+		await root.get_tree().physics_frame
+		waited += 1.0 / 60.0
+		if st._mesh_pending() > 0:
+			continue
+		var cur: int = int(st.current_face)
+		var want: Array = F.neighbors(cur)
+		want.append(cur)
+		var active: Array = _globe.stream_active_faces()
+		if active.size() != want.size():
+			continue
+		var all_want := true
+		for f in active:
+			if not want.has(f):
+				all_want = false
+		if all_want:
+			return true
+	return false
 
 
 func _check(label: String, cond: bool) -> bool:

@@ -30,9 +30,7 @@ const PLANET_RADIUS_SETTING: String = "synmergia/world/planet_radius"
 ## to keep the scene's load order simple.)
 const STREAMER_TILE_LIFT: float = 0.52
 ## S8: shells larger than this cannot resolve a 1 m body contact
-## (stall threshold measured between 2 km and 10 km; conservative
-## cutoff). Above it, patch trimeshes carry the collision.
-const PLANAR_SHELL_MAX_R: float = 2000.0
+## (the S8 stall threshold note lives in _build_shell/_surface_lift).
 ## S8 surface pad geometry: curved disc, outer ring radius in meters
 ## and ring segment count. Local shape coordinates stay <= PAD_RADIUS
 ## (physics needs SMALL shape coordinates); the pad hugs the sphere
@@ -46,8 +44,8 @@ const WALK_SECONDS: float = 30.0
 const WALK_DISTANCE_METERS: float = 250.0
 
 var planet_radius: float = 100.0
-## S8: the shell's CollisionShape3D, disabled at planet scale (see
-## PLANAR_SHELL_MAX_R); the re-anchored surface pad takes over.
+## S8: the shell's CollisionShape3D, always disabled (the megasphere
+## cannot support a body); the re-anchored surface pad is physics truth.
 var shell_col: CollisionShape3D
 ## S8: the planet-scale ground collider, re-anchored under the player
 ## every physics frame (null at prototype scale; see _build_surface_pad).
@@ -225,12 +223,6 @@ func _install_world_backend() -> void:
 	var backend_script = load(script_path)
 	var Gen = load("res://scenes/worlds/terrain_gen.gd")
 	Gen.install_terrain_backend(Callable(backend_script, "field"))
-	# THE WARM-MESH FLUSH (perf leg): the cached built patches are
-	# products of the OLD law -- under a new backend they are wrong,
-	# so the ring dies with the terrain caches (one seam, one clear).
-	var streamer = get("streamer")
-	if streamer != null and streamer.has_method("_mesh_cache_flush"):
-		streamer._mesh_cache_flush()
 	_log_backend("info", "authored terrain backend '%s' installed for world '%s' (the strait is real)" % [ids, wd.id])
 
 
@@ -347,10 +339,10 @@ func _setup_streamer() -> void:
 		return
 	streamer = load("res://scenes/worlds/globe_terrain_streamer.gd").new()
 	streamer.configure(planet_radius, 7.0, world_root)
-	# Terrain arc: the heightfield joins the tiles at planet scale only
-	# (prototype stays the flat shell -- every S5b/S8 probe contract
-	# keeps its geometry).
-	streamer.terrain_on = planet_radius > PLANAR_SHELL_MAX_R
+	# Terrain arc: the heightfield joins the tiles at planet scale. The
+	# planar prototype mode is GONE (the cache-lane/planar cull round):
+	# every globe is a terrain globe.
+	streamer.terrain_on = true
 	streamer.update(_spawn_dir() * planet_radius)
 	_setup_chart_lod()
 	# SPAWN MESH GATE (round 10): the boot must be able to SEE its own
@@ -565,14 +557,12 @@ func _build_shell() -> void:
 	sphere.radius = planet_radius
 	col.shape = sphere
 	shell.add_child(col)
-	# S8 fix: past PLANAR_SHELL_MAX_R the megasphere contact cannot
-	# support a 1 m body (solver precision; the body sinks through at
-	# |v_r| ~2.7 m/s and locomotion dies). The re-anchored surface pad
-	# (see _build_surface_pad) becomes the physics truth instead, so
-	# the sphere collider is disabled at planet scale. Visual mesh and
-	# 100 m prototype behavior are unchanged.
+	# S8 fix: the megasphere contact cannot support a 1 m body (solver
+	# precision; the body sinks through at |v_r| ~2.7 m/s). The
+	# re-anchored surface pad (see _build_surface_pad) is the physics
+	# truth, so the sphere collider is never the ground.
 	shell_col = col
-	col.disabled = planet_radius > PLANAR_SHELL_MAX_R
+	col.disabled = true
 
 	var mesh_inst := MeshInstance3D.new()
 	var mesh := SphereMesh.new()
@@ -585,18 +575,12 @@ func _build_shell() -> void:
 	mat.roughness = 0.95
 	mesh.material = mat
 	mesh_inst.mesh = mesh
-	# THE SHELL-VISUAL LAW (ground-law audit round): at PLANET scale the
-	# flat green base sphere IS the owner's "old terrain" layer -- drawn
-	# at shell radius while the streamer patches ride the walk law above
-	# it, so the player reads it as a second ground under everything.
-	# The visual stays for the PLANAR prototype (<= PLANAR_SHELL_MAX_R,
-	# where it is the ground); at planet scale the streamer's own
-	# land/skirt/water surfaces dress the world, so the sphere's DRAW is
-	# hidden (node + collider bookkeeping untouched). Any visual layer
-	# the terrain must never show twice returns by turning visibility
-	# on at planar scale only.
+	# THE SHELL-VISUAL LAW (ground-law audit round): the flat green base
+	# sphere would read as a second ground under the streamer's patches,
+	# so its DRAW is never shown (node + collider bookkeeping untouched).
+	# The planar prototype that used it as the ground is gone.
 	mesh_inst.name = "ShellVisual"
-	mesh_inst.visible = planet_radius <= PLANAR_SHELL_MAX_R
+	mesh_inst.visible = false
 	shell.add_child(mesh_inst)
 
 	world_root.add_child(shell)
@@ -612,8 +596,6 @@ func _build_shell() -> void:
 ## fixed curved disc (local coords <= PAD_RADIUS) whose rings dip by
 ## the exact spherical sagitta; only its transform ever changes.
 func _build_surface_pad() -> void:
-	if planet_radius <= PLANAR_SHELL_MAX_R:
-		return
 	var body := StaticBody3D.new()
 	body.name = "SurfacePad"
 	body.physics_material_override = PhysicsMaterial.new()
@@ -691,8 +673,6 @@ func _update_surface_pad() -> void:
 ## the same law the snap provider rides), so hills lift the pad and
 ## the sea floor drops it.
 func _surface_lift() -> float:
-	if planet_radius <= PLANAR_SHELL_MAX_R:
-		return 0.0
 	if streamer == null:
 		return STREAMER_TILE_LIFT
 	var dir: Vector3 = _spawn_dir()
@@ -709,10 +689,10 @@ func _spawn_dir() -> Vector3:
 
 ## WATER (terrain arc): one translucent shell at the sea line. Visual
 ## only: the ocean floor is the displaced terrain (one ground law; the
-## sea floor IS the ground). Prototype globes stay dry (WATER_ON and
-## planet scale both gate).
+## sea floor IS the ground). The water gate is WATER_ON alone (the
+## planar prototype is gone).
 func _build_water() -> void:
-	if not WATER_ON or planet_radius <= PLANAR_SHELL_MAX_R:
+	if not WATER_ON:
 		return
 	var Gen = load("res://scenes/worlds/terrain_gen.gd")
 	var sea: float = Gen.sea_level(streamer.world_seed)
@@ -1408,23 +1388,21 @@ func _build_player() -> void:
 	# The spawn POSITION does ride the terrain (born on the surface;
 	# the frame-1 snap would otherwise teleport it up from inside the
 	# hill).
-	var static_lift: float = STREAMER_TILE_LIFT if planet_radius > PLANAR_SHELL_MAX_R else 0.0
-	var spawn_terrain: float = (streamer.terrain_h(_spawn_dir()) if streamer else 0.0) \
-		if planet_radius > PLANAR_SHELL_MAX_R else 0.0
+	var static_lift: float = STREAMER_TILE_LIFT
+	var spawn_terrain: float = streamer.terrain_h(_spawn_dir()) if streamer else 0.0
 	# SEA GUARD (play-test round 6, item 4): the spawn plaza flattens to
 	# SPAWN_HEIGHT (9 m) and the sea line tops out at SEA_LEVEL_MIN +
 	# SEA_LEVEL_SPAN (7 m), so the boot can never legally land in water.
 	# Enforce it here anyway -- a future const drift or seed-rule change
 	# must fail LOUD (log + lifted boot) instead of quietly drowning the
 	# player ("I spawned on the ocean, green above me").
-	if planet_radius > PLANAR_SHELL_MAX_R:
-		var Gen4Spawn = load("res://scenes/worlds/terrain_gen.gd")
-		var sea_at_spawn: float = Gen4Spawn.sea_level(streamer.world_seed) if streamer else 0.0
-		if spawn_terrain < sea_at_spawn:
-			if get_node_or_null("/root/GameLog"):
-				get_node_or_null("/root/GameLog").error(
-					"GlobeWorld: spawn height %.1f m is BELOW the sea line %.1f m -- lifting the boot onto dry land. Fix the terrain law (SPAWN_HEIGHT vs sea band)." % [spawn_terrain, sea_at_spawn])
-			spawn_terrain = sea_at_spawn + 1.0
+	var Gen4Spawn = load("res://scenes/worlds/terrain_gen.gd")
+	var sea_at_spawn: float = Gen4Spawn.sea_level(streamer.world_seed) if streamer else 0.0
+	if spawn_terrain < sea_at_spawn:
+		if get_node_or_null("/root/GameLog"):
+			get_node_or_null("/root/GameLog").error(
+				"GlobeWorld: spawn height %.1f m is BELOW the sea line %.1f m -- lifting the boot onto dry land. Fix the terrain law (SPAWN_HEIGHT vs sea band)." % [spawn_terrain, sea_at_spawn])
+		spawn_terrain = sea_at_spawn + 1.0
 	# IDENTITY (round 7, item 3): the planar world stamps its player's
 	# entity_id before registration; the globe never did, so the body
 	# had no id to register a bag under and the starter kit had no
@@ -1447,12 +1425,8 @@ func _build_player() -> void:
 	# terrain-off (no water exists there), so say so instead of reading
 	# like an underwater boot.
 	if get_node_or_null("/root/GameLog"):
-		if planet_radius > PLANAR_SHELL_MAX_R:
-			get_node_or_null("/root/GameLog").info(
-				"GlobeWorld: boot at lat %.1f lon %.1f, walk surface %.1f m (sea line %.1f m)" % [SPAWN_LAT_DEG, SPAWN_LON_DEG, spawn_terrain, (load("res://scenes/worlds/terrain_gen.gd").sea_level(streamer.world_seed) if streamer else 0.0)])
-		else:
-			get_node_or_null("/root/GameLog").info(
-				"GlobeWorld: boot at lat %.1f lon %.1f (prototype globe, terrain off)" % [SPAWN_LAT_DEG, SPAWN_LON_DEG])
+		get_node_or_null("/root/GameLog").info(
+			"GlobeWorld: boot at lat %.1f lon %.1f, walk surface %.1f m (sea line %.1f m)" % [SPAWN_LAT_DEG, SPAWN_LON_DEG, spawn_terrain, (load("res://scenes/worlds/terrain_gen.gd").sea_level(streamer.world_seed) if streamer else 0.0)])
 	player.planet_radius = planet_radius
 	player.ground_offset = static_lift
 	add_child(player)
@@ -1500,7 +1474,7 @@ func _notify_world_entry() -> void:
 ## (no sea exists there), and probes mount no HUD. Silent no-op when
 ## either is missing.
 func _build_spawn_truth() -> void:
-	if planet_radius <= PLANAR_SHELL_MAX_R or streamer == null or hud == null:
+	if streamer == null or hud == null:
 		return
 	var label := Label.new()
 	label.name = "SpawnTruthLabel"

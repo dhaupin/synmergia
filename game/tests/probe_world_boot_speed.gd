@@ -62,7 +62,7 @@ func _initialize() -> void:
 	# the standing LOD hysteresis law must promote the spawn face to
 	# the demanded level (_level_for_edge()) through the worker lane.
 	var st = globe.get("streamer")
-	if st == null or not bool(globe.get("planet_radius") > globe.get("PLANAR_SHELL_MAX_R") if globe.get("PLANAR_SHELL_MAX_R") != null else false):
+	if st == null:
 		print("PROMOTE: not probed (no streamer or planar scale)")
 	else:
 		var want_lvl := int(st._level_for_edge())
