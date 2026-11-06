@@ -6,6 +6,41 @@ Persistent memory across resets for Synmergia development.
 commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
+## 2026-11-04 -- the PlayerBase keystone (planar-retirement Step 0)
+
+The planar-retirement arc's keystone landed: a shared `PlayerBase`
+(`game/entities/player/player_base.gd`, `extends CharacterBody3D`,
+`class_name PlayerBase`) that BOTH player bodies now extend -- the planar
+`PlayerController` and the spherical `GlobeWorldPlayer`. Before this the two
+were siblings with no shared base, so ~20 shared systems gated on
+`is PlayerController` and the globe body silently fell outside them
+(resurrection targeting, `player_died`, `player_killed_player`).
+
+- Surface moved to the base: identity, progression (`add_experience`/
+  `add_gold` + signals), health/mana (`take_damage`/`heal`/`is_dead` +
+  `_ensure_health_component`), the stat block, and THE ONE PURSE
+  (`gold` setter + currency surface + `_on_component_gold_changed_mirror`).
+- The globe body now carries progression + gold + the death/level signals it
+  never had (it still keeps its own radial movement/camera/interaction).
+- Gate retarget: `health_component.gd` + `targeting_manager.gd` now check
+  `is PlayerBase`, so both bodies pass the same systems.
+- Parse law (verified empirically): a base method CANNOT reference a field a
+  subclass declares -- so `PlayerBase` declares the whole surface and the
+  bodies inherit it.
+- Drive-by portability: pre-existing bare-autoload refs in the player chain
+  (`DataService`/`GameLog`/`PlayerManager`/`InputManager`) routed through
+  script-mode-safe `_ds()`/`_glog()`/`_pmgr()`/`_im()` lookups.
+- Autosave guard evolved: `PlayerProgress._find_tracked_player` now matches
+  `entity_id` (identity) instead of "has experience" (which the globe body
+  now has), still rejecting a progress-less body.
+
+Receipts: `tests/test_player_base.gd` (new, 19/0) + `tests/test_globe_autosave_guard.gd`
+(rewritten, 6/0). Lint indentation 5/0 + charset 3/0; import zero script
+errors. Next: port planar-only `_setup_*` systems onto the globe via
+`WorldContentBuilder`, then delete the planar scene.
+
+
+
 ## Orchestration (single dev lane)
 
 ### Branching model

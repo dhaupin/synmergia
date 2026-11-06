@@ -183,6 +183,18 @@ not skip ahead to the deletion.
 
 ## Step 0 -- the shared player base (KEYSTONE, do first)
 
+**STATUS: DONE (2026-11-04).** `PlayerBase` landed; both bodies extend it;
+the gates are retargeted; receipts `test_player_base.gd` (19/0) +
+`test_globe_autosave_guard.gd` (rewritten, 6/0) pass. Refinements vs the
+plan below: (a) the base also owns health/mana + the stat block, because
+`player_died` originates in `HealthComponent` and the globe body needed the
+full surface to be a first-class player; (b) THE PARSE LAW -- a base method
+CANNOT reference a field a subclass declares, so the base declares the WHOLE
+surface and the bodies inherit it (the plan's "keep its health/mana surface"
+would not compile); (c) `PlayerProgress._find_tracked_player` moved from a
+"has experience" guard to an `entity_id` identity guard (the globe body has
+experience now, so the old premise died -- identity is the honest key).
+
 Why: ~20 files gate on `is PlayerController`; the globe body is a
 sibling with no shared base, so it falls outside resurrection, death,
 and PvP. Nothing else can be ported cleanly until the two bodies share

@@ -21,8 +21,12 @@
 !web/*.js
 
 # GPU asset scratch (Lane D) -- GPU output lands here, then moves to
-# game/models/<data_id>.glb. The source art/src/ is tracked.
+# game/models/<data_id>.glb. The source art/src/ IS tracked (so an
+# external person/agent can pick up the work); only the scratch is
+# ignored. Blender autosave backups are pure noise, never tracked.
 art/out/
+*.blend1
+*.blend2
 
 # Web frontend artifacts
 node_modules/

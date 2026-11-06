@@ -78,7 +78,7 @@ func _on_health_depleted() -> void:
 
 	if _killer:
 		killer_name = _killer.display_name
-		if _killer is PlayerController:
+		if _killer is PlayerBase:
 			killer_type = "player"
 		elif "faction_id" in _killer and "faction_id" in entity and _killer.faction_id != entity.faction_id:
 			killer_type = "pvp"
@@ -193,7 +193,7 @@ func die(killer: Node3D = null) -> void:
 	if hub: hub.emit_signal("entity_died", entity, killer, null)
 
 	# Emit player-specific signals
-	if entity is PlayerController:
+	if entity is PlayerBase:
 		if hub: hub.emit_signal("player_died", entity, killer)
 
 	# Emit entity killed (for kill streak tracking)
@@ -201,7 +201,7 @@ func die(killer: Node3D = null) -> void:
 		if hub: hub.emit_signal("entity_killed", killer, entity, "physical")
 
 		# Emit player_killed_player for PvP tracking
-		if killer is PlayerController and entity is PlayerController:
+		if killer is PlayerBase and entity is PlayerBase:
 			if hub: hub.emit_signal("player_killed_player", killer, entity)
 
 	# Service-managed death (players): _respawn_svc() listens for

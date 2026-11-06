@@ -76,7 +76,7 @@ func _pm() -> Node:
 # const preload: player_controller.gd preloads targeting_manager back
 # (the camera/targeting bridge), so this const preload closed the
 # graph's last cyclic edge (the lint's 2-node WARN). Type usages below
-# (`is PlayerController`) belong to the global script registry.
+# (`is PlayerBase`) belong to the global script registry.
 const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
 const NPCData = preload("res://core/schemas/npc_data.gd")
 const TargetSchema = preload("res://core/schemas/target_schema.gd")
@@ -568,7 +568,7 @@ func _action_resurrect(source_id: String, target_id: String) -> Dictionary:
 		return {"success": false, "message": "Target not found"}
 
 	# Check if target is a player
-	if not target_entity is PlayerController:
+	if not target_entity is PlayerBase:
 		return {"success": false, "message": "Can only resurrect players"}
 
 	# Check if target is dead
@@ -1007,7 +1007,7 @@ func _add_resurrect_action_if_applicable(target_id: String, available: Array[Str
 		return available
 
 	# Check if target is a dead player
-	if target_entity is PlayerController:
+	if target_entity is PlayerBase:
 		var health_comp = target_entity.health_component
 		if health_comp and health_comp.is_dead():
 			# Check if caster (local player) has permission

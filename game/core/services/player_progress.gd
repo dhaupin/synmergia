@@ -292,11 +292,20 @@ func _find_tracked_player(character_id: String) -> Node:
 	if get_tree() == null:
 		return null
 	var fallback = get_tree().get_first_node_in_group("players")
-	# A body without the progression surface cannot be saved honestly:
-	# save_player would fabricate a 0/0/1 snapshot over the character's
-	# real one. The globe body joins "players" (for ActionBar) but carries
-	# no experience/gold/level, so reject it here.
-	if fallback != null and not ("experience" in fallback):
+	if fallback == null:
+		return null
+	# Identity guard (the PlayerBase era): only the body whose entity_id
+	# MATCHES the character is that character's live node. Saving a
+	# mismatched body would write ITS progression over the target's
+	# snapshot; a body with no id is not a match either. (Both real bodies
+	# now carry the progression surface via PlayerBase, so the older
+	# "has no experience" reject no longer distinguishes them -- identity
+	# is the honest key.)
+	if not ("entity_id" in fallback) or String(fallback.entity_id) != character_id:
+		return null
+	# A body without the progression surface still cannot be saved honestly:
+	# save_player would fabricate a 0/0/1 snapshot over the real one.
+	if not ("experience" in fallback):
 		return null
 	return fallback
 

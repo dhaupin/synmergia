@@ -18,9 +18,19 @@
 ##   east  = north x up          (planar: north=-Z, up=+Y -> east=+X)
 ##   camera basis = Basis(east, up, -north)  (right-handed; camera
 ##   sits behind at +z local and looks along forward/north)
-extends CharacterBody3D
+extends PlayerBase
 
 class_name GlobeWorldPlayer
+
+## Runtime autoload lookup (script-mode-safe; the bare identifier fails
+## to compile when autoloads are absent).
+func _im() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("InputManager")) if tree and tree.root else null
+
+func _ds() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("DataService")) if tree and tree.root else null
 
 const GRAVITY_DEFAULT: float = 20.0
 const WALK_SPEED_DEFAULT: float = 6.0
@@ -37,10 +47,6 @@ const SADDLE_SPRINT_SCALE: float = 0.6
 
 ## Radius of the sphere this player stands on (set by the globe scene).
 var planet_radius: float = 100.0
-## S12: the entity/book id this body belongs to (ScopeService resolves
-## the local player's node by it; harmless on scripts that never join
-## an instance).
-var entity_id: String = ""
 ## This body's inventory bag (round 7: the globe world had no bag at
 ## all -- the starter kit had nothing to land in and panels rendered
 ## empty). Created + registered in _setup_inventory_bag().
@@ -54,21 +60,6 @@ var inventory_component = null
 ## PLAYER near the world origin (floating origin); the planet moves.
 ## All radial quantities derive from (global_position - planet_center).
 var planet_center: Vector3 = Vector3.ZERO
-## HEALTH + MANA (the planar controller's law, line-for-line): the
-## TickService regen step sweeps every registered entity's health/
-## mana fields, and the globe body had neither -- the first tick with
-## a globe body registered (the lattice probe leaves `gate_walker` in
-## EntityService) used to print a script error and skip the sweep.
-## The component owns the damage/heal path; the fields mirror it for
-## the service's direct reads (the same dual-store the planar body
-## keeps -- R37 audit).
-var health_component: HealthComponent = null
-var max_health: int = 100
-var current_health: int = 100
-var current_mana: int = 100
-var max_mana: int = 100
-signal health_changed(current: int, maximum: int, delta: int)
-signal mana_changed(current: int, maximum: int)
 ## S8: height of the WALKABLE SURFACE above planet_radius. Zero for
 ## the bare shell; the streamed patch tiles sit TILE_LIFT (0.52) above
 ## it, so a streaming globe sets this and every height that matters
@@ -176,7 +167,6 @@ const WADE_MAX_DEPTH: float = 1.6   # deeper than this is the swim service's ban
 ## Collision-bit law (round 10): named bits from the LayerProfile
 ## (data/physics_layers/), no magic numbers at the physics calls.
 const Layers = preload("res://core/schemas/layer_profile.gd")
-const HealthComponent = preload("res://core/components/health_component.gd")
 
 var _surface_normal: Vector3 = Vector3.UP
 ## Accumulated path length (for the probe's curvature assertion).
@@ -344,9 +334,10 @@ func _on_mount_summoned(player_id: String, mount_id: String) -> void:
 	if entity_id != player_id or ride_service == null:
 		return
 	var mount = ride_service.active_mount(player_id)
-	if mount == null or DataService == null:
+	var ds := _ds()
+	if mount == null or ds == null:
 		return
-	var profile = DataService.get_mount_movement_profile(mount)
+	var profile = ds.get_mount_movement_profile(mount)
 	if profile == null:
 		return
 	_mount_profile = profile
@@ -356,7 +347,9 @@ func _on_mount_summoned(player_id: String, mount_id: String) -> void:
 	walk_speed = float(profile.walk_speed)
 	jump_force = float(profile.jump_force)
 	gravity_force = float(profile.gravity_force)
-	GameLog.info("GlobeWorldPlayer: %s takes the saddle of the %s" % [entity_id, str(mount.display_name)])
+	var gl := _glog()
+	if gl:
+		gl.info("GlobeWorldPlayer: %s takes the saddle of the %s" % [entity_id, str(mount.display_name)])
 
 
 ## Back to the whistle: restore the humanoid laws the body carried
@@ -453,15 +446,7 @@ func _ready() -> void:
 	# collision.
 	collision_layer = Layers.layer_bit("entity")
 	collision_mask = collision_mask | Layers.layer_bit("solid")
-	# Health component: created here (not a scene child) so every globe
-	# body gets one regardless of which scene instantiates them (the
-	# planar controller's identical law).
-	if health_component == null:
-		health_component = HealthComponent.new()
-		health_component.max_health = max_health
-		health_component.current_health = current_health
-		add_child(health_component)
-		health_component.health_changed.connect(_on_component_health_changed)
+	_ensure_health_component()
 	# INVENTORY BAG (round 7, item 3): the globe body never carried one,
 	# so the globe world had NO inventory loop at all -- no bag for the
 	# starter kit to land in (tabs rendered blank), nothing to receive
@@ -518,41 +503,6 @@ func _ready() -> void:
 
 func _on_sprint_override(active: bool) -> void:
 	_sprint_override_on = active
-
-
-## --- Combat surface (the planar controller's convention, line-for-
-## line): combatants and services duck-type these on the local body.
-## Receive damage from any combatant (enemies route through
-## EnemyAI._perform_attack and skill.gd's untyped take_damage).
-func take_damage(amount: int, source = null, damage_type: String = "physical") -> int:
-	if health_component == null:
-		return 0
-	var dealt: int = health_component.take_damage(amount, source, damage_type)
-	if dealt > 0:
-		# Emit the health_component truth, not the stale local field --
-		# the component owns the damage path (the R37 dual-store lesson).
-		health_changed.emit(health_component.current_health, health_component.max_health, -dealt)
-		GameLog.info("Player hit: %d %s damage (HP %d/%d)" % [
-			dealt, damage_type, health_component.current_health, health_component.max_health])
-	return dealt
-
-
-## Heal (skill.gd target.heal / self-heal path).
-func heal(amount: int, source = null) -> int:
-	if health_component == null:
-		return 0
-	return health_component.heal(amount, source)
-
-
-func is_dead() -> bool:
-	return health_component != null and health_component.is_dead()
-
-
-## Mirror the component back into the fields the live HUD and the
-## regen step read (the planar double-store kept intentionally).
-func _on_component_health_changed(current: int, maximum: int, _delta: int) -> void:
-	current_health = current
-	max_health = maximum
 
 
 ## Create + register the inventory bag (round-7 item 3). Deferred id
@@ -704,8 +654,9 @@ func _physics_process(delta: float) -> void:
 		# you look, so orbiting the view re-aims movement (walking used to
 		# pin to map north/east regardless of where the camera pointed,
 		# which read as "stuck" against invisible walls while circling).
-		var input_vec: Vector2 = InputManager.get_movement_input() if InputManager \
-			else Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+		var im := _im()
+		var input_vec: Vector2 = im.get_movement_input() if im \
+		else Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 		wish = cam_fwd * (-input_vec.y) + cam_right * input_vec.x
 	if wish.length() > 1.0:
 		wish = wish.normalized()

@@ -1,6 +1,6 @@
 ## PlayerController - Main player character controller
 ## Free-form combat system (RYL2-style)
-extends CharacterBody3D
+extends PlayerBase
 class_name PlayerController
 
 ## Runtime autoload lookups (script-mode-safe; the bare identifiers
@@ -9,15 +9,10 @@ func _ds() -> Node:
 	var tree := Engine.get_main_loop() as SceneTree
 	return tree.root.get_node_or_null(NodePath("DataService")) if tree and tree.root else null
 
-func _glog() -> Node:
-	var tree := Engine.get_main_loop() as SceneTree
-	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
-
 const _ac_script = preload("res://core/services/anticheat_service.gd")
 
-## THE PROGRESSION RATIO LAW's preloads (mirror _pmgr()): the cap and the
-## curve live in ONE authority; the node consults it, never forks it.
-const LevelCurveScript = preload("res://core/progression/level_curve.gd")
+## LevelCurveScript + HealthComponent are inherited from PlayerBase (the ONE
+## curve authority; the node consults it, never forks it).
 
 ## Runtime autoload lookup (script-mode-safe).
 func _anti_cheat() -> Node:
@@ -330,7 +325,6 @@ var inventory_component: InventoryComponent = null
 # Multiplayer
 var player_id: int = 1
 var is_local_player: bool = true
-var entity_id: String = ""
 ## Canonical fallback id when the scene doesn't assign one (matches
 ## world_playable.LOCAL_PLAYER_ID; the old int str(player_id) fallback
 ## produced "1" and desynced every service keyed by entity_id).
@@ -338,36 +332,14 @@ const LOCAL_PLAYER_ID := "player_1"
 
 # --- Combat surface ------------------------------------------------------
 # EnemyAI, Skill, and _entity_svc() treat all combatants uniformly via this
-# duck-typed surface. PlayerController is a CharacterBody3D (not an Entity
-# subclass), so these mirror the Entity API at runtime.
-const HealthComponent = preload("res://core/components/health_component.gd")
-
-## Entity.EntityType.PLAYER constant, mirrored so `entity.entity_type`
-## reads work without an Entity cast.
-var entity_type: int = 1
-
-var display_name: String = "Player"
-var level: int = 1
-
-## The player's class id ("human_warrior", ...). Required by
-## Skill.can_cast's required_class gate; boot paths without login use
-## the default class so the starting skillbar is actually castable.
-var character_class: String = "human_warrior"
-
-# Standard stat block (Entity-compatible shape used by get_* accessors).
-var stats: Dictionary = {
-	"strength": 10,
-	"agility": 10,
-	"intelligence": 10,
-	"vitality": 10,
-	"wisdom": 10,
-}
-
-## Health component (created in _ready, mirrors Enemy's pattern).
-var health_component: HealthComponent = null
-var max_health: int = 100
-var current_health: int = 100
+# duck-typed surface. The shared identity/progression/health/stats surface
+# lives on PlayerBase; PlayerController adds only its own fields here.
 var team_id: int = 0
+
+## Planar-only mana/void bookkeeping (the shared mana pool lives on
+## PlayerBase; these support this body's regen + void-recovery ticks).
+var _mana_regen_accum: float = 0.0
+var _void_recovery_cooldown: float = 0.0
 
 # Allegiance alias (Entity.Relation.HOSTILE etc.) read by
 # _entity_svc().is_enemy via `entity.faction`.
@@ -503,11 +475,7 @@ func _ready() -> void:
 
 	# Health component: created here (not a scene child) so every
 	# player gets one regardless of which scene instantiates them.
-	if health_component == null:
-		health_component = HealthComponent.new()
-		health_component.max_health = max_health
-		health_component.current_health = current_health
-		add_child(health_component)
+	_ensure_health_component()
 
 	# Inventory component: was never created for the local player, so
 	# loot pickups had nowhere to land. Register with _inv_svc()
@@ -865,9 +833,10 @@ func _open_player_inspect(target_id: String) -> void:
 ## menu router makes).
 func _start_follow_target(target_id: String) -> void:
 	var fs := _follow_svc()
-	if fs == null or PlayerManager == null:
+	var pm := _pmgr()
+	if fs == null or pm == null:
 		return
-	var my_id := str(PlayerManager.get_local_player_id()) if PlayerManager.has_method("get_local_player_id") else str(player_id)
+	var my_id := str(pm.get_local_player_id()) if pm.has_method("get_local_player_id") else str(player_id)
 	var ok := bool(fs.call("request_follow", my_id, target_id))
 	if not ok:
 		var gl := _glog()
@@ -1642,233 +1611,6 @@ func _find_and_set_nearest_target() -> void:
 			Entity.EntityType.ENEMY
 		)
 		is_targeting = true
-
-## --- Combat surface (duck-typed Entity API) -----------------------------
-
-## Receive damage from any combatant (enemies route here through
-## EnemyAI._perform_attack and skill.gd's untyped take_damage).
-func take_damage(amount: int, source = null, damage_type: String = "physical") -> int:
-	if health_component == null:
-		return 0
-	var dealt: int = health_component.take_damage(amount, source, damage_type)
-	if dealt > 0:
-		# Emit the health_component truth, not the stale local field --
-		# the component owns the damage path (same dual-store miss the
-		# Enemy fix closed; R37 audit).
-		health_changed.emit(health_component.current_health, health_component.max_health, -dealt)
-		_glog().info("Player hit: %d %s damage (HP %d/%d)" % [
-			dealt, damage_type, health_component.current_health, health_component.max_health])
-	return dealt
-
-## Heal (skill.gd target.heal / self-heal path).
-func heal(amount: int, source = null) -> int:
-	if health_component == null:
-		return 0
-	return health_component.heal(amount, source)
-
-signal health_changed(current: int, maximum: int, delta: int)
-signal player_died(killer)
-
-func is_dead() -> bool:
-	return health_component != null and health_component.is_dead()
-
-func get_attack_power() -> int:
-	return get_stat("strength") * 2
-
-func get_spell_power() -> int:
-	return get_stat("intelligence") * 2
-
-func get_healing_power() -> int:
-	return get_stat("wisdom") * 2
-
-func get_defense() -> int:
-	return get_stat("vitality") * 2
-
-func get_crit_chance() -> float:
-	return 0.05 + (get_stat("agility") * 0.003)
-
-func get_crit_multiplier() -> float:
-	return 1.5
-
-# --- Progression surface (duck-typed Entity API) --------------------------
-# Mirrors _pmgr()'s add_experience/add_gold so the XP/kill-reward
-# hook (core/services/kill_rewards.gd) can pay any combatant through the
-# same duck-typed convention as the combat surface above. The node-level
-# values are authoritative for the player in the world; _pmgr() is
-# the persistent mirror the HUD reads.
-
-var experience: int = 0
-var experience_to_next_level: int = 1000
-# THE ONE PURSE (unified wallet law): the mounted InventoryComponent is
-# the authoritative wallet for this player; `gold` is its synced mirror
-# (persistence, HUD, and duck-typed payers read it). Direct writes to
-# `gold` (restore, horde shares, dwelling spends) convert into REAL
-# deltas in the component purse, so every payment speaks through the
-# ONE wallet-voice lane instead of a silent field write.
-var _wallet_swallow: bool = false
-
-var gold: int = 0:
-	set(value):
-		var v := maxi(0, int(value))
-		if _wallet_swallow:
-			gold = v
-			return
-		var comp: Variant = null
-		if "inventory_component" in self:
-			comp = self.get("inventory_component")
-		if comp != null and is_instance_valid(comp) and comp.has_method("add_gold"):
-			var current := int(comp.get_gold())
-			if v > current:
-				comp.add_gold(v - current)
-				_wallet_swallow = true
-				gold = int(comp.get_gold())
-				_wallet_swallow = false
-				return
-			if v < current and comp.has_method("remove_gold"):
-				if comp.remove_gold(current - v):
-					_wallet_swallow = true
-					gold = int(comp.get_gold())
-					_wallet_swallow = false
-					return
-				# The purse refused (fresh body adopted a richer bag,
-				# then a stale restore wanted less). Keep the mirror in
-				# sync with the truth the purse holds.
-			_wallet_swallow = true
-			gold = int(comp.get_gold()) if comp != null and is_instance_valid(comp) else v
-			_wallet_swallow = false
-			return
-		gold = v
-		gold_changed.emit(v)
-
-# Respawn cycle state parked here by RespawnService between the death
-# signal and the delayed respawn execution. Declared on the node because
-# GDScript 4 cannot add undeclared properties via dot-assignment: the
-# service's `player._pending_respawn_mode_int = ...` used to fail with
-# "Invalid assignment" and silently abort the service cycle (the legacy
-# health timer then respawned the player instead, skipping the
-# checkpoint and player_respawned broadcast).
-var _pending_respawn_mode_int = null      # int(RespawnMode) or null
-var _pending_respawn_position = null      # Vector3 or null
-var _pending_respawn_choice: Dictionary = {}  # UI choice, consumed by the service
-
-# Resource pool. Entity carries current_mana/max_mana; PlayerController
-# (CharacterBody3D) never had one, so skill mana costs were silently
-# skipped by the duck-typed cost checks and _consume_resources would
-# have crashed writing to a nonexistent property.
-var current_mana: int = 100
-var max_mana: int = 100
-var _mana_regen_accum: float = 0.0
-var _void_recovery_cooldown: float = 0.0
-
-signal experience_changed(current: int, level: int)
-signal gold_changed(current: int)
-signal leveled_up(new_level: int)
-signal mana_changed(current: int, maximum: int)
-
-func add_experience(amount: int) -> void:
-	if amount <= 0:
-		return
-	experience += amount
-	# THE CAP LAW mirrors _pmgr() (#54): the node never encodes the cap --
-	# LevelCurve is the ONE authority. Overflow XP past the cap banks (the
-	# experience field keeps its value; no level, no stat, no heal), so a
-	# seasonal cap raise pays out from what the body already banked.
-	while experience >= experience_to_next_level \
-			and level < LevelCurveScript.max_level():
-		experience -= experience_to_next_level
-		level += 1
-		# The curve (not a compounding drift) owns the next level's cost: a
-		# body AT `level` carries level_cost(level) -- the level_curve
-		# docstring law, byte-equal to the shipped 1.5^n band pin the quest
-		# authors assume. (#54: the old inline int(1.5x) compounding never
-		# consulted the cap and unstoppered past-band growth.)
-		experience_to_next_level = LevelCurveScript.level_cost(level)
-		# Full restore on level up, mirroring _pmgr().
-		if health_component != null:
-			max_health += 10
-			# Sync into the component: it owns the damage/heal path, so
-			# the bump must land where take_damage actually reads
-			# (dual-store hygiene, R37 audit).
-			health_component.max_health = max_health
-			current_health = max_health
-			health_component.current_health = current_health
-		leveled_up.emit(level)
-		var gl := _glog()
-		if gl:
-			gl.info("Player level up: now level %d" % level)
-	experience_changed.emit(experience, level)
-
-func add_gold(amount: int) -> void:
-	if amount <= 0:
-		return
-	# THE ONE PURSE: when the component wallet is mounted, it is the
-	# authoritative purse and its gold_changed is the ONE speak lane --
-	# the mirror just follows (no duplicate node emit). Standalone
-	# bodies (probes, unmounted stubs) keep their own voice.
-	var comp: Variant = null
-	if "inventory_component" in self:
-		comp = self.get("inventory_component")
-	if comp != null and is_instance_valid(comp) and comp.has_method("add_gold"):
-		comp.add_gold(amount)
-		return
-	gold += amount
-	gold_changed.emit(gold)
-
-## Duck-typed currency surface (the ONE purse for every currency).
-## Prefer the component when mounted; standalone bodies keep an
-## honest zero (never invent balance).
-func get_currency_amount(currency_id: String) -> int:
-	var comp: Variant = null
-	if "inventory_component" in self:
-		comp = self.get("inventory_component")
-	if comp != null and is_instance_valid(comp) and comp.has_method("get_currency_amount"):
-		return int(comp.get_currency_amount(currency_id))
-	return 0
-
-func add_currency(currency_id: String, amount: int) -> bool:
-	var comp: Variant = null
-	if "inventory_component" in self:
-		comp = self.get("inventory_component")
-	if comp != null and is_instance_valid(comp) and comp.has_method("add_currency"):
-		return bool(comp.add_currency(currency_id, amount))
-	return false
-
-func remove_currency(currency_id: String, amount: int) -> bool:
-	var comp: Variant = null
-	if "inventory_component" in self:
-		comp = self.get("inventory_component")
-	if comp != null and is_instance_valid(comp) and comp.has_method("remove_currency"):
-		return bool(comp.remove_currency(currency_id, amount))
-	return false
-
-## Mirror-sync leg: the component purse was paid/spent through a path
-## that does not touch the node (vendors, restores into the adopted
-## bag, vault transfers). Keep `gold` equal to the truth the purse
-## holds -- silently; the PURSE emits the roster rows.
-func _on_component_gold_changed_mirror(_delta: int) -> void:
-	var comp: Variant = null
-	if "inventory_component" in self:
-		comp = self.get("inventory_component")
-	if comp == null or not is_instance_valid(comp):
-		return
-	_wallet_swallow = true
-	gold = int(comp.get_gold())
-	_wallet_swallow = false
-
-func get_stat(stat_name: String) -> int:
-	return int(stats.get(stat_name, 0))
-
-## Entity-parity stat surface. PlayerController extends CharacterBody3D, not
-## Entity, so it lacked the get_stat/set_stat pair that InventoryComponent's
-## _apply_equipment_stats drives: equipping gear threw a missing-method error
-## and moved no attributes. set_stat is deliberately silent -- the player has
-## no stat_changed listener, so emitting one (which KillRewards would also do
-## for "xp") would be a zero-listener signal under the no-void law.
-func set_stat(stat_name: String, value: int) -> void:
-	stats[stat_name] = value
-
-func add_stat(stat_name: String, amount: int) -> void:
-	set_stat(stat_name, get_stat(stat_name) + amount)
 
 ## SKILL SYSTEM
 
