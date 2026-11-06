@@ -1,0 +1,12 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://xp_ratio_override_param"]
+
+[ext_resource path="res://core/schemas/shard_parameter_definition.gd" type="Script" id=1]
+
+[resource]
+script = ExtResource("1")
+name = "xp_ratio_override"
+type = "float"
+default_value = 0.0
+critical = true
+description = "Shard-local post-band XP ratio override (0 = uniform BAND_STEP). LOCAL read only; never shared/hashed. Critical so an operator's change is immediately effective and readable."
+version = 1

@@ -3,6 +3,8 @@
 extends Node
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 const MeshRole = preload("res://core/mesh/mesh_role.gd")
+const ShardTuning = preload("res://core/progression/shard_tuning.gd")
+const LevelCurveScript = preload("res://core/progression/level_curve.gd")
 
 # Shard identification
 var shard_id: String = "shard_1"
@@ -30,7 +32,36 @@ func _ready() -> void:
 	_apply_env_config()
 	_load_shards()
 	_register_with_coordinator()
+	_apply_shard_tuning()
+	_connect_tuning_listener()
 	GameLog.info("ShardManager: Ready as %s (%s)" % [shard_id, shard_name])
+
+## Phase 3.1: apply this shard's LOCAL progression overrides (if any)
+## into LevelCurve. A LOCAL READ only -- shared/hashed state stays uniform.
+## ShardParameters is an earlier autoload, so it is ready here.
+func _apply_shard_tuning() -> void:
+	var sp = get_node_or_null("/root/ShardParameters")
+	if sp == null:
+		return
+	if ShardTuning.apply(shard_id, sp):
+		GameLog.info("ShardManager: applied shard tuning for %s (cap=%d, xp_ratio=%.3f)" % [
+			shard_id, LevelCurveScript.max_level(), LevelCurveScript.effective_band_step()])
+
+## Re-apply tuning whenever a tuning parameter is written for THIS shard,
+## so an operator can flip a running shard's numbers without a reboot.
+func _connect_tuning_listener() -> void:
+	var sp = get_node_or_null("/root/ShardParameters")
+	if sp == null or not sp.has_signal("param_applied"):
+		return
+	if not sp.param_applied.is_connected(_on_tuning_param_applied):
+		sp.param_applied.connect(_on_tuning_param_applied)
+
+func _on_tuning_param_applied(sid: String, param_name: String, _value: Variant, _actor_id: String) -> void:
+	if sid != shard_id:
+		return
+	if not ShardTuning.tuning_param_names().has(param_name):
+		return
+	_apply_shard_tuning()
 
 ## Apply deployment identity from the environment (container mesh).
 ## Absent env vars leave the defaults untouched, so dev/CI boots are

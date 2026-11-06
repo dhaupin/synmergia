@@ -53,9 +53,40 @@ const BAND_STEP: float = 1.03
 const DEFAULT_CAP: int = 60
 const CAP_ENV: String = "LEVEL_CAP"
 
-## The one cap authority. Env override must be a sane int >= 2;
-## anything else (unset, junk, absurd) falls back to DEFAULT_CAP.
+## -- PHASE 3.1 SHARD TUNING (the "event shard" lever) --------------------
+## A shard-local progression override, applied by ShardTuning from a
+## ShardParameter write. It is a LOCAL READ, never a shared write: the
+## mesh's hashed identity stays uniform (prd-shard-mesh.md sec.3.1).
+## ONE process runs ONE shard, so a single static override is correct.
+## Absent an override (0 / 0.0) the curve is UNIFORM -- the default case
+## is not negotiable.
+static var _shard_cap_override: int = 0
+static var _shard_xp_ratio_override: float = 0.0
+
+## Apply a shard-local tuning override. cap < 2 or ratio <= 0 means
+## "unset" for that half; both unset restores the uniform curve.
+static func set_shard_tuning(cap: int, xp_ratio: float) -> void:
+	_shard_cap_override = cap if cap >= 2 else 0
+	_shard_xp_ratio_override = xp_ratio if xp_ratio > 0.0 else 0.0
+
+## Drop any shard-local tuning; the curve returns to env/DEFAULT_CAP.
+static func clear_shard_tuning() -> void:
+	_shard_cap_override = 0
+	_shard_xp_ratio_override = 0.0
+
+## True when a shard-local tuning override is in force.
+static func has_shard_tuning() -> bool:
+	return _shard_cap_override >= 2 or _shard_xp_ratio_override > 0.0
+
+## The effective post-band per-level ratio (BAND_STEP unless overridden).
+static func effective_band_step() -> float:
+	return _shard_xp_ratio_override if _shard_xp_ratio_override > 0.0 else BAND_STEP
+
+## The one cap authority. Precedence: a shard-local override (Phase 3.1)
+## wins, then a sane LEVEL_CAP env (deployment default), then DEFAULT_CAP.
 static func max_level() -> int:
+	if _shard_cap_override >= 2:
+		return _shard_cap_override
 	var env := OS.get_environment(CAP_ENV)
 	if env != "":
 		var n := int(env)
@@ -73,9 +104,10 @@ static func level_cost(level: int) -> int:
 		# SHIPPED LAW: the 1.5^n envelope the world was authored against.
 		cost = float(XP_BASE) * pow(GROWTH, level - 1)
 	else:
-		# BREATHING BAND: soft ratio anchored at the band-top cost.
+		# BREATHING BAND: soft ratio anchored at the band-top cost. The
+		# ratio is BAND_STEP unless a Phase 3.1 shard override is in force.
 		var band_top := float(XP_BASE) * pow(GROWTH, BAND_LEVELS - 1)
-		cost = band_top * pow(BAND_STEP, level - BAND_LEVELS)
+		cost = band_top * pow(effective_band_step(), level - BAND_LEVELS)
 	return int(cost)
 
 ## Total XP to level from 1 through `level` inclusive (income planning

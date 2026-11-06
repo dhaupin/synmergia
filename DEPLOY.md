@@ -435,6 +435,8 @@ The Godot server detects mode via `START_MODE`:
 START_MODE=dev    # Xvfb + GUI (requires display)
 START_MODE=prod   # Headless + nginx
 START_MODE=headless  # Headless only, no nginx
+START_MODE=coordinator  # Mesh registry + bus only, no game port
+START_MODE=edge   # nginx L7 proxy only (mesh client entry)
 START_MODE=test   # Run tests and exit
 ```
 
@@ -746,7 +748,9 @@ phases (`labs/prd-shard-mesh.md`); the per-shard wiring is shipped:
 | Shared state | Shipped | `STORAGE_BACKEND=postgres` / `CACHE_BACKEND=redis` + the bridges |
 | Cross-shard bus | Shipped | `SHARD_BUS_BACKEND` (follows `CACHE_BACKEND`); coordinator publishes/drains remote events |
 | Edge transport | Shipped | `EDGE_TRANSPORT=websocket` + nginx `ip_hash` sticky routing |
+| Edge proxy | Shipped | `START_MODE=edge` -- an nginx-only container fronts the shards (profile `mesh`) |
 | Topology (coordinator + N shards) | Shipped | `docker compose --profile mesh up --scale shard=N` -- a `coordinator` service + N `shard` replicas |
+| Per-shard tuning | Shipped | `ShardParameters` overrides (`level_cap_override`, `xp_ratio_override`) -- a LOCAL read on `LevelCurve` |
 
 #### The mesh profile (shipped)
 
@@ -785,13 +789,42 @@ services:
       - CACHE_BACKEND=redis
       - POSTGRES_HOST=postgres
       - REDIS_HOST=redis
+  edge:
+    build: .
+    profiles: [mesh]
+    ports:
+      - "${EDGE_HTTP_PORT:-8088}:80"
+      - "${EDGE_HTTPS_PORT:-8443}:443"
+    environment:
+      - START_MODE=edge             # nginx only; no Godot, no game port
+      - GODOT_UPSTREAM=shard:9000   # expanded to ip_hash upstream servers
 ```
 
+The `edge` service is the ONE client entry into the mesh: nginx only,
+sticky-routing (`ip_hash`) to the shard replicas so a WebSocket upgrade
+and the client's follow-up requests stay on one shard. Set
+`GODOT_UPSTREAM` to a comma/space list to name specific shard hosts.
+
 The role is resolved from the env by `core/mesh/mesh_role.gd`:
-`START_MODE=coordinator` -> coordinator; `SHARD_ID` set (or `START_MODE`
-in prod/headless/server) -> shard; otherwise `standalone` (dev default).
+`START_MODE=coordinator` -> coordinator; `START_MODE=edge` -> the L7
+proxy; `SHARD_ID` set (or `START_MODE` in prod/headless/server) ->
+shard; otherwise `standalone` (dev default).
 The registry spans processes: a shard announces on the bus's
 `coordinator:mesh` topic and the coordinator ingests it.
+
+#### Per-shard tuning
+
+Shards are interchangeable by default, but a shard can carry its own
+progression numbers on purpose (an event shard, a hardcore shard with a
+lower cap). Set the shard parameter on that shard's state tree:
+
+- `level_cap_override` (int) -- overrides the cap for that shard only.
+- `xp_ratio_override` (float) -- overrides the post-band XP ratio.
+
+Both are LOCAL reads on `LevelCurve`: absent an override every shard
+runs the uniform curve, and an override never leaks into cross-shard
+(shared/hashed) state. The precedence is shard override -> `LEVEL_CAP`
+env -> `DEFAULT_CAP`.
 
 > The real backends need `python3-psycopg` / `python3-redis`, which are
 > baked into the image.

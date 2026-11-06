@@ -264,6 +264,30 @@ services:
     networks:
       - synmergia-net
 
+  # ── Edge L7 proxy (Phase 3.1, profile: mesh) ──────────────────────────────
+  # nginx only: the ONE client entry into the mesh. It fronts the shard
+  # replicas with ip_hash sticky routing so a WebSocket upgrade and the
+  # client's follow-up requests land on the SAME shard (session affinity).
+  # No Godot process and no game port of its own; it proxies to the shard
+  # service (docker DNS round-robins the replicas into the upstream).
+  edge:
+    build: .
+    profiles:
+      - mesh
+    ports:
+      - "${EDGE_HTTP_PORT:-8088}:80"
+      - "${EDGE_HTTPS_PORT:-8443}:443"
+    environment:
+      - START_MODE=edge
+      # Shards are reached by service name:port. The entrypoint expands
+      # this list into the nginx upstream server lines.
+      - GODOT_UPSTREAM=${GODOT_UPSTREAM:-shard:9000}
+    depends_on:
+      - shard
+    restart: unless-stopped
+    networks:
+      - synmergia-net
+
 # ── Volumes ────────────────────────────────────────────────────────────────
 volumes:
   synmergia-data:

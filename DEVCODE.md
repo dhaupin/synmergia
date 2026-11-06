@@ -77,6 +77,20 @@ The registry spans processes: a shard announces on the bus's
 it. See `labs/prd-shard-mesh.md` for the intent-vs-reality audit and
 the phased path.
 
+The edge proxy (Phase 3.1) is `START_MODE=edge`: nginx only, no Godot
+and no game port of its own. It fronts the shard replicas with the
+`ip_hash` upstream (`GODOT_UPSTREAM`, default `shard:9000`), so a
+WebSocket upgrade and the client's follow-up requests stay on one
+shard. The `mesh` profile defines an `edge` service publishing
+`${EDGE_HTTP_PORT:-8088}` / `${EDGE_HTTPS_PORT:-8443}`.
+
+Per-shard tuning (Phase 3.1) is a LOCAL read, never a shared write.
+Set the shard parameter on that shard's state tree:
+`level_cap_override` (int) or `xp_ratio_override` (float). `LevelCurve`
+reads it through `ShardTuning` at boot (and re-applies on the param's
+`param_applied`), so a running shard's numbers flip without a reboot.
+Absent an override every shard runs the uniform curve.
+
 ## 2. Golden-path commands (from `game/`)
 
 ```bash

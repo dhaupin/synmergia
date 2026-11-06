@@ -271,6 +271,24 @@ if [[ "$START_MODE" == "coordinator" ]]; then
     exit 0
 fi
 
+# ── EDGE MODE ─────────────────────────────────────────────────────────────
+# Shard mesh Phase 3.1: the edge is a PURE L7 proxy -- nginx only, no Godot
+# and no game port of its own. It fronts the shard replicas with ip_hash
+# sticky routing so a WebSocket session (and the client's follow-up HTTP)
+# stays on one shard. GODOT_UPSTREAM is the comma/space shard host list
+# (e.g. "shard-1:9000,shard-2:9000"); each entry becomes one upstream
+# server line. The engine's EDGE_TRANSPORT=websocket shards speak the
+# protocol this proxy upgrades.
+if [[ "$START_MODE" == "edge" ]]; then
+    log "Mode: EDGE — nginx L7 proxy (sticky routing to shards; no game port)"
+    _setup_nginx
+    nginx -g 'daemon off;' &
+    log "Edge running (upstream=${GODOT_UPSTREAM:-localhost:9000})"
+    log "PID: $!"
+    tail -f /dev/null
+    exit 0
+fi
+
 # ── HEADLESS MODE ─────────────────────────────────────────────────────────
 # Godot headless only — no nginx, no VNC. Good for CI runners, bots.
 if [[ "$START_MODE" == "headless" ]]; then
@@ -301,5 +319,5 @@ fi
 
 # ── Unknown mode ────────────────────────────────────────────────────────────
 log "Unknown START_MODE='$START_MODE'"
-log "Valid modes: dev, prod, headless, coordinator, test"
+log "Valid modes: dev, prod, headless, coordinator, edge, test"
 exit 1
