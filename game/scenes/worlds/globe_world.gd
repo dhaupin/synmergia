@@ -92,6 +92,14 @@ var hud: CanvasLayer = null
 ## Spawn-truth throttle (round 7, item 4): the on-screen lat/lon/
 ## height line refreshes twice a second, not every physics tick.
 var _truth_accum: float = 0.0
+var _boot_start_ms: int = 0
+
+## THE CORE-STEP RECEIPT (BOOT_TRACE=1): one gated line after each
+## core attach, so the ready-wall's cost has a NAME per step -- the
+## wall the game-side overlay legally hides behind is exactly this.
+func _bt(label: String) -> void:
+	if OS.get_environment("BOOT_TRACE") == "1":
+		print("[boottrace] %s @ %d ms" % [label, Time.get_ticks_msec() - _boot_start_ms])
 ## The truth line itself (built into the playable HUD CanvasLayer).
 var _truth_label: Label = null
 
@@ -113,6 +121,7 @@ var last_chart_lon: float = 0.0
 
 
 func _ready() -> void:
+	_boot_start_ms = Time.get_ticks_msec()
 	# The canon radius comes from world_main.tres (20000, the v1 planet
 	# scale); the project setting must match it (AGENTS data law: the
 	# .tres is the declaration). The 100 m prototype is a TEST scale --
@@ -124,30 +133,37 @@ func _ready() -> void:
 	world_root.name = "WorldRoot"
 	add_child(world_root)
 	_build_shell()
+	_bt("shell")
 	_build_surface_pad()
+	_bt("pad")
 	_install_world_backend()
+	_bt("backend")
 	_build_sun()
 	_build_sky_sun()
 	_build_sky_moon()
+	_bt("sky")
 	# Streamer FIRST: the player spawn height rides the terrain law
 	# (walk surface at the spawn direction), so the ground must exist
 	# before the boot lands on it.
 	_setup_streamer()
+	_bt("streamer")
 	_build_water()
-	_build_arena_gateway()
-	_build_starter_village()
-	_build_capitol_monolith()
-	_build_pans_monolith()
-	_build_pans_ferry()
-	_build_sundered_barque()
-	_install_garden_binder()
-	_build_town_npcs()
+	_bt("water")
+	# THE PLAYABLE-FIRST BOOT (the loading-speed round law): the
+	# game-side "Loading world..." overlay can only hide AFTER _ready
+	# returns, and the POI/NPC builds cost seconds per attach on wasm
+	# -- every synchronous stretch froze the spinner AND the frame
+	# loop, which is the whole 3-minute hang. So the boot core stops
+	# at PLAYABLE (spawn-ground streamer + player + planet wiring +
+	# HUD), and the ensuite builds ride the frame-by-frame boot waves
+	# below, after the overlay is already down.
 	_build_player()
-	_setup_ambience()
+	_bt("player")
 	planet_center = world_root.position
 	player.planet_center = planet_center
 	_install_hud()
 	_setup_touch_hud()
+	_bt("hud")
 	# SPAWN TRUTH (play-test round 7, item 4): the Android reporter
 	# cannot read GameLog, so the boot/terrain truth also lives ON
 	# SCREEN -- one small line, top-right of the playable HUD: lat/lon,
@@ -156,6 +172,35 @@ func _ready() -> void:
 	# HERE, after _install_hud(): _build_player runs before the HUD
 	# exists, and the line parents into it.
 	_build_spawn_truth()
+	_bt("spawn-truth")
+	# THE BOOT WAVES: POIs, NPCs, decor + ambience land frame-by-frame
+	# AFTER the scene is current -- the overlay is down, the player
+	# stands on law terrain, and the world fills in visibly, like the
+	# LOD streams beside it.
+	_boot_waves()
+
+
+## THE BOOT WAVES (the loading-speed round): the world's ensuite
+## builds land across frames after the playable core, each wave a
+## frame apart (the wasm main thread gets its render budget back
+## every frame) and each attach tree-guarded so a scene swap or
+## teardown mid-wave can never touch a dying tree.
+func _boot_waves() -> void:
+	for step: Callable in [_build_arena_gateway, _build_starter_village, _build_capitol_monolith, _build_pans_monolith, _build_pans_ferry, _build_sundered_barque, _install_garden_binder, _build_town_npcs, _setup_ambience]:
+		await get_tree().process_frame
+		if not is_inside_tree() or is_queued_for_deletion():
+			return
+		## THE BOOT-WAVE RECEIPT (the loading-speed round's meter): one
+		## gated line per wave attach, so the probe (and the owner's own
+		## GameLog watch) can see the world filling in AFTER the overlay
+		## is already down.
+		if OS.get_environment("BOOT_TRACE") == "1":
+			print("[bootwave] + %s (%d ms after ready)" % [str(step.get_method()), Time.get_ticks_msec() - _boot_start_ms])
+		step.call()
+	## THE WAVES-DONE STAMP: the probe reads this meta as the honest
+	## "world is fully dressed" moment; a meta ABSENT after 90 s is the
+	## environment verdict (old boots carry no stamp at all).
+	set_meta("boot_waves_done_ms", int(Time.get_ticks_msec() - _boot_start_ms))
 
 
 ## THE AUTHORED TERRAFORM (data-driven, backend-seam-first): the

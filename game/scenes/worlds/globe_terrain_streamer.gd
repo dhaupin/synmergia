@@ -179,6 +179,9 @@ var _patch_lvl := {}  # int face -> int (the level the mesh was built at)
 ## fingerprints), APPLY (the async product's landing stamp).
 const FACE16_TRACE_FACES := [16, 18, 10, 14, 6]
 var _face16_trace: bool = OS.get_environment("FACE16_TRACE") == "1"
+## THE BOOT-TRACE SWITCH (the loading-speed round): env-gated receipts
+## from the async apply lane, so the post-ready freeze names its frame.
+var _boot_trace: bool = OS.get_environment("BOOT_TRACE") == "1"
 var _face16_budget := {}
 func _face16_print(msg: String) -> void:
 	print("[face16] " + msg)
@@ -192,6 +195,12 @@ func _face16_traced(face: int) -> bool:
 	return true
 const TILE_LIFT_C := 0.0  # placeholder replaced below by the real const if it differs
 func _face16_audit(mesh: Mesh, face: int) -> void:
+	# THE HARD GATE (the loading-speed round): no trace env, no scan. A
+	# caller bug must never cost a boot frame a full ~24k-vert analytic
+	# pass again (the stock/apply sites used to ignore `_face16_traced`'s
+	# answer and this scan froze the boot thread ~69 s with the trace OFF).
+	if not _face16_trace:
+		return
 	## Scan EVERY main-surface vert against the analytic law at its own
 	## direction (verts are local: world dir = (v + center).normalized).
 	## Prints the worst offenders so a law-dirty erected/stocked/applied
@@ -291,6 +300,19 @@ func configure(p_radius: float, p_target_edge: float, p_parent: Node3D) -> void:
 ## drifts across sessions.
 var _decor_salt: int = 0
 
+## THE BOOT CLAMP (the loading-speed round): the boot's own face used
+## to pay ONE cold FULL-level sync build inside _ready (the wall the
+## game-side overlay legally hides behind -- measured 31.45 s of a
+## 33.2 s wall on the dev VM). Instead the FIRST cold mount builds at
+## `_boot_edge_drops()` levels coarser, and the standing LOD hysteresis
+## law promotes it asynchronously the next update tick (a holder-carry
+## patch's level change rides the worker lane; ghosts stay live under
+## the player until the swap). Threadless/prototype hosts keep the old
+## behavior end to end (the enforcer's sync path).
+var _boot_first_mount := true
+func _boot_edge_drops() -> int:
+	return 3
+
 
 ## Call every physics frame with the player position. Loads the
 ## current face + neighbors, unloads stale patches, emits signals on
@@ -331,8 +353,26 @@ func update(player_pos: Vector3) -> Dictionary:
 			# faces derive on the worker lanes and install as they land,
 			# so the cold boot wall pays ONE cold build, not four.
 			# Threadless/prototype hosts collapse to the sync law.
+			# THE COLD-MOUNT LAW (loading-speed round, second cut): the
+			# full-level SYNC mount is only owed when there is NO ground
+			# underfoot (the true first mount). The boot often names one
+			# face at spawn while the player's first physics position
+			# resolves to a NEIGHBOR across the icosa-vertex tie (16 vs
+			# 18); that second cold mount used to pay another full-level
+			# sync build on the first physics frame -- 57 s of frozen
+			# frames in the boot probe. With the old face's mesh still
+			# live underfoot the mount goes coarse and the standing LOD
+			# hysteresis promotes it through the worker lane -- exactly
+			# the boot clamp's law, now stated by the ground it stands on.
+			var underfoot: bool = old >= 0 and _patches.has(old)
+			if face == f and _mesh_async() and (_boot_first_mount or underfoot):
+				_boot_first_mount = false
+				dem = maxi(dem - _boot_edge_drops(), LOD_FLOOR_LEVEL)
 			if face == f or not _mesh_async():
+				var _lp0: int = Time.get_ticks_msec()
 				_load_patch(face, dem)
+				if _boot_trace:
+					print("[bootload] face=%d lvl=%d sync=%d ms" % [face, dem, Time.get_ticks_msec() - _lp0])
 				loaded.append(face)
 			else:
 				_kick_mesh_derivation(face, dem)
@@ -3707,8 +3747,11 @@ func _mesh_cache_stock(face: int, use_lvl: int) -> MeshInstance3D:
 			_patch_tris[face] = int(entry.get("patch_tris", 0))
 			_patch_skirt_tris[face] = int(entry.get("skirt_tris", 0))
 			_patch_mats[face] = _patch_mats.get(face)  # untouched on hit
-			if _face16_budget.get(face, 0) < 24:
-				_face16_traced(face)
+			# THE TRACE GATE (see the audit's hard gate): `_face16_traced`
+			# owns both the env gate and the per-face budget; its ANSWER is
+			# the call condition. Testing the budget dict here read the
+			# default 0 < 24 as true and audited on every stock, trace off.
+			if _face16_traced(face):
 				_face16_audit(mi2.mesh, face)
 			return mi2
 	return _build_mesh(face, use_lvl)
@@ -3801,13 +3844,17 @@ func _mesh_derive_job(face: int, use_lvl: int) -> void:
 ## The mesh applier (main thread): erects the derived arrays and
 ## installs/swaps/stashes by what the walk law wants NOW.
 func _apply_derived_mesh(face: int) -> void:
+	var _ta0: int = Time.get_ticks_msec()
 	var th = _mesh_threads.get(face)
 	_mesh_mutex.lock()
 	var packed = _mesh_results.get(face)
 	_mesh_results.erase(face)
 	_mesh_mutex.unlock()
 	if th != null:
+		var _tj0: int = Time.get_ticks_msec()
 		th.wait_to_finish()  # the job has returned by the time the deferral fires
+		if _boot_trace:
+			print("[bootapply] face=%d join=%d ms" % [face, Time.get_ticks_msec() - _tj0])
 		_mesh_threads.erase(face)
 	if _shutdown:
 		# THE FENCE'S REAP-ONLY LAW: a deferred apply that lands after the
@@ -3847,6 +3894,8 @@ func _apply_derived_mesh(face: int) -> void:
 			# _lod_enforce tick re-kicks at the demanded level.
 			var stale_mi: MeshInstance3D = _erect_mesh(face, use_lvl, packed["data"])
 			_mesh_cache_stash(face, stale_mi, use_lvl)
+			if _boot_trace:
+				print("[bootapply] face=%d lvl=%d stale-hot banked in %d ms" % [face, use_lvl, Time.get_ticks_msec() - _ta0])
 			_mesh_jobs.erase(face)
 			return
 		# THE HOT SWAP: rebuild ONLY the mesh node; the prop holder
@@ -3854,11 +3903,15 @@ func _apply_derived_mesh(face: int) -> void:
 		# OLD built geometry first (the ring law), then swap.
 		var old_mi: MeshInstance3D = _patches.get(face)
 		if old_mi != null and is_instance_valid(old_mi):
-			if _face16_budget.get(face, 0) < 24:
-				_face16_traced(face)
+			# THE TRACE GATE (see the audit's hard gate): the apply lane's
+			# audit obeys the traced answer, never the budget default.
+			if _face16_traced(face):
 				_face16_audit(old_mi.mesh, face)
 			_mesh_cache_stash(face, old_mi)
+		var _te0: int = Time.get_ticks_msec()
 		var fresh: MeshInstance3D = _erect_mesh(face, use_lvl, packed["data"])
+		if _boot_trace:
+			print("[bootapply] face=%d erect=%d ms total=%d" % [face, Time.get_ticks_msec() - _te0, Time.get_ticks_msec() - _ta0])
 		_props_move(face, fresh)
 		var at: Node = old_mi.get_parent() if old_mi != null and is_instance_valid(old_mi) else parent
 		if old_mi != null and is_instance_valid(old_mi) and at != null:
@@ -3885,6 +3938,8 @@ func _apply_derived_mesh(face: int) -> void:
 		if demanded != use_lvl or not want_face:
 			var stale_cold: MeshInstance3D = _erect_mesh(face, use_lvl, packed["data"])
 			_mesh_cache_stash(face, stale_cold, use_lvl)
+			if _boot_trace:
+				print("[bootapply] face=%d lvl=%d stale-cold banked in %d ms" % [face, use_lvl, Time.get_ticks_msec() - _ta0])
 			_mesh_jobs.erase(face)
 			return
 		# THE RING GRAFT ON A COLD LANDING: the revisit flows stock the
@@ -3892,10 +3947,13 @@ func _apply_derived_mesh(face: int) -> void:
 		# consuming the stocked node when one exists; the worker's
 		# fresh derive only fills the miss. Same content by the same
 		# law, so a stocked graft and a worker erect are identical.
+		var _tc0: int = Time.get_ticks_msec()
 		if _mesh_cache.has(_mesh_cache_key(face, use_lvl)):
 			_install_loaded_mesh(face, use_lvl, _mesh_cache_stock(face, use_lvl))
 		else:
 			_install_loaded_mesh(face, use_lvl, _erect_mesh(face, use_lvl, packed["data"]))
+		if _boot_trace:
+			print("[bootapply] face=%d lvl=%d cold-install=%d ms total=%d" % [face, use_lvl, Time.get_ticks_msec() - _tc0, Time.get_ticks_msec() - _ta0])
 	_mesh_jobs.erase(face)
 
 
