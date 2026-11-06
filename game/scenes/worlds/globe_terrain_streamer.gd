@@ -313,6 +313,21 @@ var _boot_first_mount := true
 func _boot_edge_drops() -> int:
 	return 3
 
+## THE BOOT MOUNT WINDOW (loading-speed round, second cut): the boot's
+## own first frames mount cold faces at the LOD floor -- a placeholder
+## the async promote replaces within the same second -- so the first
+## physics frame never pays a level-5 sync build. Gameplay seam
+## crossings after the window keep the shallower boot-clamp drop.
+const BOOT_MOUNT_WINDOW := 8
+var _boot_mount_window: int = BOOT_MOUNT_WINDOW
+## THE BOOT PLACEHOLDER LEVEL: BELOW the LOD floor on purpose. The floor
+## is steady-state law; a boot placeholder lives for the async promote's
+## derive wall and is replaced before the player can cross it. The floor
+## (5) made the whole clamp a no-op -- max(7-3, 5) == 5 == the floor --
+## so the boot still paid two level-5 sync builds (2.3 s + 4.6 s). A
+## level-3 placeholder is ~1/16 the tris and promotes by the same law.
+const BOOT_PLACEHOLDER_LEVEL := 3
+
 
 ## Call every physics frame with the player position. Loads the
 ## current face + neighbors, unloads stale patches, emits signals on
@@ -328,6 +343,8 @@ func update(player_pos: Vector3) -> Dictionary:
 	# The bench metric: the streamer's OWN wall time per call (the
 	# boot's non-mesh block -- villages, HUD, GLBs -- is not this).
 	var _t_ms: int = Time.get_ticks_msec()
+	if _boot_mount_window > 0:
+		_boot_mount_window -= 1
 	var f: int = FacePatches.face_for_position(player_pos, radius)
 	var player_dir: Vector3 = player_pos.normalized()  # the NEAR law's direction (not the face center)
 	_last_player_dir = player_dir
@@ -368,6 +385,10 @@ func update(player_pos: Vector3) -> Dictionary:
 			if face == f and _mesh_async() and (_boot_first_mount or underfoot):
 				_boot_first_mount = false
 				dem = maxi(dem - _boot_edge_drops(), LOD_FLOOR_LEVEL)
+				if _boot_mount_window > 0:
+					# THE BOOT MOUNT WINDOW: a sub-floor placeholder only --
+					# the LOD law promotes to the demand on the next tick.
+					dem = BOOT_PLACEHOLDER_LEVEL
 			if face == f or not _mesh_async():
 				var _lp0: int = Time.get_ticks_msec()
 				_load_patch(face, dem)
