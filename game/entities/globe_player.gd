@@ -478,6 +478,14 @@ func _ready() -> void:
 	var pm = Engine.get_main_loop().root.get_node_or_null("PlayerManager") if Engine.get_main_loop() is SceneTree else null
 	if pm != null and pm.has_method("set_local_player"):
 		pm.set_local_player(self)
+	# THE PLAYERS GROUP (the planar controller's law, line-for-line):
+	# player_controller.gd joins this group in _ready; the globe body never
+	# did, so every "players"-group lookup missed the local body in the world
+	# the player actually plays (globe_world is the spherical default).
+	# ActionBar resolves its caster through get_first_node_in_group("players")
+	# and PlayerProgress falls back to it too. Membership is the wiring; a
+	# consumer that needs a method the body lacks still guards with has_method.
+	add_to_group("players")
 	# Touch auto-sprint: the joystick flips the same sprint flag the
 	# keyboard SHIFT does (defensive: headless/script contexts have no
 	# joystick mounted).

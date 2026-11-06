@@ -53,6 +53,7 @@ test_world_chunks
 test_tick_n017_cleanup
 test_tick_phase2_systems
 test_combat_stack_live
+test_globe_player_players_group
 test_blessed_mark
 test_mysteries
 test_audio_service
