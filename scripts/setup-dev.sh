@@ -140,7 +140,7 @@ if [ "$DRY_RUN" -eq 1 ]; then
     log "  apt packages (${#APT_PACKAGES[@]}): ${APT_PACKAGES[*]}"
     log "  godot:  https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.${GODOT_ARCH}.zip"
     log "  node:   https://nodejs.org/dist/v${NODE_PATCH}/node-v${NODE_PATCH}-linux-${NODE_ARCH}.tar.gz"
-    log "  git-lfs: https://github.com/git-lfs/git-lfs/releases/latest (repo hooks need it)"
+    log "  git-lfs: (not used -- stale LFS hooks are stripped, repo uses plain git)"
     log "  bun:    via npm (bun.lock convention)"
     [ "$WITH_TEMPLATES" -eq 1 ] && log "  templates: ${TEMPLATES_DIR} (~800 MB)"
     [ "$WITH_BLENDER" -eq 1 ]   && log "  blender: ${BLENDER_VERSION} (linux-${BLENDER_ARCH})"
@@ -223,33 +223,25 @@ install_bun() {
     fi
 }
 
-# ── 4b. git-lfs (the repo's git hooks hard-fail without it) ────────────────
-# .gitattributes tracks the Godot engine binary via LFS. No LFS object is
-# committed today, so `git lfs install` is a no-op on the object store -- but
-# the hooks it manages (pre-push / post-commit / post-checkout / post-merge)
-# abort every git operation when git-lfs is absent from PATH. Installing it
-# here keeps plain `git push` working without --no-verify.
-install_git_lfs() {
-    if have git-lfs; then
-        log "git-lfs already on PATH: $(git-lfs version 2>/dev/null | head -1)"
-        return 0
-    fi
-    local ver url dest
-    ver="$(curl -fsSL -o /dev/null -w '%{url_effective}' \
-        https://github.com/git-lfs/git-lfs/releases/latest 2>/dev/null | sed 's#.*/##')"
-    [ -n "$ver" ] || { warn "could not resolve latest git-lfs version; skipping"; return 0; }
-    url="https://github.com/git-lfs/git-lfs/releases/download/${ver}/git-lfs-linux-amd64-${ver}.tar.gz"
-    dest="${TOOLS_DIR}/git-lfs"
-    mkdir -p "$dest"
-    log "downloading git-lfs ${ver}..."
-    if curl -fsSL "$url" -o "${dest}/git-lfs.tar.gz"; then
-        tar -xzf "${dest}/git-lfs.tar.gz" -C "$dest"
-        rm -f "${dest}/git-lfs.tar.gz"
-        ln -sfn "${dest}/git-lfs-${ver#v}/git-lfs" "${BIN_DIR}/git-lfs"
-        log "git-lfs -> ${BIN_DIR}/git-lfs ($(git-lfs version 2>/dev/null | head -1))"
-    else
-        warn "git-lfs download failed; git hooks will keep failing (https://git-lfs.com)"
-    fi
+# ── 4b. strip stale Git LFS hooks (this repo does NOT use LFS) ─────────────
+# An early commit added a `.gitattributes` LFS pattern for the Godot engine
+# binary, but that binary is gitignored under tools/ and was never committed,
+# so no LFS object exists. `git lfs install` nonetheless writes hooks
+# (pre-push / post-commit / post-checkout / post-merge) that abort EVERY git
+# operation -- including `git worktree add`, which is how subagent lanes get
+# their checkout -- when git-lfs is missing from PATH. Nothing here needs LFS,
+# so remove any such hook rather than depending on git-lfs being present.
+strip_lfs_hooks() {
+    local hooks_dir hook
+    hooks_dir="$(git -C "${REPO_ROOT}" rev-parse --git-path hooks 2>/dev/null)" || return 0
+    [ -d "$hooks_dir" ] || return 0
+    for hook in pre-push post-commit post-checkout post-merge; do
+        # Only remove hooks git-lfs wrote -- never a hand-authored hook.
+        if [ -f "${hooks_dir}/${hook}" ] && grep -q "git-lfs\|git lfs" "${hooks_dir}/${hook}" 2>/dev/null; then
+            rm -f "${hooks_dir}/${hook}"
+            log "removed stale LFS ${hook} hook (repo does not use LFS)"
+        fi
+    done
 }
 
 # ── 5. Godot export templates (web export) ─────────────────────────────────
@@ -326,7 +318,7 @@ ensure_path() {
 install_apt
 install_godot
 install_node
-install_git_lfs
+strip_lfs_hooks
 ensure_path
 install_bun
 install_templates
@@ -336,7 +328,7 @@ install_web_probe
 # ── Summary ────────────────────────────────────────────────────────────────
 echo
 log "toolchain summary"
-for tool in godot node npm bun git-lfs blender; do
+for tool in godot node npm bun blender; do
     if have "$tool"; then
         printf '  %-9s %s\n' "$tool:" "$("$tool" --version 2>&1 | head -1)"
     else

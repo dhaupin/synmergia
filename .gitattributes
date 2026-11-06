@@ -1,1 +1,13 @@
-Godot_v4.7.2-stable_linux.x86_64 filter=lfs diff=lfs merge=lfs -text
+# Git LFS is intentionally NOT used in this repository.
+#
+# An early commit (805317cd, 2026-09-16) added an LFS pattern here for
+# `Godot_v4.7.2-stable_linux.x86_64`. That binary is gitignored under
+# tools/ and was never committed, so no LFS object ever existed -- the
+# pattern was inert. It was removed because `git lfs install` writes
+# pre-push/post-commit/post-checkout/post-merge hooks that abort EVERY git
+# operation when git-lfs is absent from PATH, which breaks `git worktree add`
+# (how agent/subagent lanes get their checkout). The engine binary is
+# provisioned by scripts/setup-dev.sh, not by LFS.
+#
+# Do not re-add LFS tracking here without removing the hooks and confirming
+# every environment that runs git (CI, agent sandboxes) has git-lfs on PATH.
