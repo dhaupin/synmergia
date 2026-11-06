@@ -136,6 +136,49 @@ ownership is the rule -- two lanes editing the same file is a merge fight.
 `AGENTS.md`, and `labs/TASKS.md` are edited in the PARENT only, after the
 lanes land. That is the merge point, not a lane's job.
 
+### Lane D -- Modeling / assets / art (Blender + gen pipelines)
+
+- **Owns:** `art/**` (source `.blend`, textures, renders),
+  `game/models/**` (exported `.glb`), `scripts/gen_*_model.py`,
+  `scripts/gen_icons.py`, `scripts/blender_*.sh`, and a new
+  `labs/prd-art-pipeline.md`. Reads `labs/prd-3d-pipeline.md` as law.
+- **Work:** author/generate 3D models (NPCs, enemies, mounts, props,
+  dwellings), UV/rig/texture work, icon and texture generation, and
+  long-running batch exports. This is the lane that legitimately runs
+  for a LONG time -- model generation and Blender batch exports are
+  minutes-to-hours, and that is exactly why it must not block A/B/C.
+- **Foundation already in the repo:** Blender 4.3.2 is on PATH; the
+  pipeline is PROVEN (`labs/prd-3d-pipeline.md` sec 1 + sec 6);
+  `scripts/gen_blacksmith_model.py` / `gen_wolf_model.py` /
+  `gen_icons.py` are the working recipes; `scripts/blender_smoke_test.sh`
+  proves the chain. `game/models/**` is the `.glb` registry (filename ==
+  data id).
+- **Lane D obeys the locked decisions** (`labs/prd-spherical-mvp.md` sec
+  2): (5) no resource packs -- the `.glb` naming registry + pck flow
+  stays; (6) **Blender MCP is NOT adopted** -- the python generator
+  pipeline + `model_export_lib.py` + in-engine probes remain the asset
+  path. A lane D that reached for Blender MCP would violate a locked
+  owner decision.
+- **Receipt:** `scripts/blender_smoke_test.sh` (chain), the naming lint
+  (a data file must never point at a phantom `.glb` path), and the
+  in-engine model probes (`probe_blacksmith_model.gd`, etc.). A new
+  model is "done" when it imports and the probe sees it -- not when the
+  `.blend` looks right.
+- **Google Colab / cloud GPU (the "T3" idea):** Colab is a reasonable
+  *external* accelerator for heavy generation (a Colab notebook runs
+  Blender headless or an image/texture model on a GPU the sandbox lacks),
+  but it is a SEPARATE compute surface: the lane would push inputs out
+  and pull `.glb`/textures back. Treat it as a tool a lane *calls*, not
+  a lane by itself, and keep the artifacts flowing through the repo
+  (`art/src/` -> `game/models/`) so the pipeline law still holds. Before
+  wiring it, confirm the owner wants that external hop (it leaves the
+  sandbox).
+- **Why D is separate:** it is the only lane whose tasks are
+  unbounded-time and resource-heavy (GPU/CPU, large binaries). Running
+  it beside A/B/C means a 40-minute Blender batch never stalls the
+  code lanes, and vice versa. It also rarely collides on files: `art/`
+  and `game/models/` are disjoint from every code lane.
+
 ## Cost honesty
 
 - **Sandbox:** lanes share the parent sandbox, so there is no extra
