@@ -29,6 +29,13 @@ func _initialize() -> void:
 		push_error("FAIL: DataService/SignService/ActsService autoload missing")
 		quit(1)
 		return
+	# BackendFactory.boot_defaults() registers the durable "default" store
+	# on its first _ready, which in --script mode lands a frame after this
+	# _initialize runs. Recording before that boot settles writes into the
+	# pre-boot fallback store, which boot_defaults then replaces -- the
+	# reboot leg below would lose them. Wait for boot to settle first.
+	await process_frame
+	await process_frame
 	if not _ds._loaded:
 		_ds.load_all_data()
 	if _svc.has_method("ensure_initialized"):
