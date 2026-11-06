@@ -166,3 +166,102 @@ arc -- different files, different receipts. The Colab integration
 (candidate suites: TRELLIS, Hunyuan3D-2, TripoSR, InstantMesh for
 image-to-3D; Hunyuan3D-2 / Stable Fast 3D / DreamGaussian for textured
 meshes) is scoped there; artifacts flow `art/src/` -> `game/models/`.
+
+---
+
+# APPENDIX A -- the sequenced execution plan (revised 2026-11-06)
+
+Owner clarification: the planar world is removed ENTIRELY (not
+preserved as a knob); the only planar surface that remains is the
+INSTANCE contract (`instance_contract.gd`, arena/duel/dungeon). The
+planar-only SYSTEMS (Concord loop, housing, gates, guards, enemies)
+must live on the GLOBE, because the globe is the open world -- instances
+cover arena/dungeon/duel, not the open world.
+
+Each step below is independently receipt-gated. Do them in order; do
+not skip ahead to the deletion.
+
+## Step 0 -- the shared player base (KEYSTONE, do first)
+
+Why: ~20 files gate on `is PlayerController`; the globe body is a
+sibling with no shared base, so it falls outside resurrection, death,
+and PvP. Nothing else can be ported cleanly until the two bodies share
+a type.
+
+- New `entities/player/player_base.gd`, `extends CharacterBody3D`,
+  `class_name PlayerBase`. Owns the surface the shared systems gate on:
+  `entity_id`, `entity_type`, `level`, `experience`, `gold`
+  (+`experience_to_next_level`), the progression signals
+  (`experience_changed`, `gold_changed`, `leveled_up`), and the methods
+  `add_experience` / `add_gold` / the getters. Port them VERBATIM from
+  `player_controller.gd` (lines ~333-370, 1700-1800) so behavior is
+  unchanged.
+- `player_controller.gd`: `extends PlayerBase`; delete the now-inherited
+  declarations. Keep everything globe-irrelevant (movement states, planar
+  interaction).
+- `globe_player.gd`: `extends PlayerBase`; delete its duplicate
+  `entity_id`; keep its health/mana/swim/mount surface.
+- Retarget the `is PlayerController` gates (health_component.gd:81/196/204,
+  targeting_manager.gd:571/1010, ...) to `is PlayerBase`.
+- Receipt: a new `test_player_base.gd` proving both bodies are
+  `is PlayerBase`, that resurrection targeting accepts the globe body,
+  and that `player_died`/`player_killed_player` fire for it.
+- RISK: `gold` is a property with a setter in `player_controller.gd`
+  (line 1710). Move the whole property (getter+setter) intact; a plain
+  field would silently drop the change notification.
+
+## Step 1 -- port the Concord loop to the globe (the flagship)
+
+- Sky signs (`sky_sign_renderer`), the Ancient Door, the Concord Stone,
+  the blessed marks -- port `world_playable._setup_*` onto the globe,
+  placing them with the globe's own law: `village_props._build_batch`
+  (tangent frame, `dir * (planet_radius + lift + walk_surface_h(dir))`).
+  The globe already has a `concord_shrine` PROP in `village_props`; the
+  port adds the INTERACTIVE `ConcordStone` (the `concord_stones` group).
+- Give the globe body the interact resolution the planar controller has
+  (`ancient_doors` / `concord_stones` / `ankhs` / `sky_signs` groups).
+- Receipt: a globe boot where the door exists, is in `ancient_doors`,
+  `ActsService` sees it, and a `door_opened` records a chapter; a
+  Concord Stone records an insight on E.
+
+## Step 2 -- port enemies + combat/loot/quest/damage feedback to the globe
+
+- Scene enemies + respawn, ground-loot handlers, the kill-reward
+  handler, damage numbers, starter-quest auto-accept. With Step 0 done,
+  kill rewards resolve the globe body correctly.
+- Receipt: a globe boot that spawns an enemy, kills it, and shows the
+  reward/loot/damage rows.
+
+## Step 3 -- port gates + guards + housing + portal
+
+- Moon gate, ascent gate, guards, housing (`DwellingService`), portal.
+- Receipt: per system, on the globe.
+
+## Step 4 -- extract WorldContentBuilder (the durable fix)
+
+- A world scene DECLARES its content; the builder places it. Then "the
+  globe is missing X" is impossible -- X is declared once. This is what
+  stops the drift from ever recurring.
+
+## Step 5 -- flip the default + delete the planar world
+
+- Remove the `world_playable` branch in `GameManager._start_game`.
+- Delete `scenes/world_playable.{gd,tscn}` and
+  `entities/player/player_controller.gd` (its unique movement legs fold
+  into the globe body or are dropped; its progression legs now live in
+  `PlayerBase`).
+- Keep `WorldShape` + `InstanceContract` (instances stay planar).
+- Receipt: full globe boot probe + the default runner set green.
+
+# APPENDIX B -- coverage verification (owner: "instances + globe cover what we need")
+
+- **Instances** (`instance_contract.gd` + `arena_instance.gd` /
+  `arena_fighter.gd`): arena / duel / dungeon / royale. Planar AABB,
+  vanilla -Y gravity. Self-contained. STAYS as-is.
+- **Globe** (`globe_world.tscn`): the open world. Must host every
+  non-instance system the planar world hosted -- which is exactly
+  Steps 1-3 above.
+- **Verdict:** the owner's statement holds -- once the globe hosts the
+  ported systems, nothing needs the planar world. No system found in
+  `world_playable` belongs to instances instead; all of it is open-world
+  content that belongs on the globe.
