@@ -540,6 +540,18 @@ func _build_shell() -> void:
 	mat.roughness = 0.95
 	mesh.material = mat
 	mesh_inst.mesh = mesh
+	# THE SHELL-VISUAL LAW (ground-law audit round): at PLANET scale the
+	# flat green base sphere IS the owner's "old terrain" layer -- drawn
+	# at shell radius while the streamer patches ride the walk law above
+	# it, so the player reads it as a second ground under everything.
+	# The visual stays for the PLANAR prototype (<= PLANAR_SHELL_MAX_R,
+	# where it is the ground); at planet scale the streamer's own
+	# land/skirt/water surfaces dress the world, so the sphere's DRAW is
+	# hidden (node + collider bookkeeping untouched). Any visual layer
+	# the terrain must never show twice returns by turning visibility
+	# on at planar scale only.
+	mesh_inst.name = "ShellVisual"
+	mesh_inst.visible = planet_radius <= PLANAR_SHELL_MAX_R
 	shell.add_child(mesh_inst)
 
 	world_root.add_child(shell)
