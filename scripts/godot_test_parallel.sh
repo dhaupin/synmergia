@@ -104,6 +104,28 @@ if [ "${MEM_AVAIL_MB}" -gt 0 ]; then
 	fi
 fi
 
+# ------------------------------------------------- timing-sensitive set
+# A movement/terrain probe measures walked distance against a WALL-CLOCK or
+# FRAME budget. Under CPU contention the measured frame rate drops and the
+# budget expires early, so the probe fails even though the engine is fine.
+# Verified: probe_planet_control_100m passes solo and at JOBS=1, but fails
+# at JOBS=2 and JOBS=4 with an identical "100 m walk reaches ~30 m (got
+# 9.8)" -- the walk simply did not get its frames. These run ALONE (JOBS=1)
+# ahead of the parallel swarm so a timing artifact never reads as a
+# regression. The heavy continent shards are NOT listed: their long boots
+# dominate, and they are re-run by name when they flake.
+SERIAL_SET="
+probe_planet_control_100m
+probe_stream_flow_100m
+probe_globe_world
+probe_planet_walk_20km
+probe_planet_rebase_20km
+probe_riding
+probe_climb
+probe_glider
+probe_thermals
+"
+
 # ------------------------------------------------------- default set
 if [ -z "${tests_named}" ]; then
 	# The runner's own DEFAULT_SET block is the single source of truth
@@ -200,9 +222,28 @@ export -f run_one
 RESUME_APPEND="${status_dir}/passes"
 export RESUME_APPEND
 
-printf '%s\n' ${tests_named} | xargs -P "${JOBS}" -I{} -n1 bash -c 'run_one "$1"' _ {} | cat
+# ------------------------------------------------- phase split
+# Timing-sensitive probes run ALONE first (JOBS=1) so CPU contention
+# cannot fake a movement regression; the rest run as the parallel swarm.
+serial_names=""
+par_names=""
+for t in ${tests_named}; do
+	if printf '%s\n' "${SERIAL_SET}" | grep -qx "${t}"; then
+		serial_names="${serial_names} ${t}"
+	else
+		par_names="${par_names} ${t}"
+	fi
+done
 
-# --------------------------------------------------------- the books
+if [ -n "${serial_names// /}" ]; then
+	n_serial=$(printf '%s\n' ${serial_names} | grep -c .)
+	echo "[runner] serial phase: ${n_serial} timing-sensitive probes, JOBS=1"
+	printf '%s\n' ${serial_names} | xargs -P 1 -I{} -n1 bash -c 'run_one "$1"' _ {} | cat
+fi
+
+if [ -n "${par_names// /}" ]; then
+	printf '%s\n' ${par_names} | xargs -P "${JOBS}" -I{} -n1 bash -c 'run_one "$1"' _ {} | cat
+fi
 pass=0
 fail=0
 missing=0
