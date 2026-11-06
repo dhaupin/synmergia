@@ -14,6 +14,7 @@
 | Interchange | **glTF 2.0 (.glb)** | Godot 4.7's first-class import format; PBR defaults line up. |
 | Engine import | Godot 4.7 `.glb` -> scene | Imports as instanced scenes; materials -> StandardMaterial3D. |
 | Procgen assembly | Godot tool scripts | Block vocabulary + anchors per prd-world.md sec 3. |
+| **Neural generation (optional)** | **GPU surface** | Image-to-3D / text-to-image for concepts + textures. See `DEPLOY-GPU.md` (Colab first; provider-agnostic). CPU-side rig/export/import is unchanged and must work with no GPU. |
 
 ## 2. Asset flow rules
 

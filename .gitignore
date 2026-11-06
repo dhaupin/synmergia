@@ -20,6 +20,10 @@
 !web/*.wasm
 !web/*.js
 
+# GPU asset scratch (Lane D) -- GPU output lands here, then moves to
+# game/models/<data_id>.glb. The source art/src/ is tracked.
+art/out/
+
 # Web frontend artifacts
 node_modules/
 dist/
