@@ -140,6 +140,7 @@ if [ "$DRY_RUN" -eq 1 ]; then
     log "  apt packages (${#APT_PACKAGES[@]}): ${APT_PACKAGES[*]}"
     log "  godot:  https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.${GODOT_ARCH}.zip"
     log "  node:   https://nodejs.org/dist/v${NODE_PATCH}/node-v${NODE_PATCH}-linux-${NODE_ARCH}.tar.gz"
+    log "  git-lfs: https://github.com/git-lfs/git-lfs/releases/latest (repo hooks need it)"
     log "  bun:    via npm (bun.lock convention)"
     [ "$WITH_TEMPLATES" -eq 1 ] && log "  templates: ${TEMPLATES_DIR} (~800 MB)"
     [ "$WITH_BLENDER" -eq 1 ]   && log "  blender: ${BLENDER_VERSION} (linux-${BLENDER_ARCH})"
@@ -222,6 +223,35 @@ install_bun() {
     fi
 }
 
+# ── 4b. git-lfs (the repo's git hooks hard-fail without it) ────────────────
+# .gitattributes tracks the Godot engine binary via LFS. No LFS object is
+# committed today, so `git lfs install` is a no-op on the object store -- but
+# the hooks it manages (pre-push / post-commit / post-checkout / post-merge)
+# abort every git operation when git-lfs is absent from PATH. Installing it
+# here keeps plain `git push` working without --no-verify.
+install_git_lfs() {
+    if have git-lfs; then
+        log "git-lfs already on PATH: $(git-lfs version 2>/dev/null | head -1)"
+        return 0
+    fi
+    local ver url dest
+    ver="$(curl -fsSL -o /dev/null -w '%{url_effective}' \
+        https://github.com/git-lfs/git-lfs/releases/latest 2>/dev/null | sed 's#.*/##')"
+    [ -n "$ver" ] || { warn "could not resolve latest git-lfs version; skipping"; return 0; }
+    url="https://github.com/git-lfs/git-lfs/releases/download/${ver}/git-lfs-linux-amd64-${ver}.tar.gz"
+    dest="${TOOLS_DIR}/git-lfs"
+    mkdir -p "$dest"
+    log "downloading git-lfs ${ver}..."
+    if curl -fsSL "$url" -o "${dest}/git-lfs.tar.gz"; then
+        tar -xzf "${dest}/git-lfs.tar.gz" -C "$dest"
+        rm -f "${dest}/git-lfs.tar.gz"
+        ln -sfn "${dest}/git-lfs-${ver#v}/git-lfs" "${BIN_DIR}/git-lfs"
+        log "git-lfs -> ${BIN_DIR}/git-lfs ($(git-lfs version 2>/dev/null | head -1))"
+    else
+        warn "git-lfs download failed; git hooks will keep failing (https://git-lfs.com)"
+    fi
+}
+
 # ── 5. Godot export templates (web export) ─────────────────────────────────
 install_templates() {
     [ "$WITH_TEMPLATES" -eq 1 ] || return 0
@@ -296,6 +326,7 @@ ensure_path() {
 install_apt
 install_godot
 install_node
+install_git_lfs
 ensure_path
 install_bun
 install_templates
@@ -305,7 +336,7 @@ install_web_probe
 # ── Summary ────────────────────────────────────────────────────────────────
 echo
 log "toolchain summary"
-for tool in godot node npm bun blender; do
+for tool in godot node npm bun git-lfs blender; do
     if have "$tool"; then
         printf '  %-9s %s\n' "$tool:" "$("$tool" --version 2>&1 | head -1)"
     else
