@@ -21,6 +21,7 @@ extends SceneTree
 const GLOBE_SCENE := "res://scenes/worlds/globe_world.tscn"
 
 var _okay := true
+var _detached_skips: int = 0
 
 func _check(label: String, cond: bool) -> void:
 	if cond:
@@ -31,6 +32,7 @@ func _check(label: String, cond: bool) -> void:
 
 func _quit() -> void:
 	print("probe_ground_law_audit: %s" % ("ALL PASS" if _okay else "FAILS"))
+	print("DETACHED-SKIPS: %d (out-of-tree patch reads skipped; these were the old corruption reads)" % _detached_skips)
 	quit(0 if _okay else 1)
 
 func _bary(p, d: Vector3) -> PackedFloat32Array:
@@ -88,6 +90,16 @@ func _mesh_at(st, F, tile_r: float, d: Vector3, edge_m: float, Gen, seed_b: Pack
 	for face in (st._patches as Dictionary).keys():
 		var mi: MeshInstance3D = (st._patches as Dictionary).get(face)
 		if mi == null or mi.mesh == null or mi.mesh.get_surface_count() < 1:
+			continue
+		# THE DETACHED-NODE LAW (the corruption round's receipt): a patch
+		# node between erect and add_child (or a stale node the walk
+		# already freed) is OUTSIDE the tree; global_transform on it
+		# returns IDENTITY and the read feeds LOCAL verts into world
+		# space -- the old -4.5 km "face-16 crumple" numbers came exactly
+		# from this frame break. Skip and count; only in-tree patches
+		# compete for the containing tri.
+		if not mi.is_inside_tree():
+			_detached_skips += 1
 			continue
 		# SURFACE ROLE LAW: the global-best-over-surfaces scan reintroduces
 		# the pass-1 soup lesson (a WATER tri at sea level h=0 contamination
@@ -222,6 +234,21 @@ func _mesh_at(st, F, tile_r: float, d: Vector3, edge_m: float, Gen, seed_b: Pack
 			best_p[0].x, best_p[0].y, best_p[0].z, best_p[1].x, best_p[1].y, best_p[1].z, best_p[2].x, best_p[2].y, best_p[2].z])
 	return t_hit - tile_r
 
+func _ensure_patch(st, face: int, lvl: int) -> bool:
+	## Reload the covering patch until it is IN-TREE at the target
+	## level. Returns false when the composition never settles (the
+	## audit then prints its own honest environment verdict).
+	for attempt in range(4):
+		var patched: bool = int(st._patch_lvl.get(face, -1)) == lvl
+		var mi_p: MeshInstance3D = st._patches.get(face)
+		if patched and mi_p != null and mi_p.is_inside_tree():
+			return true
+		st._load_patch(face, lvl)
+		await process_frame
+	var mi_f: MeshInstance3D = st._patches.get(face)
+	print("ENSURE face=%d lvl=%d settled=%s" % [face, lvl, str(mi_f != null and mi_f.is_inside_tree() and int(st._patch_lvl.get(face, -1)) == lvl)])
+	return mi_f != null and mi_f.is_inside_tree() and int(st._patch_lvl.get(face, -1)) == lvl
+
 func _initialize() -> void:
 	await process_frame
 	var packed: PackedScene = load(GLOBE_SCENE)
@@ -239,6 +266,17 @@ func _initialize() -> void:
 	var Gen = preload("res://scenes/worlds/terrain_gen.gd")
 	var Sph = load("res://core/frame/math/spherical.gd")
 	var scr = load("res://scenes/worlds/globe_world.gd")
+	# THE COMPOSITION LAW (the race round's receipt): the probe FORCES
+	# patch levels (lvl 7 cap / lvl 6 web) while the live streamer's own
+	# LOD tick re-demands its own levels every frame and swaps/stashes a
+	# patch BETWEEN _load_patch and the read -- the anchor then reads a
+	# live set that no longer holds the covering face. The streamer's
+	# _process ALSO drives the async appliers, so it must NOT be frozen
+	# (the freeze hung the audit at the first big build: trace4). The
+	# fix is per-read instead: _ensure_patch re-checks the covering
+	# face's level AND tree attachment right before every read and
+	# reloads on a race; a patch the audit never gets in-place is an
+	# honest environment verdict, printed as such (still a FAIL).
 	var seed_b: PackedByteArray = st.world_seed
 	var tile_r: float = R + 0.52
 	print("radius=%.0f seed_ok=%s" % [R, str(seed_b.size() > 0)])
@@ -285,10 +323,15 @@ func _initialize() -> void:
 		st.update(zero * R)
 		await process_frame
 		plaza_face = st.current_face
-		st._load_patch(plaza_face, lvl)
-		await process_frame
+		if not await _ensure_patch(st, plaza_face, lvl):
+			print("FAIL: ANCHOR %s: the covering face %d never settled in-tree at its level (composition)" % [pass_tag, plaza_face])
+			_okay = false
+			continue
 		var walk0: float = st.walk_surface_h(zero)
 		var mesh0: float = _mesh_at(st, F, tile_r, zero, edge_m, Gen, seed_b)
+		if is_nan(mesh0):
+			if await _ensure_patch(st, plaza_face, lvl):
+				mesh0 = _mesh_at(st, F, tile_r, zero, edge_m, Gen, seed_b)
 		if is_nan(mesh0):
 			print("FAIL: ANCHOR %s: no land tile contained the near-vertex anchor" % pass_tag)
 			_okay = false
@@ -308,9 +351,7 @@ func _initialize() -> void:
 					_quit()
 					return
 			var face: int = st.current_face
-			if int(st._patch_lvl.get(face, -1)) != lvl:
-				st._load_patch(face, lvl)
-				await process_frame
+			await _ensure_patch(st, face, lvl)
 			var lvl_seen: int = int(st._patch_lvl.get(face, lvl))
 			var walk: float = st.walk_surface_h(d)
 			var terrain: float = Gen.terrain_height(d, seed_b)

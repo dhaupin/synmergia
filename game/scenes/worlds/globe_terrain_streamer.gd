@@ -164,6 +164,69 @@ const LOD_NEAR_BAND: float = 1.0515 * 1.05  # a hair past one tile edge
 const LOD_HYSTERESIS_MARGIN: float = 0.35   # outer band = inner x (1 + margin)
 const LOD_FAR_TICKS: int = 12               # ~0.2 s of consecutive far frames
 var _patch_lvl := {}  # int face -> int (the level the mesh was built at)
+
+## FACE16 TRACE (the corruption round): ENV-GATED build-time prints
+## (FACE16_TRACE=1; ships silent without it). The audit's receipts
+## say face 16's drawn verts are ~2.8 km off-law at BOTH levels and
+## byte-identical across reruns, while the corner-derivation law is
+## exact on neighbor faces -- so the question is WHICH LANE poisons
+## face 16: the derive (bad corners/wrong fill at build time), the
+## warm ring (a corrupt product stock/stash), or the async apply
+## (a mis-placed fresh install). These prints catch all three lanes
+## red-handed at the moment of the write: DERIVE (fv + corners +
+## unique-dir law truth), GRID (the first raw triangle's corner
+## heights as built vs law), STASH/STOCK (warm ring deed-in/deed-out
+## fingerprints), APPLY (the async product's landing stamp).
+const FACE16_TRACE_FACES := [16, 18, 10, 14, 6]
+var _face16_trace: bool = OS.get_environment("FACE16_TRACE") == "1"
+var _face16_budget := {}
+func _face16_print(msg: String) -> void:
+	print("[face16] " + msg)
+func _face16_traced(face: int) -> bool:
+	if not _face16_trace or not FACE16_TRACE_FACES.has(face):
+		return false
+	var n: int = int(_face16_budget.get(face, 0))
+	if n >= 24:
+		return false
+	_face16_budget[face] = n + 1
+	return true
+const TILE_LIFT_C := 0.0  # placeholder replaced below by the real const if it differs
+func _face16_audit(mesh: Mesh, face: int) -> void:
+	## Scan EVERY main-surface vert against the analytic law at its own
+	## direction (verts are local: world dir = (v + center).normalized).
+	## Prints the worst offenders so a law-dirty erected/stocked/applied
+	## product is caught AT THE WRITE, not re-derived from probe reads.
+	if mesh == null or mesh.get_surface_count() < 1:
+		return
+	var arrays: Array = mesh.surface_get_arrays(0)
+	var vs: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	if vs.size() < 1:
+		return
+	var center: Vector3 = FacePatches.face_center(face) * (radius + TILE_LIFT)
+	var tile_r: float = radius + TILE_LIFT
+	var worst := []
+	var maxdev: float = 0.0
+	var n_bad: int = 0
+	var step: int = maxi(1, int(vs.size()) / 24576)  # cap ~24k law evals per audit
+	for i in range(0, vs.size(), step):
+		var loc: Vector3 = vs[i]
+		var dirw: Vector3 = (loc + center).normalized()
+		var h: float = (loc + center).length() - tile_r
+		var lawh: float = TerrainGen.terrain_height(dirw, world_seed)
+		var dev: float = h - lawh
+		maxdev = maxf(maxdev, absf(dev))
+		if absf(dev) > 2.0:
+			n_bad += 1
+			worst.append("%d:%.1f(%+.1f)" % [i, h, dev])
+	worst = worst.slice(0, 4)
+	_face16_print("AUDIT face=%d sampled=%d maxdev=%.3f bad=%d worst=%s" % [face, int((vs.size() + step - 1) / step), maxdev, n_bad, str(worst)])
+
+func _face16_fp(mi: MeshInstance3D) -> String:
+	if mi == null or not is_instance_valid(mi) or mi.mesh == null:
+		return "NULL"
+	var arr: Array = mi.mesh.surface_get_arrays(0)
+	var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+	return "%dverts first=%s norm=%s" % [v.size(), str(v[0]) if v.size() > 0 else "EMPTY", str(v[1]) if v.size() > 1 else "-"]
 var _patch_far_ticks := {}  # int face -> int (consecutive far frames)
 var _face_reach_cache := {}  # int face -> float (center-angle reach, radians)
 
@@ -616,6 +679,14 @@ func _derive_mesh_data(face: int, use_lvl: int) -> Dictionary:
 	## height gradient per vertex. THE FUSED PASS: slopes derive from
 	## the QUANTIZED key reads (the pre-pass above populated them), so
 	## the tint pass is dict-only.
+	if _face16_traced(face):
+		var t0: Array = verts[0]
+		for i3 in range(3):
+			var v3c: Vector3 = t0[i3]
+			var d3: Vector3 = (v3c + center).normalized()
+			var k3: Vector3 = (d3 * 4096.0).floor()
+			var filled3: float = float(dir_h.get(k3, tile_r)) - tile_r
+			_face16_print("GRID tri0[%d] local=%s dir=%s filled=%.4f law=%.4f" % [i3, str(v3c), str(d3), filled3, TerrainGen.terrain_height(d3, world_seed)])
 	var st := SurfaceTool.new()
 	var face_skin := false  # the skin lane rode any vertex of the pass
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -807,6 +878,8 @@ func _erect_mesh(face: int, use_lvl: int, d: Dictionary) -> MeshInstance3D:
 		mi.set_surface_override_material(3, dmat)
 	mi.set_meta("deck_quads", int(d["deck_quads"]))
 	mi.set_meta("tris", int(d["tris"]))
+	if _face16_traced(face):
+		_face16_audit(mesh, face)
 	return mi
 
 
@@ -3568,6 +3641,8 @@ func _mesh_cache_stash(face: int, mi: MeshInstance3D, lvl_hint: int = -1) -> voi
 		mi.queue_free()
 		return  # half-built: nothing stockable
 	var key: String = _mesh_cache_key(face, lvl)
+	if _face16_traced(face):
+		_face16_print("STASH face=%d lvl=%d %s" % [face, lvl, _face16_fp(mi)])
 	if _mesh_cache.has(key):
 		# Same-key re-stash: the held node dies (fresh content won).
 		var old = _mesh_cache[key].get("mi")
@@ -3614,6 +3689,8 @@ func _mesh_cache_stock(face: int, use_lvl: int) -> MeshInstance3D:
 	_mesh_cache_epoch_valid()
 	var key: String = _mesh_cache_key(face, use_lvl)
 	var entry = _mesh_cache.get(key)
+	if _face16_traced(face):
+		_face16_print("STOCK face=%d lvl=%d hit=%s" % [face, use_lvl, _face16_fp(entry.get("mi")) if entry != null else "MISS"])
 	if entry != null:
 		_mesh_cache.erase(key)
 		_mesh_cache_order.erase(key)
@@ -3630,6 +3707,9 @@ func _mesh_cache_stock(face: int, use_lvl: int) -> MeshInstance3D:
 			_patch_tris[face] = int(entry.get("patch_tris", 0))
 			_patch_skirt_tris[face] = int(entry.get("skirt_tris", 0))
 			_patch_mats[face] = _patch_mats.get(face)  # untouched on hit
+			if _face16_budget.get(face, 0) < 24:
+				_face16_traced(face)
+				_face16_audit(mi2.mesh, face)
 			return mi2
 	return _build_mesh(face, use_lvl)
 
@@ -3747,6 +3827,13 @@ func _apply_derived_mesh(face: int) -> void:
 	_mesh_lane_ms += job_ms
 	_mesh_lane_ms_max = maxi(_mesh_lane_ms_max, job_ms)
 	var use_lvl: int = int(packed["lvl"])
+	if _face16_traced(face) and packed.get("data", {}) != null:
+		var d16: Dictionary = packed["data"]
+		var ma16: Array = d16.get("main_arrays", [])
+		var fp16: String = "%dtris" % int(d16.get("tris", -1))
+		if ma16 != null and ma16[Mesh.ARRAY_VERTEX] != null and (ma16[Mesh.ARRAY_VERTEX] as PackedVector3Array).size() > 0:
+			fp16 += " first=%s" % str((ma16[Mesh.ARRAY_VERTEX] as PackedVector3Array)[0])
+		_face16_print("APPLY face=%d lvl=%d %s" % [face, use_lvl, fp16])
 	# THE STALE-LEVEL LAW: the demand may have moved while the lane
 	# was in flight. A stale result is never WASTED -- the node is
 	# erected and banked into the warm ring at its built level (the
@@ -3767,6 +3854,9 @@ func _apply_derived_mesh(face: int) -> void:
 		# OLD built geometry first (the ring law), then swap.
 		var old_mi: MeshInstance3D = _patches.get(face)
 		if old_mi != null and is_instance_valid(old_mi):
+			if _face16_budget.get(face, 0) < 24:
+				_face16_traced(face)
+				_face16_audit(old_mi.mesh, face)
 			_mesh_cache_stash(face, old_mi)
 		var fresh: MeshInstance3D = _erect_mesh(face, use_lvl, packed["data"])
 		_props_move(face, fresh)
