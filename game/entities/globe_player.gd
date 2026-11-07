@@ -32,6 +32,14 @@ func _ds() -> Node:
 	var tree := Engine.get_main_loop() as SceneTree
 	return tree.root.get_node_or_null(NodePath("DataService")) if tree and tree.root else null
 
+func _notify_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("NotificationService")) if tree and tree.root else null
+
+## The toast kinds the Concord-loop interact legs use (mirrors the
+## planar controller's NotifKind preload).
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
 const GRAVITY_DEFAULT: float = 20.0
 const WALK_SPEED_DEFAULT: float = 6.0
 ## Height of the collision-sphere center above the surface.
@@ -471,6 +479,11 @@ func _ready() -> void:
 	# and PlayerProgress falls back to it too. Membership is the wiring; a
 	# consumer that needs a method the body lacks still guards with has_method.
 	add_to_group("players")
+	# THE CONCORD-LOOP INTERACT (planar-retirement Step 1): listen to the
+	# shared InputManager's "interact" action so E / gamepad A / touch ACT
+	# reaches the world's interactables (ancient doors, concord stones).
+	# Defensive + idempotent -- script-mode probes mount no InputManager.
+	_connect_interact_input()
 	# Touch auto-sprint: the joystick flips the same sprint flag the
 	# keyboard SHIFT does (defensive: headless/script contexts have no
 	# joystick mounted).
@@ -1405,3 +1418,101 @@ func _sea_swim_step(delta: float, up: Vector3, wish: Vector3) -> bool:
 	move_and_slide()
 	_validate_movement()
 	return true
+
+
+# ---- THE CONCORD-LOOP INTERACT (planar-retirement Step 1) ---------------
+#
+# The planar controller resolved E against the ancient_doors /
+# concord_stones groups; the globe body never carried that path, so the
+# Concord loop (once its props exist -- see globe_world._build_concord_loop)
+# had no way to be triggered on the planet the player actually plays.
+# These legs mirror player_controller's resolve law: nearest group member
+# within a 4 m reach, the entity's own try_interact returns the
+# {ok, message} contract, and the result toasts through NotificationService.
+
+## E-to-use radius for the Concord props (mirrors the planar controller).
+const CONCORD_INTERACT_RANGE: float = 4.0
+
+
+## Wire the shared InputManager's "interact" action to this body (the
+## planar controller's law: InputManager.player_input emits (action,
+## pressed); the globe body never listened). Defensive + idempotent --
+## script-mode probes mount no InputManager, and a re-enter must not
+## double-connect.
+func _connect_interact_input() -> void:
+	var im := _im()
+	if im == null or not im.has_signal("player_input"):
+		return
+	if not im.player_input.is_connected(_on_player_input):
+		im.player_input.connect(_on_player_input)
+
+
+func _on_player_input(action: String, pressed: bool) -> void:
+	if action == "interact" and pressed:
+		_try_interact()
+
+
+## Interact dispatch (E / gamepad A / touch ACT). The Concord loop's
+## props are the globe's interactables today; other world interactables
+## join this dispatch as they are ported (planar-retirement Steps 2-3).
+func _try_interact() -> void:
+	if _activate_nearby_ancient_door():
+		return
+	if _activate_nearby_concord_stone():
+		return
+
+
+## Nearest "ancient_doors" group member within reach; the door returns
+## the {ok, message} contract and the result toasts (mirrors
+## player_controller._activate_nearby_ancient_door).
+func _activate_nearby_ancient_door() -> bool:
+	var best: Node3D = _nearest_in_group("ancient_doors")
+	if best == null:
+		return false
+	var result: Dictionary = best.try_interact(self)
+	var notify := _notify_svc()
+	if notify != null:
+		notify.notify(
+			NotifKind.CUSTOM if bool(result.get("ok", false)) else NotifKind.SIGN_INSIGHT_RECORDED,
+			str(result.get("message", "")),
+			"AncientDoor",
+			"ancient:interact:%s:%d" % [str(best.name), Time.get_ticks_msec()],
+			{"door": str(best.name), "ok": bool(result.get("ok", false))}
+		)
+	return true
+
+
+## Nearest "concord_stones" group member within reach; the stone records
+## the window insight through SignService and returns the same contract.
+func _activate_nearby_concord_stone() -> bool:
+	var best: Node3D = _nearest_in_group("concord_stones")
+	if best == null:
+		return false
+	var result: Dictionary = best.try_interact(self)
+	var notify := _notify_svc()
+	if notify != null:
+		notify.notify(
+			NotifKind.CUSTOM if bool(result.get("ok", false)) else NotifKind.SIGN_INSIGHT_RECORDED,
+			str(result.get("message", "")),
+			"ConcordStone",
+			"concord:%s:%d" % [str(best.name), Time.get_ticks_msec()],
+			{"stone": str(best.name), "ok": bool(result.get("ok", false))}
+		)
+	return true
+
+
+## Nearest live group member within CONCORD_INTERACT_RANGE, or null.
+func _nearest_in_group(group: String) -> Node3D:
+	var best: Node3D = null
+	var best_dist: float = INF
+	for n in get_tree().get_nodes_in_group(group):
+		if n == null or not is_instance_valid(n) or not (n is Node3D):
+			continue
+		var d: float = global_position.distance_to((n as Node3D).global_position)
+		if d < best_dist:
+			best_dist = d
+			best = n
+	if best == null or best_dist > CONCORD_INTERACT_RANGE:
+		return null
+	return best
+

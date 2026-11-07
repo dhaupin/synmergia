@@ -153,6 +153,7 @@ func _ready() -> void:
 	_build_sun()
 	_build_sky_sun()
 	_build_sky_moon()
+	_build_sky_signs()
 	_bt("sky")
 	# Streamer FIRST: the player spawn height rides the terrain law
 	# (walk surface at the spawn direction), so the ground must exist
@@ -198,7 +199,7 @@ func _ready() -> void:
 ## every frame) and each attach tree-guarded so a scene swap or
 ## teardown mid-wave can never touch a dying tree.
 func _boot_waves() -> void:
-	for step: Callable in [_build_arena_gateway, _build_starter_village, _build_capitol_monolith, _build_pans_monolith, _build_pans_ferry, _build_sundered_barque, _install_garden_binder, _build_town_npcs, _setup_ambience]:
+	for step: Callable in [_build_arena_gateway, _build_starter_village, _build_capitol_monolith, _build_pans_monolith, _build_pans_ferry, _build_sundered_barque, _install_garden_binder, _build_town_npcs, _build_concord_loop, _setup_blessed_marks, _setup_ambience]:
 		await get_tree().process_frame
 		if not is_inside_tree() or is_queued_for_deletion():
 			return
@@ -772,6 +773,66 @@ func _build_sky_moon() -> void:
 		# and let the player adopt it after _build_player (the sun's
 		# fallback pattern; the adopt block re-parents it).
 		add_child(moon)
+
+
+## THE SKY SIGNS (planar-retirement Step 1): the Skyward Concord
+## constellation renderer -- purely visual, one per world. The planar
+## scene mounted it under itself; on the globe it rides under the
+## player (the sun/moon school) so it follows the local body. Sealed
+## windows render dim + patternless until the tribe reveals the glyph.
+func _build_sky_signs() -> void:
+	var sky_script: GDScript = load("res://entities/sky_sign_renderer.gd")
+	if sky_script == null:
+		return
+	var sky := Node3D.new()
+	sky.name = "SkySigns"
+	sky.set_script(sky_script)
+	if player != null:
+		player.add_child(sky)
+	else:
+		add_child(sky)
+		sky.set_meta("adopt_by_player", true)
+
+
+## THE CONCORD LOOP ON THE GLOBE (planar-retirement Step 1, the
+## flagship): the Ancient Door + the Concord Stone. Before this the
+## globe built neither, so `ActsService` (which scans the
+## "ancient_doors" group) never saw a door and the whole
+## watch-the-sky -> solve-the-day -> the-door-opens-at-dawn loop was
+## dead on the planet the player actually plays. The props ride the
+## village prop belt's own placement law (spawn tangent frame, lifted
+## by the walk surface) via VillageProps.build_concord.
+func _build_concord_loop() -> void:
+	var VP: GDScript = load("res://entities/village_props.gd")
+	VP.build_concord(world_root, planet_radius, STREAMER_TILE_LIFT, \
+		Callable(streamer, "walk_surface_h"))
+	var gl := _glog()
+	if gl:
+		gl.info("GlobeWorld: the Concord loop is live (Ancient Door + Concord Stone on the spawn plaza)")
+
+
+## THE BLESSED MARKS (planar-retirement Step 1): the shard's chosen
+## class wears the sky's favor (mote ring + halo) -- one BlessedMark
+## per player body, live-checked on a cadence inside the mark. Ported
+## from world_playable._setup_blessed_marks; the mark is parented to
+## the body so it rides the player.
+func _setup_blessed_marks() -> void:
+	var mark_script: GDScript = load("res://entities/blessed_mark.gd")
+	if mark_script == null:
+		return
+	for p in get_tree().get_nodes_in_group("players"):
+		if not is_instance_valid(p) or not ("character_class" in p):
+			continue
+		if p.get_node_or_null("BlessedMark") != null:
+			continue
+		var mark := Node3D.new()
+		mark.name = "BlessedMark"
+		mark.set_script(mark_script)
+		p.add_child(mark)
+		mark.set_wearer(str(p.character_class), p)
+		var gl := _glog()
+		if gl:
+			gl.info("GlobeWorld: BlessedMark on %s (%s)" % [str(p.entity_id), str(p.character_class)])
 
 
 
@@ -1468,6 +1529,12 @@ func _build_player() -> void:
 		sky_moon.position = Vector3.ZERO
 		sky_moon.get_parent().remove_child(sky_moon)
 		player.add_child(sky_moon)
+	# Adopt the sky signs (the Concord constellation): built before the
+	# player existed, so it rides the same celestial frame (Step 1).
+	var sky_signs := get_node_or_null("SkySigns")
+	if sky_signs != null:
+		sky_signs.get_parent().remove_child(sky_signs)
+		player.add_child(sky_signs)
 	player.begin_loop()
 	# WORLD ENTRY (round 7, item 3): world_playable emits
 	# player_entered_world so StarterKitService grants the kit; the

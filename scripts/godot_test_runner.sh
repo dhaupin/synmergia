@@ -54,6 +54,7 @@ test_tick_n017_cleanup
 test_tick_phase2_systems
 test_combat_stack_live
 test_globe_player_players_group
+test_globe_concord_loop
 test_globe_autosave_guard
 test_blessed_mark
 test_mysteries

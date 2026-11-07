@@ -61,6 +61,18 @@ const CAPITOL_BATCH: Array = [
 	["concord_shrine", "ConcordSinkShrine", -95.0, 0.007],
 ]
 
+## THE CONCORD LOOP BELT (planar-retirement Step 1): the Ancient Door
+## and the Concord Stone. These are INTERACT props, so their reach is
+## in METERS from the spawn plaza -- the radian reach the village belt
+## uses spreads props 240+ m out, which is fine for scenery but puts an
+## E-to-use prop far outside the 4 m interact range. Meter reach keeps
+## them a short walk from spawn at every planet scale.
+const CONCORD_BATCH: Array = [
+	# kind, name, bearing_deg, reach_m
+	["ancientdoor", "AncientDoor", -40.0, 7.0],
+	["concordstone", "ConcordStone", 40.0, 7.0],
+]
+
 
 ## Build the village prop belt under `village_root` (globe world's
 ## StarterVillage node). The plaza frame is the spawn plaza's own:
@@ -69,6 +81,16 @@ static func build_village(village_root: Node3D, planet_radius: float,
 		surface_lift: float, walk_surface_h: Callable) -> void:
 	var spawn: Vector3 = TerrainGen.SPAWN_CENTER
 	_build_batch(village_root, spawn, VILLAGE_BATCH, planet_radius,
+		surface_lift, walk_surface_h)
+
+
+## The Concord loop (Ancient Door + Concord Stone) under `root`, placed
+## in METER reach from the spawn plaza (see CONCORD_BATCH). The globe
+## world's live Concord loop lives here.
+static func build_concord(root: Node3D, planet_radius: float,
+		surface_lift: float, walk_surface_h: Callable) -> void:
+	var spawn: Vector3 = TerrainGen.SPAWN_CENTER
+	_build_batch_meters(root, spawn, CONCORD_BATCH, planet_radius,
 		surface_lift, walk_surface_h)
 
 
@@ -100,6 +122,28 @@ static func _build_batch(root: Node3D, center: Vector3, batch: Array,
 			root.add_child(node)
 
 
+## Same batch law as `_build_batch`, but `reach` is METERS of arc along
+## the surface (angular offset = reach / planet_radius). Interact props
+## need a fixed short walk from spawn at every scale, which a radian
+## reach cannot give (0.014 rad is 280 m on the 20 km planet).
+static func _build_batch_meters(root: Node3D, center: Vector3, batch: Array,
+		planet_radius: float, surface_lift: float, walk_surface_h: Callable) -> void:
+	var east: Vector3 = Vector3(0, 1, 0).cross(center).normalized()
+	var north: Vector3 = center.cross(east).normalized()
+	for entry in batch:
+		var kind: String = entry[0]
+		var pname: String = entry[1]
+		var bearing: float = deg_to_rad(float(entry[2]))
+		var reach_rad: float = float(entry[3]) / maxf(planet_radius, 1.0)
+		var dir: Vector3 = (center + east * (reach_rad * cos(bearing)) \
+				+ north * (reach_rad * sin(bearing))).normalized()
+		var pos: Vector3 = dir * (planet_radius + surface_lift \
+				+ float(walk_surface_h.call(dir)))
+		var node: Node3D = _instantiate(kind, pname, pos, dir)
+		if node != null:
+			root.add_child(node)
+
+
 ## One kind factory. Returns a configured Node3D (already positioned
 ## in world space) or null when the script is unavailable.
 static func _instantiate(kind: String, pname: String, pos: Vector3,
@@ -113,7 +157,46 @@ static func _instantiate(kind: String, pname: String, pos: Vector3,
 			return _bout_stones(pname, pos, dir)
 		"concord_shrine":
 			return _concord_shrine(pname, pos, dir)
+		"ancientdoor":
+			return _ancient_door(pname, pos, dir)
+		"concordstone":
+			return _concord_stone(pname, pos, dir)
 	return null
+
+
+# ---- THE ANCIENT DOOR (entities/ancient_door.gd) -----------------------
+
+## The Concord Chronicle's door: the slab the tribe's watching opens at
+## dawn. The entity owns its own state machine (adds itself to
+## "ancient_doors", emits door_opened); the prop only SETS identity +
+## position, exactly like the ankh and moon gate above.
+static func _ancient_door(pname: String, pos: Vector3, dir: Vector3) -> Node3D:
+	var script: GDScript = load("res://entities/ancient_door.gd")
+	if script == null:
+		return null
+	var door: Node3D = script.new()
+	door.name = pname
+	door.set("display_name", "The First Ancient")
+	door.position = pos
+	_align_radial(door, dir)
+	return door
+
+
+# ---- THE CONCORD STONE (entities/concord_stone.gd) ---------------------
+
+## The player's window-insight trigger: press E to record a sky gaze
+## (the stone adds itself to "concord_stones"; SignService owns the
+## state). Same prop-only contract as the door.
+static func _concord_stone(pname: String, pos: Vector3, dir: Vector3) -> Node3D:
+	var script: GDScript = load("res://entities/concord_stone.gd")
+	if script == null:
+		return null
+	var stone: Node3D = script.new()
+	stone.name = pname
+	stone.set("display_name", "The Haven Stone")
+	stone.position = pos
+	_align_radial(stone, dir)
+	return stone
 
 
 # ---- THE ANKH (core/schemas/ankh.gd, class_name Ankh) ------------------
