@@ -1371,9 +1371,20 @@ func _spawn_town_npc(npc_id: String, center: Vector3, bearing_deg: float,
 		return
 	var east: Vector3 = Vector3(0, 1, 0).cross(center).normalized()
 	var north: Vector3 = center.cross(east).normalized()
+	# THE BENCH-CLEAR REACH (the same law starter_village.build carries):
+	# the authored reaches are ANGULAR (the planet-scale layout), but a
+	# bench/prototype radius collapses them to ~1 m -- 17 solid NPC bodies
+	# piled on the spawn and boxed the player in (the globe probe's auto-
+	# walk wedged at 6.5 m against a town merchant). Pad every reach out to
+	# a scale-free 8 m floor when the radius is a bench; the planet keeps
+	# the authored layout (floor 0 above 1000 m).
+	var reach_floor: float = maxf(0.0, 8.0 / maxf(planet_radius, 1.0))
+	if planet_radius > 1000.0:
+		reach_floor = 0.0
+	var eff_reach: float = maxf(reach, reach_floor)
 	var rad: float = deg_to_rad(bearing_deg)
-	var dir: Vector3 = (center + east * (reach * cos(rad)) \
-		+ north * (reach * sin(rad))).normalized()
+	var dir: Vector3 = (center + east * (eff_reach * cos(rad)) \
+		+ north * (eff_reach * sin(rad))).normalized()
 	var surface: Vector3 = dir * (planet_radius + STREAMER_TILE_LIFT \
 		+ float(streamer.walk_surface_h(dir)) + 0.4)
 	var zone_id: String = str(npc_data.get("zone_id")) if "zone_id" in npc_data else ""

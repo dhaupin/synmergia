@@ -6,6 +6,55 @@ Persistent memory across resets for Synmergia development.
 commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
+
+## 2026-11-07 -- probe_globe_world FIXED + parallel-runner confirmed (runners rework round)
+
+The owner reworked the CI runners (parallel-style) and asked for: (a) docs
+that still claimed a 90-minute serial sweep to be corrected, (b) `probe_globe_world`
+fixed, (c) the parallel runners confirmed correct, then (d) move on.
+
+**T1 -- runner docs.** No stale "90-minute serial march" claim remains: `AGENTS.md`
+already reads "THE FULL SWEEP STOPPED BEING A 90-MINUTE SERIAL MARCH", and the only
+other mentions (`scripts/godot_test_parallel.sh` header, `web-ci.yml:188`) are the
+honest "old loop was ~90 min" historical context. No edit needed.
+
+**T3 -- parallel runner confirmed.** `scripts/godot_test_parallel.sh` is real and
+correct: warm single-threaded import first, JOBS capped at 2x cores AND a
+`MemAvailable`/1536 MiB memory cap, per-test boot + per-test timeout (240 s default,
+600 s for the continent shards), `/tmp/syn_*.log`, `--resume` ledger (skip passed,
+append passes), and a SERIAL phase (JOBS=1) for the timing-sensitive movement probes
+(`probe_planet_control_100m`, `probe_globe_world`, the 20 km walk/rebase, riding/climb/
+glider/thermals) so CPU contention can never fake a movement regression. `web-ci.yml`'s
+Optional Full Test Suite runs `--all -j 4` (non-gating). Verified live: 3-test smoke
+`3 passed, 0 failed` in 5 s wall at `-j 3`; the serial phase ran `probe_globe_world`
+alone and PASSED (44 s).
+
+**T2 -- `probe_globe_world` fixed (two root causes, both pre-existing).**
+
+1. THE TOWN-NPC WEDGE. At the probe's pinned prototype radius (100 m) the town
+   roster's ANGULAR reaches (`VILLAGE_NPC_BATCH`, 0.009-0.013 rad -- authored for the
+   20 km planet) collapse to ~1 m, stacking 17 solid `offering_npcs` bodies onto the
+   spawn; the blind auto-walker dead-stopped at 6.5 m against `MerchantGeneral`
+   (`vel=(0,0,0)`, grounded, 6 slide contacts). `starter_village.gd` already carries
+   the fix for exactly this class -- THE BOOT-CLEAR REACH (`reach_floor = 8 m / R` when
+   `R <= 1000`, else 0) -- but `globe_world._spawn_town_npc` was written without it.
+   FIX: mirror the same law there (`reach_floor`/`eff_reach`), so the planet keeps the
+   authored layout byte-identically (floor 0 above 1000 m) and the bench gets an 8 m
+   ring. Evidence: removing the NPCs post-boot let the same walker reach 181.7 m;
+   pushing them to a meter ring reached the full 250 m.
+
+2. THE NORTH-POLE STALL. With the wedge gone the walk completed but "glued after
+   walk" failed: `auto_walk` follows the CAMERA heading (commit `eb60be6c`, camera-
+   relative walk) and the default pivot faces NORTH -- at R=100 a 250 m walk overshoots
+   the pole (90 deg = ~157 m) and the body stalls in the degenerate pole frame, sinking
+   3.4 m below the walk surface. The probe's own comment documents an EQUATOR walk
+   (theta = 2.475 rad = 141.8 deg, ratio 1.31). FIX: aim the probe's walk EAST with the
+   `auto_walk_yaw` offset (`-PI/2`), honoring the documented path.
+
+Receipt: `probe_globe_world` 23/23 PASS, exit 0 (was `walked 6.5` FAIL). No regression:
+`probe_starter_village` 48/48, `test_item_catalog` 10/0. Files: `game/scenes/worlds/globe_world.gd`
+(`_spawn_town_npc` bench-clear reach), `game/tests/probe_globe_world.gd` (equator walk).
+
 ## 2026-11-04 -- the PlayerBase keystone (planar-retirement Step 0)
 
 The planar-retirement arc's keystone landed: a shared `PlayerBase`

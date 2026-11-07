@@ -54,7 +54,13 @@ func _run() -> void:
 	_shoot("globe_stage1")
 
 	# Stage 2: walk ~250 m along the equator (real physics ticks).
+	# auto_walk follows the CAMERA heading (the camera-relative walk),
+	# and the default pivot faces north -- at the bench radius 250 m is
+	# past the pole (90 deg = ~157 m), so the blind walk stalls in the
+	# pole's degenerate frame. Aim the walk EAST along the equator (the
+	# documented path) with the auto_walk_yaw offset.
 	player.begin_loop()
+	player.auto_walk_yaw = -PI / 2.0
 	player.auto_walk = true
 	var elapsed: float = 0.0
 	var dt: float = 1.0 / 60.0
@@ -62,6 +68,7 @@ func _run() -> void:
 		await root.get_tree().physics_frame
 		elapsed += dt
 	player.auto_walk = false
+	player.auto_walk_yaw = 0.0
 	var walked: float = player.path_walked
 	ok = _check("walked ~250 m (got %.1f)" % walked, abs(walked - WALK_DISTANCE_METERS) < 30.0) and ok
 
