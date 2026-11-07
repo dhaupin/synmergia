@@ -7,6 +7,35 @@ commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
 
+## 2026-11-07 -- planar-retirement STEP 4 SHIPPED (the declared-content law)
+
+**Goal:** stop the two-worlds drift from ever recurring
+(`labs/prd-planar-retirement.md` Step 4) -- the durable fix.
+
+**The builder.** `game/core/world/world_content_builder.gd` (RefCounted,
+no autoload / no class_name) is the declared-content law: a world
+`declare()`s an ordered manifest and `add_family()`s one builder per
+family; `build_one` / `build_all` run the manifest in DECLARED order and
+report any family left WITHOUT a builder (`missing_builders`) or that
+refuses (`failed_families`). "The globe is missing X" is now a
+declaration-time check, never a silent gap.
+
+**The globe declares.** `globe_world.gd` grew `CONTENT_MANIFEST` (the 17
+ordered families it hosts) and `_boot_waves` now registers one builder
+per family and runs them through the builder, with a boot-time gap gate
+that logs an ERROR if any declared family lacks a builder. The inline
+`for step in [...]` array is gone -- the declaration is the single
+source of truth.
+
+**Receipt:** `game/tests/test_world_content_builder.gd` (15 checks, exit
+0): declared order (not registration order), the gap gate, the refusal
+gate, the swap law, and the LIVE globe manifest (17/17 backed, no gap).
+Registered in `scripts/godot_test_runner.sh` DEFAULT_SET. Gates: lint
+5+7+13/0, gates 29/0, wildlife 23/0, concord 23/0, players_group 5/0,
+autosave 6/0.
+
+**Next:** Step 5 (flip the default + delete the planar world).
+
 ## 2026-11-07 -- planar-retirement STEP 3 SHIPPED (globe gates + guards + portal + housing)
 
 **Goal:** port the remaining planar world content to the globe

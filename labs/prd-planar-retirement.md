@@ -279,6 +279,20 @@ five legs on a live globe boot. Registered in the runner DEFAULT_SET.
 
 ## Step 4 -- extract WorldContentBuilder (the durable fix)
 
+**STATUS: DONE (2026-11-07).** `game/core/world/world_content_builder.gd`
+(a `RefCounted`, no autoload / no class_name -- the VillageProps family)
+is the declared-content law: a world `declare()`s an ordered manifest and
+`add_family()`s one builder per family; `build_one` / `build_all` run the
+manifest in DECLARED order and report any family left without a builder
+(`missing_builders`) or that refuses (`failed_families`) LOUD.
+`globe_world.gd` now declares `CONTENT_MANIFEST` (17 families) and
+`_boot_waves` registers a builder per family and runs them through the
+builder, with a boot-time gap gate that logs an ERROR if any declared
+family lacks a builder. Receipt `game/tests/test_world_content_builder.gd`
+(15 checks, exit 0): declared order, the gap gate, the refusal gate, the
+swap law, and the live globe manifest (17/17 backed, no gap). Registered
+in the runner DEFAULT_SET.
+
 - A world scene DECLARES its content; the builder places it. Then "the
   globe is missing X" is impossible -- X is declared once. This is what
   stops the drift from ever recurring.

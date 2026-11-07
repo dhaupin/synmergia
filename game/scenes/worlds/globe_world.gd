@@ -248,13 +248,75 @@ func _ready() -> void:
 	_boot_waves()
 
 
+## THE DECLARED CONTENT MANIFEST (planar-retirement Step 4). This is the
+## globe's content list, ONCE -- the ordered families the world hosts.
+## The WorldContentBuilder runs it and reports any declared family with
+## no builder LOUD, so "the globe is missing X" can never ship silently
+## again (the drift that produced the planar-retirement debt).
+const CONTENT_MANIFEST: Array = [
+	"arena_gateway",
+	"starter_village",
+	"capitol_monolith",
+	"pans_monolith",
+	"pans_ferry",
+	"sundered_barque",
+	"garden_binder",
+	"town_npcs",
+	"wildlife",
+	"transit_gates",
+	"town_watch",
+	"dungeon_portal",
+	"housing",
+	"starter_quests",
+	"concord_loop",
+	"blessed_marks",
+	"ambience",
+]
+
+## The declared content driver (built in _boot_waves; the receipt reads
+## its report to prove every declared family is backed by a builder).
+var content_builder = null
+
 ## THE BOOT WAVES (the loading-speed round): the world's ensuite
 ## builds land across frames after the playable core, each wave a
 ## frame apart (the wasm main thread gets its render budget back
 ## every frame) and each attach tree-guarded so a scene swap or
 ## teardown mid-wave can never touch a dying tree.
+##
+## PLANAR-RETIREMENT STEP 4: the wave list is no longer a bare inline
+## array -- the globe DECLARES CONTENT_MANIFEST and registers one
+## builder per family on a WorldContentBuilder; the builder runs the
+## manifest in declared order and reports any family left without a
+## builder. The declaration is the single source of truth for what the
+## globe contains.
 func _boot_waves() -> void:
-	for step: Callable in [_build_arena_gateway, _build_starter_village, _build_capitol_monolith, _build_pans_monolith, _build_pans_ferry, _build_sundered_barque, _install_garden_binder, _build_town_npcs, _build_globe_enemies, _build_globe_gates, _build_globe_guards, _build_globe_portal, _build_globe_housing, _accept_starter_quests, _build_concord_loop, _setup_blessed_marks, _setup_ambience]:
+	var builder = load("res://core/world/world_content_builder.gd").new()
+	builder.declare(CONTENT_MANIFEST)
+	builder.add_family("arena_gateway", _build_arena_gateway)
+	builder.add_family("starter_village", _build_starter_village)
+	builder.add_family("capitol_monolith", _build_capitol_monolith)
+	builder.add_family("pans_monolith", _build_pans_monolith)
+	builder.add_family("pans_ferry", _build_pans_ferry)
+	builder.add_family("sundered_barque", _build_sundered_barque)
+	builder.add_family("garden_binder", _install_garden_binder)
+	builder.add_family("town_npcs", _build_town_npcs)
+	builder.add_family("wildlife", _build_globe_enemies)
+	builder.add_family("transit_gates", _build_globe_gates)
+	builder.add_family("town_watch", _build_globe_guards)
+	builder.add_family("dungeon_portal", _build_globe_portal)
+	builder.add_family("housing", _build_globe_housing)
+	builder.add_family("starter_quests", _accept_starter_quests)
+	builder.add_family("concord_loop", _build_concord_loop)
+	builder.add_family("blessed_marks", _setup_blessed_marks)
+	builder.add_family("ambience", _setup_ambience)
+	content_builder = builder
+	# THE GAP GATE: a declared family with no builder is logged LOUD
+	# before the waves even run (the declaration and the placement
+	# must agree; a mismatch is a code error, not a lore choice).
+	var missing: Array = builder.missing_builders()
+	if not missing.is_empty():
+		_log_backend("error", "GlobeWorld: content manifest declares %s with NO builder -- the world would ship a gap" % str(missing))
+	for family in builder.manifest():
 		await get_tree().process_frame
 		if not is_inside_tree() or is_queued_for_deletion():
 			return
@@ -263,8 +325,8 @@ func _boot_waves() -> void:
 		## GameLog watch) can see the world filling in AFTER the overlay
 		## is already down.
 		if OS.get_environment("BOOT_TRACE") == "1":
-			print("[bootwave] + %s (%d ms after ready)" % [str(step.get_method()), Time.get_ticks_msec() - _boot_start_ms])
-		step.call()
+			print("[bootwave] + %s (%d ms after ready)" % [str(family), Time.get_ticks_msec() - _boot_start_ms])
+		builder.build_one(family)
 	## THE WAVES-DONE STAMP: the probe reads this meta as the honest
 	## "world is fully dressed" moment; a meta ABSENT after 90 s is the
 	## environment verdict (old boots carry no stamp at all).

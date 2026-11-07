@@ -57,6 +57,7 @@ test_globe_player_players_group
 test_globe_concord_loop
 test_globe_wildlife
 test_globe_gates_guards
+test_world_content_builder
 test_globe_autosave_guard
 test_blessed_mark
 test_mysteries
