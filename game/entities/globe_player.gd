@@ -513,6 +513,13 @@ func _ready() -> void:
 	# Anticheat stamp (the planar controller's law): the validator
 	# needs a jump ceiling for this body or any hop reads as a hack.
 	_call_deferred_stamp()
+	# COMBAT SURFACE (planar-retirement Step 2): load the class skillbar
+	# and attach the effect stack. Both are inherited from PlayerBase; the
+	# globe body never called them, so its ActionBar no-oped and live
+	# DoTs/CCs could not land. Resolves defensively (script-mode probes
+	# mount no autoloads).
+	_setup_starting_skills()
+	_ensure_effect_stack(true)
 
 func _on_sprint_override(active: bool) -> void:
 	_sprint_override_on = active

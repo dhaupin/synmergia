@@ -132,15 +132,13 @@ func _hub() -> Node:
 
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const SkillBook = preload("res://core/schemas/skill_book.gd")
-const Skill = preload("res://core/combat/skill.gd")
+# Skill + the combat-surface consts (Entity, AuraComponentScript,
+# CombatComponentScript) are inherited from PlayerBase.
 const StateMachine = preload("res://core/state/state_machine_base.gd")
 const ActionMenu = preload("res://ui/components/action_menu.gd")
 const InventoryComponent = preload("res://core/components/inventory_component.gd")
-# Entity is not an autoload (class_name only). PlayerController
-# uses Entity.EntityType.X and `: Entity` type annotations, which
-# require Entity's class_name registered at parse time. Preload it
-# here -- no shadow: Entity is a class_name, not an autoload.
-const Entity = preload("res://core/entities/entity.gd")
+# Entity.EntityType.X and `: Entity` annotations resolve through the
+# PlayerBase-inherited Entity const (no shadow: Entity is a class_name).
 const BlacksmithUI = preload("res://ui/components/blacksmith_ui.gd")
 const WorkbenchUI = preload("res://ui/components/workbench_ui.gd")
 # Named collision bits (round 10): data/physics_layers/ LayerProfile.
@@ -169,10 +167,7 @@ const SkillAcademyUI = preload("res://ui/components/skill_academy_ui.gd")
 @export var crouch_speed: float = 2.0  # COD-style crouch-walk speed
 @export var void_kill_y: float = -25.0  # below this Y the void safety net fires
 
-# Combat
-@export var basic_attack: Skill = null
-@export var skillbar: Array = []
-@export var attack_range: float = 2.5
+# Combat: basic_attack / skillbar / attack_range are inherited from PlayerBase.
 
 # State
 @export var can_air_dodge: bool = true
@@ -1611,132 +1606,6 @@ func _find_and_set_nearest_target() -> void:
 			Entity.EntityType.ENEMY
 		)
 		is_targeting = true
-
-## SKILL SYSTEM
-
-## Populate the skillbar from the character's class data. The class
-## schema (core/schemas/character_class.gd) declares starting_skills;
-## _ds() resolves the ids to loaded Skill resources. Was never
-## called before, so the skillbar (and thus keys 1-8) started empty.
-func _setup_starting_skills() -> void:
-	if not skillbar.is_empty():
-		return
-	var class_data = null
-	var char_data = _gm().selected_character_data if is_instance_valid(_gm()) else null
-	if char_data != null and "class_data" in char_data and char_data.class_data != null:
-		class_data = char_data.class_data
-	else:			# Boot paths without login (demo scene, showcases) run the
-			# default class; CharacterData.class_id defaults to human_warrior.
-		var class_id: String = "human_warrior"
-		if char_data != null and "class_id" in char_data and str(char_data.class_id) != "":
-			class_id = str(char_data.class_id)
-		if is_instance_valid(_ds()) and _ds().has_method("get_character_class"):
-			class_data = _ds().get_character_class(class_id)
-	# Keep can_cast's class gate consistent with the skillbar source.
-	if class_data != null and "id" in class_data and str(class_data.id) != "":
-		character_class = str(class_data.id)
-	if class_data == null or not ("starting_skills" in class_data) \
-			or class_data.starting_skills.is_empty():
-		return
-	for skill_id: String in class_data.starting_skills:
-		if is_instance_valid(_ds()) and _ds().has_method("get_skill"):
-			var schema = _ds().get_skill(skill_id)
-			if schema != null:
-				# .tres skills load as SkillSchema; the skillbar + combat
-				# pipeline run on the runtime Skill class.
-				skillbar.append(Skill.from_schema(schema))
-	if not skillbar.is_empty():
-		var gl := _glog()
-		if gl:
-			gl.info("Player skillbar loaded: %d starting skill(s)" % skillbar.size())
-
-
-## COMBAT EFFECT STACK (R28)
-# Status-effect surface mirroring Entity's block so live DoTs/CCs can
-# land on the player (the hitbox sweep calls target.apply_status_effect
-# on whichever family it hits).
-const AuraComponentScript = preload("res://core/components/aura_component.gd")
-const CombatComponentScript = preload("res://core/components/combat_component.gd")
-
-var status_effects: Array = []
-var aura_component = null
-var combat_component = null
-
-func _ensure_effect_stack(with_combat: bool = false) -> void:
-	if aura_component == null:
-		aura_component = AuraComponentScript.new()
-		add_child(aura_component)
-	if with_combat and combat_component == null:
-		combat_component = CombatComponentScript.new()
-		add_child(combat_component)
-
-func apply_status_effect(effect) -> void:
-	if effect == null or effect.is_expired():
-		return
-	status_effects.append(effect)
-	effect.apply(self)
-	# effect_expired is a no-arg signal; bind the effect so the handler
-	# receives it (same reasoning as Entity).
-	effect.effect_expired.connect(_on_status_effect_expired.bind(effect))
-	# Ticks apply through StatusEffect._apply_tick_effect (R31 canonical:
-	# duck-typed take_damage/heal with the effect's source). No local
-	# tick_occurred connect -- a handler here would DOUBLE-apply damage.
-
-func _on_status_effect_expired(effect) -> void:
-	status_effects.erase(effect)
-	if aura_component:
-		aura_component.untrack_effect(effect)
-
-func remove_status_effect(effect) -> void:
-	if status_effects.has(effect):
-		effect.remove(self)
-		status_effects.erase(effect)
-		if aura_component:
-			aura_component.untrack_effect(effect)
-
-func clear_all_status_effects() -> void:
-	for effect in status_effects:
-		effect.remove(self)
-		if aura_component:
-			aura_component.untrack_effect(effect)
-	status_effects.clear()
-
-
-func use_skill(slot: int) -> void:
-	if slot < 0 or slot >= skillbar.size():
-		return
-
-	var skill: Skill = skillbar[slot]
-	if skill and skill.can_cast(self):
-		# Get target from _tm()
-		var target: Node = null
-		var target_info: Variant = _tm().get_current_target()
-		if target_info:
-			target = target_info.node
-
-		# Route through the component when present (GCD, casting state,
-		# anticheat); it forwards the hitbox family to _cs() itself,
-		# so the live execution path is unchanged.
-		if combat_component:
-			if skill.is_ground_targeted:
-				combat_component.execute_skill(skill, null, _get_ground_target_position(skill.ground_target_range))
-			else:
-				combat_component.execute_skill(skill, target)
-			return
-
-		# Legacy fallback (no component attached)
-		if skill.is_ground_targeted:
-			var ground_pos := _get_ground_target_position(skill.ground_target_range)
-			_cs().execute_skill(self, skill, null, ground_pos)
-		else:
-			_cs().execute_skill(self, skill, target as Entity)
-
-func _get_ground_target_position(max_range: float) -> Vector3:
-	var direction: Vector2 = _im().last_direction
-	if direction == Vector2.ZERO:
-		direction = Vector2(0, -1)  # Default forward
-
-	return _cs().get_ground_target_position(self, direction, max_range)
 
 ## TARGETING
 

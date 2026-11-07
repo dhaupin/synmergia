@@ -285,3 +285,149 @@ func remove_currency(currency_id: String, amount: int) -> bool:
 	if comp != null and is_instance_valid(comp) and comp.has_method("remove_currency"):
 		return bool(comp.remove_currency(currency_id, amount))
 	return false
+
+# --- Combat surface (cast + effect stack) ---------------------------------
+## WHY THIS LIVES HERE: the ActionBar casts through `player.use_skill(slot)`
+## and the hitbox sweep calls `target.apply_status_effect(...)` on whatever it
+## hits. The planar controller carried both; the globe body did not, so on the
+## planet the ActionBar no-oped and live DoTs/CCs could not land -- the same
+## two-worlds drift PlayerBase exists to close (labs/prd-planar-retirement.md
+## Step 2). Both bodies now inherit the surface; the skillbar is the only
+## per-body state (each body loads its own from class data).
+const Skill = preload("res://core/combat/skill.gd")
+const Entity = preload("res://core/entities/entity.gd")
+const AuraComponentScript = preload("res://core/components/aura_component.gd")
+const CombatComponentScript = preload("res://core/components/combat_component.gd")
+
+@export var basic_attack: Skill = null
+@export var skillbar: Array = []
+@export var attack_range: float = 2.5
+
+var status_effects: Array = []
+var aura_component = null
+var combat_component = null
+
+## Runtime autoload lookups (script-mode-safe; bare identifiers fail to
+## compile when autoloads are absent).
+func _tm() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("TargetingManager")) if tree and tree.root else null
+
+func _cs() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("CombatSystem")) if tree and tree.root else null
+
+func _ds() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("DataService")) if tree and tree.root else null
+
+func _gm() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameManager")) if tree and tree.root else null
+
+func _im() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("InputManager")) if tree and tree.root else null
+
+## Populate the skillbar from the character's class data (idempotent). The
+## class's starting_skills resolve to runtime Skill resources; boot paths
+## without login run the default class so keys 1-8 are actually castable.
+func _setup_starting_skills() -> void:
+	if not skillbar.is_empty():
+		return
+	var class_data = null
+	var char_data = _gm().selected_character_data if is_instance_valid(_gm()) else null
+	if char_data != null and "class_data" in char_data and char_data.class_data != null:
+		class_data = char_data.class_data
+	else:
+		var class_id: String = "human_warrior"
+		if char_data != null and "class_id" in char_data and str(char_data.class_id) != "":
+			class_id = str(char_data.class_id)
+		if is_instance_valid(_ds()) and _ds().has_method("get_character_class"):
+			class_data = _ds().get_character_class(class_id)
+	# Keep can_cast's class gate consistent with the skillbar source.
+	if class_data != null and "id" in class_data and str(class_data.id) != "":
+		character_class = str(class_data.id)
+	if class_data == null or not ("starting_skills" in class_data) \
+			or class_data.starting_skills.is_empty():
+		return
+	for skill_id: String in class_data.starting_skills:
+		if is_instance_valid(_ds()) and _ds().has_method("get_skill"):
+			var schema = _ds().get_skill(skill_id)
+			if schema != null:
+				skillbar.append(Skill.from_schema(schema))
+	if not skillbar.is_empty():
+		var gl := _glog()
+		if gl:
+			gl.info("Player skillbar loaded: %d starting skill(s)" % skillbar.size())
+
+## Attach the effect stack (aura tracker + optional GCD/casting component).
+## The hitbox sweep calls apply_status_effect on whatever family it hits, so
+## every player body needs this to receive live DoTs/CCs.
+func _ensure_effect_stack(with_combat: bool = false) -> void:
+	if aura_component == null:
+		aura_component = AuraComponentScript.new()
+		add_child(aura_component)
+	if with_combat and combat_component == null:
+		combat_component = CombatComponentScript.new()
+		add_child(combat_component)
+
+func apply_status_effect(effect) -> void:
+	if effect == null or effect.is_expired():
+		return
+	status_effects.append(effect)
+	effect.apply(self)
+	# effect_expired is a no-arg signal; bind the effect so the handler
+	# receives it (same reasoning as Entity). Ticks apply through
+	# StatusEffect._apply_tick_effect (duck-typed take_damage/heal) -- no
+	# local tick_occurred connect, which would DOUBLE-apply damage.
+	effect.effect_expired.connect(_on_status_effect_expired.bind(effect))
+
+func _on_status_effect_expired(effect) -> void:
+	status_effects.erase(effect)
+	if aura_component:
+		aura_component.untrack_effect(effect)
+
+func remove_status_effect(effect) -> void:
+	if status_effects.has(effect):
+		effect.remove(self)
+		status_effects.erase(effect)
+		if aura_component:
+			aura_component.untrack_effect(effect)
+
+func clear_all_status_effects() -> void:
+	for effect in status_effects:
+		effect.remove(self)
+		if aura_component:
+			aura_component.untrack_effect(effect)
+	status_effects.clear()
+
+## Cast the skill bound to a skillbar slot (ActionBar keys 1-8 / touch). The
+## target resolves from the shared TargetingManager; the component path owns
+## the GCD/casting/anticheat surface when mounted.
+func use_skill(slot: int) -> void:
+	if slot < 0 or slot >= skillbar.size():
+		return
+	var skill: Skill = skillbar[slot]
+	if skill and skill.can_cast(self):
+		var target: Node = null
+		var target_info: Variant = _tm().get_current_target() if _tm() else null
+		if target_info:
+			target = target_info.node
+		if combat_component:
+			if skill.is_ground_targeted:
+				combat_component.execute_skill(skill, null, _get_ground_target_position(skill.ground_target_range))
+			else:
+				combat_component.execute_skill(skill, target)
+			return
+		# Legacy fallback (no component attached).
+		if skill.is_ground_targeted:
+			_cs().execute_skill(self, skill, null, _get_ground_target_position(skill.ground_target_range))
+		else:
+			_cs().execute_skill(self, skill, target as Entity)
+
+func _get_ground_target_position(max_range: float) -> Vector3:
+	var direction: Vector2 = _im().last_direction if _im() else Vector2(0, -1)
+	if direction == Vector2.ZERO:
+		direction = Vector2(0, -1)
+	return _cs().get_ground_target_position(self, direction, max_range)

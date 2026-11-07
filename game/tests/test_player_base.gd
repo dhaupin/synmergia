@@ -108,6 +108,29 @@ func _run() -> void:
 	#    what resurrection targeting + the death/PvP emits now check.
 	_check(globe is PlayerBase, "globe body passes the retargeted is-PlayerBase gate")
 
+	# 7. Combat surface inherited by BOTH (planar-retirement Step 2). The
+	#    ActionBar casts through player.use_skill and the hitbox sweep calls
+	#    target.apply_status_effect; the globe body never had either, so on
+	#    the planet the ActionBar no-oped and live DoTs/CCs could not land.
+	_check(planar.has_method("use_skill"), "planar has use_skill")
+	_check(globe.has_method("use_skill"), "globe has use_skill (the fix)")
+	_check(planar.has_method("apply_status_effect"), "planar has apply_status_effect")
+	_check(globe.has_method("apply_status_effect"), "globe has apply_status_effect (the fix)")
+	_check(globe.has_method("_setup_starting_skills"), "globe has _setup_starting_skills")
+	_check(globe.has_method("_ensure_effect_stack"), "globe has _ensure_effect_stack")
+
+	# The effect stack attaches real components on both bodies.
+	globe._ensure_effect_stack(true)
+	_check(globe.aura_component != null, "globe aura component attached")
+	_check(globe.combat_component != null, "globe combat component attached")
+	planar._ensure_effect_stack(true)
+	_check(planar.combat_component != null, "planar combat component still attached")
+
+	# A cast with an empty skillbar is a safe no-op on the globe body
+	# (the ActionBar's exact call path), never a crash.
+	globe.use_skill(0)
+	_check(true, "globe use_skill(0) on empty skillbar is a safe no-op")
+
 	planar.free()
 	globe.free()
 	_finish()
