@@ -36,6 +36,14 @@ func _notify_svc() -> Node:
 	var tree := Engine.get_main_loop() as SceneTree
 	return tree.root.get_node_or_null(NodePath("NotificationService")) if tree and tree.root else null
 
+func _inv_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("InventoryService")) if tree and tree.root else null
+
+func _ground_loot() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GroundLootService")) if tree and tree.root else null
+
 ## The toast kinds the Concord-loop interact legs use (mirrors the
 ## planar controller's NotifKind preload).
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
@@ -64,6 +72,12 @@ var _inventory_bag = null
 ## globe body only had _inventory_bag, so the panel's player-node
 ## fallback missed the bag it was standing on.
 var inventory_component = null
+## Respawn binding (Ankh.bind_player writes respawn_ankh_id; the planar
+## controller declares these locally -- the globe body inherits PlayerBase,
+## which does not, so the ankh bind leg errored on the globe). The ankh
+## interact port (planar-retirement Step 3) needs them.
+var respawn_ankh_id: String = ""
+var respawn_point: Vector3 = Vector3.ZERO
 ## S8: world-space position of the PLANET CENTER. The scene keeps the
 ## PLAYER near the world origin (floating origin); the planet moves.
 ## All radial quantities derive from (global_position - planet_center).
@@ -1463,10 +1477,122 @@ func _on_player_input(action: String, pressed: bool) -> void:
 ## props are the globe's interactables today; other world interactables
 ## join this dispatch as they are ported (planar-retirement Steps 2-3).
 func _try_interact() -> void:
+	# Ground loot first (the planar controller's order): the nearest drop
+	# in range wins; only when nothing was picked up do the props resolve.
+	var loot := _ground_loot()
+	if loot != null and loot.has_method("try_pickup"):
+		var picked: Array = loot.try_pickup(self)
+		if not picked.is_empty():
+			return
+	if _use_nearby_placed_station():
+		return
+	if _activate_nearby_ankh():
+		return
 	if _activate_nearby_ancient_door():
 		return
 	if _activate_nearby_concord_stone():
 		return
+	if _activate_nearby_moon_gate():
+		return
+
+
+## A placed crafting/repair station in range: open ITS UI at ITS station
+## (repair -> BlacksmithUI; crafting_* -> WorkbenchUI at the
+## STATION_FUNCTIONS id). Ported from the planar controller so the
+## housing loop (DwellingService.place_station) is usable on the globe.
+func _use_nearby_placed_station() -> bool:
+	var dw = get_node_or_null("/root/DwellingService")
+	if dw == null or not dw.has_method("resolve_nearby_station"):
+		return false
+	var hit: Dictionary = dw.resolve_nearby_station(self)
+	if not bool(hit.get("ok", false)):
+		return false
+	var pid: String = entity_id if entity_id != "" else str(name)
+	var inventory = null
+	var inv_svc := _inv_svc()
+	if inv_svc != null and inv_svc.has_method("get_inventory"):
+		inventory = inv_svc.get_inventory(pid)
+	if inventory == null:
+		inventory = inventory_component
+	var function := str(hit.get("function", ""))
+	if function == "blacksmith":
+		var BlacksmithUI = load("res://ui/components/blacksmith_ui.gd")
+		var ui = BlacksmithUI.new()
+		add_child(ui)
+		ui.set_inventory(inventory)
+		ui.open_for_player(pid)
+		return true
+	var stations: Dictionary = dw.STATION_FUNCTIONS if "STATION_FUNCTIONS" in dw else {}
+	var station: int = int(stations.get(function, -1))
+	if station < 0:
+		return false
+	var WorkbenchUI = load("res://ui/components/workbench_ui.gd")
+	var wb = WorkbenchUI.new()
+	add_child(wb)
+	wb.set_inventory(inventory)
+	wb.open_for_player(pid, station)
+	return true
+
+
+## Nearest "ankhs" group member within its own activation range; binds
+## the respawn point through the ankh's own bind_player (the planar
+## controller's law). Returns true only when a bind happened (an
+## out-of-scope or dead refusal falls through to the next interactable).
+func _activate_nearby_ankh() -> bool:
+	var best: Node3D = null
+	var best_dist: float = INF
+	for ankh in get_tree().get_nodes_in_group("ankhs"):
+		if ankh == null or not is_instance_valid(ankh) or not (ankh is Node3D):
+			continue
+		if ankh.has_method("is_within_activation_range") \
+				and not ankh.is_within_activation_range(global_position):
+			continue
+		var d: float = global_position.distance_to((ankh as Node3D).global_position)
+		if d < best_dist:
+			best_dist = d
+			best = ankh
+	if best == null or not best.has_method("bind_player"):
+		return false
+	var notify := _notify_svc()
+	if best.bind_player(self):
+		if notify != null and notify.has_method("notify_ankh_bound"):
+			notify.notify_ankh_bound(entity_id, str(best.get("display_name")))
+		return true
+	# Scoped ankhs explain themselves (guild/faction/personal denials) the
+	# same way the planar controller does.
+	var reason: String = ""
+	if best.has_method("describe_bind_denial"):
+		reason = str(best.describe_bind_denial(self))
+	if notify != null and notify.has_method("notify"):
+		notify.notify(
+			NotifKind.PLAYER_WARNED,
+			"You cannot bind to %s yet. (%s)" % [str(best.get("display_name")), reason],
+			"GlobeWorldPlayer",
+			"ankh_deny:%s:%s" % [str(best.get("ankh_id")), reason],
+			{}, entity_id
+		)
+	return false
+
+
+## Nearest "moon_gates" group member in range; the gate returns the same
+## {ok, message} contract as the ancient door (mirrors the planar
+## controller's _activate_nearby_moon_gate).
+func _activate_nearby_moon_gate() -> bool:
+	var best: Node3D = _nearest_in_group("moon_gates")
+	if best == null:
+		return false
+	var result: Dictionary = best.try_interact(self)
+	var notify := _notify_svc()
+	if notify != null:
+		notify.notify(
+			NotifKind.CUSTOM if bool(result.get("ok", false)) else NotifKind.PLAYER_WARNED,
+			str(result.get("message", "")),
+			"MoonGate",
+			"moon_gate:%s:%d" % [str(best.name), Time.get_ticks_msec()],
+			{"gate": str(best.name), "ok": bool(result.get("ok", false))},
+			entity_id
+		)
+	return true
 
 
 ## Nearest "ancient_doors" group member within reach; the door returns

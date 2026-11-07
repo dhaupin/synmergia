@@ -121,6 +121,34 @@ const GLOBE_ENEMY_BATCH: Array = [
 ]
 var _globe_spawns: Array[GlobeSpawn] = []
 
+## PLANAR-RETIREMENT STEP 3: the town watch. Each entry is
+## (GuardData id in data/guards/, bearing_deg, reach_m). Guards are
+## created from their GuardData (the planar scene's authored guards),
+## given a GuardAI brain + EntityService registration, and posted at
+## their spawn point (the return-to-post law needs a REAL post, so the
+## loaded GuardData is duplicated before its post_position is stamped).
+const GLOBE_GUARD_BATCH: Array = [
+	# guard_data_id, bearing_deg (spawn tangent frame), reach_m
+	# (the planar scene's four: the plaza watch + the east-gate watch)
+	["guard_town", 15.0, 11.0],
+	["guard_town", 345.0, 11.0],
+	["guard_gate", 40.0, 15.0],
+	["guard_gate", 50.0, 15.0],
+]
+## The Ascent + the dev Moon Gate stand a short walk from the plaza, on
+## their own bearings clear of the Concord props (door -40, stone 40)
+## and the village belt (ankh -150, moongate -110, boutstones 120).
+const GLOBE_MOON_GATE: Array = ["MoonGate", "Moon Gate", "moon", 92.0, 10.0]
+const GLOBE_ASCENT_GATE: Array = ["AscentGate", "The Ascent", "underworld", -92.0, 10.0]
+## The dungeon portal (the authored GatewayData the planar scene wires):
+## (gateway .tres id, bearing_deg, reach_m).
+const GLOBE_DUNGEON_PORTAL: Array = ["dungeon_forest_depths_entrance", 175.0, 12.0]
+## The demo housing plot: (plot id, bearing_deg, reach_m, radius, price).
+const GLOBE_HOUSING_PLOT: Array = ["plot_haven_1", 60.0, 9.0, 10.0, 50000]
+## The zone every globe-placed entity registers under (the spawn plaza's
+## zone; matches _register_player's zone entry).
+const GLOBE_ZONE_ID: String = "zone_village_center"
+
 ## S14-web: the playable HUD. Kept as a thin wrapper for back-compat:
 ## the real install is the shared HudLayer.ensure_installed() init
 ## (feedback #5 -- one cohesive playable-HUD system loaded the same way
@@ -226,7 +254,7 @@ func _ready() -> void:
 ## every frame) and each attach tree-guarded so a scene swap or
 ## teardown mid-wave can never touch a dying tree.
 func _boot_waves() -> void:
-	for step: Callable in [_build_arena_gateway, _build_starter_village, _build_capitol_monolith, _build_pans_monolith, _build_pans_ferry, _build_sundered_barque, _install_garden_binder, _build_town_npcs, _build_globe_enemies, _accept_starter_quests, _build_concord_loop, _setup_blessed_marks, _setup_ambience]:
+	for step: Callable in [_build_arena_gateway, _build_starter_village, _build_capitol_monolith, _build_pans_monolith, _build_pans_ferry, _build_sundered_barque, _install_garden_binder, _build_town_npcs, _build_globe_enemies, _build_globe_gates, _build_globe_guards, _build_globe_portal, _build_globe_housing, _accept_starter_quests, _build_concord_loop, _setup_blessed_marks, _setup_ambience]:
 		await get_tree().process_frame
 		if not is_inside_tree() or is_queued_for_deletion():
 			return
@@ -860,6 +888,208 @@ func _setup_blessed_marks() -> void:
 		var gl := _glog()
 		if gl:
 			gl.info("GlobeWorld: BlessedMark on %s (%s)" % [str(p.entity_id), str(p.character_class)])
+
+
+
+## The surface point for a prop placed at `bearing_deg` on `center`'s
+## tangent frame, `reach_m` METERS of arc out (angular = reach_m/radius),
+## riding the walk law's lift. Interact props need a fixed short walk at
+## every planet scale, which a radian reach cannot give (the same reason
+## village_props._build_batch_meters exists).
+func _globe_meter_surface(center: Vector3, bearing_deg: float, reach_m: float) -> Vector3:
+	var east: Vector3 = Vector3(0, 1, 0).cross(center).normalized()
+	var north: Vector3 = center.cross(east).normalized()
+	var reach_rad: float = reach_m / maxf(planet_radius, 1.0)
+	var rad: float = deg_to_rad(bearing_deg)
+	var dir: Vector3 = (center + east * (reach_rad * cos(rad)) \
+		+ north * (reach_rad * sin(rad))).normalized()
+	return dir * (planet_radius + STREAMER_TILE_LIFT \
+		+ float(streamer.walk_surface_h(dir)) + 0.4)
+
+
+## Radial-align a prop to the planet surface at `dir` (the village_props
+## _align_radial law: local +Y is the surface up).
+func _align_radial(node: Node3D, dir: Vector3) -> void:
+	var east: Vector3 = Vector3(0, 1, 0).cross(dir).normalized()
+	node.basis = Basis(east, dir, east.cross(dir).normalized())
+
+
+## PLANAR-RETIREMENT STEP 3: the transit gates (S16 multiworld). The
+## Moon Gate (dev hatch to the pale stone) + the Ascent (dev hatch to
+## the Deep Root) stand a short walk off the plaza, mirroring
+## world_playable._setup_moon_gate / _setup_ascent_gate. Both carry
+## dev_hatch so probes + dev work can transit; players still read the
+## sealed mystery shell (the entry law refuses OFFLINE worlds).
+func _build_globe_gates() -> void:
+	var gate_script: GDScript = load("res://entities/moon_gate.gd")
+	if gate_script == null:
+		return
+	var center: Vector3 = TerrainGenRef.SPAWN_CENTER
+	for entry in [GLOBE_MOON_GATE, GLOBE_ASCENT_GATE]:
+		var gate: Node3D = gate_script.new()
+		gate.name = str(entry[0])
+		gate.set("display_name", str(entry[1]))
+		gate.set("target_world", str(entry[2]))
+		gate.set("dev_hatch", true)
+		world_root.add_child(gate)
+		var dir: Vector3 = _globe_meter_surface(center, float(entry[3]), float(entry[4])).normalized()
+		gate.global_position = world_root.global_position \
+			+ _globe_meter_surface(center, float(entry[3]), float(entry[4]))
+		_align_radial(gate, dir)
+	_log_backend("info", "GlobeWorld: the transit gates stand (Moon Gate + the Ascent)")
+
+
+## PLANAR-RETIREMENT STEP 3: the town watch, ported from
+## world_playable._setup_guards. Each guard loads its GuardData, gets a
+## GuardAI brain (attach AFTER the tree add so Enemy._ready's health
+## component exists -- the planar scene's order), registers with
+## EntityService, and is posted at its spawn point.
+func _build_globe_guards() -> void:
+	var guard_script: GDScript = load("res://entities/guard.gd")
+	if guard_script == null:
+		return
+	var es = get_node_or_null("/root/EntityService")
+	var tm = get_node_or_null("/root/TargetingManager")
+	var center: Vector3 = TerrainGenRef.SPAWN_CENTER
+	var placed: int = 0
+	for entry in GLOBE_GUARD_BATCH:
+		var data = load("res://data/guards/%s.tres" % str(entry[0]))
+		if data == null:
+			_log_backend("warn", "GlobeWorld: guard data '%s' missing" % str(entry[0]))
+			continue
+		# Duplicate so the post position can be stamped without
+		# mutating the shared .tres resource (the return-to-post
+		# law needs a REAL post at the guard's own spawn point).
+		data = data.duplicate()
+		var surface: Vector3 = _globe_meter_surface(center, float(entry[1]), float(entry[2]))
+		data.post_position = surface
+		var guard: Node3D = guard_script.new()
+		guard.display_name = str(data.display_name)
+		guard.set("guard_data", data)
+		# Visuals BEFORE the tree add: Enemy._ready's _apply_hitbox_profile
+		# reuses a scene-authored CollisionShape3D instead of creating a
+		# deferred StaticBody3D/Hitbox, so the guard never carries two
+		# colliders.
+		_build_guard_visuals(guard)
+		world_root.add_child(guard)
+		guard.global_position = world_root.global_position + surface
+		guard.attach_guard_ai(data)
+		if es != null and es.has_method("register_entity"):
+			var SpawnMetadataScript = load("res://core/events/spawn_metadata.gd")
+			var metadata = SpawnMetadataScript.enemy(guard.display_name, \
+				GLOBE_ZONE_ID, guard.global_position, guard.level)
+			es.register_entity(guard, metadata)
+		var gid: String = str(guard.entity_id)
+		if tm != null and tm.has_method("register_targetable") and gid != "":
+			tm.register_targetable(gid, "npc", guard, \
+				guard.display_name, guard.global_position, int(guard.entity_type))
+		placed += 1
+	_log_backend("info", "GlobeWorld: %d guards on the watch" % placed)
+
+
+## Placeholder guard body (the planar scene's capsule: blue capsule mesh
+## + a matching CapsuleShape3D). Enemy._ready would create a hitbox from
+## the creature profile, but a scene-less guard has no EnemyData, so the
+## body authors its own shape + visual (the planar .tscn's exact setup).
+func _build_guard_visuals(guard: Node3D) -> void:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.25, 0.35, 0.85)
+	mat.metallic = 0.4
+	mat.roughness = 0.5
+	var mi := MeshInstance3D.new()
+	var mesh := CapsuleMesh.new()
+	mesh.radius = 0.45
+	mesh.height = 1.8
+	mi.mesh = mesh
+	mi.material_override = mat
+	mi.position = Vector3(0, 0.9, 0)
+	guard.add_child(mi)
+	var col := CollisionShape3D.new()
+	var shape := CapsuleShape3D.new()
+	shape.radius = 0.45
+	shape.height = 1.8
+	col.shape = shape
+	col.position = Vector3(0, 0.9, 0)
+	guard.add_child(col)
+
+
+## PLANAR-RETIREMENT STEP 3: the dungeon portal, ported from
+## world_playable._setup_portal. A visual portal node + the authored
+## GatewayData registered with WorldService, targetable as TELEPORT so
+## the walk-up Enter path resolves it. Entry lands in the dungeon zone
+## (whose horde_config_id auto-starts vault_seal).
+func _build_globe_portal() -> void:
+	var gateway_data = load("res://data/gateways/%s.tres" % str(GLOBE_DUNGEON_PORTAL[0]))
+	if gateway_data == null:
+		_log_backend("warn", "GlobeWorld: dungeon gateway data missing; the portal stays dark")
+		return
+	var ws = get_node_or_null("/root/WorldService")
+	var tm = get_node_or_null("/root/TargetingManager")
+	if ws == null or not ws.has_method("register_gateway"):
+		return
+	var center: Vector3 = TerrainGenRef.SPAWN_CENTER
+	var surface: Vector3 = _globe_meter_surface(center, float(GLOBE_DUNGEON_PORTAL[1]), float(GLOBE_DUNGEON_PORTAL[2]))
+	var portal := Node3D.new()
+	portal.name = "DungeonPortal"
+	world_root.add_child(portal)
+	portal.global_position = world_root.global_position + surface
+	_align_radial(portal, surface.normalized())
+	_build_portal_visuals(portal)
+	var gateway_id: String = ws.register_gateway({
+		"display_name": str(gateway_data.display_name),
+		"position": portal.global_position,
+		"from_zone": GLOBE_ZONE_ID,
+		"to_zone": str(gateway_data.destination_zone_id),
+		"to_position": gateway_data.destination_position,
+		"required_level": int(gateway_data.min_level),
+		"radius": 5.0,
+		"activation_radius": 6.0,
+	})
+	if tm != null and tm.has_method("register_targetable"):
+		tm.register_targetable(gateway_id, "gateway", portal, \
+			str(gateway_data.display_name), portal.global_position, \
+			Entity.EntityType.TELEPORT)
+	_log_backend("info", "GlobeWorld: dungeon portal active (%s -> %s)" \
+		% [gateway_id, str(gateway_data.destination_zone_id)])
+
+
+## Placeholder portal geometry (a dark green ring + a warm core light);
+## a skinned model would drive the same gateway registration.
+func _build_portal_visuals(portal: Node3D) -> void:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.12, 0.35, 0.22)
+	mat.emission_enabled = true
+	mat.emission = Color(0.10, 0.55, 0.28)
+	mat.emission_energy_multiplier = 1.4
+	var ring := MeshInstance3D.new()
+	var torus := TorusMesh.new()
+	torus.inner_radius = 1.1
+	torus.outer_radius = 1.5
+	ring.mesh = torus
+	ring.material_override = mat
+	ring.position = Vector3(0, 1.6, 0)
+	portal.add_child(ring)
+	var light := OmniLight3D.new()
+	light.light_color = Color(0.30, 0.85, 0.45)
+	light.light_energy = 1.6
+	light.omni_range = 8.0
+	light.position = Vector3(0, 1.6, 0)
+	portal.add_child(light)
+
+
+## PLANAR-RETIREMENT STEP 3: the demo housing plot, ported from
+## world_playable._setup_housing -- registers the purchasable plot with
+## DwellingService so /buyplot, /placeguard and /placeankh have
+## something to act on.
+func _build_globe_housing() -> void:
+	var dw = get_node_or_null("/root/DwellingService")
+	if dw == null or not dw.has_method("register_plot"):
+		return
+	var center: Vector3 = TerrainGenRef.SPAWN_CENTER
+	var plot_center: Vector3 = _globe_meter_surface(center, float(GLOBE_HOUSING_PLOT[1]), float(GLOBE_HOUSING_PLOT[2]))
+	dw.register_plot(str(GLOBE_HOUSING_PLOT[0]), GLOBE_ZONE_ID, plot_center, \
+		float(GLOBE_HOUSING_PLOT[3]), int(GLOBE_HOUSING_PLOT[4]))
+	_log_backend("info", "GlobeWorld: demo plot registered (stand near it, /buyplot)")
 
 
 

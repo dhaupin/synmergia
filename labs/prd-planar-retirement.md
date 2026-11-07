@@ -257,6 +257,23 @@ a type.
 
 ## Step 3 -- port gates + guards + housing + portal
 
+**STATUS: DONE (2026-11-07).** `globe_world.gd` gained a
+`PLANAR-RETIREMENT STEP 3` section: `_build_globe_gates` (the Moon Gate +
+the Ascent, dev-hatch, `moon_gates` group), `_build_globe_guards` (the
+planar scene's four guards -- `GLOBE_GUARD_BATCH` -- from `GuardData`
+with a live GuardAI brain, EntityService + TargetingManager registration,
+and a REAL post), `_build_globe_portal` (the authored dungeon
+`GatewayData` registered with WorldService + targetable as TELEPORT), and
+`_build_globe_housing` (the demo plot registered with `DwellingService`).
+All four join `_boot_waves`. The globe body (`globe_player.gd`) grew the
+interact dispatch's missing legs: ground-loot pickup, the placed-station
+use (`_use_nearby_placed_station` -> BlacksmithUI/WorkbenchUI), and the
+`respawn_ankh_id`/`respawn_point` fields the ankh bind writes (they lived
+only on the planar controller; the globe body inherits `PlayerBase`,
+which does not declare them). Receipt
+`game/tests/test_globe_gates_guards.gd` (29 checks, exit 0) proves all
+five legs on a live globe boot. Registered in the runner DEFAULT_SET.
+
 - Moon gate, ascent gate, guards, housing (`DwellingService`), portal.
 - Receipt: per system, on the globe.
 

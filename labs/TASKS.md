@@ -7,6 +7,54 @@ commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
 
+## 2026-11-07 -- planar-retirement STEP 3 SHIPPED (globe gates + guards + portal + housing)
+
+**Goal:** port the remaining planar world content to the globe
+(`labs/prd-planar-retirement.md` Step 3), then move on.
+
+**A -- the four world systems.** `globe_world.gd` gained a
+`PLANAR-RETIREMENT STEP 3` section, all joining `_boot_waves`:
+
+- `_build_globe_gates` -- the Moon Gate + the Ascent (dev-hatch
+  `moon_gate.gd`, `dev_hatch = true`, `moon_gates` group) a short walk
+  off the plaza, mirroring `world_playable._setup_moon_gate` /
+  `_setup_ascent_gate`.
+- `_build_globe_guards` -- `GLOBE_GUARD_BATCH` (the planar scene's FOUR:
+  2 `guard_town` plaza watch + 2 `guard_gate` east-gate watch). Each
+  loads its `GuardData`, duplicates it before stamping a REAL
+  `post_position` (the return-to-post law; never mutate the shared
+  .tres), authors its own capsule body (`_build_guard_visuals` --
+  scene-less guards carry no `EnemyData` hitbox), gets a live GuardAI
+  brain (`attach_guard_ai`), and registers with EntityService +
+  TargetingManager.
+- `_build_globe_portal` -- the authored dungeon `GatewayData`
+  (`dungeon_forest_depths_entrance`) registered with `WorldService` and
+  targetable as TELEPORT, so the walk-up Enter path resolves it.
+- `_build_globe_housing` -- the demo plot (`plot_haven_1`) registered
+  with `DwellingService`, so `/buyplot`, `/placeguard`, `/placeankh` have
+  something to act on.
+
+**B -- the interact dispatch's missing legs.** `globe_player.gd`'s
+`_try_interact` was missing the ground-loot pickup (Step 2 made the
+wildlife drop loot, but nothing picked it up) and the placed-station use.
+Both are now ported: loot first (the planar order), then
+`_use_nearby_placed_station` (BlacksmithUI / WorkbenchUI at the
+`STATION_FUNCTIONS` id), then the props. The body also gained
+`respawn_ankh_id` / `respawn_point` -- the ankh-bind fields lived only on
+the planar `PlayerController`; the globe body inherits `PlayerBase`,
+which never declared them.
+
+**Receipt:** `game/tests/test_globe_gates_guards.gd` (29 checks, exit 0)
+on a live globe boot: gates stand + read the dev-hatch law, the four
+guards carry brains + registrations + real posts, the portal registers as
+TELEPORT, the plot registers with price, and the E dispatch binds the
+ankh, resolves the gate, and picks up a real ground drop into the bag.
+Registered in `scripts/godot_test_runner.sh` DEFAULT_SET. Gates: lint
+5+7+13/0, `test_globe_wildlife` 23/0, `test_globe_concord_loop` 23/0.
+
+**Next:** Step 4 (`WorldContentBuilder` -- declare content once), then
+Step 5 (flip the default + delete the planar world).
+
 ## 2026-11-07 -- planar-retirement STEP 2 SHIPPED (globe wildlife + shared combat bridge)
 
 **Goal:** port the planar enemies + combat/loot/quest/damage feedback to
