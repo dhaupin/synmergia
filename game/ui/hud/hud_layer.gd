@@ -110,6 +110,7 @@ func _ready() -> void:
 	_install_storm_bar()
 	_install_sea_bar()
 	_install_integrator()
+	_install_combat_feedback_bridge()
 	_setup_main_menu_bar()
 
 func _setup_accessibility() -> void:
@@ -192,6 +193,20 @@ func _install_integrator() -> void:
 	integrator.bind(self)
 	_install_respawn_ui()
 	_install_services()
+
+
+## The shared combat feedback rows (damage/heal floats, kill-reward +
+## loot + quest rows). One owner for both playable worlds; see
+## combat_feedback_bridge.gd. Installed AFTER the integrator so the
+## CombatLog/Minimap widgets already exist.
+func _install_combat_feedback_bridge() -> void:
+	var BridgeScript := load("res://ui/hud/combat_feedback_bridge.gd")
+	if not BridgeScript:
+		return
+	var bridge: Node = BridgeScript.new()
+	bridge.name = "CombatFeedbackBridge"
+	add_child(bridge)
+	bridge.bind(self)
 
 
 func _install_respawn_ui() -> void:

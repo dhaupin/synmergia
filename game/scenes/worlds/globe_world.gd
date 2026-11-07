@@ -96,6 +96,31 @@ var streamer  # GlobeTerrainStreamer; untyped - preload-by-path pattern
 var player  # GlobeWorldPlayer; untyped on purpose - set_script + dynamic
 # dispatch keeps this scene free of parse-time class_name dependencies.
 
+## PLANAR-RETIREMENT STEP 2: the globe's wildlife. One record per
+## scene-placed enemy so a kill rebuilds it at its spawn point after
+## EnemyData.respawn_time (ported from world_playable's SceneSpawn law).
+class GlobeSpawn:
+	var template_id: String = ""
+	var display_name: String = ""
+	var level: int = 1
+	var spawn_position: Vector3 = Vector3.ZERO
+	var respawn_time: float = 60.0
+	var entity_id: String = ""
+	var respawn_pending: bool = false
+
+## The spawn roster: (template_id, bearing_deg, reach_rad) placed on the
+## spawn plaza's tangent frame via the town-NPC walk law. Kept small and
+## lawful (wolves + boars on the village outskirts, a training dummy on
+## the plaza so a fresh body can practice).
+const GLOBE_ENEMY_BATCH: Array = [
+	# template_id, bearing_deg (spawn tangent frame), reach_rad
+	["wolf", 250.0, 0.018],
+	["wolf", 285.0, 0.022],
+	["thistle_boar", 70.0, 0.020],
+	["training_dummy", 320.0, 0.010],
+]
+var _globe_spawns: Array[GlobeSpawn] = []
+
 ## S14-web: the playable HUD. Kept as a thin wrapper for back-compat:
 ## the real install is the shared HudLayer.ensure_installed() init
 ## (feedback #5 -- one cohesive playable-HUD system loaded the same way
@@ -174,6 +199,8 @@ func _ready() -> void:
 	_bt("player")
 	planet_center = world_root.position
 	player.planet_center = planet_center
+	_register_player()
+	_bt("player-register")
 	_install_hud()
 	_setup_touch_hud()
 	_bt("hud")
@@ -199,7 +226,7 @@ func _ready() -> void:
 ## every frame) and each attach tree-guarded so a scene swap or
 ## teardown mid-wave can never touch a dying tree.
 func _boot_waves() -> void:
-	for step: Callable in [_build_arena_gateway, _build_starter_village, _build_capitol_monolith, _build_pans_monolith, _build_pans_ferry, _build_sundered_barque, _install_garden_binder, _build_town_npcs, _build_concord_loop, _setup_blessed_marks, _setup_ambience]:
+	for step: Callable in [_build_arena_gateway, _build_starter_village, _build_capitol_monolith, _build_pans_monolith, _build_pans_ferry, _build_sundered_barque, _install_garden_binder, _build_town_npcs, _build_globe_enemies, _accept_starter_quests, _build_concord_loop, _setup_blessed_marks, _setup_ambience]:
 		await get_tree().process_frame
 		if not is_inside_tree() or is_queued_for_deletion():
 			return
@@ -1399,6 +1426,189 @@ func _spawn_town_npc(npc_id: String, center: Vector3, bearing_deg: float,
 	entity.global_position = world_root.global_position + surface
 
 
+## PLANAR-RETIREMENT STEP 2: the globe's wildlife. Places each roster
+## enemy on the spawn plaza's tangent frame via the town-NPC walk law
+## (bearing + reach out, riding the terrain walk surface), attaches an
+## EnemyAI brain (EnemyAI already carries the spherical up/tangent law),
+## registers it with EntityService/TargetingManager, and captures a
+## GlobeSpawn record so a kill respawns it. Ducks SpawnService (the
+## scene owns placement; the town-NPC path does the same).
+func _build_globe_enemies() -> void:
+	var DS = get_node_or_null("/root/DataService")
+	if DS == null or streamer == null:
+		_log_backend("warn", "GlobeWorld: wildlife idle (DataService/streamer absent)")
+		return
+	var es = get_node_or_null("/root/EntityService")
+	var tm = get_node_or_null("/root/TargetingManager")
+	var center: Vector3 = TerrainGenRef.SPAWN_CENTER
+	for entry in GLOBE_ENEMY_BATCH:
+		var template_id: String = str(entry[0])
+		var surface: Vector3 = _globe_enemy_surface(center, float(entry[1]), float(entry[2]))
+		var enemy = _spawn_globe_enemy(template_id, surface, DS, es, tm)
+		if enemy == null:
+			continue
+		var record := GlobeSpawn.new()
+		record.template_id = template_id
+		record.display_name = str(enemy.display_name)
+		record.level = int(enemy.level)
+		record.spawn_position = surface
+		if enemy.enemy_data != null and "respawn_time" in enemy.enemy_data:
+			record.respawn_time = float(enemy.enemy_data.respawn_time)
+		record.entity_id = str(enemy.entity_id)
+		_globe_spawns.append(record)
+	# Death hook via root lookup (bare autoload identifiers fail script-mode
+	# compilation, the same reason every other autoload touch here resolves
+	# through /root).
+	var hub = get_node_or_null("/root/EventHub")
+	if hub != null and hub.has_signal("entity_died") \
+			and not hub.entity_died.is_connected(_on_globe_enemy_died):
+		hub.entity_died.connect(_on_globe_enemy_died)
+	_log_backend("info", "GlobeWorld: %d wildlife placed + tracked for respawn" \
+		% _globe_spawns.size())
+
+
+## Auto-accept the Wolf Hunt quest and the Watch-the-sky daily for the
+## local player (planar-retirement Step 2, ported from world_playable):
+## the kill + insight objective bridges need live quests to credit. The
+## player accepts the hunt through the elder in the full flow; the daily
+## rides the Concord loop (prd-psy.md section 10).
+func _accept_starter_quests() -> void:
+	if player == null or not ("entity_id" in player):
+		return
+	var player_id := str(player.entity_id)
+	if player_id.is_empty():
+		return
+	var qs = get_node_or_null("/root/QuestService")
+	if qs == null or not qs.has_method("accept_quest"):
+		return
+	var active: Array = qs.get_active_quests(player_id) if qs.has_method("get_active_quests") else []
+	if not active.has("quest_wolves_hunt"):
+		qs.accept_quest(player_id, "quest_wolves_hunt")
+	if not active.has("quest_watch_the_sky"):
+		qs.accept_quest(player_id, "quest_watch_the_sky")
+
+
+## The spawn surface for a wildlife entry: the town-NPC walk law
+## (bearing + reach on the spawn tangent frame, riding the streamer's
+## walk surface). Reach is padded for a bench radius exactly like
+## _spawn_town_npc so the planet keeps the authored layout.
+func _globe_enemy_surface(center: Vector3, bearing_deg: float, reach: float) -> Vector3:
+	var east: Vector3 = Vector3(0, 1, 0).cross(center).normalized()
+	var north: Vector3 = center.cross(east).normalized()
+	var reach_floor: float = maxf(0.0, 12.0 / maxf(planet_radius, 1.0))
+	if planet_radius > 1000.0:
+		reach_floor = 0.0
+	var eff_reach: float = maxf(reach, reach_floor)
+	var rad: float = deg_to_rad(bearing_deg)
+	var dir: Vector3 = (center + east * (eff_reach * cos(rad)) \
+		+ north * (eff_reach * sin(rad))).normalized()
+	var surface: Vector3 = dir * (planet_radius + STREAMER_TILE_LIFT \
+		+ float(streamer.walk_surface_h(dir)) + 0.4)
+	return surface
+
+
+## Build one wildlife enemy from its EnemyData template (the same
+## configuration spawn_enemy_direct applies, minus the SpawnService
+## registration so the scene owns the node + the respawn record).
+func _spawn_globe_enemy(template_id: String, surface: Vector3, DS, es, tm):
+	var template = DS.get_enemy(template_id) if DS.has_method("get_enemy") else null
+	if template == null:
+		_log_backend("warn", "GlobeWorld: enemy template '%s' missing; the beat stays empty" % template_id)
+		return null
+	# Phase 3.2 content-pack gate: a disabled pack's enemy is refused here.
+	if not ContentPacks.local_enemy_enabled(template_id):
+		_log_backend("info", "GlobeWorld: %s is in a disabled content pack" % template_id)
+		return null
+	var EnemyScript = load("res://entities/enemy.gd")
+	var EnemyAIScript = load("res://core/ai/enemy_ai.gd")
+	if EnemyScript == null or EnemyAIScript == null:
+		return null
+	var enemy = EnemyScript.new()
+	enemy.enemy_data = template
+	enemy.display_name = template.display_name
+	enemy.entity_type = Entity.EntityType.ENEMY
+	enemy.relation = Entity.Relation.HOSTILE
+	enemy.faction_id = template.faction
+	enemy.level = template.level
+	# Species modifiers shift stats, so apply before copying them.
+	if "species_id" in template and str(template.species_id) != "" and DS.has_method("get_species"):
+		var species = DS.get_species(str(template.species_id))
+		if species != null:
+			enemy.apply_species(species)
+	enemy.stats["strength"] = template.strength
+	enemy.stats["agility"] = template.agility
+	enemy.stats["intelligence"] = template.intelligence
+	enemy.stats["vitality"] = template.vitality
+	enemy.max_health = template.get_scaled_stat(template.health, enemy.level)
+	enemy.current_health = enemy.max_health
+	# Pre-applied data: Enemy._ready skips the template reload so the
+	# level + scaled stats survive add_child (the direct-spawn law).
+	enemy.spawn_data_applied = true
+	# Parent under the world root so the enemy rides the floating-origin
+	# rebase (world_root.position moves; content under it comes along).
+	world_root.add_child(enemy)
+	enemy.global_position = world_root.global_position + surface
+	# AI configured from the template's ranges; a training dummy keeps its
+	# inert stand (attach_ai no-ops on dummies).
+	var ai = EnemyAIScript.new()
+	ai.aggro_range = template.aggro_range
+	ai.chase_range = template.chase_range
+	ai.attack_range = template.attack_range
+	enemy.attach_ai(ai)
+	if es != null and es.has_method("register_entity"):
+		var SpawnMetadataScript = load("res://core/events/spawn_metadata.gd")
+		var metadata = SpawnMetadataScript.enemy(enemy.display_name, "zone_village_center", \
+			enemy.global_position, enemy.level)
+		es.register_entity(enemy, metadata)
+	if tm != null and tm.has_method("register_targetable"):
+		tm.register_targetable(enemy.entity_id, "enemy", enemy, enemy.display_name, \
+			enemy.global_position, enemy.entity_type)
+	var zm = get_node_or_null("/root/ZoneManager")
+	if zm != null and zm.has_method("get_zone") and zm.has_method("entity_enter_zone"):
+		var zone = zm.get_zone("zone_village_center")
+		if zone:
+			zm.entity_enter_zone(enemy, zone)
+	return enemy
+
+
+## A tracked wildlife enemy died: schedule its respawn at the original
+## spawn point after EnemyData.respawn_time.
+func _on_globe_enemy_died(entity, _killer, _metadata) -> void:
+	if entity == null or not is_instance_valid(entity):
+		return
+	var dead_id: String = str(entity.entity_id) if "entity_id" in entity else ""
+	for record in _globe_spawns:
+		if record.entity_id == dead_id and not record.respawn_pending:
+			record.respawn_pending = true
+			_respawn_globe_enemy_later(record)
+			return
+
+
+func _respawn_globe_enemy_later(record: GlobeSpawn) -> void:
+	var delay: float = maxf(1.0, record.respawn_time)
+	var timer := get_tree().create_timer(delay)
+	timer.timeout.connect(func(): _respawn_globe_enemy(record))
+
+
+## Rebuild one wildlife enemy from its record: fresh node, real data,
+## AI brain, fresh registration (the death unregistered the old one).
+func _respawn_globe_enemy(record: GlobeSpawn) -> void:
+	if not is_inside_tree():
+		return
+	record.respawn_pending = false
+	var DS = get_node_or_null("/root/DataService")
+	if DS == null:
+		return
+	var es = get_node_or_null("/root/EntityService")
+	var tm = get_node_or_null("/root/TargetingManager")
+	var enemy = _spawn_globe_enemy(record.template_id, record.spawn_position, DS, es, tm)
+	if enemy == null:
+		return
+	# Re-point the record at the new entity so a second kill also respawns.
+	record.entity_id = str(enemy.entity_id)
+	_log_backend("info", "GlobeWorld: %s respawned at its spawn point" % enemy.display_name)
+
+
 ## Ambience driver (entities/ambience_driver.gd): resolves weather at
 ## the player every 2s and feeds AudioService.apply_weather. The same
 ## seam world_playable carries; on the globe the driver reads the
@@ -1553,6 +1763,41 @@ func _build_player() -> void:
 	# the character/eq tabs rendered blank. Same emission, defensively
 	# resolved (script-mode probes mount no autoloads).
 	_notify_world_entry()
+
+
+## PLANAR-RETIREMENT STEP 2: register the local globe body with the
+## entity + targeting layer, the same wiring world_playable._register_player
+## does. Without it EnemyAI's EntityInterest.query_players (which reads
+## EntityService.get_entities_in_radius(..., PLAYER)) never sees the body,
+## so no enemy can aggro the player and the target frame can't resolve
+## them. entity_id is already stamped by _build_player before this runs.
+func _register_player() -> void:
+	if player == null or not is_instance_valid(player):
+		return
+	var player_id: String = str(player.entity_id) if "entity_id" in player else ""
+	if player_id.is_empty():
+		return
+	var tm = get_node_or_null("/root/TargetingManager")
+	if tm != null:
+		if tm.has_method("unregister_targetable"):
+			tm.unregister_targetable("")
+		if tm.has_method("set_local_player"):
+			tm.set_local_player(player_id)
+		if tm.has_method("register_targetable"):
+			tm.register_targetable(player_id, "player", player, \
+				str(player.display_name), player.global_position, player.entity_type)
+	var es = get_node_or_null("/root/EntityService")
+	if es != null and es.has_method("register_entity"):
+		if es.has_method("get_entity_metadata") and es.get_entity_metadata(player_id) == null:
+			var SpawnMetadataScript = load("res://core/events/spawn_metadata.gd")
+			var metadata = SpawnMetadataScript.new(0, str(player.display_name), \
+				"zone_village_center", player.global_position)
+			es.register_entity(player, metadata, player_id)
+	var zm = get_node_or_null("/root/ZoneManager")
+	if zm != null and zm.has_method("get_zone") and zm.has_method("entity_enter_zone"):
+		var zone = zm.get_zone("zone_village_center")
+		if zone:
+			zm.entity_enter_zone(player, zone)
 
 
 ## Emit player_entered_world exactly once per boot for the local globe

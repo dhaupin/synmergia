@@ -243,6 +243,17 @@ a type.
   kill rewards resolve the globe body correctly.
 - Receipt: a globe boot that spawns an enemy, kills it, and shows the
   reward/loot/damage rows.
+- STATUS: DONE (2026-11-07). The combat/loot/quest/damage feedback moved
+  into ONE shared node (`game/ui/hud/combat_feedback_bridge.gd`, installed
+  by `HudLayer` on every playable scene) and the planar copies were
+  deleted from `world_playable.gd`; the globe gained the wildlife roster
+  (`globe_world._build_globe_enemies` + the `GlobeSpawn` respawn law,
+  `GLOBE_ENEMY_BATCH`), local-player entity/targeting registration
+  (`_register_player`, so EnemyAI can aggro), and the starter-quest
+  auto-accept (`_accept_starter_quests`). Receipt
+  `game/tests/test_globe_wildlife.gd` (23 checks) proves bridge install +
+  damage/reward/loot rows, wildlife registration/targeting/AI, player
+  registration, kill + respawn at the same spawn point.
 
 ## Step 3 -- port gates + guards + housing + portal
 

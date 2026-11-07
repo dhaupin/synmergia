@@ -7,6 +7,49 @@ commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
 
+## 2026-11-07 -- planar-retirement STEP 2 SHIPPED (globe wildlife + shared combat bridge)
+
+**Goal:** port the planar enemies + combat/loot/quest/damage feedback to
+the globe (`labs/prd-planar-retirement.md` Step 2), then move on.
+
+**A -- one shared combat bridge.** The damage/heal floats, hit-table
+rows, kill-reward row, ground-loot rows, and quest rows used to live
+INSIDE `world_playable.gd` (`_setup_hud_bridge` + ~10 handlers). They are
+now one node, `game/ui/hud/combat_feedback_bridge.gd`, installed by
+`HudLayer._install_combat_feedback_bridge()` on EVERY playable scene
+(the same optional-widget law as HordeBar/StormBar/SeaBar). The planar
+copies were deleted; `world_playable._ready` now calls
+`_accept_starter_quest()` directly (the quest auto-accept that used to
+ride the removed bridge setup).
+
+**B -- globe wildlife + respawn.** `globe_world.gd` gained a
+`PLANAR-RETIREMENT STEP 2` section: `GlobeSpawn` record + `GLOBE_ENEMY_BATCH`
+roster (2 wolves, a thistle boar, a training dummy) placed on the spawn
+plaza's tangent frame via the town-NPC walk law; `_spawn_globe_enemy`
+mirrors `SpawnService.spawn_enemy_direct` (content-pack gate, species
+modifiers, scaled stats, AI brain, EntityService + TargetingManager
+registration, zone entry); a kill schedules `_respawn_globe_enemy` after
+`EnemyData.respawn_time` and the record re-points at the fresh body.
+
+**C -- player registration + starter quests.** The globe body was never
+registered with the entity/targeting layer, so `EnemyAI`'s
+`EntityInterest.query_players` (EntityService PLAYER radius scan) never
+saw it and no enemy could aggro. `globe_world._register_player()` now
+mirrors `world_playable._register_player` (TargetingManager local id +
+targetable, EntityService PLAYER registration, zone entry); it runs right
+after `_build_player`. `_accept_starter_quests()` auto-accepts
+`quest_wolves_hunt` + `quest_watch_the_sky` on the globe (one boot wave).
+
+**Receipt:** `game/tests/test_globe_wildlife.gd` (23 checks, exit 0) --
+bridge install + damage/reward/loot rows, wildlife bodies/registration/
+targeting/AI, local-body PLAYER registration, kill credits the player,
+respawn lands at the same spawn point (0.00 m drift). Registered in
+`scripts/godot_test_runner.sh` DEFAULT_SET. Gates: lint 37/0, naming 27/0,
+the 9-test combat/HUD/globe regression set all exit 0.
+
+**Next:** Step 3 (gates + guards + housing + portal on the globe), then
+Step 4 (`WorldContentBuilder`), then Step 5 (flip default + delete planar).
+
 ## 2026-11-07 -- probe_globe_world FIXED + parallel-runner confirmed (runners rework round)
 
 The owner reworked the CI runners (parallel-style) and asked for: (a) docs
