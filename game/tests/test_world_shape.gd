@@ -1,6 +1,10 @@
-## Tests for the world shape resolver (S2 knob; the full menu->world
-## flow now branches on it, so the default and the spherical flip are
-## both load-bearing). Loads by path (GuardData lesson).
+## Tests for the world shape resolver (S2 knob). PLANAR-RETIREMENT STEP 5:
+## GameManager no longer branches on the shape -- the open world is the
+## globe, always -- so the resolver is now the SHAPE PARAMETER the instance
+## contract reads (arena/duel/dungeon stay planar). The resolver behavior
+## (default, flip, casing, garbage fallback) is still load-bearing and
+## pinned here; the project default stays spherical. Loads by path
+## (GuardData lesson).
 extends SceneTree
 
 const SETTINGS_KEY: String = "synmergia/world/shape"
@@ -20,7 +24,19 @@ func _init() -> void:
 	if not _test_garbage_falls_back():
 		push_error("FAIL: garbage_falls_back")
 		ok = false
+	if not _test_no_game_manager_branch():
+		push_error("FAIL: no_game_manager_branch")
+		ok = false
 	quit(0 if ok else 1)
+
+
+## STEP 5: the world branch is gone -- GameManager must always load the
+## globe scene and must no longer read world_playable.tscn.
+func _test_no_game_manager_branch() -> bool:
+	var src := FileAccess.get_file_as_string("res://core/autoload/game_manager.gd")
+	assert(not src.contains("world_playable.tscn"), "GameManager still references world_playable.tscn")
+	assert(src.contains("res://scenes/worlds/globe_world.tscn"), "GameManager no longer loads the globe")
+	return true
 
 
 func _resolver() -> GDScript:

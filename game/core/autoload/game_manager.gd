@@ -163,22 +163,21 @@ func _handle_character_select_state() -> void:
 func _handle_playing_state() -> void:
 	if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Entering gameplay")
 	_initialize_world_services()
-	# Load the playable world scene, replacing current scene.
-	# Map shape chooses the world (world-building.md sec 1.6: shape is a
-	# parameter): planar (default) = the classic world, spherical = the
-	# spherical world scene (globe prototype; the 20 km planet later).
-	var WorldShapeResolver = load("res://core/frame/math/world_shape.gd")
-	var world_scene: String = "res://scenes/world_playable.tscn"
-	if WorldShapeResolver.is_spherical():
-		world_scene = "res://scenes/worlds/globe_world.tscn"
-		if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Spherical world shape: loading globe scene")
+	# PLANAR-RETIREMENT STEP 5: the world is the globe, always. The old
+	# planar/spherical branch here was the last live reader of the
+	# planar scene; the planet is the one open world now, and the only
+	# planar surface left is the INSTANCE contract (instance_contract.gd
+	# -- arena/duel/dungeon/royale), which is unaffected. WorldShape
+	# survives as the shape parameter the instance contract reads;
+	# nothing here branches on it anymore.
+	var world_scene: String = "res://scenes/worlds/globe_world.tscn"
 	# The world scene loads in EVERY mode. The old headless skip was
 	# built on a misconception: Godot 4 headless runs the full scene
 	# tree + physics (only drawing is absent -- probes/terrain tests
 	# build real 3D worlds headless), and the Player node lives INSIDE
-	# world_playable.tscn, so skipping the scene here skipped the
-	# player spawn itself. Live-journey tests booted fine but had no
-	# player to find (audit round 22).
+	# the world scene, so skipping the scene here skipped the player
+	# spawn itself. Live-journey tests booted fine but had no player to
+	# find (audit round 22).
 	#
 	# The overlay must be VISIBLE and PAINTED before the world's
 	# heavy _ready freezes the tree (round-5: species-select Join
@@ -200,9 +199,9 @@ func _handle_playing_state() -> void:
 			notify_player_entered_world(player_id, selected_character_data)
 
 ## Emit player_entered_world exactly once per player per boot. Both the
-## login flow and direct world_playable scene runs route through here so
-## services listening on this signal (StarterKitService, the achievement
-## onboarding chain) never double-fire.
+## login flow and direct world scene runs route through here so services
+## listening on this signal (StarterKitService, the achievement onboarding
+## chain) never double-fire.
 var _entered_world_ids: Dictionary = {}
 
 func notify_player_entered_world(player_id: String, character_data = null) -> void:
