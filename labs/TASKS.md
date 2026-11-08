@@ -8729,7 +8729,7 @@ the sea bands). All four landed; one stale probe leg fell with them.
 - (2) THE SHARED-STATE BUG (found while auditing): `DictStore`/`CacheWrapper` resolve stores via a STATIC `_adapter_registry` hook NOTHING ever set (zero callers), so every DictStore (shard registry, coordinator registry, every "default" service ledger) fell through to a PROCESS-LOCAL memory fallback. Fixes: `BackendFactory.boot_defaults` points both static hooks at AdapterRegistry AND registers the "default" store name (never in STORE_MANIFEST -> `get_persistence("default")` returned null even with the hook set). With STORAGE_BACKEND=postgres the registries now reach the shared store.
 - DEPLOY WIRING: Dockerfile + `python3-psycopg python3-redis` (bridges lazy-imported them but they were never installed). Compose synmergia service + STORAGE_BACKEND/CACHE_BACKEND/PG_BACKEND/REDIS_BACKEND/PG_BRIDGE_URL/REDIS_BRIDGE_URL + SHARD_ID/SHARD_NAME/IS_PRIMARY (defaults memory/sqlite/inmemory/empty = dev/CI unchanged). entrypoint.sh factors `_start_state_bridges()`, runs it in prod AND headless (headless = the shard role; it previously started no bridges).
 - RECEIPT `tests/test_shard_mesh_identity.gd` (runner DEFAULT_SET) exit 0, twelve legs: env identity, default identity, coordinator registration + name, two shards both registered, "default" store registered, DictStore round-trip through the registered store. The default-identity legs CAUGHT the empty-string bug above.
-- NOT DONE (Phase 1+, in the note): cross-shard bus transport, the edge transport decision, the N-shard compose topology. Gates this round: receipt 12/0, lint 37/0, compose config OK, entrypoint `bash -n` OK. Full runner NOT run (being reworked to parallel; owner instruction).
+- NOT DONE (Phase 1+, in the note): cross-shard bus transport, the edge transport decision, the N-shard compose topology. Gates this round: receipt 12/0, lint 37/0, compose config OK, entrypoint `bash -n` OK. Full runner NOT run (owner instruction).
 
 ## 2026-11-04j -- Shard mesh Phase 0 verification (real postgres boot; the receipt was a false green)
 - RE-VERIFIED the Phase 0 claim against a REAL `STORAGE_BACKEND=postgres` boot (fresh DB `synmergia_fresh` + pg-bridge sidecar) instead of trusting the memory-shim green.
@@ -8737,7 +8737,7 @@ the sea bands). All four landed; one stale probe leg fell with them.
 - ACCEPTANCE CRITERION MET (two separate processes): P1 write + P2 read both resolve `res://adapters/persistence/postgres_store.gd`; P2 reads back `{"n":7,"shard":"shard_2"}` from the real DB; the shard-mesh receipt's key lands in Postgres too.
 - pg-bridge fixes from the prior round stand (autocommit + explicit BEGIN/COMMIT tx model, `rowcount > 0 else 0` DDL guard, `%`-escape on no-param SQL) and now carry a regression unit test `TestPgConvertSql` (incl. the `LIKE 'tick:%'` no-param case that used to raise).
 - CLEANUP: scratch probes (`game/tests/_probe_restart.gd`, `_probe_a.gd`, `_probe_b.gd`) removed.
-- Gates this round: shard-mesh receipt 12/0, adapter-http-transport 5/0, adapter suite 10 files rc=0 zero script errors, data-naming 26/0, lint 37/0, pg-bridge 18/0, redis-bridge 20/0, real-postgres boot 5 migrations applied. Full parallel runner NOT run (owner instruction; being reworked).
+- Gates this round: shard-mesh receipt 12/0, adapter-http-transport 5/0, adapter suite 10 files rc=0 zero script errors, data-naming 26/0, lint 37/0, pg-bridge 18/0, redis-bridge 20/0, real-postgres boot 5 migrations applied. Full parallel runner NOT run (owner instruction).
 
 ## 2026-11-05a -- Jeweler shelf round
 - Marsh Piper (npc_jeweler_haven) opens Haven Bench of Pearls in zone_village_center: by_item_id shelf of the four jewelry pieces (row stock 5/3/2/1), the abyss breather, and raw abyss pearl; buy_categories [2,4] so the bench pays for pearls and takes back outgrown jewelry. Scene reuse (merchant_general.tscn), 5-node intro dialogue, roster row added.
@@ -8756,7 +8756,7 @@ the sea bands). All four landed; one stale probe leg fell with them.
 - DRIVE-BY FIX: `redis_store.gd::_blocking_get` typed `_retry_request(...).data` as `Dictionary`, raising "assign Nil to Dictionary" on the unreachable-bridge path Phase 1 makes real -- now Variant + `is Dictionary` guard.
 - RECEIPT `tests/test_shard_bus.gd` (runner DEFAULT_SET) exit 0, seventeen legs: registry default bus, the swap law (re-register replaces + make_default re-points), memory round-trip + no-echo + drained-stays-drained, cross-instance coordinator delivery (a second CoordinatorService instance receives an event emitted on the first, which keeps its own copy), env fallback to memory on an unreachable redis bridge, and the redis bus failing honestly (non-zero open, unhealthy, empty poll).
 - Docs: `labs/prd-shard-mesh.md` Phase 1 section + acceptance (sec.7) updated; `DEVCODE.md` documents `SHARD_BUS_BACKEND`.
-- Gates this round: shard bus 17/0, shard-mesh identity 12/0, adapter HTTP 5/0, tick phase2 24/0, data-naming 26/0, lint suite 37/0 (7+3+5+13+9), adapter suite 10 files rc=0, redis-bridge 20/0. Full runner NOT run (owner instruction; being reworked).
+- Gates this round: shard bus 17/0, shard-mesh identity 12/0, adapter HTTP 5/0, tick phase2 24/0, data-naming 26/0, lint suite 37/0 (7+3+5+13+9), adapter suite 10 files rc=0, redis-bridge 20/0. Full runner NOT run (owner instruction).
 - NOT DONE (Phase 2+): the edge transport (LB + sticky routing), the N-shard compose topology, coordinator extraction to its own process.
 
 ## 2026-11-05c -- Pearl industry quests (the dive + the tideline daily)
@@ -8781,7 +8781,7 @@ the sea bands). All four landed; one stale probe leg fell with them.
 - VERIFIED SEPARATELY: the entrypoint's upstream expansion against a copy of nginx.conf (single host -> one `server` line; a 3-host comma/space list -> three lines, all under `ip_hash`); `bash -n` on the entrypoint OK.
 - Docs: `labs/prd-shard-mesh.md` Phase 2 section + acceptance (sec.8) updated, the Phase 2 out-of-scope line removed; `DEVCODE.md` documents `EDGE_TRANSPORT`.
 - DEPLOY.md refreshed for the mesh: §6 env table gained `EDGE_TRANSPORT` + a Shard Mesh Variables table, §8 gained an Upstream & Sticky Routing note (+ `hooks` rate zone), and §12's "Horizontal Scaling (Future)" became the Shard Mesh section (shipped-vs-planned table, per-shard compose, `ip_hash` LB, the why-WebSocket rationale).
-- Gates this round: edge 14/0, shard bus 17/0, shard-mesh identity 12/0, adapter HTTP 5/0, data-naming 26/0, lint suite 37/0. Full runner NOT run (owner instruction; being reworked).
+- Gates this round: edge 14/0, shard bus 17/0, shard-mesh identity 12/0, adapter HTTP 5/0, data-naming 26/0, lint suite 37/0. Full runner NOT run (owner instruction).
 - NOT DONE (Phase 3+): the coordinator + N-shard compose topology, coordinator extraction to its own process, real HA Postgres/Redis.
 
 ## 2026-11-05e -- the ceiling lifting round (level cap 60 + the ratio law + the trench boss)
@@ -9088,7 +9088,7 @@ the sea bands). All four landed; one stale probe leg fell with them.
 - COMPOSE: opt-in `mesh` profile (docker compose --profile mesh up --build --scale shard=4) with a `coordinator` service + N `shard` services over shared Postgres/Redis. Each shard has no fixed host ports (addressed by service name), so replicas never collide. postgres/redis gained the `mesh` profile; dev/prod/headless stay single-node and untouched.
 - RECEIPT tests/test_shard_mesh_topology.gd exit 0 TWENTY legs (role resolution incl. safe unknown-mode fallbacks, self-id, autoshard sanitize/pin/default, cross-process registration through a SEPARATE coordinator instance, idempotent re-announce, departure removal, coordinator-does-not-announce, phantom-shard guard). Joins the runner DEFAULT_SET.
 - Receipt-lore: two CoordinatorService instances on the shared memory bus with distinct self ids stand in for separate processes (RedisShardBus is the same contract over the bridge); _set_bus_self_id unsubscribes/resubscribes BOTH topics after re-keying. Godot parse-law: `var x := some_variant_returning_call()` is a parse ERROR under warnings-as-errors (use `var x: Array = ...`).
-- GATES: topology 20/0, identity 12/0, shard bus 17/0, edge 14/0, data-naming 26/0, lint suite 37/0. Full runner NOT run (owner instruction; being reworked to parallel).
+- GATES: topology 20/0, identity 12/0, shard bus 17/0, edge 14/0, data-naming 26/0, lint suite 37/0. Full runner NOT run (owner instruction).
 - DOCS: labs/prd-shard-mesh.md Phase 3 marked SHIPPED + new acceptance sec.9; DEVCODE.md + DEPLOY.md §12 document the mesh profile and the role law.
 - NEXT: Phase 3.1 per-shard tuning (the event-shard lever, docs landed in PR #55) once real per-shard knobs are wanted; real HA Postgres/Redis; the coordinator's own coordinator-to-shard control plane (leader election, player migration) beyond the registry.
 

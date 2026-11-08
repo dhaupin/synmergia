@@ -46,6 +46,19 @@ var level: int = 1
 ## starting skillbar is actually castable.
 var character_class: String = "human_warrior"
 
+# --- Allegiance -----------------------------------------------------------
+## Read by EntityService.is_enemy / is_ally, the aura friendly/hostile
+## checks, and FactionManager wars ("entity.faction == Entity.Relation.X").
+## Both bodies carry the surface so the shared combat services resolve it
+## on the globe exactly as they did on the planar controller.
+var faction: int = 0
+var relation: int = 0
+## Services (FactionManager wars, RespawnService rez rules, ZoneData entry
+## gates, PlacementAccess) read faction_id off any combatant. Empty string
+## = unaligned. Entity parity: Entity declares the same field.
+var faction_id: String = ""
+var team_id: int = 0
+
 ## Standard stat block (Entity-compatible shape used by the get_* accessors).
 var stats: Dictionary = {
 	"strength": 10,

@@ -269,21 +269,10 @@ const LOCAL_PLAYER_ID := "player_1"
 # EnemyAI, Skill, and _entity_svc() treat all combatants uniformly via this
 # duck-typed surface. The shared identity/progression/health/stats surface
 # lives on PlayerBase; PlayerController adds only its own fields here.
-var team_id: int = 0
-
 ## Planar-only mana/void bookkeeping (the shared mana pool lives on
 ## PlayerBase; these support this body's regen + void-recovery ticks).
 var _mana_regen_accum: float = 0.0
 var _void_recovery_cooldown: float = 0.0
-
-# Allegiance alias (Entity.Relation.HOSTILE etc.) read by
-# _entity_svc().is_enemy via `entity.faction`.
-var faction: int = 0
-var relation: int = 0
-# Entity parity: services (FactionManager wars, RespawnService rez rules,
-# ZoneData entry gates, PlacementAccess) read faction_id off any
-# combatant. Empty string = unaligned.
-var faction_id: String = ""
 
 # Context menu
 var _action_menu: ActionMenu = null
