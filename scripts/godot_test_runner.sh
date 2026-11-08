@@ -1,50 +1,135 @@
 #!/usr/bin/env bash
-# Synmergia Godot test runner.
+# Synmergia Godot test runner -- THE runner (one implementation).
 #
-# Runs named headless Godot tests (default: the regression set covering
-# the data-naming, movement, and 3d-pipeline work streams) and reports
-# pass/fail per test. Godot tests exit 0 = pass, non-zero = fail;
-# "resources still in use at exit" notes are benign.
+# Runs headless Godot tests and reports pass/fail per test. Tests exit 0 =
+# pass, non-zero = fail; "resources still in use at exit" notes are benign.
+#
+# One script, three shapes:
+#   named tests  -> run exactly those
+#   (no args)    -> the DEFAULT_SET regression block below
+#   --all        -> every test_*.gd (tests/ + the co-located core/frame/)
+#
+# It runs them CONCURRENTLY when that helps and SERIALLY when that is
+# faster, so there is ONE runner to remember, not two:
+#   * one test, or JOBS=1 -> a single boot, no warm-import tax
+#   * many tests          -> the .godot import is warmed ONCE, single-
+#     threaded (a cold cache hit by N importers at once is the "abort only
+#     under concurrent load" boot-noise class), then the boots run
+#     JOBS-at-a-time. The timing-sensitive movement/terrain probes run
+#     ALONE (JOBS=1) FIRST so CPU contention can never fake a movement
+#     regression.
 #
 # Usage:
 #   sh ./scripts/godot_test_runner.sh                          # default set
 #   sh ./scripts/godot_test_runner.sh test_movement_profiles   # named tests
 #   sh ./scripts/godot_test_runner.sh --all                    # every test_*.gd
+#   -j N / JOBS=N    concurrent godot boots (default 4; capped at 2x cores
+#                    and by available RAM -- a worker is a full boot)
+#   --resume FILE    ledger of already-PASSed names; they are skipped and
+#                    new passes are APPENDED, so a killed run carries on:
+#                    sh ./scripts/godot_test_runner.sh --resume /tmp/led
+#   SKIP_WARM=1      skip the warm import (only safe on a warm cache)
 #
-# Dash-safe: uses $0 (not BASH_SOURCE) so `sh ./scripts/...` works.
+# Dash-safe: `sh ./scripts/...` re-execs itself under bash (the concurrent
+# workers need `export -f`).
 
 set -u
 
+# Bash-only (export -f + xargs workers): re-exec under bash when invoked
+# through dash, so the `sh ./scripts/...` habit does not die on an illegal
+# export.
+if [ -z "${BASH_VERSION:-}" ]; then
+exec bash "$0" "$@"
+fi
+
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 GAME_DIR="${ROOT_DIR}/game"
+JOBS=4
 
 if ! command -v godot >/dev/null 2>&1; then
-	echo "[runner] godot not on PATH. Install it or add it to PATH."
-	exit 1
+echo "[runner] godot not on PATH. Install it or add it to PATH."
+exit 1
 fi
 
-# --all IS THE PARALLEL FULL SWEEP. Delegate to the concurrent sister
-# (scripts/godot_test_parallel.sh) BEFORE the ulimit below, so `--all` is
-# parallel from EITHER entry point. The sister keeps the same laws
-# (per-test boot, per-test log, exit-iff-green) and warms the .godot
-# import once, single-threaded, before the swarm. Named runs and the bare
-# default set stay serial here -- DEFAULT_SET is gen_fleet_packs' single
-# source of truth and must keep its exact shape.
-# (Delegate first: this script's dash `ulimit -f` sets the HARD limit too,
-# so a later bash re-set in the sister fails with "cannot modify limit".)
-if [ "${1:-}" = "--all" ]; then
-	exec sh "${ROOT_DIR}/scripts/godot_test_parallel.sh" --all
+# ---------------------------------------------------------------- args
+resume_file=""
+tests_named=""
+while [ $# -gt 0 ]; do
+case "$1" in
+-j)
+JOBS="${2:-}"
+shift 2
+[ "${JOBS:-}" = "0" ] && JOBS=1
+;;
+--resume)
+resume_file="${2:-}"
+shift 2
+;;
+--all)
+# Every test_*.gd, including the co-located core/frame tests.
+tests_named="$(cd "${GAME_DIR}" && find tests core/frame -name 'test_*.gd' -not -path '*/.*' | sed -e 's#^tests/##' -e 's#^core/frame/##' -e 's#\.gd$##' | sort)"
+shift
+;;
+-*)
+echo "[runner] unknown flag: $1"
+exit 2
+;;
+*)
+tests_named="${tests_named:+$tests_named }$1"
+shift
+;;
+esac
+done
+# Cap: a worker is a full godot boot (derives spawn their own threads
+# inside). Beyond ~2x cores the boot contentions outweigh the queueing.
+NPROC=$(nproc 2>/dev/null || echo 2)
+[ "${JOBS}" -lt 0 ] 2>/dev/null && JOBS=1
+JOBS=$((JOBS + 0))
+JOBS_MAX=$((NPROC * 2))
+if [ "${JOBS}" -gt "${JOBS_MAX}" ]; then
+echo "[runner] JOBS ${JOBS} > 2x cores (${JOBS_MAX}), capped"
+JOBS="${JOBS_MAX}"
+fi
+# MEMORY CAP: a worker is a full godot boot (measured ~1-1.5 GiB peak);
+# beyond what MemAvailable holds the box swaps and every worker crawls.
+MEM_PER_JOB_MB=1536
+MEM_AVAIL_MB=$(awk '/MemAvailable/{print int($2/1024)}' /proc/meminfo 2>/dev/null || echo 0)
+if [ "${MEM_AVAIL_MB}" -gt 0 ]; then
+MEM_MAX=$((MEM_AVAIL_MB / MEM_PER_JOB_MB))
+[ "${MEM_MAX}" -lt 1 ] && MEM_MAX=1
+if [ "${JOBS}" -gt "${MEM_MAX}" ]; then
+echo "[runner] JOBS ${JOBS} > RAM budget (${MEM_MAX} x ${MEM_PER_JOB_MB} MiB of ${MEM_AVAIL_MB} MiB), capped"
+JOBS="${MEM_MAX}"
+fi
 fi
 
-# THE DISK-HYGIENE LAW (the 2026-10-13 incident: a runaway probe log
-# ate 4.4 GB and the disk-full truncation cost a day of terrain work):
-# (1) any single log file dies at the 256 MB cap - the writes fail
-# with SIGXFSZ visibly (the test fails, the disk survives);
-# (2) regenerable syn_* logs older than a day are swept at startup.
-ulimit -f 262144
-find /tmp -maxdepth 1 -name 'syn_*.log' -mtime +1 -delete 2>/dev/null
+# ------------------------------------------------- timing-sensitive set
+# A movement/terrain probe measures walked distance against a WALL-CLOCK or
+# FRAME budget. Under CPU contention the measured frame rate drops and the
+# budget expires early, so the probe fails even though the engine is fine.
+# Verified: probe_planet_control_100m passes solo and at JOBS=1, but fails
+# at JOBS>=2 with an identical "100 m walk reaches ~30 m (got 9.8)" -- the
+# walk simply did not get its frames. These run ALONE (JOBS=1) ahead of the
+# swarm so a timing artifact never reads as a regression. The heavy
+# continent shards are NOT listed: their long boots dominate, and they are
+# re-run by name when they flake.
+SERIAL_SET="
+probe_planet_control_100m
+probe_stream_flow_100m
+probe_globe_world
+probe_planet_walk_20km
+probe_planet_rebase_20km
+probe_riding
+probe_climb
+probe_glider
+probe_thermals
+"
 
-# Default regression set: work streams that must never silently rot.
+# ------------------------------------------------------- default set
+# THE regression block: work streams that must never silently rot.
+# gen_fleet_packs.mjs parses this block (its regex is unanchored, so do NOT
+# write the literal assignment token in prose above it), and comment lines
+# and blanks are stripped when the block is read.
 DEFAULT_SET="
 test_data_naming_lint
 test_item_catalog
@@ -181,59 +266,158 @@ probe_blacksmith_scene
 probe_world_shape_ground
 "
 
-TESTS="$*"
-if [ -z "$TESTS" ]; then
-	TESTS="${DEFAULT_SET}"
+# ------------------------------------------------------- resolve tests
+# No named tests -> the DEFAULT_SET regression block. Strip its comment
+# lines and blanks (the block is comment-annotated; a raw word-split would
+# turn comment words into phantom test names).
+if [ -z "${tests_named}" ]; then
+tests_named="$(printf '%s\n' "${DEFAULT_SET}" | sed 's/#.*//' | grep -v '^[[:space:]]*$')"
 fi
 
-pass=0
-fail=0
-failed_names=""
-# LONG-TIMEOUT SET: process-heavy probes that cost minutes (20 km
-# boots ~76 s + streamed faces ~50 s each). Everything else keeps
-# the 240 s cap.
-LONG_TESTS="
-probe_stream_continent_a
-probe_stream_continent_b
-probe_stream_continent_c
-probe_stream_continent_d
-"
-# The DEFAULT_SET above is comment-annotated; the raw list is word-split
-# below, so comment words ("CI-minutes", "chunks", ...) and blank lines
-# would become phantom test names -- and an empty token makes `grep -qx`
-# match EVERY line, granting the long timeout to every test. Strip
-# comments and blank lines from both lists before iterating.
-TESTS="$(printf '%s\n' "${TESTS}" | sed 's/#.*//' | grep -v '^[[:space:]]*$')"
-LONG_TESTS="$(printf '%s\n' "${LONG_TESTS}" | sed 's/#.*//' | grep -v '^[[:space:]]*$')"
-for t in ${TESTS}; do
-	# Frame primitives keep their tests co-located (frame rule);
-	# a "frame/..." name resolves under core/frame/, else tests/.
-	RES_PATH="res://tests/${t}.gd"
-	FRAME_REL="${t#frame/}"
-	if [ ! -f "${GAME_DIR}/tests/${t}.gd" ] && [ -f "${GAME_DIR}/core/frame/${FRAME_REL}.gd" ]; then
-		RES_PATH="res://core/frame/${FRAME_REL}.gd"
-	fi
-	if [ ! -f "${GAME_DIR}/tests/${t}.gd" ] && [ ! -f "${GAME_DIR}/core/frame/${FRAME_REL}.gd" ]; then
-		echo "[runner] ?? ${t}: no such test (game/tests/${t}.gd)"
-		fail=$((fail + 1))
-		failed_names="${failed_names} ${t}"
-		continue
-	fi
-	echo "[runner] == ${t}"
-	PER_TIMEOUT=240
-	if printf '%s\n' "${LONG_TESTS}" | grep -qx "${t}"; then
-		PER_TIMEOUT=600
-	fi
-	if (cd "${GAME_DIR}" && timeout ${PER_TIMEOUT} godot --headless --path . --script "${RES_PATH}" >"/tmp/syn_${t##*/}.log" 2>&1); then
-		echo "[runner]    PASS ${t}"
-		pass=$((pass + 1))
-	else
-		echo "[runner]    FAIL ${t} (log: /tmp/syn_${t}.log)"
-		grep -E "FAIL|SCRIPT ERROR|Parse Error" "/tmp/syn_${t}.log" | head -5
-		fail=$((fail + 1))
-		failed_names="${failed_names} ${t}"
-	fi
+# ---------------------------------------------------------------- laws
+# THE DISK-HYGIENE LAW (the 2026-10-13 incident: a runaway probe log ate
+# 4.4 GB and the disk-full truncation cost a day of terrain work):
+# (1) any single log file dies at the 256 MB cap - the writes fail with
+# SIGXFSZ visibly (the test fails, the disk survives); (2) regenerable
+# syn_* logs older than a day are swept at startup. Tolerate a pre-set
+# hard limit (a re-set can fail when a parent already lowered it).
+ulimit -f 262144 2>/dev/null || true
+find /tmp -maxdepth 1 -name 'syn_*.log' -mtime +1 -delete 2>/dev/null
+
+# ------------------------------------------------- resume ledger skip
+if [ -n "${resume_file}" ]; then
+touch "${resume_file}"
+names=""
+skipped=0
+for t in ${tests_named}; do
+if grep -qx "${t}" "${resume_file}"; then
+skipped=$((skipped + 1))
+else
+names="${names} ${t}"
+fi
+done
+echo "[runner] resume ledger: skipping ${skipped} already-passed names"
+tests_named="$(printf '%s\n' "${names}")"
+fi
+if [ -z "$(printf '%s' "${tests_named}" | tr -d '[:space:]')" ]; then
+echo "[runner] 0 passed, 0 failed (nothing to run)"
+exit 0
+fi
+
+n_tests=0
+for t in ${tests_named}; do
+n_tests=$((n_tests + 1))
+done
+echo "[runner] ${n_tests} tests, ${JOBS} jobs"
+
+# ------------------------------------------- warm the import (1 boot)
+# The warm import makes every CONCURRENT worker's cache lookups read-only.
+# It only helps when boots actually overlap: a single test, or JOBS=1, runs
+# one boot at a time and needs no warm-up.
+need_warm=0
+if [ "${JOBS}" -gt 1 ] && [ "${n_tests}" -gt 1 ]; then
+need_warm=1
+fi
+if [ "${SKIP_WARM:-0}" = "1" ]; then
+echo "[runner] warm import: skipped (SKIP_WARM=1)"
+elif [ "${need_warm}" = "1" ]; then
+warm_t0=$(date +%s)
+godot --headless --path "${GAME_DIR}" --import >/tmp/syn_warm_import.log 2>&1 ||
+echo "[runner] WARN: warm import nonzero (see /tmp/syn_warm_import.log)"
+echo "[runner] warm import: $(( $(date +%s) - warm_t0 ))s"
+else
+echo "[runner] warm import: skipped (single boot)"
+fi
+
+# ------------------------------------------------------------ workers
+status_dir="$(mktemp -d /tmp/syn_par.XXXXXX)"
+trap 'rm -rf "${status_dir}"' EXIT INT TERM
+export status_dir GAME_DIR
+run_t0=$(date +%s)
+
+run_one() {
+t="$1"
+FRAME_REL="${t#frame/}"
+RES_PATH="res://tests/${t}.gd"
+if [ ! -f "${GAME_DIR}/tests/${t}.gd" ] && [ -f "${GAME_DIR}/core/frame/${FRAME_REL}.gd" ]; then
+RES_PATH="res://core/frame/${FRAME_REL}.gd"
+fi
+if [ ! -f "${GAME_DIR}/tests/${t}.gd" ] && [ ! -f "${GAME_DIR}/core/frame/${FRAME_REL}.gd" ]; then
+echo "[runner] ?? ${t}: no such test (game/tests/${t}.gd)"
+echo "missing" >"${status_dir}/$(printf '%s' "${t}" | tr '/' '_')"
+return
+fi
+# LONG-TIMEOUT SET: the continent shards cost minutes (20 km boots
+# ~76 s + streamed faces ~50 s each). Everything else keeps 240 s.
+PER_TIMEOUT=240
+case "${t}" in
+probe_stream_continent_a|probe_stream_continent_b|probe_stream_continent_c|probe_stream_continent_d) PER_TIMEOUT=600 ;;
+esac
+slug="$(printf '%s' "${t}" | tr '/' '_')"
+t0=$(date +%s)
+if (cd "${GAME_DIR}" && timeout "${PER_TIMEOUT}" godot --headless --path . --script "${RES_PATH}" >"/tmp/syn_${slug}.log" 2>&1); then
+echo "[runner]    PASS ${t} ($(( $(date +%s) - t0 ))s)"
+echo "pass" >"${status_dir}/${slug}"
+echo "${t}" >>"${RESUME_APPEND}"
+else
+echo "[runner]    FAIL ${t} ($(( $(date +%s) - t0 ))s, log: /tmp/syn_${slug}.log)"
+grep -E "FAIL|SCRIPT ERROR|Parse Error" "/tmp/syn_${slug}.log" 2>/dev/null | head -3
+echo "fail" >"${status_dir}/${slug}"
+fi
+}
+export -f run_one
+RESUME_APPEND="${status_dir}/passes"
+export RESUME_APPEND
+
+# ------------------------------------------------- phase split
+# Timing-sensitive probes run ALONE first (JOBS=1) so CPU contention cannot
+# fake a movement regression; the rest run as the swarm.
+serial_names=""
+par_names=""
+for t in ${tests_named}; do
+if printf '%s\n' "${SERIAL_SET}" | grep -qx "${t}"; then
+serial_names="${serial_names} ${t}"
+else
+par_names="${par_names} ${t}"
+fi
 done
 
-echo "[runner] ${pass} passed, ${fail} failed${failed_names:+ [${failed_names}]}"
-[ "${fail}" -eq 0 ]
+if [ -n "${serial_names// /}" ]; then
+n_serial=$(printf '%s\n' ${serial_names} | grep -c .)
+echo "[runner] serial phase: ${n_serial} timing-sensitive probes, JOBS=1"
+printf '%s\n' ${serial_names} | xargs -P 1 -I{} -n1 bash -c 'run_one "$1"' _ {} | cat
+fi
+
+if [ -n "${par_names// /}" ]; then
+printf '%s\n' ${par_names} | xargs -P "${JOBS}" -I{} -n1 bash -c 'run_one "$1"' _ {} | cat
+fi
+
+# ------------------------------------------------------------ tally
+pass=0
+fail=0
+missing=0
+failed_names=""
+for f in "${status_dir}"/*; do
+v="$(cat "${f}")"
+case "${v}" in
+pass) pass=$((pass + 1)) ;;
+missing)
+missing=$((missing + 1))
+failed_names="${failed_names} $(basename "${f}")"
+;;
+fail)
+fail=$((fail + 1))
+failed_names="${failed_names} $(basename "${f}")"
+;;
+esac
+done
+
+if [ -s "${RESUME_APPEND}" ] && [ -n "${resume_file}" ]; then
+# Sorted append: idempotent (a re-run name re-passes once).
+sort -u "${RESUME_APPEND}" >>"${resume_file}"
+fi
+rm -rf "${status_dir}"
+
+echo "[runner] ${pass} passed, ${fail} failed${failed_names:+ [${failed_names}]}${missing:+ (${missing} unresolvable names)}"
+echo "[runner] wall time: $(( $(date +%s) - run_t0 ))s (${JOBS} jobs)"
+[ "${fail}" -eq 0 ] && [ "${missing}" -eq 0 ]

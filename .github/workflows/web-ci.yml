@@ -196,7 +196,7 @@ jobs:
         if: ${{ github.event.inputs.run_full_suite == 'true' }}
         run: |
           echo "Executing full test suite (parallel, 4 workers)..."
-          sh ./scripts/godot_test_parallel.sh --all -j 4 || true
+          sh ./scripts/godot_test_runner.sh --all -j 4 || true
 
       # Full wasm bundle: PRs and manual dispatch only (PRD 3.3 - never burn
       # free-tier minutes compiling wasm on routine pushes). The export

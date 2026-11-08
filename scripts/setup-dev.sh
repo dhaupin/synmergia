@@ -339,6 +339,5 @@ echo
 log "next steps:"
 log "  export PATH=\"${BIN_DIR}:\$PATH\"   # or open a new shell"
 log "  bun install                            # repo deps"
-log "  sh ./scripts/godot_test_runner.sh      # serial default set / named tests"
+log "  sh ./scripts/godot_test_runner.sh      # default set / named tests (one runner)"
 log "  sh ./scripts/godot_test_runner.sh --all  # full sweep, parallel"
-log "  sh ./scripts/godot_test_parallel.sh    # parallel runner (same laws)"

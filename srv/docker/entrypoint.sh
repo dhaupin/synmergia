@@ -138,7 +138,7 @@ if [[ "$START_MODE" == "test" ]]; then
     # matched nothing and invoked a path that does not exist, so the
     # loop ran zero tests and still logged success -- a false green.
     # This is the full test_*.gd set and runs serially; for the faster
-    # parallel path use scripts/godot_test_parallel.sh.
+    # parallel path use scripts/godot_test_runner.sh --all (the one runner).
     cd /workspace/project/game
     for test_file in tests/test_*.gd; do
         [[ -f "$test_file" ]] || continue

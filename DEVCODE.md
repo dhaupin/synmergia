@@ -97,11 +97,12 @@ Absent an override every shard runs the uniform curve.
 # single probe (the only reliable unit-test idiom in this repo)
 cd game && godot --headless --path . --script res://tests/probe_crafting.gd
 
-# full default regression set (~140 probes/tests, serial)
+# full default regression set (concurrent when it helps, serial when faster)
 sh ./scripts/godot_test_runner.sh            # from repo root
 sh ./scripts/godot_test_runner.sh probe_crafting probe_stream_flow_100m  # named
-sh ./scripts/godot_test_runner.sh --all      # every test_*.gd, PARALLEL
-                                             # (delegates to the parallel runner)
+sh ./scripts/godot_test_runner.sh --all      # every test_*.gd (tests/ + core/frame/), parallel
+sh ./scripts/godot_test_runner.sh --all -j 8 # more workers (capped at 2x cores / RAM)
+sh ./scripts/godot_test_runner.sh --resume /tmp/led  # carry a killed run on
 
 # charset lint
 godot --headless --path . --script res://tests/lint/test_lint_charset.gd
@@ -121,7 +122,10 @@ that's SceneTree teardown hygiene, not a regression.
   (e.g. `game/core/frame/srv/test_weather.gd`) — that's an AGENTS.md
   rule, not a stray file.
 - `scripts/godot_test_runner.sh` handles both (checks
-  `game/tests/${t}.gd`, falls back to `game/core/frame/...`).
+  `game/tests/${t}.gd`, falls back to `game/core/frame/...`). It is the
+  ONE runner: `scripts/godot_test_parallel.sh` is now a deprecated shim
+  that forwards here (the parallel engine -- warm import, JOBS, the
+  timing-sensitive serial phase, `--resume` -- lives in the one script).
 
 ## 4. /tmp conventions (pre-teardown)
 
