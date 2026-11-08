@@ -232,7 +232,7 @@ func _run() -> void:
 
 	# --- R37: in-world entity actions (PRD sec 6 bridge) -----------------------
 	# PlayerManager local_player real node (the world oracle)
-	var PlayerScript2 = load("res://entities/player/player_controller.gd")
+	var PlayerScript2 = load("res://entities/player/player_base.gd")
 	var EnemyScript = load("res://entities/enemy.gd")
 	var EnemyDataScript = load("res://core/schemas/enemy_data.gd")
 	var fake_player: Node = PlayerScript2.new()

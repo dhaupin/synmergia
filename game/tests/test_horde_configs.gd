@@ -51,7 +51,7 @@ func _run() -> void:
 		return _finish()
 
 	# --- Players -------------------------------------------------------------
-	var PlayerScript = load("res://entities/player/player_controller.gd")
+	var PlayerScript = load("res://entities/player/player_base.gd")
 	var player: Node = PlayerScript.new()
 	player.display_name = "ConfigHero"
 	player.entity_id = "cfg_char"

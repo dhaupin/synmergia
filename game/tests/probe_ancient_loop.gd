@@ -23,32 +23,40 @@ func _initialize() -> void:
 	if svc.has_method("ensure_initialized"):
 		svc.ensure_initialized()
 
-	# 1. The world scene carries the Ancient Door + Sky Signs renderer.
-	var world: PackedScene = load("res://scenes/world_playable.tscn")
+	# 1. The GLOBE scene carries the Ancient Door + Sky Signs renderer
+	#    (planar-retirement Step 5: the planar world is retired; the globe is
+	#    the open world). Build it through the world's own content builder --
+	#    the Concord loop is one of its declared families.
+	ProjectSettings.set_setting("synmergia/world/planet_radius", 100.0)
+	var world: PackedScene = load("res://scenes/worlds/globe_world.tscn")
 	if world == null:
-		push_error("FAIL: world_playable.tscn did not load")
+		push_error("FAIL: globe_world.tscn did not load")
 		quit(1)
 		return
-	var inst := world.instantiate()
-	root.add_child(inst)
-	await process_frame
+	var _globe := world.instantiate()
+	root.add_child(_globe)
+	# Wait for the boot waves (the Concord loop is one of them).
+	var _boot_deadline: int = Time.get_ticks_msec() + 60000
+	while not _globe.has_meta("boot_waves_done_ms") and Time.get_ticks_msec() < _boot_deadline:
+		await process_frame
 	await process_frame
 
-	var door := inst.get_node_or_null("AncientDoor")
+	var world_root: Node = _globe.get("world_root")
+	var door: Node3D = world_root.get_node_or_null("AncientDoor")
 	if door == null:
 		push_error("FAIL: AncientDoor not placed in world")
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
-	var sky := inst.get_node_or_null("SkySigns")
+	var sky: Node3D = _globe.get("player").get_node_or_null("SkySigns")
 	if sky == null:
 		push_error("FAIL: SkySigns renderer not placed in world")
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
-	if inst.get_node_or_null("ConcordStone") == null:
+	if world_root.get_node_or_null("ConcordStone") == null:
 		push_error("FAIL: ConcordStone not placed in world")
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	print("[OK] world carries AncientDoor + SkySigns + ConcordStone")
@@ -58,7 +66,7 @@ func _initialize() -> void:
 	var acts = root.get_node_or_null("ActsService")
 	if acts == null:
 		push_error("FAIL: ActsService autoload missing")
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	acts.ensure_initialized()
@@ -74,18 +82,18 @@ func _initialize() -> void:
 	var prompt: String = door.get_interaction_prompt()
 	if not prompt.contains("Read"):
 		push_error("FAIL: sealed prompt wrong: %s" % prompt)
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	var sealed: Dictionary = door.try_interact(null)
 	if bool(sealed["ok"]) or str(sealed["reason"]) != "sealed":
 		push_error("FAIL: sealed interact result: %s" % str(sealed))
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	if not str(sealed["message"]).contains("of 4 glyphs"):
 		push_error("FAIL: sealed message lacks glyph count: %s" % str(sealed["message"]))
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	print("[OK] sealed door refuses with tribal progress (%s)" % str(sealed["message"]).substr(0, 48))
@@ -93,28 +101,28 @@ func _initialize() -> void:
 	# 2b. Concord Stone: the player-facing insight trigger. Records for
 	#	a test observer; a second press is idempotent (one gaze per window
 	#	per player -- the stone cannot be spammed).
-	var stone := inst.get_node_or_null("ConcordStone")
+	var stone: Node3D = world_root.get_node_or_null("ConcordStone")
 	if stone == null:
 		push_error("FAIL: ConcordStone not placed in world")
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	var stone_prompt: String = stone.get_interaction_prompt()
 	if not stone_prompt.contains("Watch the sky"):
 		push_error("FAIL: stone prompt wrong: %s" % stone_prompt)
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	var stone_r1: Dictionary = stone.try_interact({"entity_id": "loop_tribe_a"})
 	if not bool(stone_r1["ok"]):
 		push_error("FAIL: stone record failed: %s" % str(stone_r1))
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	var stone_r2: Dictionary = stone.try_interact({"entity_id": "loop_tribe_a"})
 	if not bool(stone_r2["ok"]) or str(stone_r2["reason"]) != "already":
 		push_error("FAIL: stone repeat not idempotent: %s" % str(stone_r2))
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	print("[OK] Concord Stone records insights (E), repeat gaze idempotent")
@@ -129,13 +137,13 @@ func _initialize() -> void:
 	var r2: Dictionary = svc.record_insight("loop_tribe_b")
 	if bool(r1["revealed_now"]) or bool(r2["revealed_now"]):
 		push_error("FAIL: revealed below threshold")
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	var r3: Dictionary = svc.record_insight("loop_tribe_c")
 	if not bool(r3["revealed_now"]):
 		push_error("FAIL: 3rd observer did not reveal")
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	# The door tracks TOMORROW (for_day_offset=1): completing TODAY's
@@ -148,7 +156,7 @@ func _initialize() -> void:
 	await process_frame
 	if not door._is_open:
 		push_error("FAIL: door did not open after full day reveal")
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	print("[OK] tribal loop: 3 observers -> code assembled -> DOOR OPEN")
@@ -159,7 +167,7 @@ func _initialize() -> void:
 	var proj = root.get_node_or_null("WorldStateProjection")
 	if proj == null:
 		push_error("FAIL: WorldStateProjection autoload missing")
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	var ws = proj.world_state()
@@ -167,12 +175,12 @@ func _initialize() -> void:
 	var dpl: Dictionary = delta.get("payload", {}) if delta.get("payload", {}) is Dictionary else {}
 	if int(dpl.get("opened_for_day", -1)) != door._resolve_day():
 		push_error("FAIL: door delta missing/ wrong day: %s" % str(delta))
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	if str(delta.get("actor", "")) != str(door.name):
 		push_error("FAIL: door delta provenance wrong: %s" % str(delta))
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	print("[OK] world delta recorded: gates/%s (actor=%s, epoch=%.2f)" % [str(door.name), str(delta.get("actor", "")), float(delta.get("epoch", 0.0))])
@@ -182,17 +190,17 @@ func _initialize() -> void:
 	#	shard-wide amber flash API.
 	if door.get_node_or_null("PayoffPillar") == null:
 		push_error("FAIL: no PayoffPillar after door open")
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	if door.get_node_or_null("PayoffFlash") == null:
 		push_error("FAIL: no PayoffFlash after door open")
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	if not sky.has_method("flash_payoff"):
 		push_error("FAIL: sky renderer missing flash_payoff")
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	print("[OK] payoff spectacle: pillar + light flash + sky flash wired")
@@ -206,23 +214,23 @@ func _initialize() -> void:
 	var probe_day: int = door._resolve_day()
 	if int(opened_fired["day"]) != probe_day:
 		push_error("FAIL: door_opened fired with day %s, expected %d" % [str(opened_fired["day"]), probe_day])
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	if not acts.is_chapter_recorded("act_3_the_trust_audit", 1):
 		push_error("FAIL: fill-in act did not advance on the door open")
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	if not acts.is_chapter_recorded("act_2_the_unpaid_debt", 1):
 		push_error("FAIL: unfenced fill-in act did not advance")
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	if acts.is_chapter_recorded("act_1_the_first_vault", 1) \
 			or acts.is_chapter_recorded("act_2_the_unpaid_debt", 2):
 		push_error("FAIL: gate chapter recorded while its day was never earned")
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	print("[OK] Chronicle advanced on door open (fill-ins recorded, day gates held)")
@@ -232,25 +240,25 @@ func _initialize() -> void:
 	var blessed_day: int = now_day + 1
 	if not svc.is_blessing_active(blessed_day):
 		push_error("FAIL: blessing not live for earned day %d" % blessed_day)
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	var blessed_class: String = svc.get_blessed_class_id(blessed_day)
 	if blessed_class.is_empty():
 		push_error("FAIL: no blessed class named for day %d" % blessed_day)
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	# The blessed class pays; a different one does not.
 	if not svc.is_class_blessed(blessed_class, blessed_day):
 		push_error("FAIL: named class did not pay on its own day")
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	var control_day: int = blessed_day + 1
 	if svc.is_class_blessed(blessed_class, control_day) and svc.get_blessed_class_id(control_day) == blessed_class:
 		push_error("FAIL: same class blessed on consecutive days (hydration broke)")
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	print("[OK] class blessing live: '%s' for day %d (+20%%/+5lvls), hydration intact" % [blessed_class, blessed_day])
@@ -259,13 +267,13 @@ func _initialize() -> void:
 	var open_prompt: String = door.get_interaction_prompt()
 	if not open_prompt.contains("open"):
 		push_error("FAIL: open prompt wrong: %s" % open_prompt)
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	var open_res: Dictionary = door.try_interact(null)
 	if not bool(open_res["ok"]) or str(open_res["reason"]) != "already_open":
 		push_error("FAIL: open interact result: %s" % str(open_res))
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	print("[OK] open door prompt + interact readback")
@@ -274,7 +282,7 @@ func _initialize() -> void:
 	var stars: Array = sky._stars
 	if stars.size() < 7:
 		push_error("FAIL: sky star pool too small: %d" % stars.size())
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	var any_visible := false
@@ -284,7 +292,7 @@ func _initialize() -> void:
 			break
 	if not any_visible:
 		push_error("FAIL: sky shows no stars for the current window")
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	print("[OK] sky constellation visible (%d-star pool)" % stars.size())
@@ -293,7 +301,7 @@ func _initialize() -> void:
 	var ui_script = load("res://ui/components/sky_almanac_ui.gd")
 	if ui_script == null:
 		push_error("FAIL: sky_almanac_ui.gd missing")
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	var panel = ui_script.new()
@@ -303,7 +311,7 @@ func _initialize() -> void:
 	if rows == null or rows.get_child_count() != svc.WINDOWS_PER_DAY:
 		push_error("FAIL: almanac rows != window count")
 		panel.free()
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	# Tribal-rule honesty: collect all Label text; every window the tribe
@@ -330,7 +338,7 @@ func _initialize() -> void:
 	if leak or unknown_count != sealed_glyphs.size():
 		push_error("FAIL: almanac tribal-rule leak (unknown=%d sealed=%d leak=%s)" % [unknown_count, sealed_glyphs.size(), str(leak)])
 		panel.free()
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	print("[OK] almanac renders 4 windows, honors the tribal rule (%d unknown, %d revealed)" % [unknown_count, 4 - unknown_count])
@@ -340,7 +348,7 @@ func _initialize() -> void:
 	if panel._watch_btn == null or not panel._watch_btn.pressed.is_connected(panel._on_watch_pressed):
 		push_error("FAIL: almanac Watch-the-sky button missing or unwired")
 		panel.free()
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	var pre_watch: int = svc._observer_count(now_day, win)
@@ -348,7 +356,7 @@ func _initialize() -> void:
 	if svc._observer_count(now_day, win) <= pre_watch:
 		push_error("FAIL: watch button did not record an insight")
 		panel.free()
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	print("[OK] almanac Watch-the-sky button records a remote insight")
@@ -362,18 +370,25 @@ func _initialize() -> void:
 	door._refresh_state()
 	if door._is_open:
 		push_error("FAIL: door did not re-seal when its day was unearned")
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	svc._unlocked_days[probe_day] = true
 	door._refresh_state()
 	if not door._is_open:
 		push_error("FAIL: door did not reopen after its day was re-earned")
-		inst.free()
+		_globe.free()
 		quit(1)
 		return
 	print("[OK] dawn re-seal + reopen (door_opened stays a daily event)")
-	if is_instance_valid(inst):
-		inst.free()
+	if is_instance_valid(_globe):
+		# Drain the async mesh lane before freeing (the globe probe law): a
+		# queued streamer callback would otherwise fire on a freed instance.
+		var _streamer = _globe.get("streamer")
+		var _drain_deadline: int = Time.get_ticks_msec() + 60000
+		while _streamer != null and _streamer._mesh_pending() > 0 and Time.get_ticks_msec() < _drain_deadline:
+			await process_frame
+		await process_frame
+		_globe.free()
 	print("--- ANCIENT LOOP PROBE: ok=true ---")
 	quit(0)

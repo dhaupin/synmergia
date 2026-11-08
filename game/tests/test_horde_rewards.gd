@@ -53,7 +53,7 @@ func _run() -> void:
 		tick._tick_timer.stop()
 
 	# --- Players: credited main + a minor contributor -----------------------
-	var PlayerScript = load("res://entities/player/player_controller.gd")
+	var PlayerScript = load("res://entities/player/player_base.gd")
 	var player: Node = PlayerScript.new()
 	player.display_name = "RewardHero"
 	player.entity_id = "reward_char"

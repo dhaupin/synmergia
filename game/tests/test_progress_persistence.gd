@@ -25,7 +25,7 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var PlayerScript = load("res://entities/player/player_controller.gd")
+	var PlayerScript = load("res://entities/player/player_base.gd")
 	var progress_script = load("res://core/services/player_progress.gd")
 
 	# Use a fresh PlayerProgress instance (not the autoload) so the test

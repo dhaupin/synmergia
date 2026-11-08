@@ -20,7 +20,7 @@ func _initialize() -> void:
 func _run() -> void:
 	var EntityScript = load("res://core/entities/entity.gd")
 	var EnemyScript = load("res://entities/enemy.gd")
-	var PlayerScript = load("res://entities/player/player_controller.gd")
+	var PlayerScript = load("res://entities/player/player_base.gd")
 	var SkillScript = load("res://core/combat/skill.gd")
 	var StatusScript = load("res://core/entities/status_effect.gd")
 	var hub = root.get_node_or_null("EventHub")

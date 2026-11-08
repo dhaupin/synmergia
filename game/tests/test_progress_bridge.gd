@@ -133,7 +133,7 @@ func _run() -> void:
 			"other character's nodes survive the clear")
 
 	# --- 6. Integration with PlayerProgress ---------------------------------
-	var PlayerScript = load("res://entities/player/player_controller.gd")
+	var PlayerScript = load("res://entities/player/player_base.gd")
 	var progress_script = load("res://core/services/player_progress.gd")
 	var progress = progress_script.new()
 	get_root().add_child(progress)

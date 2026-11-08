@@ -85,13 +85,14 @@ func _run() -> void:
                         not get_first_node_in_group("players").is_queued_for_deletion(),
                 "a freed body leaves no live 'players' entry")
 
-        # 5. The planar controller keeps the SAME contract (parity guard).
-        var PC: GDScript = load("res://entities/player/player_controller.gd")
-        if PC != null:
-                var src: String = PC.source_code
+        # 5. The SHARED base keeps the SAME contract (parity guard): both
+        #    bodies inherit membership from PlayerBase._ready.
+        var PB: GDScript = load("res://entities/player/player_base.gd")
+        if PB != null:
+                var src: String = PB.source_code
                 _check(src.find('add_to_group("players")') != -1,
-                        "planar player_controller.gd still joins 'players' (parity)")
+                        "PlayerBase._ready joins 'players' (shared parity)")
         else:
-                _fail("player_controller.gd did not load (parity check skipped)")
+                _fail("player_base.gd did not load (parity check skipped)")
 
         _finish()

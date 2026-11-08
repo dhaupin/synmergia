@@ -30,7 +30,7 @@ func _assert(cond: bool, label: String) -> void:
 
 
 func _make_player() -> Node:
-	var PlayerScript = load("res://entities/player/player_controller.gd")
+	var PlayerScript = load("res://entities/player/player_base.gd")
 	var p: Node = PlayerScript.new()
 	p.display_name = "TestHero"
 	return p

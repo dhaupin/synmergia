@@ -114,7 +114,7 @@ func _run() -> void:
 			"tick pipeline applied the buffered health write")
 
 	# --- 5. Player live-state half -----------------------------------------
-	var PlayerScript = load("res://entities/player/player_controller.gd")
+	var PlayerScript = load("res://entities/player/player_base.gd")
 	var player: Node = PlayerScript.new()
 	player.display_name = "ProjHero"
 	player.entity_id = "proj_char"

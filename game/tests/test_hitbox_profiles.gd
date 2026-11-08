@@ -151,110 +151,106 @@ func _test_creature_resolution() -> bool:
 
 
 func _test_enemy_wiring() -> bool:
-	# Instance the playable world: enemy _ready must apply profile shapes
-	# onto the scene's Hitbox nodes (world_playable enemies are Node3D
-	# Enemy scripts, not physics bodies, so assert the shape properties).
-	var scene: PackedScene = load("res://scenes/world_playable.tscn")
-	if scene == null:
-		push_error("FAIL: world_playable.tscn did not load")
-		return false
-	var inst := scene.instantiate()
-	root.add_child(inst)
-	await process_frame
-
+	# Real Enemy bodies built the way globe_world builds its wildlife:
+	# Enemy._ready mounts the model, applies the profile shape onto a
+	# StaticBody3D/Hitbox pair, and scales the model by EnemyData.scale.
+	# (Replaces the planar world_playable.tscn node walk -- planar-retirement
+	# Step 5. The plan is asserted straight off DataService, the same
+	# resolution Enemy._hitbox_profile uses.)
 	var checks := [
-		{"node": "Wolf", "profile": "hitbox_beast_medium", "kind": HitboxProfile.ShapeKind.BOX},
-		{"node": "SlimeA", "profile": "hitbox_blob", "kind": HitboxProfile.ShapeKind.SPHERE},
-		{"node": "Bandit", "profile": "hitbox_humanoid", "kind": HitboxProfile.ShapeKind.CAPSULE},
+		{"template": "wolf", "profile": "hitbox_beast_medium", "kind": HitboxProfile.ShapeKind.BOX},
+		{"template": "slime", "profile": "hitbox_blob", "kind": HitboxProfile.ShapeKind.SPHERE},
+		{"template": "bandit", "profile": "hitbox_humanoid", "kind": HitboxProfile.ShapeKind.CAPSULE},
 	]
+	var EnemyScript = load("res://entities/enemy.gd")
 	for c in checks:
-		var enemy := inst.get_node_or_null(c["node"])
-		if enemy == null:
-			push_error("FAIL: %s missing from world" % c["node"])
-			inst.free()
+		var tpl = _ds.get_enemy(str(c["template"]))
+		if tpl == null:
+			push_error("FAIL: enemy template %s missing" % c["template"])
 			return false
+		var enemy = EnemyScript.new()
+		enemy.enemy_data = tpl
+		enemy.display_name = str(tpl.display_name)
+		enemy.level = int(tpl.level)
+		enemy.spawn_data_applied = true
+		root.add_child(enemy)
+		await process_frame
 		var shape_node := enemy.get_node_or_null("StaticBody3D/Hitbox") as CollisionShape3D
 		if shape_node == null or shape_node.shape == null:
-			push_error("FAIL: %s has no applied hitbox shape" % c["node"])
-			inst.free()
+			push_error("FAIL: %s has no applied hitbox shape" % c["template"])
+			enemy.free()
 			return false
 		if c["kind"] == HitboxProfile.ShapeKind.BOX and not (shape_node.shape is BoxShape3D):
-			push_error("FAIL: %s shape is not a BoxShape3D" % c["node"])
-			inst.free()
+			push_error("FAIL: %s shape is not a BoxShape3D" % c["template"])
+			enemy.free()
 			return false
 		if c["kind"] == HitboxProfile.ShapeKind.SPHERE and not (shape_node.shape is SphereShape3D):
-			push_error("FAIL: %s shape is not a SphereShape3D" % c["node"])
-			inst.free()
+			push_error("FAIL: %s shape is not a SphereShape3D" % c["template"])
+			enemy.free()
 			return false
 		if c["kind"] == HitboxProfile.ShapeKind.CAPSULE and not (shape_node.shape is CapsuleShape3D):
-			push_error("FAIL: %s shape is not a CapsuleShape3D" % c["node"])
-			inst.free()
+			push_error("FAIL: %s shape is not a CapsuleShape3D" % c["template"])
+			enemy.free()
 			return false
 		# Wolf data scale 1.2 must multiply BOTH the hitbox and the model.
-		if c["node"] == "Wolf":
+		if str(c["template"]) == "wolf":
 			var box := shape_node.shape as BoxShape3D
 			if not is_equal_approx(box.size.z, 1.92):
 				push_error("FAIL: wolf hitbox z %s != 1.92 (scale 1.2 applied)" % box.size.z)
-				inst.free()
+				enemy.free()
 				return false
 			var model_root := enemy.get_node_or_null("ModelRoot") as Node3D
 			if model_root == null or not is_equal_approx(model_root.scale.x, 1.2):
 				push_error("FAIL: wolf ModelRoot scale not 1.2")
-				inst.free()
+				enemy.free()
 				return false
-	if is_instance_valid(inst):
-		inst.free()
-	print("[OK] world enemies carry profile shapes (box/sphere/capsule) + scaled wolf model")
+		if is_instance_valid(enemy):
+			enemy.free()
+	print("[OK] real enemies carry profile shapes (box/sphere/capsule) + scaled wolf model")
 	return true
 
 
 func _test_player_wiring() -> bool:
-	# PlayerController stance swap via the scene-authored player (the
-	# playable world's Player node -- avoids bare-.new() boot-error spam
-	# from a controller instantiated outside the scene's full wiring).
-	var scene: PackedScene = load("res://scenes/world_playable.tscn")
-	if scene == null:
-		push_error("FAIL: world_playable.tscn did not load")
-		return false
-	var inst := scene.instantiate()
-	root.add_child(inst)
+	# The shared player body (PlayerBase) carries the species-fair hitbox
+	# and the stance swap -- both the globe body and the planar controller
+	# inherit it (planar-retirement Step 5 moved it off the controller).
+	# Build a real PlayerBase and drive the SAME law the scene body does.
+	var PB: GDScript = load("res://entities/player/player_base.gd")
+	var body = PB.new()
+	root.add_child(body)
 	await process_frame
+	body._apply_hitbox_profile()
 	await process_frame
-	var pc := inst.get_node_or_null("Player")
-	if pc == null:
-		push_error("FAIL: Player node missing from world")
-		inst.free()
-		return false
-	var shape_node := pc.get_node_or_null("CollisionShape3D") as CollisionShape3D
+	var shape_node := body.get_node_or_null("CollisionShape3D") as CollisionShape3D
 	if shape_node == null or shape_node.shape == null:
-		push_error("FAIL: player hitbox not applied in _ready")
-		inst.free()
+		push_error("FAIL: player hitbox not applied")
+		body.free()
 		return false
 	var standing_h: float = (shape_node.shape as CapsuleShape3D).height
-	pc.set_hitbox_stance("crouch")
+	body.set_hitbox_stance("crouch")
 	var crouch_h: float = (shape_node.shape as CapsuleShape3D).height
 	if not (crouch_h < standing_h):
 		push_error("FAIL: crouch capsule %s not smaller than standing %s" % [crouch_h, standing_h])
-		inst.free()
+		body.free()
 		return false
 	var off := shape_node.position.y
 	if not is_equal_approx(off, 0.45):
 		push_error("FAIL: crouch offset %s != 0.45" % off)
-		inst.free()
+		body.free()
 		return false
-	pc.set_hitbox_stance("standing")
+	body.set_hitbox_stance("standing")
 	var restored_h: float = (shape_node.shape as CapsuleShape3D).height
 	if not is_equal_approx(restored_h, standing_h):
 		push_error("FAIL: standing capsule not restored")
-		inst.free()
+		body.free()
 		return false
 	# Invalid stances are ignored.
-	pc.set_hitbox_stance("flying")
+	body.set_hitbox_stance("flying")
 	var after_invalid: float = (shape_node.shape as CapsuleShape3D).height
 	if not is_equal_approx(after_invalid, standing_h):
 		push_error("FAIL: invalid stance changed the capsule")
-		inst.free()
+		body.free()
 		return false
-	inst.free()
+	body.free()
 	print("[OK] player hitbox: species-fair capsule applies, crouch swaps, standing restores")
 	return true

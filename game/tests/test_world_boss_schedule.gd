@@ -51,7 +51,7 @@ func _run() -> void:
 		return _finish()
 
 	# --- Players + admin seam ------------------------------------------------
-	var PlayerScript = load("res://entities/player/player_controller.gd")
+	var PlayerScript = load("res://entities/player/player_base.gd")
 	var player: Node = PlayerScript.new()
 	player.display_name = "BossTimerAdmin"
 	player.entity_id = "wb_char"

@@ -198,7 +198,7 @@ func _run() -> void:
 
 	# ---- F. the WALK-UP law: E resolves the nearest placed node -------
 	var upc = root.get_node_or_null("/root/PlayerManager")
-	PlayerControllerScript = load("res://entities/player/player_controller.gd")
+	PlayerControllerScript = load("res://entities/player/player_base.gd")
 	var walker = PlayerControllerScript.new()
 	walker.entity_id = "hall_owner"
 	walker.is_local_player = true

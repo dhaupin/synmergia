@@ -59,7 +59,7 @@ func _run() -> void:
 	_assert(a != null and b != null and a == b, "catalog and resolver return the SAME instance")
 
 	# --- Player ----------------------------------------------------------------
-	var PlayerScript = load("res://entities/player/player_controller.gd")
+	var PlayerScript = load("res://entities/player/player_base.gd")
 	var player: Node = PlayerScript.new()
 	player.display_name = "PortalHero"
 	player.entity_id = "portal_char"

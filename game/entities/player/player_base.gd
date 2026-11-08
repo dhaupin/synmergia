@@ -125,6 +125,81 @@ var gold: int = 0:
 		gold = v
 		gold_changed.emit(v)
 
+# --- Hitbox surface (the ONE player hitbox) -------------------------------
+## Hitbox Profile System: cached profile (resolved via the species-fairness
+## path) + current stance ("standing" | "crouch"). Crouch/Slide states swap
+## the stance; the capsule changes size, never scale -- players of every
+## species/sex/body_type share ONE hitbox. Moved here from the planar
+## controller (planar-retirement Step 5) so every playable body carries the
+## fair hitbox, not just the scene-authored one.
+var _hitbox_profile: HitboxProfile = null
+var _hitbox_stance: String = "standing"
+
+## Resolve + apply the player collision shape. FAIRNESS RULE (species PvP):
+## resolution goes through the species-fair path
+## (_ds().resolve_player_hitbox_profile) so every playable species lands on
+## the SAME profile. Species, sex, and body_type never scale or swap the
+## player hitbox; hitbox_player.tres clamps scale to 1.0 hard.
+func _apply_hitbox_profile() -> void:
+	if _ds() == null:
+		return
+	var species_id := "human"
+	var char_data = _gm().selected_character_data if is_instance_valid(_gm()) else null
+	if char_data != null and "species_id" in char_data and not str(char_data.species_id).is_empty():
+		species_id = str(char_data.species_id)
+	_hitbox_profile = _ds().resolve_player_hitbox_profile(species_id)
+	if _hitbox_profile == null:
+		var gl := _glog()
+		if gl:
+			gl.warn("PlayerBase: hitbox profile missing -- keeping scene capsule")
+		return
+	var shape_node := get_node_or_null("CollisionShape3D") as CollisionShape3D
+	if shape_node == null:
+		# Deferred: _ready-time tree setup can reject sync adds.
+		shape_node = CollisionShape3D.new()
+		shape_node.name = "CollisionShape3D"
+		add_child.call_deferred(shape_node)
+	shape_node.shape = _hitbox_profile.build_shape(1.0, _hitbox_stance)
+	var dims: Dictionary = _hitbox_profile.get_dims(1.0, _hitbox_stance)
+	shape_node.position = Vector3(0.0, float(dims["offset"]), 0.0)
+	var gl2 := _glog()
+	if gl2:
+		gl2.info("PlayerBase: applied hitbox profile '%s' (species-fair: %s)" % [_hitbox_profile.id, str(_hitbox_profile.pvp_fair)])
+
+## Stance swap for Crouch/Slide states: same profile, same species, SAME
+## scale -- only the crouch variant's smaller capsule applies. Falls back to
+## standing when the profile has no crouch variant.
+func set_hitbox_stance(stance: String) -> void:
+	if _hitbox_profile == null:
+		_hitbox_stance = stance
+		return
+	if stance == _hitbox_stance:
+		return
+	if stance != "standing" and stance != "crouch":
+		return
+	_hitbox_stance = stance
+	var shape_node := get_node_or_null("CollisionShape3D") as CollisionShape3D
+	if shape_node == null:
+		return
+	shape_node.shape = _hitbox_profile.build_shape(1.0, _hitbox_stance)
+	var dims: Dictionary = _hitbox_profile.get_dims(1.0, _hitbox_stance)
+	shape_node.position = Vector3(0.0, float(dims["offset"]), 0.0)
+
+# --- Shared ready surface -------------------------------------------------
+## THE SHARED PLAYER-READY LAW (planar-retirement Step 5): the surface
+## every playable body wires on entering the tree -- the health component,
+## the "players" group membership (ActionBar + PlayerProgress resolve their
+## caster through get_first_node_in_group("players")), the class skillbar,
+## and the combat effect stack. Both bodies wired these themselves (the same
+## four lines in each); they now call super._ready() so the shared setup has
+## ONE home, and a bare PlayerBase (probes, fixture tests) gets the same
+## surface without a scene.
+func _ready() -> void:
+	_ensure_health_component()
+	add_to_group("players")
+	_setup_starting_skills()
+	_ensure_effect_stack(true)
+
 # --- Health surface -------------------------------------------------------
 ## Receive damage from any combatant (enemies route here through
 ## EnemyAI._perform_attack and skill.gd's untyped take_damage).
@@ -285,6 +360,26 @@ func remove_currency(currency_id: String, amount: int) -> bool:
 	if comp != null and is_instance_valid(comp) and comp.has_method("remove_currency"):
 		return bool(comp.remove_currency(currency_id, amount))
 	return false
+
+# --- World seams (duck-typed data lookups) --------------------------------
+## The vessel a dock pin fronts: the ferry whose ROUTE names the pin
+## (moor/seaward -> the Sundered Barque; village/capitol pier -> the Haven
+## Ferry; village/island dock -> the Island Ferry). One truth door: the pin
+## id only resolves through a vehicle's data-truth route gateways -- no
+## pin-to-boat lookup table to drift. Moved here from the planar controller
+## (planar-retirement Step 5) so every playable body carries the walk-up
+## dock seam.
+func _dock_vehicle_for_pin(gateway_pin_id: String) -> String:
+	var ds := _ds()
+	if ds == null:
+		return ""
+	for v in ds.get_all_vehicles():
+		if v == null or int(v.ferries_per_day) <= 0:
+			continue
+		for port in v.route_gateways:
+			if str(port) == gateway_pin_id:
+				return str(v.id)
+	return ""
 
 # --- Combat surface (cast + effect stack) ---------------------------------
 ## WHY THIS LIVES HERE: the ActionBar casts through `player.use_skill(slot)`

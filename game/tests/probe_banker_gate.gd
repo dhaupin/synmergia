@@ -36,7 +36,7 @@ func _run() -> void:
 	await process_frame
 
 	var pm = root.get_node_or_null("PlayerManager")
-	var PlayerScript = load("res://entities/player/player_controller.gd")
+	var PlayerScript = load("res://entities/player/player_base.gd")
 	var player = PlayerScript.new()
 	player.entity_id = "bank_probe_player"
 	if pm:

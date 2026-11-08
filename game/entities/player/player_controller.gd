@@ -185,12 +185,6 @@ var allow_sprint: bool = true
 var allow_jump_input: bool = true
 var allow_crouch: bool = true
 
-## Hitbox Profile System: cached profile (resolved in _ready via the
-## species-fairness path) + current stance ("standing" | "crouch").
-## Crouch/Slide states swap the stance; the capsule changes size, never
-## scale -- players of every species/sex/body_type share ONE hitbox.
-var _hitbox_profile: HitboxProfile = null
-var _hitbox_stance: String = "standing"
 var current_target: Node3D = null
 
 # Components
@@ -251,60 +245,6 @@ func _stamp_anticheat() -> void:
 		profile.jump_force * _ac_script.JUMP_LIMIT_MULTIPLIER,
 		profile.terminal_fall_speed * _ac_script.FALL_LIMIT_MULTIPLIER
 	)
-
-
-## Hitbox Profile System: resolve + apply the player collision shape.
-## FAIRNESS RULE (species PvP): resolution goes through the species-fair
-## path (_ds().resolve_player_hitbox_profile) so every playable
-## species lands on the SAME profile. Species, sex, and body_type never
-## scale or swap the player hitbox; hitbox_player.tres clamps scale to
-## 1.0 hard, so even a bad future export cannot shrink or grow one
-## species's capsule relative to another.
-func _apply_hitbox_profile() -> void:
-	if _ds() == null:
-		return
-	var species_id := "human"
-	var char_data := _get_character_data()
-	if char_data != null and not char_data.species_id.is_empty():
-		species_id = char_data.species_id
-	_hitbox_profile = _ds().resolve_player_hitbox_profile(species_id)
-	if _hitbox_profile == null:
-		var gl := _glog()
-		if gl:
-			gl.warn("PlayerController: hitbox profile missing -- keeping scene capsule")
-		return
-	var shape_node := get_node_or_null("CollisionShape3D") as CollisionShape3D
-	if shape_node == null:
-		# Deferred: _ready-time tree setup can reject sync adds.
-		shape_node = CollisionShape3D.new()
-		shape_node.name = "CollisionShape3D"
-		add_child.call_deferred(shape_node)
-	shape_node.shape = _hitbox_profile.build_shape(1.0, _hitbox_stance)
-	var dims: Dictionary = _hitbox_profile.get_dims(1.0, _hitbox_stance)
-	shape_node.position = Vector3(0.0, float(dims["offset"]), 0.0)
-	var gl := _glog()
-	if gl:
-		gl.info("PlayerController: applied hitbox profile '%s' (species-fair: %s)" % [_hitbox_profile.id, str(_hitbox_profile.pvp_fair)])
-
-
-## Stance swap for Crouch/Slide states: same profile, same species,
-## SAME scale -- only the crouch variant's smaller capsule applies.
-## Falls back to standing when the profile has no crouch variant.
-func set_hitbox_stance(stance: String) -> void:
-	if _hitbox_profile == null:
-		_hitbox_stance = stance
-		return
-	if stance == _hitbox_stance:
-		return
-	if stance != "standing" and stance != "crouch":
-		return
-	_hitbox_stance = stance
-	var shape_node := get_node_or_null("CollisionShape3D") as CollisionShape3D
-	if shape_node == null:
-		return
-	shape_node.shape = _hitbox_profile.build_shape(1.0, _hitbox_stance)
-	var dims: Dictionary = _hitbox_profile.get_dims(1.0, _hitbox_stance)
-	shape_node.position = Vector3(0.0, float(dims["offset"]), 0.0)
 
 
 ## Respawn binding (Ankh.bind_player writes respawn_ankh_id;

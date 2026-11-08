@@ -241,7 +241,7 @@ func _run() -> void:
 		# GDScript methods live on the script's authored object -- an
 		# actual player_controller.gd instance (set_script AFTER new()
 		# loses the script's members to the base class body).
-		var pc = load("res://entities/player/player_controller.gd").new()
+		var pc = load("res://entities/player/player_base.gd").new()
 		root.add_child(pc)
 		await process_frame
 		_check(pc.has_method("_dock_vehicle_for_pin"),

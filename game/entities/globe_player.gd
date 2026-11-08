@@ -468,7 +468,16 @@ func _ready() -> void:
 	# collision.
 	collision_layer = Layers.layer_bit("entity")
 	collision_mask = collision_mask | Layers.layer_bit("solid")
-	_ensure_health_component()
+	# THE SHARED PLAYER SURFACE (planar-retirement Step 5): health component,
+	# the "players" group, the class skillbar, and the combat effect stack
+	# all live in PlayerBase._ready now -- one home, so a bare PlayerBase
+	# (probes, fixture tests) carries the same surface as a scene body.
+	super._ready()
+	# Hitbox Profile System: the species-fair player capsule (the ONE player
+	# hitbox). Applied deferred so the tree setup settles first; the globe's
+	# ground law is a math check (planet_distance), so the shape only matters
+	# for the hitbox sweep -- which is exactly why it must be the player shape.
+	_apply_hitbox_profile.call_deferred()
 	# INVENTORY BAG (round 7, item 3): the globe body never carried one,
 	# so the globe world had NO inventory loop at all -- no bag for the
 	# starter kit to land in (tabs rendered blank), nothing to receive
@@ -485,14 +494,6 @@ func _ready() -> void:
 	var pm = Engine.get_main_loop().root.get_node_or_null("PlayerManager") if Engine.get_main_loop() is SceneTree else null
 	if pm != null and pm.has_method("set_local_player"):
 		pm.set_local_player(self)
-	# THE PLAYERS GROUP (the planar controller's law, line-for-line):
-	# player_controller.gd joins this group in _ready; the globe body never
-	# did, so every "players"-group lookup missed the local body in the world
-	# the player actually plays (globe_world is the spherical default).
-	# ActionBar resolves its caster through get_first_node_in_group("players")
-	# and PlayerProgress falls back to it too. Membership is the wiring; a
-	# consumer that needs a method the body lacks still guards with has_method.
-	add_to_group("players")
 	# THE CONCORD-LOOP INTERACT (planar-retirement Step 1): listen to the
 	# shared InputManager's "interact" action so E / gamepad A / touch ACT
 	# reaches the world's interactables (ancient doors, concord stones).
@@ -527,13 +528,6 @@ func _ready() -> void:
 	# Anticheat stamp (the planar controller's law): the validator
 	# needs a jump ceiling for this body or any hop reads as a hack.
 	_call_deferred_stamp()
-	# COMBAT SURFACE (planar-retirement Step 2): load the class skillbar
-	# and attach the effect stack. Both are inherited from PlayerBase; the
-	# globe body never called them, so its ActionBar no-oped and live
-	# DoTs/CCs could not land. Resolves defensively (script-mode probes
-	# mount no autoloads).
-	_setup_starting_skills()
-	_ensure_effect_stack(true)
 
 func _on_sprint_override(active: bool) -> void:
 	_sprint_override_on = active

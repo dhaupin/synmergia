@@ -58,7 +58,7 @@ func _initialize() -> void:
 	var PlayerManagerNode = root.get_node_or_null("PlayerManager")
 	_assert("PlayerManager present", PlayerManagerNode != null)
 	if PlayerManagerNode:
-		var pscript = load("res://entities/player/player_controller.gd")
+		var pscript = load("res://entities/player/player_base.gd")
 		if pscript:
 			var pnode = pscript.new()
 			pnode.entity_id = pid

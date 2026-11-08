@@ -51,7 +51,7 @@ func _run() -> void:
 		tick._tick_timer.stop()
 
 	# --- 1. Peer -> player resolution --------------------------------------
-	var PlayerScript = load("res://entities/player/player_controller.gd")
+	var PlayerScript = load("res://entities/player/player_base.gd")
 	var player: Node = PlayerScript.new()
 	player.display_name = "AoiHero"
 	player.entity_id = "aoi_char"
