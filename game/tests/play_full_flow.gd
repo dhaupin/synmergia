@@ -95,8 +95,10 @@ func _player() -> Node:
 	var s := _scene()
 	if s == null:
 		return null
-	# Shape-aware: the globe names its player GlobePlayer.
+	# Shape-aware: the globe anchors its body on the scene node (`player`).
 	var p: Node = s.get_node_or_null("Player")
+	if p == null:
+		p = s.get("player")
 	if p == null:
 		p = s.get_node_or_null("GlobePlayer")
 	return p

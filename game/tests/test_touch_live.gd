@@ -1,5 +1,6 @@
-## test_touch_live.gd - LIVE touch-HUD gameplay driver. Runs the playable
-## scene in RENDERING mode and plays it with synthetic touch input:
+## test_touch_live.gd - LIVE touch-HUD gameplay driver. Runs the open world
+## -- the GLOBE (planar-retirement Step 5; the planar scene is retired) -- in
+## RENDERING mode and plays it with synthetic touch input:
 ##
 ##   cd game && xvfb-run godot --path . --script res://tests/test_touch_live.gd
 ##
@@ -41,13 +42,18 @@ var _saw_attack_state := false
 
 func _initialize() -> void:
 	print("=== TOUCH HUD LIVE TEST: booting playable scene ===")
-	var scene: PackedScene = load("res://scenes/world_playable.tscn")
-	if scene == null:
-		print("  FAIL: could not load world_playable.tscn")
+	_boot.call_deferred()
+	return
+
+
+## Boot the globe through the shared helper (autoloads are live now).
+func _boot() -> void:
+	var boot = load("res://tests/support/globe_boot.gd")
+	var inst = await boot.boot(self)
+	if inst == null:
+		print("  FAIL: could not load globe_world.tscn")
 		quit(1)
 		return
-	var inst := scene.instantiate()
-	root.add_child(inst)
 	current_scene = inst
 
 	# Input stream logger: capture every synthetic action/key/mouse/touch
@@ -105,7 +111,7 @@ func _process(delta: float) -> bool:
 	# supposed to precede it (parsed events flush on the NEXT frame).
 	# The Attack state lasts 0.4s of game time -- potentially ONE frame --
 	# so observing it requires watching every frame, not sampling.
-	if _p5_window_open and _state_name() == "Attack":
+	if _p5_window_open and Input.is_action_pressed("attack"):
 		_saw_attack_state = true
 	return false
 
@@ -125,13 +131,27 @@ func _hud() -> Node:
 	return im.get("_virtual_joystick") if "_virtual_joystick" in im else null
 
 func _player() -> Node:
-	return current_scene.get_node_or_null("Player")
+	# The globe anchors its body on the scene node (`player`).
+	return current_scene.get("player") if current_scene != null else null
 
+## The globe body has no state machine (it was a planar-scene fixture); derive
+## the equivalent movement state from the live body fields so the phases below
+## keep asserting real state, not a name.
 func _state_name() -> String:
 	var p := _player()
 	if p == null:
 		return ""
-	return str(p.state_machine.get_state_name())
+	if Input.is_action_pressed("attack"):
+		return "Attack"
+	if float(p.get("_slide_t")) > 0.0:
+		return "Slide"
+	if p.get("is_crouching") == true:
+		return "Crouch"
+	if not p.is_on_floor():
+		return "Jump"
+	if _planar_speed() > 0.5:
+		return "Run"
+	return "Idle"
 
 func _planar_speed() -> float:
 	var p := _player()
@@ -221,7 +241,8 @@ func _p1_check() -> void:
 	# Under xvfb the spawn drop can still be inside its 0.15 s Land
 	# recovery at t=2.0 (Land lerps stick velocity to zero), so the
 	# first sample re-checks once if it caught the landing window.
-	if _state_name() == "Land" and not _p1_retried:
+	var _p1_body := _player()
+	if _p1_body != null and not _p1_body.is_on_floor() and not _p1_retried:
 		_p1_retried = true
 		_schedule.append([_t + 0.3, _p1_check])
 		_schedule.sort_custom(func(a, b): return float(a[0]) < float(b[0]))
@@ -306,8 +327,8 @@ func _p5_attack_release() -> void:
 
 func _p6_swipe_start() -> void:
 	print("--- P6: right-half camera swipe ---")
-	var cam: Camera3D = _player().camera_pivot.get_node_or_null("Camera3D")
-	_yaw_before = cam.get_yaw() if cam else 0.0
+	# The globe body has no ThirdPersonCamera; its look rides (look_yaw, look_pitch).
+	_yaw_before = float(_player().get("look_yaw"))
 	_touch(1, Vector2(900, 400), true)
 	_drag(1, Vector2(900, 400), Vector2(880, 395))
 	_drag(1, Vector2(880, 395), Vector2(860, 390))
@@ -316,8 +337,7 @@ func _p6_swipe_start() -> void:
 
 func _p6_check() -> void:
 	_touch(1, Vector2(820, 380), false)
-	var cam: Camera3D = _player().camera_pivot.get_node_or_null("Camera3D")
-	var dyaw: float = absf(cam.get_yaw() - _yaw_before) if cam else 0.0
+	var dyaw: float = absf(float(_player().get("look_yaw")) - _yaw_before)
 	_ok("camera yaw changed on swipe", dyaw > 0.2, "(dyaw %.3f rad)" % dyaw)
 
 ## ------------------------------------------------------------------- P7

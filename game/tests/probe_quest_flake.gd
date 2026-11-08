@@ -92,7 +92,9 @@ func _player() -> Node:
 		for e in es.get_all_entities():
 			if is_instance_valid(e) and "is_local_player" in e and e.is_local_player:
 				return e
-	return current_scene.get_node_or_null("Player") if current_scene else null
+	if current_scene == null:
+		return null
+	return current_scene.get_node_or_null("Player") if current_scene.get_node_or_null("Player") else current_scene.get("player")
 
 func _process(delta: float) -> bool:
 	_t += delta

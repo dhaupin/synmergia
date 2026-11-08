@@ -240,8 +240,9 @@ warnings/infer_variant=0
 
 [synmergia]
 
-; World shape (world-building.md sec 1.6; GameManager branches on it):
-; "planar" = classic world_playable, "spherical" = the spherical world.
+; World shape (world-building.md sec 1.6; the instance contract reads it):
+; the open world is always the globe now (planar-retirement Step 5); this
+; stays as the shape parameter instances declare (planar AABB rooms).
 world/shape="spherical"
 
 ; Planet scale in meters. 20000 = the v1 planet scale (prd.md, and

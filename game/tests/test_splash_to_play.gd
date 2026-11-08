@@ -35,7 +35,8 @@ func _initialize() -> void:
 		quit(1)
 		return
 	# Classic-world checkpoints (camera sensitivity on ThirdPersonCamera,
-	# state_machine names) live in the planar scene; pin the shape.
+	# state_machine names) lived in the planar scene; the globe is the world
+	# now (planar-retirement Step 5), so pin the shape.
 	ProjectSettings.set_setting("synmergia/world/shape", "planar")
 	var err := change_scene_to_file("res://ui/menus/main_menu.tscn")
 	if err != OK:
@@ -272,14 +273,19 @@ func _player() -> Node:
 	var s := _scene()
 	if s == null:
 		return null
-	# Shape-aware: the globe names its player GlobePlayer.
+	# Shape-aware: the globe anchors its body on the scene node (`player`);
+	# older planar scenes named the child "Player".
 	var p: Node = s.get_node_or_null("Player")
+	if p == null:
+		p = s.get("player")
 	if p == null:
 		p = s.get_node_or_null("GlobePlayer")
 	return p
 
 func _cam() -> Node:
 	var p := _player()
-	if p == null or not ("camera_pivot" in p):
+	if p == null:
 		return null
-	return p.camera_pivot.get_node_or_null("Camera3D")
+	if "camera_pivot" in p:
+		return p.camera_pivot.get_node_or_null("Camera3D")
+	return p.get_node_or_null("CameraPivot/Camera3D")

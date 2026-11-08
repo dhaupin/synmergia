@@ -242,7 +242,8 @@ func _is_player_entity(node) -> bool:
 	if cls == null:
 		return false
 	var path := str(cls.resource_path)
-	return path.contains("player_controller") or path.contains("/player/")
+	return path.contains("globe_player") or path.contains("player_base") \
+			or path.contains("/player/")
 
 ## Boss/elite detection: EnemyData fields, with bare-property fallbacks.
 func _is_boss(entity) -> bool:

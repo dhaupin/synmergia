@@ -3,7 +3,7 @@
 ##   A. Do synthetic InputEventScreenTouch press/release pairs drive a
 ##      Godot Button (index 0)? Does InputEventAction register?
 ##   B. Does a touch at index 1 (secondary finger) drive the Button?
-##   C. After a real world_playable boot: does TouchHud._input's
+##   C. After a real GLOBE boot (planar-retirement Step 5): does TouchHud._input's
 ##      edit-mode drag path move a button when fed the exact P8
 ##      event sequence from test_touch_live.gd?
 ##
@@ -31,11 +31,17 @@ func _initialize() -> void:
 	_btn.button_down.connect(func(): _downs += 1)
 	_btn.button_up.connect(func(): _ups += 1)
 	root.add_child(_btn)
-	# Boot the real playable scene so HUD stacking matches the live test.
-	var scene: PackedScene = load("res://scenes/world_playable.tscn")
-	_world = scene.instantiate()
-	root.add_child(_world)
-	current_scene = _world
+	# Boot the real open world (the globe) so HUD stacking matches the
+	# live test. Async: the globe streams its mesh lane, so _process waits
+	# until _world is live before stepping.
+	_boot()
+
+func _boot() -> void:
+	var boot = load("res://tests/support/globe_boot.gd")
+	_world = await boot.boot(self)
+	if _world != null:
+		current_scene = _world
+
 
 func _touch(idx: int, pos: Vector2, pressed: bool) -> void:
 	var ev := InputEventScreenTouch.new()
@@ -58,6 +64,8 @@ func _hud() -> Node:
 	return im.get("_virtual_joystick") if "_virtual_joystick" in im else null
 
 func _process(delta: float) -> bool:
+	if _world == null:
+		return false
 	_t += delta
 	match _step:
 		0:

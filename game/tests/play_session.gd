@@ -1,8 +1,9 @@
 ## play_session.gd - A bot hero plays the game. Not a test: a PLAY session.
 ##
-## Boots the real world_playable scene (under xvfb, NOT headless -- we want
-## the render pipeline for screenshots) and drives the local player through
-## an actual play session using production entry points:
+## Boots the real open world -- the GLOBE (planar-retirement Step 5; the
+## planar world_playable scene is retired) -- under xvfb, NOT headless (we
+## want the render pipeline for screenshots), and drives the local player
+## through an actual play session using production entry points:
 ##
 ##   1. Arrival: chat hello, world census, hero loadout.
 ##   2. Training dummy: honest basic-attack practice against the new hit
@@ -69,13 +70,18 @@ func _initialize() -> void:
 			quit(1))
 	root.add_child(wd)
 	wd.start()
-	var scene: PackedScene = load("res://scenes/world_playable.tscn")
-	if scene == null:
-		print("  JOURNAL: world_playable.tscn would not load. No adventure today.")
+	_boot.call_deferred()
+
+
+## Boot the globe through the shared helper (autoloads are live now), then
+## begin the session.
+func _boot() -> void:
+	var boot = load("res://tests/support/globe_boot.gd")
+	var inst = await boot.boot(self)
+	if inst == null:
+		print("  JOURNAL: globe_world.tscn would not load. No adventure today.")
 		quit(1)
 		return
-	var inst := scene.instantiate()
-	root.add_child(inst)
 	current_scene = inst
 	_play.call_deferred()
 
@@ -222,7 +228,8 @@ func _play() -> void:
 	_cs.message_received.connect(func(sender_id: String, _ch, message: String, _t):
 		_chat_log.append("%s: %s" % [sender_id, message]))
 
-	_player = current_scene.get_node_or_null("Player")
+	# The globe anchors its body on the scene node (`player`).
+	_player = current_scene.get("player")
 	if _player == null:
 		print("  JOURNAL: no hero in the scene. The world is empty.")
 		return _finish()
@@ -404,7 +411,7 @@ func _play() -> void:
 	# --- 7. Dungeon tour -------------------------------------------------------
 	_banner("7. Dungeon tour: Forest Depths")
 	_player.level = 12  # the gate asks for 10; the hero has earned a shortcut
-	var gateways: Array = _ws.get_zone_gateways("world_playable")
+	var gateways: Array = _ws.get_zone_gateways("zone_village_center")
 	if gateways.is_empty():
 		print("  JOURNAL: no portal registered. The dungeon keeps its secrets.")
 	else:

@@ -1,8 +1,8 @@
 ## test_full_boot_live.gd - FULL-BOOT live test: the game plays itself.
 ##
-## Boots the REAL playable scene (world_playable.tscn, the same scene a
-## player lands in) and then drives every system from the previous phases
-## through their production entry points:
+## Boots the REAL open world (the GLOBE; planar-retirement Step 5 -- the
+## planar world_playable scene is retired) and then drives every system from
+## the previous phases through their production entry points:
 ##
 ##   1. Boot: player registered, HUD alive, zone entered.
 ##   2. Training dummy: no AI, no aggro component, damage lands (armor
@@ -66,13 +66,18 @@ func _initialize() -> void:
 			quit(1))
 	root.add_child(wd)
 	wd.start()
-	var scene: PackedScene = load("res://scenes/world_playable.tscn")
-	if scene == null:
-		print("  FAIL: could not load world_playable.tscn")
+	_boot.call_deferred()
+
+
+## Boot the globe through the shared helper (autoloads are live now), then
+## hand the flow to the coroutine.
+func _boot() -> void:
+	var boot = load("res://tests/support/globe_boot.gd")
+	var inst = await boot.boot(self)
+	if inst == null:
+		print("  FAIL: could not load globe_world.tscn")
 		quit(1)
 		return
-	var inst := scene.instantiate()
-	root.add_child(inst)
 	current_scene = inst
 	_run.call_deferred()
 
@@ -114,7 +119,8 @@ func _cmd(text: String) -> void:
 	await process_frame
 
 func _player() -> Node:
-	return current_scene.get_node_or_null("Player")
+	# The globe anchors its body on the scene node (`player`).
+	return current_scene.get("player") if current_scene != null else null
 
 func _named_in_group(group_name: String, display: String) -> Array:
 	var out: Array = []
@@ -410,7 +416,7 @@ func _run() -> void:
 	player.level = 12  # dungeon gates at 10; give the hero the key
 	# Reset the completion tap: phase 6 already fired it once.
 	_horde_completed[0] = false
-	var gateways: Array = _ws.get_zone_gateways("world_playable")
+	var gateways: Array = _ws.get_zone_gateways("zone_village_center")
 	_ok("portal gateway registered by the scene", gateways.size() >= 1)
 	if gateways.is_empty():
 		return _finish()
