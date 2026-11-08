@@ -100,7 +100,8 @@ cd game && godot --headless --path . --script res://tests/probe_crafting.gd
 # full default regression set (~140 probes/tests, serial)
 sh ./scripts/godot_test_runner.sh            # from repo root
 sh ./scripts/godot_test_runner.sh probe_crafting probe_stream_flow_100m  # named
-sh ./scripts/godot_test_runner.sh --all      # every test_*.gd
+sh ./scripts/godot_test_runner.sh --all      # every test_*.gd, PARALLEL
+                                             # (delegates to the parallel runner)
 
 # charset lint
 godot --headless --path . --script res://tests/lint/test_lint_charset.gd

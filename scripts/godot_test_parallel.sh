@@ -6,6 +6,9 @@
 # no failures) but the boots run CONCURRENTLY: the 90-minute full sweep
 # drops to roughly wall-time / JOBS instead of a serial march.
 #
+# `--all` is PARALLEL from BOTH entry points: godot_test_runner.sh --all
+# delegates here, and this script's own --all does the same full sweep.
+#
 # Usage:
 #   sh ./scripts/godot_test_parallel.sh                       # default set
 #   sh ./scripts/godot_test_parallel.sh test_movement_profiles # named tests
@@ -141,7 +144,11 @@ fi
 
 # ---------------------------------------------------------------- laws
 # Same disk-hygiene law as the serial runner (2026-10-13 incident).
-ulimit -f 262144
+# Tolerate a pre-set hard limit: when the serial runner delegates here
+# via `--all`, its dash `ulimit -f` already lowered the HARD limit, so a
+# re-set here would fail. The cap is inherited either way -- a failure to
+# re-set is not a reason to abort the sweep.
+ulimit -f 262144 2>/dev/null || true
 find /tmp -maxdepth 1 -name 'syn_*.log' -mtime +1 -delete 2>/dev/null
 
 n_tests=0

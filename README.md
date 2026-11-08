@@ -171,9 +171,10 @@ godot --editor game/
 # Or run a headless server
 godot --headless --server --path game/
 
-# Run the smoke tests (serial, or parallel for speed)
+# Run the smoke tests (serial default set; --all runs the full sweep in parallel)
 sh ./scripts/godot_test_runner.sh
-sh ./scripts/godot_test_parallel.sh
+sh ./scripts/godot_test_runner.sh --all
+sh ./scripts/godot_test_parallel.sh      # the parallel runner directly
 ```
 
 See [AGENTS.md](./AGENTS.md) for developer conventions and code patterns,

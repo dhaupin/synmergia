@@ -23,6 +23,19 @@ if ! command -v godot >/dev/null 2>&1; then
 	exit 1
 fi
 
+# --all IS THE PARALLEL FULL SWEEP. Delegate to the concurrent sister
+# (scripts/godot_test_parallel.sh) BEFORE the ulimit below, so `--all` is
+# parallel from EITHER entry point. The sister keeps the same laws
+# (per-test boot, per-test log, exit-iff-green) and warms the .godot
+# import once, single-threaded, before the swarm. Named runs and the bare
+# default set stay serial here -- DEFAULT_SET is gen_fleet_packs' single
+# source of truth and must keep its exact shape.
+# (Delegate first: this script's dash `ulimit -f` sets the HARD limit too,
+# so a later bash re-set in the sister fails with "cannot modify limit".)
+if [ "${1:-}" = "--all" ]; then
+	exec sh "${ROOT_DIR}/scripts/godot_test_parallel.sh" --all
+fi
+
 # THE DISK-HYGIENE LAW (the 2026-10-13 incident: a runaway probe log
 # ate 4.4 GB and the disk-full truncation cost a day of terrain work):
 # (1) any single log file dies at the 256 MB cap - the writes fail
@@ -168,13 +181,9 @@ probe_blacksmith_scene
 probe_world_shape_ground
 "
 
-if [ "${1:-}" = "--all" ]; then
-	TESTS=$(cd "${GAME_DIR}/tests" && ls test_*.gd | sed 's/\.gd$//')
-else
-	TESTS="$*"
-	if [ -z "$TESTS" ]; then
-		TESTS="${DEFAULT_SET}"
-	fi
+TESTS="$*"
+if [ -z "$TESTS" ]; then
+	TESTS="${DEFAULT_SET}"
 fi
 
 pass=0
