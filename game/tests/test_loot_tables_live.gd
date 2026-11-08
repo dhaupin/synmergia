@@ -1,5 +1,5 @@
-## test_loot_tables_live.gd - END-TO-END loot verification in the playable
-## scene. Run in RENDERING mode:
+## test_loot_tables_live.gd - END-TO-END loot verification on the GLOBE
+## (the open world; planar-retirement Step 5). Run in RENDERING mode:
 ##
 ##   cd game && xvfb-run godot --path . --script res://tests/test_loot_tables_live.gd
 ##
@@ -12,15 +12,14 @@
 ##      loot, and carry book_skill_id/book_upgrade_level.
 ##   4. GroundLootService expands book_<skill>_<tier> ids through
 ##      SkillAcademyService.create_book (runtime catalog, no .tres).
-##   5. LIVE kill: slime dies -> exactly ONE table roll -> ground drop
-##      appears -> pickup lands the item + currency. The corpse does NOT
-##      roll the table again (double-dip regression guard).
+##   5. LIVE kill: a GLOBE roster wolf dies -> exactly ONE table roll ->
+##      ground drop appears -> pickup lands the item + currency. The corpse
+##      does NOT roll the table again (double-dip regression guard).
 ##
-## Determinism: the test flips the loaded slime table's first entry and
-## its currency drop to is_guaranteed. ResourceLoader caches by path, so
-## the same instance the enemy rolls is the one we mutate -- every kill
-## drops. The mutation lives only in memory; the .tres on disk is
-## untouched.
+## Determinism: the test flips the loaded wolf table's first entry and its
+## currency drop to is_guaranteed. ResourceLoader caches by path, so the
+## same instance the enemy rolls is the one we mutate -- every kill drops.
+## The mutation lives only in memory; the .tres on disk is untouched.
 extends SceneTree
 
 var _pass := 0
@@ -29,9 +28,11 @@ var _frames := 0
 var _done := false
 var _phase := "boot"
 
+var _globe: Node = null
+var _boot = null
 var _player: Node = null
-var _slime: Node = null
-var _slime_id: String = ""
+var _wolf: Node = null
+var _wolf_id: String = ""
 var _gold_before: int = -1
 var _drops_before: int = -1
 var _picked: Array = []
@@ -40,25 +41,32 @@ var _death_pos: Vector3 = Vector3.ZERO
 
 
 func _initialize() -> void:
-	print("=== LOOT TABLES LIVE TEST: booting playable scene ===")
-	var scene: PackedScene = load("res://scenes/world_playable.tscn")
-	if scene == null:
-		print("  FAIL: could not load world_playable.tscn")
+	print("=== LOOT TABLES LIVE TEST: booting globe scene ===")
+	_boot = load("res://tests/support/globe_boot.gd")
+	_boot_globe.call_deferred()
+
+
+func _boot_globe() -> void:
+	_globe = await _boot.boot(self)
+	if _globe == null:
+		print("  FAIL: could not load globe_world.tscn")
 		quit(1)
 		return
-	var inst := scene.instantiate()
-	root.add_child(inst)
-	current_scene = inst
+	current_scene = _globe
 
 
 func _process(_delta: float) -> bool:
+	if _globe == null:
+		return false
 	_frames += 1
-	if _frames < 90 or _done:
+	if _frames < 30 or _done:
 		return false
 
 	match _phase:
 		"boot":
 			_static_checks()
+			_phase = "live_setup"
+		"live_setup":
 			_setup_live()
 		"kill":
 			_poll_drop()
@@ -84,13 +92,13 @@ func _static_checks() -> void:
 
 	# EnemyData.roll_loot through the resolver: base gold always pays.
 	var ds := root.get_node_or_null("DataService")
-	var slime_data = ds.get_enemy("slime") if ds != null and ds.has_method("get_enemy") else null
-	_assert(slime_data != null, "DataService has slime enemy data")
-	if slime_data != null:
-		_assert(str(slime_data.loot_table_id) == "loot_slime",
-				"enemy_slime references loot_slime (bare-id convention)")
-		var loot: Dictionary = slime_data.roll_loot()
-		_assert(int(loot.get("gold", 0)) >= int(slime_data.gold_min),
+	var wolf_data = ds.get_enemy("wolf") if ds != null and ds.has_method("get_enemy") else null
+	_assert(wolf_data != null, "DataService has wolf enemy data")
+	if wolf_data != null:
+		_assert(str(wolf_data.loot_table_id) == "loot_wolf",
+				"enemy_wolf references loot_wolf (bare-id convention)")
+		var loot: Dictionary = wolf_data.roll_loot()
+		_assert(int(loot.get("gold", 0)) >= int(wolf_data.gold_min),
 				"roll_loot pays base gold (got %d)" % int(loot.get("gold", 0)))
 		_assert(loot.get("items", null) is Array, "roll_loot returns items array")
 
@@ -126,31 +134,27 @@ func _static_checks() -> void:
 			_assert(academy.get_catalog_entry(sid) != null and not academy.get_catalog_entry(sid).is_empty(),
 					"academy catalog has upgradable skill: %s" % sid)
 
-	_phase = "live_setup"
-	# _setup_live() runs on the next _process tick via the phase machine
-	# (calling it here as well double-killed two slimes).
-
 
 # --- Phase 2: live kill -----------------------------------------------------
 
 func _setup_live() -> void:
-	_player = _find_player()
+	_player = _boot.player(_globe)
 	_assert(_player != null, "player node present")
 	if _player == null:
 		return _finish()
 
-	_slime = _find_slime()
-	_assert(_slime != null, "slime present in scene")
-	if _slime == null:
+	_wolf = _find_wolf()
+	_assert(_wolf != null, "wolf present in the globe roster")
+	if _wolf == null:
 		return _finish()
-	_slime_id = str(_slime.entity_id)
+	_wolf_id = str(_wolf.entity_id)
 
 	var gls := root.get_node_or_null("GroundLootService")
 	_drops_before = gls.get_drop_count()
 
 	# Guarantee the drop: mutate the CACHED table resource (same instance
 	# the enemy rolls). In-memory only.
-	var table = load("res://data/loot_tables/loot_slime.tres")
+	var table = load("res://data/loot_tables/loot_wolf.tres")
 	if table != null and table.entries.size() > 0 and table.currency_drops.size() > 0:
 		table.entries[0]["is_guaranteed"] = true
 		table.currency_drops[0]["is_guaranteed"] = true
@@ -158,10 +162,17 @@ func _setup_live() -> void:
 	if "gold" in _player:
 		_gold_before = int(_player.gold)
 
-	var death_pos: Vector3 = _slime.global_position
+	# Freeze the brain so the wolf cannot wander/attack mid-probe, and park
+	# it beside the player (the globe roster posts wildlife far from the
+	# plaza spawn; the drop-proximity assertion needs a nearby kill).
+	if _wolf.get("_ai") != null and is_instance_valid(_wolf._ai):
+		_wolf._ai.set_physics_process(false)
+	_wolf.global_position = _player.global_position + Vector3(1.5, 0.0, 0.0)
+
+	var death_pos: Vector3 = _wolf.global_position
 	_death_pos = death_pos
-	print("    killing slime %s at %s" % [_slime_id, str(death_pos)])
-	_slime.take_damage(99999, _player)
+	print("    killing wolf %s at %s" % [_wolf_id, str(death_pos)])
+	_wolf.take_damage(99999, _player)
 
 	# Corpse inspection (same frame): must NOT contain table items.
 	var corpse := _find_corpse_near(death_pos)
@@ -173,7 +184,7 @@ func _setup_live() -> void:
 				table_item_in_corpse = true
 		_assert(not table_item_in_corpse, "corpse did NOT re-roll the loot table")
 	else:
-		_assert(false, "corpse created for slime death")
+		_assert(false, "corpse created for wolf death")
 
 	_phase = "kill"
 
@@ -208,7 +219,7 @@ func _poll_drop() -> void:
 		return
 
 	_assert(_player.global_position.distance_to(_death_pos) < 30.0,
-			"drop spawned near the dead slime")
+			"drop spawned near the dead wolf")
 	var items: Array = drop.get("items", [])
 	_assert(items.size() >= 1, "drop carries rolled items (got %d)" % items.size())
 	var all_items := true
@@ -242,9 +253,6 @@ func _verify_pickup() -> void:
 		var inv = inv_svc.get_inventory(str(_player.entity_id))
 		if inv != null and inv.has_method("get_all_items"):
 			for it in inv.get_all_items():
-				# Works for Item instances and item Dictionaries alike.
-				# NOTE: Resource.get(key, default) is gone in 4.7.2 -- one
-				# argument only.
 				if str(it.get("id")) == "potion_health_small":
 					inv_got_potion = true
 	_assert(inv_got_potion, "guaranteed potion entry landed in player inventory")
@@ -254,30 +262,11 @@ func _verify_pickup() -> void:
 
 # --- Helpers ----------------------------------------------------------------
 
-func _find_player() -> Node:
-	var p := current_scene.get_node_or_null("Player")
-	if p != null:
-		return p
-	return get_first_node_in_group("players")
-
-
-func _find_slime() -> Node:
-	var candidates: Array = []
-	for n in current_scene.get_children():
-		_walk_for_slime(n, candidates)
-	if candidates.is_empty():
-		return null
-	return candidates[0]
-
-
-func _walk_for_slime(n: Node, out: Array) -> void:
-	if "enemy_data" in n and n.get("enemy_data") != null:
-		var ed = n.get("enemy_data")
-		if "loot_table_id" in ed and str(ed.loot_table_id) == "loot_slime":
-			out.append(n)
-			return
-	for c in n.get_children():
-		_walk_for_slime(c, out)
+func _find_wolf() -> Node:
+	for e in get_nodes_in_group("enemies"):
+		if is_instance_valid(e) and not e.is_dead and str(e.display_name) == "Wolf":
+			return e
+	return null
 
 
 func _find_corpse_near(pos: Vector3) -> Node:
