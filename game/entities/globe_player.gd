@@ -200,6 +200,26 @@ var _ride_lift: float = 0.0
 var _slope_cos: float = 1.0
 ## Touch auto-sprint mirror (VirtualJoystick.sprint_override).
 var _sprint_override_on: bool = false
+## Targeting parity (planar-retirement Step 5): the globe body's input
+## surface used to carry only `interact`. These mirror the planar
+## controller's targeting state so the shared player_input fan-out
+## (attack / Tab / F1 / F2 / ability_1..8) reaches the body.
+var is_targeting: bool = false
+## The body is the local player's avatar (input routes here). Mirrors the
+## planar controller's flag so click/keys gate the same way.
+var is_local_player: bool = true
+## The code-built context menu (NPC/gate/loot/player fan-out). Created
+## lazily on first use, exactly like the planar controller's.
+var _action_menu = null
+## Cached station panels (repair bench / workbench / skill academy / stats):
+## reused across opens so a second interact does not stack a duplicate panel.
+var _blacksmith_ui = null
+var _workbench_ui = null
+var _skill_academy_ui = null
+var _character_stats_ui = null
+## Tab-cycle target history (the "previous target" ring). One ring, local
+## to this body -- TargetingManager keeps only a single previous slot.
+var _target_history: Array = []
 ## Surface slope at the body's direction this frame (cos of the slope
 ## angle; 1 on flat ground). The glue check adds the slope ramp:
 ## walking uphill puts the snap target a head above the surface --
@@ -601,6 +621,11 @@ func _call_deferred_stamp() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# Basic-attack edge (left-click / touch ATK / gamepad): the planar body's
+	# state machine polled this; the globe body has no state machine, so the
+	# same edge drives the shared combat entry point here (both modes).
+	if is_local_player and Input.is_action_just_pressed("attack"):
+		_try_attack()
 	if planar_mode:
 		# Planar contract: -Y at InstanceContract.GRAVITY_FORCE, world up.
 		up_direction = Vector3.UP
@@ -1467,9 +1492,538 @@ func _connect_interact_input() -> void:
 		im.player_input.connect(_on_player_input)
 
 
+## The shared player_input fan-out (planar-retirement Step 5 parity): the
+## planar controller answered the whole action set here while the globe body
+## answered only `interact`, so on the globe the player could not attack,
+## target, or cast. These legs mirror the planar controller's exactly so
+## keyboard, touch, and gamepad route through one surface on both bodies.
 func _on_player_input(action: String, pressed: bool) -> void:
-	if action == "interact" and pressed:
-		_try_interact()
+	if not is_local_player:
+		return
+	match action:
+		"target_next":
+			if pressed:
+				cycle_target()
+		"target_previous":
+			if pressed:
+				cycle_target_previous()
+		"target_nearest":
+			# F2: hard nearest-enemy select (Tab is camera-relative).
+			if pressed:
+				_find_and_set_nearest_target()
+		"target_self":
+			# F1: target yourself (healers/casters, self-buff flow).
+			if pressed:
+				var tm := _tm()
+				if tm != null:
+					tm.set_target(entity_id, "player", display_name, global_position, self, entity_type)
+					is_targeting = true
+		"interact":
+			if pressed:
+				_try_interact()
+		"ability_1", "ability_2", "ability_3", "ability_4", \
+		"ability_5", "ability_6", "ability_7", "ability_8":
+			# Skill slots: keyboard 1-8 and touch skill buttons route here
+			# through the same player_input signal.
+			if pressed:
+				var slot := int(action.replace("ability_", "")) - 1
+				use_skill(slot)
+
+## Basic attack (left-click / touch ATK / gamepad). The planar body's state
+## machine polls Input.is_action_just_pressed("attack"); the globe body has no
+## state machine, so _physics_process polls the same action edge and drives the
+## swing straight through the shared combat entry point (create_hitbox) --
+## exactly what the Attack state does.
+func _try_attack() -> void:
+	if _text_entry_focused():
+		return
+	var skill = basic_attack
+	if skill == null or not skill.can_cast(self):
+		return
+	# A live target in range aims the swing; otherwise it lands in front of
+	# the body (create_hitbox's own fallback), matching planar behavior.
+	var target: Node = null
+	var tm := _tm()
+	if tm != null and tm.has_target():
+		var info = tm.get_current_target()
+		if info != null and is_instance_valid(info.node):
+			target = info.node
+	create_hitbox(skill, target)
+
+## Tab: cycle to the next targetable in the camera's look direction (raycast
+## first, nearest-enemy fallback), pushing the outgoing target onto the
+## local history ring so Tab can walk back. Mirrors the planar controller's
+## cycle_target.
+func cycle_target() -> void:
+	var tm := _tm()
+	if tm == null:
+		return
+	var camera := _get_camera()
+	var info = null
+	if camera != null:
+		var look_dir: Vector3 = -camera.global_transform.basis.z
+		info = tm.get_target_in_direction(global_position, look_dir, 50.0)
+	if info == null:
+		_find_and_set_nearest_target()
+		return
+	_push_target_history()
+	tm.set_target(
+		info.id, info.schema_id, info.display_name, info.world_position,
+		info.node, info.entity_type, info.metadata)
+	is_targeting = true
+
+## Shift+Tab: walk back through the local target ring.
+func cycle_target_previous() -> void:
+	var tm := _tm()
+	if tm == null:
+		return
+	if _target_history.is_empty():
+		# Nothing cycled yet: mirror the planar controller's history restore.
+		tm.restore_previous()
+		return
+	var prev: Dictionary = _target_history.pop_back()
+	if not is_instance_valid(prev.get("node")):
+		return
+	tm.set_target(
+		str(prev.get("id", "")), str(prev.get("schema_id", "enemy")),
+		str(prev.get("display_name", "")), prev.get("world_position", Vector3.ZERO),
+		prev.get("node"), int(prev.get("entity_type", Entity.EntityType.ENEMY)),
+		prev.get("metadata", {}))
+	is_targeting = true
+
+## F2: hard nearest-enemy select (distance only, no camera raycast).
+func _find_and_set_nearest_target() -> void:
+	var tm := _tm()
+	if tm == null:
+		return
+	var enemies: Array = get_tree().get_nodes_in_group("enemies")
+	var nearest: Node3D = null
+	var best_d: float = INF
+	for e in enemies:
+		if e == null or not is_instance_valid(e) or not (e is Node3D):
+			continue
+		if not ("entity_id" in e):
+			continue
+		# Skip the dead: the corpse is still in the group until it frees.
+		if e.has_method("is_alive") and not e.is_alive():
+			continue
+		var d: float = global_position.distance_to((e as Node3D).global_position)
+		if d < best_d:
+			best_d = d
+			nearest = e
+	if nearest == null:
+		return
+	_push_target_history()
+	tm.set_target(
+		str(nearest.get("entity_id")),
+		"enemy",
+		str(nearest.get("display_name")) if nearest.get("display_name") != null else "Enemy",
+		(nearest as Node3D).global_position,
+		nearest,
+		Entity.EntityType.ENEMY)
+	is_targeting = true
+
+## Push the current target onto the local history ring (cap 8).
+func _push_target_history() -> void:
+	var tm := _tm()
+	if tm == null or not tm.has_target():
+		return
+	var cur = tm.get_current_target()
+	if cur == null:
+		return
+	_target_history.append({
+		"id": cur.id,
+		"schema_id": cur.schema_id,
+		"display_name": cur.display_name,
+		"world_position": cur.world_position,
+		"node": cur.node,
+		"entity_type": cur.entity_type,
+		"metadata": cur.metadata,
+	})
+	if _target_history.size() > 8:
+		_target_history.pop_front()
+
+## The active camera (the globe scene parents it under CameraPivot).
+func _get_camera() -> Camera3D:
+	var pivot: Node3D = get_node_or_null("CameraPivot")
+	if pivot != null and pivot.get_child_count() > 0:
+		var cam = pivot.get_child(0)
+		if cam is Camera3D:
+			return cam
+	return null
+
+## Left/right click targeting + Escape clear (the planar controller's law).
+## Left-click also swings (PC click-to-attack) via the polled `attack` action
+## edge; the UI guard keeps clicks on HUD panels from firing into the world.
+func _unhandled_input(event: InputEvent) -> void:
+	if not is_local_player:
+		return
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_LEFT and not _is_click_on_ui(event.position):
+			_handle_left_click(event.position)
+		elif event.button_index == MOUSE_BUTTON_RIGHT and not _is_click_on_ui(event.position):
+			_handle_right_click()
+	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		clear_target()
+
+func _handle_left_click(screen_pos: Vector2) -> void:
+	var tm := _tm()
+	var camera := _get_camera()
+	if tm == null or camera == null:
+		return
+	var info = tm.raycast_from_camera(screen_pos, camera)
+	if info != null:
+		_push_target_history()
+		tm.set_target(
+			info.id, info.schema_id, info.display_name, info.world_position,
+			info.node, info.entity_type, info.metadata)
+		is_targeting = true
+	else:
+		clear_target()
+
+func _handle_right_click() -> void:
+	var tm := _tm()
+	if tm != null and tm.has_target():
+		_show_target_context_menu(tm.get_current_target())
+
+func clear_target() -> void:
+	var tm := _tm()
+	if tm != null:
+		tm.clear_target()
+	is_targeting = false
+
+## Clicks that land on a HUD Control belong to the UI, not the world.
+func _is_click_on_ui(screen_pos: Vector2) -> bool:
+	var tree := get_tree()
+	if tree == null:
+		return false
+	for control in tree.get_nodes_in_group("clickable"):
+		if control is Control and Rect2(control.global_position, control.size).has_point(screen_pos):
+			return true
+	return false
+
+## The context menu for the current target (the NPC walk-up fan-out: Talk /
+## Quests / Trade / Blacksmith / ...). ActionMenu is code-built and parented
+## to this body, the same construction the planar controller uses.
+func _show_target_context_menu(info) -> void:
+	if info == null:
+		return
+	if _action_menu == null:
+		_action_menu = ActionMenu.new()
+		add_child(_action_menu)
+		_action_menu.action_selected.connect(_on_context_action)
+	var at: Vector2 = get_viewport().get_visible_rect().size * 0.5
+	_action_menu.show_menu(at, info.id, info.entity_type, info.npc_data if "npc_data" in info else null)
+
+## Context-menu dispatch (the planar controller's vocabulary, ported whole).
+## The world-facing legs resolve their own service/panel; the social
+## player-menu legs (whisper/party/guild/friend/report/follow/inspect) reuse
+## the HUD integrator's one handler so the menu vocabulary never forks.
+func _on_context_action(action_id: String, target_id: String) -> void:
+	match action_id:
+		"talk":
+			_open_npc_dialogue(target_id)
+		"quest":
+			_open_npc_quests(target_id)
+		"trade":
+			var info = _current_target_info()
+			if info != null and info.id == target_id and info.entity_type == Entity.EntityType.NPC:
+				_open_npc_vendor(target_id, info)
+			else:
+				var trade_svc = get_node_or_null("/root/TradeService")
+				if trade_svc != null and trade_svc.has_method("initiate_trade"):
+					trade_svc.initiate_trade(str(entity_id), target_id)
+		"bank":
+			var mm := _mmgr()
+			if mm != null:
+				mm.open_menu("bank", _menu_anchor_pos(target_id))
+		"premium":
+			var mm_v := _mmgr()
+			if mm_v != null:
+				mm_v.open_menu("premium", _menu_anchor_pos(target_id))
+		"skill_academy":
+			_open_skill_academy_ui()
+			_attach_npc_panel_proximity(_skill_academy_ui, target_id)
+		"blacksmith":
+			_open_blacksmith_ui()
+			_attach_npc_panel_proximity(_blacksmith_ui, target_id)
+		"character_stats":
+			_open_character_stats_ui()
+		"craft":
+			_open_workbench_ui()
+		"loot":
+			_pickup_loot_target(target_id)
+		"pass":
+			var loot_svc = get_node_or_null("/root/LootService")
+			if loot_svc != null and loot_svc.has_method("pass_loot"):
+				loot_svc.pass_loot(target_id, str(entity_id))
+		"enter":
+			_activate_gateway_target(target_id)
+		"ankh_set":
+			_handle_ankh_action("bind", target_id)
+		"ankh_info":
+			_handle_ankh_action("info", target_id)
+		"queue_bout", "leave_bout_queue":
+			# Bout stones: one implementation shared with the HUD menu.
+			var tm := _tm()
+			if tm != null and tm.has_method("execute_action_on"):
+				tm.execute_action_on(action_id, target_id)
+		"check_lobby":
+			var mm_l := _mmgr()
+			if mm_l != null:
+				mm_l.open_menu("lobby")
+		_:
+			# Social legs (whisper/party/guild/friend/report/follow/inspect) live
+			# in the HUD integrator's one handler -- reuse it rather than forking
+			# the menu vocabulary on the globe body.
+			_route_social_action(action_id, target_id)
+
+func _current_target_info():
+	var tm := _tm()
+	return tm.get_current_target() if tm != null else null
+
+func _menu_anchor_pos(target_id: String) -> Vector3:
+	var info = _current_target_info()
+	if info != null and info.id == target_id:
+		return info.world_position
+	return Vector3.ZERO
+
+## Reuse the HUD integrator's action handler for the social menu legs (one
+## implementation). No-op when no HUD is mounted (script-mode probes).
+func _route_social_action(action_id: String, target_id: String) -> void:
+	var hi := _hud_integrator()
+	if hi == null:
+		return
+	if hi.has_method("handle_context_action"):
+		hi.handle_context_action(action_id, target_id)
+	elif hi.has_method("_on_action_selected"):
+		hi.call("_on_action_selected", action_id, target_id)
+
+## The live HUD integrator node (the social menu handler). HudLayer is
+## scene-parented on the globe (installed by HudLayer.ensure_installed), so
+## resolve through the scene root first, then the tree root.
+func _hud_integrator() -> Node:
+	var tree := get_tree()
+	if tree == null:
+		return null
+	if tree.current_scene != null:
+		var hi: Node = tree.current_scene.get_node_or_null("HudLayer/HudIntegrator")
+		if hi != null:
+			return hi
+	return tree.root.get_node_or_null("HudLayer/HudIntegrator")
+
+func _open_npc_dialogue(target_id: String) -> void:
+	var npc_data = _npc_data_for_target(target_id)
+	if npc_data == null:
+		return
+	var dialogue_id: String = npc_data.get_dialogue_id()
+	if dialogue_id.is_empty():
+		return
+	var ds := _dialog_svc()
+	if ds != null and ds.start_dialogue(target_id, dialogue_id):
+		var gl := _glog()
+		if gl:
+			gl.info("GlobeWorldPlayer: dialogue started with %s (%s)" % [target_id, dialogue_id])
+
+func _open_npc_quests(target_id: String) -> void:
+	var npc_data = _npc_data_for_target(target_id)
+	if npc_data == null:
+		return
+	var quest_ids: Array = []
+	for inc: Dictionary in npc_data.includes:
+		var t := str(inc.get("type", ""))
+		if t == "quest":
+			# Inline shape: quest_ids array. Ref shape: the ref_id IS the
+			# quest id (data/quests/<ref_id>.tres carries it as its own id).
+			var qids: Variant = inc.get("quest_ids")
+			if qids is Array:
+				quest_ids = qids
+			elif str(inc.get("ref_id", "")) != "":
+				quest_ids = [str(inc.get("ref_id"))]
+			if not quest_ids.is_empty():
+				break
+		if t == "offering":
+			var res := load("res://data/npc_offerings/%s.tres" % str(inc.get("ref_id", "")))
+			if res != null and str(res.get("type")) == "quest":
+				var qids2: Variant = res.get("quest_ids")
+				if qids2 is Array:
+					quest_ids = qids2
+				break
+	if quest_ids.is_empty():
+		return
+	var mm := _mmgr()
+	if mm != null:
+		mm.open_menu("quests")
+		var panel: Control = mm.get_panel_node("quests") if mm.has_method("get_panel_node") else null
+		if panel and panel.has_method("refresh_quest_list"):
+			panel.refresh_quest_list()
+
+func _open_npc_vendor(target_id: String, info) -> void:
+	var npc_data = _npc_data_for_target(target_id)
+	var vendor_offering: Resource = npc_data.get_vendor_offering() if npc_data != null else null
+	if vendor_offering == null:
+		return
+	var npc_pos: Vector3 = info.world_position if info != null else Vector3.ZERO
+	var ShopUI = load("res://ui/components/shop_ui.gd")
+	ShopUI.open_for_offering(str(entity_id), vendor_offering, npc_data, npc_pos)
+
+## Resolve the live NPCData for a target id (entity node first, then the
+## TargetingManager snapshot). Ported from the planar controller so the
+## globe's NPC menu reads the same data truth.
+func _npc_data_for_target(target_id: String):
+	var es := _entity_svc()
+	if es != null and es.has_method("get_entity"):
+		var npc = es.get_entity(target_id)
+		if npc != null and is_instance_valid(npc) and "npc_data" in npc and npc.npc_data != null:
+			return npc.npc_data
+	var info = _current_target_info()
+	if info != null and info.id == target_id and "npc_data" in info and info.npc_data != null:
+		return info.npc_data
+	return null
+
+## MenuManager is scene-parented (under the scene's HudLayer), not an
+## autoload: resolve through root, then the HudLayer fallback (the planar
+## controller's law).
+func _mmgr() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null:
+		return null
+	if tree.root:
+		var mm: Node = tree.root.get_node_or_null(NodePath("MenuManager"))
+		if mm != null:
+			return mm
+	if tree.current_scene != null:
+		var hud: Node = tree.current_scene.get_node_or_null("HudLayer")
+		if hud != null:
+			return hud.get_node_or_null("MenuManager")
+	return null
+
+func _entity_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("EntityService")) if tree and tree.root else null
+
+func _dialog_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("DialogService")) if tree and tree.root else null
+
+func _open_blacksmith_ui() -> void:
+	if _blacksmith_ui == null:
+		var BlacksmithUI = load("res://ui/components/blacksmith_ui.gd")
+		_blacksmith_ui = BlacksmithUI.new()
+		add_child(_blacksmith_ui)
+	_blacksmith_ui.set_inventory(inventory_component)
+	_blacksmith_ui.open_for_player(entity_id if entity_id != "" else str(name))
+
+func _open_workbench_ui() -> void:
+	if _workbench_ui == null:
+		var WorkbenchUI = load("res://ui/components/workbench_ui.gd")
+		_workbench_ui = WorkbenchUI.new()
+		add_child(_workbench_ui)
+	_workbench_ui.set_inventory(inventory_component)
+	_workbench_ui.open_for_player(entity_id if entity_id != "" else str(name), 0)
+
+## The skill academy panel (the NPC menu's Skill Academy leg). Opens with the
+## player's character data + inventory skill books, mirroring the planar
+## controller's _open_skill_academy_ui.
+func _open_skill_academy_ui() -> void:
+	if _skill_academy_ui == null:
+		var SkillAcademyUI = load("res://ui/components/skill_academy_ui.gd")
+		_skill_academy_ui = SkillAcademyUI.new()
+		add_child(_skill_academy_ui)
+	var pid: String = entity_id if entity_id != "" else str(name)
+	_skill_academy_ui.load_player_context(pid)
+	_skill_academy_ui.open_with_context(pid, _get_character_data(), _get_inventory_books())
+
+## The character stats panel (the NPC menu's Character Stats leg).
+func _open_character_stats_ui() -> void:
+	if _character_stats_ui == null:
+		var CharacterStatsUI = load("res://ui/menus/character_stats_ui.gd")
+		_character_stats_ui = CharacterStatsUI.new()
+		add_child(_character_stats_ui)
+	_character_stats_ui.open(entity_id if entity_id != "" else str(name))
+
+## The selected character's data (the boot loader's pick), when a GameManager
+## is present. Script-mode probes have none -- the panels tolerate null.
+func _get_character_data():
+	var gm = get_node_or_null("/root/GameManager")
+	if gm != null and "selected_character_data" in gm and is_instance_valid(gm.selected_character_data):
+		return gm.selected_character_data
+	return null
+
+## The SkillBook items in the player's own inventory (the academy's list).
+func _get_inventory_books() -> Array:
+	var books: Array = []
+	var inv = inventory_component
+	var inv_svc := _inv_svc()
+	if inv_svc != null and inv_svc.has_method("get_inventory"):
+		var registered = inv_svc.get_inventory(entity_id if entity_id != "" else str(name))
+		if registered != null:
+			inv = registered
+	if inv != null and inv.has_method("get_all_items"):
+		for item in inv.get_all_items():
+			if item is SkillBook:
+				books.append(item)
+	return books
+
+## The NPC-panel attach law: a panel opened from an NPC's action menu binds to
+## that NPC's position and auto-closes when the player walks away. Ported from
+## the planar controller so the globe's NPC panels share the walk-away law.
+func _attach_npc_panel_proximity(panel: Node, target_id: String) -> void:
+	if panel == null or not is_instance_valid(panel):
+		return
+	if not "set_npc_proximity" in panel:
+		return
+	var info = _current_target_info()
+	if info == null or info.id != target_id or info.entity_type != Entity.EntityType.NPC:
+		return
+	var npc_pos: Vector3 = info.world_position
+	if npc_pos == Vector3.ZERO and info.node != null and is_instance_valid(info.node) and info.node is Node3D:
+		npc_pos = (info.node as Node3D).global_position
+	if npc_pos != Vector3.ZERO:
+		panel.call("set_npc_proximity", npc_pos)
+
+func _pickup_loot_target(target_id: String) -> void:
+	var loot := _ground_loot()
+	if loot != null and loot.has_method("pickup_target"):
+		loot.pickup_target(target_id, self)
+	elif loot != null and loot.has_method("try_pickup"):
+		loot.try_pickup(self)
+
+func _activate_gateway_target(target_id: String) -> void:
+	var tm := _tm()
+	if tm != null and tm.has_method("execute_action_on"):
+		tm.execute_action_on("enter", target_id)
+
+func _handle_ankh_action(kind: String, target_id: String) -> void:
+	var tm := _tm()
+	if tm == null:
+		return
+	var tdata: Dictionary = tm.get_targetable(target_id) if tm.has_method("get_targetable") else {}
+	var ankh = tdata.get("node", null)
+	if ankh == null or not is_instance_valid(ankh) or not ankh.has_method("bind_player"):
+		return
+	var notify := _notify_svc()
+	if kind == "info":
+		if ankh.has_method("get_respawn_info") and notify != null and notify.has_method("notify"):
+			var info: Dictionary = ankh.get_respawn_info(self)
+			notify.notify(
+				NotifKind.CUSTOM,
+				"%s (%s) -- respawn x%.2f in %s" % [
+					str(ankh.get("display_name")), info.get("ankh_type", "ANKH"),
+					float(info.get("respawn_time_modifier", 1.0)), info.get("zone_id", "?")],
+				"Ankh", "ankh_info:%s" % target_id, info)
+		return
+	var ok: bool = bool(ankh.bind_player(self))
+	if notify != null and notify.has_method("notify"):
+		if ok:
+			notify.notify(
+				NotifKind.CUSTOM,
+				"Respawn point set: %s. You will revive here." % str(ankh.get("display_name")),
+				"Ankh", "ankh_bind:%s:ok" % target_id, {"ankh_id": target_id})
+		else:
+			notify.notify(
+				NotifKind.CUSTOM, "This ankh resists your touch.",
+				"Ankh", "ankh_bind:%s:refused" % target_id, {"ankh_id": target_id})
 
 
 ## Interact dispatch (E / gamepad A / touch ACT). The Concord loop's
@@ -1483,6 +2037,8 @@ func _try_interact() -> void:
 		var picked: Array = loot.try_pickup(self)
 		if not picked.is_empty():
 			return
+	# Positional props win: standing on a station / ankh / door / stone and
+	# pressing E activates THAT prop (the player is on it, not near it).
 	if _use_nearby_placed_station():
 		return
 	if _activate_nearby_ankh():
@@ -1491,8 +2047,50 @@ func _try_interact() -> void:
 		return
 	if _activate_nearby_concord_stone():
 		return
+	# THE ACTION MENU for NPCs/gates in arm's reach (the walk-up-and-press
+	# loop beat): nearest-in-range resolve + centered menu, no cursor needed.
+	if _try_target_context_interact():
+		return
+	# Gates are not menu targetables; the direct leg enters them when no
+	# NPC/menu target is in range.
 	if _activate_nearby_moon_gate():
 		return
+
+
+## Interact-menu range (mirrors the planar controller).
+const INTERACT_MENU_RANGE: float = 6.0
+
+
+## Walk up to an NPC or a gate, press E -- the press TARGETS the nearest
+## interactable still in range (a live target in range wins) and opens ITS
+## action menu. Ported from the planar controller so the globe's NPC loop
+## (Talk/Quests/Trade/Blacksmith) matches the planar one. Returns true when
+## a menu opened.
+func _try_target_context_interact() -> bool:
+	var tm := _tm()
+	if tm == null:
+		return false
+	var types: Array[int] = [Entity.EntityType.NPC, Entity.EntityType.TELEPORT]
+	var info = tm.get_nearest_targetable_by_types(global_position, types, INTERACT_MENU_RANGE)
+	var cur = tm.get_current_target()
+	if cur != null and types.has(cur.entity_type):
+		# A live target in range outranks the nearest scan -- the player
+		# SAID who they meant.
+		if is_instance_valid(cur.node) and cur.node is Node3D \
+				and global_position.distance_to((cur.node as Node3D).global_position) <= INTERACT_MENU_RANGE:
+			if "npc_data" in cur.node:
+				cur.npc_data = cur.node.npc_data
+			info = cur
+	if info == null:
+		return false
+	if cur == null or cur.id != info.id:
+		tm.set_target(
+			info.id, info.schema_id, info.display_name, info.world_position,
+			info.node, info.entity_type, info.metadata)
+		info = tm.get_current_target()
+	is_targeting = true
+	_show_target_context_menu(info)
+	return true
 
 
 ## A placed crafting/repair station in range: open ITS UI at ITS station

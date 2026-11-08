@@ -98,7 +98,7 @@ func _on_health_depleted() -> void:
 					_notif().notify_party_member_died(member_id, entity.display_name, killer_name)
 
 ## Take damage
-func take_damage(amount: int, source: Entity = null, damage_type: String = "physical") -> int:
+func take_damage(amount: int, source = null, damage_type: String = "physical", is_crit: bool = false) -> int:
 	if _is_dead:
 		return 0
 
@@ -119,7 +119,7 @@ func take_damage(amount: int, source: Entity = null, damage_type: String = "phys
 
 	# Emit combat events
 	var hub := _hub()
-	if hub: hub.emit_signal("damage_dealt", source, get_parent(), actual_damage, damage_type, false)
+	if hub: hub.emit_signal("damage_dealt", source, get_parent(), actual_damage, damage_type, is_crit)
 
 	if current_health <= 0:
 		die(source)

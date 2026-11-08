@@ -209,10 +209,10 @@ func _ready() -> void:
 # --- Health surface -------------------------------------------------------
 ## Receive damage from any combatant (enemies route here through
 ## EnemyAI._perform_attack and skill.gd's untyped take_damage).
-func take_damage(amount: int, source = null, damage_type: String = "physical") -> int:
+func take_damage(amount: int, source = null, damage_type: String = "physical", is_crit: bool = false) -> int:
 	if health_component == null:
 		return 0
-	var dealt: int = health_component.take_damage(amount, source, damage_type)
+	var dealt: int = health_component.take_damage(amount, source, damage_type, is_crit)
 	if dealt > 0:
 		# Emit the health_component truth, not the stale local field -- the
 		# component owns the damage path (the R37 dual-store lesson).
