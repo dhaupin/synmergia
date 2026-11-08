@@ -100,8 +100,8 @@ func _run() -> void:
 	_assert("main_menu.tscn loads", main_menu_scene != null)
 	var hud_scene := load("res://ui/hud/hud_layer.tscn")
 	_assert("hud_layer.tscn loads", hud_scene != null)
-	var world_scene := load("res://scenes/world_playable.tscn")
-	_assert("world_playable.tscn loads", world_scene != null)
+	var world_scene := load("res://scenes/worlds/globe_world.tscn")
+	_assert("globe_world.tscn loads (the open world)", world_scene != null)
 
 	# 10) HUD has expected widget count (basic structure check)
 	# We can't easily instantiate a CanvasLayer in headless SceneTree test,

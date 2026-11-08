@@ -210,9 +210,8 @@ func _leg1_press_play_btn() -> void:
 func _leg1_world_check() -> void:
 	print("--- leg 1: entering world ---")
 	var s := _scene()
-	var in_world: bool = s != null and (s.name == "GlobeWorld" or s.name == "WorldPlayable"
-		or s.get_script() == load("res://scenes/world_playable.gd"))
-	_ok("world loaded via character select (globe or planar)", in_world)
+	var in_world: bool = s != null and s.name == "GlobeWorld"
+	_ok("world loaded via character select (globe)", in_world)
 	var gm := _gm()
 	_ok("state PLAYING", gm != null and gm.current_state == gm.GameState.PLAYING)
 	var cd = gm.selected_character_data if gm else null
@@ -373,9 +372,8 @@ func _leg2_back_in_lobby() -> void:
 func _leg2_world_check() -> void:
 	print("--- leg 2: world via account flow ---")
 	var s := _scene()
-	var in_world: bool = s != null and (s.name == "GlobeWorld" or s.name == "WorldPlayable"
-		or s.get_script() == load("res://scenes/world_playable.gd"))
-	_ok("world loaded via lobby play (globe or planar)", in_world)
+	var in_world: bool = s != null and s.name == "GlobeWorld"
+	_ok("world loaded via lobby play (globe)", in_world)
 	var gm := _gm()
 	_ok("state PLAYING (account flow)", gm != null and gm.current_state == gm.GameState.PLAYING)
 	var cd = gm.selected_character_data if gm else null

@@ -147,9 +147,8 @@ func _c_world_loaded() -> void:
 	var s := _scene()
 	# Shape-aware: the shipped default is the spherical globe
 	# (synmergia/world/shape); the classic planar world is the fallback.
-	var in_world: bool = s != null and (s.name == "GlobeWorld" or s.name == "WorldPlayable"
-		or s.get_script() == load("res://scenes/world_playable.gd"))
-	_ok("world scene loaded (globe or planar)", in_world, "(scene %s)" % (s.name if s else "null"))
+	var in_world: bool = s != null and s.name == "GlobeWorld"
+	_ok("world scene loaded (globe)", in_world, "(scene %s)" % (s.name if s else "null"))
 	var gm := root.get_node_or_null("GameManager")
 	_ok("game state PLAYING",
 		gm and gm.current_state == gm.GameState.PLAYING,
