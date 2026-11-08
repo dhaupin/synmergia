@@ -198,6 +198,12 @@ func _ready() -> void:
 	_ensure_health_component()
 	add_to_group("players")
 	_setup_starting_skills()
+	# The default basic attack (the fallback the Attack state and the globe
+	# body's combat entry point both read). Owned here so a bare PlayerBase
+	# (probes, fixture tests) and the globe body carry it, not just the
+	# planar controller.
+	if basic_attack == null:
+		basic_attack = _create_basic_attack()
 	_ensure_effect_stack(true)
 
 # --- Health surface -------------------------------------------------------
@@ -330,6 +336,22 @@ func _on_component_gold_changed_mirror(_delta: int) -> void:
 		comp = self.get("inventory_component")
 	if comp == null or not is_instance_valid(comp):
 		return
+	_wallet_swallow = true
+	gold = int(comp.get_gold())
+	_wallet_swallow = false
+
+## Bind the ONE PURSE mirror to the mounted bag: resync the node `gold`
+## from the purse (a boot-restored wallet may already be loaded) and keep it
+## following every purse emit. Both bodies call this after their bag exists;
+## without it the globe node's `gold` never moved on a kill payout.
+func _bind_purse_mirror() -> void:
+	var comp: Variant = null
+	if "inventory_component" in self:
+		comp = self.get("inventory_component")
+	if comp == null or not is_instance_valid(comp):
+		return
+	if comp.has_signal("gold_changed") and not comp.gold_changed.is_connected(_on_component_gold_changed_mirror):
+		comp.gold_changed.connect(_on_component_gold_changed_mirror)
 	_wallet_swallow = true
 	gold = int(comp.get_gold())
 	_wallet_swallow = false
@@ -526,3 +548,28 @@ func _get_ground_target_position(max_range: float) -> Vector3:
 	if direction == Vector2.ZERO:
 		direction = Vector2(0, -1)
 	return _cs().get_ground_target_position(self, direction, max_range)
+
+## The default melee basic attack (the fallback both bodies use). Moved here
+## from the planar controller so the globe body's combat entry point works.
+func _create_basic_attack() -> Skill:
+	var skill: Skill = Skill.new()
+	skill.skill_name = "Strike"
+	skill.skill_id = "strike"
+	skill.skill_type = Skill.SkillType.MELEE
+	skill.damage = 20
+	skill.mana_cost = 0
+	skill.cast_time = 0.0
+	skill.cooldown = 1.0
+	skill.animation_duration = 0.4
+	skill.range = 2.5
+	skill.hitbox_size = 1.5
+	skill.allow_movement = true
+	skill.allow_jumping = true
+	skill.combo_chain = ["heavy_strike"]
+	return skill
+
+## Swing a skill's hitbox through CombatSystem (the Attack state and the
+## globe body's combat entry point both call this). Moved here from the
+## planar controller so the shared body carries the combat entry point.
+func create_hitbox(skill: Skill, target = null, ground_pos: Vector3 = Vector3.ZERO) -> void:
+	_cs().create_hitbox(self, skill, target, ground_pos)

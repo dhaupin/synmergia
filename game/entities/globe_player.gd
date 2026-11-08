@@ -581,6 +581,11 @@ func _register_bag() -> void:
 			inventory_component = existing
 		else:
 			InvSvc.register_inventory(str(entity_id), _inventory_bag)
+	# THE ONE PURSE mirror (planar-retirement Step 5): the globe node's
+	# `gold` was never bound to the bag, so kill payouts paid the purse but
+	# the node stayed at zero. Bind it the same way the planar controller
+	# does -- shared helper, one home.
+	_bind_purse_mirror()
 
 ## Deferred stamp so entity_id is final (the planar controller's
 ## pattern). Defensive: missing AC is a no-op (deep script mode).

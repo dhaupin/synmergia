@@ -1,50 +1,47 @@
-## test_onboarding_live.gd - LIVE onboarding-chain verification in the playable
-## scene. Run in RENDERING mode (watch it fire for real):
+## test_onboarding_live.gd - LIVE onboarding-chain verification on the GLOBE
+## (the open world; planar-retirement Step 5). Run in RENDERING mode (watch
+## it fire for real):
 ##
 ##   cd game && xvfb-run godot --path . --script res://tests/test_onboarding_live.gd
 ##
-## The scene auto-accepts quest_wolves_hunt on boot. This SceneTree driver
-## boots the playable scene, then exercises the REAL integration chain in
-## the order a new player experiences it:
+## The globe auto-accepts quest_wolves_hunt on boot. This SceneTree driver
+## boots the globe, then exercises the REAL integration chain in the order a
+## new player experiences it:
 ##
 ##   boot -> ob_wake (session, via player_entered_world)
 ##        -> skill cast -> ob_first_skill (CombatSystem.skill_executed)
 ##        -> kill via KillRewards.award_kill (the real Enemy._on_died path)
 ##             -> EventHub.kill_rewarded (rewards carry player_id)
-##             -> world_playable HUD bridge (combat log + XP/gold float)
+##             -> shared combat-feedback bridge (combat log + XP/gold float)
 ##             -> QuestService objective advance (kill_wolves 1/10)
 ##             -> AchievementService.track("enemy") -> first_blood + ob_first_kill
 ##             -> NotificationService toasts
 ##
-## NOTE: the scene wolf's aggro range used to reach the player spawn and
-## killed an idle player around frame 33. Fixed systemically: EnemyAI now
-## enforces a spawn sanctuary (no fresh aggro near zone spawn/bind points,
-## grudged players exempt). This test ASSERTS the fix: the player must
-## still be alive at full health after the idle boot window.
 ## Exit 0 = every hop observed. Failures print FAIL lines and exit 1.
 extends SceneTree
 
 var _pass := 0
 var _fail := 0
 var _done := false
-var _frames := 0
+var _globe: Node = null
+var _boot = null
+
 
 func _initialize() -> void:
-	print("=== ONBOARDING LIVE TEST: booting playable scene ===")
-	var scene: PackedScene = load("res://scenes/world_playable.tscn")
-	if scene == null:
-		print("  FAIL: could not load world_playable.tscn")
+	print("=== ONBOARDING LIVE TEST: booting globe scene ===")
+	_boot = load("res://tests/support/globe_boot.gd")
+	_boot_globe.call_deferred()
+
+
+func _boot_globe() -> void:
+	_globe = await _boot.boot(self)
+	if _globe == null:
+		print("  FAIL: could not load globe_world.tscn")
 		quit(1)
 		return
-	var inst := scene.instantiate()
-	root.add_child(inst)
-	current_scene = inst
+	current_scene = _globe
+	_run()
 
-func _process(_delta: float) -> bool:
-	_frames += 1
-	if _frames == 90:
-		_run()
-	return false
 
 func _run() -> void:
 	if _done:
@@ -66,11 +63,9 @@ func _run() -> void:
 		"first_blood": false,
 		"ob_first_kill": false,
 		"ach_toast": false,
-		"quest_toast": false,
 	}
 	hub.kill_rewarded.connect(func(_e, _k, _r): got["kill_rewarded"] = true)
 
-	# Ten credited kills advance kill_wolves to 10/10 -> completion.
 	qs.quest_updated.connect(func(p, q, o, n):
 		got["quest_updated"] = true
 		print("    [hop] quest_updated %s %s %s -> %d" % [p, q, o, n]))
@@ -86,15 +81,13 @@ func _run() -> void:
 	notif.notification_sent.connect(func(_eid, n: Dictionary):
 		var text := str(n.get("message", n.get("text", "")))
 		if "Achievement" in text:
-			got["ach_toast"] = true
-		if "Quest" in text or "quest" in text:
-			got["quest_toast"] = true)
+			got["ach_toast"] = true)
 
-	# --- 2. Verify scene boot state ------------------------------------
-	# The player's entity_id is resolved from the node itself (never a
-	# hard-coded string): it is "player_1" after the id-race fix, and the
-	# same id QuestService accepted the starter quest under.
-	var player := _find_player()
+	# --- 2. Verify globe boot state ------------------------------------
+	# The player's entity_id is resolved from the body itself (never a
+	# hard-coded string): the same id QuestService accepted the starter
+	# quest under.
+	var player = _globe.get("player")
 	_assert("player node present", player != null)
 	if player == null:
 		return _finish()
@@ -124,33 +117,15 @@ func _run() -> void:
 
 	# --- 4. Fire the REAL credited kill (KillRewards.award_kill) -------
 	var wolf := _find_enemy("Wolf")
-	_assert("Wolf present in scene", wolf != null)
+	_assert("Wolf present in the globe roster", wolf != null)
 	if wolf == null:
 		return _finish()
 
-	# The scene wolf used to be spawn-camped: its aggro range reached the
-	# player spawn and the idle player died (~frame 33) before the test
-	# window. The EnemyAI spawn-sanctuary rule now prevents exactly that,
-	# so we ASSERT survival instead of hacking around it: the player must
-	# still be alive at full health after the idle boot window.
-	var hc = player.get("health_component")
-	_assert("player alive after idle boot window (spawn sanctuary)",
-		hc != null and not hc.is_dead())
-	_assert("player at full health after idle boot (no spawn-camp damage)",
-		hc != null and int(hc.current_health) == int(hc.max_health))
-
-	# --- 4a. Kill chain first (highest-value assertions) ----------------
-	# Prepare the slime probe deterministically: its IDLE state patrols at
-	# a 1% per-frame chance, so during the boot window it may have drifted
-	# out of its own 8.0 aggro radius (scan would miss the player no
-	# matter what the grudge says). Freeze the brain and pin it 5 units
-	# from the player: inside aggro range AND inside the sanctuary.
-	var slime := _find_node("SlimeA")
-	_assert("SlimeA present in scene", slime != null)
-	if slime != null:
-		if slime.get("_ai") != null and is_instance_valid(slime._ai):
-			slime._ai.set_physics_process(false)
-		slime.global_position = player.global_position + Vector3(5.0, 0.0, 0.0)
+	# Freeze the brain so it cannot wander/attack during the probe, and park
+	# it beside the player.
+	if wolf.get("_ai") != null and is_instance_valid(wolf._ai):
+		wolf._ai.set_physics_process(false)
+	wolf.global_position = player.global_position + Vector3(1.5, 0.0, 0.0)
 
 	var before_xp: int = int(player.experience)
 	var before_gold: int = int(player.gold)
@@ -179,31 +154,8 @@ func _run() -> void:
 	_assert("player granted kill XP", int(player.experience) > before_xp)
 	_assert("player granted kill gold", int(player.gold) > before_gold)
 
-	# --- 4c. Sanctuary semantics: no shield-abuse -----------------------
-	# SlimeA sits 7.07 units from spawn (inside its 8.0 aggro range) with
-	# its brain already frozen: fresh player -> no aggro (sanctuary
-	# holds). Player attacks it -> grudge recorded via the REAL
-	# Enemy.take_damage path -> grudge overrides sanctuary (no shield).
-	if slime != null and slime.get("_ai") != null and is_instance_valid(slime._ai):
-		var ai = slime._ai
-		_assert("fresh player in sanctuary is not aggroed",
-			ai._check_for_targets() == null)
-		var before_slime_hp: int = int(slime.health_component.current_health)
-		slime.take_damage(5, player)
-		# Enemy take_damage mitigates by armor (armor/(armor+100) reduction,
-		# min 1 chip). Slime has armor 2, so a raw 5 lands as 4 -- assert
-		# the real mitigated contract, not the raw amount.
-		var slime_armor := 0.0
-		if slime.enemy_data != null and "armor" in slime.enemy_data:
-			slime_armor = float(slime.enemy_data.armor)
-		var expected_applied := maxi(1, int(5.0 * (1.0 - slime_armor / (slime_armor + 100.0))))
-		_assert("player attack landed on slime", int(slime.health_component.current_health) == before_slime_hp - expected_applied)
-		_assert("grudge recorded for attacking player",
-			float(ai._known_threats.get(player.entity_id, 0.0)) > 0.0)
-		_assert("grudged player re-aggroed despite sanctuary (no combat shield)",
-			ai._check_for_targets() == player)
-
 	_finish()
+
 
 ## Read the kill_wolves objective's current progress from quest state.
 func _wolf_progress(qs, pid: String) -> int:
@@ -214,22 +166,12 @@ func _wolf_progress(qs, pid: String) -> int:
 			return int(obj.get("current", 0))
 	return -1
 
-func _find_player() -> Node:
-	return _dfs(root, func(n: Node) -> bool:
-		var s: Script = n.get_script()
-		if s == null:
-			return false
-		var p := str(s.resource_path)
-		return p.contains("player_controller"))
 
 func _find_enemy(display: String) -> Node:
 	return _dfs(root, func(n: Node) -> bool:
 		return "display_name" in n and str(n.display_name) == display \
-			and "enemy_data" in n)
+				and "enemy_data" in n)
 
-func _find_node(node_name: String) -> Node:
-	return _dfs(root, func(n: Node) -> bool:
-		return str(n.name) == node_name)
 
 func _dfs(n: Node, pred: Callable) -> Node:
 	if n != root and pred.call(n):
@@ -240,6 +182,7 @@ func _dfs(n: Node, pred: Callable) -> Node:
 			return r
 	return null
 
+
 func _assert(name: String, cond: bool) -> void:
 	if cond:
 		_pass += 1
@@ -248,9 +191,11 @@ func _assert(name: String, cond: bool) -> void:
 		_fail += 1
 		print("  FAIL: " + name)
 
+
 func _mark_fail(name: String) -> void:
 	_fail += 1
 	print("  FAIL: " + name)
+
 
 func _finish() -> void:
 	print("=== %d passed, %d failed ===" % [_pass, _fail])

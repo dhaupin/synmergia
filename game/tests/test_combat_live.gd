@@ -1,15 +1,16 @@
-## test_combat_live.gd - LIVE combat verification in the playable scene.
+## test_combat_live.gd - LIVE combat verification on the globe (the open
+## world; planar-retirement Step 5).
 ##
-## Closes the loop the pipeline test can't: attack goes through the REAL
-## input path (Attack state -> player_controller.create_hitbox ->
-## CombatSystem sweep over the EntityService-mirrored registry) against a
-## registered enemy with an AI brain, in world_playable.telephone scene.
+## Closes the loop the pipeline test can't: the attack goes through the REAL
+## combat entry point (create_hitbox -> CombatSystem sweep over the
+## EntityService-mirrored registry) against a registered enemy with an AI
+## brain.
 ##
 ##   cd game && godot --headless --path . --script res://tests/test_combat_live.gd
 ##
-## Headless is fine here: no touch synthesis is involved; the player's
-## attack is driven exactly like the Attack state does (the same
-## create_hitbox entry point the input path reaches).
+## Headless is fine here: no touch synthesis is involved; the attack is
+## driven exactly like the Attack state does (the same create_hitbox entry
+## point the input path reaches).
 ##
 ## Exit 0 = every check observed. Failures print FAIL lines and exit 1.
 extends SceneTree
@@ -18,15 +19,7 @@ var _pass := 0
 var _fail := 0
 
 func _initialize() -> void:
-	print("=== COMBAT LIVE TEST: booting playable scene ===")
-	var scene: PackedScene = load("res://scenes/world_playable.tscn")
-	if scene == null:
-		print("  FAIL: could not load world_playable.tscn")
-		quit(1)
-		return
-	var inst := scene.instantiate()
-	root.add_child(inst)
-	current_scene = inst
+	print("=== COMBAT LIVE TEST: booting globe scene ===")
 	_run.call_deferred()
 
 func _ok(label: String, cond: bool, detail: String = "") -> void:
@@ -38,26 +31,31 @@ func _ok(label: String, cond: bool, detail: String = "") -> void:
 		print("  FAIL: %s %s" % [label, detail])
 
 func _run() -> void:
-	await process_frame
-	await process_frame
+	var boot = load("res://tests/support/globe_boot.gd")
+	var globe = await boot.boot(self)
+	if globe == null:
+		print("  FAIL: could not load globe_world.tscn")
+		quit(1)
+		return
+	current_scene = globe
 
 	var es := root.get_node_or_null("EntityService")
 	var cs := root.get_node_or_null("CombatSystem")
 	_ok("EntityService up", es != null)
 	_ok("CombatSystem up", cs != null)
 
-	var player := current_scene.get_node_or_null("Player")
+	var player = globe.get("player")
 	_ok("player present", player != null)
 	if player == null or es == null or cs == null:
 		quit(1)
 		return
 
-	# --- Enemy: registered with EntityService like world_playable does ---
+	# --- Enemy: registered with EntityService (the spawn pipeline law) ---
 	var enemy: Node = load("res://entities/enemy.gd").new()
 	enemy.display_name = "LiveCombatDummy"
 	enemy.starting_health = 40
 	enemy.starting_level = 1
-	current_scene.add_child(enemy)
+	globe.add_child(enemy)
 	await process_frame
 
 	var enemy_id: String = es.register_entity(enemy)
@@ -113,6 +111,7 @@ func _run() -> void:
 		xp_paid = true
 	_ok("PlayerManager XP mirror surface present", xp_paid)
 
-	# --- Clean shutdown ---
+	# --- Clean shutdown (drain the mesh lane, then free) ---
+	await boot.teardown(globe, self)
 	print("=== SUMMARY: %d passed, %d failed ===" % [_pass, _fail])
 	quit(0 if _fail == 0 else 1)

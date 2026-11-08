@@ -442,13 +442,9 @@ func _ready() -> void:
 		else:
 			inv_svc.register_inventory(_inv_id, inventory_component)
 	# THE ONE PURSE mirror: the adopted bag may already carry a
-	# boot-restored wallet, so the mirror follows the purse from this
-	# frame on (silently; the PURSE emits the rows).
-		_wallet_swallow = true
-		gold = int(inventory_component.get_gold())
-		_wallet_swallow = false
-	if inventory_component != null and not inventory_component.gold_changed.is_connected(_on_component_gold_changed_mirror):
-		inventory_component.gold_changed.connect(_on_component_gold_changed_mirror)
+	# boot-restored wallet, so the mirror follows the purse from this frame
+	# on (silently; the PURSE emits the rows). Shared helper (PlayerBase).
+	_bind_purse_mirror()
 
 	# Duck-typed respawn fields RespawnService/Ankh read (CharacterBody3D
 	# has none of them natively; Ankh.bind_player sets respawn_ankh_id).
@@ -1010,23 +1006,6 @@ func _open_character_stats_ui() -> void:
 		_character_stats_ui = CharacterStatsUI.new()
 		add_child(_character_stats_ui)
 	_character_stats_ui.open(str(player_id))
-
-func _create_basic_attack() -> Skill:
-	var skill: Skill = Skill.new()
-	skill.skill_name = "Strike"
-	skill.skill_id = "strike"
-	skill.skill_type = Skill.SkillType.MELEE
-	skill.damage = 20
-	skill.mana_cost = 0
-	skill.cast_time = 0.0
-	skill.cooldown = 1.0
-	skill.animation_duration = 0.4
-	skill.range = 2.5
-	skill.hitbox_size = 1.5
-	skill.allow_movement = true
-	skill.allow_jumping = true
-	skill.combo_chain = ["heavy_strike"]
-	return skill
 
 func _physics_process(delta: float) -> void:
 	if not is_local_player:
@@ -1638,9 +1617,6 @@ func _hide_target_tooltip() -> void:
 	pass
 
 ## HITBOX & COMBAT
-
-func create_hitbox(skill: Skill, target: Entity = null, ground_pos: Vector3 = Vector3.ZERO) -> void:
-	_cs().create_hitbox(self, skill, target, ground_pos)
 
 func show_aoe_indicator(skill: Skill) -> void:
 	# Visual indicator for ground-targeted AoE
