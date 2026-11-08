@@ -5,12 +5,12 @@
 ## across that boundary and prints the verdict + exit code itself.
 ##
 ## WHAT IT PROVES: the existing drivers stop at HUD panels. This one walks the
-## REAL gameplay loop on the planar world_playable scene -- target a live wolf,
-## swing through the actual `attack` input action, watch it die, collect the
-## corpse loot through the `interact` action, equip gear, repair it at the
-## blacksmith, and open an NPC's action menu by walking up and pressing E.
-## Every stage asserts on LIVE node state, so a seam that only breaks under
-## real play (the class of bug the unit receipts miss) fails here.
+## REAL gameplay loop on the GLOBE (the open world; planar-retirement Step 5) --
+## target a live wolf, swing through the actual `attack` input action, watch it
+## die, collect the corpse loot through the `interact` action, equip gear,
+## repair it at the blacksmith, and open an NPC's action menu by walking up and
+## pressing E. Every stage asserts on LIVE node state, so a seam that only
+## breaks under real play (the class of bug the unit receipts miss) fails here.
 ##
 ## Run (rendered; headless boots the world too, so it runs both ways):
 ##   xvfb-run -a godot --path game --script res://tests/playthrough_driver.gd
@@ -38,19 +38,20 @@ func run() -> void:
 	await get_tree().process_frame
 	DirAccess.make_dir_recursive_absolute("/tmp/play")
 
-	# --- Stage 1: boot the playable world ----------------------------
-	# Runtime load: autoloads are live now; a parse-time load would fail.
-	var scene: PackedScene = load("res://scenes/world_playable.tscn")
-	if scene == null:
-		print("PLAYTHROUGH FAIL: world_playable.tscn did not load")
+	# --- Stage 1: boot the open world (the GLOBE) --------------------
+	# planar-retirement Step 5: the planar world_playable scene is retired;
+	# the open world is the globe. globe_boot boots it and settles the async
+	# mesh lane (runtime load: autoloads are live now).
+	var boot = load("res://tests/support/globe_boot.gd")
+	var inst = await boot.boot(get_tree())
+	if inst == null:
+		print("PLAYTHROUGH FAIL: globe_world.tscn did not load")
 		get_tree().quit(1)
 		return
-	var inst := scene.instantiate()
-	get_tree().root.add_child(inst)
 	get_tree().current_scene = inst
-	await _settle(1.5)
+	await _settle(0.5)
 
-	var player = inst.get_node_or_null("Player")
+	var player = boot.player(inst)
 	_ok("world booted with a Player", player != null)
 	if player == null:
 		await _finish()
@@ -294,6 +295,12 @@ func _collect_any_drop(player, loot, inv) -> bool:
 ## Spawn a real vendor NPC beside the player, register it, and press E.
 ## Proves the walk-up-and-press interaction loop resolves and opens the menu.
 func _stage_npc_menu(inst: Node, player) -> void:
+	# Isolate the NPC-menu leg: the globe spawn plaza seats the village ankh
+	# (and a concord stone), and the interact order resolves positional props
+	# BEFORE the NPC menu -- the first E would bind the ankh, not open a menu.
+	# Retire the prop groups and clear drops (the same isolation
+	# test_globe_input_parity uses) so the press reaches the NPC.
+	_retire_positional_props()
 	var npc = load("res://core/entities/npc_entity.gd").new()
 	npc.display_name = "Playthrough Vendor"
 	npc.npc_data = load("res://data/npc/npc_village_elder.tres")
@@ -329,6 +336,18 @@ func _stage_npc_menu(inst: Node, player) -> void:
 		_ok("the menu was populated with a real target",
 			str(menu.get("_target_id")) != "")
 	await _shot("playthrough_4_npc_menu")
+
+## Retire the spawn-plaza positional props (ankh / door / stone / moon gate)
+## and ground loot so an interact press resolves the NPC/gate menu leg under
+## test. Ported from test_globe_input_parity's own isolation.
+func _retire_positional_props() -> void:
+	var gls := get_tree().root.get_node_or_null("GroundLootService")
+	if gls != null and gls.has_method("clear_all"):
+		gls.clear_all()
+	for grp in ["ankhs", "ancient_doors", "concord_stones", "moon_gates"]:
+		for n in get_tree().get_nodes_in_group(grp):
+			n.remove_from_group(grp)
+
 
 ## Stage 9: buy and sell through the real shop panel. Opens the merchant's
 ## vendor offering exactly as the action menu does (ShopUI.open_for_offering),
@@ -902,7 +921,17 @@ func _stage_chat_social(pid: String) -> void:
 	var got: Array = []
 	csvc.message_received.connect(func(sender_id, channel, msg, targets): got.append([sender_id, channel, msg, targets]))
 	if psvc != null:
-		var party_id: String = psvc.create_party(pid)
+		# create_party rides the QoS "party" bucket, which the world boot's
+		# arena-gateway queue stones also spend (they enqueue the local player
+		# through LobbyService.join_queue on the stream rebuilds). By this stage
+		# the bucket may be empty, so retry the real call until the token
+		# refills (a player would simply try again) -- bounded, not faked.
+		var party_id: String = ""
+		for _attempt in range(8):
+			party_id = psvc.create_party(pid)
+			if party_id != "":
+				break
+			await _settle(1.2)
 		_ok("party created for chat", party_id != "", "(%s)" % party_id)
 		psvc.invite_player(pid, peer)
 		psvc.accept_invite(peer)

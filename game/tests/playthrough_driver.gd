@@ -1,6 +1,7 @@
-## Playthrough driver - the full real gameplay loop on the planar world
-## (spawn -> target -> kill -> loot -> equip -> repair -> NPC menu), driven
-## through the game's own input pipeline and asserted on live node state.
+## Playthrough driver - the full real gameplay loop on the GLOBE (the open
+## world; planar-retirement Step 5) -- spawn -> target -> kill -> loot -> equip
+## -> repair -> NPC menu -- driven through the game's own input pipeline and
+## asserted on live node state.
 ##
 ## Run rendered (real 3D + screenshots):
 ##   xvfb-run -a godot --path game --script res://tests/playthrough_driver.gd

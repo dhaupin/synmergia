@@ -367,9 +367,12 @@ func _get_sender_name(sender_id: String) -> String:
 	var name: String = sender_id
 	if _entity_svc():
 		var entity = _entity_svc().get_entity(sender_id)
-		if entity and entity.has("character_data"):
+		# Duck-typed membership: get_entity may return a live body (Node) as
+		# well as a Dictionary; Node has no has(), so `"k" in x` is the guard
+		# that works for both.
+		if entity and "character_data" in entity:
 			var char_data = entity.character_data
-			if char_data.has("player_name"):
+			if char_data and "player_name" in char_data:
 				name = char_data.player_name
 	return name
 
