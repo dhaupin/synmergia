@@ -2413,7 +2413,8 @@ updates the Godot side.
 
 #### 9.13.3 What about the FSM states (idle/run/jump/fall)?
 
-The current FSM-based PlayerController (Idle/Run/Jump/Fall)
+The retired FSM-based PlayerController (Idle/Run/Jump/Fall; deleted in
+planar-retirement Step 5 -- the globe body polls its input edges)
 becomes a **`MovementStateSystem`** in ECS. State transitions
 are pure functions of inputs + state. ~6 states total,
 updated as part of the ECS tick.

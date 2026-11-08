@@ -15,7 +15,7 @@ var _cost_modifier: float = 1.0
 var _npc_position: Vector3 = Vector3.ZERO
 var _proximity_enabled: bool = false
 
-## Context passed by PlayerController at interaction time. Assigns the
+## Context passed by the player body at interaction time. Assigns the
 ## repair list's inventory source and the NPC's pricing. Previously
 ## player_controller called open_with_context(), a method this class
 ## never had, so the context silently never applied and _inventory

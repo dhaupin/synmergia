@@ -323,7 +323,7 @@ func try_pickup(player, drop_id: String = "") -> Array:
 		else:
 			failed.append(item)
 
-	# Currency lands via the duck-typed add_gold path (PlayerController
+	# Currency lands via the duck-typed add_gold path (the player body
 	# mirrors PlayerManager.add_gold). The coins are consumed from the drop the
 	# moment they are paid -- even when items remain (bag full) -- so a
 	# re-press of E cannot collect the same gold twice.

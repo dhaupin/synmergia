@@ -426,7 +426,7 @@ func _on_player_input(action: String, pressed: bool) -> void:
 	if slot_index >= 0:
 		_use_slot(slot_index)
 		# Route to the local player's skillbar: keys 1-8 cast the bound
-		# skill via PlayerController.use_skill (CombatSystem resolves
+		# skill via player body's use_skill (CombatSystem resolves
 		# target/damage from there). Was visual-only before this.
 		var player = get_tree().get_first_node_in_group("players")
 		if player != null and player.has_method("use_skill"):

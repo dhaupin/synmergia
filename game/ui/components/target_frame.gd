@@ -350,7 +350,7 @@ func _target_id_of(target) -> String:
 		return str(target.id)
 	return ""
 
-## Normalize any target payload (TargetInfo, live Entity/PlayerController node,
+## Normalize any target payload (TargetInfo, live Entity/the player body node,
 ## or an already-built Dictionary) into the display dict _update_display reads.
 ## target_updated emits a TargetInfo whose node is the live entity; the frame
 ## used to be handed that object directly and threw "Cannot convert argument 1

@@ -404,7 +404,7 @@ func _update_combat(delta: float) -> void:
 ## Handle being damaged: the ATTACKED trigger. Attacking a guard is
 ## itself a crime -- report it (marks the attacker AND shares the
 ## offense with the whole watch) before the base engagement logic.
-## Note: the parameter is untyped (the live player is a PlayerController
+## Note: the parameter is untyped (the live player is a player body
 ## CharacterBody3D, not an Entity subclass; a typed Entity param throws
 ## on every real player hit).
 func on_damaged(source) -> void:

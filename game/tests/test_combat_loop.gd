@@ -104,7 +104,7 @@ func _test_spawn_service_creates_ai_enemy() -> void:
 	_assert(not is_instance_valid(enemy) or enemy.is_queued_for_deletion(), "despawn_enemy frees the enemy")
 
 
-## --- 3. PlayerController duck-typed combat surface -------------------------
+## --- 3. the player body duck-typed combat surface -------------------------
 
 func _test_player_combat_surface() -> void:
 	var p = _make_player()

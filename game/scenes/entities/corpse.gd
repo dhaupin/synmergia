@@ -178,7 +178,7 @@ func _start_decay_visual() -> void:
 
 ## Check if a player can SEE this corpse (visibility)
 func can_see(observer) -> bool:
-	# Duck-typed: observer may be an Entity, PlayerController, or test stub.
+	# Duck-typed: observer may be an Entity, the player body, or test stub.
 	# `.has()` is not a method on Objects (4.7.2) -- use the `in` operator.
 	match visibility_mode:
 		Visibility.EVERYONE:

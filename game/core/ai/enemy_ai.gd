@@ -72,7 +72,7 @@ signal target_lost()
 @export var patrol_speed: float = 2.0
 @export var chase_speed: float = 5.0
 
-var _target = null  # untyped: may be PlayerController (CharacterBody3D)
+var _target = null  # untyped: may be the player body (CharacterBody3D)
 var _spawn_position: Vector3 = Vector3.ZERO
 var _patrol_target: Vector3 = Vector3.ZERO
 var _patrol_wait_time: float = 0.0
@@ -297,7 +297,7 @@ func _is_valid_target(target) -> bool:
 		return false
 
 	# Stealth check: a stealthed target is invisible unless this enemy
-	# can see stealth (enemy_data.see_stealth). Duck-typed: PlayerController
+	# can see stealth (enemy_data.see_stealth). Duck-typed: the player body
 	# has no status_handler, which simply means "not stealthed".
 	if "status_handler" in target and target.status_handler != null:
 		var stealth_effect = target.status_handler.get_effect_by_type(StatusEffectData.EffectType.STEALTH, "stealth")
@@ -363,7 +363,7 @@ func _match_state_behavior() -> void:
 		return
 
 	# Enemies steer via move_direction; move_speed is only meaningful on
-	# controllers that read it (PlayerController). Set it if present so
+	# controllers that read it (the player body). Set it if present so
 	# future movement code can consult it without crashing on Enemy.
 	if "move_speed" in entity:
 		_match_state_speed(entity)
@@ -563,7 +563,7 @@ func _perform_attack() -> void:
 	var is_crit: bool = bool(outcome.get("is_crit", false))
 
 	# Duck-typed landing with arity safety: Entity subclasses (Enemy,
-	# Guard) take a 4th is_crit param; PlayerController and bare
+	# Guard) take a 4th is_crit param; the player body and bare
 	# health_component take 3. Calling a 3-param method with 4 args is a
 	# runtime error, so the arity is read off the method list.
 	if _target.has_method("take_damage"):
@@ -649,7 +649,7 @@ func engage_target(target) -> void:
 		set_state(AIState.CHASE)
 
 ## Handle being damaged. Untyped source: the live player is a
-## PlayerController (CharacterBody3D), not an Entity subclass -- a typed
+## the player body (CharacterBody3D), not an Entity subclass -- a typed
 ## `source: Entity` param throws on every real player hit and silently
 ## kills threat + grudge recording.
 func on_damaged(source) -> void:

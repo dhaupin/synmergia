@@ -9,7 +9,7 @@
 ##
 ##   - THE ANKH (a core/schemas/ankh.gd class_name node): the shared
 ##     respawn shrine. The bind law is Ankh's own (walk up, E --
-##     PlayerController._activate_nearby_ankh resolves the "ankhs"
+##     the player body's _activate_nearby_ankh resolves the "ankhs"
 ##     group); the prop only SETS its identity + position.
 ##   - THE MOON GATE (entities/moon_gate.gd): the sealed way between
 ##     worlds. Its mystery-state visuals are the entity's own; the

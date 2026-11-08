@@ -1,6 +1,6 @@
 ## test_interaction_pipeline.gd - LIVE interaction pipeline battery.
 ## Boots the world (same journey as test_splash_to_play/test_ui_alive)
-## then drives the real PlayerController context-action handlers:
+## then drives the real the player body context-action handlers:
 ##   1. NPC dialog offering -> DialogService.start_dialogue -> DialogUI visible
 ##   2. NPC quest offering -> Quests panel opens + quest listed
 ##   3. NPC vendor offering -> ShopUI opens (via ShopUI.open_for_offering)

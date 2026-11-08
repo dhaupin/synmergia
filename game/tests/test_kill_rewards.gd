@@ -38,7 +38,7 @@ func _mk_entity(id: String):
 
 
 ## A live in-tree "player" stand-in with the duck-typed progression
-## surface the real PlayerController exposes.
+## surface the real the player body exposes.
 func _mk_player(id: String):
 	var s = load("res://core/entities/entity.gd")
 	var p = s.new()

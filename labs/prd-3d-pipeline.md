@@ -140,7 +140,8 @@ mechanical, npc_ambient). One profile per archetype so walk/run/
 sprint/jump/gravity/friction are consistent for every player, enemy,
 NPC, and mount; retuning is a .tres edit, never a code edit.
 
-- `PlayerController._apply_movement_profile()` stamps the profile
+- The player body's spawn stamp (GlobeWorldPlayer; the planar
+  `PlayerController` before Step 5) applies the profile
   over export fallbacks in `_ready()`; capability gates
   (`allow_sprint` / `allow_jump_input` / `allow_crouch`) are consulted
   by the movement states (idle/run).
@@ -181,7 +182,8 @@ sphere for blobs. `build_shape()` emits a fresh Godot `Shape3D`;
   `hitbox_player.tres` is `pvp_fair = true` with scale clamped hard
   to 1.0 -- species, sex, and body_type never resize the player
   hitbox (bigger hitbox = eats more hits = worse PvP).
-- Players: `PlayerController._apply_hitbox_profile()` in _ready
+- Players: `PlayerBase._apply_hitbox_profile()` in _ready (globe body
+  calls it deferred); the planar `PlayerController` before Step 5
   (deferred, after species data resolves) + `set_hitbox_stance()`;
   Crouch/Slide states swap to the crouch variant (0.9 capsule at half
   offset), invalid stances ignored.

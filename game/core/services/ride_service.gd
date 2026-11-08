@@ -336,7 +336,7 @@ func purchase_mount(player_id: String, mount_id: String) -> Dictionary:
 
 ## Dismount: clear the session book and hand the body back humanoid
 ## limits (the safe default -- the rider's own profile re-stamps on
-## their next _apply_movement_profile). The mount returns to its
+## their next spawn stamp). The mount returns to its
 ## whistle -- the waterline and the cliff both end here.
 func dismiss(player_id: String) -> bool:
 	if not _active.has(player_id):

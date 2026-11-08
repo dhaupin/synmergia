@@ -181,7 +181,7 @@ func has_service_offering(service_id: String) -> bool:
 ##               {type: "vendor", ref_id: ...},
 ##               {type: "quest", quest_ids: [...]}, {type: "bank"}
 ##
-## Consumers (ActionMenu filter, PlayerController context actions,
+## Consumers (ActionMenu filter, the player body context actions,
 ## NPCEntity.on_interact) resolve through the helpers below so both
 ## shapes work everywhere. Called by NPCEntity._ready after load.
 func normalize_includes() -> void:

@@ -136,7 +136,7 @@ func get_nearest_plot(pos: Vector3, owned_filter: String = "") -> Dictionary:
 ## ------------------------------------------------------------------
 
 ## Try to buy the plot for the player. Deducts gold via the duck-typed
-## `gold` property (PlayerController and PlayerManager both carry it).
+## `gold` property (the player body and PlayerManager both carry it).
 func purchase_plot(player, plot_id: String) -> Dictionary:
 	if player == null or not ("entity_id" in player):
 		return {"ok": false, "reason": "invalid_player"}
@@ -388,7 +388,7 @@ func _build_station_node(dwelling_id: String, function: String, slot_index: int 
 ## radius of the player (the node's own item data carries the radius
 ## law; default 1.5 m matches every .tres). Returns {ok, node,
 ## function, dwelling_id, interaction_type} or {ok: false} -- the ONE
-## resolving door for `_use_nearby_station` in PlayerController, so
+## resolving door for `_use_nearby_station` in the player body, so
 ## the walk-up-and-press law never re-derives from position guesses
 ## or a second meta read.
 func resolve_nearby_station(player, max_radius: float = -1.0) -> Dictionary:
@@ -453,7 +453,7 @@ func _register_with_entity_service(entity, zone_id: String) -> void:
 	es.register_entity(entity, metadata)
 
 ## ------------------------------------------------------------------
-## GOLD (duck-typed: PlayerController + test stubs)
+## GOLD (duck-typed: the player body + test stubs)
 ## ------------------------------------------------------------------
 
 func _spend_gold(player, amount: int) -> bool:

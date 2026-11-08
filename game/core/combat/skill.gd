@@ -20,7 +20,7 @@ const SkillSchema = preload("res://core/schemas/skill.gd")
 const CombatMath = preload("res://core/services/combat_math.gd")
 # Entity is preloaded for EntityType constants (e.g. the heal-threat
 # radius scan). Caster/target method params are deliberately untyped so
-# PlayerController (a CharacterBody3D) can cast without an Entity cast.
+# the player body (a CharacterBody3D) can cast without an Entity cast.
 const Entity = preload("res://core/entities/entity.gd")
 
 
@@ -350,7 +350,7 @@ func consume_resources(caster) -> bool:
 	if "current_health" in caster and caster.current_health < health_cost:
 		return false
 
-	# Duck-typed writes: PlayerController carries mana but no stamina;
+	# Duck-typed writes: the player body carries mana but no stamina;
 	# test stubs may carry neither.
 	if mana_cost > 0 and "current_mana" in caster:
 		caster.current_mana -= mana_cost
@@ -380,7 +380,7 @@ func calculate_damage(caster, target) -> int:
 
 	# The MWo-style single-roll combat table: miss -> dodge -> parry ->
 	# block -> crit -> hit in one randf(). Defensive chances come from
-	# the TARGET's stats; duck-typed so bare-Entity and PlayerController
+	# the TARGET's stats; duck-typed so bare-Entity and the player body
 	# targets both roll. Miss-family outcomes return 0 and the callers
 	# skip take_damage entirely (Enemy's armor floor would chip 1).
 	var outcome := CombatMath.calculate_hit(caster, target, self)

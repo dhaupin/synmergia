@@ -44,7 +44,7 @@ func _physics_process(_delta: float) -> void:
 ## ENTITY MANAGEMENT
 
 ## Registry accepts ANY combatant: Entity subclasses (Enemy, NPC) AND
-## the live player (PlayerController, a CharacterBody3D). The old
+## the live player (the player body, a CharacterBody3D). The old
 ## `entity: Entity` annotation made every player registration throw
 ## "not a subclass of the expected argument class" -- so the player was
 ## never in the hitbox sweep registry.
@@ -52,7 +52,7 @@ func register_entity(entity) -> void:
 	if entity == null or not is_instance_valid(entity) or not ("entity_id" in entity):
 		return
 	registered_entities[entity.entity_id] = entity
-	# Death hook: Entity subclasses emit died(killer); PlayerController
+	# Death hook: Entity subclasses emit died(killer); the player body
 	# emits player_died(killer). Bind the victim so the re-emit carries
 	# the full (victim, killer) pair either way.
 	var death_signal := "died" if entity.has_signal("died") else "player_died"
@@ -82,10 +82,10 @@ func unregister_entity(entity) -> void:
 func get_entity(entity_id: String):
 	return registered_entities.get(entity_id)
 
-## Signal arity: Entity.died / PlayerController.player_died emit the
+## Signal arity: Entity.died / the player body's player_died emit the
 ## killer; the bound victim arrives second. Mismatching this used to
 ## break every death hook with "Method expected 2 argument(s), but
-## called with 1". Untyped params: the killer may be PlayerController.
+## called with 1". Untyped params: the killer may be the player body.
 func _on_entity_died(killer, victim) -> void:
 	entity_died.emit(victim, killer)
 
@@ -194,7 +194,7 @@ func get_entities_in_hitbox(hitbox: HitboxData) -> Array:
 	return entities_in_range
 
 ## Alive check across the two combatant families: Entity subclasses
-## expose is_alive(); PlayerController (CharacterBody3D) exposes
+## expose is_alive(); the player body (CharacterBody3D) exposes
 ## is_dead(). The old direct is_alive() call threw on the player.
 func _is_alive(node) -> bool:
 	if node.has_method("is_alive"):
@@ -241,7 +241,7 @@ func _apply_hit(hitbox: HitboxData, target) -> void:
 	if not is_whiff:
 		_apply_skill_effects(hitbox.skill, caster, target)
 
-## Untyped caster/target: PlayerController (CharacterBody3D) is a valid
+## Untyped caster/target: the player body (CharacterBody3D) is a valid
 ## caster/target family; Entity annotations threw on every real swing.
 ## DoT/CC application routes through the skill's own appliers (the
 ## same construction skill.execute uses) so both paths stay identical.

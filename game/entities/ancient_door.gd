@@ -6,7 +6,7 @@
 ## The loop: look up -> record insight -> tribe reveals 4 windows ->
 ## tomorrow's Ancient unlocks -> this door physically opens for everyone.
 ##
-## Interaction: walk up, press E (PlayerController._try_interact
+## Interaction: walk up, press E (the player body's _try_interact
 ## resolves "ancient_doors" group members the same way it resolves
 ## ankhs). No combat, no keys: the code is in the SKY, and the
 ## unlock is server-wide -- the door is the payoff moment, not a gate

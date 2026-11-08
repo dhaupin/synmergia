@@ -121,7 +121,7 @@ func _on_tree_exiting() -> void:
 		tm.call("unregister_targetable", ankh_id)
 
 ## Check if a player can bind to this ankh. Duck-typed on purpose:
-## callers pass PlayerController (not an Entity), which carries
+## callers pass the player body (not an Entity), which carries
 ## entity_id/display_name/level/health_component but no faction_id or
 ## guild_rank properties.
 func can_bind(player) -> bool:

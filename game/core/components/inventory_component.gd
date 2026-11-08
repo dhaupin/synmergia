@@ -605,7 +605,7 @@ func clear_equipment() -> void:
 
 ## Apply equipment stats to entity
 func _apply_equipment_stats() -> void:
-	# The owner may be a PlayerController (extends CharacterBody3D) or an Entity
+	# The owner may be a player body (extends CharacterBody3D) or an Entity
 	# subclass (Enemy/NPC). Reading the parent as the typed `Entity` was a
 	# RUNTIME TYPE-ASSIGNMENT error for the player -- "Trying to assign value of
 	# type 'player_controller.gd' to a variable of type 'entity.gd'" -- which

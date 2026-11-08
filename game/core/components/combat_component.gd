@@ -189,7 +189,7 @@ func _apply_skill_upgrade_deltas(schema, _entity) -> Skill:
 	# schema may be a combat Skill built from a schema (Skill.from_schema)
 	# or a SkillSchema itself; only upgrade-capable ones carry the
 	# metadata, so every access below is duck-typed. The old Entity-typed
-	# params threw on every PlayerController cast.
+	# params threw on every the player body cast.
 	if schema == null or not ("upgradable" in schema) or not schema.upgradable:
 		return schema
 
@@ -291,7 +291,7 @@ func _can_execute_skill(skill: Skill) -> bool:
 	if is_casting:
 		return false
 
-	# Check dead (duck-typed: Entity subclasses and PlayerController both
+	# Check dead (duck-typed: Entity subclasses and the player body both
 	# carry a health_component, but guard anyway)
 	if "health_component" in entity and entity.health_component != null \
 			and entity.health_component.has_method("is_dead") \

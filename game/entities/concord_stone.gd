@@ -8,7 +8,7 @@
 ## idempotent (one insight per player per window -- the stone reminds
 ## you), so it cannot be spammed.
 ##
-## Interaction: walk up, press E (PlayerController._try_interact
+## Interaction: walk up, press E (the player body's _try_interact
 ## resolves the "concord_stones" group the same way it resolves
 ## ancient_doors and ankhs).
 ##

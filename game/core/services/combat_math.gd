@@ -36,7 +36,7 @@ class CombatRatings:
 		pass
 
 ## Get combat ratings from entity. Duck-typed: bare Entity, Enemy and
-## PlayerController all carry a `stats` dictionary; anything without one
+## the player body all carry a `stats` dictionary; anything without one
 ## simply has no ratings.
 static func get_entity_ratings(entity) -> CombatRatings:
 	var ratings := CombatRatings.new()
@@ -58,7 +58,7 @@ static func get_entity_ratings(entity) -> CombatRatings:
 	return ratings
 
 ## Duck-typed stat read: get_stat() when the combatant exposes it (bare
-## Entity and PlayerController both do), raw stats dictionary otherwise.
+## Entity and the player body both do), raw stats dictionary otherwise.
 static func _stat(entity, stat_name: String, default_value: float) -> float:
 	if entity == null:
 		return default_value
@@ -151,7 +151,7 @@ static func calculate_block_value(block_rating: float, strength: int) -> float:
 ## are rolled first and can never crit (MWo rule).
 ##
 ## Duck-typed for both combatant families: bare Entity / Enemy nodes AND
-## PlayerController (a CharacterBody3D with no combat_component). Every
+## the player body (a CharacterBody3D with no combat_component). Every
 ## property access is guarded with `in` / has_method(); the old version
 ## dereferenced attacker.combat_component directly and would have thrown
 ## on the live player the first time it was ever called.
@@ -343,7 +343,7 @@ static func calculate_damage(base_damage: int, hit_result: Dictionary) -> int:
 	return maxi(1, int(damage))
 
 
-## Daily Class Blessing lookup, duck-typed: PlayerController carries
+## Daily Class Blessing lookup, duck-typed: the player body carries
 ## character_class; bare Entity/Enemy do not (enemies are never
 ## blessed -- the sky favors the playable classes). Static + null-safe
 ## so callers never crash when SignService is absent (script-mode
@@ -365,7 +365,7 @@ static func _blessing_multiplier_for(attacker) -> float:
 	return float(svc.BLESSED_DAMAGE_MULTIPLIER) if svc.is_class_blessed(cid) else 1.0
 
 ## Crit chance off the combatant's own roll when it has one (Entity /
-## PlayerController get_crit_chance), stat-derived otherwise.
+## the player body get_crit_chance), stat-derived otherwise.
 static func _crit_chance_for(attacker) -> float:
 	if attacker != null and attacker.has_method("get_crit_chance"):
 		return float(attacker.get_crit_chance())
@@ -377,7 +377,7 @@ static func _crit_multiplier_for(attacker) -> float:
 	return 1.5
 
 ## Helper to check if defender has shield equipped. Duck-typed: only
-## PlayerController carries an inventory_component; bare Entity / Enemy
+## the player body carries an inventory_component; bare Entity / Enemy
 ## simply have no off-hand, hence no block.
 static func _has_shield(entity) -> bool:
 	if entity == null or not ("inventory_component" in entity):

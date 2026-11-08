@@ -892,7 +892,7 @@ func _credit_arrival(body: Node) -> void:
 		return
 	if int(etype) != 1:  # Entity.EntityType.PLAYER
 		return
-	# Playable-surface body (PlayerController): the full standard path
+	# Playable-surface body (the player body): the full standard path
 	# -- rosters, population signals, then the EXPLORE event.
 	if ZoneManager.has_method("entity_enter_zone"):
 		ZoneManager.entity_enter_zone(body, zone)

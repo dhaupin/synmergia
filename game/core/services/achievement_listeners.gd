@@ -114,7 +114,7 @@ func _on_entity_killed(killer, victim, _damage_type: String) -> void:
 	var vid := _player_id_of(victim)
 	if kid == "" or vid == "" or kid == vid:
 		return
-	# Both sides must be player entities (PlayerController), not enemies.
+	# Both sides must be player entities (the player body), not enemies.
 	if not _is_player_entity(killer) or not _is_player_entity(victim):
 		return
 	AchievementService.track(kid, "player_kill", 1)

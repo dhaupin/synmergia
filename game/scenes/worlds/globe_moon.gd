@@ -57,7 +57,7 @@ func _ready() -> void:
 	GameLog.info("GlobeMoon: conjured (dev target; radius %.0f m, the earthrise meridian waits)" % planet_radius)## Bring a visitor across. Called by the Moon Gate AFTER ScopeService
 ## accepted the swap; adopts the body into lunar physics and places
 ## it on the surface at the landing site. Idempotent per body.
-## Bodies from the planar main world (PlayerController) get the
+## Bodies from the planar main world (the player body) get the
 ## world_id (the gravity/vacuum laws read it) and a radial-landing
 ## transform; globe bodies additionally get the planet references.
 func receive_visitor(body: Node) -> void:

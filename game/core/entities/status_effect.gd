@@ -313,7 +313,7 @@ func _apply_tick_effect() -> void:
 	# corpse, loot, KillRewards.award_kill -> kill_rewarded, unregister)
 	# and the kill attributes to this effect's source. The old direct
 	# health mutation left 0-HP zombies and unattributed kills. The
-	# duck-typed call covers both families (Entity and the PlayerController
+	# duck-typed call covers both families (Entity and the player body
 	# CharacterBody3D take the same 3-arg shape). "periodic" bypasses
 	# school mitigation by design: the tick budget already priced the
 	# damage, matching the old no-mitigation behavior.

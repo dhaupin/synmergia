@@ -147,7 +147,7 @@ func _handle_tab_cycling(shift: bool) -> void:
 				panel_node._on_tab_pressed(shift)
 			return
 	# No panel open -> do nothing here. Target cycling on Tab is owned
-	# by InputManager (player_input "target_next" -> PlayerController).
+	# by InputManager (player_input "target_next" -> the player body).
 	# Cycling here as well double-advanced the target on every press.
 
 

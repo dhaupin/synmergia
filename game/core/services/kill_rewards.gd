@@ -269,7 +269,7 @@ static func _enemy_data_of(entity) -> Resource:
 
 
 ## A valid credit holder: in-tree Node3D-ish combatant with an entity
-## id. Deliberately duck-typed so PlayerController (not an Entity)
+## id. Deliberately duck-typed so the player body (not an Entity)
 ## qualifies -- same convention as the vertical slice.
 ## Is the victim a guard? Duck-typed: guards expose report_offense and
 ## carry GuardData; regular enemies never do either. Kept duck-typed so

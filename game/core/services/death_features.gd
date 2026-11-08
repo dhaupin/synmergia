@@ -865,7 +865,7 @@ func _drop_player_loot(entity, killer, was_duel: bool = false) -> void:
 func _resolve_drop_mode(entity, killer, was_duel: bool = false) -> String:
 	if killer == null:
 		return "none"
-	# Player-killer check, duck-typed (PlayerController is a
+	# Player-killer check, duck-typed (the player body is a
 	# CharacterBody3D with an entity_id; Enemy is an Entity with a
 	# loot_table_id). Anything that itself carries a loot table is a
 	# monster, not a player.

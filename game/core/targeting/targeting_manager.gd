@@ -72,7 +72,7 @@ func _pm() -> Node:
 
 
 
-# PlayerController resolves through its GLOBAL class_name, not a
+# the player body resolves through its GLOBAL class_name, not a
 # const preload: player_controller.gd preloads targeting_manager back
 # (the camera/targeting bridge), so this const preload closed the
 # graph's last cyclic edge (the lint's 2-node WARN). Type usages below

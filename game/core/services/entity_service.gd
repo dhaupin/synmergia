@@ -322,7 +322,7 @@ func unregister_entity(entity, reason: String = "despawn") -> void:
 
 	_persist_entity_metadata(entity_id)
 	# Keep the combat registry in sync for BOTH combatant families
-	# (Entity subclasses and the PlayerController CharacterBody3D). The
+	# (Entity subclasses and the player body CharacterBody3D). The
 	# old is_alive() gate skipped the player, leaving a stale entry that
 	# kept eating hitbox sweeps after disconnect/despawn.
 	if CombatSystem:

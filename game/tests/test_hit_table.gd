@@ -102,7 +102,7 @@ func _test_zero_chance_helpers() -> void:
 
 
 ## Basic shape and the duck-typed families: bare Entity (this test) AND
-## PlayerController-shaped stubs (stats dict, no combat_component). The
+## player-body-shaped stubs (stats dict, no combat_component). The
 ## old implementation dereferenced combat_component and would have thrown
 ## on the first real call.
 func _test_table_shape_and_ducktyping() -> void:
@@ -126,7 +126,7 @@ func _test_table_shape_and_ducktyping() -> void:
 	_check(null_result["hit_result"] == CombatMathScript.HitResult.HIT,
 		"null defender returns default HIT without throwing")
 
-	# PlayerController-shaped stub: stats dict + level, no combat_component.
+	# player-body-shaped stub: stats dict + level, no combat_component.
 	var stub := Node3D.new()
 	stub.set("level", 3)
 	stub.set("stats", {"strength": 10, "agility": 10, "intelligence": 10, "vitality": 10, "wisdom": 10})
@@ -138,7 +138,7 @@ func _test_table_shape_and_ducktyping() -> void:
 		if not (rr["hit_result"] is int):
 			stub_ok = false
 			break
-	_check(stub_ok, "hit table works on PlayerController-shaped stubs (20 rolls)")
+	_check(stub_ok, "hit table works on player-body-shaped stubs (20 rolls)")
 
 	# Statistical sanity: over 400 even-level rolls, plain hits dominate
 	# (~95% band) and miss-family outcomes stay rare.

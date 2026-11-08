@@ -373,7 +373,7 @@ func _movement_profile() -> MovementProfile:
 
 func take_damage(amount: int, source = null, damage_type: String = "physical", is_crit: bool = false) -> int:
 	# Killer-of-record FIRST: any valid in-tree combatant counts (duck-typed,
-	# so PlayerController qualifies). The death chain below (die() ->
+	# so the player body qualifies). The death chain below (die() ->
 	# _on_died -> KillRewards.award_kill(self, _last_damager)) runs
 	# synchronously inside health_component.die(), so this must be set
 	# before the lethal branch or one-shot kills credit the PREVIOUS
@@ -435,7 +435,7 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 
 	# Threat: damage on this enemy builds the attacker's position on the
 	# threat table (drives in-combat target switching in EnemyAI).
-	# Duck-typed: PlayerController (CharacterBody3D, not an Entity subclass)
+	# Duck-typed: the player body (CharacterBody3D, not an Entity subclass)
 	# is the live player, and its attacks must build threat and grudges.
 	var is_combatant: bool = source is Entity or (source is Node and "entity_id" in source)
 	if aggro_component and is_combatant:
@@ -448,7 +448,7 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 	return amount
 
 ## A valid damager: live in-tree Node with a combatant id. Deliberately
-## duck-typed so PlayerController (not an Entity subclass) qualifies.
+## duck-typed so the player body (not an Entity subclass) qualifies.
 func _is_valid_damager(node) -> bool:
 	if node == null or not (node is Node):
 		return false

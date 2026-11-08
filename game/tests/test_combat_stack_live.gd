@@ -1,6 +1,6 @@
 ## test_combat_stack_live.gd - R28: the resurrected effect stack is live
 ## on the real attack path (CombatSystem -> skill appliers ->
-## Entity/PlayerController status surfaces -> AuraComponent mirror ->
+## Entity/the player body status surfaces -> AuraComponent mirror ->
 ## EventHub signals), and CombatComponent gates player casts.
 ## Run headless:
 ##

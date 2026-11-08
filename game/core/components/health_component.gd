@@ -103,7 +103,7 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 		return 0
 
 	# Check for interrupt (before applying damage). Owner may be any
-	# combatant (Enemy, PlayerController); components are optional.
+	# combatant (Enemy, the player body); components are optional.
 	var entity: Node3D = get_parent()
 	if entity != null and "combat_component" in entity and entity.combat_component != null:
 		entity.combat_component.on_damage_taken(amount, source, damage_type)

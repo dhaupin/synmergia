@@ -109,7 +109,7 @@ func can_enter(entity) -> bool:
 	if entity.level > max_level and max_level > 0:
 		return false
 
-	# Faction check. Entity carries faction_id; PlayerController and
+	# Faction check. Entity carries faction_id; the player body and
 	# other stubs may not (4.7.2: direct access on a missing property
 	# is a runtime error, so guard every read).
 	var faction_id := ""
@@ -131,7 +131,7 @@ func can_enter(entity) -> bool:
 	return true
 
 ## Resolve a faction id off a duck-typed combatant (Entity carries
-## faction_id; PlayerController/stubs may carry neither).
+## faction_id; the player body/stubs may carry neither).
 static func _faction_of(entity) -> String:
 	if entity == null:
 		return ""

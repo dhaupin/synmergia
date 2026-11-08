@@ -266,7 +266,7 @@ func _conjure_holder() -> Node:
 
 ## Adopt the visitor into the destination's physics (the conjured
 ## globe binds the body: lunar gravity, no wing, landing placement).
-## The main world's planar PlayerController has no planet_center/
+## The main world's planar the player body has no planet_center/
 ## planet_radius (it walks the classic world); the moon globe binds
 ## only what the body actually has. The body's world_id drives the
 ## per-world gravity law (S16.4) and the vacuum wing gate.

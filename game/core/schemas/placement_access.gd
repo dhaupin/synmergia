@@ -34,7 +34,7 @@ enum AccessScope {
 @export var deny_ids: Array = []      # Array[String] -- explicit bans, beat guild/faction
 
 ## Resolve access for a player-shaped object (duck-typed like everywhere
-## else in this codebase: works on PlayerController and test stubs).
+## else in this codebase: works on the player body and test stubs).
 func evaluate(player) -> bool:
 	if player == null:
 		return false

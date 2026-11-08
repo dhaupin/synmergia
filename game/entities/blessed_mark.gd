@@ -48,7 +48,7 @@ func _ready() -> void:
 	visible = false
 
 
-## Bind to a wearer (PlayerController or any duck-typed source with
+## Bind to a wearer (the player body or any duck-typed source with
 ## entity_id -- tests pass plain dictionaries). The class id is copied
 ## at bind time; a class change rebinds.
 func set_wearer(class_id: String, wearer) -> void:

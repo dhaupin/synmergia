@@ -177,7 +177,7 @@ func _test_login_toast() -> bool:
 
 
 func _test_combatmath_hook() -> bool:
-	# A fake combatant duck-types exactly like PlayerController for the
+	# A fake combatant duck-types exactly like the player body for the
 	# blessing path: character_class + stats.
 	var day := 55555
 	_svc._unlocked_days[day] = true

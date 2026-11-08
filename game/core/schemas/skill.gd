@@ -200,7 +200,7 @@ func execute(caster, target= null, ground_pos: Vector3 = Vector3.ZERO) -> Dictio
 	return result
 
 func _consume_resources(caster) -> void:
-	# Duck-typed: casters (PlayerController, Entity, test stubs) carry
+	# Duck-typed: casters (the player body, Entity, test stubs) carry
 	# different subsets of the resource fields; only deduct what exists.
 	if mana_cost > 0 and "current_mana" in caster:
 		caster.current_mana -= mana_cost

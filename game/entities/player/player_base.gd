@@ -1,9 +1,9 @@
 ## PlayerBase - the shared surface every playable body carries.
 ##
 ## WHY THIS EXISTS: the game has two player bodies -- the planar
-## PlayerController and the spherical GlobeWorldPlayer -- that were
+## the player body and the spherical GlobeWorldPlayer -- that were
 ## SIBLINGS with no shared base. ~20 shared systems gate on
-## `is PlayerController` (resurrection targeting, player_died,
+## `is the player body` (resurrection targeting, player_died,
 ## player_killed_player), so the globe body silently fell outside them
 ## and the two worlds drifted (see labs/prd-planar-retirement.md). This
 ## base owns the surface those systems gate on, so both bodies are

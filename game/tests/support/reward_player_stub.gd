@@ -1,7 +1,7 @@
 ## Test stub: an Entity with the duck-typed progression surface the
-## real PlayerController exposes. Used by test_kill_rewards.gd so
+## real the player body exposes. Used by test_kill_rewards.gd so
 ## kill_rewards.gd's grant routing can be exercised without the full
-## PlayerController scene.
+## the player body scene.
 extends "res://core/entities/entity.gd"
 
 var experience: int = 0

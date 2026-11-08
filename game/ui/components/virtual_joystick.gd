@@ -534,7 +534,7 @@ func _process(delta: float) -> void:
 
 	# Auto-sprint: full stick for a beat engages sprint until the stick
 	# eases off or releases. Routed through InputManager.player_input so
-	# PlayerController.is_sprinting flips exactly like the keyboard key.
+	# the player body's is_sprinting flips exactly like the keyboard key.
 	if _joystick_touch_id >= 0:
 		var mag := _stick_offset.length() / STICK_RADIUS
 		if not _auto_sprint_on:

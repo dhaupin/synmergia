@@ -340,7 +340,7 @@ func _enemies_from_template(es, template_id: String) -> Array:
 	var out: Array = []
 	var all = es.get_all_entities() if es.has_method("get_all_entities") else []
 	for e in all:
-		# "enemy_data" in e guards players (PlayerController does not
+		# "enemy_data" in e guards players (the player body does not
 		# carry the template surface).
 		if e != null and is_instance_valid(e) and "enemy_data" in e \
 				and e.enemy_data != null and str(e.enemy_data.id) == template_id:

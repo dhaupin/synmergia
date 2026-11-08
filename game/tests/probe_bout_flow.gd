@@ -135,7 +135,7 @@ func _run() -> void:
 	# Real convention: WORLD limits come from the player's ground
 	# profile (standard fall 55 x 2.0 = 110); GLIDE maxima come from
 	# the wing profile (fall 8 x 2.0 = 16). Multipliers apply at the
-	# call site (PlayerController._apply_movement_profile pattern).
+	# call site (the player body's spawn-stamp pattern).
 	var world_profile: Resource = load("res://data/movement_profiles/movement_standard.tres")
 	ac.set_movement_limits("flow_p1", 25.0, 25.0, \
 		world_profile.terminal_fall_speed * ac.FALL_LIMIT_MULTIPLIER, \

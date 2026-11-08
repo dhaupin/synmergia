@@ -2,7 +2,7 @@
 ## Saves xp/gold/level/position through the adapter layer (DictStore ->
 ## PersistenceStore) and restores it when the character spawns into the
 ## world. The authoritative stats live on the player node (duck-typed
-## progression surface added to PlayerController); PlayerManager keeps
+## progression surface added to the player body); PlayerManager keeps
 ## its own mirror for the HUD. This service is the durable copy.
 ##
 ## Wire-up:

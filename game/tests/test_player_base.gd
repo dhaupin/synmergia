@@ -6,7 +6,7 @@
 ## This receipt proves PlayerBase exists, the globe body is `is PlayerBase`,
 ## a bare PlayerBase carries the shared surface (progression, gold voice,
 ## health, death signal, combat, the walk-up dock seam), and the globe body
-## inherits it. Planar-retirement Step 5 removed the planar PlayerController,
+## inherits it. Planar-retirement Step 5 removed the planar the player body,
 ## so PlayerBase is now the SOLE shared surface.
 ##
 ## Run: godot --headless --path game --script res://tests/test_player_base.gd

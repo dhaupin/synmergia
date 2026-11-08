@@ -77,9 +77,10 @@ var _player_profiles: Dictionary = {}  # player_id -> Profile data
 var _suspicion_scores: Dictionary = {}  # player_id -> suspicion (0.0 to 1.0)
 var _banned_players: Dictionary = {}  # player_id -> ban info
 ## Movement-limit state per player: stamped limits, violation streaks,
-## GM bypass. Stamped by PlayerController._apply_movement_profile() at
-## spawn -- an unregistered player's telemetry is still counted (the
-## profile defaults below) so nothing escapes by skipping registration.
+## GM bypass. Stamped by the player body at spawn (GlobeWorldPlayer
+## _call_deferred_stamp; the planar controller did the same before Step 5)
+## -- an unregistered player's telemetry is still counted (the profile
+## defaults below) so nothing escapes by skipping registration.
 var _movement_limits: Dictionary = {}  # player_id -> {max_speed, max_jump, max_fall}
 
 ## DictStore key prefix
@@ -274,8 +275,8 @@ func _legal_under_current(player_id: String, velocity: Vector3, max_speed: float
 ## == Movement hard limits (Movement Design System) ==========================
 
 ## Stamp the hard limits for a player from their MovementProfile. Called
-## by PlayerController._apply_movement_profile() (players) and available
-## to any authoritative spawner (enemies/mounts use their own profiles).
+## by the player body at spawn (GlobeWorldPlayer._call_deferred_stamp) and
+## available to any authoritative spawner (enemies/mounts use their own).
 ## Values are the LIMITS (legal max x multipliers), not the feel values.
 func set_movement_limits(player_id: String, max_speed: float, max_jump: float, max_fall: float, max_glide_speed: float = GLIDE_MAX_SPEED, max_glide_fall: float = GLIDE_MAX_FALL) -> void:
 	_movement_limits[player_id] = {
@@ -327,7 +328,7 @@ func _limits_from_profile(profile) -> Dictionary:
 
 
 ## Feed one frame of movement telemetry from an authoritative mover
-## (PlayerController._physics_process). Returns true when the sample
+## (the player body's _physics_process). Returns true when the sample
 ## (or a sustained streak of samples) violates a hard limit -- callers
 ## may use the return to clamp velocity server-side.
 ##

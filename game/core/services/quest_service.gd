@@ -804,7 +804,7 @@ func _grant_rewards(player_id: String, summary: Dictionary) -> void:
 					continue
 				fsvc.modify_reputation(player_id, str(faction_id), delta)
 
-## Player id of a node, tolerant of both Entity and PlayerController.
+## Player id of a node, tolerant of both Entity and the player body.
 func _node_player_id(node) -> String:
 	if node == null:
 		return ""
@@ -912,7 +912,7 @@ func _format_objectives_text(objectives: Array) -> Array:
 ## ============================================================================
 
 func _get_player_level(player_id: String) -> int:
-	# The live player node owns `level` (PlayerController / a player Entity).
+	# The live player node owns `level` (the player body / a player Entity).
 	# Read it first: PlayerManager.get_player_info() does not exist (only
 	# get_character_data), so the old gate fell through to level 1 for every
 	# player -- a quest with min_level > 1 would be wrongly refused to a

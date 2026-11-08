@@ -631,7 +631,7 @@ func _decay_effects() -> Dictionary:
 		if entity == null or not is_instance_valid(entity):
 			continue
 		# Duck-type the liveness gate (the Entity/Enemy convention):
-		# PlayerController is a CharacterBody3D with an implicit alive
+		# the player body is a CharacterBody3D with an implicit alive
 		# state (no is_alive() method), Entities/Enemies have it.
 		if entity.has_method("is_alive") and not entity.is_alive():
 			continue
@@ -677,7 +677,7 @@ func _regen_entities() -> void:
 		if entity == null or not is_instance_valid(entity):
 			continue
 		# Duck-type the liveness gate (the Entity/Enemy convention):
-		# PlayerController is a CharacterBody3D with an implicit alive
+		# the player body is a CharacterBody3D with an implicit alive
 		# state (no is_alive() method), Entities/Enemies have it.
 		if entity.has_method("is_alive") and not entity.is_alive():
 			continue

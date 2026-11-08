@@ -19,7 +19,7 @@
 #      dwelling item, plot loses the slot, the node is gone).
 #   F. THE WALK-UP LAW: E near a placed node resolves through
 #      DwellingService.resolve_nearby_station (the one door) and
-#      PlayerController._use_nearby_placed_station opens the right UI
+#      the player body's _use_nearby_placed_station opens the right UI
 #      at the station's law -- out-of-range refuses; in-range opens;
 #      a placed anvil routes to the SMITHY UI, not the craft table.
 extends SceneTree
@@ -27,7 +27,7 @@ extends SceneTree
 var _checks: int = 0
 var _fails: int = 0
 
-var PlayerControllerScript = null
+var PlayerBodyScript = null
 
 func _find_station_by_name(node_name: String) -> Node:
 	if node_name.is_empty():
@@ -198,8 +198,8 @@ func _run() -> void:
 
 	# ---- F. the WALK-UP law: E resolves the nearest placed node -------
 	var upc = root.get_node_or_null("/root/PlayerManager")
-	PlayerControllerScript = load("res://entities/player/player_base.gd")
-	var walker = PlayerControllerScript.new()
+	PlayerBodyScript = load("res://entities/player/player_base.gd")
+	var walker = PlayerBodyScript.new()
 	walker.entity_id = "hall_owner"
 	walker.is_local_player = true
 	if upc != null and upc.has_method("set"):
