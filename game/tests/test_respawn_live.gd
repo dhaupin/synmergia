@@ -1,5 +1,6 @@
-## test_respawn_live.gd - LIVE death -> UI -> respawn verification in the
-## playable scene. Run in RENDERING mode (watch it happen for real):
+## test_respawn_live.gd - LIVE death -> UI -> respawn verification on the
+## GLOBE (the open world; planar-retirement Step 5). Run in RENDERING mode
+## (watch it happen for real):
 ##
 ##   cd game && xvfb-run godot --path . --script res://tests/test_respawn_live.gd
 ##
@@ -10,8 +11,10 @@
 ##     -> respawn_completed -> player alive again at the respawn point
 ##     -> PlayerProgress "respawn" checkpoint written
 ##
-## starter_plains config: bind_point (0,0,0), timed delay 10s. The scene
-## player starts at (0,1,0), so a completed respawn must move them.
+## Globe respawn law: the zone .tres coords are meaningless on a sphere, so
+## RespawnService._get_default_respawn_position reads the body's own
+## planet_up() + resting radius (the body's own snap law) -- the respawn
+## point is on the shell at the body's own direction, not a planar vector.
 ##
 ## Exit 0 = every hop observed. Failures print FAIL lines and exit 1.
 extends SceneTree
@@ -22,6 +25,8 @@ var _done := false
 var _frames := 0
 var _verified := false
 
+var _globe: Node = null
+var _boot = null
 var _player: Node = null
 var _pp: Node = null
 var _ruim: Node = null
@@ -32,31 +37,34 @@ var respawn_pos := Vector3.ZERO
 
 
 func _initialize() -> void:
-	print("=== RESPAWN LIVE TEST: booting playable scene ===")
-	var scene: PackedScene = load("res://scenes/world_playable.tscn")
-	if scene == null:
-		print("  FAIL: could not load world_playable.tscn")
+	print("=== RESPAWN LIVE TEST: booting globe scene ===")
+	_boot = load("res://tests/support/globe_boot.gd")
+	_boot_globe.call_deferred()
+
+
+func _boot_globe() -> void:
+	_globe = await _boot.boot(self)
+	if _globe == null:
+		print("  FAIL: could not load globe_world.tscn")
 		quit(1)
 		return
-	var inst := scene.instantiate()
-	root.add_child(inst)
-	current_scene = inst
+	current_scene = _globe
 
 
 func _process(_delta: float) -> bool:
+	if _globe == null:
+		return false
 	_frames += 1
-	if _frames == 90 and not _done:
+	if _frames == 30 and not _done:
 		_run()
 	elif _done and not _verified and _frames % 30 == 0:
 		if respawned:
 			_verify()
 		else:
 			_poll_respawn()
-		# Terminal verdict: RespawnService's 15s timer lands near frame
-		# 990 at precise headless 60Hz -- the old window (< frame 900)
-		# raced it and the test then ran forever to the runner kill.
-		# 3600 frames (~60s) covers the timer; past it is a FAIL, not a
-		# hang (round 22).
+		# Terminal verdict: the zone-timed cycle lands near frame 990 at
+		# precise headless 60Hz. 3600 frames (~60s) covers the timer; past
+		# it is a FAIL, not a hang.
 		if not _verified and _frames >= 3600:
 			_assert(false, "respawn completed within 60s")
 			_finish()
@@ -74,7 +82,7 @@ func _run() -> void:
 	if rs == null:
 		return _finish()
 
-	_player = _find_player()
+	_player = _boot.player(_globe)
 	_assert(_player != null, "player node present")
 	if _player == null:
 		return _finish()
@@ -123,6 +131,14 @@ func _verify() -> void:
 	if respawn_pos != Vector3.ZERO:
 		_assert(respawn_pos.distance_to(_player.global_position) < 2.0,
 				"respawn point near the player position")
+	# Globe law: the respawn point must sit ON the shell (the body's own
+	# planet_up direction at the resting radius), never a planar zone vector
+	# that lands in the sea or inside the planet.
+	if _player.has_method("planet_up"):
+		var center: Vector3 = _player.planet_center
+		var r: float = _player.global_position.distance_to(center)
+		_assert(absf(r - _player.planet_radius) < 50.0,
+				"respawn point rests on the globe shell (r=%.1f vs %.1f)" % [r, _player.planet_radius])
 
 	# PlayerProgress checkpoint: the respawn reason is recorded.
 	var snap: Dictionary = _pp.last_saved_snapshot(str(_player.entity_id))
@@ -135,13 +151,6 @@ func _verify() -> void:
 	_assert(ui_created, "death screen UI instantiated on death")
 
 	_finish()
-
-
-func _find_player() -> Node:
-	var p := current_scene.get_node_or_null("Player")
-	if p != null:
-		return p
-	return get_first_node_in_group("players")
 
 
 func _assert(cond: bool, label: String) -> void:
