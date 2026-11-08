@@ -96,7 +96,20 @@ value:
   unreachable/instance-only). Receipt: `test_world_shape` updated.
 
 ### Phase 3 -- Delete the planar world path
-- Delete `scenes/world_playable.{gd,tscn}` and
+
+**STATUS: DONE (2026-11-08, commit 5e7416df).** `scenes/world_playable.{gd,tscn}`,
+`entities/player/player_controller.gd`, `core/state/{state_base,state_machine_base}.gd`,
+and the 11 `entities/player/states/*.gd` are gone. Every live reader was
+repointed first: the four remaining drivers that loaded the planar scene
+(`test_full_boot_live`, `test_touch_live`, `play_session`, `probe_button_touch`)
+now boot the globe via `tests/support/globe_boot.gd`; `achievement_listeners`
+player-class heuristic matches `globe_player`/`player_base`; the flow tests
+resolve the globe's scene-node body. A follow-up (9a6859f2) repointed the
+~50 stale `PlayerController` comment references to "the player body". Receipts
+green: `playthrough_driver` 113/0, `test_world_shape`, `test_instance_contract`,
+the globe receipts, and the full data/naming/combat/loot set.
+
+- (original) Delete `scenes/world_playable.{gd,tscn}` and
   `entities/player/player_controller.gd` -- but ONLY after grepping
   every reference (the planar `PlayerController` class is referenced by
   ~20 files; most are type-annotation / duck-typed and must be retargeted
@@ -298,6 +311,10 @@ in the runner DEFAULT_SET.
   stops the drift from ever recurring.
 
 ## Step 5 -- flip the default + delete the planar world
+
+**STATUS: DONE (2026-11-08).** `GameManager._handle_playing_state` loads
+only `res://scenes/worlds/globe_world.tscn` (the planar branch is gone);
+the planar scene + controller + state machine are deleted (Phase 3 above).
 
 - Remove the `world_playable` branch in `GameManager._start_game`.
 - Delete `scenes/world_playable.{gd,tscn}` and
