@@ -402,6 +402,7 @@ func set_control_value(rel_path: String, value) -> bool:
 		var te := node as TextEdit
 		te.grab_focus()
 		te.text = String(value)
+		te.text_changed.emit()
 		return true
 	if node is Range:
 		var rng := node as Range
