@@ -251,7 +251,7 @@ func _refresh_tooltip() -> void:
 	var char_data = target.node.get("character_data") if target.node else null
 	if char_data and char_data.has("is_gm"):
 		is_gm_player = char_data.is_gm()
-	elif target.node and target.node.has("class_id"):
+	elif target.node and target.node.get("class_id") != null:
 		is_gm_player = CharacterData.is_gm_class(target.node.get("class_id"))
 
 	# Build display name with GM prefix
@@ -277,7 +277,7 @@ func _refresh_tooltip() -> void:
 	_update_action_buttons_from_schema(target.schema_id)
 
 	# Update level if available
-	if target.node and target.node.has("level"):
+	if target.node and target.node.get("level") != null:
 		_level_label.text = "Lv.%d" % target.node.level
 	else:
 		_level_label.text = ""
@@ -301,7 +301,7 @@ func _get_status_text(target: TargetingScript.TargetInfo, is_gm: bool = false) -
 				return "* Online "
 			return "* Online" if online_val else "o Offline"
 		Entity.EntityType.ENEMY:
-			if target.node and target.node.has("health"):
+			if target.node and target.node.get("health") != null:
 				var hp_val = target.node.get("health")
 				var hp: int = hp_val if hp_val != null else 0
 				var max_hp_val = target.node.get("max_health")

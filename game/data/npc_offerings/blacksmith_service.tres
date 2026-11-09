@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+id = "blacksmith_service"
 type = "service"
 display_name = "Equipment Repair"
 service_id = "BlacksmithService"

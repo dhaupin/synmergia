@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+id = "shoal_freight_quests"
 type = "quest"
 display_name = "Shoal Freight"
 quest_ids = ["quest_shoal_freight"]

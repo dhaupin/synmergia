@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+id = "black_market_premium"
 type = "service"
 display_name = "Concord Sigil Vault"
 service_id = "PremiumShopService"

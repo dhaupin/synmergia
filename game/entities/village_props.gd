@@ -108,11 +108,20 @@ static func _build_batch(root: Node3D, center: Vector3, batch: Array,
 		planet_radius: float, surface_lift: float, walk_surface_h: Callable) -> void:
 	var east: Vector3 = Vector3(0, 1, 0).cross(center).normalized()
 	var north: Vector3 = center.cross(east).normalized()
+	# THE BOOT-CLEAR REACH (mirrors starter_village.build): the authored
+	# reaches are ANGULAR (the planet-scale layout), but the prototype
+	# bench radius shrinks them to ~1 m, dropping the ankh / moon gate /
+	# bout stones ON the spawn and wedging the player inside their
+	# colliders. Pad every reach out to 8 m at bench scale so clearance
+	# is scale-free in METERS; the planet keeps the authored layout.
+	var reach_floor: float = maxf(0.0, 8.0 / maxf(planet_radius, 1.0))
+	if planet_radius > 1000.0:
+		reach_floor = 0.0  # the authored planet layout owns the reach
 	for entry in batch:
 		var kind: String = entry[0]
 		var pname: String = entry[1]
 		var bearing: float = deg_to_rad(float(entry[2]))
-		var reach: float = float(entry[3])
+		var reach: float = maxf(float(entry[3]), reach_floor)
 		var dir: Vector3 = (center + east * (reach * cos(bearing)) \
 			+ north * (reach * sin(bearing))).normalized()
 		var pos: Vector3 = dir * (planet_radius + surface_lift \

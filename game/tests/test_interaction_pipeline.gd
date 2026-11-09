@@ -133,6 +133,18 @@ func _await_player(max_wait: float) -> Variant:
 		waited += 1.0 / 60.0
 	return _player()
 
+## BOUNDED ROSTER WAIT: the globe boots ASYNC and places its town
+## NPCs a few seconds in (after the terrain streamer's first faces),
+## so the fixed schedule slots can fire while the offering_npcs group
+## is still empty. Await the roster instead of trusting the slot.
+func _await_offering_npcs(max_wait: float) -> void:
+	var waited := 0.0
+	while waited < max_wait:
+		if current_scene and not current_scene.get_tree().get_nodes_in_group("offering_npcs").is_empty():
+			return
+		await process_frame
+		waited += 1.0 / 60.0
+
 ## ------------------------------------------------------------------ cases
 
 func _c_npc_catalog() -> void:
@@ -145,6 +157,7 @@ func _c_npc_catalog() -> void:
 
 func _c_dialog_via_context_action() -> void:
 	print("--- NPC dialog via context action ---")
+	await _await_offering_npcs(6.0)
 	var npcs := _npcs_with_offering("dialogue")
 	if npcs.is_empty():
 		_ok("dialogue NPC available", false)
@@ -197,6 +210,7 @@ func _c_dialog_via_context_action() -> void:
 
 func _c_quest_via_context_action() -> void:
 	print("--- NPC quests via context action ---")
+	await _await_offering_npcs(6.0)
 	var npcs := _npcs_with_offering("quest")
 	if npcs.is_empty():
 		_ok("quest NPC available", false)
@@ -230,6 +244,7 @@ func _c_quest_via_context_action() -> void:
 
 func _c_vendor_via_context_action() -> void:
 	print("--- NPC vendor via context action ---")
+	await _await_offering_npcs(6.0)
 	var npcs := _npcs_with_offering("vendor")
 	if npcs.is_empty():
 		_ok("vendor NPC available", false)
@@ -239,6 +254,14 @@ func _c_vendor_via_context_action() -> void:
 	if player == null:
 		_ok("player available for vendor", false)
 		return
+
+	# Stand at the stall: the shop runs a walk-away close (12 m), so a
+	# real trade happens with the player beside the vendor. Park on the
+	# vendor's radial (globe-honest) before triggering the trade.
+	if npc is Node3D:
+		var vpos: Vector3 = (npc as Node3D).global_position
+		player.global_position = vpos + vpos.normalized() * 0.8
+		player.velocity = Vector3.ZERO
 
 	# The vendor branch needs _current_target_info to route the NPC trade
 	# action to the shop; emulate the context-menu flow by setting the
@@ -428,15 +451,32 @@ func _c_interact_menu_gate() -> void:
 		_ok("player + TargetingManager present", false)
 		return
 	var gates: Array = tm.get_targetables_by_type(32)  # Entity.EntityType.TELEPORT
-	if gates.is_empty():
+	# The scene registers several TELEPORT targetables: the dungeon
+	# portal (a plain gateway -> "Enter") and the arena queue stones
+	# (queue_mode -> Queue/Leave/Lobby). This leg proves the walk-up
+	# ENTER path, so pick a non-queue gateway rather than trusting
+	# list order (the arena stone is registered first).
+	var gate_id := ""
+	var node: Node = null
+	for g in gates:
+		var gd: Dictionary = tm.get_targetable(str(g))
+		var gn = gd.get("node", null)
+		if gn == null or not is_instance_valid(gn):
+			continue
+		if "queue_mode" in gn and bool(gn.queue_mode):
+			continue
+		if gn.is_in_group("ankhs"):
+			continue  # ankhs bind, they do not Enter
+		gate_id = str(g)
+		node = gn
+		break
+	if node == null:
 		_ok("gateway targetable present in scene", false)
 		return
-	var node: Node = tm.get_targetable(str(gates[0])).get("node", null)
-	if node == null or not is_instance_valid(node):
-		_ok("gateway node valid", false)
-		return
 	tm.clear_target()
-	player.global_position = (node as Node3D).global_position + Vector3(2.0, 0, 0)
+	var gpos: Vector3 = (node as Node3D).global_position
+	player.global_position = gpos + gpos.normalized() * 0.5
+	player.velocity = Vector3.ZERO
 	var menu: Node = player.get("_action_menu")
 	if menu != null and is_instance_valid(menu):
 		menu.hide()
@@ -447,8 +487,8 @@ func _c_interact_menu_gate() -> void:
 	await process_frame
 
 	var cur = tm.get_current_target()
-	_ok("gate targeted by proximity", cur != null and str(cur.id) == str(gates[0]),
-		"(target=%s gate=%s)" % [str(cur.id if cur else "none"), str(gates[0])])
+	_ok("gate targeted by proximity", cur != null and str(cur.id) == gate_id,
+		"(target=%s gate=%s)" % [str(cur.id if cur else "none"), gate_id])
 	menu = player.get("_action_menu")
 	_ok("gate action menu opened", menu != null and is_instance_valid(menu) and menu.visible)
 	var texts: Array = []

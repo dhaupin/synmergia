@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+id = "black_market_ledger"
 type = "vendor"
 display_name = "Underdeck Stock"
 stock_mode = "by_item_id"

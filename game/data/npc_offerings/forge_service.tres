@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+id = "forge_service"
 type = "service"
 display_name = "The Forge"
 service_id = "CraftingService"

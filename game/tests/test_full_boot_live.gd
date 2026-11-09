@@ -417,10 +417,18 @@ func _run() -> void:
 	# Reset the completion tap: phase 6 already fired it once.
 	_horde_completed[0] = false
 	var gateways: Array = _ws.get_zone_gateways("zone_village_center")
-	_ok("portal gateway registered by the scene", gateways.size() >= 1)
-	if gateways.is_empty():
+	# The scene registers the DUNGEON portal here; authored pins (the
+	# village ankh/waypoints) also live in this zone, so select by
+	# destination rather than trusting list order.
+	var portal = null
+	for gw in gateways:
+		if str(gw.to_zone_id) == "zone_dungeon_forest_depths":
+			portal = gw
+			break
+	_ok("portal gateway registered by the scene", portal != null)
+	if portal == null:
 		return _finish()
-	var gid: String = str(gateways[0].id)
+	var gid: String = str(portal.id)
 	var dest: Dictionary = _ws.use_gateway(gid, player)
 	_ok("gateway teleported the player", str(dest.get("zone_id", "")) == "zone_dungeon_forest_depths",
 		"(zone %s)" % str(dest.get("zone_id", "")))

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+id = "vendor_haven_jewelry"
 type = "vendor"
 display_name = "Haven Bench of Pearls"
 stock_mode = "by_item_id"

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+id = "workbench_service"
 type = "service"
 display_name = "The Workbench"
 service_id = "CraftingService"

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+id = "village_elder_dialogue"
 type = "dialogue"
 display_name = "Village Elder Dialogue"
 dialogue_id = "village_elder_greeting"

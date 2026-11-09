@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+id = "concord_pillar_vault"
 type = "service"
 display_name = "Concord Sigil Vault"
 service_id = "PremiumShopService"

@@ -111,12 +111,42 @@ func _panel_visible(panel_id: String) -> bool:
 	var panel: Control = mm._get_panel(panel_id)
 	return panel != null and panel.visible
 
+## The bank panel is gated on standing within BANKER_RADIUS of a
+## banker NPC (the walk-up law; even at the shipped scale the banker
+## stands well off the spawn). Park the local player beside the
+## nearest banker so the hotkey route exercises the real open path.
+func _park_near_banker() -> void:
+	var pm := root.get_node_or_null("PlayerManager")
+	var player = pm.get_local_player() if pm != null and pm.has_method("get_local_player") else null
+	var es := root.get_node_or_null("EntityService")
+	if player == null or not is_instance_valid(player) or es == null \
+			or not es.has_method("get_all_entities"):
+		return
+	var banker = null
+	var best := 1e20
+	for e in es.get_all_entities():
+		if e == null or not is_instance_valid(e):
+			continue
+		var nd = e.get("npc_data")
+		if nd == null or not nd.has_method("has_offering") or not nd.has_offering("bank"):
+			continue
+		var d: float = e.global_position.distance_to(player.global_position)
+		if d < best:
+			best = d
+			banker = e
+	if banker == null:
+		return
+	var up: Vector3 = banker.global_position.normalized()
+	player.global_position = banker.global_position + up * 1.0
+	player.velocity = Vector3.ZERO
+
 ## ------------------------------------------------------------------ cases
 
 ## Case: [id, hotkey, menu_item_name, open_at, mode]
 ## mode "hotkey" presses the key; mode "menu" clicks the menu-bar item.
 func _build_panel_cases() -> void:
 	print("--- panel battery (hotkey + menu-bar paths) ---")
+	_park_near_banker()
 	var base := 8.5
 	var cases := [
 		["inventory", KEY_I, "menu_item_inventory", "hotkey"],

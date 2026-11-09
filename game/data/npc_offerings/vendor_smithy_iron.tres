@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+id = "vendor_smithy_iron"
 type = "vendor"
 display_name = "Smithy's Iron Ladder"
 stock_mode = "by_item_id"

@@ -2087,9 +2087,18 @@ func _register_player() -> void:
 			es.register_entity(player, metadata, player_id)
 	var zm = get_node_or_null("/root/ZoneManager")
 	if zm != null and zm.has_method("get_zone") and zm.has_method("entity_enter_zone"):
+		# Direct scene runs skip initialize_world, which is the only boot
+		# caller of load_zones -- so the zone table is empty here and the
+		# player would boot zone-less (the planar _enter_scene_zone loaded
+		# on demand; the globe port dropped that leg). Lazy-load, then enter.
 		var zone = zm.get_zone("zone_village_center")
+		if zone == null and zm.has_method("load_zones"):
+			zm.load_zones()
+			zone = zm.get_zone("zone_village_center")
 		if zone:
 			zm.entity_enter_zone(player, zone)
+		else:
+			_log_backend("warn", "GlobeWorld: player zone zone_village_center not registered")
 
 
 ## Emit player_entered_world exactly once per boot for the local globe

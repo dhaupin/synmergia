@@ -16,6 +16,11 @@
 extends Resource
 class_name NPCOffering
 
+## Stable id (the data-naming law: offering id == filename base).
+## VendorService keys per-offering stock by this; a missing id falls
+## back to the resource filename, so keep it set on data files.
+@export var id: String = ""
+
 ## The discriminator. Must be one of the type strings above.
 @export var type: String = ""
 

@@ -49,12 +49,26 @@ func _initialize() -> void:
 ## Boot the globe through the shared helper (autoloads are live now).
 func _boot() -> void:
 	var boot = load("res://tests/support/globe_boot.gd")
-	var inst = await boot.boot(self)
+	# SHIPPED-SCALE BOOT: the planar scene was a flat floor. The globe's
+	# floor is flat only at its authored scale -- SPAWN_FLAT_ANG 0.04 rad is
+	# 800 m of plaza at the shipped 20 km radius but 4 m at the 100 m bench,
+	# where the body meets planet-scale cliffs within a few steps. Movement
+	# is a scale-sensitive law; boot the scale the game ships.
+	var inst = await boot.boot(self, 20000.0)
 	if inst == null:
 		print("  FAIL: could not load globe_world.tscn")
 		quit(1)
 		return
 	current_scene = inst
+
+	# The globe boot is ASYNC (~2.5 s under xvfb: it awaits the boot waves
+	# + the mesh lane). _t has been ticking since _initialize, so without
+	# this reset the whole 0.8..2.0 head of the schedule fires in the first
+	# post-boot frame -- the P1 drag and its check collapse into one frame
+	# and the stick reads as never moved. Re-zero the clock so every phase
+	# is relative to a READY world (the original synchronous planar boot
+	# made _t == boot time; the port must not).
+	_t = 0.0
 
 	# Input stream logger: capture every synthetic action/key/mouse/touch
 	# event with timestamps so ghost presses can be attributed.
@@ -268,8 +282,8 @@ func _p2_check() -> void:
 	var sprinting: bool = p.is_sprinting
 	_ok("auto-sprint engaged", sprinting, "(sprint=%s)" % sprinting)
 	_ok("sprint speed applied", _planar_speed() >= 6.5, "(speed %.2f)" % _planar_speed())
-	_ok("sprint stays on floor", p.global_position.y > -2.0,
-		"(pos %s)" % str(p.global_position))
+	_ok("sprint stays on floor", p.is_glued(0.6),
+		"(r %.1f)" % p.planet_distance())
 
 ## ------------------------------------------------------------------- P3
 
@@ -281,8 +295,8 @@ func _p3_check() -> void:
 	_release_action("dodge")
 	_ok("dodge during sprint enters Slide", _state_name() == "Slide",
 		"(got %s)" % _state_name())
-	_ok("slide stays on floor", _player().global_position.y > -2.0,
-		"(pos %s)" % str(_player().global_position))
+	_ok("slide stays on floor", _player().is_glued(0.6),
+		"(r %.1f)" % _player().planet_distance())
 
 ## ------------------------------------------------------------------- P4
 
@@ -293,8 +307,8 @@ func _p4_jump() -> void:
 func _p4_check() -> void:
 	_release_action("jump")
 	var p := _player()
-	_ok("slide-jump is airborne", not p.is_on_floor() and p.velocity.y > 0.5,
-		"(state %s, vy %.1f)" % [_state_name(), p.velocity.y])
+	_ok("slide-jump is airborne", not p.is_on_floor() and p.velocity.dot(p.planet_up()) > 0.5,
+		"(state %s, vrad %.1f)" % [_state_name(), p.velocity.dot(p.planet_up())])
 
 func _p4_release_stick() -> void:
 	_touch(0, Vector2(325, 500), false)
@@ -317,8 +331,8 @@ func _p5_check() -> void:
 		"(repeat=%s)" % hud._repeat_action)
 	_ok("attack state active during hold", _saw_attack_state,
 		"(state now %s)" % _state_name())
-	_ok("attack happens grounded", _player().global_position.y > -2.0,
-		"(pos %s)" % str(_player().global_position))
+	_ok("attack happens grounded", _player().is_glued(0.6),
+		"(r %.1f)" % _player().planet_distance())
 
 func _p5_attack_release() -> void:
 	_touch(0, _btn_center("attack"), false)

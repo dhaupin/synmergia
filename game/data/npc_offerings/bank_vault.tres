@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+id = "bank_vault"
 type = "bank"
 display_name = "Bank Vault"
 vault_type = "personal"

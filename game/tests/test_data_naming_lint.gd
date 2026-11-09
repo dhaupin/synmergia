@@ -45,7 +45,7 @@ func _finish() -> void:
 	quit(0 if _failed == 0 else 1)
 
 ## Scan a data dir, return {filename_base: id} for every .tres that has
-## an `id = "..."` line (offerings have none and are skipped).
+## an `id = "..."` line (data files without a top-level id are skipped).
 func _load_ids(dir_path: String) -> Dictionary:
 	var out: Dictionary = {}
 	var dir := DirAccess.open("res://" + dir_path)

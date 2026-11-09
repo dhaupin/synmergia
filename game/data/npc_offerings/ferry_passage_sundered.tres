@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+id = "ferry_passage_sundered"
 type = "vendor"
 display_name = "Ferry Passage"
 stock_mode = "by_item_id"

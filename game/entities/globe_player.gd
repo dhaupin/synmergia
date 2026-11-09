@@ -139,6 +139,9 @@ const SPRINT_MULT: float = 1.55
 const SLOPE_WALK_MULT: float = 0.55
 const SLOPE_WALK_SIN: float = 0.55
 const SLIDE_INIT_SPEED: float = 8.5
+## The Q / touch-DSL evasive roll (not sprinting): a short tangent
+## shove along the movement line (the planar controller's dodge_force).
+const DODGE_FORCE: float = 6.0
 const SLIDE_MIN_SPEED: float = 3.0
 const SLIDE_FRICTION: float = 3.5
 const SLOPE_SLIDE_SIN: float = 0.55
@@ -759,6 +762,24 @@ func _physics_process(delta: float) -> void:
 			_slide_dir = dirv.normalized() if dirv.length_squared() > 0.001 else north
 		else:
 			is_crouching = not is_crouching
+	# -- DODGE (the Q lane / touch DSL): the planar Run state split this
+	# input into Slide while sprinting and an evasive roll otherwise; the
+	# globe body answered only crouch, so Q and the touch DSL button were
+	# dead here. Same split, now on the globe: sprint -> slide (reuses the
+	# crouch-chain slide, which was only reachable via CRH), else a
+	# tangent-plane hop along the movement line.
+	if allow_jump_input and Input.is_action_just_pressed("dodge") and grounded:
+		if is_sprinting:
+			is_sliding = true
+			is_crouching = false
+			_slide_t = 0.0
+			var dirv: Vector3 = horizontal.normalized() if horizontal.length_squared() > 0.001 \
+					else (wish if wish.length_squared() > 0.001 else cam_fwd)
+			_slide_dir = dirv.normalized() if dirv.length_squared() > 0.001 else north
+		else:
+			var roll_dir: Vector3 = horizontal.normalized() if horizontal.length_squared() > 0.001 \
+					else (wish if wish.length_squared() > 0.001 else cam_fwd)
+			horizontal += (roll_dir.normalized() if roll_dir.length_squared() > 0.001 else north) * DODGE_FORCE
 	# Sprint: keyboard SHIFT or the touch auto-sprint override. Needs
 	# stamina reserve (stamina is the climb pool -- one pool, honest).
 	# (Recomputed AFTER the chain: a bail leaves sprint live, so the

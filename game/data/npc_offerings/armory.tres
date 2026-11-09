@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+id = "armory"
 type = "vendor"
 display_name = "Armory"
 stock_mode = "by_category"

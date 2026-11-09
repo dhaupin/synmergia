@@ -543,11 +543,8 @@ func _sender_zone(sender_id: String) -> String:
 	var zm = get_node_or_null(NodePath("/root/ZoneManager"))
 	if zm == null or not zm.has_method("get_entity_zone_id"):
 		return ""
-	var es = get_node_or_null(NodePath("/root/_entity_svc()"))
-	var pm = get_node_or_null(NodePath("/root/_player_m()"))
-	var player = null
-	if es != null and pm != null and pm.has_method("get_local_player_id"):
-		player = es.get_entity(pm.get_local_player_id())
+	var es = _entity_svc()
+	var player = es.get_entity(sender_id) if es != null and es.has_method("get_entity") else null
 	if player == null:
 		return ""
 	return str(zm.get_entity_zone_id(player))

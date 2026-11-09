@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+id = "skill_academy"
 type = "service"
 display_name = "Skill Academy"
 service_id = "SkillAcademyService"

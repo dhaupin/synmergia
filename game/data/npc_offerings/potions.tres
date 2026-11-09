@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+id = "potions"
 type = "vendor"
 display_name = "Potions & Supplies"
 stock_mode = "by_category"

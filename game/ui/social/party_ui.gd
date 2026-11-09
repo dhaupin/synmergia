@@ -54,7 +54,7 @@ func _bind_service_signals() -> void:
 				_partyservice().get(sig_name).connect(handler)
 
 
-func _on_party_updated(_party_id: String = "", _pid: String = "") -> void:
+func _on_party_updated(_party_id: String = "", _pid: String = "", _reason: String = "") -> void:
 	if is_open():
 		_refresh_all()
 
