@@ -36,7 +36,7 @@ var _loot_drops := [0]
 func _initialize() -> void:
 	print("=== FULL-FLOW PLAY: booting like a player ===")
 	# Classic-world beats (dummies, journal) live in the planar scene;
-	# pin the shape like play_driver does.
+	# pin the shape so the shipped spherical default does not change the walk.
 	ProjectSettings.set_setting("synmergia/world/shape", "planar")
 	var err := change_scene_to_file("res://ui/menus/main_menu.tscn")
 	if err != OK:

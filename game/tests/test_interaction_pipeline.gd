@@ -24,7 +24,7 @@ func _initialize() -> void:
 	print("=== INTERACTION PIPELINE TEST ===")
 	change_scene_to_file("res://ui/menus/main_menu.tscn")
 	# Classic-world content (NPCs, dummies, context menus) lives in the
-	# planar scene; pin the shape like play_driver does.
+	# planar scene; pin the shape so the shipped spherical default does not change the walk.
 	ProjectSettings.set_setting("synmergia/world/shape", "planar")
 	# The single _goto_char_select callable walks the whole round-6
 	# journey (Start -> guest -> lobby create -> select), firing the
