@@ -86,6 +86,20 @@ focus_mode = 2
 placeholder_text = "How others see you"
 accessibility_name = "Display name input field"
 accessibility_description = "Optional: how others will see you in game"
+[node name="EmailLabel" type="Label" parent="Center/Panel/Form"]
+visible = false
+layout_mode = 2
+text = "Email (required)"
+
+[node name="EmailField" type="LineEdit" parent="Center/Panel/Form"]
+visible = false
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+focus_mode = 2
+placeholder_text = "you@example.com"
+accessibility_name = "Email input field"
+accessibility_description = "Required: the email bound to your account"
+
 
 [node name="ErrorLabel" type="Label" parent="Center/Panel/Form"]
 visible = false
@@ -120,15 +134,6 @@ theme_override_font_sizes/font_size = 19
 text = "Create Account"
 accessibility_name = "Create a new account"
 accessibility_description = "Press Enter or click to create a new account"
-
-[node name="GuestButton" type="Button" parent="Center/Panel/Form/Buttons"]
-custom_minimum_size = Vector2(0, 52)
-layout_mode = 2
-focus_mode = 2
-theme_override_font_sizes/font_size = 19
-text = "Play as Guest"
-accessibility_name = "Play without an account"
-accessibility_description = "Press Enter or click to play as a guest"
 
 [node name="Footer" type="Label" parent="Center/Panel/Form"]
 layout_mode = 2

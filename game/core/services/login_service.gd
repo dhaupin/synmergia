@@ -47,7 +47,7 @@ func _network_manager() -> Variant:
 
 ## This is the client-side gate. Server should always re-validate.
 
-signal login_succeeded(account_id: String, is_guest: bool)
+signal login_succeeded(account_id: String)
 signal login_failed(reason: String)
 signal logged_out
 signal account_registered(account_id: String)
@@ -68,7 +68,6 @@ static var instance: LoginService
 # In-memory state
 var _current_account_id: String = ""
 var _current_session_token: String = ""
-var _is_guest: bool = false
 var _failed_attempts: Dictionary = {}   # account_id -> [timestamps]
 
 # Disk-backed state (id -> {salt, hash, display_name, created_at})
@@ -99,7 +98,6 @@ func login(account_id: String, password: String) -> bool:
 
 	_current_account_id = account_id
 	_current_session_token = _mint_session_token()
-	_is_guest = false
 	_failed_attempts.erase(account_id)
 
 	# Store session in cache with 24-hour TTL
@@ -113,10 +111,10 @@ func login(account_id: String, password: String) -> bool:
 	if AccountRollup:
 		AccountRollup.rebuild_rollup_static(account_id)
 	GameLog.info("LoginService: %s logged in" % account_id)
-	login_succeeded.emit(account_id, false)
+	login_succeeded.emit(account_id)
 	return true
 
-func register(account_id: String, password: String, display_name: String = "") -> bool:
+func register(account_id: String, password: String, display_name: String = "", email: String = "") -> bool:
 	account_id = _sanitize_id(account_id)
 	if account_id == "":
 		_fail("Account name cannot be empty")
@@ -128,6 +126,9 @@ func register(account_id: String, password: String, display_name: String = "") -
 		_fail("Account already exists")
 		return false
 
+	if not _valid_email(email):
+		_fail("A valid email is required to create an account")
+		return false
 	var validation: Dictionary = SecurityService.validate_player_name(display_name) if SecurityService else {"valid": true}
 	if not validation.get("valid", true):
 		_fail("Display name invalid: %s" % validation.get("reason", "unknown"))
@@ -139,79 +140,20 @@ func register(account_id: String, password: String, display_name: String = "") -
 		"salt": salt.hex_encode(),
 		"hash": hash.hex_encode(),
 		"display_name": display_name if display_name != "" else account_id,
+		"email": email.strip_edges(),
 		"created_at": Time.get_unix_time_from_system(),
-		"is_guest": false,
 	}
 	_persist_account(account_id)
 
 	# Mirror to AccountService so the rest of the game sees a real account
 	if AccountService:
-		AccountService.create_account(account_id, "")
+		AccountService.create_account(account_id, email.strip_edges())
 
 	GameLog.info("LoginService: Registered %s" % account_id)
 	account_registered.emit(account_id)
 
 	# Auto-login after register
 	return login(account_id, password)
-
-func login_as_guest() -> bool:
-	# Resume law (the web reload problem): `guest_<ticks>` is minted
-	# fresh every call, so a browser reload stranded the stable's
-	# ownership ledger behind a brand-new id. When WebIdBridge holds a
-	# remembered guest id for THIS device, resume that account instead
-	# of minting a new one -- the owned mounts and the wallet come back
-	# with the rider. Desktop/`--script` mode: the bridge answers ""
-	# (invisible contract) and this mints a fresh guest as before.
-	var remembered := ""
-	if WebIdBridge:
-		remembered = WebIdBridge.get_last_guest_id()
-	if remembered != "" and AccountService and not AccountService.get_account(remembered).is_empty():
-		return _login_existing_guest(remembered)
-	var guest_id := "guest_%d" % Time.get_ticks_msec()
-	if AccountService:
-		AccountService.create_account(guest_id, "")
-	if WebIdBridge:
-		WebIdBridge.remember_guest(guest_id)
-	_current_account_id = guest_id
-	_current_session_token = _mint_session_token()
-	_is_guest = true
-	if AccountRollup:
-		AccountRollup.rebuild_rollup_static(guest_id)
-
-	# Store guest session in cache with 24-hour TTL
-	var ar = _adapter_registry()
-	var session_cache: CacheStore = ar.get_cache(_session_cache_name) if ar else null
-	if session_cache:
-		session_cache.store(_session_key_prefix + _current_session_token, guest_id, SESSION_TTL_SEC)
-
-	GameLog.info("LoginService: Guest session %s" % guest_id)
-	login_succeeded.emit(guest_id, true)
-	return true
-
-
-## The resume path: an existing guest account id re-enters WITHOUT
-## re-creating it (the account's characters and the stable's
-## ownership ledger are exactly what a reload must keep). Same shape
-## as login_as_guest's tail, minus the mint.
-func _login_existing_guest(guest_id: String) -> bool:
-	if AccountService and AccountService.get_account(guest_id).is_empty():
-		return false
-	if WebIdBridge:
-		WebIdBridge.remember_guest(guest_id)
-	_current_account_id = guest_id
-	_current_session_token = _mint_session_token()
-	_is_guest = true
-	if AccountRollup:
-		AccountRollup.rebuild_rollup_static(guest_id)
-
-	var ar = _adapter_registry()
-	var session_cache: CacheStore = ar.get_cache(_session_cache_name) if ar else null
-	if session_cache:
-		session_cache.store(_session_key_prefix + _current_session_token, guest_id, SESSION_TTL_SEC)
-
-	GameLog.info("LoginService: Guest session resumed %s" % guest_id)
-	login_succeeded.emit(guest_id, true)
-	return true
 
 func logout() -> void:
 	if _current_account_id == "":
@@ -220,13 +162,6 @@ func logout() -> void:
 	var prev_token := _current_session_token
 	_current_account_id = ""
 	_current_session_token = ""
-	_is_guest = false
-	# An explicit logout is an explicit goodbye: forget the remembered
-	# guest id (a reload after logout must mint a fresh guest, not
-	# resurrect the logged-out account).
-	if WebIdBridge and prev.begins_with("guest_"):
-		WebIdBridge.forget_guest()
-
 	# Remove session from cache
 	if prev_token != "":
 		var ar = _adapter_registry()
@@ -252,7 +187,6 @@ func invalidate_all_tokens() -> void:
 	# Clear current session
 	_current_account_id = ""
 	_current_session_token = ""
-	_is_guest = false
 
 	# Clear rate limit tracking
 	_failed_attempts.clear()
@@ -270,8 +204,28 @@ func get_current_account_id() -> String:
 func get_current_session_token() -> String:
 	return _current_session_token
 
+## Guest play is RETIRED (every account is email-bound). Kept as an
+## honest refusal so a stale caller fails loudly, never silently.
+func login_as_guest() -> bool:
+	_fail("Guest play is retired - create an account with an email")
+	return false
+
 func is_guest() -> bool:
-	return _is_guest
+	return false
+
+## Minimal email shape check: one '@', a dot after it, no spaces.
+## The real verification is the (future) hosted auth provider; this is
+## the account-binding floor, not a deliverability proof.
+func _valid_email(email: String) -> bool:
+	var e: String = email.strip_edges()
+	if e == "" or e.contains(" "):
+		return false
+	var at: int = e.find("@")
+	if at <= 0 or at != e.rfind("@"):
+		return false
+	var domain: String = e.substr(at + 1)
+	return domain.find(".") > 0 and not domain.ends_with(".")
+
 
 func has_account(account_id: String) -> bool:
 	return _store.has(_sanitize_id(account_id))

@@ -507,3 +507,33 @@ Mesh visibility (`/mesh`):
 
 Receipts: `game/tests/test_content_packs.gd` (35 legs) +
 `game/tests/test_mesh_command.gd` (11 legs).
+
+## 12. Agent seats on the mesh (hosted executors)
+
+The agent control layer (`labs/prd-agent-play.md`) meets the mesh here: an
+agent's **seat** and an agent's **executor** are different things.
+
+- **The seat is server-side and shard-owned.** A seat is a body in the
+  world: the character, its position, its party membership, its purse. It
+  lives on a shard like any player's, and the turn law (one local seat at a
+  time) is a per-process fact.
+- **The executor is wherever the agent runs.** An agent may be a browser tab
+  on the human's machine, a vant install on their laptop, an OpenHands
+  sandbox, or a **hosted runner** on the operator's infra. The door does not
+  care where the brain lives; it only sees `observe`/`act` traffic.
+- **Hosted executors are a later lane.** "Run my agents for me" (so a human's
+  agents keep playing while their laptop is closed) is a paid-capability
+  question, and it belongs to the mesh: a hosted executor is a container the
+  mesh schedules, bound to the same account, driving the same door. Nothing
+  here ships it; this section records that the shape is a mesh concern, not a
+  client concern.
+- **The binding is account-scoped, not shard-scoped.** Agent slots
+  (`AgentRoster`) belong to the account; a seat lands on whichever shard the
+  account's characters are on. A mesh-wide roster read is a Phase-4 item
+  (the account's slot ledger would ride the shared state tree like every
+  other cross-shard fact).
+
+Open question recorded, not answered: whether a hosted executor is billed as
+a slot (the account's slot ladder) or as its own hosting meter. The slot
+ladder is the access floor; hosting is the compute. Keep them separable until
+the mesh lane picks it up.

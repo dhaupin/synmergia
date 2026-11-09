@@ -33,7 +33,7 @@ func _run() -> void:
 
 	# 2) Register a fresh account
 	var username := "e2e_%d" % Time.get_ticks_msec()
-	var register_ok: bool = LoginService.register(username, "test_password_42", "E2E Hero")
+	var register_ok: bool = LoginService.register(username, "test_password_42", "E2E Hero", "e2e@example.com")
 	_assert("Register fresh account", register_ok)
 	_assert("Auto-logged in after register", LoginService.is_logged_in())
 	_assert("Account id matches", LoginService.get_current_account_id() == username)
@@ -51,16 +51,20 @@ func _run() -> void:
 	_assert("Good password accepted", good_ok)
 	_assert("Logged in after retry", LoginService.is_logged_in())
 
-	# 5) Try guest flow
-	LoginService.login_as_guest()
-	_assert("Guest login succeeds", LoginService.is_logged_in())
-	_assert("is_guest=true", LoginService.is_guest())
+	# 5) Guest flow is RETIRED: the call is refused and mints no identity.
+	_assert("Guest play retired (refused)", not LoginService.login_as_guest())
+	_assert("Guest refusal did not disturb the live session", LoginService.is_logged_in())
+	_assert("No identity is ever a guest", not LoginService.is_guest())
+
+	# 5b) Email is required to register.
+	var no_email := "e2e_noemail_%d" % Time.get_ticks_msec()
+	_assert("Register without an email is refused", not LoginService.register(no_email, "test_password_42", "No Email", ""))
 
 	# 6) Logout, then re-login original
 	LoginService.logout()
-	_assert("Logged out after guest", not LoginService.is_logged_in())
+	_assert("Logged out after guest refusal", not LoginService.is_logged_in())
 	good_ok = LoginService.login(username, "test_password_42")
-	_assert("Re-login original after guest", good_ok)
+	_assert("Re-login original after guest refusal", good_ok)
 
 	# 7) Game state machine
 	_assert("Has LOADING state", GameManager.GameState.keys().has("LOADING"))

@@ -71,10 +71,7 @@ func _refresh_account_header() -> void:
 	if not LoginService or not _account_label:
 		return
 	var acc := LoginService.get_current_account_id()
-	var label := "Account: %s" % acc
-	if LoginService.is_guest():
-		label += "  (Guest)"
-	_account_label.text = label
+	_account_label.text = "Account: %s" % acc
 
 func _refresh_character_list() -> void:
 	_characters.clear()

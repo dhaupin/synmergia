@@ -1,12 +1,12 @@
-## LoginUI - Account login, register, and guest play
+## LoginUI - Account login and register (guest play is RETIRED).
 ##
-## First screen after the splash. Routes to Lobby on success. Three
+## First screen after the splash. Routes to Lobby on success. Two
 ## modes in one panel:
 ##  - Login: existing account
-##  - Register: create new account (auto-logs-in)
-##  - Guest: skip auth, get a transient account
+##  - Register: create new account (email required, auto-logs-in)
 ##
-## All three paths end at LOBBY. Lobby is the per-account char list.
+## Every account is email-bound; there is no guest door. Both paths
+## end at LOBBY. Lobby is the per-account char list.
 extends Control
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 
@@ -14,11 +14,12 @@ const UIStyles = preload("res://ui/components/ui_styles.gd")
 @onready var _username: LineEdit = $Center/Panel/Form/UsernameField
 @onready var _password: LineEdit = $Center/Panel/Form/PasswordField
 @onready var _display_name: LineEdit = $Center/Panel/Form/DisplayNameField
+@onready var _email: LineEdit = $Center/Panel/Form/EmailField
 @onready var _error_label: Label = $Center/Panel/Form/ErrorLabel
 @onready var _login_btn: Button = $Center/Panel/Form/Buttons/LoginButton
 @onready var _register_btn: Button = $Center/Panel/Form/Buttons/RegisterButton
-@onready var _guest_btn: Button = $Center/Panel/Form/Buttons/GuestButton
 @onready var _display_name_row: Control = $Center/Panel/Form/DisplayNameField
+@onready var _email_row: Control = $Center/Panel/Form/EmailField
 
 enum Mode { LOGIN, REGISTER }
 var _mode: int = Mode.LOGIN
@@ -26,7 +27,6 @@ var _mode: int = Mode.LOGIN
 func _ready() -> void:
 	_login_btn.pressed.connect(_on_login_pressed)
 	_register_btn.pressed.connect(_on_register_pressed)
-	_guest_btn.pressed.connect(_on_guest_pressed)
 	_password.secret = true
 	_set_mode(Mode.LOGIN)
 	_apply_styles()
@@ -39,7 +39,6 @@ func _ready() -> void:
 	if LoginService:
 		LoginService.login_failed.connect(_on_login_failed)
 		LoginService.login_succeeded.connect(_on_login_succeeded)
-	_resume_guest_door()
 
 func _apply_styles() -> void:
 	if not UIStyles:
@@ -47,11 +46,11 @@ func _apply_styles() -> void:
 	var btn_styles := UIStyles.create_button_style()
 	UIStyles.apply_button_styles(_login_btn, btn_styles)
 	UIStyles.apply_button_styles(_register_btn, btn_styles)
-	UIStyles.apply_button_styles(_guest_btn, btn_styles)
 
 func _set_mode(mode: int) -> void:
 	_mode = mode
 	_display_name_row.visible = (mode == Mode.REGISTER)
+	_email_row.visible = (mode == Mode.REGISTER)
 	match mode:
 		Mode.LOGIN:
 			_login_btn.text = "Login"
@@ -92,6 +91,7 @@ func _on_register_pressed() -> void:
 	var u := _username.text
 	var p := _password.text
 	var dn := _display_name.text if _display_name else ""
+	var em := _email.text if _email else ""
 	if u.strip_edges() == "":
 		if DebugOverlay:
 			DebugOverlay.log_click("RegisterButton", "register", false)
@@ -102,27 +102,21 @@ func _on_register_pressed() -> void:
 			DebugOverlay.log_click("RegisterButton", "register", false)
 		_show_error("Password must be at least 6 characters")
 		return
+	if em.strip_edges() == "":
+		if DebugOverlay:
+			DebugOverlay.log_click("RegisterButton", "register", false)
+		_show_error("Enter an email (required to create an account)")
+		return
 	if not LoginService:
 		if DebugOverlay:
 			DebugOverlay.log_click("RegisterButton", "register", false)
 		_show_error("LoginService unavailable")
 		return
-	LoginService.register(u, p, dn)
+	LoginService.register(u, p, dn, em)
 	if DebugOverlay:
 		DebugOverlay.log_click("RegisterButton", "register", true)
 
-func _on_guest_pressed() -> void:
-	# print removed: print("[LOGIN] GuestButton pressed")
-	if not LoginService:
-		if DebugOverlay:
-			DebugOverlay.log_click("GuestButton", "guest_login", false)
-		_show_error("LoginService unavailable")
-		return
-	LoginService.login_as_guest()
-	if DebugOverlay:
-		DebugOverlay.log_click("GuestButton", "guest_login", true)
-
-func _on_login_succeeded(_account_id: String, _is_guest: bool) -> void:
+func _on_login_succeeded(_account_id: String) -> void:
 	if GameManager:
 		GameManager.change_state(GameManager.GameState.LOBBY)
 
@@ -147,24 +141,6 @@ func _on_password_submitted(text: String) -> void:
 		_show_error("Enter a password")
 		return
 	_on_login_pressed()
-
-## The resume door (the web reload problem): when this browser
-## remembers a guest id, the guest button RESUMES it instead of
-## minting a new one -- relabeling the SAME button ("Continue as
-## guest") rather than adding a second door, so the a11y contract
-## stays one button and the probe's "Play without an account" press
-## resumes automatically after a reload. Desktop/`--script` mode:
-## the bridge is invisible and the label never changes.
-func _resume_guest_door() -> void:
-	if not WebIdBridge or not WebIdBridge.has_last_guest():
-		return
-	var id := WebIdBridge.get_last_guest_id()
-	if AccountService and AccountService.get_account(id).is_empty():
-		WebIdBridge.forget_guest()
-		return
-	_guest_btn.text = "Continue as guest"
-	_guest_btn.accessibility_name = "Continue as guest"
-	_guest_btn.accessibility_description = "Resumes the guest session this browser already played"
 
 # TAB = focus navigation (accessibility). Former F5/F6 auto-login
 # debug hotkeys removed: they fired real account actions from any

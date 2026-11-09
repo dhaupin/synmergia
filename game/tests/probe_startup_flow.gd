@@ -94,7 +94,7 @@ func _run() -> void:
 		gm.current_state = gm.GameState.MAIN_MENU
 
 	# ---- E. Guest exists; the lobby refuses the unauthenticated ---------------
-	_check("guest login exists for the portal flow", ls.has_method("login_as_guest"))
+	_check("guest play is retired (door refuses)", ls.has_method("login_as_guest") and not ls.login_as_guest())
 	var before_state: int = gm.current_state
 	gm.change_state(gm.GameState.LOBBY)  # from a non-LOBBY state, so the handler runs
 	await process_frame

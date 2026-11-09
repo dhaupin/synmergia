@@ -2076,6 +2076,76 @@ derives.
 
 ---
 
+## 43. The Agent Ledger (spitball #36, 2026-11-09) — agent slots for sigils
+
+> **Status: AGREED — the agent-play round.** The owner's call: "a player can
+> run 5 agents (to make a full 6 party) for development/testing. Then we trim
+> it lower and pay-gate it... The first one is free. Up to 10 agents can
+> connect under your account." This is the access ladder for the agent layer
+> (`labs/prd-agent-play.md` sec 14). The design is deliberately modest: the
+> free floor keeps the game playable and the dev loop free; the sigil ladder
+> funds the server cost of agents that play for you.
+
+**THE SEAT.** An **agent slot** is the right to bind one agent to your
+account. It is not a character and not a body — it is the pairing. Agents
+have their OWN characters (the agents-own-characters law); a slot is what
+lets that character exist and be driven.
+
+**THE LADDER (canonical; `AgentRoster.SLOT_PRICES`).**
+
+| Slot | Price (Concord Sigils) | Notes |
+|------|------------------------|-------|
+| 1    | free                   | the production floor (`DEFAULT_FREE_SLOTS`) |
+| 2    | 25                     | first paid seat |
+| 3    | 60                     | |
+| 4    | 120                    | |
+| 5    | 200                    | the 6th party seat (1 human + 5 agents) |
+| 6    | 320                    | |
+| 7    | 480                    | |
+| 8    | 700                    | |
+| 9    | 980                    | |
+| 10   | 1400                   | the design ceiling (`MAX_SLOTS`) |
+
+**THE DEV FLOOR.** `SYN_AGENT_DEV_SLOTS=5` grants the full 6-seat party free
+on a dev/test process. This is a *process* knob, not an account grant: it is
+the same code path (`free_floor()`), so devs and testers never pay to build
+and never diverge from the shipping law.
+
+**THE LAWS.**
+1. **One-time, owned forever.** A slot is an UNLOCK, not a rental — buy it
+   once, keep it across sessions (persisted through the KV door). No
+   subscription, no decay, no re-charge.
+2. **The books never lie.** `unlock_next_slot` debits the ONE purse and
+   grants exactly one slot; a short purse is refused **naming the exact
+   need** ("need 320, have 0"); a refused debit is a hard stop that grants
+   nothing (no partial unlock, no silent loss).
+3. **Progressive by design.** The ladder climbs so the marginal agent is
+   never cheaper than the one before it — the free floor is generous, the
+   tail is priced, and there is no bulk discount that undercuts the early
+   rungs.
+4. **The ceiling is real.** `MAX_SLOTS = 10` is the account maximum; there
+   is no eleventh slot for sale (the design ceiling, not a paywall knob).
+5. **Sigils, not gold.** Agent slots price in **Concord Sigils** — the real-$
+   channel currency — so the ladder funds server cost rather than inflating
+   the gold economy. (The sigil is soulbound and only enters a purse through
+   the payment seam; this is a sink on that same ledger.)
+6. **No pay-to-win.** Slots buy *presence*, not *power*: an agent is a player
+   with a normal character under the normal rules. A tenth agent is not
+   stronger than a first; it is just one more seat.
+
+**SINK ROW.** `AGENT_SLOT` rows WITH grant legs (the unlock IS the grant).
+IMPLEMENTATION SEAT: SHIPPED this round — `AgentRoster`
+(`core/services/agent_roster.gd`) holds the pairing + the ladder, persists
+through the KV door, and debits the ONE purse; receipt
+`game/tests/test_agent_roster.gd` (33 legs).
+
+**OPEN (recorded, not answered).** Whether a **hosted executor** ("run my
+agents while my laptop is closed", `labs/prd-shard-mesh.md` sec 12) is billed
+as a slot or as its own hosting meter. The slot ladder is the ACCESS floor;
+hosting is the COMPUTE. Keep them separable until the mesh lane picks it up.
+
+---
+
 **Sources (server-price anchors, read 2026-11-05):** Hetzner cloud lineup
 (hetzner.com/cloud, hetzner.com/cloud/shared-vcpu), Hetzner AX matrix
 (hetzner.com/dedicated-rootserver/matrix-ax), Hetzner auction FAQ

@@ -26,7 +26,7 @@ func _initialize() -> void:
 	# 2. Register a new account
 	if LoginService:
 		var test_user := "tester_%d" % Time.get_ticks_msec()
-		var ok: bool = LoginService.register(test_user, "hunter2", "Test Hero")
+		var ok: bool = LoginService.register(test_user, "hunter2", "Test Hero", "hero@example.com")
 		_assert("Register new account", ok)
 		_assert("Logged in after register", LoginService.is_logged_in())
 		_assert("Account id matches", LoginService.get_current_account_id() == test_user)
@@ -43,11 +43,11 @@ func _initialize() -> void:
 		_assert("Good password accepted", LoginService.login(test_user, "hunter2"))
 		_assert("Account is_guest=false", not LoginService.is_guest())
 
-		# 6. Guest login
+		# 6. Guest play is RETIRED: the door refuses, no session is minted
 		LoginService.logout()
-		_assert("Guest login succeeds", LoginService.login_as_guest())
-		_assert("is_guest=true after guest", LoginService.is_guest())
-		LoginService.logout()
+		_assert("Guest login refused", not LoginService.login_as_guest())
+		_assert("Not logged in after refused guest", not LoginService.is_logged_in())
+		_assert("Register without email refused", not LoginService.register("noemail_%d" % Time.get_ticks_msec(), "hunter2"))
 
 	# 7. GameManager has LOGIN/LOBBY states
 	if GameManager:
@@ -67,7 +67,7 @@ func _initialize() -> void:
 	# 9. AccountService can link a character
 	if AccountService and LoginService:
 		var test_user := "acctest_%d" % Time.get_ticks_msec()
-		LoginService.register(test_user, "hunter2")
+		LoginService.register(test_user, "hunter2", "", "acct@example.com")
 		LoginService.logout()
 		AccountService.create_account(test_user, "")
 		var linked: bool = AccountService.link_character("ch_aria", test_user, {"name": "Aria"})

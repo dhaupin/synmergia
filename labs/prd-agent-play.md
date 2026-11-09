@@ -254,3 +254,102 @@ cd game && xvfb-run godot --path . --script res://tests/test_agent_coordinator.g
   This layer is what an agent uses to *play and test* interactively;
   receipts remain the deterministic gate.
 
+## 12. The agents-own-characters law
+
+**In its current scope, Synmergia does not allow an agent to play a human's
+character.** This is law, not a default:
+
+- An agent is a PLAYER. It has its **own** character, bound to its own
+  account. It never drives, puppets, or logs into a human's character.
+- A human may run agents *alongside* themselves (they party with the human),
+  but the agent is always a separate seat with a separate body.
+- This is what makes the party honest: 1 human + N agents is a party of
+  distinct players, exactly like 1 human + N humans.
+
+The distinction matters for trust: an agent that could drive a human's
+character would make every "the human did it" claim unauditable. Keeping
+agents on their own bodies keeps the accountability boundary crisp.
+
+## 13. One human, one account (guest play retired)
+
+**Guest play is retired.** Every account is at least **email-bound**, and an
+agent is bound 1:1 to a human account:
+
+- `LoginService.register()` requires a valid email; there is no guest door.
+- `login_as_guest()` survives only as an **honest refusal** ("Guest play is
+  retired - create an account with an email"), so a stale caller fails
+  loudly instead of silently minting an anonymous seat.
+- The web-reload guest-resume bridge (`WebIdBridge`/`login_resume.gd`) was
+  removed with it -- there is no anonymous identity to resume.
+- The site-level gate (`/play`, `/admin` password gate) is a **separate**
+  concern: it is friction in front of the build, not an in-game identity.
+
+The hosted auth provider (real email verification, password reset, session
+hardening) is a later lane; email binding is the floor, not the ceiling.
+
+## 14. The agent slots law (the Agent Ledger)
+
+A human account holds a **bounded** number of agent slots, held by
+`AgentRoster` (`core/services/agent_roster.gd`). See
+`labs/prd-monetization.md` sec 43 for the prices; the law here is the shape:
+
+- **The free floor.** Production grants `DEFAULT_FREE_SLOTS = 1` free agent.
+  The development/testing floor is generous: `SYN_AGENT_DEV_SLOTS=5` grants
+  the full 6-seat party (1 human + 5 agents) free, so devs and testers never
+  pay to build.
+- **The sigil ladder.** Slots above the floor are **one-time** Concord Sigil
+  unlocks, progressively more expensive (`SLOT_PRICES`, 25 -> 1400), owned
+  forever, never rented. The design ceiling is `MAX_SLOTS = 10`.
+- **The pairing is 1:1.** A handle belongs to exactly one account
+  (`owner_of`); a second attach is refused by name.
+- **The books never lie.** `unlock_next_slot` debits the ONE purse and
+  grants exactly one slot; a short purse is refused naming the exact need
+  ("need 320, have 0") and grants nothing; a refused debit is a hard stop.
+- **Slots survive.** Unlocks and attachments persist through the KV door
+  (DictStore, int keys JSON-normalized on load), so a reboot keeps the
+  ladder.
+
+## 15. Cross-house composition (gamestruct)
+
+The lane between a world and a brain is **general**, not bespoke. It lives
+in [gamestruct](https://github.com/dhaupin/gamestruct) (MIT) as a spec, beside
+the rest of the struct family (packstruct, memstruct, ...):
+
+- **Vant is the brain; Synmergia is the world it drives.** Vant owns the
+  agent loop, the roster, the work items, and **leisure** (its
+  `lib/leisure.js` want-list); Synmergia owns the seats, the world, the
+  slots, and the sign-off gate.
+- The four primitives (`observe`, `act`, `wait_for`, `events`) are the whole
+  contract; Synmergia's door is an implementation, Vant's client is a
+  consumer, and neither owns the spec.
+- **Entering from your own OS.** Agents connect from their own machine,
+  their own vant install, their own OpenHands sandbox -- the door's remote
+  posture (sec 8) is what makes that safe. A party of "you, Rook, Buffy" is
+  a party of separate seats on separate hosts, all bound to separate human
+  accounts.
+- **Leisure is the play lane.** When a vant agent is idle, its want-list
+  surfaces a suggestion and it pursues one want *through the same
+  `act`/`observe`* -- play is not a second protocol.
+
+The 2D control surface (sec 9) is also the **watcher** for this: a human
+watches the event ring and signs off gated acts (sec 7) while their agents
+run.
+
+## 16. The a11y edge (honest)
+
+The control surface is a double-edged tool: the same stable-handle,
+text-first lane that lets a screen-reader user drive the game also lets an
+agent drive it. We cannot make those separable -- they are the same
+affordance. What we do instead:
+
+- Keep the **stable handle vocabulary** (`ui:<path>`, `world:<id>`) as the
+  one door for both; it is auditable by construction.
+- Keep the **sign-off gate** for consequential acts, so a watcher (human)
+  keeps a hand on the wheel.
+- Keep the **`[A11Y]` stream** (A11yService) as the honest telemetry of what
+  the surface exposes.
+- Accept that a determined actor can automate what a user can do; that is
+  true of any accessibility lane, and the answer is accountability (own
+  characters, 1:1 pairing, gated acts), not removing the lane.
+
+
