@@ -7,6 +7,50 @@ commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
 
+## 2026-11-04 -- THE EYES: the door can SEE (see verb + /see), eyestruct verdict (staging, no PRs)
+
+Context: "can we see the game while in it? Synmergia's screenshot system is
+basic/cheesy; there's a project eyestruct with a `spot` feature -- would it work
+for the live game?"
+
+VERDICT ON eyestruct `spot`: NO for the live game, for two structural reasons.
+(1) `spot` drives a headless chromium against a URL with a hardcoded
+`networkidle2` navigation (30s) + ~900ms SPA settle. A live game NEVER reaches
+network idle (perpetual WebSocket + rAF loop) -- proven: `networkidle2` timed
+out at 90s against the served web build while the same page booted fine under
+the web_probe recipe (which waits on a CONSOLE BANNER, not the network). (2)
+The NATIVE build has no URL at all -- it is its own Godot renderer. eyestruct
+CAN capture a STATIC page (proven: real 800x600 PNG via /usr/bin/chromium), and
+its browserless lane (`init`/`gate`/`adopt`) works on arbitrary PNGs as
+BOOKKEEPING -- but `gate` only checks ledger/artifact consistency (it did NOT
+flag a swapped frame), and `raster` is SVG-only (refuses a PNG `RASTER_BAD_XML`).
+So eyestruct is a browser/static-page eye; it is not a live-game eye.
+
+THE SHIPPED ANSWER: the eyes live where the render already is -- the door.
+`AgentDriver.see(label)` captures the current viewport frame to a PNG under
+`captures/agent/` and returns `{ok, path, url, bytes, width, height}` -- a PATH,
+never base64, so the wire stays small and the agent reads the pixels with its
+own vision. A skeletal (<1KB) frame is refused honestly. Wired as `/see` (GET or
+POST) on AgentDoor and as a `see` verb on `act()` for API symmetry. This is the
+agent-eyes loop eyestruct's playbook describes, but pointed at the LIVE process:
+observe -> act -> **see** -> read -> act -> re-see.
+
+ALSO LANDED (prior session): character-select species/class cards get STABLE
+names from their data id (`species_<id>` / `class_<id>`) instead of Godot's
+layout-dependent `@PanelContainer@NNN` auto-name, so an agent's `ui:` handle
+survives a rebuild.
+
+RECEIPTS: `test_agent_driver.gd` **35/0** (new `_leg_see`: real PNG magic +
+size; `POST /see` over the wire), new `test_character_select_handles.gd`
+**10/0** (stable names, no auto @-name, species + class strips). Lints green:
+charset 3/0, general 13/0, autoload 9/0, data naming 27/0, a11y 25/0.
+
+COMMITS: eyes+handles `88f2775a` (pushed to staging).
+FOLLOW-UP (not done): wire `see` into the live play-test harness; a native
+`ScreenshotService` already writes real 135-316KB PNGs (FLAG_DEV/PLAYER,
+PrintScreen) -- `see` is the door-facing sibling for agents.
+
+
 ## 2026-11-09 -- LIVE PLAY-TEST: the door can now TYPE and CHAT (staging, no PRs)
 
 Context: "now that we have a control surface, you should be able to play-test
