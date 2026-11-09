@@ -553,8 +553,49 @@ func _drain_queue() -> void:
 				})
 			"ping":
 				_respond(int(req["id"]), {"ok": true, "frame": _frames, "in_world": in_world()})
+			"coord":
+				_respond(int(req["id"]), _coord(args))
 			_:
 				_respond(int(req["id"]), {"ok": false, "reason": "unknown verb '%s'" % verb})
+
+## The coordinator dispatch (multi-agent). Runs on the main thread, same as
+## every other verb -- the door thread only ever calls submit()/poll().
+func _coord(args: Dictionary) -> Dictionary:
+	var c := get_node_or_null("/root/AgentCoordinator")
+	if c == null:
+		return {"ok": false, "reason": "coordinator unavailable"}
+	var op: String = String(args.get("op", ""))
+	var handle: String = String(args.get("handle", ""))
+	match op:
+		"status":
+			return c.status()
+		"register":
+			return c.register(handle, args.get("opts", {}))
+		"unregister", "terminate":
+			return {"ok": c.unregister(handle)}
+		"list":
+			return {"ok": true, "agents": c.list_agents()}
+		"get":
+			return {"ok": true, "agent": c.get_agent(handle)}
+		"pause":
+			return {"ok": c.pause(handle)}
+		"resume":
+			return {"ok": c.resume(handle)}
+		"delegate":
+			return c.delegate(handle, args.get("task", {}))
+		"poll":
+			return c.poll_work(handle)
+		"queue":
+			return {"ok": true, "queue": c.queue_of(handle)}
+		"approve":
+			return c.approve(handle, int(args.get("work_id", 0)))
+		"reject":
+			return c.reject(handle, int(args.get("work_id", 0)), String(args.get("reason", "")))
+		"step":
+			return c.step()
+		"run":
+			return c.run_until_idle(int(args.get("max_steps", 256)))
+	return {"ok": false, "reason": "unknown coord op '%s'" % op}
 
 func _tick_waits() -> void:
 	if _waits.is_empty():

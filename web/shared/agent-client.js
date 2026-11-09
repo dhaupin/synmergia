@@ -50,6 +50,8 @@
                         if (!this.available) return [];
                         return JSON.parse(this._bridge.events(since == null ? -1 : since));
                 }
+                // Multi-agent lives on the door, not in-page; report honestly.
+                async coord() { return { ok: false, reason: 'coordinator needs the door (remote)' }; }
         }
 
         // -- Remote transport (AgentDoor HTTP) -----------------------------
@@ -73,6 +75,7 @@
                 async observe() { return this._get('/observe'); }
                 async act(id, args) { return this._post('/act', { id, args: args || {} }); }
                 async events(since) { return this._get('/events?since=' + (since == null ? -1 : since)); }
+                async coord(op, extra) { return this._post('/coord', Object.assign({ op }, extra || {})); }
                 async tools() { return this._get('/tools'); }
                 async waitFor(predicate, timeoutMs) {
                         return this._post('/wait_for', { predicate, timeout_ms: timeoutMs || 8000 });
@@ -100,6 +103,21 @@
                 observe() { return this._t.observe(); }
                 act(id, args) { return this._t.act(id, args); }
                 events(since) { return this._t.events(since); }
+
+                // -- Multi-agent (the coordinator; remote/door only) ----------------
+                coord(op, extra) { return this._t.coord(op, extra); }
+                agents() { return this.coord('list'); }
+                register(handle, opts) { return this.coord('register', { handle, opts: opts || {} }); }
+                unregister(handle) { return this.coord('unregister', { handle }); }
+                pause(handle) { return this.coord('pause', { handle }); }
+                resume(handle) { return this.coord('resume', { handle }); }
+                delegate(handle, task) { return this.coord('delegate', { handle, task: task || {} }); }
+                poll(handle) { return this.coord('poll', { handle }); }
+                queue(handle) { return this.coord('queue', { handle }); }
+                approve(handle, workId) { return this.coord('approve', { handle, work_id: workId }); }
+                reject(handle, workId, reason) { return this.coord('reject', { handle, work_id: workId, reason: reason || '' }); }
+                step() { return this.coord('step'); }
+                run() { return this.coord('run'); }
 
                 // wait_for: the door parks server-side; in-page we poll observe().
                 async waitFor(predicate, timeoutMs) {

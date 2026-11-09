@@ -53,13 +53,24 @@ func _driver() -> Node:
 	return _driver_ref
 
 ## Bind and serve (idempotent). Returns the bound port, or 0 on failure.
+## Binds loopback by default. A non-loopback bind (SYN_AGENT_DOOR_BIND) is
+## REFUSED unless SYN_AGENT_TOKEN is set -- fail closed, no open remote door.
 func start(port: int = DEFAULT_PORT) -> int:
 	if _running:
 		return _port
+	var bind_addr: String = "127.0.0.1"
+	if OS.has_environment("SYN_AGENT_DOOR_BIND"):
+		bind_addr = OS.get_environment("SYN_AGENT_DOOR_BIND").strip_edges()
+	if bind_addr == "":
+		bind_addr = "127.0.0.1"
+	var loopback: bool = bind_addr == "127.0.0.1" or bind_addr == "localhost" or bind_addr == "::1"
+	if not loopback and not _has_token():
+		GameLog.error("AgentDoor: refusing non-loopback bind '%s' without SYN_AGENT_TOKEN (fail closed)." % bind_addr)
+		return 0
 	_server = TCPServer.new()
-	var err: int = _server.listen(port, "127.0.0.1")
+	var err: int = _server.listen(port, bind_addr)
 	if err != OK:
-		GameLog.error("AgentDoor: could not bind 127.0.0.1:%d (err %d)" % [port, err])
+		GameLog.error("AgentDoor: could not bind %s:%d (err %d)" % [bind_addr, port, err])
 		_server = null
 		return 0
 	_port = _server.get_local_port()
@@ -67,7 +78,7 @@ func start(port: int = DEFAULT_PORT) -> int:
 	_running = true
 	_thread = Thread.new()
 	_thread.start(_serve_loop)
-	GameLog.info("AgentDoor: listening on 127.0.0.1:%d (agent + companion door)" % _port)
+	GameLog.info("AgentDoor: listening on %s:%d (agent + companion door)" % [bind_addr, _port])
 	return _port
 
 func get_port() -> int:
@@ -123,10 +134,10 @@ func _serve_connection(conn: StreamPeerTCP) -> void:
 		if parsed.is_empty():
 			continue
 		buffer = parsed["rest"]
-		_send(conn, parsed["method"], parsed["path"], parsed["body"])
+		_send(conn, parsed["method"], parsed["path"], parsed["body"], parsed.get("headers", {}))
 
-func _send(conn: StreamPeerTCP, method: String, path: String, body: String) -> void:
-	var payload: Dictionary = _route(method, path, body)
+func _send(conn: StreamPeerTCP, method: String, path: String, body: String, headers: Dictionary) -> void:
+	var payload: Dictionary = _route(method, path, body, headers)
 	var data: PackedByteArray = JSON.stringify(payload).to_utf8_buffer()
 	var head: String = (
 		"HTTP/1.1 200 OK\r\n"
@@ -156,22 +167,28 @@ func _try_parse(buffer: PackedByteArray) -> Dictionary:
 	var method: String = String(parts[0]).to_upper()
 	var path: String = String(parts[1])
 	var content_length: int = 0
+	var headers: Dictionary = {}
 	for i in range(1, lines.size()):
 		var ln: String = String(lines[i])
 		var idx: int = ln.find(":")
-		if idx > 0 and ln.substr(0, idx).strip_edges().to_lower() == "content-length":
-			content_length = int(ln.substr(idx + 1).strip_edges())
+		if idx <= 0:
+			continue
+		var hname: String = ln.substr(0, idx).strip_edges().to_lower()
+		var hval: String = ln.substr(idx + 1).strip_edges()
+		headers[hname] = hval
+		if hname == "content-length":
+			content_length = int(hval)
 	var body_start: int = header_end + 4
 	var total: int = buffer.size()
 	if total - body_start < content_length:
 		return {}  # body not fully arrived yet
 	var body: String = buffer.slice(body_start, body_start + content_length).get_string_from_utf8()
 	var rest: PackedByteArray = buffer.slice(body_start + content_length, total)
-	return {"method": method, "path": path, "body": body, "rest": rest}
+	return {"method": method, "path": path, "body": body, "headers": headers, "rest": rest}
 
 # -- Routing (all agent work goes through AgentDriver.submit/poll) ---------
 
-func _route(method: String, path: String, body: String) -> Dictionary:
+func _route(method: String, path: String, body: String, headers: Dictionary = {}) -> Dictionary:
 	var path_only: String = path
 	var query: Dictionary = {}
 	var qidx: int = path.find("?")
@@ -180,6 +197,8 @@ func _route(method: String, path: String, body: String) -> Dictionary:
 		query = _parse_query(path.substr(qidx + 1))
 	if method == "OPTIONS":
 		return {"ok": true}
+	if not _authorized(headers):
+		return {"ok": false, "error": "unauthorized"}
 	var driver := _driver()
 	if driver == null:
 		return {"ok": false, "error": "agent driver unavailable"}
@@ -214,12 +233,18 @@ func _route_jsonrpc(driver: Node, body: String) -> Dictionary:
 	var method: String = String(req.get("method", ""))
 	var params: Dictionary = req.get("params", {})
 	var result: Dictionary
-	if method == "tools/list" or method == "list":
+	if method == "initialize":
+		result = {
+			"protocolVersion": "2024-11-05",
+			"capabilities": {"tools": {}},
+			"serverInfo": {"name": "synmergia-agent-door", "version": "1.0"},
+		}
+	elif method == "tools/list" or method == "list":
 		result = {"tools": _tool_catalog()}
 	elif method == "tools/call" or method == "call":
 		var name: String = String(params.get("name", params.get("tool", "")))
 		var args: Dictionary = params.get("arguments", params.get("args", {}))
-		result = _call(driver, name, args)
+		result = _dispatch_tool(driver, name, args)
 	else:
 		return {"jsonrpc": "2.0", "id": id, "error": {"code": -32601, "message": "unknown method '%s'" % method}}
 	return {"jsonrpc": "2.0", "id": id, "result": result}
@@ -236,14 +261,60 @@ func _call(driver: Node, verb: String, args: Dictionary) -> Dictionary:
 		OS.delay_msec(POLL_MS)
 	return {"ok": false, "error": "driver timeout"}
 
+## MCP-shaped tool catalog: each entry carries an inputSchema so a full MCP
+## client (or Vant's agents module) can auto-wire against this door.
 func _tool_catalog() -> Array:
 	return [
-		{"name": "observe", "description": "Structured snapshot: player, target, party, the actionable list (stable ids), recent events.", "params": {}},
-		{"name": "act", "description": "Perform one action by stable handle (ui:<path> / world:<id>) or verb (move/stop/look/chat/attack/target/party_invite/party_leave/interact).", "params": {"id": "string", "args": "object"}},
-		{"name": "wait_for", "description": "Block until a predicate holds or the timeout expires.", "params": {"predicate": "object", "timeout_ms": "int"}},
-		{"name": "events", "description": "The recent event ring (optionally only entries after a frame).", "params": {"since": "int"}},
-		{"name": "ping", "description": "Liveness: frame + in_world.", "params": {}},
+		_tool("observe", "Structured snapshot: player, target, party, the actionable list (stable ids), recent events.", {}),
+		_tool("act", "Perform one action by stable handle (ui:<path> / world:<id>) or verb (move/stop/look/chat/attack/target/party_invite/party_leave/interact).", {
+			"id": {"type": "string"}, "args": {"type": "object"}}),
+		_tool("wait_for", "Block until a predicate holds or the timeout expires.", {
+			"predicate": {"type": "object"}, "timeout_ms": {"type": "integer"}}),
+		_tool("events", "The recent event ring (optionally only entries after a frame).", {"since": {"type": "integer"}}),
+		_tool("ping", "Liveness: frame + in_world.", {}),
+		_tool("coord", "Multi-agent roster + work scheduler (op: status/list/register/delegate/poll/approve/reject/step/run).", {
+			"op": {"type": "string"}, "handle": {"type": "string"}, "task": {"type": "object"}, "work_id": {"type": "integer"}}),
 	]
+
+func _tool(name: String, description: String, props: Dictionary) -> Dictionary:
+	return {"name": name, "description": description, "inputSchema": {"type": "object", "properties": props}}
+
+## Route a tool name to a driver verb. Namespaced coord ops (coord.list,
+## coord.delegate, ...) fold into a single coord call so a catalog listing is
+## unambiguous for an MCP client.
+func _dispatch_tool(driver: Node, name: String, args: Dictionary) -> Dictionary:
+	if name.begins_with("coord."):
+		var op: String = name.substr(6)
+		var a: Dictionary = args.duplicate(true)
+		a["op"] = op
+		return _call(driver, "coord", a)
+	if name == "coord":
+		return _call(driver, "coord", args)
+	return _call(driver, name, args)
+
+## Bearer auth, fail-closed when a token is configured. Loopback-only by
+## default (no token) is the dev posture; a non-loopback bind without a token
+## is refused by start(). See labs/prd-agent-play.md sec 9.
+func _expected_token() -> String:
+	if OS.has_environment("SYN_AGENT_TOKEN"):
+		return OS.get_environment("SYN_AGENT_TOKEN").strip_edges()
+	return ""
+
+func _has_token() -> bool:
+	return _expected_token() != ""
+
+func _authorized(headers: Dictionary) -> bool:
+	var want: String = _expected_token()
+	if want == "":
+		return true
+	var auth: String = String(headers.get("authorization", ""))
+	if auth.begins_with("Bearer "):
+		return auth.substr(7).strip_edges() == want
+	if auth.begins_with("bearer "):
+		return auth.substr(7).strip_edges() == want
+	if String(headers.get("x-api-key", "")) == want:
+		return true
+	return false
 
 func _parse_body(body: String) -> Dictionary:
 	if body.strip_edges() == "":
