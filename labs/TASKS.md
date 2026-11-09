@@ -7,6 +7,37 @@ commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
 
+## 2026-11-04 -- LANE DEP + SCREENSHOT RESIDUE (staging, no PRs)
+
+Context: continue the gamestruct build-out on the Synmergia side and finish the
+screenshot-system residue triage.
+
+- **The gamestruct lane is a real dep.** The world<->brain contract lives in the
+  `gamestruct` npm package (MIT). Installed it into the web project pinned to the
+  pushed commit `99b9dd6` (the repo tracks no lockfile, so the git-commit pin is
+  the reproducibility anchor) and added `npm run verify:lane`
+  (`scripts/verify_lane.mjs`) -- a receipt that imports the package the way the
+  web control client / a companion brain would and checks the pieces Synmergia
+  depends on: the core tree vocabulary (`ROLES`/`Bridge`/`agent.toolCatalog`),
+  the `DoorClient`, and the Synmergia adapter's `doorNodes` normalizer (folds the
+  door's own `observe()` snapshot into the SPEC node shape). Receipt 9/0.
+- **Screenshot residue triage -- verdict:**
+  - `game/tests/play_driver.gd` -- **DEAD, REMOVED.** It pinned
+    `synmergia/world/shape = planar` and polled for the `WorldPlayable` scene,
+    both deleted by planar-retirement Step 5. Not in the runner DEFAULT_SET, not
+    in the fleet packs, no script/CI reference -- it could only hang on a scene
+    that no longer exists. Two comments telling readers to "pin the shape like
+    play_driver does" now state the reason directly.
+  - `game/tests/play_session.gd`, `play_full_flow.gd` -- **LIVE.** Ported to the
+    globe in Step 5 (they resolve the scene-node body via `globe_boot.gd`); they
+    are the journal/full-journey play drivers. KEPT.
+  - `game/core/services/screenshot_service.gd` -- **LIVE.** The in-game PrintScreen
+    path (`_input` -> `save_screenshot()`, the player Owner) is a real player
+    feature; `save_dev_screenshot()` is its dev-automation face. KEPT. (The
+    door's own `see` verb is the agent-play eyes and does not use this service.)
+  - The `/tmp/play` screenshot lane is **LIVE** -- written by `globe_driver`,
+    `playthrough_driver`, and the terrain probes; not residue.
+
 ## 2026-11-04 -- THE EYES: the door can SEE (see verb + /see), eyestruct verdict (staging, no PRs)
 
 Context: "can we see the game while in it? Synmergia's screenshot system is
