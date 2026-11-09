@@ -60,6 +60,7 @@ func _run() -> void:
 	await _leg_move()
 	await _leg_wait_for()
 	_leg_refusals()
+	_leg_handle_verbs()
 	await _leg_door()
 	await _leg_door_wire()
 
@@ -115,6 +116,43 @@ func _leg_refusals() -> void:
 			print("    [act] handle %s -> ok=%s" % [str(a["id"]), str(r.get("ok", false))])
 			return
 	print("    [act] no actionable handle surfaced in this scene (refusal legs hold)")
+
+
+## The gamestruct value write: set_value on a text control lands (and shows in
+## the next observe); set_value on a non-settable control or an unknown handle
+## is an HONEST refusal, never a silent success. This is the class the live
+## play-test caught (set_value returned ok while the field stayed empty).
+func _leg_handle_verbs() -> void:
+	var obs: Dictionary = _driver.observe()
+	var acts: Array = obs.get("actions", [])
+	var line_handle: String = ""
+	for a in acts:
+		if String(a.get("kind", "")) == "lineedit" and String(a.get("id", "")) != "":
+			line_handle = String(a["id"])
+			break
+	if line_handle == "":
+		print("    [set_value] no text control in this scene (refusal legs hold)")
+		return
+	var w: Dictionary = _driver.act(line_handle, {"verb": "set_value", "value": "agent-typed"})
+	_assert(bool(w.get("ok", false)), "set_value on a text control lands")
+	var after: Dictionary = _driver.observe()
+	var shown: bool = false
+	for a in after.get("actions", []):
+		if String(a.get("id", "")) == line_handle and String(a.get("value", "")) == "agent-typed":
+			shown = true
+			break
+	_assert(shown, "the written value is visible in the next observe")
+	# A button holds no value -> honest refusal.
+	var button_handle: String = ""
+	for a in acts:
+		if String(a.get("kind", "")) == "button" and String(a.get("id", "")) != "":
+			button_handle = String(a["id"])
+			break
+	if button_handle != "":
+		var b: Dictionary = _driver.act(button_handle, {"verb": "set_value", "value": "x"})
+		_assert(not bool(b.get("ok", true)), "set_value on a button is refused honestly")
+	var ghost: Dictionary = _driver.act("ui:No/Such/Field", {"verb": "set_value", "value": "x"})
+	_assert(not bool(ghost.get("ok", true)), "set_value on an unknown handle is refused")
 
 
 func _leg_door() -> void:

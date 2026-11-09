@@ -229,11 +229,18 @@ func _route(method: String, path: String, body: String, headers: Dictionary = {}
 ## the legacy {id, args} shape a vant/companion client may still send).
 func _act_args(body: Dictionary) -> Dictionary:
 	var args: Dictionary = body.get("args", {}) if body.get("args", {}) is Dictionary else {}
+	args = args.duplicate(true)
+	# The gamestruct wire carries a `verb`; the driver reads it to tell a VALUE
+	# WRITE (`set_value`) from ACTIVATION. Keep it, and fold a dictionary
+	# `value` in as the verb-specific args (a scalar `value` rides as `value`).
+	if body.has("verb"):
+		args["verb"] = String(body.get("verb", ""))
 	var value = body.get("value", null)
 	if value is Dictionary:
-		args = args.duplicate(true)
 		for k in value:
 			args[k] = value[k]
+	elif value != null:
+		args["value"] = value
 	return {"id": String(body.get("id", "")), "args": args}
 
 ## Submit to AgentDriver (main thread does the work), then poll this thread

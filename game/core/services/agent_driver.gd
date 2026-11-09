@@ -258,13 +258,18 @@ func _actions() -> Array:
 	var snap: Array = a11y.snapshot()
 	var out: Array = []
 	for e in snap:
-		out.append({
+		var row: Dictionary = {
 			"id": String(e.get("id", "")),
 			"kind": String(e.get("kind", "")),
 			"action": String(e.get("action", "")),
 			"detail": String(e.get("detail", "")),
 			"disabled": bool(e.get("disabled", false)),
-		})
+		}
+		# Settable controls carry their current value (so an agent can confirm a
+		# set_value landed); secret fields report only whether they are filled.
+		if e.has("value"):
+			row["value"] = e["value"]
+		out.append(row)
 	return out
 
 # -- act() -----------------------------------------------------------------
@@ -276,12 +281,26 @@ func act(action_id: String, args: Dictionary = {}) -> Dictionary:
 	if not _enabled:
 		return {"ok": false, "reason": "agent driver disabled"}
 	if action_id.begins_with("ui:") or action_id.begins_with("world:"):
-		return _act_handle(action_id)
+		return _act_handle(action_id, String(args.get("verb", "")), args.get("value", null))
 	return _act_verb(action_id, args)
 
-func _act_handle(action_id: String) -> Dictionary:
+## A `ui:`/`world:` handle. The gamestruct wire carries a `verb`: `set_value`
+## is a VALUE WRITE (a text field or slider takes a value), any other verb (or
+## none) is ACTIVATION. A verb the handle cannot satisfy is an HONEST refusal
+## ("no settable value on ..."), never a silent success -- the class the live
+## play-test caught: set_value on a LineEdit returned ok:true while the field
+## stayed empty.
+func _act_handle(action_id: String, verb: String, value) -> Dictionary:
 	var a11y := get_node_or_null("/root/A11yService")
-	if a11y == null or not a11y.has_method("activate_by_id"):
+	if a11y == null:
+		return {"ok": false, "reason": "a11y service missing"}
+	if verb == "set_value":
+		if not a11y.has_method("set_value_by_id"):
+			return {"ok": false, "reason": "a11y service cannot set values"}
+		if not a11y.set_value_by_id(action_id, value):
+			return {"ok": false, "reason": "no settable value on '%s'" % action_id}
+		return {"ok": true, "reason": "", "handle": action_id, "verb": "set_value"}
+	if not a11y.has_method("activate_by_id"):
 		return {"ok": false, "reason": "a11y service missing"}
 	if not a11y.activate_by_id(action_id):
 		return {"ok": false, "reason": "no actionable '%s' (gone or disabled)" % action_id}
@@ -356,11 +375,22 @@ func _verb_chat(player: Node, args: Dictionary) -> Dictionary:
 	var text: String = String(args.get("text", ""))
 	if text == "":
 		return {"ok": false, "reason": "empty message"}
+	# ChatService.send_message(sender_id: String, channel: int, message: String).
+	# The sender is the player's ID (not the node) and the channel is the enum
+	# value, resolved by name -- the class the live play-test caught: passing
+	# the node + a channel string raised a SCRIPT ERROR inside the queue drain,
+	# which then never responded (the door's poll hung to timeout).
 	var channel: String = String(args.get("channel", "say"))
 	var chat := get_node_or_null("/root/ChatService")
 	if chat == null or not chat.has_method("send_message"):
 		return {"ok": false, "reason": "chat service missing"}
-	var ok: bool = chat.send_message(player, text, channel)
+	var sender_id: String = String(player.entity_id) if "entity_id" in player else ""
+	if sender_id == "":
+		return {"ok": false, "reason": "player has no id"}
+	var ch: int = chat.channel_by_name(channel) if chat.has_method("channel_by_name") else 0
+	if ch < 0:
+		return {"ok": false, "reason": "unknown channel '%s'" % channel}
+	var ok: bool = chat.send_message(sender_id, ch, text)
 	return {"ok": ok, "reason": "" if ok else "send rejected"}
 
 func _verb_attack(player: Node, args: Dictionary) -> Dictionary:

@@ -267,6 +267,9 @@ func _walk(node: Node, base_path: String, out: Array) -> void:
 				"focused": ctrl.has_focus(),
 				"disabled": ctrl.is_disabled() if ctrl is BaseButton else false,
 			}
+			var value = _control_value(ctrl)
+			if value != null:
+				entry["value"] = value
 			out.append(entry)
 	for child in node.get_children():
 		_walk(child, base_path, out)
@@ -368,6 +371,46 @@ func activate_by_id(action_id: String) -> bool:
 	return false
 
 
+## The agent-facing VALUE write: set a control's value by STABLE id (the
+## gamestruct `set_value` verb). A text control takes a string; a slider/range
+## takes a number. Returns false -- an honest no-op, never a silent success --
+## when the id is unknown or the control holds no value, so the caller can
+## report the refusal. The write routes through the same focus + signal path a
+## human edit takes (`text_changed` fires), never a bare field poke.
+func set_value_by_id(action_id: String, value) -> bool:
+	var snap := snapshot()
+	for i in range(snap.size()):
+		if String(snap[i].get("id", "")) == action_id:
+			return set_control_value(String(snap[i]["path"]), value)
+	return false
+
+
+## Set a control's value by root-relative path (the id's `path`). Named
+## `set_control_value` (not `set_value`) so it never shadows a native method.
+func set_control_value(rel_path: String, value) -> bool:
+	var node := _resolve(rel_path)
+	if node == null:
+		return false
+	if node is LineEdit:
+		var le := node as LineEdit
+		le.grab_focus()
+		le.text = String(value)
+		le.caret_column = le.text.length()
+		le.text_changed.emit(le.text)
+		return true
+	if node is TextEdit:
+		var te := node as TextEdit
+		te.grab_focus()
+		te.text = String(value)
+		return true
+	if node is Range:
+		var rng := node as Range
+		rng.value = float(value)
+		rng.value_changed.emit(rng.value)
+		return true
+	return false
+
+
 func _resolve(rel_path: String) -> Node:
 	var root := get_tree().root
 	if root == null:
@@ -403,6 +446,25 @@ func _detail_label(ctrl: Control) -> String:
 		if annotated != null:
 			return String(annotated)
 	return ""
+
+
+## The control's current value, for a settable control (so an agent can confirm
+## a write landed). A SECRET field reports only whether it is filled -- never
+## the password itself (the snapshot may leave the process). Non-settable
+## controls return null (omitted from the entry).
+func _control_value(ctrl: Control) -> Variant:
+	if ctrl is LineEdit:
+		var le := ctrl as LineEdit
+		if le.secret:
+			return "<set>" if le.text != "" else ""
+		return le.text
+	if ctrl is TextEdit:
+		return (ctrl as TextEdit).text
+	if ctrl is Range:
+		return (ctrl as Range).value
+	if ctrl is BaseButton and (ctrl as BaseButton).toggle_mode:
+		return (ctrl as BaseButton).button_pressed
+	return null
 
 
 func _rect_dict(ctrl: Control) -> Dictionary:
