@@ -7,6 +7,54 @@ commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
 
+## 2026-11-09 -- LIVE PLAY-TEST: the door can now TYPE and CHAT (staging, no PRs)
+
+Context: "now that we have a control surface, you should be able to play-test
+without static runners, right?" -- prove live play-testing through the door.
+
+ANSWERED YES, and the play-test found what the static receipts could not. Boot
+the real client headless with `SYN_AGENT=1` (test instance on port 3799), then
+drive it over HTTP through the door: MainMenu -> Login -> Register -> Lobby ->
+Character Select -> **GlobeWorld (`in_world: True`)** with a live player. The
+door was already proven to press buttons; the loop was NOT closed.
+
+THREE FIXES (commit 19c3d5b7, pushed to `staging`):
+- **`set_value` is a REAL write.** A11yService gains `set_value_by_id` /
+  `set_control_value` (LineEdit/TextEdit/Range, routed through focus +
+  `text_changed`, never a bare field poke). The door carries the wire `verb`
+  into args; the driver's `_act_handle` branches on it (set_value = value
+  write, anything else = activate). An unsettable handle is an HONEST refusal
+  ("no settable value on ..."), never the old silent `ok:true`.
+- **value visibility:** the a11y snapshot carries a settable control's current
+  value so an agent can confirm a write landed; a SECRET field reports only
+  `<set>`/empty, never the password (the snapshot may leave the process).
+- **`_verb_chat` was wrong types AND wrong order.** It called
+  `ChatService.send_message(node, text, channel)`; the real signature is
+  `(sender_id: String, channel: int, message: String)`. The SCRIPT ERROR aborted
+  the queue drain, so the door's poll hung to its 30s timeout (the empty curl).
+  Now `send_message(player.entity_id, channel_by_name(channel), text)` with
+  honest refusals for no player / no id / unknown channel.
+
+RECEIPT: `test_agent_driver.gd` **29/0** (new `_leg_handle_verbs`: set_value
+lands and shows in the next observe; a button + an unknown handle are refused).
+
+HONEST REFUSAL LORE: solo chat (SAY/YELL/ZONE/EMOTE) is refused by
+`_get_channel_targets` -> empty audience (correct); a COMMAND (`/help`) bypasses
+the audience check and succeeds (`ok:true`) -- so the chat leg is provable
+without a second player.
+
+GATES: agent_driver 29/0, agent_coordinator 30/0, a11y_service 25/0, a11y
+contrast PASS, lint 37/0, naming 27/0 (all xvfb/headless standalone).
+
+GAMESTRUCT side (their repo, `ed000ab` on main+staging): the Synmergia adapter
+advertised `ACTIVATE` on text boxes, so an agent had no way to type; settable
+controls now advertise `set_value` and forward `{ id, verb, value }`.
+`npm test` 48/0 bridgeworks + 29/0 release, `npm run check` 17/0. Vant issue
+#360 updated with the now-working set_value wire.
+
+NOTE: a headless boot does not persist the account across runs (fresh register
+each time).
+
 ## 2026-11-09 -- DOOR DEBLOAT: gamestruct owns the protocol (staging, no PRs)
 
 Context: `gamestruct` cut **1.0.0** (npm, SLSA provenance) -- the family lane
