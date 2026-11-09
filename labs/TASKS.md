@@ -7,6 +7,45 @@ commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
 
+## 2026-11-09 -- DOOR DEBLOAT: gamestruct owns the protocol (staging, no PRs)
+
+Context: `gamestruct` cut **1.0.0** (npm, SLSA provenance) -- the family lane
+bridge (four primitives, one tree, two lanes; HTTP + MCP bindings; the world /
+brain / webform / dom adapters; the tui host). The generic protocol now has ONE
+owner, so the world door should stop carrying its own copy.
+
+Shipped (commit 7ac65e47, pushed to `staging`):
+- `game/core/services/agent_door.gd` **332 -> 288 lines**. Removed the
+  hand-rolled generic protocol: MCP JSON-RPC (`POST /call`:
+  initialize/tools/list/tools/call), the tool catalog with `inputSchema`, and
+  the vant-shaped `POST /mcp/exec` (`_route_jsonrpc`/`_tool_catalog`/`_tool`/
+  `_dispatch_tool`). The door now serves ONLY the four primitives plus its own
+  extension: `GET /health`, `GET /observe`, `GET /events?since=`,
+  `POST /act {id,verb,value}`, `POST /wait_for {predicate,timeoutMs}`,
+  `POST /coord`.
+- `/act` folds the gamestruct `{id, verb, value}` body into the driver's
+  `act(id, args)` (tolerating the legacy `{id, args}` shape).
+- `/coord` closes a **broken link**: `web/shared/agent-client.js` already
+  POSTed `/coord`, which the door never served. The web client also dropped its
+  dead `/tools` call and now sends the wire key `timeoutMs`.
+- Receipts: `test_agent_driver.gd` **25/0** (new `_leg_door_wire`: `/act
+  {id,verb,value}`, `/coord` answered, `/tools`+`/call` GONE);
+  `test_agent_coordinator.gd` **30/0** (leg 6 retargeted from JSON-RPC to
+  `/coord` + the removals).
+- Drive-by: the coordinator receipt's `_get`/`_post` helpers overrode NATIVE
+  `Object._get` -> parse error ("signature doesn't match parent"); renamed
+  `_http_get`/`_http_post`.
+- PRD `labs/prd-agent-play.md` sec 7-9 + the topology diagram document the
+  gamestruct wire.
+
+Vant side (their repo): `lib/adapters/synmergia.js` minimal compat fix on
+branch `synmergia-lane` (9a285e4a, LOCAL): `coord()` -> `POST /coord {op,...}`,
+`waitFor` -> `timeoutMs`; `test/synmergia-adapter.test.js` 17/0. Deep
+`DoorClient` adoption filed as **vant issue #360**.
+
+Gates: agent_driver 25/0, agent_coordinator 30/0 (xvfb). (Full runner not run --
+parallel runner in use.)
+
 ## 2026-11-09 -- AGENT PLAY v2: multi-agent roster + remote auth + a control surface (staging, no PRs)
 - SESSION CONTEXT: continue the control layer. Owner cleared all three "maybe later" items at once: multi-agent orchestration, remote auth posture, and a 2D helper -- AND asked to work WITH Vant where they can help us not reinvent the wheel. Also: purge the stale "being reworked to parallel" runner note (WE ALREADY FIXED IT).
 - STALE NOTE PURGED: the "do NOT run the full runners -- being reworked to parallel" line (lost session) is retired in AGENTS.md, labs/TASKS.md, and the AGENTS Testing section; the ONE PARALLEL RUNNER (scripts/godot_test_runner.sh, `-j N`/JOBS, default 4) is documented as live.
