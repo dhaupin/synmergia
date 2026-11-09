@@ -5,7 +5,10 @@
 //   * in-page  -> window.SynmergiaAgent (the WebInputBridge hooks; same page
 //                 as the Godot canvas). Zero network.
 //   * remote   -> the AgentDoor HTTP listener (game/core/services/agent_door.gd)
-//                 on 127.0.0.1 (or wherever the door is fronted). This is what
+//                 on 127.0.0.1 (or wherever the door is fronted). The door
+//                 speaks the gamestruct four-primitive wire (/observe, /act,
+//                 /wait_for, /events); the generic MCP projection lives in
+//                 gamestruct (bindings/mcp.mjs), not on the door. This is what
 //                 a headless companion / an LLM agent / another machine uses.
 //
 // Both reach the SAME AgentDriver verbs (observe/act/wait_for/events), so a
@@ -76,9 +79,8 @@
                 async act(id, args) { return this._post('/act', { id, args: args || {} }); }
                 async events(since) { return this._get('/events?since=' + (since == null ? -1 : since)); }
                 async coord(op, extra) { return this._post('/coord', Object.assign({ op }, extra || {})); }
-                async tools() { return this._get('/tools'); }
                 async waitFor(predicate, timeoutMs) {
-                        return this._post('/wait_for', { predicate, timeout_ms: timeoutMs || 8000 });
+                        return this._post('/wait_for', { predicate, timeoutMs: timeoutMs || 8000 });
                 }
         }
 

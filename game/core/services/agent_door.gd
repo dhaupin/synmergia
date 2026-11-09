@@ -5,16 +5,19 @@
 ## Synmergia. It binds 127.0.0.1 only and is OFF unless AgentDriver is
 ## enabled (SYN_AGENT=1), so a shipped server never exposes it by default.
 ##
-## Routes (JSON in, JSON out):
+## Routes (JSON in, JSON out) -- the gamestruct four-primitive wire:
 ##   GET  /health          -> {ok, frame, in_world, enabled}
-##   GET  /tools           -> the tool catalog (what an agent may call)
 ##   GET  /observe         -> AgentDriver.observe()
-##   POST /act             -> {"id": "...", "args": {...}} -> AgentDriver.act()
-##   POST /wait_for        -> {"predicate": {...}, "timeout_ms": N}
+##   POST /act             -> {"id": "...", "verb": "...", "value": {...}}
+##                            -> AgentDriver.act(id, args)
+##   POST /wait_for        -> {"predicate": {...}, "timeoutMs": N}
 ##   GET  /events?since=N  -> the event ring
-##   POST /call            -> JSON-RPC 2.0 {"method":"tools/call","params":
-##                            {"name":..., "arguments":...}} (MCP-shaped)
-##   POST /mcp/exec        -> {"tool": "...", "args": {...}} (vant-shaped)
+##   POST /coord           -> {"op": "...", ...} (Synmergia's multi-agent
+##                            extension, beyond the four primitives)
+##
+## The generic projections (MCP JSON-RPC, the tool catalog) are NOT here:
+## they live in gamestruct (bindings/mcp.mjs + profiles/agent.mjs), so the
+## door stays primitive-transport and the protocol layer has ONE owner.
 ##
 ## Threading law: this runs on its OWN thread and never touches the scene
 ## tree. Every request is submit()'d to AgentDriver and the response is
@@ -205,49 +208,33 @@ func _route(method: String, path: String, body: String, headers: Dictionary = {}
 	match path_only:
 		"/health":
 			return _call(driver, "ping", {})
-		"/tools":
-			return {"ok": true, "tools": _tool_catalog()}
 		"/observe":
 			return _call(driver, "observe", {})
 		"/events":
 			return _call(driver, "events", {"since": int(query.get("since", -1))})
 		"/act":
-			var a: Dictionary = _parse_body(body)
-			return _call(driver, "act", {"id": String(a.get("id", "")), "args": a.get("args", {})})
+			return _call(driver, "act", _act_args(_parse_body(body)))
 		"/wait_for":
 			var w: Dictionary = _parse_body(body)
 			return _call(driver, "wait_for", {
 				"predicate": w.get("predicate", {}),
-				"timeout_ms": int(w.get("timeout_ms", 8000)),
+				"timeout_ms": int(w.get("timeout_ms", w.get("timeoutMs", 8000))),
 			})
-		"/call":
-			return _route_jsonrpc(driver, body)
-		"/mcp/exec":
-			var m: Dictionary = _parse_body(body)
-			return _call(driver, String(m.get("tool", "")), m.get("args", {}))
+		"/coord":
+			return _call(driver, "coord", _parse_body(body))
 	return {"ok": false, "error": "unknown route '%s'" % path_only}
 
-func _route_jsonrpc(driver: Node, body: String) -> Dictionary:
-	var req: Dictionary = _parse_body(body)
-	var id = req.get("id", null)
-	var method: String = String(req.get("method", ""))
-	var params: Dictionary = req.get("params", {})
-	var result: Dictionary
-	if method == "initialize":
-		result = {
-			"protocolVersion": "2024-11-05",
-			"capabilities": {"tools": {}},
-			"serverInfo": {"name": "synmergia-agent-door", "version": "1.0"},
-		}
-	elif method == "tools/list" or method == "list":
-		result = {"tools": _tool_catalog()}
-	elif method == "tools/call" or method == "call":
-		var name: String = String(params.get("name", params.get("tool", "")))
-		var args: Dictionary = params.get("arguments", params.get("args", {}))
-		result = _dispatch_tool(driver, name, args)
-	else:
-		return {"jsonrpc": "2.0", "id": id, "error": {"code": -32601, "message": "unknown method '%s'" % method}}
-	return {"jsonrpc": "2.0", "id": id, "result": result}
+## The gamestruct /act body is {id, verb, value}. The driver's act(id, args)
+## takes an id plus a verb-specific args object, so fold `value` in (tolerating
+## the legacy {id, args} shape a vant/companion client may still send).
+func _act_args(body: Dictionary) -> Dictionary:
+	var args: Dictionary = body.get("args", {}) if body.get("args", {}) is Dictionary else {}
+	var value = body.get("value", null)
+	if value is Dictionary:
+		args = args.duplicate(true)
+		for k in value:
+			args[k] = value[k]
+	return {"id": String(body.get("id", "")), "args": args}
 
 ## Submit to AgentDriver (main thread does the work), then poll this thread
 ## until the response lands. Never touches the scene tree here.
@@ -260,37 +247,6 @@ func _call(driver: Node, verb: String, args: Dictionary) -> Dictionary:
 			return resp
 		OS.delay_msec(POLL_MS)
 	return {"ok": false, "error": "driver timeout"}
-
-## MCP-shaped tool catalog: each entry carries an inputSchema so a full MCP
-## client (or Vant's agents module) can auto-wire against this door.
-func _tool_catalog() -> Array:
-	return [
-		_tool("observe", "Structured snapshot: player, target, party, the actionable list (stable ids), recent events.", {}),
-		_tool("act", "Perform one action by stable handle (ui:<path> / world:<id>) or verb (move/stop/look/chat/attack/target/party_invite/party_leave/interact).", {
-			"id": {"type": "string"}, "args": {"type": "object"}}),
-		_tool("wait_for", "Block until a predicate holds or the timeout expires.", {
-			"predicate": {"type": "object"}, "timeout_ms": {"type": "integer"}}),
-		_tool("events", "The recent event ring (optionally only entries after a frame).", {"since": {"type": "integer"}}),
-		_tool("ping", "Liveness: frame + in_world.", {}),
-		_tool("coord", "Multi-agent roster + work scheduler (op: status/list/register/delegate/poll/approve/reject/step/run).", {
-			"op": {"type": "string"}, "handle": {"type": "string"}, "task": {"type": "object"}, "work_id": {"type": "integer"}}),
-	]
-
-func _tool(name: String, description: String, props: Dictionary) -> Dictionary:
-	return {"name": name, "description": description, "inputSchema": {"type": "object", "properties": props}}
-
-## Route a tool name to a driver verb. Namespaced coord ops (coord.list,
-## coord.delegate, ...) fold into a single coord call so a catalog listing is
-## unambiguous for an MCP client.
-func _dispatch_tool(driver: Node, name: String, args: Dictionary) -> Dictionary:
-	if name.begins_with("coord."):
-		var op: String = name.substr(6)
-		var a: Dictionary = args.duplicate(true)
-		a["op"] = op
-		return _call(driver, "coord", a)
-	if name == "coord":
-		return _call(driver, "coord", args)
-	return _call(driver, name, args)
 
 ## Bearer auth, fail-closed when a token is configured. Loopback-only by
 ## default (no token) is the dev posture; a non-loopback bind without a token

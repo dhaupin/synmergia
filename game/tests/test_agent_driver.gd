@@ -11,6 +11,8 @@
 ##   3. wait_for resolves (in_world) and honestly times out on a false pred.
 ##   4. act() refuses unknown verbs / missing handles by name.
 ##   5. the AgentDoor serves a real HTTP request (thread -> driver -> socket).
+##   6. the door speaks the gamestruct wire (POST /act {id,verb,value}, /coord),
+##      and the generic projections (/tools, /call) are gone (gamestruct owns them).
 ##
 ## Exit 0 = every leg observed. Failures print FAIL lines and exit 1.
 extends SceneTree
@@ -59,6 +61,7 @@ func _run() -> void:
 	await _leg_wait_for()
 	_leg_refusals()
 	await _leg_door()
+	await _leg_door_wire()
 
 	_finish()
 
@@ -161,6 +164,65 @@ func _leg_door() -> void:
 		print("    [door] HTTP /observe in_world=%s actions=%d" % [
 			str(parsed.get("in_world", false)), (parsed.get("actions", []) as Array).size()])
 	peer.disconnect_from_host()
+	_door.stop()
+
+
+## A one-shot HTTP round-trip against the door (raw TCP, no client lib).
+func _http(method: String, path: String, body: String = "") -> Dictionary:
+	var peer := StreamPeerTCP.new()
+	var err: int = peer.connect_to_host("127.0.0.1", _door.get_port())
+	if err != OK:
+		return {}
+	var deadline: int = Time.get_ticks_msec() + 5000
+	while peer.get_status() != StreamPeerTCP.STATUS_CONNECTED and Time.get_ticks_msec() < deadline:
+		await process_frame
+		peer.poll()
+	if peer.get_status() != StreamPeerTCP.STATUS_CONNECTED:
+		return {}
+	var req: String = "%s %s HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nContent-Length: %d\r\nConnection: keep-alive\r\n\r\n%s" % [
+		method, path, body.to_utf8_buffer().size(), body]
+	peer.put_data(req.to_utf8_buffer())
+	var raw := PackedByteArray()
+	deadline = Time.get_ticks_msec() + 15000
+	while Time.get_ticks_msec() < deadline:
+		await process_frame
+		peer.poll()
+		var avail: int = peer.get_available_bytes()
+		if avail > 0:
+			var chunk: Array = peer.get_partial_data(avail)
+			if chunk[0] == OK:
+				raw.append_array(chunk[1])
+		if raw.size() > 0:
+			var t: String = raw.get_string_from_utf8()
+			var sp: int = t.find("\r\n\r\n")
+			if sp >= 0 and t.substr(sp + 4).strip_edges() != "":
+				break
+	peer.disconnect_from_host()
+	var full: String = raw.get_string_from_utf8()
+	var sep: int = full.find("\r\n\r\n")
+	if sep < 0:
+		return {}
+	var parsed = JSON.parse_string(full.substr(sep + 4))
+	return parsed if parsed is Dictionary else {}
+
+
+## The gamestruct wire: POST /act takes {id, verb, value}; /coord is the
+## multi-agent extension; the generic projections (/tools, /call) are REMOVED
+## (gamestruct owns them). This is the debloat receipt.
+func _leg_door_wire() -> void:
+	var port: int = _door.start(0)
+	_assert(port > 0, "door re-binds for the wire leg")
+	if port <= 0:
+		return
+	var moved: Dictionary = await _http("POST", "/act", JSON.stringify({"id": "move", "verb": "move", "value": {"forward": 1.0}}))
+	_assert(moved.has("ok"), "POST /act {id,verb,value} answered on the gamestruct wire")
+	_driver.act("stop", {})
+	var coord: Dictionary = await _http("POST", "/coord", JSON.stringify({"op": "status"}))
+	_assert(coord.has("ok"), "POST /coord answered (the multi-agent extension)")
+	var tools: Dictionary = await _http("GET", "/tools")
+	_assert(not bool(tools.get("ok", true)) and String(tools.get("error", "")).begins_with("unknown route"), "GET /tools is GONE (projection lives in gamestruct)")
+	var call: Dictionary = await _http("POST", "/call", "{}")
+	_assert(not bool(call.get("ok", true)), "POST /call is GONE (MCP projection lives in gamestruct)")
 	_door.stop()
 
 

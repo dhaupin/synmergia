@@ -85,8 +85,7 @@ continuous things handles cannot express; everything discrete is a handle.
                              │ auto-pick
               in-page        │         remote
    window.SynmergiaAgent ────┤──── AgentDoor  (HTTP, 127.0.0.1:3789)
-   (WebInputBridge hooks)    │     /observe /act /wait_for /events
-                             │     /tools /call (JSON-RPC) /mcp/exec
+   (WebInputBridge hooks)    │     /observe /act /wait_for /events /coord
                              ▼
                      ┌───────────────┐
                      │  AgentDriver  │  (autoload; the one command channel)
@@ -100,11 +99,15 @@ continuous things handles cannot express; everything discrete is a handle.
 - **In-page** (`window.SynmergiaAgent`): for a companion/helper bundled on
   the same page as the Godot canvas. Zero network; calls the driver hooks
   directly. `wait_for` is JS-side polling of `observe()`.
-- **Remote** (`AgentDoor`): the vant "door" pattern — ONE listener that is
-  simultaneously the MCP surface (`/call`, `/mcp/exec`), the headless API
-  (`/observe`, `/act`), and the companion-app API. Binds localhost only and
-  is OFF unless `SYN_AGENT=1`, so a shipped server never exposes it by
-  default. `wait_for` parks server-side.
+- **Remote** (`AgentDoor`): the vant "door" pattern — ONE listener serving
+  the **gamestruct four-primitive wire** (`/observe`, `/act` `{id,verb,value}`,
+  `/wait_for`, `/events`) plus Synmergia's multi-agent extension (`/coord`).
+  Binds localhost only and is OFF unless `SYN_AGENT=1`, so a shipped server
+  never exposes it by default. `wait_for` parks server-side. The GENERIC
+  projections (MCP JSON-RPC `initialize`/`tools/list`/`tools/call`, the tool
+  catalog) do NOT live on the door — they live in **gamestruct**
+  (`bindings/mcp.mjs` + `profiles/agent.mjs`), so the protocol layer has ONE
+  owner and the door stays primitive-transport.
 
 Both reach the SAME `AgentDriver` verbs, so distance never changes the rules.
 
@@ -234,8 +237,9 @@ client; a polished 2D view of the world is a separate, later question.
 (30/0). The coordinator receipt proves: the roster lifecycle, a delegated
 move riding the real input map, the sign-off gate (park -> approve -> run,
 and reject), round-robin across two agents, the door's fail-closed auth, and
-the MCP surface (`initialize`, `tools/list` with `inputSchema`, and a
-`tools/call` -> `coord.register` landing an agent on the roster).
+the door's `/coord` wire (a `coord.register` landing an agent on the roster)
+and the REMOVAL of the generic MCP projection (`/call`, `/tools`) — those now
+live in gamestruct.
 
 Run:
 ```

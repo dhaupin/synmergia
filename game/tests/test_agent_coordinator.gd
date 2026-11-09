@@ -9,7 +9,8 @@
 ##   3. the sign-off gate: a gated verb parks, approve runs it, reject buries it.
 ##   4. round-robin: two agents each get exactly one turn.
 ##   5. door auth: fail-closed when SYN_AGENT_TOKEN is set (no header dies).
-##   6. door MCP: initialize + tools/list carries inputSchema + a coord tool call.
+##   6. door /coord: the multi-agent wire the door serves (the generic MCP
+##      projection now lives in gamestruct, so POST /call is GONE).
 extends SceneTree
 
 var _pass := 0
@@ -53,7 +54,7 @@ func _run() -> void:
 	_leg_gate()
 	await _leg_round_robin()
 	_leg_door_auth()
-	await _leg_door_mcp()
+	await _leg_door_coord()
 	_finish()
 
 
@@ -137,33 +138,34 @@ func _leg_door_auth() -> void:
 	OS.set_environment("SYN_AGENT_TOKEN", "")
 
 
-func _leg_door_mcp() -> void:
+func _leg_door_coord() -> void:
 	var port: int = _door.start(0)
 	_assert(port > 0, "door binds an ephemeral port")
 	if port <= 0:
 		return
-	# JSON-RPC initialize
-	var init := await _rpc(port, "initialize", {})
-	var init_res: Dictionary = init.get("result", {}) if init.has("result") else {}
-	_assert(String(init_res.get("protocolVersion", "")) != "", "MCP initialize returns a protocolVersion")
-	# tools/list carries inputSchema (MCP-shape)
-	var tl := await _rpc(port, "tools/list", {})
-	var tools: Array = (tl.get("result", {}) as Dictionary).get("tools", []) if tl.has("result") else []
-	var shaped: bool = tools.size() > 0 and (tools[0] as Dictionary).has("inputSchema")
-	_assert(shaped, "tools/list entries carry inputSchema (MCP-shape)")
-	# tools/call -> coord.register over the door
-	var reg := await _rpc(port, "tools/call", {"name": "coord.register", "arguments": {"handle": "gamma", "opts": {"name": "Gamma"}}})
-	var reg_res: Dictionary = reg.get("result", {}) if reg.has("result") else {}
-	_assert(bool(reg_res.get("ok", false)), "coord.register over JSON-RPC tools/call")
+	# the multi-agent wire: POST /coord {op, ...}
+	var reg := await _http_post(port, "/coord", {"op": "register", "handle": "gamma", "opts": {"name": "Gamma"}})
+	_assert(bool(reg.get("ok", false)), "POST /coord {op:register} lands on the roster")
 	var has_gamma: bool = false
 	for a in _coord.list_agents():
 		if String(a["handle"]) == "gamma":
 			has_gamma = true
 	_assert(has_gamma, "door-registered agent lands on the roster")
+	# the generic MCP projection is GONE from the door (gamestruct owns it now)
+	var call := await _http_post(port, "/call", {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}})
+	_assert(not bool(call.get("ok", true)), "POST /call is GONE (MCP projection lives in gamestruct)")
+	var tools := await _http_get(port, "/tools")
+	_assert(not bool(tools.get("ok", true)), "GET /tools is GONE (tool catalog lives in gamestruct)")
 	_door.stop()
 
 
-func _rpc(port: int, method: String, params: Dictionary) -> Dictionary:
+func _http_get(port: int, path: String) -> Dictionary:
+	return await _request(port, "GET", path, "")
+
+func _http_post(port: int, path: String, body: Dictionary) -> Dictionary:
+	return await _request(port, "POST", path, JSON.stringify(body))
+
+func _request(port: int, method: String, path: String, payload: String) -> Dictionary:
 	var peer := StreamPeerTCP.new()
 	if peer.connect_to_host("127.0.0.1", port) != OK:
 		return {}
@@ -173,9 +175,8 @@ func _rpc(port: int, method: String, params: Dictionary) -> Dictionary:
 		peer.poll()
 	if peer.get_status() != StreamPeerTCP.STATUS_CONNECTED:
 		return {}
-	var payload: String = JSON.stringify({"jsonrpc": "2.0", "id": 1, "method": method, "params": params})
 	var req: String = (
-		"POST /call HTTP/1.1\r\nHost: 127.0.0.1\r\n"
+		"%s %s HTTP/1.1\r\nHost: 127.0.0.1\r\n" % [method, path]
 		+ "Content-Type: application/json\r\n"
 		+ "Content-Length: %d\r\n" % payload.to_utf8_buffer().size()
 		+ "Connection: keep-alive\r\n\r\n" + payload
