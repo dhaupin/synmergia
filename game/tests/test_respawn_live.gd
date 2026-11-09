@@ -131,14 +131,21 @@ func _verify() -> void:
 	if respawn_pos != Vector3.ZERO:
 		_assert(respawn_pos.distance_to(_player.global_position) < 2.0,
 				"respawn point near the player position")
-	# Globe law: the respawn point must sit ON the shell (the body's own
-	# planet_up direction at the resting radius), never a planar zone vector
-	# that lands in the sea or inside the planet.
+	# Globe law: the respawn point must sit ON the walk surface (the body's own
+	# planet_up direction at the resting radius: radius + ground_offset + SKIN +
+	# terrain lift), never a planar zone vector that lands in the sea or inside
+	# the planet. Read the SAME lift law the body snaps to (snap_height_provider)
+	# so the check is scale-free -- at the 100 m bench the planet-scale terrain
+	# lift is exaggerated, so a fixed-metre tolerance would be a scale artifact.
 	if _player.has_method("planet_up"):
 		var center: Vector3 = _player.planet_center
 		var r: float = _player.global_position.distance_to(center)
-		_assert(absf(r - _player.planet_radius) < 50.0,
-				"respawn point rests on the globe shell (r=%.1f vs %.1f)" % [r, _player.planet_radius])
+		var lift: float = 0.0
+		if "snap_height_provider" in _player and _player.snap_height_provider.is_valid():
+			lift = maxf(_player.snap_height_provider.call(_player.global_position), 0.0)
+		var rest_r: float = _player.planet_radius + _player.ground_offset + _player.SKIN + lift
+		_assert(absf(r - rest_r) < 5.0,
+				"respawn point rests on the walk surface (r=%.1f vs rest=%.1f)" % [r, rest_r])
 
 	# PlayerProgress checkpoint: the respawn reason is recorded.
 	var snap: Dictionary = _pp.last_saved_snapshot(str(_player.entity_id))
