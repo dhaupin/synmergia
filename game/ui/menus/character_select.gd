@@ -51,6 +51,12 @@ func _load_species() -> void:
 	var all_species := CharacterData.get_all_species()
 	for sp in all_species:
 		var card := SpeciesCard.instantiate()
+		# STABLE AGENT HANDLE: a dynamically-added node gets an auto name
+		# (@PanelContainer@NNN) that changes with layout, so an agent's
+		# ui: handle would not survive a rebuild. Name the card from its
+		# DATA id instead -- the handle becomes
+		# ui:CharacterSelect/.../SpeciesContainer/species_human/Margin/VBox/SelectBtn.
+		card.name = "species_%s" % sp.id
 		# RESPONSIVE (round 9): card mins adapt to the viewport class
 		# (two-up on portrait phones, base size on wide screens).
 		card.custom_minimum_size = Responsive.card_size(Vector2(300, 340))
@@ -90,6 +96,9 @@ func _show_class_selection() -> void:
 	var all_classes := CharacterData.get_available_classes_for_species(selected_species_id)
 	for cls in all_classes:
 		var card := ClassCard.instantiate()
+		# STABLE AGENT HANDLE: name the class card from its data id (see the
+		# species leg above) so the ui: handle survives a rebuild.
+		card.name = "class_%s" % cls.id
 		# RESPONSIVE (round 9): the class strip was a hard HBox that
 		# clipped at both edges on portrait phones; the container is now
 		# an HFlowContainer (wraps like flex) and card mins shrink so

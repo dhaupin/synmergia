@@ -12,6 +12,9 @@
 ##                            -> AgentDriver.act(id, args)
 ##   POST /wait_for        -> {"predicate": {...}, "timeoutMs": N}
 ##   GET  /events?since=N  -> the event ring
+##   GET|POST /see         -> {"label": "..."} -> capture the frame to a PNG
+##                            ({ok, path, url, bytes, width, height}); the
+##                            agent reads the pixels with its own vision
 ##   POST /coord           -> {"op": "...", ...} (Synmergia's multi-agent
 ##                            extension, beyond the four primitives)
 ##
@@ -220,6 +223,13 @@ func _route(method: String, path: String, body: String, headers: Dictionary = {}
 				"predicate": w.get("predicate", {}),
 				"timeout_ms": int(w.get("timeout_ms", w.get("timeoutMs", 8000))),
 			})
+		"/see":
+			# The eyes primitive: capture the current frame to a PNG and answer
+			# its path + file:// url. {label} is optional. POST body or GET query.
+			var s: Dictionary = _parse_body(body)
+			if s.is_empty():
+				s = query
+			return _call(driver, "see", {"label": String(s.get("label", ""))})
 		"/coord":
 			return _call(driver, "coord", _parse_body(body))
 	return {"ok": false, "error": "unknown route '%s'" % path_only}

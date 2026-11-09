@@ -11,8 +11,10 @@
 ##   3. wait_for resolves (in_world) and honestly times out on a false pred.
 ##   4. act() refuses unknown verbs / missing handles by name.
 ##   5. the AgentDoor serves a real HTTP request (thread -> driver -> socket).
-##   6. the door speaks the gamestruct wire (POST /act {id,verb,value}, /coord),
-##      and the generic projections (/tools, /call) are gone (gamestruct owns them).
+##   6. the door speaks the gamestruct wire (POST /act {id,verb,value}, /coord,
+##      /see), and the generic projections (/tools, /call) are gone (gamestruct
+##      owns them).
+##   7. see() captures a real PNG (the eyes verb) that the agent reads itself.
 ##
 ## Exit 0 = every leg observed. Failures print FAIL lines and exit 1.
 extends SceneTree
@@ -61,6 +63,7 @@ func _run() -> void:
 	await _leg_wait_for()
 	_leg_refusals()
 	_leg_handle_verbs()
+	_leg_see()
 	await _leg_door()
 	await _leg_door_wire()
 
@@ -153,6 +156,27 @@ func _leg_handle_verbs() -> void:
 		_assert(not bool(b.get("ok", true)), "set_value on a button is refused honestly")
 	var ghost: Dictionary = _driver.act("ui:No/Such/Field", {"verb": "set_value", "value": "x"})
 	_assert(not bool(ghost.get("ok", true)), "set_value on an unknown handle is refused")
+
+
+## see() is the EYES verb: capture the current frame to a PNG the agent reads
+## with its own vision. The leg proves a real image lands (a sane size + PNG
+## magic), and that a blank frame would be refused (the size floor).
+func _leg_see() -> void:
+	var r: Dictionary = _driver.act("see", {"label": "receipt"})
+	_assert(bool(r.get("ok", false)), "see() captures a frame")
+	if not bool(r.get("ok", false)):
+		print("    [see] refused: %s" % String(r.get("reason", "")))
+		return
+	var path: String = String(r.get("path", ""))
+	_assert(path != "" and FileAccess.file_exists(path), "the capture file exists on disk")
+	_assert(int(r.get("bytes", 0)) >= 1024, "the capture is a real image (not skeletal)")
+	_assert(int(r.get("width", 0)) > 0 and int(r.get("height", 0)) > 0, "the capture reports its size")
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f != null:
+		var magic := f.get_buffer(8)
+		f.close()
+		_assert(magic == PackedByteArray([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]), "the capture is a real PNG (magic bytes)")
+	print("    [see] %s (%d bytes, %dx%d)" % [path.get_file(), int(r.get("bytes", 0)), int(r.get("width", 0)), int(r.get("height", 0))])
 
 
 func _leg_door() -> void:
@@ -257,6 +281,8 @@ func _leg_door_wire() -> void:
 	_driver.act("stop", {})
 	var coord: Dictionary = await _http("POST", "/coord", JSON.stringify({"op": "status"}))
 	_assert(coord.has("ok"), "POST /coord answered (the multi-agent extension)")
+	var seen: Dictionary = await _http("POST", "/see", JSON.stringify({"label": "wire"}))
+	_assert(bool(seen.get("ok", false)) and String(seen.get("path", "")) != "", "POST /see captures a frame over the wire")
 	var tools: Dictionary = await _http("GET", "/tools")
 	_assert(not bool(tools.get("ok", true)) and String(tools.get("error", "")).begins_with("unknown route"), "GET /tools is GONE (projection lives in gamestruct)")
 	var call: Dictionary = await _http("POST", "/call", "{}")

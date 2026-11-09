@@ -13,6 +13,11 @@
 ##   wait_for(predicate, ms)  -> server-side wait (no fixed-sleep flake)
 ##   events(since)            -> the recent event ring
 ##
+## Plus `see(label)` -- the EYES: capture the current frame to a PNG the agent
+## reads with its own vision (the eyestruct `spot` role). It is the one verb
+## that returns pixels, and it returns a PATH, not base64, so the wire stays
+## small. The door IS the camera; the agent supplies the seeing.
+##
 ## Threading law: the transport (agent_door.gd) runs on its own thread and
 ## ONLY calls submit()/poll() -- a mutex-guarded queue. The main thread is the
 ## sole thing that touches the scene tree, draining the queue in _process.
@@ -28,6 +33,7 @@ const DEFAULT_WAIT_MS := 8000
 
 var _enabled: bool = false
 var _frames: int = 0
+var _shot_seq: int = 0
 
 # The event ring: {t, frame, event, data}. Plain types only (JSON-safe).
 var _ring: Array = []
@@ -328,6 +334,8 @@ func _act_verb(verb: String, args: Dictionary) -> Dictionary:
 			return _verb_party_leave(player)
 		"interact":
 			return _verb_interact(player)
+		"see":
+			return _verb_see(args)
 	return {"ok": false, "reason": "unknown verb '%s'" % verb}
 
 ## Movement rides the REAL action map: action_press/release are exactly what a
@@ -368,6 +376,72 @@ func _verb_look(args: Dictionary) -> Dictionary:
 	ev.position = Vector2.ZERO
 	Input.parse_input_event(ev)
 	return {"ok": true}
+
+## see(label) -- capture the current frame to a PNG an agent can read with its
+## own vision (the eyestruct `spot` role: the door IS the eyes). Runs on the
+## main thread, which is what makes it safe to grab the viewport texture here.
+## The pixels never travel as base64 (that would be a megabyte in the ring);
+## the door writes the file and answers a path + a `file://` URL. A blank or
+## tiny frame is an honest failure, never a "success" with no image.
+func _verb_see(args: Dictionary) -> Dictionary:
+	var vp := get_viewport()
+	if vp == null:
+		return {"ok": false, "reason": "no viewport"}
+	var tex := vp.get_texture()
+	if tex == null:
+		return {"ok": false, "reason": "no viewport texture"}
+	# get_image() on the main thread returns the last drawn frame; the door is
+	# queried while the game is live, so that is the current view. A not-yet-
+	# drawn first frame comes back skeletal and the size check refuses it.
+	var img: Image = tex.get_image()
+	if img == null:
+		return {"ok": false, "reason": "viewport capture returned null"}
+	var label: String = String(args.get("label", "")).strip_edges()
+	if label == "":
+		label = "see"
+	label = _safe_label(label)
+	_shot_seq += 1
+	var rel: String = "captures/agent/see_%s_%03d.png" % [label, _shot_seq]
+	var abs_path: String = ProjectSettings.globalize_path("res://" + rel)
+	var mk := DirAccess.make_dir_recursive_absolute(abs_path.get_base_dir())
+	if mk != OK and mk != ERR_ALREADY_EXISTS:
+		return {"ok": false, "reason": "could not create captures/agent/"}
+	var err: int = img.save_png(abs_path)
+	if err != OK:
+		return {"ok": false, "reason": "save_png failed (err=%d)" % err}
+	var size: int = _file_size(abs_path)
+	if size < 1024:
+		return {"ok": false, "reason": "capture too skeletal (%d bytes) - blank frame" % size}
+	var view: Dictionary = {
+		"ok": true,
+		"path": abs_path,
+		"url": "file://" + abs_path,
+		"bytes": size,
+		"width": img.get_width(),
+		"height": img.get_height(),
+		"frame": _frames,
+		"in_world": in_world(),
+		"note": "read this PNG with your own vision (eyestruct spot / any viewer)",
+	}
+	return view
+
+func _safe_label(label: String) -> String:
+	var out: String = ""
+	for i in range(label.length()):
+		var c: String = label[i]
+		if (c >= "a" and c <= "z") or (c >= "A" and c <= "Z") or (c >= "0" and c <= "9") or c == "_" or c == "-":
+			out += c
+		else:
+			out += "_"
+	return out.substr(0, 40)
+
+func _file_size(path: String) -> int:
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		return 0
+	var n: int = f.get_length()
+	f.close()
+	return n
 
 func _verb_chat(player: Node, args: Dictionary) -> Dictionary:
 	if player == null:
@@ -583,6 +657,8 @@ func _drain_queue() -> void:
 				})
 			"ping":
 				_respond(int(req["id"]), {"ok": true, "frame": _frames, "in_world": in_world()})
+			"see":
+				_respond(int(req["id"]), _verb_see(args))
 			"coord":
 				_respond(int(req["id"]), _coord(args))
 			_:
