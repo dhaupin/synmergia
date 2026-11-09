@@ -129,10 +129,15 @@ func register(account_id: String, password: String, display_name: String = "", e
 	if not _valid_email(email):
 		_fail("A valid email is required to create an account")
 		return false
-	var validation: Dictionary = SecurityService.validate_player_name(display_name) if SecurityService else {"valid": true}
-	if not validation.get("valid", true):
-		_fail("Display name invalid: %s" % validation.get("reason", "unknown"))
-		return false
+	# Display name is OPTIONAL (the panel says so). An empty one falls back
+	# to the account id below, so only validate a name the player actually
+	# typed -- validating "" would reject every blank-field registration as
+	# "Name too short".
+	if display_name.strip_edges() != "":
+		var validation: Dictionary = SecurityService.validate_player_name(display_name) if SecurityService else {"valid": true}
+		if not validation.get("valid", true):
+			_fail("Display name invalid: %s" % validation.get("reason", "unknown"))
+			return false
 
 	var salt := _random_bytes(SALT_BYTES)
 	var hash := _derive_hash(password, salt)

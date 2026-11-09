@@ -81,6 +81,78 @@ func _initialize() -> void:
 	var lobby_scene := load("res://ui/menus/lobby.tscn")
 	_assert("lobby.tscn loads", lobby_scene != null)
 
+	# 11. THE LOGIN PANEL ITSELF: drive the real buttons through the
+	# accessibility layer. The service-level legs above never touch the UI,
+	# which is exactly how a REGISTER-mode button swap survived: the primary
+	# button read "Create & Enter" but ran the login handler (a silent bounce
+	# back to login mode) and the secondary read "Back to Login" but ran the
+	# register handler. Both bugs live in the panel, not the service, so the
+	# panel must be exercised.
+	# The panel needs its _ready() to run (autoloads resolve, mode set),
+	# so the panel leg is deferred one frame before it asserts + quits.
+	_test_login_panel.call_deferred()
+
+
+## Instantiate the real login panel and prove its two buttons do what their
+## VISIBLE labels say in BOTH modes (the a11y `action` must match the verb).
+func _test_login_panel() -> void:
+	await process_frame
+	await process_frame
+	var panel_scene := load("res://ui/menus/login.tscn")
+	if panel_scene == null:
+		_assert("login panel instantiates", false)
+		return
+	var panel: Control = panel_scene.instantiate()
+	root.add_child(panel)
+	var primary: Button = panel.get_node_or_null("Center/Panel/Form/Buttons/LoginButton")
+	var secondary: Button = panel.get_node_or_null("Center/Panel/Form/Buttons/RegisterButton")
+	_assert("login panel has both buttons", primary != null and secondary != null)
+	if primary == null or secondary == null:
+		panel.queue_free()
+		return
+
+	# LOGIN mode: primary = sign in, secondary = flip to register.
+	_assert("login mode: primary reads sign-in",
+		String(primary.get("accessibility_name")).to_lower().contains("sign in"))
+	_assert("login mode: secondary reads create-account",
+		String(secondary.get("accessibility_name")).to_lower().contains("create"))
+	secondary.pressed.emit()
+	_assert("secondary flipped into register mode",
+		String(primary.get("accessibility_name")).to_lower().contains("create"))
+	_assert("register mode: primary label matches its action",
+		String(primary.get("accessibility_name")).to_lower().contains("create"))
+	_assert("register mode: secondary reads back-to-sign-in",
+		String(secondary.get("accessibility_name")).to_lower().contains("back"))
+
+	# THE REGRESSION: in register mode the PRIMARY button must submit the
+	# register form. Prove it by registering a fresh account through the panel
+	# and landing logged in.
+	var u := "panel_%d" % Time.get_ticks_msec()
+	var unode: LineEdit = panel.get_node_or_null("Center/Panel/Form/UsernameField")
+	var pnode: LineEdit = panel.get_node_or_null("Center/Panel/Form/PasswordField")
+	var enode: LineEdit = panel.get_node_or_null("Center/Panel/Form/EmailField")
+	if unode and pnode and enode:
+		unode.text = u
+		pnode.text = "hunter2"
+		enode.text = "panel_%d@example.com" % Time.get_ticks_msec()
+		if LoginService:
+			LoginService.logout()
+		primary.pressed.emit()
+		_assert("register-mode primary actually registers",
+			LoginService and LoginService.is_logged_in()
+			and LoginService.get_current_account_id() == u)
+	else:
+		_assert("login panel has register fields", false)
+
+	# Back to Login must flip modes, never submit.
+	secondary.pressed.emit()
+	_assert("secondary flips back to login mode",
+		String(primary.get("accessibility_name")).to_lower().contains("sign in"))
+
+	if LoginService:
+		LoginService.logout()
+	panel.queue_free()
+
 	print("")
 	print("--- LOGIN TEST: %d passed, %d failed ---" % [_pass, _fail])
 	quit(_fail)

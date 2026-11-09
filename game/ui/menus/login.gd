@@ -55,20 +55,39 @@ func _set_mode(mode: int) -> void:
 		Mode.LOGIN:
 			_login_btn.text = "Login"
 			_register_btn.text = "Create Account"
+			UIStyles.apply_accessibility(_login_btn, "Sign in to your account")
+			UIStyles.apply_accessibility(_register_btn, "Create a new account")
 		Mode.REGISTER:
 			_login_btn.text = "Create & Enter"
 			_register_btn.text = "Back to Login"
+			# The visible text flips with the mode, so the accessible action
+			# must too: otherwise an AT/agent reads "sign in" for a button
+			# that actually creates the account (and vice versa).
+			UIStyles.apply_accessibility(_login_btn, "Create account and enter")
+			UIStyles.apply_accessibility(_register_btn, "Back to sign in")
 	_clear_error()
 
 func _on_login_pressed() -> void:
-	# print removed: print("[LOGIN] LoginButton pressed, mode=%d user='%s'" % [_mode, _username.text])
+	# This is the PRIMARY button: "Login" in login mode, "Create & Enter"
+	# in register mode. It must do whatever its current label says.
+	if _mode == Mode.REGISTER:
+		_do_register()
+		return
+	_do_login()
+
+func _on_register_pressed() -> void:
+	# This is the SECONDARY button: "Create Account" flips INTO register
+	# mode; "Back to Login" flips back. It never submits a form.
 	if _mode == Mode.REGISTER:
 		_set_mode(Mode.LOGIN)
 		return
+	_set_mode(Mode.REGISTER)
+
+func _do_login() -> void:
 	var u := _username.text
 	var p := _password.text
 	if u.strip_edges() == "":
-	# print removed: print("[LOGIN] LoginButton -> no username, error shown")
+		# print removed: print("[LOGIN] LoginButton -> no username, error shown")
 		if DebugOverlay:
 			DebugOverlay.log_click("LoginButton", "login", false)
 		_show_error("Enter a username")
@@ -83,11 +102,7 @@ func _on_login_pressed() -> void:
 	if DebugOverlay:
 		DebugOverlay.log_click("LoginButton", "login", true)
 
-func _on_register_pressed() -> void:
-	# print removed: print("[LOGIN] RegisterButton pressed, mode=%d" % _mode)
-	if _mode == Mode.LOGIN:
-		_set_mode(Mode.REGISTER)
-		return
+func _do_register() -> void:
 	var u := _username.text
 	var p := _password.text
 	var dn := _display_name.text if _display_name else ""
