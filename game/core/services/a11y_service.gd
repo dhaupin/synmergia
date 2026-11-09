@@ -223,6 +223,7 @@ func _append_world_entries(out: Array) -> void:
 			if "level" in entity and int(entity.level) > 0:
 				detail += ", level %d" % int(entity.level)
 			entries.append({
+				"id": "world:%s" % str(entity.entity_id),
 				"path": "world/entity:%s" % str(entity.entity_id),
 				"kind": "entity",
 				"action": "%s %s" % [verb, label],
@@ -252,8 +253,13 @@ func _walk(node: Node, base_path: String, out: Array) -> void:
 	if node is Control:
 		var ctrl := node as Control
 		if _is_actionable(ctrl) and ctrl.is_visible_in_tree():
+			var rel: String = _rel_path(ctrl, base_path)
 			var entry := {
-				"path": _rel_path(ctrl, base_path),
+				# `id` is the STABLE agent handle (never an index or rect):
+				# ui:<root-relative-path>. Agents act by id; the rect stays for
+				# human/pointer consumers only.
+				"id": "ui:" + rel,
+				"path": rel,
 				"kind": ctrl.get_class().to_lower(),
 				"action": _action_label(ctrl),
 				"detail": _detail_label(ctrl),
@@ -349,6 +355,17 @@ func activate_by_action(action_label: String) -> int:
 		if String(snap[i]["action"]).to_lower() == wanted:
 			return i if activate(i) else -1
 	return -1
+
+
+## The agent-facing activation: act by STABLE id (ui:<path> / world:<id>).
+## Ids survive re-renders and list reordering (indexes do not), which is
+## exactly why agents address actions this way. Returns true when a verb ran.
+func activate_by_id(action_id: String) -> bool:
+	var snap := snapshot()
+	for i in range(snap.size()):
+		if String(snap[i].get("id", "")) == action_id:
+			return activate(i)
+	return false
 
 
 func _resolve(rel_path: String) -> Node:

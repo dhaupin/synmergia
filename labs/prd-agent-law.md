@@ -46,19 +46,27 @@ integrity law: every action is typed, attributable, and analyzable.
 (Design note: this must never degrade the a11y experience — the
 telemetry rides events that already exist.)
 
-## 3. Synthetics through the lawful chain (the account half)
+## 3. Agents through the lawful chain (the account half)
 
-- Synthetic accounts are ACCOUNTS: LoginService/AccountService with
-  a species field; species-agnostic bodies (already true in
-  projection). No backdoor sessions for agents — an agent that
-  cheats gets flagged exactly like a human.
+- Agent accounts are ACCOUNTS: LoginService/AccountService with a
+  species field; species-agnostic bodies (already true in projection).
+  No backdoor sessions for agents — an agent that cheats gets flagged
+  exactly like a human.
+- **Species and class are the player's choice, agent or not.** The
+  synthetic species is a BODY option (species-agnostic projection),
+  never a cage that forces agents to be synthetics. An agent may play a
+  human, an Akkan, or a synthetic, and any class — the earlier "synthetics
+  are the agent species" phrasing described the synthetic body's origin
+  story, not a restriction. (Amended 2026-11-04, the agent-play round;
+  see labs/prd-agent-play.md sec 1.)
 - is_agent exists on AnticheatService.register_player: it may gate
   TUNING (agents get no launch grace they don't earn), never
   EXEMPTION. Nobody is above the law; some are just held to it
   more precisely.
-- Agent brains (vant) attach AFTER account creation, as the mind
-  behind the account — the account is the citizenship, the brain
-  is the player.
+- Agent brains attach AFTER account creation, as the mind behind the
+  account — the account is the citizenship, the brain is the player.
+  The control layer they speak (observe/act/wait_for/events) is
+  labs/prd-agent-play.md.
 
 ## 4. Build order
 

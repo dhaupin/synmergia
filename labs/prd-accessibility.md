@@ -165,9 +165,14 @@ for a later round once the UI half is proven.
 
 - No custom screen reader protocol. AccessKit IS the protocol.
 - No agent backdoor that bypasses the input pipeline (anticheat
-  fairness: agents click like humans).
+  fairness: agents click like humans). The agent-play control layer
+  (labs/prd-agent-play.md) honors this by construction — it routes
+  every action through the real verbs.
 - No per-frame tree scanning; snapshots are on-demand.
-- No new id namespace beyond node path + accessibility_name.
+- No new id namespace beyond node path + accessibility_name. (The
+  agent layer ADDS a stable `id` field to each snapshot entry —
+  `ui:<path>` / `world:<id>` — but it is derived from the same path
+  namespace, not a new one.)
 
 ## 10. Success criteria
 

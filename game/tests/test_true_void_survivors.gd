@@ -24,7 +24,6 @@ const AggroPath = "res://core/components/aggro_component.gd"
 const SpawnPath = "res://core/services/spawn_service.gd"
 const _InstancePath = "res://core/services/instance_service.gd"
 const NotificationPath = "res://core/services/notification_service.gd"
-const AgentConnectorPath = "res://core/schemas/agent_connector.gd"
 
 func _initialize() -> void:
 	# Autoload-lag law: the body runs on the first idle frame.
@@ -123,10 +122,12 @@ func _run() -> void:
 	if notif != null and notif.has_signal("notification_queued"):
 		_fail("notification_queued still declared")
 		return
-	var connector = load(AgentConnectorPath)
-	var connector_probe: Node = _instance_of(connector)
-	if connector_probe != null and connector_probe.has_signal("observation_ready"):
-		_fail("observation_ready still declared")
+	# The half-built connector layer (agent_connector/agent_action/
+	# connector_service + the vant/mcp connectors) was REMOVED in the
+	# agent-play round: never an autoload, never booted, and its
+	# observation_ready contract had no consumer. Assert it stays gone.
+	if ResourceLoader.exists("res://core/schemas/agent_connector.gd"):
+		_fail("dead agent_connector.gd still present")
 		return
 	print("[OK] the retirements hold: no npc_spawned / notification_queued / observation_ready / threat_changed")
 

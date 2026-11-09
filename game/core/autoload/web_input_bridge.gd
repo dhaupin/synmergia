@@ -24,6 +24,10 @@ var _poll_interval: float = 0.016  # ~60fps
 # function object on window (typeof "function", invocation silently
 # no-ops -- live-verified on wasm, R40).
 var _a11y_dump_cb = null
+# Retained agent hooks (same collection law as _a11y_dump_cb above).
+var _agent_observe_cb = null
+var _agent_act_cb = null
+var _agent_events_cb = null
 
 func _ready() -> void:
 	# Agent-only hook (prd-accessibility.md sec 8, F13 disposition):
@@ -33,6 +37,58 @@ func _ready() -> void:
 	if OS.has_feature("web"):
 		_a11y_dump_cb = JavaScriptBridge.create_callback(_js_a11y_dump)
 		JavaScriptBridge.get_interface("window").__synA11yDump = _a11y_dump_cb
+		_install_agent_hooks()
+
+## window.SynmergiaAgent -- the web build's agent/companion door (parity
+## with the TCP AgentDoor). A 2D companion helper on the same page calls
+## these directly; a remote companion uses the HTTP door instead. Both
+## reach the SAME AgentDriver verbs, so a browser agent plays by the real
+## rules. observe/act/events are synchronous; wait_for is JS-side polling
+## of observe() (a browser has no server-side await to park on).
+func _install_agent_hooks() -> void:
+	var win = JavaScriptBridge.get_interface("window")
+	_agent_observe_cb = JavaScriptBridge.create_callback(_js_agent_observe)
+	_agent_act_cb = JavaScriptBridge.create_callback(_js_agent_act)
+	_agent_events_cb = JavaScriptBridge.create_callback(_js_agent_events)
+	win.SynmergiaAgent = {
+		"observe": _agent_observe_cb,
+		"act": _agent_act_cb,
+		"events": _agent_events_cb,
+	}
+
+func _agent_driver() -> Node:
+	return get_node_or_null("/root/AgentDriver")
+
+func _js_agent_observe(_args: Array) -> String:
+	var d := _agent_driver()
+	if d == null:
+		return "{}"
+	return JSON.stringify(d.observe())
+
+func _js_agent_act(args: Array) -> String:
+	var d := _agent_driver()
+	if d == null:
+		return '{"ok":false,"reason":"driver missing"}'
+	if args.is_empty():
+		return '{"ok":false,"reason":"act needs an action id"}'
+	var payload = args[0]
+	var action_id: String = ""
+	var extra: Dictionary = {}
+	if payload is String:
+		action_id = String(payload)
+	elif payload is Dictionary:
+		action_id = String(payload.get("id", ""))
+		extra = payload.get("args", {})
+	return JSON.stringify(d.act(action_id, extra))
+
+func _js_agent_events(args: Array) -> String:
+	var d := _agent_driver()
+	if d == null:
+		return "[]"
+	var since: int = -1
+	if not args.is_empty() and args[0] != null:
+		since = int(args[0])
+	return JSON.stringify(d.events(since))
 
 func _js_a11y_dump(args: Array) -> void:
 	A11yService.dump()

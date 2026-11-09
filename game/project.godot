@@ -122,6 +122,8 @@ BoutHostService="*res://core/services/bout_host_service.gd"
 RecentPlayersService="*res://core/services/recent_players_service.gd"
 ScopeService="*res://core/services/scope_service.gd"
 ThermalService="*res://core/services/thermal_service.gd"
+AgentDriver="*res://core/services/agent_driver.gd"
+AgentDoor="*res://core/services/agent_door.gd"
 
 [display]
 

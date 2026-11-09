@@ -69,6 +69,11 @@
 	         SynmergiaInput.init(document.getElementById('game-canvas'));
 	     The WebInputBridge autoload drains it only when initialized. -->
 	<script src="shared/input.js"></script>
+	<!-- Companion client: drive the game from a 2D helper / agent / a11y
+	     control surface. Auto-picks the in-page transport (window.SynmergiaAgent,
+	     installed by WebInputBridge) and falls back to the remote AgentDoor.
+	     See web/shared/agent-client.js and labs/prd-agent-play.md. -->
+	<script src="shared/agent-client.js"></script>
 	<script src="game.js"></script>
 	<script>
 	(function () {

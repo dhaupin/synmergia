@@ -104,8 +104,6 @@ const STORE_MANIFEST := {
 	"game_data": "DataService (templates)",
 	"matchmaking_queue": "MatchmakingQoS",
 	"dialogues": "DialogService",
-	"agent_connectors": "ConnectorService",
-	"agent_actions": "ConnectorService",
 	"player_settings": "PlayerConfig",
 	"durable_mounts": "RideService owned-mount ledger (R48: survives the web reload)",
 	"npc_offerings": "VendorService",
@@ -131,7 +129,6 @@ const STORE_MANIFEST := {
 	"active_locks": "PlayerLockService",
 	"active_dialogue": "DialogService",
 	"anti_cheat_profiles": "AntiCheatService",
-	"connected_agents": "ConnectorService",
 }
 
 
@@ -289,5 +286,5 @@ func _is_memory_only(name: String) -> bool:
 	return name in [
 		"active_loot", "active_follows", "active_wars", "active_revives",
 		"active_waypoints", "active_trades", "active_locks", "active_dialogue",
-		"anti_cheat_profiles", "connected_agents",
+		"anti_cheat_profiles",
 	]

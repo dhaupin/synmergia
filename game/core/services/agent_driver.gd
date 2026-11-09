@@ -1,0 +1,571 @@
+## AgentDriver - the one command channel an agent (or a companion app, or a
+## screen-reader control surface) uses to PLAY Synmergia.
+##
+## Agents are citizens here (labs/prd-agent-play.md): an agent connects to an
+## ACCOUNT and plays any species/class, parties with humans, and acts through
+## the SAME verbs a keypress takes. There is no agent rail and no bypass --
+## every action routes through the real input pipeline / service APIs, so the
+## behavioral-integrity layer (prd-agent-law.md) sees an honest stream.
+##
+## Four verbs, request/response, structured (never pixels, never console):
+##   observe()                -> structured state + the actionable list
+##   act(id, args)            -> perform one action by STABLE HANDLE
+##   wait_for(predicate, ms)  -> server-side wait (no fixed-sleep flake)
+##   events(since)            -> the recent event ring
+##
+## Threading law: the transport (agent_door.gd) runs on its own thread and
+## ONLY calls submit()/poll() -- a mutex-guarded queue. The main thread is the
+## sole thing that touches the scene tree, draining the queue in _process.
+## wait_for parks on the main thread and re-checks each frame until the
+## predicate holds or the timeout expires, then answers the request.
+##
+## Enable: opt-in. SYN_AGENT=1 (or 1/true/yes) in the env, or enable() at
+## runtime. Off is the honest default; the door binds localhost regardless.
+extends Node
+
+const RING_MAX := 200
+const DEFAULT_WAIT_MS := 8000
+
+var _enabled: bool = false
+var _frames: int = 0
+
+# The event ring: {t, frame, event, data}. Plain types only (JSON-safe).
+var _ring: Array = []
+
+# Thread-safe command queue (door thread -> main thread).
+var _mutex := Mutex.new()
+var _queue: Array = []          # [{id, verb, args}]
+var _responses: Dictionary = {}  # id -> response Dictionary
+var _next_id: int = 1
+
+# Parked wait_for requests on the main thread.
+var _waits: Array = []  # [{id, pred, deadline_ms, since_frame}]
+
+func _ready() -> void:
+	_enabled = _env_enabled()
+	_connect_event_ring()
+	if _enabled:
+		GameLog.info("AgentDriver: ENABLED (agents may connect; door binds localhost)")
+
+func _env_enabled() -> bool:
+	var raw: String = ""
+	if OS.has_environment("SYN_AGENT"):
+		raw = OS.get_environment("SYN_AGENT").strip_edges().to_lower()
+	return raw in ["1", "true", "yes", "on"]
+
+## Enable/disable at runtime (the door asks; receipts force it on).
+func set_enabled(v: bool) -> void:
+	_enabled = v
+
+func is_enabled() -> bool:
+	return _enabled
+
+## True once a local player exists and a world is live (an agent can act).
+func in_world() -> bool:
+	return _local_player() != null
+
+# -- The event ring --------------------------------------------------------
+
+func _connect_event_ring() -> void:
+	var hub := get_node_or_null("/root/EventHub")
+	if hub != null:
+		_tap(hub, "entity_died")
+		_tap(hub, "player_died")
+		_tap(hub, "player_respawned")
+		_tap(hub, "kill_rewarded")
+		_tap(hub, "damage_dealt")
+		_tap(hub, "skill_executed")
+		_tap(hub, "entity_entered_zone")
+		_tap(hub, "entity_entered_combat")
+		_tap(hub, "entity_exited_combat")
+		_tap(hub, "gold_changed")
+		_tap(hub, "target_action_executed")
+	var notif := get_node_or_null("/root/NotificationService")
+	if notif != null and notif.has_signal("notification_sent"):
+		notif.notification_sent.connect(_on_notification_sent)
+
+func _tap(hub: Node, sig: String) -> void:
+	if hub.has_signal(sig):
+		hub.connect(sig, _on_hub_event.bind(sig))
+
+func _on_hub_event(a = null, b = null, c = null, d = null, e = null, sig: String = "") -> void:
+	# Variadic: EventHub signals carry 1..5 args; capture the ones we get.
+	var data: Dictionary = {}
+	if a != null:
+		data["a"] = _id_of(a)
+	if b != null:
+		data["b"] = _id_of(b)
+	if c != null:
+		data["c"] = _plain(c)
+	if d != null:
+		data["d"] = _plain(d)
+	if e != null:
+		data["e"] = _plain(e)
+	_record(sig, data)
+
+func _on_notification_sent(entity_id: String, notification: Dictionary) -> void:
+	_record("notification", {
+		"entity_id": entity_id,
+		"kind": int(notification.get("kind", -1)),
+		"message": String(notification.get("message", "")),
+	})
+
+func _record(event: String, data: Dictionary) -> void:
+	_ring.append({"t": Time.get_ticks_msec(), "frame": _frames, "event": event, "data": data})
+	if _ring.size() > RING_MAX:
+		_ring = _ring.slice(_ring.size() - RING_MAX)
+
+func _id_of(v) -> Variant:
+	if v is Node and "entity_id" in v:
+		return String(v.entity_id)
+	return _plain(v)
+
+func _plain(v) -> Variant:
+	if v == null:
+		return null
+	if v is Vector3:
+		return {"x": v.x, "y": v.y, "z": v.z}
+	if v is Vector2:
+		return {"x": v.x, "y": v.y}
+	if v is int or v is float or v is bool or v is String:
+		return v
+	if v is Array:
+		var out: Array = []
+		for item in v:
+			out.append(_plain(item))
+		return out
+	if v is Dictionary:
+		var outd: Dictionary = {}
+		for k in v:
+			outd[String(k)] = _plain(v[k])
+		return outd
+	if v is Node and "entity_id" in v:
+		return String(v.entity_id)
+	return str(v)
+
+## The recent event ring, optionally only entries after a frame.
+func events(since_frame: int = -1) -> Array:
+	if since_frame < 0:
+		return _ring.duplicate(true)
+	var out: Array = []
+	for e in _ring:
+		if int(e["frame"]) > since_frame:
+			out.append(e)
+	return out
+
+# -- observe() -------------------------------------------------------------
+
+## The structured snapshot: who/where I am, what I can do, what just happened.
+## Never prints (the old print-stream is gone); returns JSON-safe data.
+func observe() -> Dictionary:
+	var player := _local_player()
+	var scene: String = ""
+	var tree := get_tree()
+	if tree != null and tree.current_scene != null:
+		scene = String(tree.current_scene.name)
+	var out: Dictionary = {
+		"ok": true,
+		"frame": _frames,
+		"enabled": _enabled,
+		"scene": scene,
+		"in_world": player != null,
+		"player": _player_block(player),
+		"target": _target_block(),
+		"party": _party_block(player),
+		"actions": _actions(),
+		"events": _ring.slice(maxi(0, _ring.size() - 20)),
+	}
+	return out
+
+func _local_player() -> Node:
+	var pm := get_node_or_null("/root/PlayerManager")
+	if pm != null and "local_player" in pm:
+		var lp = pm.local_player
+		if lp != null and is_instance_valid(lp):
+			return lp
+	return null
+
+func _player_block(player: Node) -> Variant:
+	if player == null or not is_instance_valid(player):
+		return null
+	var pos: Vector3 = player.global_position
+	var hp: int = 0
+	var hp_max: int = 0
+	var dead: bool = false
+	if "health_component" in player and player.health_component != null:
+		var hc = player.health_component
+		if hc.has_method("get_health"):
+			hp = int(hc.get_health())
+		elif "current_health" in hc:
+			hp = int(hc.current_health)
+		if "max_health" in hc:
+			hp_max = int(hc.max_health)
+		if hc.has_method("is_dead"):
+			dead = bool(hc.is_dead())
+	var block: Dictionary = {
+		"id": String(player.entity_id) if "entity_id" in player else "",
+		"name": String(player.display_name) if "display_name" in player else "",
+		"position": {"x": pos.x, "y": pos.y, "z": pos.z},
+		"health": hp,
+		"max_health": hp_max,
+		"is_dead": dead,
+	}
+	if "level" in player:
+		block["level"] = int(player.level)
+	if "current_mana" in player:
+		block["mana"] = int(player.current_mana)
+	if "current_stamina" in player:
+		block["stamina"] = int(player.current_stamina)
+	if "is_sprinting" in player:
+		block["is_sprinting"] = bool(player.is_sprinting)
+	if "char_class" in player:
+		block["char_class"] = String(player.char_class)
+	if "species_id" in player:
+		block["species"] = String(player.species_id)
+	return block
+
+func _target_block() -> Variant:
+	var tm := get_node_or_null("/root/TargetingManager")
+	if tm == null or not tm.has_method("get_current_target"):
+		return null
+	var info = tm.get_current_target()
+	if info == null:
+		return null
+	return {
+		"id": String(info.id) if "id" in info else "",
+		"name": String(info.display_name) if "display_name" in info else "",
+	}
+
+func _party_block(player: Node) -> Variant:
+	if player == null or not "entity_id" in player:
+		return null
+	var ps := get_node_or_null("/root/PartyService")
+	if ps == null or not ps.has_method("get_player_party"):
+		return null
+	var party: Dictionary = ps.get_player_party(String(player.entity_id))
+	if party.is_empty():
+		return null
+	var members: Array = []
+	if ps.has_method("get_party_members"):
+		members = ps.get_party_members(String(party.get("party_id", "")))
+	return {"party_id": String(party.get("party_id", "")), "leader_id": String(party.get("leader_id", "")), "members": members}
+
+## The actionable list, each carrying a STABLE id (ui:<path> / world:<id>).
+func _actions() -> Array:
+	var a11y := get_node_or_null("/root/A11yService")
+	if a11y == null or not a11y.has_method("snapshot"):
+		return []
+	var snap: Array = a11y.snapshot()
+	var out: Array = []
+	for e in snap:
+		out.append({
+			"id": String(e.get("id", "")),
+			"kind": String(e.get("kind", "")),
+			"action": String(e.get("action", "")),
+			"detail": String(e.get("detail", "")),
+			"disabled": bool(e.get("disabled", false)),
+		})
+	return out
+
+# -- act() -----------------------------------------------------------------
+
+## Perform one action by stable handle (ui:<path> / world:<id>) or by a small
+## set of world verbs (move/look/chat/attack/target/party_invite/stop). Every
+## path routes through the real pipeline; returns {ok, reason, ...}.
+func act(action_id: String, args: Dictionary = {}) -> Dictionary:
+	if not _enabled:
+		return {"ok": false, "reason": "agent driver disabled"}
+	if action_id.begins_with("ui:") or action_id.begins_with("world:"):
+		return _act_handle(action_id)
+	return _act_verb(action_id, args)
+
+func _act_handle(action_id: String) -> Dictionary:
+	var a11y := get_node_or_null("/root/A11yService")
+	if a11y == null or not a11y.has_method("activate_by_id"):
+		return {"ok": false, "reason": "a11y service missing"}
+	if not a11y.activate_by_id(action_id):
+		return {"ok": false, "reason": "no actionable '%s' (gone or disabled)" % action_id}
+	return {"ok": true, "reason": "", "handle": action_id}
+
+func _act_verb(verb: String, args: Dictionary) -> Dictionary:
+	var player := _local_player()
+	match verb:
+		"move":
+			return _verb_move(args)
+		"stop":
+			_release_moves()
+			return {"ok": true}
+		"look":
+			return _verb_look(args)
+		"chat":
+			return _verb_chat(player, args)
+		"attack":
+			return _verb_attack(player, args)
+		"target":
+			return _verb_target(args)
+		"party_invite":
+			return _verb_party_invite(player, args)
+		"party_leave":
+			return _verb_party_leave(player)
+		"interact":
+			return _verb_interact(player)
+	return {"ok": false, "reason": "unknown verb '%s'" % verb}
+
+## Movement rides the REAL action map: action_press/release are exactly what a
+## key does, so globe_player's Input.get_vector reads them with no bypass.
+const _MOVE_ACTIONS := ["move_forward", "move_back", "move_left", "move_right", "sprint"]
+
+func _verb_move(args: Dictionary) -> Dictionary:
+	_release_moves()
+	var fwd: float = float(args.get("forward", 0.0))
+	var strafe: float = float(args.get("strafe", 0.0))
+	if fwd > 0.05:
+		Input.action_press("move_forward")
+	elif fwd < -0.05:
+		Input.action_press("move_back")
+	if strafe > 0.05:
+		Input.action_press("move_right")
+	elif strafe < -0.05:
+		Input.action_press("move_left")
+	if bool(args.get("sprint", false)):
+		Input.action_press("sprint")
+	return {"ok": true}
+
+func _release_moves() -> void:
+	for a in _MOVE_ACTIONS:
+		if Input.is_action_pressed(a):
+			Input.action_release(a)
+
+func _verb_look(args: Dictionary) -> Dictionary:
+	var player := _local_player()
+	if player == null:
+		return {"ok": false, "reason": "no local player"}
+	var yaw: float = float(args.get("yaw", 0.0))
+	var pitch: float = float(args.get("pitch", 0.0))
+	if yaw == 0.0 and pitch == 0.0:
+		return {"ok": true}
+	var ev := InputEventMouseMotion.new()
+	ev.relative = Vector2(yaw, pitch)
+	ev.position = Vector2.ZERO
+	Input.parse_input_event(ev)
+	return {"ok": true}
+
+func _verb_chat(player: Node, args: Dictionary) -> Dictionary:
+	if player == null:
+		return {"ok": false, "reason": "no local player"}
+	var text: String = String(args.get("text", ""))
+	if text == "":
+		return {"ok": false, "reason": "empty message"}
+	var channel: String = String(args.get("channel", "say"))
+	var chat := get_node_or_null("/root/ChatService")
+	if chat == null or not chat.has_method("send_message"):
+		return {"ok": false, "reason": "chat service missing"}
+	var ok: bool = chat.send_message(player, text, channel)
+	return {"ok": ok, "reason": "" if ok else "send rejected"}
+
+func _verb_attack(player: Node, args: Dictionary) -> Dictionary:
+	if player == null:
+		return {"ok": false, "reason": "no local player"}
+	if args.has("target"):
+		var t: Dictionary = _verb_target(args)
+		if not bool(t.get("ok", false)):
+			return t
+	if player.has_method("use_skill"):
+		seed(int(Time.get_ticks_msec()) % 100000)
+		player.use_skill(int(args.get("skill", 0)))
+		return {"ok": true}
+	return {"ok": false, "reason": "player cannot use_skill"}
+
+func _verb_target(args: Dictionary) -> Dictionary:
+	var eid: String = String(args.get("target", args.get("entity_id", "")))
+	if eid == "":
+		return {"ok": false, "reason": "no target id"}
+	var es := get_node_or_null("/root/EntityService")
+	var tm := get_node_or_null("/root/TargetingManager")
+	if es == null or tm == null or not es.has_method("get_entity"):
+		return {"ok": false, "reason": "targeting unavailable"}
+	var entity = es.get_entity(eid)
+	if entity == null or not is_instance_valid(entity):
+		return {"ok": false, "reason": "no entity '%s'" % eid}
+	var sname: String = String(entity.display_name) if "display_name" in entity else eid
+	var etype: int = int(entity.entity_type) if "entity_type" in entity else 0
+	tm.set_target(eid, eid, sname, entity.global_position, entity, etype, {})
+	return {"ok": true, "reason": "", "target": eid}
+
+func _verb_party_invite(player: Node, args: Dictionary) -> Dictionary:
+	if player == null or not "entity_id" in player:
+		return {"ok": false, "reason": "no local player"}
+	var to: String = String(args.get("target", ""))
+	if to == "":
+		return {"ok": false, "reason": "no target id"}
+	var ps := get_node_or_null("/root/PartyService")
+	if ps == null or not ps.has_method("invite_player"):
+		return {"ok": false, "reason": "party service missing"}
+	var ok: bool = ps.invite_player(String(player.entity_id), to)
+	return {"ok": ok, "reason": "" if ok else "invite refused"}
+
+func _verb_party_leave(player: Node) -> Dictionary:
+	if player == null or not "entity_id" in player:
+		return {"ok": false, "reason": "no local player"}
+	var ps := get_node_or_null("/root/PartyService")
+	if ps == null or not ps.has_method("leave_party"):
+		return {"ok": false, "reason": "party service missing"}
+	var ok: bool = ps.leave_party(String(player.entity_id))
+	return {"ok": ok}
+
+func _verb_interact(player: Node) -> Dictionary:
+	if player == null:
+		return {"ok": false, "reason": "no local player"}
+	if player.has_method("_try_interact"):
+		player._try_interact()
+		return {"ok": true}
+	return {"ok": false, "reason": "player cannot interact"}
+
+# -- wait_for() ------------------------------------------------------------
+
+## Server-side wait: resolves when the predicate holds, else on timeout.
+## Predicate vocabulary (all optional, ANDed):
+##   {"action_present": "<substr>"}  {"action_absent": "<substr>"}
+##   {"in_world": bool}  {"player_dead": bool}
+##   {"event": "<name>"}  {"target": "<substr>"}  {"hp_below": int}
+func wait_for(predicate: Dictionary, timeout_ms: int = DEFAULT_WAIT_MS) -> Dictionary:
+	if not _enabled:
+		return {"ok": false, "reason": "agent driver disabled"}
+	var since: int = _frames
+	var deadline: int = Time.get_ticks_msec() + timeout_ms
+	var tree := get_tree()
+	if tree == null:
+		return {"ok": false, "reason": "no tree"}
+	while Time.get_ticks_msec() < deadline:
+		if _predicate_met(predicate, since):
+			return {"ok": true, "waited_ms": timeout_ms - (deadline - Time.get_ticks_msec())}
+		await tree.process_frame
+	if _predicate_met(predicate, since):
+		return {"ok": true, "waited_ms": timeout_ms}
+	return {"ok": false, "reason": "timeout", "predicate": predicate}
+
+func _predicate_met(predicate: Dictionary, since_frame: int) -> bool:
+	var player := _local_player()
+	for key in predicate:
+		var want = predicate[key]
+		match String(key):
+			"in_world":
+				if (player != null) != bool(want):
+					return false
+			"player_dead":
+				var dead: bool = false
+				if player != null and "health_component" in player and player.health_component != null:
+					var hc = player.health_component
+					if hc.has_method("is_dead"):
+						dead = bool(hc.is_dead())
+				if dead != bool(want):
+					return false
+			"hp_below":
+				if player == null or not "health_component" in player or player.health_component == null:
+					return false
+				var hc2 = player.health_component
+				var hp: int = int(hc2.get_health()) if hc2.has_method("get_health") else 0
+				if hp >= int(want):
+					return false
+			"action_present":
+				if not _has_action(String(want)):
+					return false
+			"action_absent":
+				if _has_action(String(want)):
+					return false
+			"target":
+				var tb = _target_block()
+				if tb == null or not String(tb.get("name", "")).to_lower().contains(String(want).to_lower()):
+					return false
+			"event":
+				if not _event_since(String(want), since_frame):
+					return false
+			_:
+				return false
+	return true
+
+func _has_action(substr: String) -> bool:
+	var needle: String = substr.to_lower()
+	for a in _actions():
+		if String(a["action"]).to_lower().contains(needle):
+			return true
+	return false
+
+func _event_since(name: String, since_frame: int) -> bool:
+	for e in _ring:
+		if int(e["frame"]) > since_frame and String(e["event"]) == name:
+			return true
+	return false
+
+# -- Thread-safe door interface (agent_door.gd runs on its own thread) -----
+
+## Enqueue a request from the transport thread. Returns the request id.
+func submit(verb: String, args: Dictionary) -> int:
+	_mutex.lock()
+	var id: int = _next_id
+	_next_id += 1
+	_queue.append({"id": id, "verb": verb, "args": args})
+	_mutex.unlock()
+	return id
+
+## Poll for a response (transport thread). Empty dict = not ready yet.
+func poll(id: int) -> Dictionary:
+	_mutex.lock()
+	var resp: Dictionary = _responses.get(id, {})
+	if not resp.is_empty():
+		_responses.erase(id)
+	_mutex.unlock()
+	return resp
+
+func _respond(id: int, resp: Dictionary) -> void:
+	_mutex.lock()
+	_responses[id] = resp
+	_mutex.unlock()
+
+func _process(_delta: float) -> void:
+	_frames += 1
+	if not _enabled:
+		return
+	_drain_queue()
+	_tick_waits()
+
+func _drain_queue() -> void:
+	_mutex.lock()
+	var batch: Array = _queue
+	_queue = []
+	_mutex.unlock()
+	for req in batch:
+		var verb: String = String(req["verb"])
+		var args: Dictionary = req["args"]
+		match verb:
+			"observe":
+				_respond(int(req["id"]), observe())
+			"act":
+				_respond(int(req["id"]), act(String(args.get("id", "")), args.get("args", {})))
+			"events":
+				_respond(int(req["id"]), {"ok": true, "events": events(int(args.get("since", -1)))})
+			"wait_for":
+				_waits.append({
+					"id": int(req["id"]),
+					"pred": args.get("predicate", {}),
+					"deadline": Time.get_ticks_msec() + int(args.get("timeout_ms", DEFAULT_WAIT_MS)),
+					"since": _frames,
+				})
+			"ping":
+				_respond(int(req["id"]), {"ok": true, "frame": _frames, "in_world": in_world()})
+			_:
+				_respond(int(req["id"]), {"ok": false, "reason": "unknown verb '%s'" % verb})
+
+func _tick_waits() -> void:
+	if _waits.is_empty():
+		return
+	var remaining: Array = []
+	for w in _waits:
+		var pred: Dictionary = w["pred"]
+		if _predicate_met(pred, int(w["since"])):
+			_respond(int(w["id"]), {"ok": true})
+		elif Time.get_ticks_msec() >= int(w["deadline"]):
+			_respond(int(w["id"]), {"ok": false, "reason": "timeout", "predicate": pred})
+		else:
+			remaining.append(w)
+	_waits = remaining
