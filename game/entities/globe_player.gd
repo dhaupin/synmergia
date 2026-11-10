@@ -234,6 +234,15 @@ var _ride_lift: float = 0.0
 var _slope_cos: float = 1.0
 ## Touch auto-sprint mirror (VirtualJoystick.sprint_override).
 var _sprint_override_on: bool = false
+## Per-body virtual input (labs/prd-agent-play.md sec 1/7): an AGENT body is
+## driven by its OWN input, never the global Input singleton -- that is what
+## lets two bodies (a human's and an agent's) share one process without the
+## human's keys steering the agent (and vice versa). The agent driver sets this
+## vector via set_virtual_input(); movement prefers it over Input when virtual
+## input is live. A human body leaves it off and reads Input exactly as before.
+var _virtual_move: Vector2 = Vector2.ZERO
+var _virtual_sprint: bool = false
+var _virtual_input_on: bool = false
 ## Targeting parity (planar-retirement Step 5): the globe body's input
 ## surface used to carry only `interact`. These mirror the planar
 ## controller's targeting state so the shared player_input fan-out
@@ -546,8 +555,13 @@ func _ready() -> void:
 	# bag it had just registered. Defensive: script-mode probes mount
 	# no PlayerManager.
 	var pm = Engine.get_main_loop().root.get_node_or_null("PlayerManager") if Engine.get_main_loop() is SceneTree else null
-	if pm != null and pm.has_method("set_local_player"):
+	# Only a LOCAL body claims the local seat (labs/prd-agent-play.md sec
+	# 1/7): an AGENT body (is_local_player = false) shares the world but
+	# must never steal the seat from the human. A deferred re-adopt makes a
+	# local body reclaim the seat if a later-added body ever displaced it.
+	if is_local_player and pm != null and pm.has_method("set_local_player"):
 		pm.set_local_player(self)
+	_adopt_local_seat.call_deferred()
 	# THE CONCORD-LOOP INTERACT (planar-retirement Step 1): listen to the
 	# shared InputManager's "interact" action so E / gamepad A / touch ACT
 	# reaches the world's interactables (ancient doors, concord stones).
@@ -583,8 +597,48 @@ func _ready() -> void:
 	# needs a jump ceiling for this body or any hop reads as a hack.
 	_call_deferred_stamp()
 
+## Deferred local-seat adoption (labs/prd-agent-play.md sec 1/7): a LOCAL
+## body re-claims the seat on the next frame, so an agent body added after
+## the human can never leave the world seated on the wrong player.
+func _adopt_local_seat() -> void:
+	if not is_local_player:
+		return
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null or tree.root == null:
+		return
+	var pm = tree.root.get_node_or_null("PlayerManager")
+	if pm != null and pm.has_method("set_local_player"):
+		pm.set_local_player(self)
+
+
 func _on_sprint_override(active: bool) -> void:
 	_sprint_override_on = active
+
+
+## Per-body virtual input (labs/prd-agent-play.md sec 1/7). An agent body is
+## driven by its OWN input, not the global Input singleton, so an agent and a
+## human can share one process. move is a camera-relative stick vector (x =
+## strafe right, y = forward), sprint a held bool. A zero vector still counts
+## as "virtual input live" (a deliberate stop), so the body ignores the
+## human's keys while an agent owns it.
+func set_virtual_input(move: Vector2, sprint: bool = false) -> void:
+	_virtual_move = move
+	_virtual_sprint = sprint
+	_virtual_input_on = true
+
+
+## Drop virtual input: the body returns to reading the global Input singleton
+## (a human body never calls this; an agent body calls it on despawn so a freed
+## seat cannot leave stale input behind).
+func clear_virtual_input() -> void:
+	_virtual_move = Vector2.ZERO
+	_virtual_sprint = false
+	_virtual_input_on = false
+
+
+## Does this body currently read virtual (agent) input rather than Input?
+func has_virtual_input() -> bool:
+	return _virtual_input_on
 
 
 ## Create + register the inventory bag (round-7 item 3). Deferred id
@@ -751,9 +805,16 @@ func _physics_process(delta: float) -> void:
 		# you look, so orbiting the view re-aims movement (walking used to
 		# pin to map north/east regardless of where the camera pointed,
 		# which read as "stuck" against invisible walls while circling).
-		var im := _im()
-		var input_vec: Vector2 = im.get_movement_input() if im \
-		else Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+		var input_vec: Vector2
+		if _virtual_input_on:
+			# _virtual_move is INTUITIVE (x = strafe right, y = forward); the
+			# get_vector convention below is y-negative-forward, so negate y here
+			# and keep the single wish formula.
+			input_vec = Vector2(_virtual_move.x, -_virtual_move.y)
+		else:
+			var im := _im()
+			input_vec = im.get_movement_input() if im \
+			else Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 		wish = cam_fwd * (-input_vec.y) + cam_right * input_vec.x
 	if wish.length() > 1.0:
 		wish = wish.normalized()
@@ -820,7 +881,8 @@ func _physics_process(delta: float) -> void:
 	# stamina reserve (stamina is the climb pool -- one pool, honest).
 	# (Recomputed AFTER the chain: a bail leaves sprint live, so the
 	# slide flows straight back into the run when the input is held.)
-	is_sprinting = (Input.is_action_pressed("sprint") or _sprint_override_on) \
+	var sprint_held: bool = _virtual_sprint if _virtual_input_on else Input.is_action_pressed("sprint")
+	is_sprinting = (sprint_held or _sprint_override_on) \
 		and climb_stamina > 0.6 and not is_crouching
 
 	# THE SEA STEP (S14.7.2): deep water outranks the walk --

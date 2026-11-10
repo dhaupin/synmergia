@@ -312,7 +312,21 @@ func seat_agent(account_id: String, handle: String) -> Dictionary:
 	var human: String = _human_entity(account_id)
 	if human == "":
 		return {"ok": false, "reason": "the human's live body is not resolvable for this account"}
+	# THE BODY (labs/prd-agent-play.md sec 1/7): an agent is a player, so a
+	# seat needs a body. When the body service is mounted, spawn one when the
+	# agent has none yet (first seat, or after a manual re-enable) and reuse
+	# the live one otherwise. With no body service (a unit probe with no
+	# world), keep the legacy behavior: seat by the id already on the record.
 	var agent: String = _agent_entity(handle)
+	if _node("AgentBodyService") != null and _find_body(agent) == null:
+		var spawned: Dictionary = _spawn_agent_body(account_id, handle, agent)
+		if spawned.get("ok", false):
+			agent = String(spawned.get("entity_id", ""))
+		elif agent == "":
+			# No body and no character id: the seat cannot be honest.
+			return spawned
+		# else: no world to spawn into, but the agent already has a character
+		# id -- seat by id (the legacy/unit path; a real globe always spawns).
 	if agent == "":
 		return {"ok": false, "reason": "agent '%s' has no character to seat" % handle}
 	var ps := _party_service()
@@ -401,14 +415,68 @@ func despawn_agent(handle: String) -> Dictionary:
 		return _refuse_despawn(account_id, handle, "no PlayerProgress is mounted (cannot bank the body)")
 	if not bool(pp.save_player(body, "agent_logout")):
 		return _refuse_despawn(account_id, handle, "the body could not be saved; it was left standing")
-	var es := _node("EntityService")
-	if es != null and es.has_method("unregister_entity"):
-		es.unregister_entity(body, "agent_logout")
-	if is_instance_valid(body):
-		body.queue_free()
+	# Tear the body down through the body service ONLY when the service
+	# actually owns it (it spawned it). A body registered some other way
+	# (a unit probe) is removed directly, so this leg is honest either way.
+	var bodies := _node("AgentBodyService")
+	var svc_owns: bool = bodies != null and bodies.has_method("body_for") \
+		and bodies.body_for(handle) != null
+	if svc_owns and bodies.has_method("despawn"):
+		bodies.despawn(handle)
+	else:
+		var es := _node("EntityService")
+		if es != null and es.has_method("unregister_entity"):
+			es.unregister_entity(body, "agent_logout")
+		if is_instance_valid(body):
+			body.queue_free()
 	agent_despawned.emit(account_id, handle, agent)
 	GameLog.info("AgentRoster: despawned agent %s (body %s, saved)" % [handle, agent])
 	return {"ok": true, "entity_id": agent}
+
+
+## Re-enable an agent after an AFK/logout despawn (labs/prd-agent-play.md sec
+## 17.2: agents do NOT auto-respawn; the human re-enables them manually).
+## Spawns a fresh body (the old one was banked + freed) and seats it again.
+## Honest refusal by name when the gate is shut (still AFK) or the body
+## cannot be created (no world).
+func re_enable(account_id: String, handle: String) -> Dictionary:
+	if owner_of(handle) != account_id:
+		return {"ok": false, "reason": "agent '%s' is not attached to %s" % [handle, account_id]}
+	var gate: Dictionary = can_play(account_id)
+	if not gate.get("ok", false):
+		return gate
+	# The body may still be banked-and-gone while the party seat lingers (a
+	# despawn does not unseat). Clear a stale seat so the re-seat is clean.
+	unseat_agent(handle)
+	if _find_body(_agent_entity(handle)) != null:
+		return {"ok": true, "handle": handle, "already": true}
+	return seat_agent(account_id, handle)
+
+
+## Re-enable EVERY attached agent that is currently out of play (the
+## welcome-back button). Returns {ok, re_enabled: [...], refused: [...]}.
+func re_enable_all(account_id: String) -> Dictionary:
+	var done: Array = []
+	var refused: Array = []
+	for h in agents_of(account_id):
+		var res: Dictionary = re_enable(account_id, String(h))
+		if bool(res.get("ok", false)):
+			done.append(String(h))
+		else:
+			refused.append({"handle": String(h), "reason": String(res.get("reason", ""))})
+	return {"ok": true, "re_enabled": done, "refused": refused}
+
+
+## Spawn a body for an agent via AgentBodyService (the body owner). Honest
+## when the service is not mounted (a probe with no world says so).
+func _spawn_agent_body(account_id: String, handle: String, entity_id: String = "") -> Dictionary:
+	var bodies := _node("AgentBodyService")
+	if bodies == null or not bodies.has_method("spawn"):
+		return {"ok": false, "reason": "no AgentBodyService is mounted (cannot seat a body)"}
+	var opts: Dictionary = {}
+	if entity_id != "":
+		opts["entity_id"] = entity_id
+	return bodies.spawn(account_id, handle, opts)
 
 
 func _refuse_despawn(account_id: String, handle: String, reason: String) -> Dictionary:

@@ -79,6 +79,16 @@ func register(handle: String, opts: Dictionary = {}) -> Dictionary:
 	_turn_order.append(handle)
 	return {"ok": true, "handle": handle}
 
+## Link a handle to its live character/body id (labs/prd-agent-play.md sec 7):
+## the honest handle -> character link. Called by AgentBodyService when it
+## spawns a body, and with "" when the body is despawned. A no-op when the
+## handle is not registered (a body can exist before the loop registers it).
+func link_entity(handle: String, entity_id: String) -> void:
+	if not _agents.has(handle):
+		return
+	_agents[handle]["entity_id"] = entity_id
+
+
 func unregister(handle: String) -> bool:
 	if not _agents.has(handle):
 		return false

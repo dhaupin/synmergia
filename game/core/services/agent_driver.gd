@@ -163,8 +163,9 @@ func events(since_frame: int = -1) -> Array:
 
 ## The structured snapshot: who/where I am, what I can do, what just happened.
 ## Never prints (the old print-stream is gone); returns JSON-safe data.
-func observe() -> Dictionary:
-	var player := _local_player()
+func observe(principal: String = "") -> Dictionary:
+	var body := _body_for(principal)
+	var player := body if body != null else _local_player()
 	var scene: String = ""
 	var tree := get_tree()
 	if tree != null and tree.current_scene != null:
@@ -175,6 +176,7 @@ func observe() -> Dictionary:
 		"enabled": _enabled,
 		"scene": scene,
 		"in_world": player != null,
+		"principal": principal,
 		"player": _player_block(player),
 		"target": _target_block(),
 		"party": _party_block(player),
@@ -288,7 +290,7 @@ func act(action_id: String, args: Dictionary = {}) -> Dictionary:
 		return {"ok": false, "reason": "agent driver disabled"}
 	if action_id.begins_with("ui:") or action_id.begins_with("world:"):
 		return _act_handle(action_id, String(args.get("verb", "")), args.get("value", null))
-	return _act_verb(action_id, args)
+	return _act_verb(action_id, args, _principal(args))
 
 ## A `ui:`/`world:` handle. The gamestruct wire carries a `verb`: `set_value`
 ## is a VALUE WRITE (a text field or slider takes a value), any other verb (or
@@ -312,16 +314,43 @@ func _act_handle(action_id: String, verb: String, value) -> Dictionary:
 		return {"ok": false, "reason": "no actionable '%s' (gone or disabled)" % action_id}
 	return {"ok": true, "reason": "", "handle": action_id}
 
-func _act_verb(verb: String, args: Dictionary) -> Dictionary:
-	var player := _local_player()
+## The principal a call is for: an explicit `principal`/`handle`/`body` arg,
+## else "". "" means the LOCAL seat -- the human's own body -- which is what
+## a single-agent caller (the human's door, the 2D surface) always wants.
+func _principal(args: Dictionary) -> String:
+	for key in ["principal", "handle", "body"]:
+		if args.has(key):
+			var v: String = String(args.get(key, "")).strip_edges()
+			if v != "":
+				return v
+	return ""
+
+
+## Resolve a principal to a live body. A non-empty principal that does not
+## resolve is an HONEST refusal at the call site (never a silent fall-back
+## onto the local player, which would let one agent drive another's body).
+## "local" / "human" / "" resolve to the human's own body.
+func _body_for(principal: String) -> Node:
+	if principal == "" or principal == "local" or principal == "human":
+		return _local_player()
+	var bodies := get_node_or_null("/root/AgentBodyService")
+	if bodies != null and bodies.has_method("body_for"):
+		var b = bodies.body_for(principal)
+		if b is Node and is_instance_valid(b):
+			return b
+	return null
+
+
+func _act_verb(verb: String, args: Dictionary, principal: String = "") -> Dictionary:
+	var body := _body_for(principal)
+	var player := body if body != null else _local_player()
 	match verb:
 		"move":
-			return _verb_move(args)
+			return _verb_move(args, player)
 		"stop":
-			_release_moves()
-			return {"ok": true}
+			return _verb_stop(player)
 		"look":
-			return _verb_look(args)
+			return _verb_look(args, player)
 		"chat":
 			return _verb_chat(player, args)
 		"attack":
@@ -342,10 +371,19 @@ func _act_verb(verb: String, args: Dictionary) -> Dictionary:
 ## key does, so globe_player's Input.get_vector reads them with no bypass.
 const _MOVE_ACTIONS := ["move_forward", "move_back", "move_left", "move_right", "sprint"]
 
-func _verb_move(args: Dictionary) -> Dictionary:
-	_release_moves()
+func _verb_move(args: Dictionary, body: Node) -> Dictionary:
 	var fwd: float = float(args.get("forward", 0.0))
 	var strafe: float = float(args.get("strafe", 0.0))
+	var sprint: bool = bool(args.get("sprint", false))
+	# An agent body owns its OWN input (sec 1/7): a move sets that body's
+	# virtual stick, never the global Input singleton -- so two bodies in
+	# one process do not steer each other. The HUMAN's body keeps riding
+	# the real action map (exactly what a key does), so nothing about the
+	# single-player path changes.
+	if body != null and body.has_method("set_virtual_input"):
+		body.set_virtual_input(Vector2(strafe, fwd), sprint)
+		return {"ok": true}
+	_release_moves()
 	if fwd > 0.05:
 		Input.action_press("move_forward")
 	elif fwd < -0.05:
@@ -354,8 +392,18 @@ func _verb_move(args: Dictionary) -> Dictionary:
 		Input.action_press("move_right")
 	elif strafe < -0.05:
 		Input.action_press("move_left")
-	if bool(args.get("sprint", false)):
+	if sprint:
 		Input.action_press("sprint")
+	return {"ok": true}
+
+
+## stop(): an agent body zeroes its virtual stick; the human's body releases
+## the held actions.
+func _verb_stop(body: Node) -> Dictionary:
+	if body != null and body.has_method("set_virtual_input"):
+		body.set_virtual_input(Vector2.ZERO, false)
+		return {"ok": true}
+	_release_moves()
 	return {"ok": true}
 
 func _release_moves() -> void:
@@ -363,10 +411,20 @@ func _release_moves() -> void:
 		if Input.is_action_pressed(a):
 			Input.action_release(a)
 
-func _verb_look(args: Dictionary) -> Dictionary:
-	var player := _local_player()
+func _verb_look(args: Dictionary, body: Node = null) -> Dictionary:
+	var player := body if body != null else _local_player()
 	if player == null:
 		return {"ok": false, "reason": "no local player"}
+	# An agent body aims its OWN camera pivot; only the human's body (the
+	# one the OS mouse drives) parses a global mouse event.
+	if body != null and body != _local_player():
+		var pivot: Node3D = body.get_node_or_null("CameraPivot")
+		if pivot != null:
+			var yaw: float = float(args.get("yaw", 0.0))
+			var pitch: float = float(args.get("pitch", 0.0))
+			pivot.rotate_object_local(Vector3.UP, -yaw * 0.001)
+			pivot.rotate_object_local(Vector3.RIGHT, -pitch * 0.001)
+			return {"ok": true}
 	var yaw: float = float(args.get("yaw", 0.0))
 	var pitch: float = float(args.get("pitch", 0.0))
 	if yaw == 0.0 and pitch == 0.0:
@@ -643,7 +701,7 @@ func _drain_queue() -> void:
 		var args: Dictionary = req["args"]
 		match verb:
 			"observe":
-				_respond(int(req["id"]), observe())
+				_respond(int(req["id"]), observe(String(args.get("principal", ""))))
 			"act":
 				_respond(int(req["id"]), act(String(args.get("id", "")), args.get("args", {})))
 			"events":

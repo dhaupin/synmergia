@@ -124,6 +124,7 @@ ThermalService="*res://core/services/thermal_service.gd"
 AgentDriver="*res://core/services/agent_driver.gd"
 AgentCoordinator="*res://core/services/agent_coordinator.gd"
 AgentRoster="*res://core/services/agent_roster.gd"
+AgentBodyService="*res://core/services/agent_body_service.gd"
 AgentDoor="*res://core/services/agent_door.gd"
 
 [display]

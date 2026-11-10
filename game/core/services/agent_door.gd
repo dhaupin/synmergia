@@ -212,7 +212,7 @@ func _route(method: String, path: String, body: String, headers: Dictionary = {}
 		"/health":
 			return _call(driver, "ping", {})
 		"/observe":
-			return _call(driver, "observe", {})
+			return _call(driver, "observe", {"principal": String(query.get("principal", ""))})
 		"/events":
 			return _call(driver, "events", {"since": int(query.get("since", -1))})
 		"/act":
@@ -251,6 +251,10 @@ func _act_args(body: Dictionary) -> Dictionary:
 			args[k] = value[k]
 	elif value != null:
 		args["value"] = value
+	# A per-body principal (labs/prd-agent-play.md sec 1/7): the caller names
+	# WHICH body a verb drives. Absent/"" = the local seat (the human).
+	if body.has("principal"):
+		args["principal"] = String(body.get("principal", ""))
 	return {"id": String(body.get("id", "")), "args": args}
 
 ## Submit to AgentDriver (main thread does the work), then poll this thread
