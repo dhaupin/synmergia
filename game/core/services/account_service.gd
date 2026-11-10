@@ -21,6 +21,18 @@ var _character_to_account: Dictionary = {}
 # Account to characters mapping (account_id -> [character_ids])
 var _account_characters: Dictionary = {}
 
+## The managed subaccount law (labs/prd-agent-play.md sec 17.1): every human
+## account has EXACTLY ONE managed subaccount -- a real, separate account
+## record (its own characters, identity, inventory, audit) that has NO login
+## door. Agents play the subaccount's characters; they never create or own
+## them. human_account_id -> subaccount_id, and the reverse.
+var _subaccounts: Dictionary = {}
+var _subaccount_parents: Dictionary = {}
+
+## The subaccount id is the human's id plus this marker, so it can never
+## collide with a normally-registered id and is readable at a glance.
+const SUBACCOUNT_SUFFIX := "~agent"
+
 ## DictStore key prefix
 const _kv_prefix := "account_service:"
 
@@ -40,6 +52,7 @@ func _adapter_registry() -> Node:
 	return null
 
 signal account_created(account_id: String)
+signal subaccount_created(parent_account_id: String, subaccount_id: String)
 signal character_linked(character_id: String, account_id: String)
 signal character_unlinked(character_id: String)
 signal same_account_trade_attempted(character1: String, character2: String, allowed: bool)
@@ -98,6 +111,67 @@ func is_admin(account_id: String) -> bool:
 	var account: Dictionary = get_account(account_id)
 	var level: int = account.get("account_level", 0)
 	return level >= GameConfig.Security.ADMIN_LEVEL
+
+
+# == Managed subaccounts (labs/prd-agent-play.md sec 17.1) ================
+
+## Is this account a managed subaccount (an agent lane, never loggable)?
+func is_subaccount(account_id: String) -> bool:
+	return _subaccount_parents.has(account_id) or account_id.ends_with(SUBACCOUNT_SUFFIX)
+
+
+## The human account that manages this subaccount, or "" if it is not one.
+func parent_of_subaccount(account_id: String) -> String:
+	return String(_subaccount_parents.get(account_id, ""))
+
+
+## The human account's subaccount id, or "" if it has none yet. Pure read;
+## call ensure_subaccount() to create one.
+func subaccount_of(account_id: String) -> String:
+	if is_subaccount(account_id):
+		return account_id
+	return String(_subaccounts.get(account_id, ""))
+
+
+## Ensure the human account has its ONE managed subaccount and return its id.
+## Idempotent: a second call returns the same id. A subaccount is a real
+## account record (so character linking, trade, and audit are first-class)
+## but it is marked managed and has no login door (LoginService refuses it).
+func ensure_subaccount(account_id: String) -> String:
+	if account_id.strip_edges() == "":
+		return ""
+	if is_subaccount(account_id):
+		return ""
+	if not _accounts.has(account_id):
+		return ""
+	var existing: String = String(_subaccounts.get(account_id, ""))
+	if existing != "" and _accounts.has(existing):
+		return existing
+	var sub_id: String = account_id + SUBACCOUNT_SUFFIX
+	if not _accounts.has(sub_id):
+		var sub := {
+			"id": sub_id,
+			"email": "",
+			"created_at": Time.get_unix_time_from_system(),
+			"last_login": 0,
+			"characters": [],
+			"settings": {"allow_same_account_trade": false, "two_factor_enabled": false},
+			"premium": false,
+			"managed": true,
+			"parent_account": account_id,
+		}
+		_accounts[sub_id] = sub
+		_account_characters[sub_id] = []
+		_persist_account(sub_id)
+		subaccount_created.emit(account_id, sub_id)
+		GameLog.info("AccountService: opened subaccount %s for %s" % [sub_id, account_id])
+	_subaccounts[account_id] = sub_id
+	_subaccount_parents[sub_id] = account_id
+	# Stamp the parent so a load can rebuild the pairing without the side map.
+	_accounts[account_id]["subaccount"] = sub_id
+	_persist_account(account_id)
+	return sub_id
+
 
 ## Link a character to an account
 func link_character(character_id: String, account_id: String, character_data: Dictionary = {}) -> bool:
@@ -295,6 +369,8 @@ func _load_state() -> void:
 	_characters = {}
 	_character_to_account = {}
 	_account_characters = {}
+	_subaccounts = {}
+	_subaccount_parents = {}
 	var keys: Array = store.all_keys()
 	var account_keys: Array = []
 	var char_keys: Array = []
@@ -327,6 +403,14 @@ func _load_state() -> void:
 			_account_characters[account_id].append(char_id)
 			if _accounts.has(account_id):
 				_accounts[account_id]["characters"] = _account_characters[account_id]
+
+	# Rebuild the subaccount pairing from the accounts' own stamps (the
+	# side maps are rebuilt, never persisted separately).
+	for account_id in _accounts.keys():
+		var sub_id: String = String(_accounts[account_id].get("subaccount", ""))
+		if sub_id != "" and _accounts.has(sub_id):
+			_subaccounts[account_id] = sub_id
+			_subaccount_parents[sub_id] = account_id
 
 func _persist_account(account_id: String) -> void:
 	var registry = _adapter_registry()

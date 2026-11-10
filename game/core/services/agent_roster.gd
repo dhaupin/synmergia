@@ -137,6 +137,11 @@ func attach(account_id: String, handle: String) -> Dictionary:
 	var gate: Dictionary = can_attach(account_id)
 	if not gate.get("ok", false):
 		return gate
+	# The attached agent needs a home account (sec 17.1): the human's ONE
+	# managed subaccount. Ensure it exists so the agent's characters link
+	# somewhere real. Idempotent; a missing AccountService is not fatal
+	# (script-mode probes), the attach still stands.
+	_ensure_home_account(account_id)
 	var map: Dictionary = _attachments.get(account_id, {})
 	var slot: int = _next_slot(account_id)
 	map[slot] = handle
@@ -377,6 +382,15 @@ func _sigils_of(account_id: String) -> int:
 	if inv == null:
 		return 0
 	return int(inv.get_currency_amount(CURRENCY_ID))
+
+## Ensure the human's managed subaccount exists (the agent's home account).
+## Returns the subaccount id, or "" when AccountService is absent / refuses.
+func _ensure_home_account(account_id: String) -> String:
+	var acct := _node("AccountService")
+	if acct == null or not acct.has_method("ensure_subaccount"):
+		return ""
+	return String(acct.ensure_subaccount(account_id))
+
 
 func _coordinator() -> Node:
 	var tree := Engine.get_main_loop() as SceneTree

@@ -88,6 +88,13 @@ func login(account_id: String, password: String) -> bool:
 		_fail("Too many attempts. Please wait before trying again.")
 		return false
 
+	# The subaccount has NO login door (labs/prd-agent-play.md sec 17.1):
+	# it is a managed agent lane, never logged into by anyone -- human or
+	# agent. Agents connect through the parent human's presence gate.
+	if _is_managed(account_id):
+		_fail("This account is managed by a human account; agents connect through the parent's presence.")
+		return false
+
 	if not _store.has(account_id):
 		_fail("Account not found")
 		return false
@@ -118,6 +125,11 @@ func register(account_id: String, password: String, display_name: String = "", e
 	account_id = _sanitize_id(account_id)
 	if account_id == "":
 		_fail("Account name cannot be empty")
+		return false
+	# The subaccount id space is reserved (sec 17.1): a human may not
+	# register an id in it (no squatting the managed lane's name).
+	if account_id.ends_with("~agent"):
+		_fail("That account name is reserved.")
 		return false
 	if password.length() < 6:
 		_fail("Password must be at least 6 characters")
@@ -416,6 +428,15 @@ func _compute_manifest_hash() -> PackedByteArray:
 
 func _sanitize_id(raw: String) -> String:
 	return raw.strip_edges().to_lower()
+
+## Is this id a managed subaccount (no login door)? Read through
+## AccountService when it is mounted; the suffix marker is the fallback so
+## the refusal holds even before AccountService loads.
+func _is_managed(account_id: String) -> bool:
+	if AccountService and AccountService.has_method("is_subaccount"):
+		if AccountService.is_subaccount(account_id):
+			return true
+	return account_id.ends_with("~agent")
 
 func _check_rate_limit(account_id: String) -> bool:
 	if not QoSService:
