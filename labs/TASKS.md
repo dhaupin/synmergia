@@ -7,6 +7,18 @@ commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
 
+## 2026-11-04br -- web: fonts self-hosted + the honest lander (staging, no PRs)
+- SESSION CONTEXT: prior session nuked; resumed on `staging`. Web/site lane only (`src/`, `public/`) -- no game-code changes.
+- FONT DEFECT (the privacy law): Cinzel + Plus Jakarta Sans were named in `src/index.css` tokens but NEVER loaded (no `@font-face`, no `<link>`, zero font requests on the live site) -- every heading silently fell back to a system serif. FIXED by self-hosting: 4 variable woff2 files (Cinzel latin/latin-ext 400-900, Plus Jakarta Sans latin/latin-ext 200-800) in `public/fonts/`, wired with `@font-face` (font-display swap, per-subset unicode-range). Self-host on purpose -- the privacy page forbids third-party CDNs. Verified: both latin subsets serve 200, load in-browser; `h1` computes `Cinzel 700`, body computes `Plus Jakarta Sans`.
+- LANDER REBUILD (honesty law): `LanderPage.tsx` 93 -> ~317 lines, 8 sections -- hero (+chips+pack-freshness chip), thesis band, What it is, The world counted, Systems not set dressing, One sky three worlds, Built in the open, final CTA. Every claim traces to `game/data`: counts 12 zones / 3 worlds / 18 classes / 163 skills / 25 enemy templates / 11 mounts; the three worlds (Synmergia, the pale stone, The Deep Root); named systems (streamed spherical terrain, the Concord sky clock, server combat, the unified wallet, weather/hordes off the geomagnetic feed, WASM client).
+- MOBILE FIX (drive-by, whole site): the shared header nav overflowed the viewport (scrollWidth 437 vs 390 at 390px); wrapped the header + nav (`flex-wrap`) so it collapses cleanly. Zero horizontal overflow now at 390/768/1440.
+- DATA: `npm run build` refreshed the committed `src/data/godot_data.json`, stale since 2026-10-19 (weapons 2->10, armors 2->11, recipes 3->28, etc.). The site build regenerates it on every deploy; landed the current snapshot for the admin dashboard + achievements consumers.
+- GAME-DATA FINDINGS (reported, NOT fixed -- game content, out of scope): (1) DUPLICATE skill id `akkan_void_bolt` -- `data/skills/mage/akkan_void_bolt.tres` (required_class `akkan_rune`) AND `data/skills/bender/akkan_void_bolt.tres` (required_class `akkan_seer`, the one `class_akkan_seer` references) share the id; 164 skill files -> 163 unique ids, and one silently shadows the other in the id-keyed `ResourceScan.load_dir`. The naming lint does NOT cover skills. (2) 10 class -> skill refs resolve to NO skill id: `class_akkan_rune` (akkan_rune_strike/ward/chain, akkan_exploding_rune, akkan_rune_transfer/tremor -- the `_attacker`-suffixed ids are the real files), `class_human_temporalist` (human_time_anchor), `class_synthetic_overclocker` (synthetic_warp_point), `class_synthetic_warden` (synthetic_damage_shunt), `class_synthetic_exploiter` (synthetic_overclock_exploiter).
+- VERIFICATION: `npm run lint` (tsc) exit 0; `npm run build` (tsc + vite + prerender 5/5) exit 0; fonts 200 + loaded; 0 overflow at 3 widths. `test_data_naming_lint` exit 0 (skills uncovered). Did NOT run the full runner (rework in flight).
+- PUSHED: `staging` at `9706678a`.
+
+
+
 ## 2026-11-04 -- AGENT-PLAY: THE AGENT BODY (THE KEYSTONE) + LANE FAN-OUT I/J (staging, no PRs)
 
 Context: close the agent-play gap -- agents must be REAL PLAYERS, not test
