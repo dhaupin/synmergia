@@ -647,7 +647,7 @@ func _drain_queue() -> void:
 			"act":
 				_respond(int(req["id"]), act(String(args.get("id", "")), args.get("args", {})))
 			"events":
-				_respond(int(req["id"]), {"ok": true, "events": events(int(args.get("since", -1)))})
+				_respond(int(req["id"]), {"ok": true, "frame": _frames, "events": events(int(args.get("since", -1)))})
 			"wait_for":
 				_waits.append({
 					"id": int(req["id"]),
