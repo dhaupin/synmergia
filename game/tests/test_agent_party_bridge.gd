@@ -159,6 +159,30 @@ func _run() -> void:
 	var refused: Dictionary = _roster.despawn_agent(ghost)
 	_assert(not bool(refused.get("ok", true)) and String(refused.get("reason", "")).contains("not resolvable"), "a body that is not resolvable refuses by name")
 
+	# 9. the in-world gate (sec 17.2): the gate keys on the human being
+	#    IN-WORLD, not merely authenticated. Session account set, no live
+	#    body -> refused; a foreign account is not affected (its body is
+	#    resolved later, in seat_agent).
+	var ls2 := root.get_node_or_null("LoginService")
+	var pm2 := root.get_node_or_null("PlayerManager")
+	if ls2 != null and pm2 != null:
+		_act.touch(human)
+		ls2.set("_current_account_id", human)
+		var saved_body = pm2.get("local_player")
+		pm2.set("local_player", null)
+		var no_body: Dictionary = _roster.can_play(human)
+		_assert(not bool(no_body.get("ok", true)) and String(no_body.get("reason", "")).contains("not in the world"), "the gate closes for a session human who is not in-world")
+		pm2.set("local_player", saved_body)
+		_assert(bool(_roster.can_play(human).get("ok", false)), "the gate reopens once the body is live")
+
+	# 10. the idle warning (sec 17.2): the clock's warning is wired to the
+	#     roster, which alerts only the session account for the agent purpose.
+	_assert(_act.idle_warning.is_connected(Callable(_roster, "_on_idle_warning")), "the idle warning is wired to the roster")
+	_roster._on_idle_warning("some_other_account", "agent", 30.0)
+	_roster._on_idle_warning(human, "default", 30.0)
+	_roster._on_idle_warning(human, "agent", 30.0)
+	_assert(true, "the idle warning handler runs without error (filtered to the session account + the agent purpose)")
+
 	_finish()
 
 

@@ -28,6 +28,7 @@ extends Node
 
 const CURRENCY_ID := "currency_concord_sigil"
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
 ## The production free floor: the first agent is free.
 const DEFAULT_FREE_SLOTS: int = 1
@@ -82,9 +83,13 @@ func _ready() -> void:
 ## mount no clock/login; a re-enter must not double-connect).
 func _bind_presence_gate() -> void:
 	var act := _node("ActivityService")
-	if act != null and act.has_signal("went_idle"):
-		if not act.went_idle.is_connected(_on_human_idle):
+	if act != null:
+		if act.has_signal("went_idle") and not act.went_idle.is_connected(_on_human_idle):
 			act.went_idle.connect(_on_human_idle)
+		# The graceful warning (sec 17.2): alert the human BEFORE the
+		# timeout lands, so the logout is never a surprise.
+		if act.has_signal("idle_warning") and not act.idle_warning.is_connected(_on_idle_warning):
+			act.idle_warning.connect(_on_idle_warning)
 	var ls := _node("LoginService")
 	if ls != null:
 		if ls.has_signal("login_succeeded") and not ls.login_succeeded.is_connected(_on_login):
@@ -280,6 +285,18 @@ func can_play(account_id: String) -> Dictionary:
 		return {"ok": false, "reason": "no activity clock is mounted (the presence gate is closed)"}
 	if not act.is_active(account_id, "agent"):
 		return {"ok": false, "reason": "the human is offline or AFK - agents may not play"}
+	# sec 17.2: the gate keys on the human being IN-WORLD, not merely
+	# authenticated. Only the session human is checkable here; a remote
+	# account defers to the body resolution in seat_agent (which fails
+	# closed when the live body is not resolvable).
+	var ls := _node("LoginService")
+	if ls != null and ls.has_method("get_current_account_id") \
+			and str(ls.get_current_account_id()) == account_id:
+		var pm := _node("PlayerManager")
+		if pm != null and "local_player" in pm:
+			var lp = pm.local_player
+			if lp == null or not is_instance_valid(lp):
+				return {"ok": false, "reason": "the human is not in the world yet - agents may not play"}
 	return {"ok": true}
 
 
@@ -453,6 +470,25 @@ func _agent_entity(handle: String) -> String:
 		return ""
 	var rec: Dictionary = coord.get_agent(handle)
 	return String(rec.get("entity_id", ""))
+
+
+## The human is nearing the agent timeout: alert them (sec 17.2, the
+## graceful warning). Filtered to the SESSION account -- another account's
+## idle clock must not speak to this player. Non-agent purposes stay quiet
+## (only the agent lane is our concern).
+func _on_idle_warning(account_id: String, purpose: String, seconds_remaining: float) -> void:
+	if purpose != "agent" or account_id != _session_account:
+		return
+	if NotificationService:
+		NotificationService.notify(
+			NotifKind.AGENT_PRESENCE,
+			"You have been idle; your agents will be logged out in %ds" % int(seconds_remaining),
+			"AgentRoster",
+			"agent_idle:%s" % account_id,
+			{"account_id": account_id, "seconds_remaining": seconds_remaining},
+			account_id
+		)
+	GameLog.info("AgentRoster: idle warning for %s (%ds to agent logout)" % [account_id, int(seconds_remaining)])
 
 
 ## The human went idle (or logged out): their agents leave play, starting

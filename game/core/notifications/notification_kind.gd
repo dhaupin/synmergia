@@ -93,4 +93,8 @@ enum NotifKind {
 	# Weather-driven world events (WeatherEventService, sun->sword loop)
 	WEATHER_STORM_STIRRED,
 	WEATHER_AURORA_WINDOW,
+
+	# Agent-play presence (labs/prd-agent-play.md sec 17.2): the human's
+	# agent lane is about to close (the idle warning before logout).
+	AGENT_PRESENCE,
 }

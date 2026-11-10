@@ -506,5 +506,12 @@ refuses it by name) -- and the **body save/despawn leg**: `leave_play` /
 silently dropped). The idle and logout legs now call `leave_all`, so a human
 going idle or logging out saves + despawns their agents' bodies.
 
+**Also shipped:** the **in-world gate** (`can_play` keys on the session human
+being *in-world*, not merely authenticated -- a session account with no live
+body is refused by name) and the **graceful idle warning**: the clock's
+`idle_warning` now has its consumer -- `AgentRoster._on_idle_warning` alerts
+only the session account, only for the `agent` purpose, through the new
+`NotifKind.AGENT_PRESENCE` ("your agents will be logged out in Ns").
+
 **Still open** (the next slice): the manual re-enable UX (agents do not
 auto-respawn on the human's return -- the human re-enables them).
