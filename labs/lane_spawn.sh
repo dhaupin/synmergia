@@ -38,6 +38,14 @@ case "$cmd" in
         api -X POST -H "Content-Type: application/json" -d "$body" "$SRV/api/conversations/$PARENT/children" \
             | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d.get("conversation_id") or d.get("id") or d)'
         ;;
+    spawn-file)
+        # spawn-file <brief.md> <title> -- the brief is read verbatim from a file
+        # so multi-line, quote-heavy briefs never fight the shell.
+        task="$(cat "$1")"; title="${2:-lane}"
+        body=$(python3 -c 'import json,sys;print(json.dumps({"task":sys.argv[1],"title":sys.argv[2],"isolation":"worktree"}))' "$task" "$title")
+        api -X POST -H "Content-Type: application/json" -d "$body" "$SRV/api/conversations/$PARENT/children" \
+            | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d.get("conversation_id") or d.get("id") or d)'
+        ;;
     status)
         api "$SRV/api/conversations/$1" \
             | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d.get("execution_status") or d.get("status") or d)'
