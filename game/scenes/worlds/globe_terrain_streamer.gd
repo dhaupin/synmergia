@@ -3889,16 +3889,29 @@ func _subdivide(a: Vector3, b: Vector3, c: Vector3, depth: int, out: Array) -> v
 	# THE SHARED-CORNER LAW (sweep round 19): every interior edge is
 	# split by TWO recursive calls -- one with this corner as `a`, one
 	# with it as `c`. The old per-caller radius (a.length()) made the
-	# two copies of every shared midpoint drift by ULPs; the skirt's
-	# quantized edge keys papered over most of that, but level 7's
-	# fine spacing let two edges slip past the bucket lines (+4
-	# phantom strips on the plaza faces). The midpoint radius is the
-	# EDGE's symmetric average, so both callers construct the SAME
-	# bit-exact corner -- quantization never re-unifies what never
-	# drifted.
-	var mab: Vector3 = (a + b).normalized() * ((a.length() + b.length()) * 0.5)
-	var mbc: Vector3 = (b + c).normalized() * ((b.length() + c.length()) * 0.5)
-	var mca: Vector3 = (c + a).normalized() * ((c.length() + a.length()) * 0.5)
+	# two copies of every shared midpoint drift by ULPs, and the skirt's
+	# quantized edge keys could not re-unify what never drifted. The
+	# corners below are exact arithmetic (no per-call radius), so both
+	# callers construct the SAME bit-exact corner.
+	# THE GEODESIC-MIDPOINT LAW (spawn-ground round): `a`,`b`,`c` are
+	# LOCAL to the patch node (corner = Vn * tile_r - center), so the
+	# true great-circle bisector of the edge is the PLAIN LOCAL AVERAGE
+	# (a + b) * 0.5. The displacement pass re-projects every vertex
+	# along (v + center).normalized(), so ((a+b)/2 + center).normalized()
+	# == normalize(Vn_a + Vn_b) -- the exact midpoint of the great-circle
+	# edge, and IDENTICAL on both faces that share it (center cancels),
+	# so adjacent patches meet vertex-for-vertex with no crack. The old
+	# (a+b).normalized() * avg_local_len normalized about the PATCH
+	# origin instead: the bisector of the chord vectors from the patch
+	# center, not the planet center. It skewed every tile (measured at
+	# level 7: edges 0.15..4.08 deg against a nominal 0.47) and pushed
+	# the shared-edge midpoints of neighboring faces up to ~37 deg
+	# apart. The spawn sits on the 8-10 icosa edge midpoint, so the
+	# spawn/anchor direction was NEVER a mesh vertex (nearest 47 m) and
+	# no tile centroid landed within the audit's near band.
+	var mab: Vector3 = (a + b) * 0.5
+	var mbc: Vector3 = (b + c) * 0.5
+	var mca: Vector3 = (c + a) * 0.5
 	_subdivide(a, mab, mca, depth - 1, out)
 	_subdivide(mab, b, mbc, depth - 1, out)
 	_subdivide(mca, mbc, c, depth - 1, out)

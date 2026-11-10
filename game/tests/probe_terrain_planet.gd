@@ -32,6 +32,23 @@ func _check(label: String, cond: bool) -> bool:
 	return cond
 
 
+## THE ASYNC-PROMOTE WAIT (the boot-clamp contract): the boot mounts its
+## OWN face at BOOT_PLACEHOLDER_LEVEL (below the LOD floor) so the boot
+## wall pays no full-level sync build, and the standing LOD law promotes
+## it through the worker lane a beat later (see probe_world_boot_speed's
+## own "promote reaches the demanded level asynchronously" gate). A level
+## read that races the worker lane sees the placeholder, not the law, so
+## every level assertion drains the derives first (the streamer's own
+## pending_derive -- "a steady census needs a steady world") with an
+## honest deadline. The mesh checks above already proved the coarse
+## placeholder resolves the plaza, so this wait gates DETAIL, not ground.
+func _drain_derives(deadline_ms: int) -> void:
+	var st = _globe.streamer
+	var deadline: int = Time.get_ticks_msec() + deadline_ms
+	while st.pending_derive() > 0 and Time.get_ticks_msec() < deadline:
+		await root.get_tree().physics_frame
+
+
 func _run() -> void:
 	var ok := true
 	var seed_b: PackedByteArray = Gen.world_seed_bytes()
@@ -218,6 +235,7 @@ func _run() -> void:
 	# level-independent (the analytic heightfield), so the snapped
 	# walker must not drift when neighbors are coarse.
 	var near_face: int = load("res://core/frame/math/icosahedral_faces.gd").face_for_direction(d_spawn)
+	await _drain_derives(90000)
 	var near_lvl: int = int(_globe.streamer._patch_lvl.get(near_face, -1))
 	ok = _check("lod: spawn face rides the base level (%d)" % near_lvl, \
 		near_lvl == _globe.streamer._level_for_edge()) and ok
@@ -256,6 +274,7 @@ func _run() -> void:
 	# player keep the base level, farther ACTIVE-SET members demote one
 	# level (the boundary-tie repair: ownership is not the gate).
 	var base_lvl: int = _globe.streamer._level_for_edge()
+	await _drain_derives(30000)
 	var near_count := 0
 	for f in _globe.streamer.active_faces():
 		if int(_globe.streamer._patch_lvl.get(f, -1)) == base_lvl:

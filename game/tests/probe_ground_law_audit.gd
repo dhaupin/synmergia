@@ -171,14 +171,22 @@ func _mesh_at(st, F, tile_r: float, d: Vector3, edge_m: float, Gen, seed_b: Pack
 						break
 		if surf_data.is_empty():
 			continue
-		# The LAND surface: lowest mean law-delta. A tie is broken by the
-		# order (main is authored first -- array order is stable).
-		var best_score: float = INF
-		var land_s: int = -1
+		# The LAND surface: lowest mean law-delta, ties broken by ORDER
+		# (main is authored first -- array order is stable). The tie band
+		# is real, not a nicety: the skirt's top verts ride the SAME
+		# terrain law the main surface does, so on a plaza both score ~0
+		# and the strict `<` picked whichever surface's sparse sample
+		# happened to read a fraction lower -- the skirt (surface 1), whose
+		# border strips then held no interior anchor and the read missed.
+		# Within the walk bound the LOWER index is the land layer.
+		var min_score: float = INF
 		for si in range(surf_data.size()):
-			if float(surf_data[si]["score"]) < best_score:
-				best_score = float(surf_data[si]["score"])
+			min_score = minf(min_score, float(surf_data[si]["score"]))
+		var land_s: int = 0
+		for si in range(surf_data.size()):
+			if float(surf_data[si]["score"]) <= min_score + 0.5:
 				land_s = si
+				break
 		var sd: Dictionary = surf_data[land_s]
 		var xf: Transform3D = mi.global_transform
 		var verts2: PackedVector3Array = sd["verts"]
