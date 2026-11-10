@@ -68,6 +68,20 @@ var _unlocks: Dictionary = {}
 func _ready() -> void:
 	_load_state()
 	GameLog.info("AgentRoster: Ready (%d accounts with unlocked slots)" % _unlocks.size())
+	# The presence gate's close leg (labs/prd-agent-play.md sec 17.2): when
+	# the human goes idle past the agent timeout, their agents leave play.
+	# Deferred so the AFK clock (a sibling autoload) is ready first.
+	_bind_presence_gate.call_deferred()
+
+
+## Wire the AFK clock's idle signal into the unseat leg. Deferred + guarded
+## (script-mode probes mount no clock; a re-enter must not double-connect).
+func _bind_presence_gate() -> void:
+	var act := _node("ActivityService")
+	if act == null or not act.has_signal("went_idle"):
+		return
+	if not act.went_idle.is_connected(_on_human_idle):
+		act.went_idle.connect(_on_human_idle)
 
 
 # == Public API =========================================================
@@ -207,7 +221,149 @@ func board(account_id: String) -> Dictionary:
 	}
 
 
+# == Party bridge (AgentRoster -> PartyService) =========================
+##
+## The law (labs/prd-agent-play.md sec 12, 17): an attached agent is a
+## SEPARATE player body that parties WITH its human (never the human's
+## character). This section is the one seam that seats an attached agent
+## into its human's party, and it is gated by presence: an agent may only
+## be seated while the human is online and not AFK (can_play). Seating
+## rides PartyService.add_member (the programmatic join) with the human as
+## the leader, so every party consumer sees ordinary membership.
+
+signal agent_seated(account_id: String, handle: String, party_id: String)
+signal agent_unseated(account_id: String, handle: String)
+
+
+## The presence gate (labs/prd-agent-play.md sec 17.2): an agent lane is
+## closed unless the parent human is online AND active. Reads the AFK clock
+## (ActivityService); a missing clock fails CLOSED (no accidental play).
+func can_play(account_id: String) -> Dictionary:
+	if account_id.strip_edges() == "":
+		return {"ok": false, "reason": "an account is required"}
+	var act := _node("ActivityService")
+	if act == null or not act.has_method("is_active"):
+		return {"ok": false, "reason": "no activity clock is mounted (the presence gate is closed)"}
+	if not act.is_active(account_id, "agent"):
+		return {"ok": false, "reason": "the human is offline or AFK - agents may not play"}
+	return {"ok": true}
+
+
+## Seat an attached agent's character into its human's party. Best-effort
+## and honest: refuses by name when the gate is closed, when the human's
+## live body is not resolvable, or when the agent has no character yet.
+func seat_agent(account_id: String, handle: String) -> Dictionary:
+	if owner_of(handle) != account_id:
+		return {"ok": false, "reason": "agent '%s' is not attached to %s" % [handle, account_id]}
+	var gate: Dictionary = can_play(account_id)
+	if not gate.get("ok", false):
+		return gate
+	var human: String = _human_entity(account_id)
+	if human == "":
+		return {"ok": false, "reason": "the human's live body is not resolvable for this account"}
+	var agent: String = _agent_entity(handle)
+	if agent == "":
+		return {"ok": false, "reason": "agent '%s' has no character to seat" % handle}
+	var ps := _party_service()
+	if ps == null:
+		return {"ok": false, "reason": "no PartyService is mounted"}
+	var party: Dictionary = ps.get_player_party(human)
+	var party_id: String = String(party.get("id", ""))
+	if party_id == "":
+		party_id = String(ps.create_party(human))
+		if party_id == "":
+			return {"ok": false, "reason": "could not open a party for the human"}
+	var res: Dictionary = ps.add_member(party_id, agent, human)
+	if bool(res.get("ok", false)):
+		agent_seated.emit(account_id, handle, party_id)
+		GameLog.info("AgentRoster: seated agent %s in party %s (human %s)" % [handle, party_id, human])
+	return res
+
+
+## Unseat an agent (it left the party). Honest: false when the agent has no
+## live body or was not in a party.
+func unseat_agent(handle: String) -> bool:
+	var agent: String = _agent_entity(handle)
+	if agent == "":
+		return false
+	var ps := _party_service()
+	if ps == null:
+		return false
+	if ps.get_player_party(agent).is_empty():
+		return false
+	var ok: bool = bool(ps.leave_party(agent))
+	if ok:
+		agent_unseated.emit(owner_of(handle), handle)
+		GameLog.info("AgentRoster: unseated agent %s" % handle)
+	return ok
+
+
+## Seat every attached agent of an account (best-effort; returns the rows).
+func seat_all(account_id: String) -> Array:
+	var out: Array = []
+	for handle in agents_of(account_id):
+		out.append(seat_agent(account_id, String(handle)))
+	return out
+
+
+## Unseat every attached agent of an account. Returns how many left.
+func unseat_all(account_id: String) -> int:
+	var n := 0
+	for handle in agents_of(account_id):
+		if unseat_agent(String(handle)):
+			n += 1
+	return n
+
+
 # == Internals ==========================================================
+
+func _node(name: String) -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null or tree.root == null:
+		return null
+	return tree.root.get_node_or_null(NodePath(name))
+
+
+func _party_service() -> Node:
+	return _node("PartyService")
+
+
+## The human's LIVE character id, resolved only for the local/session human
+## (the account whose login owns this process). A remote human is not
+## resolvable here yet, and we say so rather than guess an identity.
+func _human_entity(account_id: String) -> String:
+	var ls := _node("LoginService")
+	if ls == null or not ls.has_method("get_current_account_id"):
+		return ""
+	if str(ls.get_current_account_id()) != account_id:
+		return ""
+	var pm := _node("PlayerManager")
+	if pm == null or not ("local_player" in pm):
+		return ""
+	var lp = pm.local_player
+	if lp != null and is_instance_valid(lp) and "entity_id" in lp:
+		return str(lp.entity_id)
+	return ""
+
+
+## The agent's character id, read from the coordinator record (the honest
+## handle -> character link; "" until the door assigns one).
+func _agent_entity(handle: String) -> String:
+	var coord := _coordinator()
+	if coord == null or not coord.has_method("get_agent"):
+		return ""
+	var rec: Dictionary = coord.get_agent(handle)
+	return String(rec.get("entity_id", ""))
+
+
+## The human went idle (or logged out): their agents leave play, starting
+## with the party (the body save/despawn is the door's later leg).
+func _on_human_idle(account_id: String, purpose: String) -> void:
+	if purpose != "agent":
+		return
+	var left: int = unseat_all(account_id)
+	GameLog.info("AgentRoster: human %s idle - %d agent(s) left play" % [account_id, left])
+
 
 func _next_slot(account_id: String) -> int:
 	var used: Dictionary = _attachments.get(account_id, {})

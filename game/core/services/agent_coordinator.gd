@@ -69,6 +69,10 @@ func register(handle: String, opts: Dictionary = {}) -> Dictionary:
 		"state": STATE_IDLE,
 		"endpoint": endpoint,
 		"permissions": opts.get("permissions", {}),
+		# The agent's character (its own body; the two-lane wall means it is
+		# never a human's). "" until the door assigns one; the party bridge
+		# reads this to seat the agent (labs/prd-agent-play.md sec 12, 17).
+		"entity_id": String(opts.get("entity_id", "")),
 		"registered_frame": _frame(),
 	}
 	_work[handle] = []
@@ -305,5 +309,6 @@ func _public_record(rec: Dictionary) -> Dictionary:
 		"name": rec["name"],
 		"role": rec["role"],
 		"state": rec["state"],
+		"entity_id": String(rec.get("entity_id", "")),
 		"queued": _count_pending(rec["handle"]),
 	}

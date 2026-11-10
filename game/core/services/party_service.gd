@@ -263,6 +263,33 @@ func leave_party(player_id: String) -> bool:
 
 	return true
 
+## Add a member to a party PROGRAMMATICALLY (no invite loop). The invite/
+## accept dance exists for a human clicking a UI; an agent has no UI, and a
+## remote door needs one call. The gate is the party LEADER's consent: only
+## `by_id` == the leader may add. Emits the standard join signals and
+## persists, so every consumer sees the same membership as an invite join.
+## Refusals are honest and named (no silent no-op).
+func add_member(party_id: String, player_id: String, by_id: String) -> Dictionary:
+	if player_id.strip_edges() == "":
+		return {"ok": false, "reason": "a member id is required"}
+	var party: Dictionary = _parties.get(party_id, {})
+	if party.is_empty():
+		return {"ok": false, "reason": "no such party"}
+	if String(party.get("leader_id", "")) != by_id:
+		return {"ok": false, "reason": "only the party leader may add a member"}
+	if _player_parties.has(player_id):
+		return {"ok": false, "reason": "%s is already in a party" % player_id}
+	if party["members"].size() >= int(party["max_size"]):
+		return {"ok": false, "reason": "the party is full (%d of %d)" % [party["members"].size(), int(party["max_size"])]}
+	party["members"].append(player_id)
+	_player_parties[player_id] = party_id
+	_persist_party(party_id)
+	player_joined_party.emit(party_id, player_id)
+	party_member_updated.emit(party_id, player_id)
+	GameLog.info("PartyService: %s added to party %s by %s" % [player_id, party_id, by_id])
+	return {"ok": true, "party_id": party_id, "member_id": player_id}
+
+
 ## Kick a player from party
 func kick_player(leader_id: String, target_id: String) -> bool:
 	var party_id: String = _player_parties.get(leader_id, "")
