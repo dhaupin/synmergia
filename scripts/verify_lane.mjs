@@ -10,7 +10,7 @@
 
 import { ROLES, Bridge, agent } from 'gamestruct';
 import { DoorClient } from 'gamestruct/adapters/vant';
-import { doorNodes } from 'gamestruct/adapters/synmergia';
+import { doorNodes, buildBridge } from 'gamestruct/adapters/synmergia';
 
 let pass = 0;
 let fail = 0;
@@ -46,6 +46,37 @@ const b = new Bridge({ name: 'synmergia-lane-check' });
 b.tree.add(null, { id: 'ui:start', role: ROLES.BUTTON, name: 'Start' });
 check('bridge: agent catalog sees the handle',
     agent.toolCatalog(b).some((t) => t._handle === 'ui:start'));
+
+// 5. the SPEC v1.1 additions the lane depends on (the eyes + the catalog leg).
+//    The door serves /see; DoorClient.see must exist, and catalog() must build
+//    from observe().nodes (the 1.1.0 fix that reads a world door's own snapshot).
+check('vant: DoorClient.see (the eyes)', typeof DoorClient.prototype.see === 'function');
+check('vant: DoorClient.catalog (the tool list)', typeof DoorClient.prototype.catalog === 'function');
+check('synmergia: buildBridge (the world mapping)', typeof buildBridge === 'function');
+
+// 6. an offline DoorClient over a stub door: observe -> doorNodes -> catalog.
+//    A door with a settable control advertises set_value; a door that serves
+//    /see advertises the eyes tool. No network -- the stub is the fetch.
+const seen = [];
+globalThis.fetch = async (url, opts) => {
+    const path = String(url).replace(/^https?:\/\/[^/]+/, '');
+    seen.push(path);
+    const body = path.startsWith('/observe')
+        ? { scene: 'Login', in_world: false, actions: [
+            { id: 'ui:Login/User', kind: 'lineedit', action: 'User', disabled: false, value: '' },
+            { id: 'ui:Login/Go', kind: 'button', action: 'Go', disabled: false },
+        ] }
+        : { ok: true, path: '/tmp/frame.png', bytes: 4096 };
+    return { ok: true, status: 200, json: async () => body, text: async () => JSON.stringify(body) };
+};
+const client = new DoorClient({ url: 'http://stub.local', token: 't', mapNodes: doorNodes });
+const catalog = await client.catalog();
+check('stub door: catalog builds from observe().nodes',
+    catalog.ok !== false && (catalog.tools || catalog.nodes || []).length >= 2);
+check('stub door: the eyes tool is advertised (serves /see)',
+    (catalog.tools || catalog.nodes || []).some((t) => (t.name || '') === 'see'));
+const shot = await client.see({ label: 'lane-check' });
+check('stub door: see() returns the frame descriptor', shot && shot.ok === true && !!shot.path);
 
 console.log(`\nLANE-VERIFY: ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
