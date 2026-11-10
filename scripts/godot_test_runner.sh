@@ -265,6 +265,7 @@ probe_wolf_model
 probe_slime_model
 probe_bandit_model
 probe_training_dummy_model
+probe_thistle_boar_model
 probe_anim_play
 probe_blacksmith_scene
 probe_world_shape_ground
