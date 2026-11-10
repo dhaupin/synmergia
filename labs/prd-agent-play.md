@@ -258,21 +258,26 @@ cd game && xvfb-run godot --path . --script res://tests/test_agent_coordinator.g
   This layer is what an agent uses to *play and test* interactively;
   receipts remain the deterministic gate.
 
-## 12. The agents-own-characters law
+## 12. The agents-own-characters law (the two-lane wall)
 
-**In its current scope, Synmergia does not allow an agent to play a human's
-character.** This is law, not a default:
+**Synmergia builds lanes for humans and agents to play their OWN assets,
+never sharing.** This is law, not a default, and it is absolute in both
+directions:
 
 - An agent is a PLAYER. It has its **own** character, bound to its own
   account. It never drives, puppets, or logs into a human's character.
+- A human **never** plays an agent's character. The lanes do not cross.
 - A human may run agents *alongside* themselves (they party with the human),
-  but the agent is always a separate seat with a separate body.
+  but the agent is always a separate seat with a separate body, on a
+  separate (sub)account.
 - This is what makes the party honest: 1 human + N agents is a party of
   distinct players, exactly like 1 human + N humans.
 
-The distinction matters for trust: an agent that could drive a human's
-character would make every "the human did it" claim unauditable. Keeping
-agents on their own bodies keeps the accountability boundary crisp.
+The wall is what makes the accountability boundary crisp: an agent that
+could drive a human's character (or vice versa) would make every "the human
+did it" claim unauditable, and would let a player simply have an agent
+grind their human's characters. See sec 17 for the subaccount, the presence
+gate, and the slot law that make the wall enforceable.
 
 ## 13. One human, one account (guest play retired)
 
@@ -294,16 +299,27 @@ hardening) is a later lane; email binding is the floor, not the ceiling.
 ## 14. The agent slots law (the Agent Ledger)
 
 A human account holds a **bounded** number of agent slots, held by
-`AgentRoster` (`core/services/agent_roster.gd`). See
-`labs/prd-monetization.md` sec 43 for the prices; the law here is the shape:
+`AgentRoster` (`core/services/agent_roster.gd`). The slots are the
+**concurrent-play cap** (how many agents may play at once); the agent
+**characters** live on the human's subaccount (sec 17) and are bounded by
+the normal character cap, not by this ladder. See `labs/prd-monetization.md`
+sec 43 for the prices; the law here is the shape:
 
-- **The free floor.** Production grants `DEFAULT_FREE_SLOTS = 1` free agent.
-  The development/testing floor is generous: `SYN_AGENT_DEV_SLOTS=5` grants
-  the full 6-seat party (1 human + 5 agents) free, so devs and testers never
-  pay to build.
-- **The sigil ladder.** Slots above the floor are **one-time** Concord Sigil
-  unlocks, progressively more expensive (`SLOT_PRICES`, 25 -> 1400), owned
-  forever, never rented. The design ceiling is `MAX_SLOTS = 10`.
+- **The design ceiling is 5 agent slots** (`MAX_SLOTS = 5`), so a human plus
+  a fully-unlocked roster is **6 seats = one full party** (the party cap is
+  6; raid is 30). This was lowered from 10: 5 playing agents is the most a
+  single party can hold, so a higher ceiling would only create
+  attached-but-benched agents.
+- **The free floor.** Production grants `DEFAULT_FREE_SLOTS = 1` free agent
+  (slot 1). The development/testing floor is generous:
+  `SYN_AGENT_DEV_SLOTS=5` grants the full 6-seat party free, so devs and
+  testers never pay to build.
+- **The sigil ladder.** Slots 2..5 are **one-time** Concord Sigil unlocks,
+  progressively and steeply more expensive, owned forever, never rented. The
+  ladder is tuned so that unlocking all four paid slots takes **a month or
+  more of ordinary play**, or real money (Concord Sigil packs, sec 43). The
+  proposed ladder: **250 / 900 / 2,500 / 6,000** (see sec 17 for the
+  rationale; the exact numbers are the monetization doc's to set).
 - **The pairing is 1:1.** A handle belongs to exactly one account
   (`owner_of`); a second attach is refused by name.
 - **The books never lie.** `unlock_next_slot` debits the ONE purse and
@@ -357,3 +373,92 @@ affordance. What we do instead:
   characters, 1:1 pairing, gated acts), not removing the lane.
 
 
+
+## 17. The subaccount + presence gate (the lane gate)
+
+This section is the law that makes sec 12's wall enforceable. It is the
+design of record for the round that wires `AgentRoster` into play.
+
+### 17.1 The subaccount (a real, un-loggable account)
+
+Every human account has **exactly one managed subaccount**. It is a real
+separate account record -- not a field on the human account -- so agent
+characters, identity, inventory, trade, and audit are first-class:
+
+- **Separate account, separate identity.** An agent's character is linked to
+  the subaccount exactly as a human's character is linked to a human
+  account (`AccountService.link_character`). This is why inter-account trade
+  (items, currency, gear) works between the human lane and the agent lane:
+  it is ordinary trade between two accounts. The wall (sec 12) is that the
+  *characters* never cross lanes, not that the *economies* are separate.
+- **No login door.** The subaccount has **no password and no login path**.
+  `LoginService.login()` refuses it by name ("this account is managed by a
+  human account; agents connect through the parent's presence"). It cannot
+  be logged into normally by anyone -- human or agent -- ever.
+- **Managed by the human.** The human creates, names, and manages the
+  subaccount's characters from their own account surface. Agents *use* those
+  characters; they never create or own them.
+- **Character cap.** The subaccount holds up to **10 characters**, the same
+  as a human account (raise `_max_characters_per_account` to 10 for both
+  tiers). The number that can **play at once** is capped by the slot law
+  (sec 14): at most 5 agents concurrently.
+
+### 17.2 The presence gate (the human must be online and active)
+
+The subaccount's agent lane -- MCP, a11y, and the agent/play transports --
+is **closed by default**. It opens only while the parent human is **online
+and not AFK**:
+
+- **Human login unlocks the subaccount.** When the human logs in, the
+  subaccount and its agent lane activate. Until then, no one can use it
+  (its login is paused, not just its agents).
+- **Human enters the playable world, agent tools unlock.** The gate keys on
+  the human being *in-world* (the `in_world` state the door already reads),
+  not merely authenticated.
+- **AFK > the agent timeout logs the agents out.** The default agent AFK
+  timeout is **15 minutes** and is configurable (see the AFK service, sec
+  17.3). When the human has been inactive past the timeout, their agents are
+  **logged out of play**: bodies are **saved and despawned**, not left
+  standing.
+- **The disconnect is graceful and warned.** Before the timeout lands,
+  the human and their agents are **alerted** ("you have been idle; your
+  agents will be logged out"). After logout, agents do **not** auto-respawn
+  when the human returns -- the human **re-enables them manually**, so an
+  agent is never dropped back into a dangerous situation blind.
+- **Human logout logs the agents out too.** If the human logs out (or
+  disconnects), the agents are logged out with them. The subaccount lane is
+  never live without a live, active parent.
+
+### 17.3 The AFK service (a first-class service, not a lobby field)
+
+AFK is a cross-cutting gate, not a lobby concern, so it gets its own service
+(a small `PresenceService`/`ActivityService`). It owns a **per-account idle
+clock** with **configurable, per-purpose timeouts** -- the agent timeout (15
+min default) is the first, but the same clock serves later needs (e.g. a
+player-store AFK limit of ~4 hours before logout, or other thresholds).
+
+- **"Active" is input AND agent-activity, and it is anticheat surface.**
+  Activity is any genuine play input (movement, act, door act). Because a
+  macro or a scripted bot can fake activity, the clock is also a **probe
+  target**: repeated identical patterns, macro-like UI cadence, a bot
+  driving a human account, and passive probing are all things the AFK/activity
+  signal can help flag. This is an unwinnable arms race; it is worth the
+  fight anyway, and the honest framing is that the AFK service *contributes
+  evidence* to anticheat, it does not by itself prove intent.
+- **The gate reads the clock.** The subaccount lane opens while
+  `now - last_activity(human) <= agent_timeout`, and closes otherwise. The
+  timeout is a config value, so it can be tuned without touching the gate.
+
+### 17.4 What the gate does NOT do
+
+- It does **not** make agents lesser players. Once an agent is in-world it is
+  a **first-class player**: its own inventory, gear, quests, parties,
+  guilds, duels, PvP -- everything a human has. The gates exist only to stop
+  abuse (boosting, auto-leveling, bot-farming), never to make the agent lane
+  second-class.
+- It does **not** separate the economies. Humans and agents participate in
+  the **same** loot/XP system: when they party or raid together, the shared
+  XP/loot rules apply across the human/agent boundary exactly as between two
+  humans.
+- It does **not** remove the human a11y lane. The human account keeps its own
+  a11y affordances (sec 16) regardless of the agent lane's state.

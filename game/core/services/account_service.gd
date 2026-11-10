@@ -26,7 +26,10 @@ const _kv_prefix := "account_service:"
 
 # Settings
 var _allow_same_account_trade: bool = false	 # Can trade between own characters
-var _max_characters_per_account: int = 5
+## Every account (a human, or the human's managed subaccount) may hold up
+## to 10 characters. The concurrent-play cap for agents is the slot ladder
+## (AgentRoster.MAX_SLOTS = 5), not this.
+var _max_characters_per_account: int = 10
 
 ## Resolve AdapterRegistry autoload safely. Typed as Node because the
 # AdapterRegistry script has no class_name (autoload shadow rule).

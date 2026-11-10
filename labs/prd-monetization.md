@@ -2076,35 +2076,36 @@ derives.
 
 ---
 
-## 43. The Agent Ledger (spitball #36, 2026-11-09) — agent slots for sigils
+## 43. The Agent Ledger (spitball #36, 2026-11-09; REVISED 2026-11-04) — agent slots for sigils
 
-> **Status: AGREED — the agent-play round.** The owner's call: "a player can
-> run 5 agents (to make a full 6 party) for development/testing. Then we trim
-> it lower and pay-gate it... The first one is free. Up to 10 agents can
-> connect under your account." This is the access ladder for the agent layer
-> (`labs/prd-agent-play.md` sec 14). The design is deliberately modest: the
-> free floor keeps the game playable and the dev loop free; the sigil ladder
-> funds the server cost of agents that play for you.
+> **Status: AGREED — revised by the owner (the subaccount round).** The
+> original call ("up to 10 agents") is SUPERSEDED. The owner's revised law:
+> "You made it 10 agent slots which is too high. We need to make it 5. So a
+> player + Sigil-maxed agent slots would be 6 total (a full party)...
+> significant amount of sigils increased cost for each agent slot... It
+> should take a long time (1 month+) to unlock all 4 agent slots unless ya
+> pay $." This is the access ladder for the agent layer
+> (`labs/prd-agent-play.md` sec 14 + 17). The design is deliberately modest:
+> the free floor keeps the game playable and the dev loop free; the steep
+> sigil ladder funds the server cost of agents that play for you, and is
+> tuned so a pure grind is slow while a purchase is the fast path.
 
 **THE SEAT.** An **agent slot** is the right to bind one agent to your
 account. It is not a character and not a body — it is the pairing. Agents
 have their OWN characters (the agents-own-characters law); a slot is what
-lets that character exist and be driven.
+lets that character exist and be driven. The slot ladder is the
+**concurrent-play cap**; the agent characters themselves live on the human's
+subaccount (up to 10 characters), which is a separate bound.
 
 **THE LADDER (canonical; `AgentRoster.SLOT_PRICES`).**
 
 | Slot | Price (Concord Sigils) | Notes |
 |------|------------------------|-------|
 | 1    | free                   | the production floor (`DEFAULT_FREE_SLOTS`) |
-| 2    | 25                     | first paid seat |
-| 3    | 60                     | |
-| 4    | 120                    | |
-| 5    | 200                    | the 6th party seat (1 human + 5 agents) |
-| 6    | 320                    | |
-| 7    | 480                    | |
-| 8    | 700                    | |
-| 9    | 980                    | |
-| 10   | 1400                   | the design ceiling (`MAX_SLOTS`) |
+| 2    | 250                    | first paid seat |
+| 3    | 900                    | |
+| 4    | 2500                   | |
+| 5    | 6000                   | the 6th party seat (1 human + 5 agents) = `MAX_SLOTS` |
 
 **THE DEV FLOOR.** `SYN_AGENT_DEV_SLOTS=5` grants the full 6-seat party free
 on a dev/test process. This is a *process* knob, not an account grant: it is
@@ -2117,27 +2118,31 @@ and never diverge from the shipping law.
    subscription, no decay, no re-charge.
 2. **The books never lie.** `unlock_next_slot` debits the ONE purse and
    grants exactly one slot; a short purse is refused **naming the exact
-   need** ("need 320, have 0"); a refused debit is a hard stop that grants
+   need** ("need 900, have 0"); a refused debit is a hard stop that grants
    nothing (no partial unlock, no silent loss).
-3. **Progressive by design.** The ladder climbs so the marginal agent is
-   never cheaper than the one before it — the free floor is generous, the
-   tail is priced, and there is no bulk discount that undercuts the early
-   rungs.
-4. **The ceiling is real.** `MAX_SLOTS = 10` is the account maximum; there
-   is no eleventh slot for sale (the design ceiling, not a paywall knob).
+3. **Steep by design.** The ladder climbs hard (250 -> 900 -> 2500 -> 6000,
+   ~3.5-4x per rung) so the marginal agent is never cheaper than the one
+   before it, there is no bulk discount, and unlocking all four paid slots
+   is a **month or more** of ordinary sigil earning (or a purchase — the
+   hosted Concord Sigil packs, the `sigil_100/280/650` SKUs on the payment
+   seam; see `labs/prd-agent-play.md` sec 17 and the black-market round).
+4. **The ceiling is real.** `MAX_SLOTS = 5` is the account maximum — a full
+   party (1 human + 5 agents). There is no sixth agent slot for sale; the
+   ceiling is the party cap, not a paywall knob.
 5. **Sigils, not gold.** Agent slots price in **Concord Sigils** — the real-$
    channel currency — so the ladder funds server cost rather than inflating
    the gold economy. (The sigil is soulbound and only enters a purse through
    the payment seam; this is a sink on that same ledger.)
 6. **No pay-to-win.** Slots buy *presence*, not *power*: an agent is a player
-   with a normal character under the normal rules. A tenth agent is not
+   with a normal character under the normal rules. A fifth agent is not
    stronger than a first; it is just one more seat.
 
 **SINK ROW.** `AGENT_SLOT` rows WITH grant legs (the unlock IS the grant).
-IMPLEMENTATION SEAT: SHIPPED this round — `AgentRoster`
+IMPLEMENTATION SEAT: SHIPPED, then REVISED — `AgentRoster`
 (`core/services/agent_roster.gd`) holds the pairing + the ladder, persists
 through the KV door, and debits the ONE purse; receipt
-`game/tests/test_agent_roster.gd` (33 legs).
+`game/tests/test_agent_roster.gd` (the slot count + ladder re-pinned to 5 /
+250-900-2500-6000).
 
 **OPEN (recorded, not answered).** Whether a **hosted executor** ("run my
 agents while my laptop is closed", `labs/prd-shard-mesh.md` sec 12) is billed

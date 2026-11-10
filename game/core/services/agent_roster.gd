@@ -34,22 +34,20 @@ const DEFAULT_FREE_SLOTS: int = 1
 ## The development/testing floor: the full 6-seat party (1 human + 5
 ## agents) rides free when SYN_AGENT_DEV_SLOTS names it.
 const DEV_FREE_SLOTS: int = 5
-## The design ceiling ("up to 10 agents can connect under your account").
-const MAX_SLOTS: int = 10
+## The design ceiling ("up to 5 agents can play at once" -- a full
+## 6-seat party: 1 human + 5 agents). The agent CHARACTERS live on the
+## human's subaccount (up to 10, the normal character cap); this ladder
+## caps how many may PLAY concurrently.
+const MAX_SLOTS: int = 5
 
 ## The slot ladder, slot index (1-based) -> one-time sigil price,
-## progressively more expensive. Slots at or below the free floor are free
-## (not rows here); a slot above MAX_SLOTS has no price.
+## steeply progressive (labs/prd-monetization.md sec 43): unlocking all
+## four paid slots is a month or more of ordinary play, or a purchase.
 const SLOT_PRICES := {
-	2: 25,
-	3: 60,
-	4: 120,
-	5: 200,
-	6: 320,
-	7: 480,
-	8: 700,
-	9: 980,
-	10: 1400,
+	2: 250,
+	3: 900,
+	4: 2500,
+	5: 6000,
 }
 
 ## The coordinator is the source of truth for live agent handles.
