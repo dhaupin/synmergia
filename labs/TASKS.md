@@ -7,6 +7,31 @@ commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
 
+## 2026-11-09 -- LANE PIN REFRESH: gamestruct 1.1.0 + the eyes in the receipt (staging, no PRs)
+
+Context: gamestruct cut 1.1.0 (the eyes) and this side should ride it.
+
+- **The declared pin was STALE.** `package.json` still named the git commit
+  `99b9dd6` (the 1.0.0 line) while `node_modules/gamestruct` already held
+  **1.1.0** -- so the manifest disagreed with what is installed and shipped.
+  Repinned to the v1.1.0 commit `447a0e4ae7aaaa3f338b56300dbb55481cdb2e14`
+  (repo tracks no lockfile, so the git-commit pin IS the reproducibility
+  anchor; gamestruct is zero-dep).
+- **The receipt now covers SPEC v1.1.** `scripts/verify_lane.mjs` gained the
+  surfaces the lane depends on that 1.0.0 did not have: `DoorClient.see` (the
+  eyes), `DoorClient.catalog`, the synmergia adapter's `buildBridge`, plus an
+  OFFLINE stub-door leg (observe -> `doorNodes` -> catalog advertises the eyes
+  tool and a settable control's `set_value`; `see()` returns a frame
+  descriptor). No network -- the stub is the `fetch`. Receipt **15/0**.
+- **Lane-spawn note (for the next session):** the `/children` lane endpoint on
+  the LOCAL agent server (`$OH_INTERNAL_SERVER_URL`, server v1.58.1) rejects
+  this shell's `X-Session-API-Key` with 401, and the cloud API
+  (`app.all-hands.dev/api/...`) returns the SPA HTML -- so I could NOT fan out
+  subagent lanes this session. The `/children` endpoint EXISTS (server_info
+  lists `start_child_conversation`), so the 4 lanes are still reachable; the
+  credential the agent server wants differs from the shell's session key.
+  Owner: the lanes run from the app side (which holds the credential).
+
 ## 2026-11-04 -- LANE DEP + SCREENSHOT RESIDUE (staging, no PRs)
 
 Context: continue the gamestruct build-out on the Synmergia side and finish the
