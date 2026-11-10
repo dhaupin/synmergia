@@ -58,6 +58,8 @@ func _run() -> void:
 		root.add_child(_act)
 	await process_frame
 	_assert(_roster != null and _party != null, "roster + party present")
+	# Ensure the gate/logout wiring is bound (idempotent).
+	_roster._bind_presence_gate()
 
 	var human := "human_%d" % Time.get_ticks_msec()
 	var human_body := "char_human_%d" % Time.get_ticks_msec()
@@ -121,6 +123,17 @@ func _run() -> void:
 	await create_timer(1.2).timeout
 	_act._sweep()
 	_assert(_party.get_player_party(agent_body).is_empty(), "the idle human's agent left the party")
+
+	# 6. the logout leg: seat, then log out -> the agent leaves + the clock drops.
+	_act.set_timeout("agent", 900.0)
+	_act.touch(human)
+	_assert(bool(_roster.seat_agent(human, handle).get("ok", false)), "re-seated for the logout leg")
+	_roster._on_login(human)
+	var ls := root.get_node_or_null("LoginService")
+	if ls != null and ls.has_signal("logged_out"):
+		ls.logged_out.emit()
+		_assert(_party.get_player_party(agent_body).is_empty(), "the logged-out human's agent left the party")
+		_assert(not _act.is_active(human, "agent"), "the clock was dropped on logout")
 
 	_finish()
 

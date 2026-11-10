@@ -63,6 +63,8 @@ signal agent_detached(account_id: String, handle: String)
 var _attachments: Dictionary = {}
 # account_id -> [int] owned slot indices (>= 1)
 var _unlocks: Dictionary = {}
+# The live session account (set on login; drives the logout leg).
+var _session_account: String = ""
 
 
 func _ready() -> void:
@@ -74,14 +76,39 @@ func _ready() -> void:
 	_bind_presence_gate.call_deferred()
 
 
-## Wire the AFK clock's idle signal into the unseat leg. Deferred + guarded
-## (script-mode probes mount no clock; a re-enter must not double-connect).
+## Wire the AFK clock's idle signal into the unseat leg, and the login
+## session into the logout leg (labs/prd-agent-play.md sec 17.2: "human
+## logout logs the agents out too"). Deferred + guarded (script-mode probes
+## mount no clock/login; a re-enter must not double-connect).
 func _bind_presence_gate() -> void:
 	var act := _node("ActivityService")
-	if act == null or not act.has_signal("went_idle"):
+	if act != null and act.has_signal("went_idle"):
+		if not act.went_idle.is_connected(_on_human_idle):
+			act.went_idle.connect(_on_human_idle)
+	var ls := _node("LoginService")
+	if ls != null:
+		if ls.has_signal("login_succeeded") and not ls.login_succeeded.is_connected(_on_login):
+			ls.login_succeeded.connect(_on_login)
+		if ls.has_signal("logged_out") and not ls.logged_out.is_connected(_on_logout):
+			ls.logged_out.connect(_on_logout)
+
+
+## Track the live session account so logout can pull its agents out.
+func _on_login(account_id: String) -> void:
+	_session_account = account_id
+
+
+## The human logged out: their agents leave play and the clock is dropped.
+func _on_logout() -> void:
+	var account_id: String = _session_account
+	_session_account = ""
+	if account_id == "":
 		return
-	if not act.went_idle.is_connected(_on_human_idle):
-		act.went_idle.connect(_on_human_idle)
+	var left: int = unseat_all(account_id)
+	var act := _node("ActivityService")
+	if act != null and act.has_method("forget"):
+		act.forget(account_id)
+	GameLog.info("AgentRoster: %s logged out - %d agent(s) left play" % [account_id, left])
 
 
 # == Public API =========================================================
