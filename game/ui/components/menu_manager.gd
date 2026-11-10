@@ -682,6 +682,13 @@ func _open_menu_internal(menu_name: String, npc_pos: Vector3 = Vector3.ZERO) -> 
 	var im_open = get_node_or_null("/root/InputManager")
 	if im_open != null and im_open.has_method("set_touch_hud_panels_open"):
 		im_open.set_touch_hud_panels_open(true)
+	# Route through the panel's own open() (the UIPanel law): a lazily-built
+	# panel renders its content in _on_open(), so the static facade must build
+	# it too -- flipping visible alone left an empty shell (the shell law the
+	# agent roster panel caught; the ignore/channels/premium panels ride the
+	# same fix).
+	if "open" in panel:
+		panel.open(_local_player_id())
 	panel.visible = true
 	menu_toggled.emit(menu_name, true)
 	_update_back_button()
