@@ -54,6 +54,7 @@ var _container_panel: Control
 var _ignore_panel: Control
 var _channel_panel: Control
 var _premium_panel: Control
+var _agents_panel: Control
 
 var _admin_panel: Control
 var _sky_almanac_panel: Control
@@ -342,6 +343,15 @@ func _initialize_panels() -> void:
 	_premium_panel.z_index = 500
 	add_child(_premium_panel)
 	_premium_panel.panel_closed.connect(_on_panel_closed.bind("premium"))
+
+	# Agent roster panel (the human's agents + their bodies; opens from
+	# the menu bar / a hotkey through the funnel -- ungated, it is the
+	# human's own surface, not a place-bound NPC service).
+	_agents_panel = preload("res://ui/components/agent_roster_ui.gd").new()
+	_agents_panel.name = "AgentRosterUI"
+	_agents_panel.z_index = 500
+	add_child(_agents_panel)
+	_agents_panel.panel_closed.connect(_on_panel_closed.bind("agents"))
 
 	# Sky Almanac panel (Skyward Concord; V key)
 	_sky_almanac_panel = load("res://ui/components/sky_almanac_ui.gd").new()
@@ -1104,6 +1114,7 @@ func _get_panel(menu_name: String) -> Control:
 		"ignore": return _ignore_panel
 		"channels": return _channel_panel
 		"premium": return _premium_panel
+		"agents": return _agents_panel
 		"sky_almanac": return _sky_almanac_panel
 		"chronicle": return _chronicle_panel
 		"lobby": return _lobby_panel
