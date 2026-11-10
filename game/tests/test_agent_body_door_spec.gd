@@ -201,18 +201,16 @@ func _leg_unknown_principal() -> void:
 	}))
 	# The "never a throw" half: a JSON verdict always comes back.
 	_assert(resp is Dictionary and resp.has("ok"), "an unknown principal never throws (a JSON verdict returns)")
-	if bool(resp.get("ok", true)):
-		_report_gap("SPEC leg 5: an unknown principal is NOT refused by name",
-			"POST /act move(principal=%s) -> ok:true; the driver fell back onto the human seat" % ghost)
-	else:
-		_assert(String(resp.get("reason", "")) != "", "the unknown-principal refusal carries a reason")
-	# Evidence of the silent fall-back: the human body got driven by a ghost.
-	if bool(_human.has_virtual_input()):
-		_report_gap("SPEC leg 5: the unknown-principal move drove the HUMAN body",
-			"the human body reads virtual input after a move for a non-existent principal (the cross-body drive the driver docstring forbids)")
-		print("    [act] unknown principal %s drove the HUMAN body (has_virtual_input=true)" % ghost)
-	else:
-		print("    [act] unknown principal %s did not touch the human body" % ghost)
+	# THE FIX: an explicit principal that does not resolve is refused by name
+	# (never a silent fall-back onto the human's body).
+	_assert(not bool(resp.get("ok", true)), "an unknown principal is refused (ok:false)")
+	_assert(String(resp.get("reason", "")).contains("unknown principal"), "the refusal names the unknown principal")
+	# The human body must NOT have been driven by a ghost principal.
+	_assert(not bool(_human.has_virtual_input()), "the unknown-principal move did not touch the human body")
+	# observe with an unknown principal is refused too (never the human seat).
+	var obs: Dictionary = await _http("GET", "/observe?principal=%s" % ghost)
+	_assert(not bool(obs.get("ok", true)), "GET /observe?principal=<unknown> is refused")
+	print("    [act] unknown principal %s refused; the human body was untouched" % ghost)
 
 
 ## A one-shot HTTP round-trip against the door (raw TCP, no client lib).

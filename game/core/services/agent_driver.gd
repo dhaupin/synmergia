@@ -165,6 +165,8 @@ func events(since_frame: int = -1) -> Array:
 ## Never prints (the old print-stream is gone); returns JSON-safe data.
 func observe(principal: String = "") -> Dictionary:
 	var body := _body_for(principal)
+	if principal != "" and principal != "local" and principal != "human" and body == null:
+		return {"ok": false, "reason": "unknown principal '%s' (no live agent body)" % principal, "principal": principal}
 	var player := body if body != null else _local_player()
 	var scene: String = ""
 	var tree := get_tree()
@@ -343,6 +345,11 @@ func _body_for(principal: String) -> Node:
 
 func _act_verb(verb: String, args: Dictionary, principal: String = "") -> Dictionary:
 	var body := _body_for(principal)
+	# An explicit principal that does NOT resolve is refused by name -- never a
+	# silent fall-back onto the human's body (that would let one agent drive
+	# another player). ""/"local"/"human" resolve to the human by design.
+	if principal != "" and principal != "local" and principal != "human" and body == null:
+		return {"ok": false, "reason": "unknown principal '%s' (no live agent body)" % principal}
 	var player := body if body != null else _local_player()
 	match verb:
 		"move":
