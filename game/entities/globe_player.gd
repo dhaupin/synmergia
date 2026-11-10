@@ -28,6 +28,37 @@ func _im() -> Node:
 	var tree := Engine.get_main_loop() as SceneTree
 	return tree.root.get_node_or_null(NodePath("InputManager")) if tree and tree.root else null
 
+## The AFK clock's account key for this body (the human's account). The
+## body carries no account field, so the session account (LoginService) is
+## the honest key; a script-mode probe with no login falls back to the
+## entity id so the clock still works locally. Returns "" only when there
+## is nothing to key on (never a fabricated identity).
+func _activity_account() -> String:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null or tree.root == null:
+		return ""
+	var ls := tree.root.get_node_or_null(NodePath("LoginService"))
+	if ls != null and ls.has_method("get_current_account_id"):
+		var acct: String = str(ls.get_current_account_id())
+		if acct != "":
+			return acct
+	return str(entity_id)
+
+## Record genuine activity on the AFK clock (labs/prd-agent-play.md sec
+## 17.3): the human must stay active for their agents to keep playing.
+## Called from the real input paths (movement, the input fan-out, clicks);
+## defensive + silent when the service is absent (script-mode probes).
+func _touch_activity() -> void:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null or tree.root == null:
+		return
+	var svc := tree.root.get_node_or_null(NodePath("ActivityService"))
+	if svc == null or not svc.has_method("touch"):
+		return
+	var acct: String = _activity_account()
+	if acct != "":
+		svc.touch(acct)
+
 func _ds() -> Node:
 	var tree := Engine.get_main_loop() as SceneTree
 	return tree.root.get_node_or_null(NodePath("DataService")) if tree and tree.root else null
@@ -629,6 +660,11 @@ func _physics_process(delta: float) -> void:
 	# same edge drives the shared combat entry point here (both modes).
 	if is_local_player and Input.is_action_just_pressed("attack"):
 		_try_attack()
+	# The AFK clock's movement leg (labs/prd-agent-play.md sec 17.3):
+	# sustained movement is genuine activity. Polled (not event-driven)
+	# because movement is a held action; a cheap length check per frame.
+	if is_local_player and Input.get_vector("move_left", "move_right", "move_forward", "move_back").length_squared() > 0.0001:
+		_touch_activity()
 	if planar_mode:
 		# Planar contract: -Y at InstanceContract.GRAVITY_FORCE, world up.
 		up_direction = Vector3.UP
@@ -1521,6 +1557,8 @@ func _connect_interact_input() -> void:
 func _on_player_input(action: String, pressed: bool) -> void:
 	if not is_local_player:
 		return
+	if pressed:
+		_touch_activity()
 	match action:
 		"target_next":
 			if pressed:
@@ -1696,6 +1734,9 @@ func get_look_direction() -> Vector3:
 func _unhandled_input(event: InputEvent) -> void:
 	if not is_local_player:
 		return
+	if (event is InputEventMouseButton and event.pressed) \
+			or (event is InputEventKey and event.pressed):
+		_touch_activity()
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT and not _is_click_on_ui(event.position):
 			_handle_left_click(event.position)
