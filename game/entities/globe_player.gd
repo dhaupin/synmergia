@@ -1673,6 +1673,23 @@ func _get_camera() -> Camera3D:
 			return cam
 	return null
 
+## The body's look direction (the planar controller's law, restored on the
+## globe): a live target faces it, otherwise the camera pivot's forward. The
+## HUD integrator feeds this to the minimap arrow heading
+## (hud_integrator._process -> Minimap.set_player_rotation); without it the
+## arrow froze at spawn heading -- the exact bug the heading feed fixed for
+## the planar body, which the globe body silently re-opened.
+func get_look_direction() -> Vector3:
+	var tm := _tm()
+	if is_targeting and tm != null and tm.has_method("get_current_target"):
+		var info = tm.get_current_target()
+		if info != null and info.node != null and is_instance_valid(info.node) and info.node is Node3D:
+			var to_target: Vector3 = (info.node as Node3D).global_position - global_position
+			if to_target.length_squared() > 0.0001:
+				return to_target.normalized()
+	var pivot: Node3D = get_node_or_null("CameraPivot")
+	return -pivot.global_transform.basis.z if pivot != null else Vector3.ZERO
+
 ## Left/right click targeting + Escape clear (the planar controller's law).
 ## Left-click also swings (PC click-to-attack) via the polled `attack` action
 ## edge; the UI guard keeps clicks on HUD panels from firing into the world.
