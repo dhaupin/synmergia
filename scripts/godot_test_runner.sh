@@ -270,6 +270,8 @@ probe_anim_play
 probe_blacksmith_scene
 probe_world_shape_ground
 test_agent_door_spec
+test_agent_body_lifecycle
+test_agent_roster_panel
 test_globe_look_direction_wiring
 "
 

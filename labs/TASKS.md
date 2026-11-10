@@ -7,6 +7,48 @@ commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
 
+## 2026-11-04 -- AGENT-PLAY: THE AGENT BODY (THE KEYSTONE) + LANE FAN-OUT I/J (staging, no PRs)
+
+Context: close the agent-play gap -- agents must be REAL PLAYERS, not test
+doubles. The last missing layer was the BODY: the world built exactly one
+player body, the driver acted on the local seat, and an agent's character id
+resolved to no live body.
+
+Spine (shared, single-writer -- landed as commit 36b163fd, amended once):
+- `entities/globe_player.gd`: per-body VIRTUAL INPUT (`set_virtual_input` /
+  `clear_virtual_input` / `has_virtual_input`); movement + sprint read the
+  virtual stick over the global `Input`. Only a LOCAL body claims the
+  `PlayerManager` seat (agent bodies never steal it).
+- `core/services/agent_driver.gd`: principal-aware `act(id,{principal})` +
+  `observe(principal)`; the move/stop verbs drive the principal's own body.
+- `core/services/agent_body_service.gd` (NEW autoload `AgentBodyService`):
+  spawn/despawn real `GlobeWorldPlayer` bodies in the human's world, inheriting
+  its walk law; `body_for` / `board`.
+- `core/services/agent_roster.gd`: seat spawns a body; `re_enable` /
+  `re_enable_all` (the sec 17.2 manual re-enable UX).
+- Receipt `tests/test_agent_body_lifecycle.gd` **30/0**.
+
+Lane fan-out (2 subagent lanes, briefs `labs/lanes/lane-{I,J}.md`):
+- **Lane I** (`test_agent_body_door_spec.gd`, merged) proved the body over the
+  real gamestruct HTTP wire AND found a real spine bug: an unknown `principal`
+  silently fell back onto the HUMAN's seat (a ghost principal returned ok:true
+  AND drove the human body). FIXED in the parent: `agent_driver.act()/observe()`
+  refuse an unresolvable principal by name. Receipt now **31/0 / 0 gaps**.
+- **Lane J** (`ui/components/agent_roster_ui.gd` + MenuManager "agents" row,
+  merged) shipped the agent roster panel (see + re-enable agent bodies) AND
+  found a SHARED shell bug: `MenuManager.open_menu()` flipped `visible` but
+  never called `open()`, so any lazily-built panel opened through the static
+  facade rendered an EMPTY SHELL. FIXED in the parent (`_open_menu_internal`
+  now routes through the panel's `open()`). Receipt `test_agent_roster_panel`
+  **25/0**.
+
+Gates this session (NOT the full runner -- it is being reworked to parallel):
+lint **37/0**, naming **27/0**, agent_roster 38/0, party_bridge 32/0,
+coordinator 30/0, activity 14/0, login 30/0, body_lifecycle 30/0, door_spec
+31/0, roster_panel 25/0, ignore_book ok, premium ok, channel_mute ok. NOTE:
+`test_agent_driver` shows 29/0 with 2 display-only `see()` legs failing
+headless (the test documents `xvfb-run`; no framebuffer here).
+
 ## 2026-11-10 -- AGENT-PLAY: THE PRESENCE GATE + SUBACCOUNT SHIPPED (staging, no PRs)
 
 Context: the agent-play round's code slice (prd-agent-play.md secs 12-17).
