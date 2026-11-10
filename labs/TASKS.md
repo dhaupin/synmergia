@@ -7,6 +7,49 @@ commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
 
+## 2026-11-10 -- AGENT-PLAY: THE PRESENCE GATE + SUBACCOUNT SHIPPED (staging, no PRs)
+
+Context: the agent-play round's code slice (prd-agent-play.md secs 12-17).
+Terrain lane-H (`2ff15582-aeb3-4187-b078-ed58a06ceebb`) still RUNNING (probe
+FAILs are the real mesh/lod + anchor checks, not the stale "floating world"
+log entry; probes last touched at 321e1db4).
+
+Shipped this session (all pushed to staging, no PRs):
+- **ActivityService** (`core/services/activity_service.gd`, autoload after
+  PlayerManager): the AFK clock. `touch(account)`; `is_active(account,
+  purpose)` against per-purpose timeouts (`set_timeout`; "agent" = 900 s);
+  fail-closed on an unknown account; per-run `idle_warning` + `went_idle`
+  (an internal `_sweep`, throttled by SWEEP_INTERVAL; tests call `_sweep`
+  directly). State is ephemeral on purpose. Receipt `test_activity_service`
+  **14/0**.
+- **Player activity legs** (`entities/globe_player.gd`): the input fan-out,
+  `_unhandled_input`, and held movement call `_touch_activity()`. Account key
+  = the session account (LoginService) with an entity-id fallback.
+- **Party bridge** (`agent_roster.gd` + `party_service.gd`): `can_play` is
+  the gate (missing clock fails CLOSED); `seat_agent` opens the human's party
+  if needed and seats via the NEW `PartyService.add_member(party_id,
+  player_id, by_id)` (programmatic, LEADER-gated; agents have no invite UI);
+  `unseat_agent`/`seat_all`/`unseat_all`. `_bind_presence_gate` (deferred)
+  wires BOTH `ActivityService.went_idle` (idle leg) and
+  `LoginService.logged_out` (logout leg). Receipt `test_agent_party_bridge`
+  **23/0**.
+- **Agent handle -> character link**: `AgentCoordinator` records carry
+  `entity_id` (the honest link; "" until the door assigns one).
+- **Managed subaccount** (`account_service.gd` + `login_service.gd`):
+  `ensure_subaccount(account)` (idempotent; id = human + "~agent", a reserved
+  marker; managed=true, parent_account set; pairing rebuilt on `_load_state`
+  from the account's own `subaccount` stamp). `login()` refuses a subaccount
+  BY NAME (no login door); `register()` refuses the reserved "~agent" space.
+  `AgentRoster.attach` ensures the subaccount. Receipt
+  `test_subaccount_law` **14/0**.
+
+Still open (next slices): the body save/despawn leg on idle/logout (today the
+agent leaves the party; the DOOR still owns the body); the manual re-enable
+UX (agents do not auto-respawn on the human's return); lane-H terrain fixes.
+
+Lane-spawn note: `labs/lane_spawn.sh` works this session (SESSION_API_KEY from
+PID 1 environ); lane-H is `running`.
+
 ## 2026-11-09 -- LANE PIN REFRESH: gamestruct 1.1.0 + the eyes in the receipt (staging, no PRs)
 
 Context: gamestruct cut 1.1.0 (the eyes) and this side should ride it.
