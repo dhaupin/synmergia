@@ -135,6 +135,30 @@ func _run() -> void:
 		_assert(_party.get_player_party(agent_body).is_empty(), "the logged-out human's agent left the party")
 		_assert(not _act.is_active(human, "agent"), "the clock was dropped on logout")
 
+	# 7. the despawn leg (sec 17.2): the body is SAVED and removed, not left
+	#    standing. Register a real agent body, then despawn it.
+	var es := root.get_node_or_null("EntityService")
+	var pp := root.get_node_or_null("PlayerProgress")
+	if es != null and pp != null:
+		var agent_node := Node3D.new()
+		agent_node.name = "FakeAgentBody"
+		agent_node.set_script(_body_script())
+		root.add_child(agent_node)
+		es.register_entity(agent_node, null, agent_body)
+		_assert(es.get_entity(agent_body) != null, "the agent's body is in the world")
+		var despawn: Dictionary = _roster.despawn_agent(handle)
+		_assert(bool(despawn.get("ok", false)), "the body despawns")
+		_assert(pp.has_progress(agent_body), "the body was banked before it left")
+		_assert(es.get_entity(agent_body) == null, "the body left the entity registry")
+
+	# 8. an honest refusal: an agent whose body is not resolvable is not
+	#    silently dropped.
+	var ghost := "ghost_%d" % Time.get_ticks_msec()
+	_coord.register(ghost, {"entity_id": "char_ghost_%d" % Time.get_ticks_msec()})
+	_roster.attach(human, ghost)
+	var refused: Dictionary = _roster.despawn_agent(ghost)
+	_assert(not bool(refused.get("ok", true)) and String(refused.get("reason", "")).contains("not resolvable"), "a body that is not resolvable refuses by name")
+
 	_finish()
 
 
@@ -162,8 +186,20 @@ func _mount_fake_session(account_id: String, entity_id: String) -> void:
 
 
 func _body_script() -> GDScript:
+	# The fields EntityService reads on register/unregister (entity_type,
+	# display_name, level, faction, seed) plus PlayerProgress' save reads
+	# (experience, gold). A bare Node3D would error on the first access.
 	var s := GDScript.new()
-	s.source_code = "extends Node3D\nvar entity_id: String = \"\"\n"
+	s.source_code = "extends Node3D\n" \
+		+ "var entity_id: String = \"\"\n" \
+		+ "var entity_type: int = 0\n" \
+		+ "var display_name: String = \"Body\"\n" \
+		+ "var level: int = 1\n" \
+		+ "var faction: String = \"\"\n" \
+		+ "var seed: int = 0\n" \
+		+ "var experience: int = 0\n" \
+		+ "var gold: int = 0\n" \
+		+ "var experience_to_next_level: int = 1000\n"
 	s.reload()
 	return s
 

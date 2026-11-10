@@ -104,7 +104,7 @@ func _on_logout() -> void:
 	_session_account = ""
 	if account_id == "":
 		return
-	var left: int = unseat_all(account_id)
+	var left: int = leave_all(account_id)
 	var act := _node("ActivityService")
 	if act != null and act.has_method("forget"):
 		act.forget(account_id)
@@ -265,6 +265,8 @@ func board(account_id: String) -> Dictionary:
 
 signal agent_seated(account_id: String, handle: String, party_id: String)
 signal agent_unseated(account_id: String, handle: String)
+signal agent_despawned(account_id: String, handle: String, entity_id: String)
+signal agent_despawn_refused(account_id: String, handle: String, reason: String)
 
 
 ## The presence gate (labs/prd-agent-play.md sec 17.2): an agent lane is
@@ -347,6 +349,57 @@ func unseat_all(account_id: String) -> int:
 	return n
 
 
+## Leave play (labs/prd-agent-play.md sec 17.2): unseat from the party, then
+## SAVE + despawn the body -- "bodies are saved and despawned, not left
+## standing." This is the leg the presence gate fires (idle / logout).
+func leave_play(handle: String) -> bool:
+	var unseated: bool = unseat_agent(handle)
+	var res: Dictionary = despawn_agent(handle)
+	return unseated or bool(res.get("ok", false))
+
+
+## Leave play for every attached agent of an account. Returns how many left.
+func leave_all(account_id: String) -> int:
+	var n := 0
+	for handle in agents_of(account_id):
+		if leave_play(String(handle)):
+			n += 1
+	return n
+
+
+## Save an agent's body, then remove it from the world. Honest: refuses by
+## name when the agent has no character, the body is not resolvable, or the
+## save fails (we never destroy a body we could not bank). Emits
+## agent_despawned on success, agent_despawn_refused otherwise.
+func despawn_agent(handle: String) -> Dictionary:
+	var account_id: String = owner_of(handle)
+	var agent: String = _agent_entity(handle)
+	if agent == "":
+		return _refuse_despawn(account_id, handle, "agent '%s' has no character to despawn" % handle)
+	var body: Node = _find_body(agent)
+	if body == null:
+		return _refuse_despawn(account_id, handle, "the agent's body is not resolvable")
+	var pp := _node("PlayerProgress")
+	if pp == null or not pp.has_method("save_player"):
+		return _refuse_despawn(account_id, handle, "no PlayerProgress is mounted (cannot bank the body)")
+	if not bool(pp.save_player(body, "agent_logout")):
+		return _refuse_despawn(account_id, handle, "the body could not be saved; it was left standing")
+	var es := _node("EntityService")
+	if es != null and es.has_method("unregister_entity"):
+		es.unregister_entity(body, "agent_logout")
+	if is_instance_valid(body):
+		body.queue_free()
+	agent_despawned.emit(account_id, handle, agent)
+	GameLog.info("AgentRoster: despawned agent %s (body %s, saved)" % [handle, agent])
+	return {"ok": true, "entity_id": agent}
+
+
+func _refuse_despawn(account_id: String, handle: String, reason: String) -> Dictionary:
+	agent_despawn_refused.emit(account_id, handle, reason)
+	GameLog.warn("AgentRoster: despawn of %s refused - %s" % [handle, reason])
+	return {"ok": false, "reason": reason}
+
+
 # == Internals ==========================================================
 
 func _node(name: String) -> Node:
@@ -378,6 +431,20 @@ func _human_entity(account_id: String) -> String:
 	return ""
 
 
+## Resolve a body node from its character id (the live entity registry).
+## "" / stale ids resolve to null.
+func _find_body(entity_id: String) -> Node:
+	if entity_id == "":
+		return null
+	var es := _node("EntityService")
+	if es == null or not es.has_method("get_entity"):
+		return null
+	var e = es.get_entity(entity_id)
+	if e is Node and is_instance_valid(e):
+		return e
+	return null
+
+
 ## The agent's character id, read from the coordinator record (the honest
 ## handle -> character link; "" until the door assigns one).
 func _agent_entity(handle: String) -> String:
@@ -389,11 +456,11 @@ func _agent_entity(handle: String) -> String:
 
 
 ## The human went idle (or logged out): their agents leave play, starting
-## with the party (the body save/despawn is the door's later leg).
+## with the party, then saves + despawns the body (sec 17.2).
 func _on_human_idle(account_id: String, purpose: String) -> void:
 	if purpose != "agent":
 		return
-	var left: int = unseat_all(account_id)
+	var left: int = leave_all(account_id)
 	GameLog.info("AgentRoster: human %s idle - %d agent(s) left play" % [account_id, left])
 
 

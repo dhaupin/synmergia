@@ -497,7 +497,14 @@ The gate's first code landed, honest about its seams:
   real autoloads and sets their state (the session account + the local-player
   slot) rather than replacing them -- the bridge reads exactly those fields.
 
-**Still open** (the next slices): the subaccount object itself (a real,
-un-loggable account), the body save/despawn leg on idle/logout (today the
-agent leaves the party; the door still owns the body), and the manual
-re-enable UX (agents do not auto-respawn on the human's return).
+**Also shipped (the next slice):** the managed subaccount (sec 17.1) -- a
+real, un-loggable account (`AccountService.ensure_subaccount`; `LoginService`
+refuses it by name) -- and the **body save/despawn leg**: `leave_play` /
+`leave_all` unseat the agent AND `despawn_agent` banks its body through
+`PlayerProgress.save_player` before `EntityService.unregister_entity` +
+`queue_free` (a body that cannot be banked is refused by name, never
+silently dropped). The idle and logout legs now call `leave_all`, so a human
+going idle or logging out saves + despawns their agents' bodies.
+
+**Still open** (the next slice): the manual re-enable UX (agents do not
+auto-respawn on the human's return -- the human re-enables them).
