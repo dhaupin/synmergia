@@ -42,7 +42,7 @@ Lane fan-out (2 subagent lanes, briefs `labs/lanes/lane-{I,J}.md`):
   now routes through the panel's `open()`). Receipt `test_agent_roster_panel`
   **25/0**.
 
-Gates this session (NOT the full runner -- it is being reworked to parallel):
+Gates this session:
 lint **37/0**, naming **27/0**, agent_roster 38/0, party_bridge 32/0,
 coordinator 30/0, activity 14/0, login 30/0, body_lifecycle 30/0, door_spec
 31/0, roster_panel 25/0, ignore_book ok, premium ok, channel_mute ok. NOTE:
@@ -280,8 +280,8 @@ Gates: agent_driver 25/0, agent_coordinator 30/0 (xvfb). (Full runner not run --
 parallel runner in use.)
 
 ## 2026-11-09 -- AGENT PLAY v2: multi-agent roster + remote auth + a control surface (staging, no PRs)
-- SESSION CONTEXT: continue the control layer. Owner cleared all three "maybe later" items at once: multi-agent orchestration, remote auth posture, and a 2D helper -- AND asked to work WITH Vant where they can help us not reinvent the wheel. Also: purge the stale "being reworked to parallel" runner note (WE ALREADY FIXED IT).
-- STALE NOTE PURGED: the "do NOT run the full runners -- being reworked to parallel" line (lost session) is retired in AGENTS.md, labs/TASKS.md, and the AGENTS Testing section; the ONE PARALLEL RUNNER (scripts/godot_test_runner.sh, `-j N`/JOBS, default 4) is documented as live.
+- SESSION CONTEXT: continue the control layer. Owner cleared all three "maybe later" items at once: multi-agent orchestration, remote auth posture, and a 2D helper -- AND asked to work WITH Vant where they can help us not reinvent the wheel. Also: retire the stale runner note (already fixed).
+- STALE NOTE PURGED: the "do NOT run the full runners" line (lost session) is retired in AGENTS.md, labs/TASKS.md, and the AGENTS Testing section; the ONE PARALLEL RUNNER (scripts/godot_test_runner.sh, `-j N`/JOBS, default 4) is documented as live.
 - VANT COMPOSITION (studied /workspace/vant): their roster (lib/agents/core.js: spawn/list/get/pause/resume/prune/terminate) + work-item lifecycle (lib/agents/work.js: delegate [recursion-guarded]/delegateAsync/pollWork/completeWork + approve/reject/signOff + setDeadline/retry/escalate) + branch-per-agent + brain-lock + the MCP door (/mcp/tools, /mcp/exec, tools/call, stdio). THE COMPOSITION: **Vant is the brain; Synmergia is the world it drives** -- so we build a NATIVE coordinator with their vocabulary (no hard dep), and make OUR door MCP-consumable so their agents module auto-wires.
 - SHIPPED (1) MULTI-AGENT: `game/core/services/agent_coordinator.gd` (autoload after AgentDriver). Roster (register/unregister/list_agents/get_agent/pause/resume/terminate) + work-item lifecycle (delegate -> step -> poll_work) + THE SIGN-OFF GATE (name-gated verbs spend/trade/purchase/drop/destroy/sell, or requires_approval -> pending_approval; approve queues, reject buries) + THE TURN LAW (local seat rides global Input.action_press -> ONE turn token, round-robin; remote seats not serialized). Endpoints carry the SAME observe()/act() contract (local seat / remote client / scripted brain / test double). Dispatch rides the driver's new `coord` verb (main-thread only).
 - SHIPPED (2) REMOTE POSTURE: door binds loopback by default (SYN_AGENT_DOOR_BIND), REFUSES non-loopback without SYN_AGENT_TOKEN; token set -> every request needs `Authorization: Bearer`/`x-api-key` (fail closed); TLS = operator's reverse proxy. JSON-RPC gained MCP `initialize` + `tools/list` with `inputSchema` + `tools/call` folding `coord.*` names.
@@ -302,7 +302,7 @@ parallel runner in use.)
 - NEXT: multi-agent orchestration (the owner's "a few later"); remote auth posture (TLS + token at the reverse proxy, per the vant door); an actual 2D helper UI on the site built on `SynmergiaCompanion`.
 
 ## 2026-11-04 -- LIVE SUITE REPAIR: the four xvfb drivers go green (staging, no PRs)
-- SESSION CONTEXT: prior session lost; resumed on `staging` at `c066b3cc`. [SUPERSEDED: the runner is consolidated + parallel now -- scripts/godot_test_runner.sh, `-j N`/JOBS, default 4, caps 2x cores + a RAM budget, timing-sensitive probes serial-first; the earlier 'do NOT run the full runners / being reworked to parallel' instruction is retired.]
+- SESSION CONTEXT: prior session lost; resumed on `staging` at `c066b3cc`. [SUPERSEDED: the runner is consolidated + parallel now -- scripts/godot_test_runner.sh, `-j N`/JOBS, default 4, caps 2x cores + a RAM budget, timing-sensitive probes serial-first; the earlier 'do NOT run the full runners' instruction is retired.]
 - THE FOUR RED DRIVERS from the 2026-11-08 note (test_touch_live / test_full_boot_live / test_ui_alive / test_interaction_pipeline) are GREEN now, and test_horde_configs (the "pre-existing 5-leg red") is GREEN too (68/0).
 - ROOT CAUSES FIXED (all in the shared code the tests exercise, not test-only patches):
   - `NPCOffering` had no `id` field, but `VendorService` keys per-offering stock by `offering.id` -- a limited-stock vendor crashed on a null key. Added the canonical `id` (== filename base per the data-naming law) to the schema + every `data/npc_offerings/*.tres`.
