@@ -125,7 +125,12 @@ func _on_play_pressed() -> void:
 	var data := CharacterData.new(selected_species_id, selected_class_id, player_name)
 	data.species_data = selected_species
 	data.class_data = selected_class
-	data.zone_id = selected_species.home_zone if selected_species else "zone_starter_plains"
+	# The home zone must NAME a real zone: an authored species may point at a
+	# zone that does not exist yet (species_akkan -> dark_highlands), and a
+	# phantom zone_id on a live character is a dead end. Resolve it against
+	# the zone catalog and fall back to the spawn zone.
+	var home_zone: String = selected_species.home_zone if selected_species else ""
+	data.zone_id = home_zone if _zone_exists(home_zone) else "zone_starter_plains"
 
 	# The confirmed-selection announce (cheap-pair loop): BOTH legs here
 	# are creation paths (a fresh CharacterData either way), so Enter
@@ -261,3 +266,14 @@ func _on_back_pressed() -> void:
 		GameManager.change_state(GameManager.GameState.LOBBY)
 		return
 	get_tree().change_scene_to_file("res://ui/menus/main_menu.tscn")
+
+
+## True when `zone_id` names a zone in the catalog (a character may not
+## carry a phantom zone). Falls back to the filesystem when DataService is
+## absent (export-safe, the CharacterData pattern).
+func _zone_exists(zone_id: String) -> bool:
+	if zone_id == "":
+		return false
+	if DataService != null:
+		return DataService.get_zone(zone_id) != null
+	return ResourceLoader.exists("res://data/zones/%s.tres" % zone_id)
