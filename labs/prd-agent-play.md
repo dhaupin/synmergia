@@ -462,3 +462,42 @@ player-store AFK limit of ~4 hours before logout, or other thresholds).
   humans.
 - It does **not** remove the human a11y lane. The human account keeps its own
   a11y affordances (sec 16) regardless of the agent lane's state.
+
+### 17.5 Shipped (the first code slice)
+
+The gate's first code landed, honest about its seams:
+
+- **`ActivityService`** (`core/services/activity_service.gd`, autoload after
+  `PlayerManager`): the AFK clock. `touch(account_id)` stamps activity;
+  `is_active(account_id, purpose)` answers against **per-purpose timeouts**
+  (`set_timeout`; `agent` defaults to 900 s). Fail-closed on an unknown
+  account; a per-run warning + `went_idle` emit when a clock first crosses
+  its timeout (an internal `_sweep` drives it; tests call `_sweep` directly
+  to avoid a wall-clock wait). State is **ephemeral on purpose** -- idle is
+  about who is online NOW; it is not persisted.
+- **The player records activity** (`entities/globe_player.gd`): the input
+  fan-out, `_unhandled_input` (clicks/keys), and held movement all call
+  `_touch_activity()`. The account key is the session account
+  (`LoginService.get_current_account_id()`), with an entity-id fallback so
+  script-mode probes still work.
+- **The party bridge** (`core/services/agent_roster.gd`): `can_play(account)`
+  is the gate (missing clock fails closed). `seat_agent` opens the human's
+  party if needed and seats the agent via the new
+  `PartyService.add_member(party_id, player_id, by_id)` -- the programmatic,
+  leader-gated join (agents have no invite UI). `unseat_agent` /
+  `seat_all` / `unseat_all` round it out. `_ready` defers a bind of
+  `ActivityService.went_idle`, so the human going idle actually pulls their
+  agents out of play.
+- **The agent's character link** rides `AgentCoordinator` records: a
+  registered agent carries `entity_id` (the honest handle -> character link;
+  `""` until the door assigns one). The party bridge refuses by name when the
+  link is missing.
+- **Receipts**: `tests/test_activity_service.gd` (14/0) and
+  `tests/test_agent_party_bridge.gd` (20/0). The bridge receipt mounts the
+  real autoloads and sets their state (the session account + the local-player
+  slot) rather than replacing them -- the bridge reads exactly those fields.
+
+**Still open** (the next slices): the subaccount object itself (a real,
+un-loggable account), the body save/despawn leg on idle/logout (today the
+agent leaves the party; the door still owns the body), and the manual
+re-enable UX (agents do not auto-respawn on the human's return).
