@@ -41,7 +41,7 @@ export default function SiteLayout() {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-line bg-surface/80 backdrop-blur sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-y-2 gap-x-3">
           <Link to="/" className="flex items-center gap-3 shrink-0">
             <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-accent-deep flex items-center justify-center font-bold text-paper text-sm shadow">
               S
@@ -56,7 +56,7 @@ export default function SiteLayout() {
               </span>
             )}
           </Link>
-          <nav className="flex items-center gap-1">
+          <nav className="flex flex-wrap items-center gap-1">
             <NavItem to="/">Home</NavItem>
             <NavItem to="/play">Play</NavItem>
             <NavItem to="/privacy">Privacy</NavItem>

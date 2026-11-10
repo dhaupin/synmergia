@@ -1,27 +1,27 @@
 {
-  "lastSyncedAt": "2026-10-19T17:05:51.385Z",
+  "lastSyncedAt": "2026-11-10T22:59:05.423Z",
   "counts": {
     "classes": 39,
-    "weapons": 2,
-    "armors": 2,
-    "consumables": 3,
-    "enemies": 8,
-    "zones": 11,
+    "weapons": 10,
+    "armors": 11,
+    "consumables": 7,
+    "enemies": 25,
+    "zones": 12,
     "skills": 163,
-    "quests": 10,
+    "quests": 17,
     "buffs": 0,
     "factions": 4,
     "achievements": 32,
-    "titles": 12,
+    "titles": 14,
     "species": 3,
-    "dialogues": 6,
-    "currencies": 4,
+    "dialogues": 8,
+    "currencies": 5,
     "mounts": 11,
-    "vehicles": 3,
-    "resources": 11,
-    "items": 7,
-    "accessories": 6,
-    "recipes": 3
+    "vehicles": 4,
+    "resources": 17,
+    "items": 8,
+    "accessories": 12,
+    "recipes": 28
   },
   "classes": {
     "akkan_attacker": {
@@ -1998,6 +1998,116 @@
     }
   },
   "weapons": {
+    "wep_golden_estoc": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_golden_estoc",
+      "display_name": "Golden Estoc",
+      "description": "A thrusting blade tinned thin enough to find the seam in any ring coat. Mercenary make: heavier in the wallet than the hand.",
+      "icon_path": "res://icons/items/estoc_golden.png",
+      "item_category": 0,
+      "rarity": 3,
+      "equip_slot": 8,
+      "weapon_type": 1,
+      "stack_size": 1,
+      "sell_price": 165,
+      "buy_price": 450,
+      "item_level": 10,
+      "required_level": 10,
+      "required_strength": 8,
+      "stats": {
+        "strength": 6,
+        "vitality": 1
+      },
+      "weapon_damage_min": 12,
+      "weapon_damage_max": 19,
+      "attack_speed": 1.2,
+      "_sourceFile": "game/data/weapons/wep_golden_estoc.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_iron_axe": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_iron_axe",
+      "display_name": "Iron Axe",
+      "description": "Splits firewood before breakfast and wolves after it. The edge remembers a tree's grain.",
+      "icon_path": "res://icons/items/axe_iron.png",
+      "item_category": 0,
+      "rarity": 0,
+      "equip_slot": 8,
+      "weapon_type": 2,
+      "stack_size": 1,
+      "sell_price": 30,
+      "buy_price": 140,
+      "item_level": 5,
+      "required_level": 5,
+      "required_strength": 5,
+      "stats": {
+        "strength": 3
+      },
+      "weapon_damage_min": 12,
+      "weapon_damage_max": 20,
+      "attack_speed": 0.9,
+      "_sourceFile": "game/data/weapons/wep_iron_axe.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_iron_dagger": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_iron_dagger",
+      "display_name": "Iron Dagger",
+      "description": "Nine inches of honest iron. The quayside answer to everything bigger.",
+      "icon_path": "res://icons/items/dagger_iron.png",
+      "item_category": 0,
+      "rarity": 0,
+      "equip_slot": 8,
+      "weapon_type": 4,
+      "stack_size": 1,
+      "sell_price": 15,
+      "buy_price": 60,
+      "item_level": 3,
+      "required_level": 3,
+      "required_agility": 3,
+      "stats": {
+        "agility": 2
+      },
+      "weapon_damage_min": 5,
+      "weapon_damage_max": 9,
+      "attack_speed": 1.8,
+      "_sourceFile": "game/data/weapons/wep_iron_dagger.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_iron_spear": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_iron_spear",
+      "display_name": "Iron Spear",
+      "description": "A haft of Haven timber, a straight head, and polite range. Keeps horns and teeth at arm's length.",
+      "icon_path": "res://icons/items/spear_iron.png",
+      "item_category": 0,
+      "rarity": 0,
+      "equip_slot": 8,
+      "weapon_type": 9,
+      "stack_size": 1,
+      "sell_price": 35,
+      "buy_price": 160,
+      "item_level": 6,
+      "required_level": 6,
+      "required_strength": 4,
+      "stats": {
+        "strength": 2,
+        "agility": 2
+      },
+      "weapon_damage_min": 10,
+      "weapon_damage_max": 18,
+      "attack_speed": 1,
+      "_sourceFile": "game/data/weapons/wep_iron_spear.tres",
+      "_scriptClass": "Item"
+    },
     "wep_iron_sword": {
       "script": {
         "_extResource": "1"
@@ -2036,6 +2146,116 @@
       "_sourceFile": "game/data/weapons/wep_iron_sword.tres",
       "_scriptClass": "Item"
     },
+    "wep_longbow": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_longbow",
+      "display_name": "Haven Shorebow",
+      "description": "A longbow of layered timber, the string a Kelp Fiber cord that has never once chafed wet. It sings lower than it looks.",
+      "icon_path": "res://icons/items/bow_long.png",
+      "item_category": 0,
+      "rarity": 1,
+      "equip_slot": 8,
+      "weapon_type": 5,
+      "stack_size": 1,
+      "sell_price": 55,
+      "buy_price": 260,
+      "item_level": 8,
+      "required_level": 8,
+      "required_agility": 6,
+      "stats": {
+        "agility": 3
+      },
+      "weapon_damage_min": 14,
+      "weapon_damage_max": 26,
+      "attack_speed": 1,
+      "_sourceFile": "game/data/weapons/wep_longbow.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_mythril_halberd": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_mythril_halberd",
+      "display_name": "Mythril Halberd",
+      "description": "The pale metal lets a long pole stay a horseman's weight. The edge sheds light on the backswing; veterans fight it by ear.",
+      "icon_path": "res://icons/items/halberd_mythril.png",
+      "item_category": 0,
+      "rarity": 4,
+      "equip_slot": 8,
+      "weapon_type": 9,
+      "stack_size": 1,
+      "sell_price": 950,
+      "buy_price": 2600,
+      "item_level": 14,
+      "required_level": 14,
+      "required_strength": 12,
+      "stats": {
+        "strength": 8,
+        "agility": 2
+      },
+      "weapon_damage_min": 15,
+      "weapon_damage_max": 26,
+      "attack_speed": 1,
+      "_sourceFile": "game/data/weapons/wep_mythril_halberd.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_skysplitter": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_skysplitter",
+      "display_name": "Skysplitter",
+      "description": "The Concord charter names it the Starmetal Greatblade and would prefer you did not nickname it. The Concord has signed a great many things it would prefer people did not nickname.",
+      "icon_path": "res://icons/items/skysplitter.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 1,
+      "stack_size": 1,
+      "sell_price": 1800,
+      "buy_price": 5200,
+      "item_level": 18,
+      "required_level": 18,
+      "required_strength": 14,
+      "stats": {
+        "strength": 10,
+        "vitality": 2
+      },
+      "weapon_damage_min": 20,
+      "weapon_damage_max": 34,
+      "attack_speed": 0.9,
+      "_sourceFile": "game/data/weapons/wep_starmetal_skysplitter.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_walnut_staff": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_walnut_staff",
+      "display_name": "Walnut Staff",
+      "description": "Black walnut, moon-grown, with a silver ferrule the smith set by hand. Storms lean toward it.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 1,
+      "equip_slot": 8,
+      "weapon_type": 7,
+      "stack_size": 1,
+      "sell_price": 45,
+      "buy_price": 220,
+      "item_level": 6,
+      "required_level": 6,
+      "required_intelligence": 5,
+      "stats": {
+        "intelligence": 4
+      },
+      "weapon_damage_min": 6,
+      "weapon_damage_max": 12,
+      "attack_speed": 1.1,
+      "_sourceFile": "game/data/weapons/wep_walnut_staff.tres",
+      "_scriptClass": "Item"
+    },
     "wep_wooden_bow": {
       "script": {
         "_extResource": "1"
@@ -2068,6 +2288,106 @@
     }
   },
   "armors": {
+    "arm_cartographer_belt": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_cartographer_belt",
+      "display_name": "Cartographer's Belt",
+      "description": "Buckles for straightedge, plumb, and chalk. The Concord signs its charts and its deeds with the same hand.",
+      "icon_path": "res://icons/items/belt_cartographer.png",
+      "item_category": 1,
+      "rarity": 0,
+      "equip_slot": 13,
+      "armor_type": 1,
+      "stack_size": 1,
+      "sell_price": 25,
+      "buy_price": 110,
+      "item_level": 5,
+      "required_level": 5,
+      "stats": {
+        "intelligence": 2
+      },
+      "armor_value": 4,
+      "_sourceFile": "game/data/armors/arm_cartographer_belt.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_golden_scale_chest": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_golden_scale_chest",
+      "display_name": "Golden Scale Coat",
+      "description": "Overlapped scales of tempered gold. Against rust and salt it is peerless; against pride, hopeless.",
+      "icon_path": "res://icons/items/armor_golden_scale.png",
+      "item_category": 1,
+      "rarity": 3,
+      "equip_slot": 2,
+      "armor_type": 3,
+      "stack_size": 1,
+      "sell_price": 200,
+      "buy_price": 560,
+      "item_level": 10,
+      "required_level": 10,
+      "required_strength": 8,
+      "stats": {
+        "vitality": 4,
+        "strength": 3
+      },
+      "armor_value": 26,
+      "_sourceFile": "game/data/armors/arm_golden_scale_chest.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_iron_mail_chest": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_iron_mail_chest",
+      "display_name": "Iron Mail Coat",
+      "description": "Riveted rings the forge cut from its own slag-scarred stock. Heavy, honest, and priced like an apology to the shoulders.",
+      "icon_path": "res://icons/items/armor_iron_mail.png",
+      "item_category": 1,
+      "rarity": 1,
+      "equip_slot": 2,
+      "armor_type": 3,
+      "stack_size": 1,
+      "sell_price": 60,
+      "buy_price": 280,
+      "item_level": 8,
+      "required_level": 8,
+      "required_strength": 6,
+      "stats": {
+        "vitality": 4,
+        "strength": 2
+      },
+      "armor_value": 20,
+      "_sourceFile": "game/data/armors/arm_iron_mail_chest.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_leather_boots": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_leather_boots",
+      "display_name": "Leather Boots",
+      "description": "The tanner's own pattern, soled for gravel, mud, and the capitol's waxed floors.",
+      "icon_path": "res://icons/items/armor_leather_boots.png",
+      "item_category": 1,
+      "rarity": 0,
+      "equip_slot": 4,
+      "armor_type": 2,
+      "stack_size": 1,
+      "sell_price": 15,
+      "buy_price": 60,
+      "item_level": 3,
+      "required_level": 2,
+      "stats": {
+        "agility": 2
+      },
+      "armor_value": 6,
+      "_sourceFile": "game/data/armors/arm_leather_boots.tres",
+      "_scriptClass": "Item"
+    },
     "arm_leather_chest": {
       "script": {
         "_extResource": "1"
@@ -2092,6 +2412,106 @@
       },
       "armor_value": 12,
       "_sourceFile": "game/data/armors/arm_leather_chest.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_leather_gloves": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_leather_gloves",
+      "display_name": "Leather Gloves",
+      "description": "Thin where the palm needs the rope, thick where the buckles live. The smiths punch their marks in the off set.",
+      "icon_path": "res://icons/items/armor_leather_gloves.png",
+      "item_category": 1,
+      "rarity": 0,
+      "equip_slot": 5,
+      "armor_type": 2,
+      "stack_size": 1,
+      "sell_price": 15,
+      "buy_price": 60,
+      "item_level": 3,
+      "required_level": 2,
+      "stats": {
+        "strength": 1,
+        "agility": 1
+      },
+      "armor_value": 5,
+      "_sourceFile": "game/data/armors/arm_leather_gloves.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_leather_helm": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_leather_helm",
+      "display_name": "Leather Helm",
+      "description": "Boiled hide over a twin-wired frame. Turns a branch, a fist, most of a gull.",
+      "icon_path": "res://icons/items/armor_leather_helm.png",
+      "item_category": 1,
+      "rarity": 0,
+      "equip_slot": 1,
+      "armor_type": 2,
+      "stack_size": 1,
+      "sell_price": 20,
+      "buy_price": 80,
+      "item_level": 4,
+      "required_level": 3,
+      "stats": {
+        "vitality": 2
+      },
+      "armor_value": 8,
+      "_sourceFile": "game/data/armors/arm_leather_helm.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_leather_legs": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_leather_legs",
+      "display_name": "Leather Legguards",
+      "description": "Double-stitched and waxed against the fords. The wax smells like every spring you have walked.",
+      "icon_path": "res://icons/items/armor_leather_legs.png",
+      "item_category": 1,
+      "rarity": 0,
+      "equip_slot": 3,
+      "armor_type": 2,
+      "stack_size": 1,
+      "sell_price": 25,
+      "buy_price": 100,
+      "item_level": 4,
+      "required_level": 3,
+      "stats": {
+        "agility": 2
+      },
+      "armor_value": 10,
+      "_sourceFile": "game/data/armors/arm_leather_legs.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_mythril_wardmail": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_mythril_wardmail",
+      "display_name": "Mythril Wardmail",
+      "description": "Rings so fine the coat weighs less than a dinner. Guards carved into the collar keep their own quiet watch.",
+      "icon_path": "res://icons/items/armor_mythril_wardmail.png",
+      "item_category": 1,
+      "rarity": 4,
+      "equip_slot": 2,
+      "armor_type": 3,
+      "stack_size": 1,
+      "sell_price": 1100,
+      "buy_price": 3200,
+      "item_level": 14,
+      "required_level": 14,
+      "required_strength": 10,
+      "stats": {
+        "vitality": 6,
+        "strength": 4,
+        "wisdom": 2
+      },
+      "armor_value": 34,
+      "_sourceFile": "game/data/armors/arm_mythril_wardmail.tres",
       "_scriptClass": "Item"
     },
     "arm_shield_haven_wall": {
@@ -2120,9 +2540,65 @@
       },
       "_sourceFile": "game/data/armors/arm_shield_haven_wall.tres",
       "_scriptClass": "Item"
+    },
+    "arm_starmetal_bulwark": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_starmetal_bulwark",
+      "display_name": "Starmetal Bulwark",
+      "description": "Plate you cannot out-wear. The forge wins two of these a year and writes a letter home about each one.",
+      "icon_path": "res://icons/items/armor_starmetal_bulwark.png",
+      "item_category": 1,
+      "rarity": 5,
+      "equip_slot": 2,
+      "armor_type": 4,
+      "stack_size": 1,
+      "sell_price": 2000,
+      "buy_price": 6000,
+      "item_level": 18,
+      "required_level": 18,
+      "required_strength": 14,
+      "stats": {
+        "vitality": 8,
+        "strength": 5
+      },
+      "armor_value": 44,
+      "_sourceFile": "game/data/armors/arm_starmetal_bulwark.tres",
+      "_scriptClass": "Item"
     }
   },
   "consumables": {
+    "elixir_ironblood": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "elixir_ironblood",
+      "display_name": "Ironblood Elixir",
+      "description": "Ore ground to grit and steeped with moonpetal. Strength +8 for forty-five seconds; the taste is coins and candles.",
+      "icon_path": "res://icons/items/elixir_ironblood.png",
+      "item_category": 3,
+      "rarity": 2,
+      "equip_slot": 0,
+      "stack_size": 5,
+      "sell_price": 20,
+      "buy_price": 90,
+      "item_level": 4,
+      "required_level": 4,
+      "use_skill_id": "",
+      "cooldown": 8,
+      "duration": 0,
+      "buff_effects": [
+        {
+          "type": "stat_buff",
+          "stat": "strength",
+          "value": 8,
+          "duration": 45
+        }
+      ],
+      "_sourceFile": "game/data/consumables/elixir_ironblood.tres",
+      "_scriptClass": "Item"
+    },
     "item_sky_crate_daily": {
       "script": {
         "_extResource": "1"
@@ -2143,6 +2619,33 @@
       "duration": 0,
       "buff_effects": [],
       "_sourceFile": "game/data/consumables/item_sky_crate_daily.tres",
+      "_scriptClass": "Item"
+    },
+    "potion_health_medium": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "potion_health_medium",
+      "display_name": "Health Potion",
+      "description": "Moonpetal steeped into barley syrup. Restores 120 health; tastes like sunburned honey.",
+      "icon_path": "res://icons/items/potion_red_medium.png",
+      "item_category": 3,
+      "rarity": 1,
+      "equip_slot": 0,
+      "stack_size": 10,
+      "sell_price": 12,
+      "buy_price": 48,
+      "required_level": 0,
+      "use_skill_id": "",
+      "cooldown": 3,
+      "duration": 0,
+      "buff_effects": [
+        {
+          "type": "instant_heal",
+          "value": 120
+        }
+      ],
+      "_sourceFile": "game/data/consumables/potion_health_medium.tres",
       "_scriptClass": "Item"
     },
     "potion_health_small": {
@@ -2172,6 +2675,33 @@
       "_sourceFile": "game/data/consumables/potion_health_small.tres",
       "_scriptClass": "Item"
     },
+    "potion_mana_small": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "potion_mana_small",
+      "display_name": "Small Mana Potion",
+      "description": "Mooncap steeped cold so the dreaming stays in. Restores 40 mana. Tastes like a library.",
+      "icon_path": "res://icons/items/potion_blue_small.png",
+      "item_category": 3,
+      "rarity": 0,
+      "equip_slot": 0,
+      "stack_size": 10,
+      "sell_price": 5,
+      "buy_price": 22,
+      "required_level": 0,
+      "use_skill_id": "",
+      "cooldown": 2,
+      "duration": 0,
+      "buff_effects": [
+        {
+          "type": "instant_mana",
+          "value": 40
+        }
+      ],
+      "_sourceFile": "game/data/consumables/potion_mana_small.tres",
+      "_scriptClass": "Item"
+    },
     "potion_soul_gem": {
       "script": {
         "_extResource": "1"
@@ -2186,6 +2716,7 @@
       "stack_size": 5,
       "sell_price": 1000,
       "buy_price": 5000,
+      "item_level": 10,
       "required_level": 10,
       "is_self_rez_item": true,
       "self_rez_health_percent": 0.5,
@@ -2193,6 +2724,36 @@
       "self_rez_cooldown": 300,
       "cooldown": 300,
       "_sourceFile": "game/data/consumables/potion_soul_gem.tres",
+      "_scriptClass": "Item"
+    },
+    "tea_mooncap_steep": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "tea_mooncap_steep",
+      "display_name": "Mooncap Steep",
+      "description": "A wanderer-flask of pale broth. Knits 25 health back every two seconds for eight — slowly, and then all at once again.",
+      "icon_path": "res://icons/items/tea_mooncap.png",
+      "item_category": 3,
+      "rarity": 1,
+      "equip_slot": 0,
+      "stack_size": 10,
+      "sell_price": 8,
+      "buy_price": 35,
+      "item_level": 2,
+      "required_level": 2,
+      "use_skill_id": "",
+      "cooldown": 5,
+      "duration": 0,
+      "buff_effects": [
+        {
+          "type": "heal_over_time",
+          "value": 25,
+          "interval": 2,
+          "duration": 8
+        }
+      ],
+      "_sourceFile": "game/data/consumables/tea_mooncap_steep.tres",
       "_scriptClass": "Item"
     }
   },
@@ -2235,7 +2796,7 @@
       "gold_max": 20,
       "xp_reward": 55,
       "skills": [],
-      "model_path": "",
+      "model_path": "res://models/enemies/enemy_bandit.glb",
       "icon_path": "",
       "scale": 1,
       "animation_set": "humanoid",
@@ -2295,6 +2856,516 @@
       "_sourceFile": "game/data/enemies/enemy_clockwork_saint.tres",
       "_scriptClass": "EnemyData"
     },
+    "coast_pecker": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "coast_pecker",
+      "display_name": "Coast Pecker",
+      "description": "A gull that kept its appetite and lost its manners. Peck, scream, peck again -- steal anything shiny, including the brass buckles on your pack.",
+      "enemy_type": 0,
+      "level": 25,
+      "faction": "hostile",
+      "health": 560,
+      "mana": 44,
+      "stamina": 33,
+      "strength": 20,
+      "agility": 40,
+      "intelligence": 10,
+      "vitality": 22,
+      "attack_power": 50,
+      "spell_power": 16,
+      "armor": 14,
+      "resistance": 6,
+      "attack_range": 2.5,
+      "attack_speed": 1.6,
+      "move_speed": 5.4,
+      "aggro_range": 14,
+      "chase_range": 32,
+      "wander_range": 8,
+      "see_stealth": false,
+      "is_aggressive": true,
+      "is_passive": false,
+      "is_elite": false,
+      "is_boss": false,
+      "is_social": true,
+      "loot_table_id": "loot_coast_bounty",
+      "secondary_loot_table_id": "",
+      "gold_min": 60,
+      "gold_max": 110,
+      "xp_reward": 490,
+      "skills": [],
+      "movement_profile_id": "",
+      "hitbox_profile_id": "",
+      "model_path": "",
+      "icon_path": "",
+      "scale": 0.9,
+      "animation_set": "wolf",
+      "respawn_time": 360,
+      "despawn_time": 0,
+      "difficulty_modifier": 1.5,
+      "_sourceFile": "game/data/enemies/enemy_coast_pecker.tres",
+      "_scriptClass": "EnemyData"
+    },
+    "depths_thornhide": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "depths_thornhide",
+      "display_name": "Depths Thornhide",
+      "description": "A hound-shaped shadow stitched out of thorn and moss, wearing the undergrowth like a second hide. From the wrong angle it is a hovel; from the right angle it is already walking at you.",
+      "enemy_type": 0,
+      "level": 45,
+      "faction": "hostile",
+      "health": 2900,
+      "mana": 232,
+      "stamina": 174,
+      "strength": 60,
+      "agility": 48,
+      "intelligence": 12,
+      "vitality": 62,
+      "attack_power": 116,
+      "spell_power": 14,
+      "armor": 38,
+      "resistance": 16,
+      "attack_range": 2.5,
+      "attack_speed": 1.2,
+      "move_speed": 4.8,
+      "aggro_range": 14,
+      "chase_range": 34,
+      "wander_range": 8,
+      "see_stealth": false,
+      "is_aggressive": true,
+      "is_passive": false,
+      "is_elite": false,
+      "is_boss": false,
+      "is_social": true,
+      "loot_table_id": "loot_gloam_spores",
+      "secondary_loot_table_id": "loot_elite_ore",
+      "gold_min": 280,
+      "gold_max": 480,
+      "xp_reward": 3250,
+      "skills": [],
+      "movement_profile_id": "",
+      "hitbox_profile_id": "",
+      "model_path": "",
+      "icon_path": "",
+      "scale": 1.1,
+      "animation_set": "wolf",
+      "respawn_time": 420,
+      "despawn_time": 0,
+      "difficulty_modifier": 2.1,
+      "_sourceFile": "game/data/enemies/enemy_depths_thornhide.tres",
+      "_scriptClass": "EnemyData"
+    },
+    "drowned_custodian": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "drowned_custodian",
+      "display_name": "Drowned Custodian",
+      "description": "The sea keeps her clerks too: a custodian who went under with her ledger and never stopped filing. She writes the accounts of what the tide takes and demands payment on the spot.",
+      "enemy_type": 0,
+      "level": 55,
+      "faction": "hostile",
+      "health": 4200,
+      "mana": 336,
+      "stamina": 252,
+      "strength": 70,
+      "agility": 44,
+      "intelligence": 46,
+      "vitality": 66,
+      "attack_power": 140,
+      "spell_power": 96,
+      "armor": 44,
+      "resistance": 36,
+      "attack_range": 2.5,
+      "attack_speed": 1,
+      "move_speed": 4.2,
+      "aggro_range": 14,
+      "chase_range": 32,
+      "wander_range": 8,
+      "see_stealth": false,
+      "is_aggressive": true,
+      "is_passive": false,
+      "is_elite": false,
+      "is_boss": false,
+      "is_social": false,
+      "loot_table_id": "loot_sunken_salvage",
+      "secondary_loot_table_id": "loot_elite_ore",
+      "gold_min": 450,
+      "gold_max": 780,
+      "xp_reward": 4600,
+      "skills": [],
+      "movement_profile_id": "",
+      "hitbox_profile_id": "",
+      "model_path": "",
+      "icon_path": "",
+      "scale": 1.1,
+      "animation_set": "humanoid",
+      "respawn_time": 540,
+      "despawn_time": 0,
+      "difficulty_modifier": 2.2,
+      "_sourceFile": "game/data/enemies/enemy_drowned_custodian.tres",
+      "_scriptClass": "EnemyData"
+    },
+    "field_hopper": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "field_hopper",
+      "display_name": "Field Hopper",
+      "description": "The meadow's first tenant: long back legs, big eyes, and a talent for vanishing before the arrow leaves the string. It fights only when cornered, and even then it fights to escape.",
+      "enemy_type": 0,
+      "level": 5,
+      "faction": "hostile",
+      "health": 70,
+      "mana": 5,
+      "stamina": 4,
+      "strength": 8,
+      "agility": 18,
+      "intelligence": 4,
+      "vitality": 8,
+      "attack_power": 10,
+      "spell_power": 0,
+      "armor": 2,
+      "resistance": 0,
+      "attack_range": 2.5,
+      "attack_speed": 1.6,
+      "move_speed": 5.2,
+      "aggro_range": 10,
+      "chase_range": 22,
+      "wander_range": 8,
+      "see_stealth": false,
+      "is_aggressive": true,
+      "is_passive": true,
+      "is_elite": false,
+      "is_boss": false,
+      "is_social": true,
+      "loot_table_id": "loot_meadow_litter",
+      "secondary_loot_table_id": "",
+      "gold_min": 5,
+      "gold_max": 12,
+      "xp_reward": 60,
+      "skills": [],
+      "movement_profile_id": "",
+      "hitbox_profile_id": "",
+      "model_path": "",
+      "icon_path": "",
+      "scale": 0.9,
+      "animation_set": "wolf",
+      "respawn_time": 240,
+      "despawn_time": 0,
+      "difficulty_modifier": 1.2,
+      "_sourceFile": "game/data/enemies/enemy_field_hopper.tres",
+      "_scriptClass": "EnemyData"
+    },
+    "gloam_polyp": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "gloam_polyp",
+      "display_name": "Gloam Polyp",
+      "description": "The depths' fungal hearth: a slow, patient bloom the size of a washtub that exhales spores and means it. It does not chase; it glistens and waits and then it is already here.",
+      "enemy_type": 0,
+      "level": 40,
+      "faction": "hostile",
+      "health": 2400,
+      "mana": 192,
+      "stamina": 144,
+      "strength": 52,
+      "agility": 10,
+      "intelligence": 34,
+      "vitality": 58,
+      "attack_power": 92,
+      "spell_power": 64,
+      "armor": 30,
+      "resistance": 34,
+      "attack_range": 2.5,
+      "attack_speed": 0.6,
+      "move_speed": 2.4,
+      "aggro_range": 11,
+      "chase_range": 20,
+      "wander_range": 8,
+      "see_stealth": false,
+      "is_aggressive": true,
+      "is_passive": false,
+      "is_elite": false,
+      "is_boss": false,
+      "is_social": false,
+      "loot_table_id": "loot_gloam_spores",
+      "secondary_loot_table_id": "loot_elite_ore",
+      "gold_min": 240,
+      "gold_max": 420,
+      "xp_reward": 3000,
+      "skills": [],
+      "movement_profile_id": "",
+      "hitbox_profile_id": "",
+      "model_path": "",
+      "icon_path": "",
+      "scale": 1.2,
+      "animation_set": "slime",
+      "respawn_time": 420,
+      "despawn_time": 0,
+      "difficulty_modifier": 2,
+      "_sourceFile": "game/data/enemies/enemy_gloam_polyp.tres",
+      "_scriptClass": "EnemyData"
+    },
+    "gloam_whisp_moth": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "gloam_whisp_moth",
+      "display_name": "Gloam Whisp Moth",
+      "description": "A moth the size of a closed book, dusted with gloam pollen that glows faint at dusk. It flutters first and bites later; the pollen trails read as a dry spark on wet cloth.",
+      "enemy_type": 0,
+      "level": 15,
+      "faction": "hostile",
+      "health": 260,
+      "mana": 20,
+      "stamina": 15,
+      "strength": 14,
+      "agility": 32,
+      "intelligence": 20,
+      "vitality": 12,
+      "attack_power": 26,
+      "spell_power": 34,
+      "armor": 6,
+      "resistance": 12,
+      "attack_range": 2.5,
+      "attack_speed": 1.9,
+      "move_speed": 5.6,
+      "aggro_range": 14,
+      "chase_range": 30,
+      "wander_range": 8,
+      "see_stealth": false,
+      "is_aggressive": true,
+      "is_passive": false,
+      "is_elite": false,
+      "is_boss": false,
+      "is_social": true,
+      "loot_table_id": "loot_gloam_litter",
+      "secondary_loot_table_id": "",
+      "gold_min": 35,
+      "gold_max": 65,
+      "xp_reward": 370,
+      "skills": [],
+      "movement_profile_id": "",
+      "hitbox_profile_id": "",
+      "model_path": "",
+      "icon_path": "",
+      "scale": 0.9,
+      "animation_set": "wolf",
+      "respawn_time": 300,
+      "despawn_time": 0,
+      "difficulty_modifier": 1.4,
+      "_sourceFile": "game/data/enemies/enemy_gloam_whisp_moth.tres",
+      "_scriptClass": "EnemyData"
+    },
+    "gloamwood_stalker": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "gloamwood_stalker",
+      "display_name": "Gloamwood Stalker",
+      "description": "Something in the Gloomwood learned to keep still for hours under the moss, then finish the gap in four strides. It digs before it eats -- the settlers' iron rolls up around its denmaw, strip by strip, and whatever ore it swallowed stays swallowed. The deep grades too: mythril and star crush without grace in that gullet.",
+      "enemy_type": 1,
+      "level": 50,
+      "faction": "hostile",
+      "health": 3400,
+      "mana": 60,
+      "stamina": 150,
+      "strength": 58,
+      "agility": 55,
+      "intelligence": 22,
+      "vitality": 74,
+      "attack_power": 122,
+      "spell_power": 15,
+      "armor": 54,
+      "resistance": 26,
+      "attack_range": 2.5,
+      "attack_speed": 1.25,
+      "move_speed": 4.2,
+      "aggro_range": 14,
+      "chase_range": 35,
+      "wander_range": 10,
+      "see_stealth": true,
+      "is_aggressive": true,
+      "is_passive": false,
+      "is_elite": true,
+      "is_boss": false,
+      "is_social": false,
+      "loot_table_id": "",
+      "secondary_loot_table_id": "loot_elite_ore",
+      "gold_min": 350,
+      "gold_max": 600,
+      "xp_reward": 4000,
+      "skills": [],
+      "movement_profile_id": "",
+      "hitbox_profile_id": "",
+      "model_path": "",
+      "icon_path": "",
+      "scale": 1.2,
+      "animation_set": "wolf",
+      "respawn_time": 420,
+      "despawn_time": 0,
+      "difficulty_modifier": 2,
+      "_sourceFile": "game/data/enemies/enemy_gloamwood_stalker.tres",
+      "_scriptClass": "EnemyData"
+    },
+    "gull_nestmaw": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "gull_nestmaw",
+      "display_name": "Nestmaw of Gull Island",
+      "description": "An elite of the island perches: a maw built around stolen anchors, wedding rings, and the captains' brass. Its nest is a wreck's belly, nothing in it obtained honestly.",
+      "enemy_type": 1,
+      "level": 30,
+      "faction": "hostile",
+      "health": 950,
+      "mana": 76,
+      "stamina": 57,
+      "strength": 34,
+      "agility": 44,
+      "intelligence": 14,
+      "vitality": 30,
+      "attack_power": 78,
+      "spell_power": 20,
+      "armor": 22,
+      "resistance": 12,
+      "attack_range": 2.5,
+      "attack_speed": 1.5,
+      "move_speed": 5,
+      "aggro_range": 16,
+      "chase_range": 34,
+      "wander_range": 8,
+      "see_stealth": false,
+      "is_aggressive": true,
+      "is_passive": false,
+      "is_elite": true,
+      "is_boss": false,
+      "is_social": false,
+      "loot_table_id": "loot_coast_bounty",
+      "secondary_loot_table_id": "loot_elite_ore",
+      "gold_min": 120,
+      "gold_max": 210,
+      "xp_reward": 570,
+      "skills": [],
+      "movement_profile_id": "",
+      "hitbox_profile_id": "",
+      "model_path": "",
+      "icon_path": "",
+      "scale": 1.3,
+      "animation_set": "wolf",
+      "respawn_time": 420,
+      "despawn_time": 0,
+      "difficulty_modifier": 1.8,
+      "_sourceFile": "game/data/enemies/enemy_gull_nestmaw.tres",
+      "_scriptClass": "EnemyData"
+    },
+    "ledgewarden_construct": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "ledgewarden_construct",
+      "display_name": "The Ledgewarden",
+      "description": "A riveted construct of the old order, still keeping the depths' ledges with the ledger's patience. Its joints creak a bell-tone; its orders signed so long ago that the ink thinks for itself.",
+      "enemy_type": 1,
+      "level": 57,
+      "faction": "hostile",
+      "health": 3800,
+      "mana": 304,
+      "stamina": 228,
+      "strength": 66,
+      "agility": 34,
+      "intelligence": 40,
+      "vitality": 72,
+      "attack_power": 136,
+      "spell_power": 92,
+      "armor": 48,
+      "resistance": 40,
+      "attack_range": 2.5,
+      "attack_speed": 1.1,
+      "move_speed": 3.8,
+      "aggro_range": 13,
+      "chase_range": 30,
+      "wander_range": 8,
+      "see_stealth": true,
+      "is_aggressive": true,
+      "is_passive": false,
+      "is_elite": true,
+      "is_boss": false,
+      "is_social": false,
+      "loot_table_id": "",
+      "secondary_loot_table_id": "loot_elite_ore",
+      "gold_min": 500,
+      "gold_max": 900,
+      "xp_reward": 4800,
+      "skills": [],
+      "movement_profile_id": "",
+      "hitbox_profile_id": "",
+      "model_path": "",
+      "icon_path": "",
+      "scale": 1.3,
+      "animation_set": "void",
+      "respawn_time": 540,
+      "despawn_time": 0,
+      "difficulty_modifier": 2.3,
+      "_sourceFile": "game/data/enemies/enemy_ledgewarden_construct.tres",
+      "_scriptClass": "EnemyData"
+    },
+    "mirage_hound": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "mirage_hound",
+      "display_name": "Mirage Hound",
+      "description": "Runs better in heat than in truth. The hound's outline swims in the pans' shimmer, so the first sight of it is always slightly left of where it really stands.",
+      "enemy_type": 0,
+      "level": 25,
+      "faction": "hostile",
+      "health": 720,
+      "mana": 57,
+      "stamina": 43,
+      "strength": 30,
+      "agility": 38,
+      "intelligence": 8,
+      "vitality": 26,
+      "attack_power": 68,
+      "spell_power": 10,
+      "armor": 20,
+      "resistance": 8,
+      "attack_range": 2.5,
+      "attack_speed": 1.3,
+      "move_speed": 5.6,
+      "aggro_range": 15,
+      "chase_range": 36,
+      "wander_range": 8,
+      "see_stealth": true,
+      "is_aggressive": true,
+      "is_passive": false,
+      "is_elite": false,
+      "is_boss": false,
+      "is_social": true,
+      "loot_table_id": "loot_pan_dust",
+      "secondary_loot_table_id": "",
+      "gold_min": 85,
+      "gold_max": 140,
+      "xp_reward": 490,
+      "skills": [],
+      "movement_profile_id": "",
+      "hitbox_profile_id": "",
+      "model_path": "",
+      "icon_path": "",
+      "scale": 1,
+      "animation_set": "wolf",
+      "respawn_time": 360,
+      "despawn_time": 0,
+      "difficulty_modifier": 1.6,
+      "_sourceFile": "game/data/enemies/enemy_mirage_hound.tres",
+      "_scriptClass": "EnemyData"
+    },
     "mossbound_herald": {
       "script": {
         "_extResource": "1"
@@ -2344,6 +3415,108 @@
       "_sourceFile": "game/data/enemies/enemy_mossbound_herald.tres",
       "_scriptClass": "EnemyData"
     },
+    "rootmaw_brute": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "rootmaw_brute",
+      "display_name": "Rootmaw Brute",
+      "description": "Root Camp's own tall problem: troll-kin who cleared their mouths on roots and never learned to stop. The camp's deep wardens feed the roots else the roots feed.",
+      "enemy_type": 1,
+      "level": 30,
+      "faction": "hostile",
+      "health": 1200,
+      "mana": 96,
+      "stamina": 72,
+      "strength": 40,
+      "agility": 14,
+      "intelligence": 8,
+      "vitality": 34,
+      "attack_power": 88,
+      "spell_power": 8,
+      "armor": 34,
+      "resistance": 10,
+      "attack_range": 2.5,
+      "attack_speed": 0.7,
+      "move_speed": 3.4,
+      "aggro_range": 12,
+      "chase_range": 28,
+      "wander_range": 8,
+      "see_stealth": false,
+      "is_aggressive": true,
+      "is_passive": false,
+      "is_elite": true,
+      "is_boss": false,
+      "is_social": false,
+      "loot_table_id": "loot_elite_ore",
+      "secondary_loot_table_id": "loot_skill_books",
+      "gold_min": 130,
+      "gold_max": 260,
+      "xp_reward": 570,
+      "skills": [],
+      "movement_profile_id": "",
+      "hitbox_profile_id": "",
+      "model_path": "",
+      "icon_path": "",
+      "scale": 1.4,
+      "animation_set": "troll",
+      "respawn_time": 420,
+      "despawn_time": 0,
+      "difficulty_modifier": 1.8,
+      "_sourceFile": "game/data/enemies/enemy_rootmaw_brute.tres",
+      "_scriptClass": "EnemyData"
+    },
+    "salt_wretch": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "salt_wretch",
+      "display_name": "Salt Wretch",
+      "description": "A pan-crusted thing with shimmering brine for skin, half-dissolved out of a skin by the salt it hoards. Wanderers say the wretch's face is always a crowd's worth of closed eyes.",
+      "enemy_type": 0,
+      "level": 20,
+      "faction": "hostile",
+      "health": 640,
+      "mana": 51,
+      "stamina": 38,
+      "strength": 28,
+      "agility": 16,
+      "intelligence": 10,
+      "vitality": 24,
+      "attack_power": 58,
+      "spell_power": 40,
+      "armor": 18,
+      "resistance": 10,
+      "attack_range": 2.5,
+      "attack_speed": 0.9,
+      "move_speed": 3.6,
+      "aggro_range": 13,
+      "chase_range": 28,
+      "wander_range": 8,
+      "see_stealth": false,
+      "is_aggressive": true,
+      "is_passive": false,
+      "is_elite": false,
+      "is_boss": false,
+      "is_social": false,
+      "loot_table_id": "loot_pan_dust",
+      "secondary_loot_table_id": "",
+      "gold_min": 70,
+      "gold_max": 120,
+      "xp_reward": 425,
+      "skills": [],
+      "movement_profile_id": "",
+      "hitbox_profile_id": "",
+      "model_path": "",
+      "icon_path": "",
+      "scale": 1,
+      "animation_set": "humanoid",
+      "respawn_time": 360,
+      "despawn_time": 0,
+      "difficulty_modifier": 1.5,
+      "_sourceFile": "game/data/enemies/enemy_salt_wretch.tres",
+      "_scriptClass": "EnemyData"
+    },
     "slime": {
       "script": {
         "_extResource": "1"
@@ -2382,7 +3555,7 @@
       "gold_max": 5,
       "xp_reward": 15,
       "skills": [],
-      "model_path": "",
+      "model_path": "res://models/enemies/enemy_slime.glb",
       "icon_path": "res://icons/enemies/slime.png",
       "scale": 1,
       "animation_set": "slime",
@@ -2391,6 +3564,159 @@
       "difficulty_modifier": 1,
       "hitbox_profile_id": "hitbox_blob",
       "_sourceFile": "game/data/enemies/enemy_slime.tres",
+      "_scriptClass": "EnemyData"
+    },
+    "thistle_boar": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "thistle_boar",
+      "display_name": "Thistle Boar",
+      "description": "The Gloomwood's boar wears its armor in living thistle -- the matting grows across the shoulder like a hedgerow. Farmers lose hedges and tempers to these; barbs break tools, not patience.",
+      "enemy_type": 0,
+      "level": 10,
+      "faction": "hostile",
+      "health": 380,
+      "mana": 30,
+      "stamina": 22,
+      "strength": 22,
+      "agility": 12,
+      "intelligence": 6,
+      "vitality": 18,
+      "attack_power": 30,
+      "spell_power": 0,
+      "armor": 12,
+      "resistance": 2,
+      "attack_range": 2.5,
+      "attack_speed": 0.8,
+      "move_speed": 4,
+      "aggro_range": 11,
+      "chase_range": 26,
+      "wander_range": 8,
+      "see_stealth": false,
+      "is_aggressive": true,
+      "is_passive": false,
+      "is_elite": false,
+      "is_boss": false,
+      "is_social": false,
+      "loot_table_id": "loot_gloam_litter",
+      "secondary_loot_table_id": "",
+      "gold_min": 30,
+      "gold_max": 55,
+      "xp_reward": 320,
+      "skills": [],
+      "movement_profile_id": "",
+      "hitbox_profile_id": "",
+      "model_path": "res://models/enemies/enemy_thistle_boar.glb",
+      "icon_path": "",
+      "scale": 1.1,
+      "animation_set": "troll",
+      "respawn_time": 300,
+      "despawn_time": 0,
+      "difficulty_modifier": 1.4,
+      "_sourceFile": "game/data/enemies/enemy_thistle_boar.tres",
+      "_scriptClass": "EnemyData"
+    },
+    "tidebound_ancient": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "tidebound_ancient",
+      "display_name": "Tidebound Ancient",
+      "description": "The sea's oldest paid hand: a swimmer the tide hired so long ago it forgot which direction the shore is. Its shell is barnacle and its gullet is mythril-wet, and it still clocks in with the standing tide.",
+      "enemy_type": 1,
+      "level": 60,
+      "faction": "hostile",
+      "health": 5200,
+      "mana": 416,
+      "stamina": 312,
+      "strength": 78,
+      "agility": 50,
+      "intelligence": 52,
+      "vitality": 74,
+      "attack_power": 158,
+      "spell_power": 104,
+      "armor": 52,
+      "resistance": 44,
+      "attack_range": 2.5,
+      "attack_speed": 0.9,
+      "move_speed": 4,
+      "aggro_range": 16,
+      "chase_range": 36,
+      "wander_range": 8,
+      "see_stealth": false,
+      "is_aggressive": true,
+      "is_passive": false,
+      "is_elite": true,
+      "is_boss": false,
+      "is_social": false,
+      "loot_table_id": "loot_sunken_salvage",
+      "secondary_loot_table_id": "loot_elite_ore",
+      "gold_min": 700,
+      "gold_max": 1200,
+      "xp_reward": 5500,
+      "skills": [],
+      "movement_profile_id": "",
+      "hitbox_profile_id": "",
+      "model_path": "",
+      "icon_path": "",
+      "scale": 1.5,
+      "animation_set": "void",
+      "respawn_time": 600,
+      "despawn_time": 0,
+      "difficulty_modifier": 2.5,
+      "_sourceFile": "game/data/enemies/enemy_tidebound_ancient.tres",
+      "_scriptClass": "EnemyData"
+    },
+    "tidecursed_diver": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "tidecursed_diver",
+      "display_name": "Tidecursed Diver",
+      "description": "What the sea keeps of the divers who went past the squeeze line without a breather. It still dives when it fights -- rake, ropy drag, a hull-barnacled body that loathes the surface light. The kelp net it trails snags whatever the tide took: fibers, pearls, and the salvage that never got hauled back up.",
+      "enemy_type": 0,
+      "level": 40,
+      "faction": "hostile",
+      "health": 2600,
+      "mana": 50,
+      "stamina": 120,
+      "strength": 52,
+      "agility": 42,
+      "intelligence": 28,
+      "vitality": 62,
+      "attack_power": 95,
+      "spell_power": 25,
+      "armor": 46,
+      "resistance": 22,
+      "attack_range": 2.5,
+      "attack_speed": 1.1,
+      "move_speed": 3.6,
+      "aggro_range": 12,
+      "chase_range": 30,
+      "wander_range": 8,
+      "see_stealth": false,
+      "is_aggressive": true,
+      "is_passive": false,
+      "is_elite": false,
+      "is_boss": false,
+      "is_social": true,
+      "loot_table_id": "loot_sunken_salvage",
+      "secondary_loot_table_id": "loot_elite_ore",
+      "gold_min": 300,
+      "gold_max": 500,
+      "xp_reward": 3000,
+      "skills": [],
+      "movement_profile_id": "",
+      "hitbox_profile_id": "",
+      "model_path": "",
+      "icon_path": "",
+      "scale": 1,
+      "animation_set": "humanoid",
+      "respawn_time": 300,
+      "despawn_time": 0,
+      "difficulty_modifier": 1.5,
+      "_sourceFile": "game/data/enemies/enemy_tidecursed_diver.tres",
       "_scriptClass": "EnemyData"
     },
     "training_dummy": {
@@ -2432,7 +3758,7 @@
       "gold_max": 0,
       "xp_reward": 0,
       "skills": [],
-      "model_path": "",
+      "model_path": "res://models/enemies/enemy_training_dummy.glb",
       "icon_path": "",
       "scale": 1,
       "animation_set": "",
@@ -2441,6 +3767,55 @@
       "difficulty_modifier": 1,
       "hitbox_profile_id": "hitbox_dummy",
       "_sourceFile": "game/data/enemies/enemy_training_dummy.tres",
+      "_scriptClass": "EnemyData"
+    },
+    "trench_sentinel": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "trench_sentinel",
+      "display_name": "The Trench Sentinel",
+      "description": "The thing the squeeze line was sent to keep out. Kelp-wrapped bone grown around an abyss pearl larger than any the diggers ever pried loose, it climbs the trench wall on the standing tide and hauls the garden's debris behind it like a net. The divers give it a wide berth; the jewelers whisper that its pearl is why the trench never runs dry.",
+      "enemy_type": 4,
+      "level": 45,
+      "faction": "hostile",
+      "health": 5200,
+      "mana": 300,
+      "stamina": 200,
+      "strength": 55,
+      "agility": 32,
+      "intelligence": 70,
+      "vitality": 100,
+      "attack_power": 110,
+      "spell_power": 140,
+      "armor": 75,
+      "resistance": 65,
+      "attack_range": 12,
+      "attack_speed": 0.8,
+      "move_speed": 3,
+      "aggro_range": 14,
+      "chase_range": 40,
+      "wander_range": 10,
+      "see_stealth": false,
+      "is_aggressive": true,
+      "is_passive": false,
+      "is_elite": false,
+      "is_boss": true,
+      "is_social": false,
+      "loot_table_id": "loot_trench_dream",
+      "secondary_loot_table_id": "loot_elite_ore",
+      "gold_min": 400,
+      "gold_max": 900,
+      "xp_reward": 20000,
+      "skills": [],
+      "model_path": "",
+      "icon_path": "",
+      "scale": 2.4,
+      "animation_set": "void",
+      "respawn_time": 3600,
+      "despawn_time": 0,
+      "difficulty_modifier": 3,
+      "_sourceFile": "game/data/enemies/enemy_trench_sentinel.tres",
       "_scriptClass": "EnemyData"
     },
     "troll_elite": {
@@ -2490,6 +3865,57 @@
       "despawn_time": 0,
       "difficulty_modifier": 1.5,
       "_sourceFile": "game/data/enemies/enemy_troll_elite.tres",
+      "_scriptClass": "EnemyData"
+    },
+    "tusker_sow": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "tusker_sow",
+      "display_name": "Tusker Sow",
+      "description": "A broad-shouldered sow with curling tusks and a grudge against anything that walks too close to her rooting ground. The homestead bounties call her problem; the children call her neighbor.",
+      "enemy_type": 0,
+      "level": 5,
+      "faction": "hostile",
+      "health": 110,
+      "mana": 8,
+      "stamina": 6,
+      "strength": 12,
+      "agility": 9,
+      "intelligence": 4,
+      "vitality": 10,
+      "attack_power": 14,
+      "spell_power": 0,
+      "armor": 4,
+      "resistance": 0,
+      "attack_range": 2.5,
+      "attack_speed": 0.9,
+      "move_speed": 3.9,
+      "aggro_range": 9,
+      "chase_range": 20,
+      "wander_range": 8,
+      "see_stealth": false,
+      "is_aggressive": true,
+      "is_passive": false,
+      "is_elite": false,
+      "is_boss": false,
+      "is_social": false,
+      "loot_table_id": "loot_meadow_litter",
+      "secondary_loot_table_id": "",
+      "gold_min": 8,
+      "gold_max": 16,
+      "xp_reward": 75,
+      "skills": [],
+      "movement_profile_id": "",
+      "hitbox_profile_id": "",
+      "model_path": "",
+      "icon_path": "",
+      "scale": 1,
+      "animation_set": "troll",
+      "respawn_time": 240,
+      "despawn_time": 0,
+      "difficulty_modifier": 1.2,
+      "_sourceFile": "game/data/enemies/enemy_tusker_sow.tres",
       "_scriptClass": "EnemyData"
     },
     "void_lord": {
@@ -2730,7 +4156,7 @@
       "description": "A strata-lit shelf in the Deep Root, where the Warden keeps a hearth for travelers the sun never finds.",
       "pvp_mode": 0,
       "level_requirement": 1,
-      "max_level": 30,
+      "max_level": 999,
       "allowed_factions": [],
       "blocked_species": [],
       "respawn_at_bind": true,
@@ -2786,7 +4212,7 @@
       "description": "The dark heart of Gloomwood Forest. Ancient roots twist through the cavern walls. Looters and cultists have made this dungeon their lair. Difficulty: Normal.",
       "pvp_mode": 0,
       "level_requirement": 10,
-      "max_level": 30,
+      "max_level": 999,
       "allowed_factions": [],
       "blocked_species": [],
       "respawn_at_bind": true,
@@ -2841,7 +4267,7 @@
       "description": "A misty meadow at the edge of Gloomwood Forest. Grey wolves hunt in packs near the treeline. Safe from PvP, but dangerous wildlife roams freely.",
       "pvp_mode": 0,
       "level_requirement": 1,
-      "max_level": 15,
+      "max_level": 999,
       "allowed_factions": [],
       "blocked_species": [],
       "respawn_at_bind": true,
@@ -3010,7 +4436,9 @@
       },
       "npcs": [
         "npc_armory_capital",
-        "npc_skill_academy_capital"
+        "npc_skill_academy_capital",
+        "npc_black_market_fixer",
+        "npc_concord_herald"
       ],
       "loot_multiplier": 1,
       "xp_multiplier": 1,
@@ -3110,7 +4538,7 @@
       "description": "A peaceful meadow where new adventurers begin their journey. Safe from PvP.",
       "pvp_mode": 0,
       "level_requirement": 1,
-      "max_level": 20,
+      "max_level": 999,
       "allowed_factions": [],
       "blocked_species": [],
       "respawn_at_bind": true,
@@ -3166,6 +4594,50 @@
       "is_instanced": false,
       "instance_capacity": 0,
       "_sourceFile": "game/data/zones/zone_starter_plains.tres",
+      "_scriptClass": "ZoneData"
+    },
+    "zone_sun_pans": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "zone_sun_pans",
+      "world_id": "main",
+      "display_name": "The Sun Pans",
+      "description": "A desert atoll far across the sea: broken badlands rise into a ring of volcanic walls around a dry salt-pan core, and grass holds the outer bank. The Concord's charts mark it as the far country -- a climate the homeland never grows. No main-world law applies: its zone id is all it claims.",
+      "pvp_mode": 0,
+      "level_requirement": 1,
+      "max_level": 999,
+      "allowed_factions": [],
+      "blocked_species": [],
+      "respawn_at_bind": true,
+      "respawn_timer": 8,
+      "bounds": null,
+      "zone_center": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "zone_radius": 300,
+      "ambient_light_color": {
+        "r": 0.78,
+        "g": 0.72,
+        "b": 0.52,
+        "a": 1
+      },
+      "ambient_light_energy": 1.08,
+      "environment_path": "res://environments/day_01.tres",
+      "has_weather": true,
+      "weather_type": "clear",
+      "spawn_points": [
+        {
+          "v3": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "_sourceFile": "game/data/zones/zone_sun_pans.tres",
       "_scriptClass": "ZoneData"
     },
     "zone_sundered_sea": {
@@ -3274,7 +4746,9 @@
       "npcs": [
         "npc_blacksmith_village",
         "npc_merchant_general",
-        "npc_herbalist_village"
+        "npc_herbalist_village",
+        "npc_jeweler_haven",
+        "npc_tidewright_fenwick"
       ],
       "loot_multiplier": 1,
       "xp_multiplier": 1,
@@ -8028,6 +9502,156 @@
       "_sourceFile": "game/data/quests/quest_arena_trial.tres",
       "_scriptClass": "QuestData"
     },
+    "quest_cross_the_cistern": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "quest_cross_the_cistern",
+      "display_name": "Cross the Cistern",
+      "description": "The Deep Warden bids you swim the Glow Cistern, dish to dish: one honest wet crossing that the pool remembers, and the Warden's count of the glow tide gains a swimmer.",
+      "quest_type": 1,
+      "difficulty": 0,
+      "giver_npc_id": "npc_deep_warden",
+      "turn_in_npc_id": "npc_deep_warden",
+      "min_level": 1,
+      "max_level": 100,
+      "previous_quest_id": "quest_listen_to_the_deep",
+      "objectives": [
+        {
+          "id": "swim_the_pool",
+          "type": 12,
+          "target": "ocean_deep_root_pool",
+          "count": 1
+        },
+        {
+          "id": "tell_the_warden",
+          "type": 5,
+          "target": "npc_deep_warden",
+          "count": 1
+        }
+      ],
+      "rewards": [
+        {
+          "type": "gold",
+          "id": "",
+          "quantity": 80
+        },
+        {
+          "type": "experience",
+          "id": "",
+          "quantity": 150
+        }
+      ],
+      "gold_reward": 80,
+      "xp_reward": 150,
+      "icon_path": "",
+      "map_marker": "explore",
+      "_sourceFile": "game/data/quests/quest_cross_the_cistern.tres",
+      "_scriptClass": "QuestData"
+    },
+    "quest_deep_toll": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "quest_deep_toll",
+      "display_name": "The Market Toll",
+      "description": "Marsh Piper has a standing order and no patience for negotiation at the shelf: three raw abyss grades a day, bought before anyone asks. The trench beds pay the squeeze line back every waking, so the honest toll is a dive, not a haggling. Bring the grades and the bench keeps the market open for you.",
+      "giver_npc_id": "npc_jeweler_haven",
+      "turn_in_npc_id": "npc_jeweler_haven",
+      "min_level": 35,
+      "max_level": 100,
+      "required_quests": [],
+      "required_faction": "",
+      "required_faction_rank": 0,
+      "zone_restriction": "",
+      "objectives": [
+        {
+          "id": "pay_the_toll",
+          "type": 1,
+          "target": "Abyss Pearl",
+          "count": 3
+        }
+      ],
+      "rewards": [
+        {
+          "type": "gold",
+          "id": "",
+          "quantity": 2800
+        },
+        {
+          "type": "experience",
+          "id": "",
+          "quantity": 3500
+        },
+        {
+          "type": "item",
+          "id": "tea_mooncap_steep",
+          "quantity": 3,
+          "chance": 1
+        }
+      ],
+      "reward_choice_count": 0,
+      "gold_reward": 2800,
+      "xp_reward": 3500,
+      "icon_path": "res://icons/quests/deep_toll.png",
+      "map_marker": "collect",
+      "previous_quest_id": "",
+      "_sourceFile": "game/data/quests/quest_deep_toll.tres",
+      "_scriptClass": "QuestData"
+    },
+    "quest_gloamwood_ledger": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "quest_gloamwood_ledger",
+      "display_name": "The Gloamwood Ledger",
+      "description": "Fenwick's last unbalanced line is the Gloomwood: the settlers' iron rolls up through the depths in stalker gullets and comes back as ore nobody hauled down. Six stills dig the same den -- clear the ledger line and bring its mythril up honest, from the mouths that swallowed it.",
+      "giver_npc_id": "npc_tidewright_fenwick",
+      "turn_in_npc_id": "npc_tidewright_fenwick",
+      "min_level": 48,
+      "max_level": 100,
+      "required_quests": [
+        "quest_sentinel_wake"
+      ],
+      "required_faction": "",
+      "required_faction_rank": 0,
+      "zone_restriction": "",
+      "objectives": [
+        {
+          "id": "balance_the_ledger",
+          "type": 0,
+          "target": "Gloamwood Stalker",
+          "count": 6
+        }
+      ],
+      "rewards": [
+        {
+          "type": "gold",
+          "id": "",
+          "quantity": 4500
+        },
+        {
+          "type": "experience",
+          "id": "",
+          "quantity": 12000
+        },
+        {
+          "type": "item",
+          "id": "res_ore_mythril",
+          "quantity": 3,
+          "chance": 1
+        }
+      ],
+      "reward_choice_count": 0,
+      "gold_reward": 4500,
+      "xp_reward": 12000,
+      "icon_path": "res://icons/quests/gloamwood_ledger.png",
+      "map_marker": "kill",
+      "next_quest_id": "",
+      "previous_quest_id": "quest_sentinel_wake",
+      "_sourceFile": "game/data/quests/quest_gloamwood_ledger.tres",
+      "_scriptClass": "QuestData"
+    },
     "quest_herb_gathering": {
       "script": {
         "_extResource": "1"
@@ -8040,7 +9664,7 @@
       "giver_npc_id": "npc_herbalist_village",
       "turn_in_npc_id": "npc_herbalist_village",
       "min_level": 1,
-      "max_level": 20,
+      "max_level": 100,
       "is_repeatable": true,
       "cooldown": 86400,
       "objectives": [
@@ -8129,7 +9753,7 @@
       "giver_npc_id": "npc_deep_warden",
       "turn_in_npc_id": "npc_deep_warden",
       "min_level": 1,
-      "max_level": 30,
+      "max_level": 100,
       "objectives": [
         {
           "id": "hear_the_deep",
@@ -8158,6 +9782,7 @@
       ],
       "gold_reward": 60,
       "xp_reward": 120,
+      "next_quest_id": "quest_cross_the_cistern",
       "icon_path": "",
       "map_marker": "explore",
       "_sourceFile": "game/data/quests/quest_listen_to_the_deep.tres",
@@ -8181,7 +9806,7 @@
         {
           "id": "talk_elder",
           "type": 5,
-          "target": "Village Elder",
+          "target": "npc_village_elder",
           "count": 1
         }
       ],
@@ -8243,6 +9868,118 @@
       "_sourceFile": "game/data/quests/quest_main_teachings.tres",
       "_scriptClass": "QuestData"
     },
+    "quest_pearl_dive": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "quest_pearl_dive",
+      "display_name": "A Pearl for the Piper",
+      "description": "Marsh Piper wants abyss pearl INTACT -- the trench beds sit past the squeeze line, so a breather is not a suggestion, it is the entry fee. Bring her two raw grades and the bench's tidecaller seat stops being window talk.",
+      "quest_type": 1,
+      "difficulty": 2,
+      "giver_npc_id": "npc_jeweler_haven",
+      "turn_in_npc_id": "npc_jeweler_haven",
+      "min_level": 8,
+      "max_level": 100,
+      "required_quests": [],
+      "required_faction": "",
+      "required_faction_rank": 0,
+      "zone_restriction": "zone_village_center",
+      "objectives": [
+        {
+          "id": "dive_the_trench",
+          "type": 1,
+          "target": "Abyss Pearl",
+          "count": 2
+        },
+        {
+          "id": "set_the_pearl",
+          "type": 5,
+          "target": "npc_jeweler_haven",
+          "count": 1
+        }
+      ],
+      "rewards": [
+        {
+          "type": "gold",
+          "id": "",
+          "quantity": 250
+        },
+        {
+          "type": "experience",
+          "id": "",
+          "quantity": 400
+        },
+        {
+          "type": "item",
+          "id": "acc_ring_tidecaller",
+          "quantity": 1,
+          "chance": 1
+        }
+      ],
+      "reward_choice_count": 0,
+      "gold_reward": 250,
+      "xp_reward": 400,
+      "icon_path": "res://icons/quests/pearl_dive.png",
+      "map_marker": "collect",
+      "next_quest_id": "quest_tideline_kelp",
+      "previous_quest_id": "",
+      "_sourceFile": "game/data/quests/quest_pearl_dive.tres",
+      "_scriptClass": "QuestData"
+    },
+    "quest_sentinel_wake": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "quest_sentinel_wake",
+      "display_name": "The Sentinel's Toll",
+      "description": "Fenwick pays standing tolls, not dreams: the Sentinel hauls the garden's debris through the moor lanes on the standing tide and the lanes pay for it in rebuilt decks. It grows its pearl bigger every season and drags the fibers back with it. Take the wake off the lane when it rises -- once is enough for a season's ledger, and the ore it swallows pays the forge.",
+      "giver_npc_id": "npc_tidewright_fenwick",
+      "turn_in_npc_id": "npc_tidewright_fenwick",
+      "min_level": 42,
+      "max_level": 100,
+      "required_quests": [
+        "quest_tide_salvage"
+      ],
+      "required_faction": "",
+      "required_faction_rank": 0,
+      "zone_restriction": "",
+      "objectives": [
+        {
+          "id": "take_the_wake",
+          "type": 0,
+          "target": "The Trench Sentinel",
+          "count": 1
+        }
+      ],
+      "rewards": [
+        {
+          "type": "gold",
+          "id": "",
+          "quantity": 3000
+        },
+        {
+          "type": "experience",
+          "id": "",
+          "quantity": 10000
+        },
+        {
+          "type": "item",
+          "id": "res_ore_starmetal",
+          "quantity": 2,
+          "chance": 1
+        }
+      ],
+      "reward_choice_count": 0,
+      "gold_reward": 3000,
+      "xp_reward": 10000,
+      "icon_path": "res://icons/quests/sentinel_wake.png",
+      "map_marker": "kill",
+      "next_quest_id": "quest_gloamwood_ledger",
+      "previous_quest_id": "quest_tide_salvage",
+      "_sourceFile": "game/data/quests/quest_sentinel_wake.tres",
+      "_scriptClass": "QuestData"
+    },
     "quest_shoal_freight": {
       "script": {
         "_extResource": "1"
@@ -8255,7 +9992,7 @@
       "giver_npc_id": "npc_salvor_wreck",
       "turn_in_npc_id": "npc_ferryman_sundered",
       "min_level": 1,
-      "max_level": 30,
+      "max_level": 100,
       "required_quests": [],
       "required_faction": "",
       "required_faction_rank": 0,
@@ -8286,6 +10023,120 @@
       "icon_path": "res://icons/quests/wreck.png",
       "map_marker": "collect",
       "_sourceFile": "game/data/quests/quest_shoal_freight.tres",
+      "_scriptClass": "QuestData"
+    },
+    "quest_tide_salvage": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "quest_tide_salvage",
+      "display_name": "The Tide's Tithe",
+      "description": "Fenwick rebuilt six barque decks with salvage the tide took back the first time, so he knows the arithmetic: what the sea keeps standing near it can be hauled off it. The tidecursed keep snagging live fibers in their kelp drag when they haul past the shallows. Clear five of them off the moor lanes and bring the drag's fibers home -- a clean lane is worth a seasonal deck.",
+      "giver_npc_id": "npc_tidewright_fenwick",
+      "turn_in_npc_id": "npc_tidewright_fenwick",
+      "min_level": 38,
+      "max_level": 100,
+      "required_quests": [],
+      "required_faction": "",
+      "required_faction_rank": 0,
+      "zone_restriction": "",
+      "objectives": [
+        {
+          "id": "clear_the_lanes",
+          "type": 0,
+          "target": "Tidecursed Diver",
+          "count": 5
+        },
+        {
+          "id": "haul_the_fibers",
+          "type": 1,
+          "target": "Kelp Fiber",
+          "count": 10
+        }
+      ],
+      "rewards": [
+        {
+          "type": "gold",
+          "id": "",
+          "quantity": 2000
+        },
+        {
+          "type": "experience",
+          "id": "",
+          "quantity": 5000
+        },
+        {
+          "type": "item",
+          "id": "potion_health_medium",
+          "quantity": 3,
+          "chance": 1
+        }
+      ],
+      "reward_choice_count": 0,
+      "gold_reward": 2000,
+      "xp_reward": 5000,
+      "icon_path": "res://icons/quests/tide_salvage.png",
+      "map_marker": "kill",
+      "next_quest_id": "quest_sentinel_wake",
+      "previous_quest_id": "",
+      "_sourceFile": "game/data/quests/quest_tide_salvage.tres",
+      "_scriptClass": "QuestData"
+    },
+    "quest_tideline_kelp": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "quest_tideline_kelp",
+      "display_name": "Tideline Gather",
+      "description": "The Piper's braid stocks run dry by dusk. Six honest kelp threads off the strait's shelf beds -- cut near the holdfast, not shredded storm wreck -- and the braiding bench keeps its week. Darers who pay the deep beds with pearls already know where the shelf is.",
+      "quest_type": 2,
+      "difficulty": 1,
+      "giver_npc_id": "npc_jeweler_haven",
+      "turn_in_npc_id": "npc_jeweler_haven",
+      "min_level": 8,
+      "max_level": 100,
+      "required_quests": [
+        "quest_pearl_dive"
+      ],
+      "required_faction": "",
+      "required_faction_rank": 0,
+      "zone_restriction": "zone_village_center",
+      "objectives": [
+        {
+          "id": "gather_kelp",
+          "type": 1,
+          "target": "Kelp Fiber",
+          "count": 6
+        }
+      ],
+      "rewards": [
+        {
+          "type": "gold",
+          "id": "",
+          "quantity": 80
+        },
+        {
+          "type": "experience",
+          "id": "",
+          "quantity": 120
+        },
+        {
+          "type": "item",
+          "id": "tea_mooncap_steep",
+          "quantity": 2,
+          "chance": 1
+        }
+      ],
+      "reward_choice_count": 0,
+      "gold_reward": 80,
+      "xp_reward": 120,
+      "icon_path": "res://icons/quests/tideline.png",
+      "map_marker": "collect",
+      "next_quest_id": "",
+      "previous_quest_id": "quest_pearl_dive",
+      "is_repeatable": true,
+      "cooldown": 86400,
+      "_sourceFile": "game/data/quests/quest_tideline_kelp.tres",
       "_scriptClass": "QuestData"
     },
     "quest_watch_the_sky": {
@@ -8352,8 +10203,8 @@
       "objectives": [
         {
           "id": "glide_distance",
-          "type": 0,
-          "target": "glide 300 meters",
+          "type": 13,
+          "target": "glide_distance",
           "count": 1
         }
       ],
@@ -9200,6 +11051,24 @@
       "_sourceFile": "game/data/titles/title_collector.tres",
       "_scriptClass": "TitleData"
     },
+    "deepseabaron": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "deepseabaron",
+      "display_name": "Deep Sea Baron",
+      "description": "A tallow-crown merchant of the Sundered Sea, bankrolled in Concord Sigils.",
+      "prefix_form": "The Deep Sea Baron",
+      "suffix_form": "baron of the deep",
+      "category": 7,
+      "rarity": 4,
+      "unlock_method": 6,
+      "unlock_source": "sigil_sink",
+      "is_account_title": false,
+      "sort_order": 111,
+      "_sourceFile": "game/data/titles/title_deepseabaron.tres",
+      "_scriptClass": "TitleData"
+    },
     "explorer": {
       "script": {
         "_extResource": "1"
@@ -9270,6 +11139,24 @@
       "is_account_title": false,
       "sort_order": 14,
       "_sourceFile": "game/data/titles/title_last_light.tres",
+      "_scriptClass": "TitleData"
+    },
+    "pillarsworn": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "pillarsworn",
+      "display_name": "Pillarsworn",
+      "description": "Sworn to the Concord's nine pillars, paid in Concord Sigils.",
+      "prefix_form": "Pillarsworn",
+      "suffix_form": "pillar-sworn",
+      "category": 7,
+      "rarity": 3,
+      "unlock_method": 6,
+      "unlock_source": "sigil_sink",
+      "is_account_title": false,
+      "sort_order": 110,
+      "_sourceFile": "game/data/titles/title_pillarsworn.tres",
       "_scriptClass": "TitleData"
     },
     "slayer": {
@@ -9721,6 +11608,17 @@
       "_sourceFile": "game/data/dialogues/deep_warden_greeting.tres",
       "_scriptClass": "DialogueData"
     },
+    "jeweler_haven_intro": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "jeweler_haven_intro",
+      "npc_id": "npc_jeweler_haven",
+      "display_name": "Haven Jeweler",
+      "nodes": "[\n{\n\"speaker\": \"Haven Jeweler\",\n\"text\": \"Do wash your hands first, dear. Half this bench is cut pearl and the other half is patience, and I have less patience than cut pearl.\",\n\"choices\": [\n{\"text\": \"What do you sell from this bench?\", \"next_node\": 1},\n{\"text\": \"You look like you know where the money is.\", \"next_node\": 2}\n]",
+      "_sourceFile": "game/data/dialogues/jeweler_haven_intro.tres",
+      "_scriptClass": "DialogueData"
+    },
     "merchant_greeting": {
       "script": {
         "_extResource": "1"
@@ -9754,6 +11652,17 @@
       "_sourceFile": "game/data/dialogues/sundered_salvor_talk.tres",
       "_scriptClass": "DialogueData"
     },
+    "tidewright_fenwick_intro": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "tidewright_fenwick_intro",
+      "npc_id": "npc_tidewright_fenwick",
+      "display_name": "Haven Tidewright",
+      "nodes": "[\n{\n\"speaker\": \"Haven Tidewright\",\n\"text\": \"Mind the tar bucket, the yard's wet through. Half this village's fence is my hand and the other half is what the tide takes back come the next blow, and I drink to both of them the same.\",\n\"choices\": [\n{\"text\": \"What does a plankwright sell?\", \"next_node\": 1},\n{\"text\": \"You keep the strait's moor banks in working order?\", \"next_node\": 2}\n]",
+      "_sourceFile": "game/data/dialogues/tidewright_fenwick_intro.tres",
+      "_scriptClass": "DialogueData"
+    },
     "village_elder_greeting": {
       "script": {
         "_extResource": "1"
@@ -9767,6 +11676,26 @@
     }
   },
   "currencies": {
+    "currency_concord_sigil": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "currency_concord_sigil",
+      "display_name": "Concord Sigil",
+      "description": "A pressed sigil of the Concord itself, stamped where no reclaim forge reaches. The deep-stall ledger and the premium vault price their impossible wares in these; no coin purse ever mints one.",
+      "icon_path": "res://icons/currency/concord_sigil.png",
+      "kind": 5,
+      "gold_per_unit": 5000,
+      "convertible_to_gold": false,
+      "convertible_from_gold": false,
+      "wallet_cap": 0,
+      "dropped_on_death": false,
+      "faction_id": "",
+      "soulbound": true,
+      "sort_order": 5,
+      "_sourceFile": "game/data/currencies/currency_concord_sigil.tres",
+      "_scriptClass": "CurrencyData"
+    },
     "currency_conduit_shard": {
       "script": {
         "_extResource": "1"
@@ -10254,6 +12183,35 @@
       "_sourceFile": "game/data/vehicles/veh_island_ferry.tres",
       "_scriptClass": "VehicleData"
     },
+    "veh_pans_ferry": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "veh_pans_ferry",
+      "display_name": "Pans Runner",
+      "description": "A lean, lateen-rigged runner the Concord keeps for the long haul: harbor pier to the Sun Pans atoll and back. Two cast-offs a day -- the far country is honest water time. The reward at the other end is a desert no homeland chart mentions.",
+      "icon_path": "res://icons/vehicles/ferry.png",
+      "model_path": "",
+      "kind": 1,
+      "speed_multiplier": 1.2,
+      "seat_count": 6,
+      "cargo_capacity": 30,
+      "required_level": 1,
+      "guild_owned": false,
+      "source": 0,
+      "currency_id": "",
+      "cost": 0,
+      "route_gateways": [
+        "waypoint_capitol_pier",
+        "waypoint_sun_pans"
+      ],
+      "soulbound": false,
+      "ferries_per_day": 2,
+      "first_departure_hour": 7.5,
+      "crossing_hours": 3,
+      "_sourceFile": "game/data/vehicles/veh_pans_ferry.tres",
+      "_scriptClass": "VehicleData"
+    },
     "veh_sundered_barque": {
       "script": {
         "_extResource": "1"
@@ -10285,6 +12243,43 @@
     }
   },
   "resources": {
+    "res_abyss_pearl": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_abyss_pearl",
+      "display_name": "Abyss Pearl",
+      "description": "A grey-iridescent pearl grown in the trench below the squeeze line, only given up by bodies that walked the pressure and came back. The phantom divers of old wore one at the throat; the water simply stopped noticing them.",
+      "icon_path": "res://icons/resources/abyss_pearl.png",
+      "item_category": 4,
+      "rarity": 3,
+      "equip_slot": 0,
+      "stack_size": 20,
+      "sell_price": 45,
+      "buy_price": 180,
+      "item_level": 55,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_abyss_pearl.tres",
+      "_scriptClass": "Item"
+    },
+    "res_golden_ingot": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_golden_ingot",
+      "display_name": "Golden Ingot",
+      "description": "Two sun-colored ores made one at the forge. The merchants swear by it, the smiths swear AT it -- gold is soft, but it takes a temper other metals envy.",
+      "icon_path": "res://icons/resources/golden_ingot.png",
+      "item_category": 4,
+      "rarity": 2,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 88,
+      "buy_price": 190,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_golden_ingot.tres",
+      "_scriptClass": "Item"
+    },
     "res_iron_ingot": {
       "script": {
         "_extResource": "1"
@@ -10319,6 +12314,24 @@
       "buy_price": 5,
       "required_level": 0,
       "_sourceFile": "game/data/resources/res_iron_ore.tres",
+      "_scriptClass": "Item"
+    },
+    "res_kelp_fiber": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_kelp_fiber",
+      "display_name": "Kelp Fiber",
+      "description": "Strands of deep kelp pulled from the gardens below the light. Sun-dried it braids into rope; the Concord weavers of the quay prize a kelp cord for a harness that never chafes wet.",
+      "icon_path": "res://icons/resources/kelp_fiber.png",
+      "item_category": 4,
+      "rarity": 1,
+      "equip_slot": 0,
+      "stack_size": 50,
+      "sell_price": 2,
+      "buy_price": 8,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_kelp_fiber.tres",
       "_scriptClass": "Item"
     },
     "res_mooncap": {
@@ -10356,6 +12369,24 @@
       "required_level": 0,
       "weight": 0.05,
       "_sourceFile": "game/data/resources/res_moonpetal.tres",
+      "_scriptClass": "Item"
+    },
+    "res_mythril_ingot": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_mythril_ingot",
+      "display_name": "Mythril Ingot",
+      "description": "The pale ore refuses every fire until a golden ingot carries the temper through. What comes out is light enough to float and strong enough to be ashamed of it.",
+      "icon_path": "res://icons/resources/mythril_ingot.png",
+      "item_category": 4,
+      "rarity": 4,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 1100,
+      "buy_price": 2900,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_mythril_ingot.tres",
       "_scriptClass": "Item"
     },
     "res_ore_golden": {
@@ -10430,6 +12461,24 @@
       "_sourceFile": "game/data/resources/res_ore_starmetal.tres",
       "_scriptClass": "Item"
     },
+    "res_silver_ingot": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_silver_ingot",
+      "display_name": "Silver Ingot",
+      "description": "Two pale ores made one at the forge. The smiths of the Concord say silver remembers where it has been; the ferrule only says pour.",
+      "icon_path": "res://icons/resources/silver_ingot.png",
+      "item_category": 4,
+      "rarity": 2,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 28,
+      "buy_price": 75,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_silver_ingot.tres",
+      "_scriptClass": "Item"
+    },
     "res_slag": {
       "script": {
         "_extResource": "1"
@@ -10446,6 +12495,24 @@
       "buy_price": 3,
       "required_level": 0,
       "_sourceFile": "game/data/resources/res_slag.tres",
+      "_scriptClass": "Item"
+    },
+    "res_starmetal_ingot": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_starmetal_ingot",
+      "description": "Sky metal, tempered through mythril. The Concord signs it where armorers work; the metal stays faintly warm on winter nights, which nobody who works it will discuss.",
+      "display_name": "Starmetal Ingot",
+      "icon_path": "res://icons/resources/starmetal_ingot.png",
+      "item_category": 4,
+      "rarity": 5,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 300,
+      "buy_price": 760,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_starmetal_ingot.tres",
       "_scriptClass": "Item"
     },
     "res_stone": {
@@ -10498,8 +12565,8 @@
       "rarity": 3,
       "equip_slot": 0,
       "stack_size": 1,
-      "sell_price": 0,
-      "buy_price": 0,
+      "sell_price": 25,
+      "buy_price": 60,
       "required_level": 0,
       "is_bound": true,
       "_sourceFile": "game/data/items/item_ancient_coin.tres",
@@ -10604,6 +12671,27 @@
       "_sourceFile": "game/data/items/item_skiff_ticket.tres",
       "_scriptClass": "Item"
     },
+    "item_soulbind_ticket": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "item_soulbind_ticket",
+      "display_name": "Soulbinder's Ticket",
+      "description": "A pillared stub of Concord lead, sealed with the Soulbinder's mark. Present it at the death screen and you stand up where you fell (a death the sea owns buys back a safe ground nearby), or kneel by a fallen ally with no healer in reach and pay it to stand them. Spent once, soulbound to the hand that holds it, never vendored -- the pillar shrine's ledger gate is its only door.",
+      "icon_path": "res://icons/items/ticket_soulbind.png",
+      "item_category": 3,
+      "rarity": 4,
+      "equip_slot": 0,
+      "stack_size": 10,
+      "sell_price": 0,
+      "buy_price": 0,
+      "required_level": 0,
+      "is_bound": true,
+      "is_quest_item": true,
+      "soulbound": true,
+      "_sourceFile": "game/data/items/item_soulbind_ticket.tres",
+      "_scriptClass": "Item"
+    },
     "item_strait_charm": {
       "script": {
         "_extResource": "1"
@@ -10647,6 +12735,31 @@
         "carry_capacity": 20
       },
       "_sourceFile": "game/data/accessories/acc_belt_reclaimer.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_breather_abyss_pearl": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_breather_abyss_pearl",
+      "display_name": "Abyssal Breather",
+      "description": "An abyss pearl on a braided kelp cord. The reed keeps the deep at a distance; the pearl is different -- it is a piece of the deep that decided to help. Eight breaths the sea cannot count, twenty more meters the squeeze forgives, and the water's slow pull does not reach the diver at all.",
+      "icon_path": "res://icons/items/breather_abyss_pearl.png",
+      "item_category": 2,
+      "rarity": 3,
+      "equip_slot": 11,
+      "accessory_type": 6,
+      "breath_multiplier": 8,
+      "squeeze_grace_m": 20,
+      "current_immune": true,
+      "stack_size": 1,
+      "bind_on_equip": true,
+      "sell_price": 60,
+      "buy_price": 300,
+      "item_level": 55,
+      "required_level": 8,
+      "stats": {},
+      "_sourceFile": "game/data/accessories/acc_breather_abyss_pearl.tres",
       "_scriptClass": "Item"
     },
     "acc_breather_lungshell": {
@@ -10747,6 +12860,58 @@
       "_sourceFile": "game/data/accessories/acc_necklace_haven_pearl.tres",
       "_scriptClass": "Item"
     },
+    "acc_necklace_paleshard_ward": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_necklace_paleshard_ward",
+      "display_name": "Paleshard Ward",
+      "description": "A mythril shard pried loose and strung over an abyss pearl on braided kelp. The pearl keeps the ward fed; the kelp keeps it honest; neither agrees with the other.",
+      "icon_path": "res://icons/items/necklace_paleshard_ward.png",
+      "item_category": 2,
+      "rarity": 4,
+      "equip_slot": 11,
+      "accessory_type": 2,
+      "stack_size": 1,
+      "bind_on_equip": true,
+      "sell_price": 1050,
+      "buy_price": 2600,
+      "item_level": 14,
+      "required_level": 14,
+      "stats": {
+        "wisdom": 3,
+        "intelligence": 2
+      },
+      "_sourceFile": "game/data/accessories/acc_necklace_paleshard_ward.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_necklace_pearl_sigil": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_necklace_pearl_sigil",
+      "display_name": "Pearl Sigil of the Deep Sentinel",
+      "description": "A pearl the trench dreamed around a bone core, strung on braided kelp by whatever hands the Sentinel keeps. The squeeze line reads the dream and labors to obey it: the deep forgives ten more meters, and no current can carry a body wearing the trench's own word.",
+      "icon_path": "res://icons/items/necklace_pearl_sigil.png",
+      "item_category": 2,
+      "rarity": 5,
+      "equip_slot": 11,
+      "accessory_type": 2,
+      "stack_size": 1,
+      "bind_on_equip": true,
+      "sell_price": 12000,
+      "buy_price": 30000,
+      "item_level": 40,
+      "required_level": 40,
+      "current_immune": true,
+      "squeeze_grace_m": 10,
+      "stats": {
+        "wisdom": 7,
+        "vitality": 4
+      },
+      "_sourceFile": "game/data/accessories/acc_necklace_pearl_sigil.tres",
+      "_scriptClass": "Item"
+    },
     "acc_ring_first_light": {
       "script": {
         "_extResource": "1"
@@ -10770,9 +12935,343 @@
       },
       "_sourceFile": "game/data/accessories/acc_ring_first_light.tres",
       "_scriptClass": "Item"
+    },
+    "acc_ring_golden_signet": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_ring_golden_signet",
+      "display_name": "Ledger Warder's Signet",
+      "description": "Tempered gold cut with the Concord pillar; the debtor's answer to the creditor's seal. Heavier to wield than to wear.",
+      "icon_path": "res://icons/items/ring_golden_signet.png",
+      "item_category": 2,
+      "rarity": 3,
+      "equip_slot": 9,
+      "accessory_type": 1,
+      "stack_size": 1,
+      "bind_on_equip": true,
+      "sell_price": 140,
+      "buy_price": 380,
+      "item_level": 10,
+      "required_level": 10,
+      "stats": {
+        "vitality": 2,
+        "strength": 2
+      },
+      "_sourceFile": "game/data/accessories/acc_ring_golden_signet.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_ring_starbinder": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_ring_starbinder",
+      "display_name": "Starbinder Ring",
+      "description": "Starmetal set over its own abyss pearl. The metal stays warm and the pearl stays cold, and the wearer is invited to reconcile the two opinions.",
+      "icon_path": "res://icons/items/ring_starbinder.png",
+      "item_category": 2,
+      "rarity": 5,
+      "equip_slot": 9,
+      "accessory_type": 1,
+      "stack_size": 1,
+      "bind_on_equip": true,
+      "sell_price": 2000,
+      "buy_price": 5600,
+      "item_level": 18,
+      "required_level": 18,
+      "stats": {
+        "wisdom": 3,
+        "vitality": 3
+      },
+      "_sourceFile": "game/data/accessories/acc_ring_starbinder.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_ring_tidecaller": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_ring_tidecaller",
+      "display_name": "Tidecaller Band",
+      "description": "Braided kelp around a smith's iron band. Grown wet and dried slow; the harbor-folk swear it always knows which way the current runs.",
+      "icon_path": "res://icons/items/ring_tidecaller.png",
+      "item_category": 2,
+      "rarity": 1,
+      "equip_slot": 9,
+      "accessory_type": 1,
+      "stack_size": 1,
+      "bind_on_equip": true,
+      "sell_price": 36,
+      "buy_price": 90,
+      "item_level": 6,
+      "required_level": 6,
+      "stats": {
+        "wisdom": 2,
+        "vitality": 1
+      },
+      "_sourceFile": "game/data/accessories/acc_ring_tidecaller.tres",
+      "_scriptClass": "Item"
     }
   },
   "recipes": {
+    "recipe_abyssal_breather": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_abyssal_breather",
+      "display_name": "String the Abyssal Breather",
+      "description": "One trench pearl strung on eight strands of kelp fiber -- the cord is the part the quay knows how to tie, the pearl is the part nobody explains. The result keeps a diver alive and still.",
+      "station": 0,
+      "inputs": [
+        {
+          "item_id": "res_abyss_pearl",
+          "qty": 1
+        },
+        {
+          "item_id": "res_kelp_fiber",
+          "qty": 8
+        }
+      ],
+      "output": {
+        "item_id": "acc_breather_abyss_pearl",
+        "qty": 1
+      },
+      "byproducts": [],
+      "craft_time_sec": 0,
+      "required_level": 8,
+      "failure_rate": 0,
+      "_sourceFile": "game/data/recipes/recipe_abyssal_breather.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_elixir_ironblood": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_elixir_ironblood",
+      "display_name": "Brew Ironblood Elixir",
+      "description": "The ore must be ground fine enough to swear into. Two grits, one petal, and a steady hand.",
+      "station": 3,
+      "inputs": [
+        {
+          "item_id": "res_iron_ore",
+          "qty": 2
+        },
+        {
+          "item_id": "res_moonpetal",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "elixir_ironblood",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 4,
+      "failure_rate": 0.1,
+      "_sourceFile": "game/data/recipes/recipe_elixir_ironblood.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_golden_estoc": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_golden_estoc",
+      "display_name": "Forge Golden Estoc",
+      "description": "A thin blade wants patient hands: gold wraps the iron core, the core keeps the opinion.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_golden_ingot",
+          "qty": 2
+        },
+        {
+          "item_id": "res_iron_ingot",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "wep_golden_estoc",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 10,
+      "failure_rate": 0.12,
+      "_sourceFile": "game/data/recipes/recipe_golden_estoc.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_golden_ingot": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_golden_ingot",
+      "display_name": "Smelt Golden Ingot",
+      "description": "Gold melts at a disloyal temperature. Two ores, one ingot, and the crucible keeps a little of the profit.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_ore_golden",
+          "qty": 2
+        }
+      ],
+      "output": {
+        "item_id": "res_golden_ingot",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 5,
+      "failure_rate": 0.1,
+      "_sourceFile": "game/data/recipes/recipe_golden_ingot.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_golden_scale_chest": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_golden_scale_chest",
+      "display_name": "Rivet Golden Scale Coat",
+      "description": "Each scale taps down flat; a coat this soft starts with iron discipline.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_golden_ingot",
+          "qty": 3
+        },
+        {
+          "item_id": "res_iron_ingot",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "arm_golden_scale_chest",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 10,
+      "failure_rate": 0.12,
+      "_sourceFile": "game/data/recipes/recipe_golden_scale_chest.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_golden_signet": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_golden_signet",
+      "display_name": "Cut Ledger Warder's Signet",
+      "description": "One golden ingot, one silver: gold for the face, silver for the shank the deep bothers. The pillar stamps where the charter says it must.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_golden_ingot",
+          "qty": 1
+        },
+        {
+          "item_id": "res_silver_ingot",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "acc_ring_golden_signet",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 10,
+      "failure_rate": 0.1,
+      "_sourceFile": "game/data/recipes/recipe_golden_signet.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_iron_axe": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_iron_axe",
+      "display_name": "Forge Iron Axe",
+      "description": "The head is three ingots of iron; the haft one timber the splitter chose itself.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_iron_ingot",
+          "qty": 3
+        },
+        {
+          "item_id": "res_timber",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "wep_iron_axe",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 5,
+      "failure_rate": 0.05,
+      "_sourceFile": "game/data/recipes/recipe_iron_axe.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_iron_dagger": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_iron_dagger",
+      "display_name": "Forge Iron Dagger",
+      "description": "One ingot folded twice. A short blank, a patient smith, nine inches of resolve.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_iron_ingot",
+          "qty": 2
+        }
+      ],
+      "output": {
+        "item_id": "wep_iron_dagger",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 3,
+      "failure_rate": 0.05,
+      "_sourceFile": "game/data/recipes/recipe_iron_dagger.tres",
+      "_scriptClass": "RecipeData"
+    },
     "recipe_iron_ingot": {
       "script": {
         "_extResource": "1"
@@ -10803,6 +13302,313 @@
       "_sourceFile": "game/data/recipes/recipe_iron_ingot.tres",
       "_scriptClass": "RecipeData"
     },
+    "recipe_iron_mail_chest": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_iron_mail_chest",
+      "display_name": "Rivet Iron Mail",
+      "description": "Five ingots draw to wire, the wire rings, the rings rivet. A craft for hands that do not mind a long afternoon.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_iron_ingot",
+          "qty": 5
+        }
+      ],
+      "output": {
+        "item_id": "arm_iron_mail_chest",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 2
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 8,
+      "failure_rate": 0.15,
+      "_sourceFile": "game/data/recipes/recipe_iron_mail_chest.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_iron_spear": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_iron_spear",
+      "display_name": "Forge Iron Spear",
+      "description": "A straight head drawn to a point, a timber haft dressed square at the socket.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_iron_ingot",
+          "qty": 2
+        },
+        {
+          "item_id": "res_timber",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "wep_iron_spear",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        },
+        {
+          "item_id": "res_timber",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 6,
+      "failure_rate": 0.08,
+      "_sourceFile": "game/data/recipes/recipe_iron_spear.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_longbow": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_longbow",
+      "display_name": "Shape Haven Shorebow",
+      "description": "Three laminae of timber, steamed and bent with real care. The string is a kelp cord the quay folk braid dry -- it has never once chafed wet.",
+      "station": 2,
+      "inputs": [
+        {
+          "item_id": "res_timber",
+          "qty": 3
+        },
+        {
+          "item_id": "res_kelp_fiber",
+          "qty": 3
+        }
+      ],
+      "output": {
+        "item_id": "wep_longbow",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_timber",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 8,
+      "failure_rate": 0.12,
+      "_sourceFile": "game/data/recipes/recipe_longbow.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_mythril_halberd": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_mythril_halberd",
+      "display_name": "Forge Mythril Halberd",
+      "description": "Two ingots on a haft the workbench cut square. The pale metal leaves the edge to the last pass.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_mythril_ingot",
+          "qty": 2
+        },
+        {
+          "item_id": "res_timber",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "wep_mythril_halberd",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 2
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 14,
+      "failure_rate": 0.15,
+      "_sourceFile": "game/data/recipes/recipe_mythril_halberd.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_mythril_ingot": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_mythril_ingot",
+      "display_name": "Temper Mythril Ingot",
+      "description": "The pale ore refuses a lone fire. A golden ingot carries the temper through; the mythril forgives the gold being there.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_ore_mythril",
+          "qty": 2
+        },
+        {
+          "item_id": "res_golden_ingot",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "res_mythril_ingot",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 10,
+      "failure_rate": 0.15,
+      "_sourceFile": "game/data/recipes/recipe_mythril_ingot.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_mythril_wardmail": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_mythril_wardmail",
+      "display_name": "Weave Mythril Wardmail",
+      "description": "Ten thousand rings drawn finer than wire. The guards in the collar are signed; the smith declines to say by whom.",
+      "station": 2,
+      "inputs": [
+        {
+          "item_id": "res_mythril_ingot",
+          "qty": 2
+        },
+        {
+          "item_id": "res_golden_ingot",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "arm_mythril_wardmail",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 14,
+      "failure_rate": 0.15,
+      "_sourceFile": "game/data/recipes/recipe_mythril_wardmail.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_paleshard_ward": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_paleshard_ward",
+      "display_name": "String Paleshard Ward",
+      "description": "Workbench, quiet room, no smoking. The mythril shard is cut thin, the pearl bored, the kelp braids double at the knot where the ward catches.",
+      "station": 2,
+      "inputs": [
+        {
+          "item_id": "res_mythril_ingot",
+          "qty": 1
+        },
+        {
+          "item_id": "res_abyss_pearl",
+          "qty": 1
+        },
+        {
+          "item_id": "res_kelp_fiber",
+          "qty": 2
+        }
+      ],
+      "output": {
+        "item_id": "acc_necklace_paleshard_ward",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_kelp_fiber",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 14,
+      "failure_rate": 0.15,
+      "_sourceFile": "game/data/recipes/recipe_paleshard_ward.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_potion_health_medium": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_potion_health_medium",
+      "display_name": "Steep a Health Potion",
+      "description": "Two moonpetals into barley syrup, one mooncap to wake the cauldron's yeast. Stir sunwise for a proper sunburned honey.",
+      "station": 3,
+      "inputs": [
+        {
+          "item_id": "res_moonpetal",
+          "qty": 2
+        },
+        {
+          "item_id": "res_mooncap",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "potion_health_medium",
+        "qty": 1
+      },
+      "byproducts": [
+        {}
+      ],
+      "craft_time_sec": 0,
+      "required_level": 2,
+      "failure_rate": 0.1,
+      "_sourceFile": "game/data/recipes/recipe_potion_health_medium.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_potion_mana_small": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_potion_mana_small",
+      "display_name": "Brew Small Mana Potion",
+      "description": "One cap steeped cold, one petal for the dreaming. The vials must not be shaken.",
+      "station": 3,
+      "inputs": [
+        {
+          "item_id": "res_mooncap",
+          "qty": 1
+        },
+        {
+          "item_id": "res_moonpetal",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "potion_mana_small",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 2,
+      "failure_rate": 0.05,
+      "_sourceFile": "game/data/recipes/recipe_potion_mana_small.tres",
+      "_scriptClass": "RecipeData"
+    },
     "recipe_reed_breather": {
       "script": {
         "_extResource": "1"
@@ -10826,6 +13632,278 @@
       "required_level": 2,
       "failure_rate": 0,
       "_sourceFile": "game/data/recipes/recipe_reed_breather.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_silver_ingot": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_silver_ingot",
+      "display_name": "Smelt Silver Ingot",
+      "description": "The pale ore hates the forge less if the fire is patient. Two ores, one ingot, a little more slag.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_ore_silver",
+          "qty": 2
+        }
+      ],
+      "output": {
+        "item_id": "res_silver_ingot",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 2,
+      "failure_rate": 0.1,
+      "_sourceFile": "game/data/recipes/recipe_silver_ingot.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_starbinder_ring": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_starbinder_ring",
+      "display_name": "Set Starbinder Ring",
+      "description": "A starmetal bezel over an abyss pearl. Nothing else sells the pairing -- the metal must stay warm and the pearl must stay cold, and the setting takes the argument.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_starmetal_ingot",
+          "qty": 1
+        },
+        {
+          "item_id": "res_abyss_pearl",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "acc_ring_starbinder",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 18,
+      "failure_rate": 0.2,
+      "_sourceFile": "game/data/recipes/recipe_starbinder_ring.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_starmetal_bulwark": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_starmetal_bulwark",
+      "display_name": "Forge Starmetal Bulwark",
+      "description": "Plate for the plate-deaf. The charters call it a civic service an armorer does the Concord; the Concord calls it a favor it will remember.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_starmetal_ingot",
+          "qty": 3
+        },
+        {
+          "item_id": "res_mythril_ingot",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "arm_starmetal_bulwark",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 2
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 18,
+      "failure_rate": 0.2,
+      "_sourceFile": "game/data/recipes/recipe_starmetal_bulwark.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_starmetal_ingot": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_starmetal_ingot",
+      "display_name": "Temper Starmetal Ingot",
+      "description": "Sky metal comes full and wants the deepest binder in the book. Two ores, one mythril, and a fire the forge only lends at night.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_ore_starmetal",
+          "qty": 2
+        },
+        {
+          "item_id": "res_mythril_ingot",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "res_starmetal_ingot",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 14,
+      "failure_rate": 0.2,
+      "_sourceFile": "game/data/recipes/recipe_starmetal_ingot.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_starmetal_skysplitter": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_starmetal_skysplitter",
+      "display_name": "Forge Skysplitter",
+      "description": "Three ingots and a mooncap for the grip -- the resin keeps hands warm against metal that stays cold-headed always. The forge remembers each one it finishes.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_starmetal_ingot",
+          "qty": 3
+        },
+        {
+          "item_id": "res_mooncap",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "wep_starmetal_skysplitter",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 2
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 18,
+      "failure_rate": 0.2,
+      "_sourceFile": "game/data/recipes/recipe_starmetal_skysplitter.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_tea_mooncap_steep": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_tea_mooncap_steep",
+      "display_name": "Steep Mooncap Broth",
+      "description": "Two caps, one petal, a slow fire. The broth knits; the flask keeps.",
+      "station": 3,
+      "inputs": [
+        {
+          "item_id": "res_mooncap",
+          "qty": 2
+        },
+        {
+          "item_id": "res_moonpetal",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "tea_mooncap_steep",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 3,
+      "failure_rate": 0.05,
+      "_sourceFile": "game/data/recipes/recipe_tea_mooncap_steep.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_tidecaller_ring": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_tidecaller_ring",
+      "display_name": "Braid Tidecaller Band",
+      "description": "Badge wet, dry slow, iron last. The kelp pulls the fit toward the water and the band signs its own shape.",
+      "station": 2,
+      "inputs": [
+        {
+          "item_id": "res_kelp_fiber",
+          "qty": 4
+        },
+        {
+          "item_id": "res_iron_ingot",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "acc_ring_tidecaller",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_kelp_fiber",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 6,
+      "failure_rate": 0.1,
+      "_sourceFile": "game/data/recipes/recipe_tidecaller_ring.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_walnut_staff": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_walnut_staff",
+      "display_name": "Bound Walnut Staff",
+      "description": "A moon-grown walnut blank, planed true; a silver ferrule the smith set by hand and a mooncap bred for the grip's resin.",
+      "station": 2,
+      "inputs": [
+        {
+          "item_id": "res_timber",
+          "qty": 2
+        },
+        {
+          "item_id": "res_silver_ingot",
+          "qty": 1
+        },
+        {
+          "item_id": "res_mooncap",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "wep_walnut_staff",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_timber",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 6,
+      "failure_rate": 0.1,
+      "_sourceFile": "game/data/recipes/recipe_walnut_staff.tres",
       "_scriptClass": "RecipeData"
     },
     "recipe_weaver_kite": {
