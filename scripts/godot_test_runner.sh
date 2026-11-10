@@ -153,6 +153,7 @@ test_tick_phase2_systems
 test_combat_stack_live
 test_globe_player_players_group
 test_globe_concord_loop
+test_character_select_zone
 test_globe_wildlife
 test_globe_gates_guards
 test_globe_input_parity
