@@ -7,6 +7,16 @@ commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
 
+## 2026-11-04bv -- web: rules page, codex wired to the lander, nav tidy (staging, no PRs)
+- SESSION CONTEXT: continued on `staging`; web lane; no game/ changes. User: dark mode stays; wire the Codex to the lander; move Terms + Privacy out of the header into the footer; add a Rules page.
+- RULES (/rules): new `src/pages/RulesPage.tsx` -- plain-language conduct law grounded in the REAL moderation machinery (chat `/report` -> PlayerReporter; PermissionManager mute/kick/ban, where a ban is temporary OR effectively permanent -- `ban()` defaults to 1 year). Sections: short version, play fair (no cheating/exploits/economy duping/tampering), be decent (no harassment/real-world harm), names & content, enforcement (mute/kick/ban, permanent for serious or repeated), reporting (`/report` + issues), changes. Registered in App.tsx + ssr.config.js (meta + sitemap) + the footer.
+- NAV TIDY: header nav is now Home / Experiences / Codex / Play; Terms + Privacy (and the new Rules) live in the FOOTER link row. The lander "Built in the open" card's Privacy button became a Rules button.
+- CODEX WIRED TO LANDER: the lander imports `buildCodex`/`CODEX_TOTAL` and (a) appends a "browsable in the Codex -- N entries across M categories" line under "The world, counted", (b) gains a "Browse the world itself" section -- 5 headline category cards (Classes 18 / Skills 169 / Enemies 25 / Recipes 28 / Mounts 11, live counts) + an "Open the Codex" button, all linking /codex, and (c) the hero's secondary CTA is now "Browse the Codex" (the GitHub link still lives in the header chip + built-in-the-open card + footer).
+- VERIFICATION: `tsc` 0; `npm run build` 8/8 pages prerendered (added /rules); live preview checked -- lander codex section + hero CTA, rules page, and footer row (Rules / Privacy / Terms) all render; header no longer carries /privacy or /terms; sitemap lists /rules.
+- PUSHED: `staging`; PROMOTED `staging` -> `main`.
+
+
+
 ## 2026-11-04bu -- web: brand pack wired + Codex + Experiences (staging, no PRs)
 - SESSION CONTEXT: resumed on `staging` after the frozen-lockfile deploy fix (bt). Web lane; no game/ changes.
 - LOGO: the site ignored the shipped 4-up brand pack in `game/assets/branding/`. Wired it in -- header emblem (replacing the generic gradient "S"), lander hero horizontal lockup (with an sr-only <h1> for SEO/a11y), footer wordmark. Copied the four PNGs to `public/branding/`.

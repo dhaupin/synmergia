@@ -13,6 +13,7 @@ import CodexPage from './pages/CodexPage';
 import ExperiencesPage from './pages/ExperiencesPage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
+import RulesPage from './pages/RulesPage';
 import NotFoundPage from './pages/NotFoundPage';
 import AdminGate from './pages/AdminGate';
 
@@ -41,6 +42,7 @@ export function AppRoutes() {
           <Route path="/play" element={<PlayPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
+          <Route path="/rules" element={<RulesPage />} />
           <Route path="/admin" element={<AdminGate />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>

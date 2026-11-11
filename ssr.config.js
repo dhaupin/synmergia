@@ -57,6 +57,16 @@ export default {
       },
     },
     {
+      path: '/rules',
+      priority: '0.5',
+      changefreq: 'yearly',
+      meta: {
+        title: 'Rules of the World | Synmergia',
+        description:
+          'How to play in good faith: no cheating or exploits, no harassment or real-world harm, respectful names. Enforcement, reporting, and what a ban means.',
+      },
+    },
+    {
       path: '/privacy',
       priority: '0.4',
       changefreq: 'yearly',

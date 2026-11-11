@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { usePckHash } from '../components/SiteLayout';
 import godotData from '../data/godot_data.json';
+import { buildCodex, CODEX_TOTAL } from '../lib/codex';
 
 // Lander (honesty law): every claim here is traceable to code or data
 // under game/. The counts come from game/data/*; the systems named
@@ -16,6 +17,14 @@ const COUNTS = godotData.counts as Record<string, number>;
 const PLAYABLE_CLASSES = Object.keys(godotData.classes).filter(
   (id) => /^(human|akkan|synthetic)_/.test(id),
 ).length;
+
+// The codex is browsable at /codex; the lander shows a taste of it. Pull
+// the categories once and surface a couple of headline groups.
+const CODEX = buildCodex();
+const CODEX_CATEGORY_COUNT = CODEX.length;
+const CODEX_HEADLINES = ['classes', 'skills', 'enemies', 'recipes', 'mounts']
+  .map((key) => CODEX.find((c) => c.key === key))
+  .filter((c): c is NonNullable<typeof c> => Boolean(c));
 
 
 /** What the world is, four ways (the load-bearing claims). */
@@ -141,14 +150,12 @@ export default function LanderPage() {
             >
               Play in browser
             </Link>
-            <a
-              href="https://github.com/dhaupin/synmergia"
-              target="_blank"
-              rel="noreferrer"
+            <Link
+              to="/codex"
               className="px-6 py-3 rounded-lg border border-line text-ink hover:border-accent hover:text-accent transition-colors"
             >
-              View source
-            </a>
+              Browse the Codex
+            </Link>
           </div>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
             {['spherical world', 'browser-first', 'MIT-licensed', 'open source', 'deterministic seed'].map(
@@ -222,6 +229,45 @@ export default function LanderPage() {
             </div>
           ))}
         </div>
+        <p className="mt-6 text-sm text-ink-soft">
+          Every one of these is browsable, entry by entry, in the{' '}
+          <Link to="/codex" className="text-accent hover:underline">
+            Codex
+          </Link>{' '}
+          — {CODEX_TOTAL.toLocaleString()} entries across {CODEX_CATEGORY_COUNT} categories.
+        </p>
+      </section>
+
+      {/* The Codex, at a glance */}
+      <section className="max-w-6xl mx-auto px-4 pb-14">
+        <div className="flex flex-wrap items-end justify-between gap-3 mb-8">
+          <div>
+            <h2 className="font-display text-2xl sm:text-3xl mb-2">Browse the world itself</h2>
+            <p className="text-sm text-ink-soft max-w-2xl">
+              The Codex reads the same data files the server loads — every class, skill,
+              enemy, recipe, and mount, with its real numbers. No marketing layer.
+            </p>
+          </div>
+          <Link
+            to="/codex"
+            className="px-5 py-2.5 rounded-lg border border-line text-ink text-sm hover:border-accent hover:text-accent transition-colors shrink-0"
+          >
+            Open the Codex
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          {CODEX_HEADLINES.map((c) => (
+            <Link
+              key={c.key}
+              to="/codex"
+              className="rounded-xl border border-line bg-surface p-5 hover:border-accent/60 transition-colors"
+            >
+              <p className="font-display text-2xl text-accent leading-none">{c.entries.length}</p>
+              <p className="mt-2 text-sm font-semibold">{c.label}</p>
+              <p className="mt-1 text-xs text-ink-soft leading-relaxed line-clamp-2">{c.blurb}</p>
+            </Link>
+          ))}
+        </div>
       </section>
 
       {/* What actually ships */}
@@ -286,10 +332,10 @@ export default function LanderPage() {
               GitHub
             </a>
             <Link
-              to="/privacy"
+              to="/rules"
               className="px-5 py-2.5 rounded-lg border border-line text-ink text-sm hover:border-accent hover:text-accent transition-colors"
             >
-              Privacy
+              Rules
             </Link>
             <span className="text-xs text-ink-soft">
               Godot Engine · WebAssembly · MIT-licensed · deterministic world seed

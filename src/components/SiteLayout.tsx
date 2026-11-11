@@ -65,8 +65,6 @@ export default function SiteLayout() {
             <NavItem to="/experiences">Experiences</NavItem>
             <NavItem to="/codex">Codex</NavItem>
             <NavItem to="/play">Play</NavItem>
-            <NavItem to="/privacy">Privacy</NavItem>
-            <NavItem to="/terms">Terms</NavItem>
           </nav>
         </div>
       </header>
@@ -86,6 +84,7 @@ export default function SiteLayout() {
             <span>© 2026 dhaupin · Synmergia is free and open source (game code) · site {new Date().getFullYear()}</span>
           </div>
           <div className="flex items-center gap-4">
+            <Link to="/rules" className="hover:text-accent">Rules</Link>
             <Link to="/privacy" className="hover:text-accent">Privacy</Link>
             <Link to="/terms" className="hover:text-accent">Terms</Link>
             <a
