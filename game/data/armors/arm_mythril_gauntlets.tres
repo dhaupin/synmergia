@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_mythril_gauntlets"
+display_name = "Mythril Gauntlets"
+description = "Mythril-shard knuckles over sinew-wrapped plate. Light enough to work in, hard enough to end the argument."
+icon_path = "res://icons/items/armor_mythril_wardmail.png"
+item_category = 1
+rarity = 4
+equip_slot = 5
+weapon_type = 0
+armor_type = 3
+stack_size = 1
+bind_on_equip = true
+sell_price = 400
+buy_price = 1600
+item_level = 13
+required_level = 11
+stats = {
+"strength": 4
+}
+armor_value = 20

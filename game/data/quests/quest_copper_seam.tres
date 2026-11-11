@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "quest_copper_seam"
+display_name = "The Copper Seam"
+description = "The smith has run short of copper again. Bring eight ore up from the low seams and he will show you what a green-veined rock is good for."
+quest_type = 1
+difficulty = 0
+giver_npc_id = "npc_blacksmith_village"
+turn_in_npc_id = "npc_blacksmith_village"
+min_level = 1
+max_level = 100
+objectives = [{"id": "collect_copper", "type": 1, "target": "Copper Ore", "count": 8}]
+rewards = [{"type": "gold", "id": "", "quantity": 80}, {"type": "experience", "id": "", "quantity": 120}]
+gold_reward = 80
+xp_reward = 120
+icon_path = "res://icons/quests/tideline.png"
+map_marker = "collect"

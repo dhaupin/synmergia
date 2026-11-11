@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_copper_helm"
+display_name = "Copper Helm"
+description = "A copper cap over a leather lining. It turns a glancing blow and teaches you to duck the rest."
+icon_path = "res://icons/items/armor_leather_helm.png"
+item_category = 1
+rarity = 0
+equip_slot = 1
+weapon_type = 0
+armor_type = 2
+stack_size = 1
+bind_on_equip = true
+sell_price = 24
+buy_price = 90
+item_level = 4
+required_level = 1
+stats = {
+"vitality": 2
+}
+armor_value = 3

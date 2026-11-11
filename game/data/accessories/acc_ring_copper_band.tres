@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_ring_copper_band"
+display_name = "Copper Band"
+description = "A plain copper band, filed round and worn smooth. It buys no luck; it just reminds you to keep moving."
+icon_path = "res://icons/items/ring_golden_signet.png"
+item_category = 2
+rarity = 1
+equip_slot = 9
+accessory_type = 1
+stack_size = 1
+bind_on_equip = true
+sell_price = 10
+buy_price = 40
+item_level = 3
+required_level = 2
+stats = {
+"agility": 2
+}

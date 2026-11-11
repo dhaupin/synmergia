@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_mythril_shard"
+display_name = "Split Mythril Shard"
+description = "A mythril ore struck along its grain, splitting into shards the blade-smiths gather. Too small to forge alone, too proud to throw away."
+station = 1
+inputs = [{"item_id": "res_ore_mythril", "qty": 1}]
+output = {"item_id": "res_mythril_shard", "qty": 2}
+byproducts = [{"item_id": "res_slag", "qty": 1}]
+craft_time_sec = 0.0
+required_level = 12
+failure_rate = 0.2

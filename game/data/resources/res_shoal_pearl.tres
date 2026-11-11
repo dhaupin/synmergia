@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "res_shoal_pearl"
+display_name = "Shoal Pearl"
+description = "A small pearl lifted from the shoal beds. Not the deep kind, but the light still finds it."
+icon_path = "res://icons/resources/abyss_pearl.png"
+item_category = 4
+rarity = 2
+equip_slot = 0
+stack_size = 100
+sell_price = 18
+buy_price = 48
+required_level = 0

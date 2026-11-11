@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "elixir_silver_tongue"
+display_name = "Silver-Tongue Elixir"
+description = "Silver dust held in oil and drunk quickly. Intelligence +8 for forty-five seconds; the words come easier, the bill does not."
+icon_path = "res://icons/items/elixir_ironblood.png"
+item_category = 3
+rarity = 2
+equip_slot = 0
+stack_size = 5
+sell_price = 26
+buy_price = 104
+item_level = 6
+required_level = 6
+use_skill_id = ""
+cooldown = 8.0
+duration = 0.0
+buff_effects = [{
+"type": "stat_buff",
+"stat": "intelligence",
+"value": 8,
+"duration": 45.0
+}]

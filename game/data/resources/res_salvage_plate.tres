@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "res_salvage_plate"
+display_name = "Salvage Plate"
+description = "A plate cut from some older wreck and hammered straight again. The underdeck sells these by the armload."
+icon_path = "res://icons/resources/slag.png"
+item_category = 4
+rarity = 1
+equip_slot = 0
+stack_size = 100
+sell_price = 9
+buy_price = 22
+required_level = 0

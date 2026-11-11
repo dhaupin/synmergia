@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "item_tallow_candle"
+display_name = "Tallow Candle"
+description = "A tallow candle, dipped twice. Short, smoky, and enough to finish a page by."
+icon_path = "res://icons/items/soul_gem.png"
+item_category = 7
+rarity = 0
+equip_slot = 0
+stack_size = 10
+sell_price = 3
+buy_price = 8
+required_level = 0

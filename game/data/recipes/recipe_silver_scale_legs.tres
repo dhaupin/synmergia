@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_silver_scale_legs"
+display_name = "Sew Silver-Scaled Leggings"
+description = "Scale plates sewn over silver-studded leather at the bench. Heavy at the knee, honest at the seam."
+station = 2
+inputs = [{"item_id": "res_silver_ingot", "qty": 2}, {"item_id": "res_scale_plate", "qty": 3}]
+output = {"item_id": "arm_silver_scale_legs", "qty": 1}
+byproducts = [{"item_id": "res_slag", "qty": 1}]
+craft_time_sec = 0.0
+required_level = 10
+failure_rate = 0.1

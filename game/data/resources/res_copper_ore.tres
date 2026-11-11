@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "res_copper_ore"
+display_name = "Copper Ore"
+description = "A dull green-veined ore prised from the low seams. Softer than iron, quick to take an edge, and honest about both."
+icon_path = "res://icons/resources/ore_silver.png"
+item_category = 4
+rarity = 0
+equip_slot = 0
+stack_size = 100
+sell_price = 1
+buy_price = 4
+required_level = 0

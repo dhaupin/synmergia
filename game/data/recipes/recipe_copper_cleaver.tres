@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_copper_cleaver"
+display_name = "Forge Copper Cleaver"
+description = "Copper takes an edge quickly and loses it just as fast. Two ingots and a cord-wrapped haft make a tool that will do the job once, honestly."
+station = 1
+inputs = [{"item_id": "res_copper_ingot", "qty": 2}, {"item_id": "res_hemp_cord", "qty": 1}]
+output = {"item_id": "wep_copper_cleaver", "qty": 1}
+byproducts = [{"item_id": "res_slag", "qty": 1}]
+craft_time_sec = 0.0
+required_level = 1
+failure_rate = 0.1

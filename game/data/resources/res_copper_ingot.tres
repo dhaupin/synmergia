@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "res_copper_ingot"
+display_name = "Copper Ingot"
+description = "Copper run through the forge until it holds a shape. It bends before it breaks, which is why the smiths trust it for straps and buckles."
+icon_path = "res://icons/resources/iron_ingot.png"
+item_category = 4
+rarity = 0
+equip_slot = 0
+stack_size = 100
+sell_price = 5
+buy_price = 12
+required_level = 0

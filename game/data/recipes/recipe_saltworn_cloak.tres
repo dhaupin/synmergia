@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_saltworn_cloak"
+display_name = "Sew a Saltworn Cloak"
+description = "Salvage plate and tarred cord stitched into a cloak that sheds the spray. It keeps the smell of the road."
+station = 2
+inputs = [{"item_id": "res_salvage_plate", "qty": 2}, {"item_id": "res_hemp_cord", "qty": 3}]
+output = {"item_id": "acc_cloak_saltworn", "qty": 1}
+byproducts = []
+craft_time_sec = 0.0
+required_level = 9
+failure_rate = 0.1

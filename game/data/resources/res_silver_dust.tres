@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "res_silver_dust"
+display_name = "Silver Dust"
+description = "Fine silver filings swept up after a night at the bench. Nothing is wasted in a workshop that has to buy its own ore."
+icon_path = "res://icons/resources/slag.png"
+item_category = 4
+rarity = 1
+equip_slot = 0
+stack_size = 100
+sell_price = 16
+buy_price = 42
+required_level = 0

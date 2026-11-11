@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_silver_rapier"
+display_name = "Forge Silver Rapier"
+description = "Silver drawn thin and sinew-wrapped at the grip. Three ingots buy a blade that argues in a straight line."
+station = 1
+inputs = [{"item_id": "res_silver_ingot", "qty": 3}, {"item_id": "res_sinew_thread", "qty": 2}]
+output = {"item_id": "wep_silver_rapier", "qty": 1}
+byproducts = [{"item_id": "res_slag", "qty": 1}]
+craft_time_sec = 0.0
+required_level = 10
+failure_rate = 0.1

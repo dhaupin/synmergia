@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "quest_boar_tusks"
+display_name = "Thistle Tusk Hunt"
+description = "A thistle boar has been through the elder's hedges twice this season. Bring back six tusks and he will believe you about the boar."
+quest_type = 1
+difficulty = 2
+giver_npc_id = "npc_village_elder"
+turn_in_npc_id = "npc_village_elder"
+min_level = 8
+max_level = 100
+objectives = [{"id": "kill_boars", "type": 0, "target": "Thistle Boar", "count": 6}]
+rewards = [{"type": "gold", "id": "", "quantity": 150}, {"type": "experience", "id": "", "quantity": 260}]
+gold_reward = 150
+xp_reward = 260
+icon_path = "res://icons/quests/wolf_hunt.png"
+map_marker = "kill"

@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "tea_kelp_broth"
+display_name = "Kelp Broth"
+description = "Kelp fiber simmered slow into a green broth. Knits 30 health back every two seconds for ten; tastes like the harbor smells."
+icon_path = "res://icons/items/tea_mooncap.png"
+item_category = 3
+rarity = 1
+equip_slot = 0
+stack_size = 10
+sell_price = 10
+buy_price = 40
+item_level = 4
+required_level = 4
+use_skill_id = ""
+cooldown = 5.0
+duration = 0.0
+buff_effects = [{
+"type": "heal_over_time",
+"value": 30,
+"interval": 2.0,
+"duration": 10.0
+}]

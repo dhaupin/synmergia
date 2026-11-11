@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_mythril_shortblade"
+display_name = "Mythril Shortblade"
+description = "A short blade forged from gathered mythril shards, light enough to forget and sharp enough not to."
+icon_path = "res://icons/items/dagger_iron.png"
+item_category = 0
+rarity = 4
+equip_slot = 8
+weapon_type = 4
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+is_bound = false
+bind_on_equip = false
+unique = false
+sell_price = 360
+buy_price = 1400
+item_level = 13
+required_level = 11
+required_class = ""
+required_strength = 0
+required_agility = 0
+required_intelligence = 0
+stats = {
+"agility": 7
+}
+primary_stats = {}
+secondary_stats = {}
+weapon_damage_min = 22
+weapon_damage_max = 34
+attack_speed = 1.6
+armor_value = 0

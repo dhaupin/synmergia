@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_mythril_shortblade"
+display_name = "Forge Mythril Shortblade"
+description = "Mythril shards gathered and forged back into a blade. The metal remembers its temper; the smith only has to remind it."
+station = 1
+inputs = [{"item_id": "res_mythril_shard", "qty": 3}, {"item_id": "res_sinew_thread", "qty": 2}]
+output = {"item_id": "wep_mythril_shortblade", "qty": 1}
+byproducts = [{"item_id": "res_slag", "qty": 1}]
+craft_time_sec = 0.0
+required_level = 11
+failure_rate = 0.1

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "item_tide_token"
+display_name = "Tide Token"
+description = "A stamped token traded along the tide-line. The ferrymen honor it and the salvors pretend not to."
+icon_path = "res://icons/items/strait_charm.png"
+item_category = 7
+rarity = 2
+equip_slot = 0
+stack_size = 5
+sell_price = 22
+buy_price = 55
+required_level = 0

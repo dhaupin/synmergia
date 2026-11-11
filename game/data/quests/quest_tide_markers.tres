@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "quest_tide_markers"
+display_name = "Tide Markers"
+description = "The ferryman sets his channel markers and the tide takes them back. Cut and paint eight from kelp fiber before the next crossing."
+quest_type = 1
+difficulty = 1
+giver_npc_id = "npc_ferryman_sundered"
+turn_in_npc_id = "npc_ferryman_sundered"
+min_level = 3
+max_level = 100
+objectives = [{"id": "collect_kelp", "type": 1, "target": "Kelp Fiber", "count": 8}]
+rewards = [{"type": "gold", "id": "", "quantity": 70}, {"type": "experience", "id": "", "quantity": 110}]
+gold_reward = 70
+xp_reward = 110
+icon_path = "res://icons/quests/tide_salvage.png"
+map_marker = "collect"

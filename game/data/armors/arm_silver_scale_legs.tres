@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_silver_scale_legs"
+display_name = "Silver-Scaled Leggings"
+description = "Scale plates sewn over silver-studded leather. Heavy at the knee, honest at the seam."
+icon_path = "res://icons/items/armor_leather_legs.png"
+item_category = 1
+rarity = 3
+equip_slot = 3
+weapon_type = 0
+armor_type = 3
+stack_size = 1
+bind_on_equip = true
+sell_price = 250
+buy_price = 1000
+item_level = 12
+required_level = 10
+stats = {
+"vitality": 5
+}
+armor_value = 26

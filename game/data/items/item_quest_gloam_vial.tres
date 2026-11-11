@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "item_quest_gloam_vial"
+display_name = "Gloam Vial"
+description = "A sealed vial of gloam spores, stoppered tight. The herbalist wants it whole."
+icon_path = "res://icons/items/potion_blue_small.png"
+item_category = 7
+rarity = 1
+stack_size = 1
+is_quest_item = true
+quest_id = "quest_gloam_harvest"
+keep_after_turn_in = false
+usable_during_quest_only = true
+sell_price = 0
+buy_price = 0
+weight = 0.01

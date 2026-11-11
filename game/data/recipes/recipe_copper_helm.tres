@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_copper_helm"
+display_name = "Forge Copper Helm"
+description = "Two copper ingots beaten over a leather lining. It turns a glancing blow; the rest is up to you."
+station = 1
+inputs = [{"item_id": "res_copper_ingot", "qty": 2}, {"item_id": "res_scale_plate", "qty": 1}]
+output = {"item_id": "arm_copper_helm", "qty": 1}
+byproducts = [{"item_id": "res_slag", "qty": 1}]
+craft_time_sec = 0.0
+required_level = 1
+failure_rate = 0.1

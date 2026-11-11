@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "quest_salvage_run"
+display_name = "Salvage Run"
+description = "The salvor's last run came back short. Clear six salt wretches off the wreck line and the ledger will balance again."
+quest_type = 1
+difficulty = 2
+giver_npc_id = "npc_salvor_wreck"
+turn_in_npc_id = "npc_salvor_wreck"
+min_level = 5
+max_level = 100
+objectives = [{"id": "kill_wretches", "type": 0, "target": "Salt Wretch", "count": 6}]
+rewards = [{"type": "gold", "id": "", "quantity": 120}, {"type": "experience", "id": "", "quantity": 180}]
+gold_reward = 120
+xp_reward = 180
+icon_path = "res://icons/quests/wreck.png"
+map_marker = "kill"

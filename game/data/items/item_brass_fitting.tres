@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "item_brass_fitting"
+display_name = "Brass Fitting"
+description = "A small brass fitting, cast and filed square. The kind of part that is never noticed until it is missing."
+icon_path = "res://icons/items/sealed_crate.png"
+item_category = 7
+rarity = 1
+equip_slot = 0
+stack_size = 20
+sell_price = 12
+buy_price = 30
+required_level = 0

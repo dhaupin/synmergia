@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "res_conduit_wire"
+display_name = "Conduit Wire"
+description = "A length of conduit wire, salvaged whole from a fallen run. The metal is honest and the underdeck pays well for it."
+icon_path = "res://icons/currency/conduit_shard.png"
+item_category = 4
+rarity = 2
+equip_slot = 0
+stack_size = 100
+sell_price = 14
+buy_price = 36
+required_level = 0

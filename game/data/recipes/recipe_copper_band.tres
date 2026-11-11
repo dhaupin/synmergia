@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_copper_band"
+display_name = "Forge Copper Band"
+description = "One copper ingot, filed round and worn smooth before it is ever worn. It buys no luck."
+station = 1
+inputs = [{"item_id": "res_copper_ingot", "qty": 1}]
+output = {"item_id": "acc_ring_copper_band", "qty": 1}
+byproducts = []
+craft_time_sec = 0.0
+required_level = 3
+failure_rate = 0.1

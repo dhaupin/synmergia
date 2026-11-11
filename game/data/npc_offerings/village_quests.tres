@@ -7,4 +7,4 @@ script = ExtResource("1")
 id = "village_quests"
 type = "quest"
 display_name = "Village Quests"
-quest_ids = ["quest_wolves_hunt", "quest_herb_gathering"]
+quest_ids = ["quest_wolves_hunt", "quest_herb_gathering", "quest_copper_seam", "quest_gloam_harvest", "quest_boar_tusks"]

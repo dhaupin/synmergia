@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "quest_gloam_harvest"
+display_name = "Gloam Harvest"
+description = "The herbalist wants gloam spores, and will not go into the gloam to get them. Gather six and mind your breathing."
+quest_type = 1
+difficulty = 1
+giver_npc_id = "npc_herbalist_village"
+turn_in_npc_id = "npc_herbalist_village"
+min_level = 2
+max_level = 100
+objectives = [{"id": "collect_gloam", "type": 1, "target": "Gloam Spore", "count": 6}]
+rewards = [{"type": "gold", "id": "", "quantity": 90}, {"type": "experience", "id": "", "quantity": 140}]
+gold_reward = 90
+xp_reward = 140
+icon_path = "res://icons/quests/gloamwood_ledger.png"
+map_marker = "collect"

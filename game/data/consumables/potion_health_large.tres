@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "potion_health_large"
+display_name = "Greater Health Potion"
+description = "Moonpetal boiled down twice as long and half as sweet. Restores 260 health; the second swallow is the one that matters."
+icon_path = "res://icons/items/potion_red_medium.png"
+item_category = 3
+rarity = 2
+equip_slot = 0
+stack_size = 10
+sell_price = 24
+buy_price = 96
+item_level = 8
+required_level = 8
+use_skill_id = ""
+cooldown = 3.0
+duration = 0.0
+buff_effects = [{
+"type": "instant_heal",
+"value": 260
+}]

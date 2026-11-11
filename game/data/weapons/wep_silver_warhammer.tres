@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_silver_warhammer"
+display_name = "Silver Warhammer"
+description = "A silver head on an iron haft, weighted to fall. Slower than the rapier and it does not care."
+icon_path = "res://icons/items/halberd_mythril.png"
+item_category = 0
+rarity = 3
+equip_slot = 8
+weapon_type = 3
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+is_bound = false
+bind_on_equip = false
+unique = false
+sell_price = 240
+buy_price = 950
+item_level = 12
+required_level = 10
+required_class = ""
+required_strength = 0
+required_agility = 0
+required_intelligence = 0
+stats = {
+"strength": 9
+}
+primary_stats = {}
+secondary_stats = {}
+weapon_damage_min = 30
+weapon_damage_max = 46
+attack_speed = 0.9
+armor_value = 0
