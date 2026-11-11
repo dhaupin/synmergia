@@ -51,6 +51,13 @@ const STREAMER_TILE_LIFT: float = 0.52
 ## via the exact sagitta per ring.
 const PAD_RADIUS: float = 64.0
 const PAD_SEGMENTS: int = 16
+## Terrain-conforming pad grid: radial rings from centre to PAD_RADIUS.
+## The flat disc could not follow the walk surface, so on rolling ground
+## the body's flat contact plane stood proud of the next rise and stopped
+## it dead (the "invisible wall" report). The terrain pad bakes the walk
+## height at every vertex instead, so collision and the generated ground
+## are the same law.
+const PAD_RINGS: int = 8
 const SPAWN_LAT_DEG: float = 0.0
 const SPAWN_LON_DEG: float = 0.0
 const WALK_SECONDS: float = 30.0
@@ -64,6 +71,13 @@ var shell_col: CollisionShape3D
 ## S8: the planet-scale ground collider, re-anchored under the player
 ## every physics frame (null at prototype scale; see _build_surface_pad).
 var surface_pad: StaticBody3D
+## Terrain pad shape (planet scale only): rebuilt every physics frame from
+## the walk-surface law under the player. Local coords are <= PAD_RADIUS;
+## local +Y is the walk-surface height above planet_radius at that offset.
+var _pad_shape: ConcavePolygonShape3D
+## Direction the terrain pad shape was last baked at (rebuild throttle:
+## the shape only follows when the player has moved a few metres).
+var _pad_built_dir: Vector3 = Vector3.ZERO
 ## S8: how many floating-origin rebases have run (probe observability).
 var scene_shift_count: int = 0
 ## S8 FLOATING ORIGIN: everything that lives on the planet (shell,
@@ -747,6 +761,7 @@ func _build_surface_pad() -> void:
 	body.add_child(col)
 	world_root.add_child(body)
 	surface_pad = body
+	_pad_shape = shape
 	_update_surface_pad()
 
 
@@ -780,6 +795,57 @@ func _pad_faces() -> PackedVector3Array:
 	return faces
 
 
+## Terrain-conforming pad faces: a centre vertex plus PAD_RINGS rings out
+## to PAD_RADIUS. Each vertex's local +Y is the WALK-SURFACE height above
+## planet_radius sampled along the vertex's own radial direction (the
+## sphere sagitta is added per ring so the disc hugs the curvature between
+## samples). Physics needs SMALL shape coordinates, so local coords stay
+## <= PAD_RADIUS. `dir` is the pad's unit direction and `basis` its
+## orientation; the walk law is the SAME one the snap provider and props
+## ride, so the collided ground matches the drawn ground by construction.
+func _terrain_pad_faces(dir: Vector3, basis: Basis) -> PackedVector3Array:
+	var faces: PackedVector3Array = PackedVector3Array()
+	var cols: int = maxi(PAD_SEGMENTS, 8)
+	var h_center: float = streamer.walk_surface_h(dir) if streamer != null else 0.0
+	var center_v := Vector3(0.0, h_center, 0.0)
+	var rings: Array = []
+	for r in range(1, PAD_RINGS + 1):
+		var d: float = PAD_RADIUS * float(r) / float(PAD_RINGS)
+		var sag: float = planet_radius - sqrt(maxf(planet_radius * planet_radius - d * d, 0.0))
+		var ring: PackedVector3Array = PackedVector3Array()
+		for i in range(cols):
+			var a: float = TAU * float(i) / float(cols)
+			var lx: float = cos(a) * d
+			var lz: float = sin(a) * d
+			# The pad's world position is dir * planet_radius; offset in the
+			# pad's own plane, then renormalize to a direction for the law.
+			var wdir: Vector3 = (dir * planet_radius + basis * Vector3(lx, 0.0, lz)).normalized()
+			var h: float = streamer.walk_surface_h(wdir) if streamer != null else 0.0
+			ring.append(Vector3(lx, h - sag, lz))
+		rings.append(ring)
+	# Fan from the centre vertex to the first ring (the centre is a single
+	# point, never a zero-radius ring -- a degenerate ring leaves a hole the
+	# body can fall through when the radial snap is off).
+	var first: PackedVector3Array = rings[0]
+	for i in range(cols):
+		var j: int = (i + 1) % cols
+		faces.append(center_v)
+		faces.append(first[i])
+		faces.append(first[j])
+	for r in range(1, PAD_RINGS):
+		var inner: PackedVector3Array = rings[r - 1]
+		var outer: PackedVector3Array = rings[r]
+		for i in range(cols):
+			var j: int = (i + 1) % cols
+			faces.append(inner[i])
+			faces.append(outer[i])
+			faces.append(outer[j])
+			faces.append(inner[i])
+			faces.append(outer[j])
+			faces.append(inner[j])
+	return faces
+
+
 ## Re-anchor the pad under the player: set the planet-relative
 ## transform from the player's current radial direction. Runs every
 ## physics frame BEFORE the player's move_and_slide, and again after
@@ -797,7 +863,31 @@ func _update_surface_pad() -> void:
 		north = Vector3(0, 0, -1)
 	north = (north - dir * north.dot(dir)).normalized()
 	var east: Vector3 = north.cross(dir)
-	surface_pad.basis = Basis(east, dir, -north)
+	var basis := Basis(east, dir, -north)
+	surface_pad.basis = basis
+	# Terrain scale: rebuild the shape so the collided ground FOLLOWS
+	# the walk-surface law under the player (a flat disc stands proud of
+	# the next rise and stops the walk dead). The pad origin already
+	# rides the terrain (via _surface_lift), so each vertex's local +Y is
+	# its walk height relative to the pad origin.
+	# Rebuild throttle: the walk law is smooth, so re-baking only every few
+	# metres keeps the collider flush without rebuilding the shape (and its
+	# broadphase) on every physics frame while standing still.
+	var rebuild: bool = _pad_built_dir == Vector3.ZERO \
+			or dir.angle_to(_pad_built_dir) * planet_radius > 3.0
+	if streamer != null and _pad_shape != null and rebuild:
+		_pad_built_dir = dir
+		# The origin sits at planet_radius + TILE_LIFT + terrain_h(dir), so
+		# subtract that terrain term to express each vertex relative to it;
+		# the remaining local +Y is the walk-surface lift over the terrain
+		# (plus any walk-over cap), keeping collision flush with the ground.
+		var terrain_center: float = streamer.terrain_h(dir)
+		var faces: PackedVector3Array = _terrain_pad_faces(dir, basis)
+		var i := 0
+		while i < faces.size():
+			faces[i].y -= terrain_center
+			i += 1
+		_pad_shape.set_faces(faces)
 
 
 ## Height of the WALKABLE SURFACE above planet_radius. At prototype
