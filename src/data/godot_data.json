@@ -1,14 +1,14 @@
 {
-  "lastSyncedAt": "2026-11-11T01:25:45.792Z",
+  "lastSyncedAt": "2026-11-11T03:10:26.651Z",
   "counts": {
     "classes": 39,
-    "weapons": 10,
-    "armors": 11,
-    "consumables": 7,
+    "weapons": 14,
+    "armors": 14,
+    "consumables": 13,
     "enemies": 25,
     "zones": 12,
     "skills": 169,
-    "quests": 17,
+    "quests": 22,
     "buffs": 0,
     "factions": 4,
     "achievements": 32,
@@ -18,17 +18,17 @@
     "currencies": 5,
     "mounts": 11,
     "vehicles": 4,
-    "resources": 17,
-    "items": 8,
-    "accessories": 12,
-    "recipes": 28,
+    "resources": 29,
+    "items": 16,
+    "accessories": 15,
+    "recipes": 40,
     "status_effects": 62,
     "npcs": 20,
     "world_bosses": 4,
     "signs": 3,
     "mysteries": 2,
     "acts": 3,
-    "loot_tables": 15,
+    "loot_tables": 17,
     "hordes": 5,
     "weather_events": 4,
     "gateways": 10,
@@ -2013,6 +2013,44 @@
     }
   },
   "weapons": {
+    "wep_copper_cleaver": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_copper_cleaver",
+      "display_name": "Copper Cleaver",
+      "description": "A short copper cleaver with a cord-wrapped haft. It does not cleave much, but it starts every job.",
+      "icon_path": "res://icons/items/axe_iron.png",
+      "item_category": 0,
+      "rarity": 0,
+      "equip_slot": 8,
+      "weapon_type": 2,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "is_bound": false,
+      "bind_on_equip": false,
+      "unique": false,
+      "sell_price": 20,
+      "buy_price": 80,
+      "item_level": 4,
+      "required_level": 1,
+      "required_class": "",
+      "required_strength": 0,
+      "required_agility": 0,
+      "required_intelligence": 0,
+      "stats": {
+        "strength": 3
+      },
+      "primary_stats": {},
+      "secondary_stats": {},
+      "weapon_damage_min": 5,
+      "weapon_damage_max": 9,
+      "attack_speed": 1,
+      "armor_value": 0,
+      "_sourceFile": "game/data/weapons/wep_copper_cleaver.tres",
+      "_scriptClass": "Item"
+    },
     "wep_golden_estoc": {
       "script": {
         "_extResource": "1"
@@ -2216,6 +2254,120 @@
       "_sourceFile": "game/data/weapons/wep_mythril_halberd.tres",
       "_scriptClass": "Item"
     },
+    "wep_mythril_shortblade": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_mythril_shortblade",
+      "display_name": "Mythril Shortblade",
+      "description": "A short blade forged from gathered mythril shards, light enough to forget and sharp enough not to.",
+      "icon_path": "res://icons/items/dagger_iron.png",
+      "item_category": 0,
+      "rarity": 4,
+      "equip_slot": 8,
+      "weapon_type": 4,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "is_bound": false,
+      "bind_on_equip": false,
+      "unique": false,
+      "sell_price": 360,
+      "buy_price": 1400,
+      "item_level": 13,
+      "required_level": 11,
+      "required_class": "",
+      "required_strength": 0,
+      "required_agility": 0,
+      "required_intelligence": 0,
+      "stats": {
+        "agility": 7
+      },
+      "primary_stats": {},
+      "secondary_stats": {},
+      "weapon_damage_min": 22,
+      "weapon_damage_max": 34,
+      "attack_speed": 1.6,
+      "armor_value": 0,
+      "_sourceFile": "game/data/weapons/wep_mythril_shortblade.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_silver_rapier": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_silver_rapier",
+      "display_name": "Silver Rapier",
+      "description": "A slim silver blade, sinew-wrapped and quick. It argues in a straight line and wins on the second point.",
+      "icon_path": "res://icons/items/sword_iron.png",
+      "item_category": 0,
+      "rarity": 3,
+      "equip_slot": 8,
+      "weapon_type": 1,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "is_bound": false,
+      "bind_on_equip": false,
+      "unique": false,
+      "sell_price": 220,
+      "buy_price": 900,
+      "item_level": 12,
+      "required_level": 10,
+      "required_class": "",
+      "required_strength": 0,
+      "required_agility": 0,
+      "required_intelligence": 0,
+      "stats": {
+        "agility": 6
+      },
+      "primary_stats": {},
+      "secondary_stats": {},
+      "weapon_damage_min": 26,
+      "weapon_damage_max": 38,
+      "attack_speed": 1.5,
+      "armor_value": 0,
+      "_sourceFile": "game/data/weapons/wep_silver_rapier.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_silver_warhammer": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_silver_warhammer",
+      "display_name": "Silver Warhammer",
+      "description": "A silver head on an iron haft, weighted to fall. Slower than the rapier and it does not care.",
+      "icon_path": "res://icons/items/halberd_mythril.png",
+      "item_category": 0,
+      "rarity": 3,
+      "equip_slot": 8,
+      "weapon_type": 3,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "is_bound": false,
+      "bind_on_equip": false,
+      "unique": false,
+      "sell_price": 240,
+      "buy_price": 950,
+      "item_level": 12,
+      "required_level": 10,
+      "required_class": "",
+      "required_strength": 0,
+      "required_agility": 0,
+      "required_intelligence": 0,
+      "stats": {
+        "strength": 9
+      },
+      "primary_stats": {},
+      "secondary_stats": {},
+      "weapon_damage_min": 30,
+      "weapon_damage_max": 46,
+      "attack_speed": 0.9,
+      "armor_value": 0,
+      "_sourceFile": "game/data/weapons/wep_silver_warhammer.tres",
+      "_scriptClass": "Item"
+    },
     "wep_starmetal_skysplitter": {
       "script": {
         "_extResource": "1"
@@ -2325,6 +2477,32 @@
       },
       "armor_value": 4,
       "_sourceFile": "game/data/armors/arm_cartographer_belt.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_copper_helm": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_copper_helm",
+      "display_name": "Copper Helm",
+      "description": "A copper cap over a leather lining. It turns a glancing blow and teaches you to duck the rest.",
+      "icon_path": "res://icons/items/armor_leather_helm.png",
+      "item_category": 1,
+      "rarity": 0,
+      "equip_slot": 1,
+      "weapon_type": 0,
+      "armor_type": 2,
+      "stack_size": 1,
+      "bind_on_equip": true,
+      "sell_price": 24,
+      "buy_price": 90,
+      "item_level": 4,
+      "required_level": 1,
+      "stats": {
+        "vitality": 2
+      },
+      "armor_value": 3,
+      "_sourceFile": "game/data/armors/arm_copper_helm.tres",
       "_scriptClass": "Item"
     },
     "arm_golden_scale_chest": {
@@ -2502,6 +2680,32 @@
       "_sourceFile": "game/data/armors/arm_leather_legs.tres",
       "_scriptClass": "Item"
     },
+    "arm_mythril_gauntlets": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_mythril_gauntlets",
+      "display_name": "Mythril Gauntlets",
+      "description": "Mythril-shard knuckles over sinew-wrapped plate. Light enough to work in, hard enough to end the argument.",
+      "icon_path": "res://icons/items/armor_mythril_wardmail.png",
+      "item_category": 1,
+      "rarity": 4,
+      "equip_slot": 5,
+      "weapon_type": 0,
+      "armor_type": 3,
+      "stack_size": 1,
+      "bind_on_equip": true,
+      "sell_price": 400,
+      "buy_price": 1600,
+      "item_level": 13,
+      "required_level": 11,
+      "stats": {
+        "strength": 4
+      },
+      "armor_value": 20,
+      "_sourceFile": "game/data/armors/arm_mythril_gauntlets.tres",
+      "_scriptClass": "Item"
+    },
     "arm_mythril_wardmail": {
       "script": {
         "_extResource": "1"
@@ -2556,6 +2760,32 @@
       "_sourceFile": "game/data/armors/arm_shield_haven_wall.tres",
       "_scriptClass": "Item"
     },
+    "arm_silver_scale_legs": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_silver_scale_legs",
+      "display_name": "Silver-Scaled Leggings",
+      "description": "Scale plates sewn over silver-studded leather. Heavy at the knee, honest at the seam.",
+      "icon_path": "res://icons/items/armor_leather_legs.png",
+      "item_category": 1,
+      "rarity": 3,
+      "equip_slot": 3,
+      "weapon_type": 0,
+      "armor_type": 3,
+      "stack_size": 1,
+      "bind_on_equip": true,
+      "sell_price": 250,
+      "buy_price": 1000,
+      "item_level": 12,
+      "required_level": 10,
+      "stats": {
+        "vitality": 5
+      },
+      "armor_value": 26,
+      "_sourceFile": "game/data/armors/arm_silver_scale_legs.tres",
+      "_scriptClass": "Item"
+    },
     "arm_starmetal_bulwark": {
       "script": {
         "_extResource": "1"
@@ -2584,6 +2814,36 @@
     }
   },
   "consumables": {
+    "elixir_gloamward": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "elixir_gloamward",
+      "display_name": "Gloamward Elixir",
+      "description": "Gloam spores cut with tallow and honey. Vitality +10 for a minute; the dark still presses, but it does not bite.",
+      "icon_path": "res://icons/items/elixir_ironblood.png",
+      "item_category": 3,
+      "rarity": 2,
+      "equip_slot": 0,
+      "stack_size": 5,
+      "sell_price": 30,
+      "buy_price": 120,
+      "item_level": 7,
+      "required_level": 7,
+      "use_skill_id": "",
+      "cooldown": 8,
+      "duration": 0,
+      "buff_effects": [
+        {
+          "type": "stat_buff",
+          "stat": "vitality",
+          "value": 10,
+          "duration": 60
+        }
+      ],
+      "_sourceFile": "game/data/consumables/elixir_gloamward.tres",
+      "_scriptClass": "Item"
+    },
     "elixir_ironblood": {
       "script": {
         "_extResource": "1"
@@ -2614,6 +2874,66 @@
       "_sourceFile": "game/data/consumables/elixir_ironblood.tres",
       "_scriptClass": "Item"
     },
+    "elixir_silver_tongue": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "elixir_silver_tongue",
+      "display_name": "Silver-Tongue Elixir",
+      "description": "Silver dust held in oil and drunk quickly. Intelligence +8 for forty-five seconds; the words come easier, the bill does not.",
+      "icon_path": "res://icons/items/elixir_ironblood.png",
+      "item_category": 3,
+      "rarity": 2,
+      "equip_slot": 0,
+      "stack_size": 5,
+      "sell_price": 26,
+      "buy_price": 104,
+      "item_level": 6,
+      "required_level": 6,
+      "use_skill_id": "",
+      "cooldown": 8,
+      "duration": 0,
+      "buff_effects": [
+        {
+          "type": "stat_buff",
+          "stat": "intelligence",
+          "value": 8,
+          "duration": 45
+        }
+      ],
+      "_sourceFile": "game/data/consumables/elixir_silver_tongue.tres",
+      "_scriptClass": "Item"
+    },
+    "elixir_swiftstep": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "elixir_swiftstep",
+      "display_name": "Swiftstep Elixir",
+      "description": "Moonpetal and ground grit, shaken until it foams. Agility +8 for forty-five seconds; the road seems to lean toward you.",
+      "icon_path": "res://icons/items/elixir_ironblood.png",
+      "item_category": 3,
+      "rarity": 2,
+      "equip_slot": 0,
+      "stack_size": 5,
+      "sell_price": 22,
+      "buy_price": 88,
+      "item_level": 5,
+      "required_level": 5,
+      "use_skill_id": "",
+      "cooldown": 8,
+      "duration": 0,
+      "buff_effects": [
+        {
+          "type": "stat_buff",
+          "stat": "agility",
+          "value": 8,
+          "duration": 45
+        }
+      ],
+      "_sourceFile": "game/data/consumables/elixir_swiftstep.tres",
+      "_scriptClass": "Item"
+    },
     "item_sky_crate_daily": {
       "script": {
         "_extResource": "1"
@@ -2634,6 +2954,34 @@
       "duration": 0,
       "buff_effects": [],
       "_sourceFile": "game/data/consumables/item_sky_crate_daily.tres",
+      "_scriptClass": "Item"
+    },
+    "potion_health_large": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "potion_health_large",
+      "display_name": "Greater Health Potion",
+      "description": "Moonpetal boiled down twice as long and half as sweet. Restores 260 health; the second swallow is the one that matters.",
+      "icon_path": "res://icons/items/potion_red_medium.png",
+      "item_category": 3,
+      "rarity": 2,
+      "equip_slot": 0,
+      "stack_size": 10,
+      "sell_price": 24,
+      "buy_price": 96,
+      "item_level": 8,
+      "required_level": 8,
+      "use_skill_id": "",
+      "cooldown": 3,
+      "duration": 0,
+      "buff_effects": [
+        {
+          "type": "instant_heal",
+          "value": 260
+        }
+      ],
+      "_sourceFile": "game/data/consumables/potion_health_large.tres",
       "_scriptClass": "Item"
     },
     "potion_health_medium": {
@@ -2690,6 +3038,34 @@
       "_sourceFile": "game/data/consumables/potion_health_small.tres",
       "_scriptClass": "Item"
     },
+    "potion_mana_large": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "potion_mana_large",
+      "display_name": "Greater Mana Potion",
+      "description": "Mooncap steeped cold and kept cold. Restores 180 mana; the dreaming stays where it was put.",
+      "icon_path": "res://icons/items/potion_blue_small.png",
+      "item_category": 3,
+      "rarity": 2,
+      "equip_slot": 0,
+      "stack_size": 10,
+      "sell_price": 26,
+      "buy_price": 104,
+      "item_level": 8,
+      "required_level": 8,
+      "use_skill_id": "",
+      "cooldown": 3,
+      "duration": 0,
+      "buff_effects": [
+        {
+          "type": "instant_mana",
+          "value": 180
+        }
+      ],
+      "_sourceFile": "game/data/consumables/potion_mana_large.tres",
+      "_scriptClass": "Item"
+    },
     "potion_mana_small": {
       "script": {
         "_extResource": "1"
@@ -2739,6 +3115,36 @@
       "self_rez_cooldown": 300,
       "cooldown": 300,
       "_sourceFile": "game/data/consumables/potion_soul_gem.tres",
+      "_scriptClass": "Item"
+    },
+    "tea_kelp_broth": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "tea_kelp_broth",
+      "display_name": "Kelp Broth",
+      "description": "Kelp fiber simmered slow into a green broth. Knits 30 health back every two seconds for ten; tastes like the harbor smells.",
+      "icon_path": "res://icons/items/tea_mooncap.png",
+      "item_category": 3,
+      "rarity": 1,
+      "equip_slot": 0,
+      "stack_size": 10,
+      "sell_price": 10,
+      "buy_price": 40,
+      "item_level": 4,
+      "required_level": 4,
+      "use_skill_id": "",
+      "cooldown": 5,
+      "duration": 0,
+      "buff_effects": [
+        {
+          "type": "heal_over_time",
+          "value": 30,
+          "interval": 2,
+          "duration": 10
+        }
+      ],
+      "_sourceFile": "game/data/consumables/tea_kelp_broth.tres",
       "_scriptClass": "Item"
     },
     "tea_mooncap_steep": {
@@ -9689,6 +10095,86 @@
       "_sourceFile": "game/data/quests/quest_arena_trial.tres",
       "_scriptClass": "QuestData"
     },
+    "quest_boar_tusks": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "quest_boar_tusks",
+      "display_name": "Thistle Tusk Hunt",
+      "description": "A thistle boar has been through the elder's hedges twice this season. Bring back six tusks and he will believe you about the boar.",
+      "quest_type": 1,
+      "difficulty": 2,
+      "giver_npc_id": "npc_village_elder",
+      "turn_in_npc_id": "npc_village_elder",
+      "min_level": 8,
+      "max_level": 100,
+      "objectives": [
+        {
+          "id": "kill_boars",
+          "type": 0,
+          "target": "Thistle Boar",
+          "count": 6
+        }
+      ],
+      "rewards": [
+        {
+          "type": "gold",
+          "id": "",
+          "quantity": 150
+        },
+        {
+          "type": "experience",
+          "id": "",
+          "quantity": 260
+        }
+      ],
+      "gold_reward": 150,
+      "xp_reward": 260,
+      "icon_path": "res://icons/quests/wolf_hunt.png",
+      "map_marker": "kill",
+      "_sourceFile": "game/data/quests/quest_boar_tusks.tres",
+      "_scriptClass": "QuestData"
+    },
+    "quest_copper_seam": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "quest_copper_seam",
+      "display_name": "The Copper Seam",
+      "description": "The smith has run short of copper again. Bring eight ore up from the low seams and he will show you what a green-veined rock is good for.",
+      "quest_type": 1,
+      "difficulty": 0,
+      "giver_npc_id": "npc_blacksmith_village",
+      "turn_in_npc_id": "npc_blacksmith_village",
+      "min_level": 1,
+      "max_level": 100,
+      "objectives": [
+        {
+          "id": "collect_copper",
+          "type": 1,
+          "target": "Copper Ore",
+          "count": 8
+        }
+      ],
+      "rewards": [
+        {
+          "type": "gold",
+          "id": "",
+          "quantity": 80
+        },
+        {
+          "type": "experience",
+          "id": "",
+          "quantity": 120
+        }
+      ],
+      "gold_reward": 80,
+      "xp_reward": 120,
+      "icon_path": "res://icons/quests/tideline.png",
+      "map_marker": "collect",
+      "_sourceFile": "game/data/quests/quest_copper_seam.tres",
+      "_scriptClass": "QuestData"
+    },
     "quest_cross_the_cistern": {
       "script": {
         "_extResource": "1"
@@ -9784,6 +10270,46 @@
       "map_marker": "collect",
       "previous_quest_id": "",
       "_sourceFile": "game/data/quests/quest_deep_toll.tres",
+      "_scriptClass": "QuestData"
+    },
+    "quest_gloam_harvest": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "quest_gloam_harvest",
+      "display_name": "Gloam Harvest",
+      "description": "The herbalist wants gloam spores, and will not go into the gloam to get them. Gather six and mind your breathing.",
+      "quest_type": 1,
+      "difficulty": 1,
+      "giver_npc_id": "npc_herbalist_village",
+      "turn_in_npc_id": "npc_herbalist_village",
+      "min_level": 2,
+      "max_level": 100,
+      "objectives": [
+        {
+          "id": "collect_gloam",
+          "type": 1,
+          "target": "Gloam Spore",
+          "count": 6
+        }
+      ],
+      "rewards": [
+        {
+          "type": "gold",
+          "id": "",
+          "quantity": 90
+        },
+        {
+          "type": "experience",
+          "id": "",
+          "quantity": 140
+        }
+      ],
+      "gold_reward": 90,
+      "xp_reward": 140,
+      "icon_path": "res://icons/quests/gloamwood_ledger.png",
+      "map_marker": "collect",
+      "_sourceFile": "game/data/quests/quest_gloam_harvest.tres",
       "_scriptClass": "QuestData"
     },
     "quest_gloamwood_ledger": {
@@ -10114,6 +10640,46 @@
       "_sourceFile": "game/data/quests/quest_pearl_dive.tres",
       "_scriptClass": "QuestData"
     },
+    "quest_salvage_run": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "quest_salvage_run",
+      "display_name": "Salvage Run",
+      "description": "The salvor's last run came back short. Clear six salt wretches off the wreck line and the ledger will balance again.",
+      "quest_type": 1,
+      "difficulty": 2,
+      "giver_npc_id": "npc_salvor_wreck",
+      "turn_in_npc_id": "npc_salvor_wreck",
+      "min_level": 5,
+      "max_level": 100,
+      "objectives": [
+        {
+          "id": "kill_wretches",
+          "type": 0,
+          "target": "Salt Wretch",
+          "count": 6
+        }
+      ],
+      "rewards": [
+        {
+          "type": "gold",
+          "id": "",
+          "quantity": 120
+        },
+        {
+          "type": "experience",
+          "id": "",
+          "quantity": 180
+        }
+      ],
+      "gold_reward": 120,
+      "xp_reward": 180,
+      "icon_path": "res://icons/quests/wreck.png",
+      "map_marker": "kill",
+      "_sourceFile": "game/data/quests/quest_salvage_run.tres",
+      "_scriptClass": "QuestData"
+    },
     "quest_sentinel_wake": {
       "script": {
         "_extResource": "1"
@@ -10210,6 +10776,46 @@
       "icon_path": "res://icons/quests/wreck.png",
       "map_marker": "collect",
       "_sourceFile": "game/data/quests/quest_shoal_freight.tres",
+      "_scriptClass": "QuestData"
+    },
+    "quest_tide_markers": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "quest_tide_markers",
+      "display_name": "Tide Markers",
+      "description": "The ferryman sets his channel markers and the tide takes them back. Cut and paint eight from kelp fiber before the next crossing.",
+      "quest_type": 1,
+      "difficulty": 1,
+      "giver_npc_id": "npc_ferryman_sundered",
+      "turn_in_npc_id": "npc_ferryman_sundered",
+      "min_level": 3,
+      "max_level": 100,
+      "objectives": [
+        {
+          "id": "collect_kelp",
+          "type": 1,
+          "target": "Kelp Fiber",
+          "count": 8
+        }
+      ],
+      "rewards": [
+        {
+          "type": "gold",
+          "id": "",
+          "quantity": 70
+        },
+        {
+          "type": "experience",
+          "id": "",
+          "quantity": 110
+        }
+      ],
+      "gold_reward": 70,
+      "xp_reward": 110,
+      "icon_path": "res://icons/quests/tide_salvage.png",
+      "map_marker": "collect",
+      "_sourceFile": "game/data/quests/quest_tide_markers.tres",
       "_scriptClass": "QuestData"
     },
     "quest_tide_salvage": {
@@ -12449,6 +13055,78 @@
       "_sourceFile": "game/data/resources/res_abyss_pearl.tres",
       "_scriptClass": "Item"
     },
+    "res_conduit_wire": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_conduit_wire",
+      "display_name": "Conduit Wire",
+      "description": "A length of conduit wire, salvaged whole from a fallen run. The metal is honest and the underdeck pays well for it.",
+      "icon_path": "res://icons/currency/conduit_shard.png",
+      "item_category": 4,
+      "rarity": 2,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 14,
+      "buy_price": 36,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_conduit_wire.tres",
+      "_scriptClass": "Item"
+    },
+    "res_copper_ingot": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_copper_ingot",
+      "display_name": "Copper Ingot",
+      "description": "Copper run through the forge until it holds a shape. It bends before it breaks, which is why the smiths trust it for straps and buckles.",
+      "icon_path": "res://icons/resources/iron_ingot.png",
+      "item_category": 4,
+      "rarity": 0,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 5,
+      "buy_price": 12,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_copper_ingot.tres",
+      "_scriptClass": "Item"
+    },
+    "res_copper_ore": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_copper_ore",
+      "display_name": "Copper Ore",
+      "description": "A dull green-veined ore prised from the low seams. Softer than iron, quick to take an edge, and honest about both.",
+      "icon_path": "res://icons/resources/ore_silver.png",
+      "item_category": 4,
+      "rarity": 0,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 1,
+      "buy_price": 4,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_copper_ore.tres",
+      "_scriptClass": "Item"
+    },
+    "res_gloam_spore": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_gloam_spore",
+      "display_name": "Gloam Spore",
+      "description": "Spores shaken from a gloam cap. Breathe carefully; the tanners use them and the tanners are careful.",
+      "icon_path": "res://icons/resources/mooncap.png",
+      "item_category": 4,
+      "rarity": 1,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 8,
+      "buy_price": 20,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_gloam_spore.tres",
+      "_scriptClass": "Item"
+    },
     "res_golden_ingot": {
       "script": {
         "_extResource": "1"
@@ -12465,6 +13143,42 @@
       "buy_price": 190,
       "required_level": 0,
       "_sourceFile": "game/data/resources/res_golden_ingot.tres",
+      "_scriptClass": "Item"
+    },
+    "res_hemp_cord": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_hemp_cord",
+      "display_name": "Hemp Cord",
+      "description": "Twisted hemp, tarred against the damp. It hauls, it binds, and it complains the whole way.",
+      "icon_path": "res://icons/resources/kelp_fiber.png",
+      "item_category": 4,
+      "rarity": 0,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 2,
+      "buy_price": 6,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_hemp_cord.tres",
+      "_scriptClass": "Item"
+    },
+    "res_iron_grit": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_iron_grit",
+      "display_name": "Iron Grit",
+      "description": "Iron worked down to a coarse grit on the grinding wheel. The lapidaries and the bowyers each keep a dish of it.",
+      "icon_path": "res://icons/resources/slag.png",
+      "item_category": 4,
+      "rarity": 0,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 3,
+      "buy_price": 9,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_iron_grit.tres",
       "_scriptClass": "Item"
     },
     "res_iron_ingot": {
@@ -12576,6 +13290,24 @@
       "_sourceFile": "game/data/resources/res_mythril_ingot.tres",
       "_scriptClass": "Item"
     },
+    "res_mythril_shard": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_mythril_shard",
+      "display_name": "Mythril Shard",
+      "description": "A splinter of mythril, too small to forge alone and too proud to throw away. Enough of them, and a blade remembers its temper.",
+      "icon_path": "res://icons/resources/ore_mythril.png",
+      "item_category": 4,
+      "rarity": 3,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 340,
+      "buy_price": 900,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_mythril_shard.tres",
+      "_scriptClass": "Item"
+    },
     "res_ore_golden": {
       "script": {
         "_extResource": "1"
@@ -12648,6 +13380,78 @@
       "_sourceFile": "game/data/resources/res_ore_starmetal.tres",
       "_scriptClass": "Item"
     },
+    "res_salvage_plate": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_salvage_plate",
+      "display_name": "Salvage Plate",
+      "description": "A plate cut from some older wreck and hammered straight again. The underdeck sells these by the armload.",
+      "icon_path": "res://icons/resources/slag.png",
+      "item_category": 4,
+      "rarity": 1,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 9,
+      "buy_price": 22,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_salvage_plate.tres",
+      "_scriptClass": "Item"
+    },
+    "res_scale_plate": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_scale_plate",
+      "display_name": "Scale Plate",
+      "description": "A plate of cured scale, boiled and beaten flat. Light as bark, tough as a bad habit.",
+      "icon_path": "res://icons/resources/slag.png",
+      "item_category": 4,
+      "rarity": 1,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 6,
+      "buy_price": 16,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_scale_plate.tres",
+      "_scriptClass": "Item"
+    },
+    "res_shoal_pearl": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_shoal_pearl",
+      "display_name": "Shoal Pearl",
+      "description": "A small pearl lifted from the shoal beds. Not the deep kind, but the light still finds it.",
+      "icon_path": "res://icons/resources/abyss_pearl.png",
+      "item_category": 4,
+      "rarity": 2,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 18,
+      "buy_price": 48,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_shoal_pearl.tres",
+      "_scriptClass": "Item"
+    },
+    "res_silver_dust": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_silver_dust",
+      "display_name": "Silver Dust",
+      "description": "Fine silver filings swept up after a night at the bench. Nothing is wasted in a workshop that has to buy its own ore.",
+      "icon_path": "res://icons/resources/slag.png",
+      "item_category": 4,
+      "rarity": 1,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 16,
+      "buy_price": 42,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_silver_dust.tres",
+      "_scriptClass": "Item"
+    },
     "res_silver_ingot": {
       "script": {
         "_extResource": "1"
@@ -12664,6 +13468,24 @@
       "buy_price": 75,
       "required_level": 0,
       "_sourceFile": "game/data/resources/res_silver_ingot.tres",
+      "_scriptClass": "Item"
+    },
+    "res_sinew_thread": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_sinew_thread",
+      "display_name": "Sinew Thread",
+      "description": "Sinew scraped thin and twisted into thread. It holds a seam better than any knot.",
+      "icon_path": "res://icons/resources/kelp_fiber.png",
+      "item_category": 4,
+      "rarity": 0,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 4,
+      "buy_price": 12,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_sinew_thread.tres",
       "_scriptClass": "Item"
     },
     "res_slag": {
@@ -12759,6 +13581,87 @@
       "_sourceFile": "game/data/items/item_ancient_coin.tres",
       "_scriptClass": "Item"
     },
+    "item_brass_fitting": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "item_brass_fitting",
+      "display_name": "Brass Fitting",
+      "description": "A small brass fitting, cast and filed square. The kind of part that is never noticed until it is missing.",
+      "icon_path": "res://icons/items/sealed_crate.png",
+      "item_category": 7,
+      "rarity": 1,
+      "equip_slot": 0,
+      "stack_size": 20,
+      "sell_price": 12,
+      "buy_price": 30,
+      "required_level": 0,
+      "_sourceFile": "game/data/items/item_brass_fitting.tres",
+      "_scriptClass": "Item"
+    },
+    "item_quest_boar_tusk": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "item_quest_boar_tusk",
+      "display_name": "Thistle Tusk",
+      "description": "A thistle-boar tusk, barbs worn smooth. Proof of a hunt the elder will want to hear about.",
+      "icon_path": "res://icons/items/seal_feather.png",
+      "item_category": 7,
+      "rarity": 1,
+      "stack_size": 1,
+      "is_quest_item": true,
+      "quest_id": "quest_boar_tusks",
+      "keep_after_turn_in": false,
+      "usable_during_quest_only": true,
+      "sell_price": 0,
+      "buy_price": 0,
+      "weight": 0.01,
+      "_sourceFile": "game/data/items/item_quest_boar_tusk.tres",
+      "_scriptClass": "Item"
+    },
+    "item_quest_copper_tally": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "item_quest_copper_tally",
+      "display_name": "Copper Tally",
+      "description": "A copper tally scratched with the count of ore delivered. The smith keeps the ledger; you keep the tally.",
+      "icon_path": "res://icons/items/sealed_writ.png",
+      "item_category": 7,
+      "rarity": 1,
+      "stack_size": 1,
+      "is_quest_item": true,
+      "quest_id": "quest_copper_seam",
+      "keep_after_turn_in": false,
+      "usable_during_quest_only": true,
+      "sell_price": 0,
+      "buy_price": 0,
+      "weight": 0.01,
+      "_sourceFile": "game/data/items/item_quest_copper_tally.tres",
+      "_scriptClass": "Item"
+    },
+    "item_quest_gloam_vial": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "item_quest_gloam_vial",
+      "display_name": "Gloam Vial",
+      "description": "A sealed vial of gloam spores, stoppered tight. The herbalist wants it whole.",
+      "icon_path": "res://icons/items/potion_blue_small.png",
+      "item_category": 7,
+      "rarity": 1,
+      "stack_size": 1,
+      "is_quest_item": true,
+      "quest_id": "quest_gloam_harvest",
+      "keep_after_turn_in": false,
+      "usable_during_quest_only": true,
+      "sell_price": 0,
+      "buy_price": 0,
+      "weight": 0.01,
+      "_sourceFile": "game/data/items/item_quest_gloam_vial.tres",
+      "_scriptClass": "Item"
+    },
     "item_quest_gull_feather_seal": {
       "script": {
         "_extResource": "1"
@@ -12780,6 +13683,27 @@
       "_sourceFile": "game/data/items/item_quest_gull_feather_seal.tres",
       "_scriptClass": "Item"
     },
+    "item_quest_salvage_ledger": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "item_quest_salvage_ledger",
+      "display_name": "Salvage Ledger",
+      "description": "A water-stained ledger of salvage claimed off the wrecks. The salvor's word, written down.",
+      "icon_path": "res://icons/items/sealed_writ.png",
+      "item_category": 7,
+      "rarity": 1,
+      "stack_size": 1,
+      "is_quest_item": true,
+      "quest_id": "quest_salvage_run",
+      "keep_after_turn_in": false,
+      "usable_during_quest_only": true,
+      "sell_price": 0,
+      "buy_price": 0,
+      "weight": 0.01,
+      "_sourceFile": "game/data/items/item_quest_salvage_ledger.tres",
+      "_scriptClass": "Item"
+    },
     "item_quest_sealed_writ": {
       "script": {
         "_extResource": "1"
@@ -12799,6 +13723,27 @@
       "buy_price": 0,
       "weight": 0.01,
       "_sourceFile": "game/data/items/item_quest_sealed_writ.tres",
+      "_scriptClass": "Item"
+    },
+    "item_quest_tide_marker": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "item_quest_tide_marker",
+      "display_name": "Tide Marker",
+      "description": "A small tide marker, cut and painted to mark the channel. The ferrymen set them, lose them, and set them again.",
+      "icon_path": "res://icons/items/skiff_ticket.png",
+      "item_category": 7,
+      "rarity": 1,
+      "stack_size": 1,
+      "is_quest_item": true,
+      "quest_id": "quest_tide_markers",
+      "keep_after_turn_in": false,
+      "usable_during_quest_only": true,
+      "sell_price": 0,
+      "buy_price": 0,
+      "weight": 0.01,
+      "_sourceFile": "game/data/items/item_quest_tide_marker.tres",
       "_scriptClass": "Item"
     },
     "item_scrap_lumber": {
@@ -12894,6 +13839,42 @@
       "sell_price": 0,
       "weight": 0.05,
       "_sourceFile": "game/data/items/item_strait_charm.tres",
+      "_scriptClass": "Item"
+    },
+    "item_tallow_candle": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "item_tallow_candle",
+      "display_name": "Tallow Candle",
+      "description": "A tallow candle, dipped twice. Short, smoky, and enough to finish a page by.",
+      "icon_path": "res://icons/items/soul_gem.png",
+      "item_category": 7,
+      "rarity": 0,
+      "equip_slot": 0,
+      "stack_size": 10,
+      "sell_price": 3,
+      "buy_price": 8,
+      "required_level": 0,
+      "_sourceFile": "game/data/items/item_tallow_candle.tres",
+      "_scriptClass": "Item"
+    },
+    "item_tide_token": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "item_tide_token",
+      "display_name": "Tide Token",
+      "description": "A stamped token traded along the tide-line. The ferrymen honor it and the salvors pretend not to.",
+      "icon_path": "res://icons/items/strait_charm.png",
+      "item_category": 7,
+      "rarity": 2,
+      "equip_slot": 0,
+      "stack_size": 5,
+      "sell_price": 22,
+      "buy_price": 55,
+      "required_level": 0,
+      "_sourceFile": "game/data/items/item_tide_token.tres",
       "_scriptClass": "Item"
     }
   },
@@ -12997,6 +13978,30 @@
       "_sourceFile": "game/data/accessories/acc_breather_reed.tres",
       "_scriptClass": "Item"
     },
+    "acc_cloak_saltworn": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_cloak_saltworn",
+      "display_name": "Saltworn Cloak",
+      "description": "A cloak of tarred cord and salvage cloth. It sheds the spray and keeps the smell of the road.",
+      "icon_path": "res://icons/items/cloak_wanderer.png",
+      "item_category": 2,
+      "rarity": 2,
+      "equip_slot": 12,
+      "accessory_type": 4,
+      "stack_size": 1,
+      "bind_on_equip": true,
+      "sell_price": 90,
+      "buy_price": 360,
+      "item_level": 9,
+      "required_level": 7,
+      "stats": {
+        "vitality": 4
+      },
+      "_sourceFile": "game/data/accessories/acc_cloak_saltworn.tres",
+      "_scriptClass": "Item"
+    },
     "acc_cloak_wanderer": {
       "script": {
         "_extResource": "1"
@@ -13097,6 +14102,54 @@
         "vitality": 4
       },
       "_sourceFile": "game/data/accessories/acc_necklace_pearl_sigil.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_necklace_sinew": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_necklace_sinew",
+      "display_name": "Sinew Strand",
+      "description": "A shoal pearl strung on sinew thread. The tide keeps it cool and the wearer keeps it close.",
+      "icon_path": "res://icons/items/necklace_haven_pearl.png",
+      "item_category": 2,
+      "rarity": 2,
+      "equip_slot": 11,
+      "accessory_type": 2,
+      "stack_size": 1,
+      "bind_on_equip": true,
+      "sell_price": 40,
+      "buy_price": 160,
+      "item_level": 5,
+      "required_level": 4,
+      "stats": {
+        "wisdom": 3
+      },
+      "_sourceFile": "game/data/accessories/acc_necklace_sinew.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_ring_copper_band": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_ring_copper_band",
+      "display_name": "Copper Band",
+      "description": "A plain copper band, filed round and worn smooth. It buys no luck; it just reminds you to keep moving.",
+      "icon_path": "res://icons/items/ring_golden_signet.png",
+      "item_category": 2,
+      "rarity": 1,
+      "equip_slot": 9,
+      "accessory_type": 1,
+      "stack_size": 1,
+      "bind_on_equip": true,
+      "sell_price": 10,
+      "buy_price": 40,
+      "item_level": 3,
+      "required_level": 2,
+      "stats": {
+        "agility": 2
+      },
+      "_sourceFile": "game/data/accessories/acc_ring_copper_band.tres",
       "_scriptClass": "Item"
     },
     "acc_ring_first_light": {
@@ -13227,6 +14280,129 @@
       "required_level": 8,
       "failure_rate": 0,
       "_sourceFile": "game/data/recipes/recipe_abyssal_breather.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_copper_band": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_copper_band",
+      "display_name": "Forge Copper Band",
+      "description": "One copper ingot, filed round and worn smooth before it is ever worn. It buys no luck.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_copper_ingot",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "acc_ring_copper_band",
+        "qty": 1
+      },
+      "byproducts": [],
+      "craft_time_sec": 0,
+      "required_level": 3,
+      "failure_rate": 0.1,
+      "_sourceFile": "game/data/recipes/recipe_copper_band.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_copper_cleaver": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_copper_cleaver",
+      "display_name": "Forge Copper Cleaver",
+      "description": "Copper takes an edge quickly and loses it just as fast. Two ingots and a cord-wrapped haft make a tool that will do the job once, honestly.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_copper_ingot",
+          "qty": 2
+        },
+        {
+          "item_id": "res_hemp_cord",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "wep_copper_cleaver",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 1,
+      "failure_rate": 0.1,
+      "_sourceFile": "game/data/recipes/recipe_copper_cleaver.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_copper_helm": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_copper_helm",
+      "display_name": "Forge Copper Helm",
+      "description": "Two copper ingots beaten over a leather lining. It turns a glancing blow; the rest is up to you.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_copper_ingot",
+          "qty": 2
+        },
+        {
+          "item_id": "res_scale_plate",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "arm_copper_helm",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 1,
+      "failure_rate": 0.1,
+      "_sourceFile": "game/data/recipes/recipe_copper_helm.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_copper_ingot": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_copper_ingot",
+      "display_name": "Smelt Copper Ingot",
+      "description": "Two copper ores, one ingot, and the slag the forge always keeps. Copper bends before it breaks.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_copper_ore",
+          "qty": 2
+        }
+      ],
+      "output": {
+        "item_id": "res_copper_ingot",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 1,
+      "failure_rate": 0.1,
+      "_sourceFile": "game/data/recipes/recipe_copper_ingot.tres",
       "_scriptClass": "RecipeData"
     },
     "recipe_elixir_ironblood": {
@@ -13591,6 +14767,40 @@
       "_sourceFile": "game/data/recipes/recipe_longbow.tres",
       "_scriptClass": "RecipeData"
     },
+    "recipe_mythril_gauntlets": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_mythril_gauntlets",
+      "display_name": "Forge Mythril Gauntlets",
+      "description": "Mythril-shard knuckles riveted over sinew-wrapped plate. Light enough to work in, hard enough to end the argument.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_mythril_shard",
+          "qty": 2
+        },
+        {
+          "item_id": "res_scale_plate",
+          "qty": 2
+        }
+      ],
+      "output": {
+        "item_id": "arm_mythril_gauntlets",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 11,
+      "failure_rate": 0.1,
+      "_sourceFile": "game/data/recipes/recipe_mythril_gauntlets.tres",
+      "_scriptClass": "RecipeData"
+    },
     "recipe_mythril_halberd": {
       "script": {
         "_extResource": "1"
@@ -13657,6 +14867,70 @@
       "required_level": 10,
       "failure_rate": 0.15,
       "_sourceFile": "game/data/recipes/recipe_mythril_ingot.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_mythril_shard": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_mythril_shard",
+      "display_name": "Split Mythril Shard",
+      "description": "A mythril ore struck along its grain, splitting into shards the blade-smiths gather. Too small to forge alone, too proud to throw away.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_ore_mythril",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "res_mythril_shard",
+        "qty": 2
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 12,
+      "failure_rate": 0.2,
+      "_sourceFile": "game/data/recipes/recipe_mythril_shard.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_mythril_shortblade": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_mythril_shortblade",
+      "display_name": "Forge Mythril Shortblade",
+      "description": "Mythril shards gathered and forged back into a blade. The metal remembers its temper; the smith only has to remind it.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_mythril_shard",
+          "qty": 3
+        },
+        {
+          "item_id": "res_sinew_thread",
+          "qty": 2
+        }
+      ],
+      "output": {
+        "item_id": "wep_mythril_shortblade",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 11,
+      "failure_rate": 0.1,
+      "_sourceFile": "game/data/recipes/recipe_mythril_shortblade.tres",
       "_scriptClass": "RecipeData"
     },
     "recipe_mythril_wardmail": {
@@ -13821,6 +15095,35 @@
       "_sourceFile": "game/data/recipes/recipe_reed_breather.tres",
       "_scriptClass": "RecipeData"
     },
+    "recipe_saltworn_cloak": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_saltworn_cloak",
+      "display_name": "Sew a Saltworn Cloak",
+      "description": "Salvage plate and tarred cord stitched into a cloak that sheds the spray. It keeps the smell of the road.",
+      "station": 2,
+      "inputs": [
+        {
+          "item_id": "res_salvage_plate",
+          "qty": 2
+        },
+        {
+          "item_id": "res_hemp_cord",
+          "qty": 3
+        }
+      ],
+      "output": {
+        "item_id": "acc_cloak_saltworn",
+        "qty": 1
+      },
+      "byproducts": [],
+      "craft_time_sec": 0,
+      "required_level": 9,
+      "failure_rate": 0.1,
+      "_sourceFile": "game/data/recipes/recipe_saltworn_cloak.tres",
+      "_scriptClass": "RecipeData"
+    },
     "recipe_silver_ingot": {
       "script": {
         "_extResource": "1"
@@ -13849,6 +15152,137 @@
       "required_level": 2,
       "failure_rate": 0.1,
       "_sourceFile": "game/data/recipes/recipe_silver_ingot.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_silver_rapier": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_silver_rapier",
+      "display_name": "Forge Silver Rapier",
+      "description": "Silver drawn thin and sinew-wrapped at the grip. Three ingots buy a blade that argues in a straight line.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_silver_ingot",
+          "qty": 3
+        },
+        {
+          "item_id": "res_sinew_thread",
+          "qty": 2
+        }
+      ],
+      "output": {
+        "item_id": "wep_silver_rapier",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 10,
+      "failure_rate": 0.1,
+      "_sourceFile": "game/data/recipes/recipe_silver_rapier.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_silver_scale_legs": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_silver_scale_legs",
+      "display_name": "Sew Silver-Scaled Leggings",
+      "description": "Scale plates sewn over silver-studded leather at the bench. Heavy at the knee, honest at the seam.",
+      "station": 2,
+      "inputs": [
+        {
+          "item_id": "res_silver_ingot",
+          "qty": 2
+        },
+        {
+          "item_id": "res_scale_plate",
+          "qty": 3
+        }
+      ],
+      "output": {
+        "item_id": "arm_silver_scale_legs",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 10,
+      "failure_rate": 0.1,
+      "_sourceFile": "game/data/recipes/recipe_silver_scale_legs.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_silver_warhammer": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_silver_warhammer",
+      "display_name": "Forge Silver Warhammer",
+      "description": "A silver head on a timber haft, weighted to fall. Four ingots for a hammer that does not need to be quick.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_silver_ingot",
+          "qty": 4
+        },
+        {
+          "item_id": "res_timber",
+          "qty": 2
+        }
+      ],
+      "output": {
+        "item_id": "wep_silver_warhammer",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 2
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 10,
+      "failure_rate": 0.1,
+      "_sourceFile": "game/data/recipes/recipe_silver_warhammer.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_sinew_strand": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_sinew_strand",
+      "display_name": "String a Sinew Strand",
+      "description": "A shoal pearl strung on doubled sinew thread at the bench. The tide keeps it cool.",
+      "station": 2,
+      "inputs": [
+        {
+          "item_id": "res_shoal_pearl",
+          "qty": 1
+        },
+        {
+          "item_id": "res_sinew_thread",
+          "qty": 2
+        }
+      ],
+      "output": {
+        "item_id": "acc_necklace_sinew",
+        "qty": 1
+      },
+      "byproducts": [],
+      "craft_time_sec": 0,
+      "required_level": 5,
+      "failure_rate": 0.1,
+      "_sourceFile": "game/data/recipes/recipe_sinew_strand.tres",
       "_scriptClass": "RecipeData"
     },
     "recipe_starbinder_ring": {
@@ -16203,6 +17637,30 @@
       "_sourceFile": "game/data/loot_tables/loot_coast_bounty.tres",
       "_scriptClass": "LootTable"
     },
+    "loot_copper_seam": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "loot_copper_seam",
+      "name": "Copper Seam",
+      "description": "The low seams give up their copper a handful at a time: green-veined ore, the grit the wheel leaves, and slag the forge always keeps.",
+      "level": 4,
+      "min_items_dropped": 1,
+      "max_items_dropped": 3,
+      "base_drop_chance": 1,
+      "entries": "[{\n\"item_id\": \"res_copper_ore\",\n\"min_quantity\": 1,\n\"max_quantity\": 3,\n\"drop_rate\": 0.35,\n\"rarity_weight\": 1.6,\n\"is_guaranteed\": false,\n\"conditions\": []",
+      "currency_drops": [
+        {
+          "currency_id": "gold",
+          "min_amount": 2,
+          "max_amount": 9,
+          "drop_rate": 0.5,
+          "is_guaranteed": false
+        }
+      ],
+      "_sourceFile": "game/data/loot_tables/loot_copper_seam.tres",
+      "_scriptClass": "LootTable"
+    },
     "loot_elite_ore": {
       "script": {
         "_extResource": "1"
@@ -16277,6 +17735,30 @@
       "base_drop_chance": 1,
       "entries": "[{\n\"item_id\": \"res_iron_ore\",\n\"min_quantity\": 1,\n\"max_quantity\": 2,\n\"drop_rate\": 0.35,\n\"rarity_weight\": 1.5,\n\"is_guaranteed\": false,\n\"conditions\": []",
       "_sourceFile": "game/data/loot_tables/loot_pan_dust.tres",
+      "_scriptClass": "LootTable"
+    },
+    "loot_salvage_yard": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "loot_salvage_yard",
+      "name": "Salvage Yard",
+      "description": "What the wrecks leave behind: hammered plate, conduit wire pulled whole, the odd tide token, and dust the bench swept up.",
+      "level": 9,
+      "min_items_dropped": 1,
+      "max_items_dropped": 3,
+      "base_drop_chance": 1,
+      "entries": "[{\n\"item_id\": \"res_salvage_plate\",\n\"min_quantity\": 1,\n\"max_quantity\": 2,\n\"drop_rate\": 0.30,\n\"rarity_weight\": 1.5,\n\"is_guaranteed\": false,\n\"conditions\": []",
+      "currency_drops": [
+        {
+          "currency_id": "gold",
+          "min_amount": 5,
+          "max_amount": 20,
+          "drop_rate": 0.6,
+          "is_guaranteed": false
+        }
+      ],
+      "_sourceFile": "game/data/loot_tables/loot_salvage_yard.tres",
       "_scriptClass": "LootTable"
     },
     "loot_skill_books": {
