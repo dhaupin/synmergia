@@ -179,6 +179,15 @@ sh ./scripts/godot_test_runner.sh --all      # every test_*.gd, parallel
 See [AGENTS.md](./AGENTS.md) for developer conventions and code patterns,
 and [DEVCODE.md](./DEVCODE.md) for the mechanics of running things.
 
+### Contributing
+
+Synmergia is built in the open and contributions are welcome — engine,
+art, world building, testing, or just a good idea. Start with
+[CONTRIBUTING.md](./CONTRIBUTING.md) for setup, conventions, and the pull
+request process. Everyone participating agrees to the
+[Code of Conduct](./CODE_OF_CONDUCT.md). Report security issues privately
+per [SECURITY.md](./SECURITY.md).
+
 ---
 
 ## Project Status
@@ -212,14 +221,30 @@ and [DEVCODE.md](./DEVCODE.md) for the mechanics of running things.
 | [🏗️ Architecture](./labs/world-building-arch.md) | Technical deep-dive — frame, services, sync |
 | [🗺️ World Design](./labs/world-building.md) | World, zones, procedural generation |
 | [🤖 Developer Notes](./AGENTS.md) | Code conventions, patterns, and tips for contributors |
+| [🛠️ Contributing](./CONTRIBUTING.md) | Setup, conventions, tests, and the pull request process |
+| [🧰 Dev Environment](./DEVCODE.md) | Rebuilding the dev loop from the repo alone |
 | [🚀 Deployment Guide](./DEPLOY.md) | Docker deployment, production setup, and operations |
+| [🌐 Web Deployment](./DEPLOY_WEB.md) | Website + browser client deployment (Cloudflare) |
 | [🧩 Shard Mesh](./labs/prd-shard-mesh.md) | Multi-container deployment: intent vs reality, transport fork, phased path |
+| [📜 Credits](./CREDITS.md) | Third-party software, fonts, and asset provenance |
+| [🔒 Security Policy](./SECURITY.md) | How to report a vulnerability |
+| [🤝 Code of Conduct](./CODE_OF_CONDUCT.md) | Community standards |
+| [✅ OSS Readiness Audit](./labs/OSS-AUDIT.md) | Self-audit checklist for the open source release |
 
 ---
 
 ## License
 
-Synmergia is open source under the **MIT License**. See [LICENSE](LICENSE) for details.
+Synmergia is open source under the **MIT License** — see [LICENSE](./LICENSE).
+Copyright © 2026 [Creadev.org](https://creadev.org).
+
+- **Code and content** (game, website, data, generated art and audio) are
+  MIT-licensed.
+- **Third-party** software, fonts, and assets are credited in
+  [CREDITS.md](./CREDITS.md) with their own licenses (Godot Engine — MIT;
+  Cinzel and Plus Jakarta Sans — SIL OFL 1.1).
+- **The Synmergia name and logo** are not covered by the code license; see
+  [TRADEMARK.md](./TRADEMARK.md).
 
 ---
 

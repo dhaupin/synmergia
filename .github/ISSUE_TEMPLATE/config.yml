@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/dhaupin/synmergia/security/advisories/new
+    about: Please report security issues privately, not in the public tracker.
+  - name: How to contribute
+    url: https://github.com/dhaupin/synmergia/blob/main/CONTRIBUTING.md
+    about: Setup, conventions, tests, and the pull request process.

@@ -1057,3 +1057,11 @@ git pull && docker compose --profile prod up --build -d
 
 *For technical architecture details, see [labs/README.md](./labs/README.md).*
 *For game development, see [AGENTS.md](./AGENTS.md).*
+
+---
+
+**See also:** [README.md](./README.md) (product + architecture) ·
+[CONTRIBUTING.md](./CONTRIBUTING.md) (setup, tests, PRs) ·
+[DEVCODE.md](./DEVCODE.md) (dev environment) · [DEPLOY_WEB.md](./DEPLOY_WEB.md)
+(web) · [DEPLOY-GPU.md](./DEPLOY-GPU.md) (3D pipeline) · [SECURITY.md](./SECURITY.md) ·
+[LICENSE](./LICENSE).

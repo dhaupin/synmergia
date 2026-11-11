@@ -230,3 +230,8 @@ Exit 0 = the box can generate and land an asset. Same shape as
 **See also:** `labs/prd-3d-pipeline.md` (the pipeline law),
 `labs/prd-art-pipeline.md` (the Lane D PRD), `DEPLOY.md` (server),
 `DEPLOY_WEB.md` (web), `labs/prd-openhands-canvas.md` (Lane D's lane).
+
+---
+
+**See also (root docs):** [README.md](./README.md) · [CONTRIBUTING.md](./CONTRIBUTING.md) ·
+[AGENTS.md](./AGENTS.md) · [CREDITS.md](./CREDITS.md) · [LICENSE](./LICENSE).

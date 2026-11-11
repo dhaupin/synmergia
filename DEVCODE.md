@@ -164,3 +164,11 @@ Recovery order:
 5. The horcrux is at `horcrux/cairn-p_windtheclock2026.svg` — restore
    into vant axolotl to recover agent memory/state (its README spells
    out the exact vant restore command and stack pinning).
+
+---
+
+**See also:** [README.md](./README.md) (product + architecture) ·
+[AGENTS.md](./AGENTS.md) (code conventions) · [CONTRIBUTING.md](./CONTRIBUTING.md)
+(setup, tests, PRs) · [DEPLOY.md](./DEPLOY.md) (server) ·
+[DEPLOY_WEB.md](./DEPLOY_WEB.md) (web) · [CREDITS.md](./CREDITS.md) ·
+[LICENSE](./LICENSE).

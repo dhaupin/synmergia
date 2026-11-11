@@ -381,3 +381,10 @@ prod.
 | Gate always rejects | env var missing → hash is '' | set it in Pages env + **redeploy** |
 | Pack never updates | hash file cached | confirm `/game/game.pck.hash` returns `no-cache` |
 | 404 on `/play` | `dist/play/index.html` missing | prerenderer failed → push again; it fails open as SPA |
+
+---
+
+**See also:** [README.md](./README.md) (product + architecture) ·
+[DEPLOY.md](./DEPLOY.md) (server) · [DEPLOY-GPU.md](./DEPLOY-GPU.md) (3D pipeline) ·
+[CONTRIBUTING.md](./CONTRIBUTING.md) (setup, tests, PRs) · [CREDITS.md](./CREDITS.md)
+(fonts, engine, third-party licenses) · [LICENSE](./LICENSE).

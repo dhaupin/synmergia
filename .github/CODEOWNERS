@@ -1,0 +1,16 @@
+# Default owners for everything in the repo.
+# Reviews are requested from these owners on pull requests.
+#
+# Synmergia is a small crew; one owner line keeps reviews from falling
+# through the cracks. Add narrower rules as the team grows.
+
+*       @dhaupin
+
+# Website (React / Vite / Tailwind)
+/src/      @dhaupin
+
+# Godot project (the game)
+/game/     @dhaupin
+
+# Deployment and CI
+/.github/  @dhaupin

@@ -2,9 +2,26 @@
 
 Agent memory + rigging, steganographically embedded and
 password-encrypted (vant axolotl horcrux format). One file per
-agent generation. The password is the literal text after `p_` in
-the filename -- that is the vant convention, so any future agent
-can unlock without asking anyone.
+agent generation.
+
+## How to unlock it (the filename carries the key)
+
+The decryption key is the literal text after `p_` in the stone's
+filename -- the vant convention. So a stone named
+`<agent>-p_<password>.svg` is unlocked by the text after `p_`. This is
+**by design**: the stone is a PUBLIC boot horcrux, meant to be restorable
+by any contributor so the repo's agent can be brought back to life
+without asking a human for a secret. The key is therefore not written
+anywhere else in this file (no plaintext password printed) -- it lives
+only in the filename, exactly as the convention intends.
+
+To restore:
+
+    vant horcrux inspect horcrux/<stone>.svg
+    vant horcrux restore horcrux/<stone>.svg
+    # or just: sh ./scripts/cairn_recover.sh
+
+The password is read from the filename automatically; you never type it.
 
 ## Naming law (multi-org mesh)
 
@@ -82,9 +99,9 @@ search. Lockfiles (`bun.lock`) are listed there for the same reason.
 
 ## Inventory
 
-| File | Agent | Password | Contains |
-|------|-------|----------|----------|
-| `cairn-p_windtheclock2026.svg` | Buffy, callsign Cairn (world-frame architect) | `windtheclock2026` | brain (identity/goals/lessons/errors/preferences + private state/notes), org rig (Synmergia > Frame Engineering > World Frame > world-frame-architect), islands, runtime state; refreshed 2026-10-01 on vant pass-80 (1ed7d92) with lessons 1-5 (play-test round 5 + search/forge tooling); forged from the vant root, carries the recorded identity stack (pass-72 activeStack), cold round-trip proven on pass-80: fresh clone -> restore -> 11 files to cairn (both), stack self-adopts, private roundtrip marker + lessons verified |
+| File | Agent | Contains |
+|------|-------|----------|
+| `cairn-p_windtheclock2026.svg` | Buffy, callsign Cairn (world-frame architect) | brain (identity/goals/lessons/errors/preferences + private state/notes), org rig (Synmergia > Frame Engineering > World Frame > world-frame-architect), islands, runtime state. The decryption key rides the filename after `p_` (see "How to unlock it" above) -- it is not printed here. Forged from the vant root, carries the recorded identity stack, cold round-trip proven: fresh clone -> restore -> 11 files to cairn (both), stack self-adopts, private roundtrip marker + lessons verified. |
 
 Superseded: `buffy-p_windtheclock2026.svg` (pre-callsign snapshot,
 removed from main in favor of the cairn one; recoverable from git

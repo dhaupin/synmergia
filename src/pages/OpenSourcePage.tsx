@@ -8,6 +8,34 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 const REPO = 'https://github.com/dhaupin/synmergia';
 
+const DOCS: { label: string; href: string; body: string }[] = [
+  {
+    label: 'Contributing',
+    href: `${REPO}/blob/main/CONTRIBUTING.md`,
+    body: 'how to set up, the conventions, the tests, and how to open a pull request.',
+  },
+  {
+    label: 'Code of Conduct',
+    href: `${REPO}/blob/main/CODE_OF_CONDUCT.md`,
+    body: 'the standards we hold each other to.',
+  },
+  {
+    label: 'Security policy',
+    href: `${REPO}/blob/main/SECURITY.md`,
+    body: 'how to report a vulnerability privately.',
+  },
+  {
+    label: 'Credits',
+    href: `${REPO}/blob/main/CREDITS.md`,
+    body: 'the third-party software, fonts, and assets we build on, with their licenses.',
+  },
+  {
+    label: 'License',
+    href: `${REPO}/blob/main/LICENSE`,
+    body: 'MIT — free to use, read, and build on. The name and logo are not part of the code grant.',
+  },
+];
+
 const CRAFT: { glyph: string; title: string; body: string }[] = [
   {
     glyph: '⌘',
@@ -185,6 +213,34 @@ export default function OpenSourcePage() {
           world is data-driven — which is why a designer, not only an engineer, can
           add a zone, a quest, or a creature without touching the engine.
         </p>
+      </section>
+
+      {/* Docs & license */}
+      <section className="border-t border-line pt-8 mb-12">
+        <p className="text-[11px] uppercase tracking-[0.24em] text-accent/80 mb-2">
+          The fine print, in the open
+        </p>
+        <h2 className="font-display text-xl sm:text-2xl mb-4 leading-snug">
+          Docs, rules, and license
+        </h2>
+        <ul className="space-y-2">
+          {DOCS.map((d) => (
+            <li key={d.href} className="flex items-start gap-3 text-sm leading-relaxed">
+              <span className="text-accent mt-0.5" aria-hidden="true">▸</span>
+              <span className="text-ink-soft">
+                <a
+                  href={d.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-ink font-semibold hover:text-accent"
+                >
+                  {d.label}
+                </a>{' '}
+                — {d.body}
+              </span>
+            </li>
+          ))}
+        </ul>
       </section>
 
       {/* CTA */}

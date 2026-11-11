@@ -14,6 +14,10 @@
 # stack -- both worked around below, no hacks needed otherwise).
 set -eu
 
+# The stone lives in horcrux/ (not a boot path), so the p_<password>
+# filename convention needs an explicit opt-in for the CLI to honor it.
+export VANT_ALLOW_FILENAME_PW=true
+
 VANT_DIR="${1:-/home/daytona/vant}"
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 STONE="$REPO/horcrux/cairn-p_windtheclock2026.svg"
