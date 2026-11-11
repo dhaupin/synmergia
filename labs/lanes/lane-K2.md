@@ -80,8 +80,8 @@ HARD RULES
 - Do NOT edit .gd CODE (schemas are read-only to you -- report, do not change
   a schema), the runner DEFAULT_SET, AGENTS.md, labs/TASKS.md, labs/lanes/*, or
   src/data/godot_data.json.
-- Do NOT run the full test runner (scripts/godot_test_runner.sh) -- it is being
-  reworked to parallel.
+- Run only your targeted gates; the PARENT runs the ONE parallel runner
+  (scripts/godot_test_runner.sh) once at harvest.
 
 THE GATE (must stay green)
   export PATH=/workspace/.tools/godot:$PATH

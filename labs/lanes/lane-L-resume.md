@@ -36,7 +36,7 @@ offering .tres or report the wiring gap honestly.
 RULES: tabs in .gd, ASCII only, schema-export field order, filename == id,
 category prefix ids (wep_/arm_/acc_), NO phantom fields. Do NOT edit
 scripts/godot_test_runner.sh, AGENTS.md, labs/TASKS.md, labs/lanes/*,
-src/data/godot_data.json; do NOT run the full runner. Commit EARLY. Prefix
+src/data/godot_data.json; run only your targeted gates. Commit EARLY. Prefix
 `lane-L:`.
 
 GUARDRAILS (green at the end): test_data_naming_lint 30+/0; test_item_catalog

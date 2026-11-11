@@ -79,8 +79,8 @@ GUARDRAILS
 - Keep tabs in .gd, ASCII only.
 - Do NOT edit the runner DEFAULT_SET, AGENTS.md, labs/TASKS.md, labs/lanes/*, or
   src/data/godot_data.json.
-- Do NOT run the full test runner (scripts/godot_test_runner.sh) -- reworked to
-  parallel.
+- Run only your targeted gates; the PARENT runs the ONE parallel runner
+  (scripts/godot_test_runner.sh) once at harvest.
 
 DEFINITION OF DONE
 - A measured before/after table for every optimization (or an honest "no win,

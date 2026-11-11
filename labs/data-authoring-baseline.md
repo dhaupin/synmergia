@@ -304,8 +304,8 @@ families' identity + prefix law, the authored-words law (every item has a
 `display_name` and `description`), icon convention (`res://icons/...`),
 the purse law, the stack law, and the recipe bill.
 
-Do not run `scripts/godot_test_runner.sh`; it is being reworked to run in
-parallel.
+Run the ONE parallel runner for a full sweep: `sh scripts/godot_test_runner.sh`
+(add `-j N` for a job count). It is live and consolidated (see 2026-11-08).
 
 ---
 

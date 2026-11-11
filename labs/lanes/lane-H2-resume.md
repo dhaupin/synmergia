@@ -42,8 +42,8 @@ Priority order (highest expected win first -- but MEASURE, do not assume):
   4. Anything else the numbers point at.
 
 RULES (unchanged): tabs in .gd, ASCII only; do NOT edit the runner DEFAULT_SET,
-AGENTS.md, labs/TASKS.md, labs/lanes/*, src/data/godot_data.json; do NOT run the
-full runner. Do NOT change the drawn surface height or the walk law.
+AGENTS.md, labs/TASKS.md, labs/lanes/*, src/data/godot_data.json; run only your
+targeted gates. Do NOT change the drawn surface height or the walk law.
 
 DONE = at least ONE committed, measured win (or an honest "measured, no win, here
 is the evidence"), the ledger filled, guardrails green, and a final report with

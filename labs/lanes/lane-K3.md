@@ -52,8 +52,8 @@ THE TASK: make game/data phantom-clean, honestly.
    "no phantoms" gate.
 
 RULES: tabs in .gd, ASCII only; do NOT edit scripts/godot_test_runner.sh,
-AGENTS.md, labs/TASKS.md, labs/lanes/*, src/data/godot_data.json; do NOT run the
-full runner. Commit EARLY and OFTEN (a crash must not lose work); message prefix
+AGENTS.md, labs/TASKS.md, labs/lanes/*, src/data/godot_data.json; run only your
+targeted gates. Commit EARLY and OFTEN (a crash must not lose work); message prefix
 `lane-K3:`.
 
 DONE = game/data phantom-clean (or every remaining one justified in the doc),

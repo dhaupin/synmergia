@@ -78,8 +78,8 @@ HARD RULES
 - Do NOT edit any .gd code, any existing .tres, the runner DEFAULT_SET,
   AGENTS.md, labs/TASKS.md, labs/lanes/*, or src/data/godot_data.json (the
   parent owns the generated JSON -- do not run sync:data).
-- Do NOT run the full test runner (scripts/godot_test_runner.sh) -- it is
-  being reworked. The ONE gate you must run is the naming lint below.
+- Run only the naming lint below as your gate; the PARENT runs the ONE parallel
+  runner (scripts/godot_test_runner.sh) once at harvest.
 
 THE GATE (must stay green)
   export PATH=/workspace/.tools/godot:$PATH

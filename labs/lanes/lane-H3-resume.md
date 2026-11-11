@@ -44,7 +44,7 @@ all checks PASS; test_terrain_determinism byte-stable; probe_walk_mesh_gap PASS;
 probe_perf_budget still PASS.
 
 RULES: tabs in .gd, ASCII only; do NOT edit scripts/godot_test_runner.sh,
-AGENTS.md, labs/lanes/*, src/data/godot_data.json; do NOT run the full runner.
+AGENTS.md, labs/lanes/*, src/data/godot_data.json; run only your targeted gates.
 Do NOT change the walk law or any analytic field VALUE.
 
 DONE = the face-16 defect resolved (artifact closed with evidence, or real fix),

@@ -50,8 +50,8 @@ THE TASK
    probe_perf_budget still PASS (do not regress your -47%).
 
 RULES: tabs in .gd, ASCII only; do NOT edit scripts/godot_test_runner.sh,
-AGENTS.md, labs/TASKS.md, labs/lanes/*, src/data/godot_data.json; do NOT run the
-full runner. Do NOT change the walk law or any analytic field VALUE -- only the
+AGENTS.md, labs/TASKS.md, labs/lanes/*, src/data/godot_data.json; run only your
+targeted gates. Do NOT change the walk law or any analytic field VALUE -- only the
 mesh fill/transform. Commit EARLY and OFTEN; message prefix `lane-H3:`.
 
 DONE = the face-16 / lvl-6 corruption fixed (or an honest "root-caused, here is

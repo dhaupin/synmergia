@@ -58,7 +58,7 @@ RULES
 - tabs in .gd, ASCII only, schema-export field order, filename == id, category
   prefix ids (wep_/arm_/acc_), NO phantom fields.
 - Do NOT edit scripts/godot_test_runner.sh, AGENTS.md, labs/TASKS.md,
-  labs/lanes/*, src/data/godot_data.json; do NOT run the full runner.
+  labs/lanes/*, src/data/godot_data.json; run only your targeted gates.
 - Commit EARLY and OFTEN (a crash must not lose work); message prefix `lane-L:`.
 
 GUARDRAILS (must be green at the end)
