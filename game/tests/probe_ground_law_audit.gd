@@ -21,6 +21,7 @@ extends SceneTree
 const GLOBE_SCENE := "res://scenes/worlds/globe_world.tscn"
 
 var _okay := true
+var _globe: Node = null
 var _detached_skips: int = 0
 
 func _check(label: String, cond: bool) -> void:
@@ -31,6 +32,16 @@ func _check(label: String, cond: bool) -> void:
 		print("FAIL: " + label)
 
 func _quit() -> void:
+	# DRAIN BEFORE QUIT (the shutdown-fence law, 2026-11-06bb): a worker
+	# thread still deriving when the process quits tears down mid-derive
+	# (a destroyed-Thread / null-Time teardown crash) and can corrupt the
+	# exit code. Wait for the lane to empty (bounded) so the printed
+	# verdict and the process exit code agree.
+	var st = _globe.get("streamer") if _globe != null else null
+	if st != null:
+		var deadline: int = Time.get_ticks_msec() + 30000
+		while st.pending_derive() > 0 and Time.get_ticks_msec() < deadline:
+			await process_frame
 	print("probe_ground_law_audit: %s" % ("ALL PASS" if _okay else "FAILS"))
 	print("DETACHED-SKIPS: %d (out-of-tree patch reads skipped; these were the old corruption reads)" % _detached_skips)
 	quit(0 if _okay else 1)
@@ -261,6 +272,7 @@ func _initialize() -> void:
 	await process_frame
 	var packed: PackedScene = load(GLOBE_SCENE)
 	var globe = packed.instantiate()
+	_globe = globe
 	root.add_child(globe)
 	for i in range(6):
 		await process_frame
@@ -320,12 +332,17 @@ func _initialize() -> void:
 		var lvl: int = int(lvl_pass[0])
 		var pass_tag: String = str(lvl_pass[1])
 		var edge_m: float = 1.0515 * R / pow(2.0, lvl)
-		# THE SPAWN IS ON A FIVE-FACE ICOSAHEDRAL VERTEX (SPAWN_CENTER=(1,0,0)
-		# is a canonical icosa vertex -- the MISSDEBUG receipt): no single
-		# tile contains the EXACT vertex direction, and the continue-on-fail
-		# anchor skip must never eat the legs. So the anchor stands ~100 m
-		# off the vertex and the face comes from the STREAMER'S OWN mapper
-		# (st.current_face after update) -- the walk law's own map.
+		# THE SPAWN IS ON THE 8-10 ICOSA EDGE MIDPOINT (lane-H3 correction):
+		# the ORIGINAL reader called this "a five-face icosahedral vertex",
+		# but the spawn direction (lat 0 / lon 0 = (1,0,0)) is the midpoint
+		# of the edge between icosa vertices 8 and 10, which is a vertex of
+		# exactly TWO faces -- 16 and 18 (they are neighbors and share that
+		# edge). Both mappers return 16 there (an exact dot tie, broken to
+		# the lower index by the argmax's strict `>`), so no face is "wrong".
+		# The near-vertex anchor stands ~100 m off the exact midpoint anyway
+		# (the exact direction is pinned by its own EXACT-VERTEX check below);
+		# the face comes from the STREAMER'S OWN mapper (st.current_face
+		# after update) -- the walk law's own map.
 		var zero: Vector3 = Sph.spherical_to_cartesian(
 			float(scr.SPAWN_LAT_DEG), float(scr.SPAWN_LON_DEG) + 0.286, 0.0, 1.0)
 		st.update(zero * R)
@@ -346,6 +363,34 @@ func _initialize() -> void:
 			continue
 		print("ANCHOR %s (edge %.1f m, face %d): walk %.2f mesh-read %.2f mesh-law %+.2f"
 			% [pass_tag, edge_m, plaza_face, walk0, mesh0, mesh0 - walk0])
+		# THE EXACT-VERTEX ANCHOR (lane-H3): the near-vertex anchor
+		# above stands 0.286 deg off the spawn because the ORIGINAL
+		# reader could not contain the exact direction. That premise
+		# is stale -- the spawn is the 8-10 icosa EDGE midpoint, a
+		# vertex of BOTH faces 16 and 18 (the geodesic-midpoint law
+		# makes it a bit-exact vertex on each), so a land tile DOES
+		# contain the exact direction. Read it: this is the tightest
+		# possible draw-vs-law pin (a hole here is the corruption the
+		# defect named; a match retires the "no tile contains the
+		# vertex" note for good).
+		var exact: Vector3 = Sph.spherical_to_cartesian(
+			float(scr.SPAWN_LAT_DEG), float(scr.SPAWN_LON_DEG), 0.0, 1.0).normalized()
+		st.update(exact * R)
+		await process_frame
+		var exact_face: int = st.current_face
+		await _ensure_patch(st, exact_face, lvl)
+		var exact_mesh: float = _mesh_at(st, F, tile_r, exact, edge_m, Gen, seed_b)
+		if is_nan(exact_mesh):
+			if await _ensure_patch(st, exact_face, lvl):
+				exact_mesh = _mesh_at(st, F, tile_r, exact, edge_m, Gen, seed_b)
+		var exact_walk: float = st.walk_surface_h(exact)
+		_check("EXACT-VERTEX [%s]: spawn direction is contained in a land tile" % pass_tag,
+			not is_nan(exact_mesh))
+		if not is_nan(exact_mesh):
+			_check("EXACT-VERTEX [%s]: draw-vs-walk within the 6 m walk bound (delta %+.1f)"
+				% [pass_tag, absf(exact_mesh - exact_walk)], absf(exact_mesh - exact_walk) < 6.0)
+			print("EXACT-VERTEX %s (face %d): walk %.2f mesh-read %.2f mesh-law %+.2f"
+				% [pass_tag, exact_face, exact_walk, exact_mesh, exact_mesh - exact_walk])
 		for leg in legs:
 			var d: Vector3 = Sph.spherical_to_cartesian(
 				float(scr.SPAWN_LAT_DEG) + rad_to_deg(float(leg.lat)),
@@ -356,7 +401,7 @@ func _initialize() -> void:
 				frames += 1
 				if frames > 5000:
 					print("FAIL: watchdog frame cap")
-					_quit()
+					await _quit()
 					return
 			var face: int = st.current_face
 			await _ensure_patch(st, face, lvl)
@@ -379,4 +424,4 @@ func _initialize() -> void:
 
 	_check("live set capped (<= 6 patches after the audit walk: %d)" % (st._patches as Dictionary).size(),
 		(st._patches as Dictionary).size() <= 6)
-	_quit()
+	await _quit()
