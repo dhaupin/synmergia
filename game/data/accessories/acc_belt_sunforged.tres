@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_belt_sunforged"
+display_name = "Sunforged War Girdle"
+description = "A girdle of sunforged plate and hide, cut for the one who carries the whole column's kit."
+icon_path = "res://icons/items/belt_reclaimer.png"
+item_category = 2
+rarity = 5
+equip_slot = 13
+accessory_type = 5
+stack_size = 1
+sell_price = 7440
+buy_price = 24800
+item_level = 48
+required_level = 48
+stats = {
+"strength": 7,
+"vitality": 7
+}

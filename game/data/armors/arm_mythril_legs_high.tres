@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_mythril_legs_high"
+display_name = "Mythril Legguards"
+description = "Mythril plate gear for the deep seam. It holds a shape through weather, blade, and the long walk back."
+icon_path = "res://icons/items/armor_starmetal_bulwark.png"
+item_category = 1
+rarity = 5
+equip_slot = 3
+armor_type = 4
+stack_size = 1
+sell_price = 2640
+buy_price = 8800
+item_level = 28
+required_level = 28
+stats = {
+"vitality": 10
+}
+armor_value = 60

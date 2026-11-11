@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_skyforged_legs_high"
+display_name = "Skyforged Legguards"
+description = "Skyforged cloth gear for the outer air. It holds a shape through weather, blade, and the long walk back."
+icon_path = "res://icons/items/armor_golden_scale.png"
+item_category = 1
+rarity = 5
+equip_slot = 3
+armor_type = 1
+stack_size = 1
+sell_price = 11670
+buy_price = 38900
+item_level = 56
+required_level = 56
+stats = {
+"vitality": 15
+}
+armor_value = 66

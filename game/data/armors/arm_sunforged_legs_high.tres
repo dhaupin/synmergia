@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_sunforged_legs_high"
+display_name = "Sunforged Legguards"
+description = "Sunforged cloth gear for the long ascent. It holds a shape through weather, blade, and the long walk back."
+icon_path = "res://icons/items/armor_golden_scale.png"
+item_category = 1
+rarity = 5
+equip_slot = 3
+armor_type = 1
+stack_size = 1
+sell_price = 6660
+buy_price = 22200
+item_level = 46
+required_level = 46
+stats = {
+"vitality": 13
+}
+armor_value = 56

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_temporalist_legs"
+display_name = "Temporalist's Continuum Robe"
+description = "A robe cut from a single unbroken thread, hem to collar. It does not unravel, and neither does its wearer's nerve."
+icon_path = "res://icons/items/armor_golden_scale.png"
+item_category = 1
+rarity = 3
+equip_slot = 3
+armor_type = 1
+stack_size = 1
+sell_price = 228
+buy_price = 760
+item_level = 10
+required_level = 10
+required_class = "human_temporalist"
+stats = {
+"vitality": 6
+}
+armor_value = 12

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_shield_iron_wall"
+display_name = "Iron Wall Shield"
+description = "A round iron-bound shield over a planked core. Plain work, and plain work is what survives a border winter."
+icon_path = "res://icons/items/shield_haven_wall.png"
+item_category = 1
+rarity = 2
+equip_slot = 6
+weapon_type = 10
+armor_type = 3
+stack_size = 1
+sell_price = 96
+buy_price = 320
+item_level = 8
+required_level = 8
+stats = {
+"vitality": 4
+}
+armor_value = 32

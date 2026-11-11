@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_necklace_titanbone"
+display_name = "Titanbone Torc"
+description = "A torc of the same titanbone, worn where the pulse shows. It does not quiet the heart; it steadies it."
+icon_path = "res://icons/items/necklace_paleshard_ward.png"
+item_category = 2
+rarity = 4
+equip_slot = 11
+accessory_type = 2
+stack_size = 1
+sell_price = 3210
+buy_price = 10700
+item_level = 32
+required_level = 32
+stats = {
+"vitality": 6,
+"strength": 4
+}

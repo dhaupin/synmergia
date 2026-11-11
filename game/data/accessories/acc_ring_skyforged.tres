@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_ring_skyforged"
+display_name = "Skyforged Signet"
+description = "A signet cut from a fallen sky-crate's band. It carries the sky's own weight and none of its hurry."
+icon_path = "res://icons/items/ring_starbinder.png"
+item_category = 2
+rarity = 5
+equip_slot = 9
+accessory_type = 1
+stack_size = 1
+sell_price = 8310
+buy_price = 27700
+item_level = 50
+required_level = 50
+stats = {
+"strength": 10,
+"vitality": 8
+}

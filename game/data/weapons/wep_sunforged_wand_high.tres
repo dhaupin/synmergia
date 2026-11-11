@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_sunforged_wand_high"
+display_name = "Sunforged Wand"
+description = "A sunforged wand worked for the long ascent. Cut at the sunforged rung and kept honest by use."
+icon_path = "res://icons/items/staff_walnut.png"
+item_category = 0
+rarity = 5
+equip_slot = 8
+weapon_type = 8
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 6270
+buy_price = 20900
+item_level = 46
+required_level = 46
+stats = {
+"agility": 7
+}
+weapon_damage_min = 48
+weapon_damage_max = 70
+attack_speed = 1.3

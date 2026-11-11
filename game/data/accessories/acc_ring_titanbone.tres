@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_ring_titanbone"
+display_name = "Titanbone Ring"
+description = "A ring of titanbone bound in silver, heavy enough to be felt and light enough to forget."
+icon_path = "res://icons/items/ring_starbinder.png"
+item_category = 2
+rarity = 4
+equip_slot = 9
+accessory_type = 1
+stack_size = 1
+sell_price = 2910
+buy_price = 9700
+item_level = 30
+required_level = 30
+stats = {
+"strength": 6,
+"vitality": 4
+}

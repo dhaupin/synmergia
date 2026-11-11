@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_attacker_chest"
+display_name = "Voidraze Harness"
+description = "Segmented akkan plate that swallows the glow of a struck rune. The void it rides never lets go of the hand."
+icon_path = "res://icons/items/armor_iron_mail.png"
+item_category = 1
+rarity = 3
+equip_slot = 2
+armor_type = 3
+stack_size = 1
+sell_price = 228
+buy_price = 760
+item_level = 10
+required_level = 10
+required_class = "akkan_attacker"
+stats = {
+"vitality": 6
+}
+armor_value = 20

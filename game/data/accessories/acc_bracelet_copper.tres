@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_bracelet_copper"
+display_name = "Copper Bracelet"
+description = "A hammered copper band worn at the wrist. It buys no luck; it only reminds the arm to keep working."
+icon_path = "res://icons/items/ring_first_light.png"
+item_category = 2
+rarity = 1
+equip_slot = 9
+accessory_type = 3
+stack_size = 1
+sell_price = 12
+buy_price = 50
+item_level = 3
+required_level = 2
+stats = {
+"agility": 2
+}

@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_starmetal_spear_high"
+display_name = "Starmetal War Spear"
+description = "A starmetal war spear worked for the windward shelf. Cut at the starmetal rung and kept honest by use."
+icon_path = "res://icons/items/spear_iron.png"
+item_category = 0
+rarity = 5
+equip_slot = 8
+weapon_type = 9
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 3900
+buy_price = 13000
+item_level = 38
+required_level = 38
+stats = {
+"strength": 6
+}
+weapon_damage_min = 44
+weapon_damage_max = 66
+attack_speed = 1.0

@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_skyforged_fang_high"
+display_name = "Skyforged Shortblade"
+description = "A skyforged shortblade worked for the skyward stair. Cut at the skyforged rung and kept honest by use."
+icon_path = "res://icons/items/dagger_iron.png"
+item_category = 0
+rarity = 5
+equip_slot = 8
+weapon_type = 4
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 9060
+buy_price = 30200
+item_level = 52
+required_level = 52
+stats = {
+"agility": 8
+}
+weapon_damage_min = 53
+weapon_damage_max = 79
+attack_speed = 1.6

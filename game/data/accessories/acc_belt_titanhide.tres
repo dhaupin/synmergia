@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_belt_titanhide"
+display_name = "Titanhide War Girdle"
+description = "A girdle of hide and banded plate, cut for the one who carries the whole column's kit."
+icon_path = "res://icons/items/belt_reclaimer.png"
+item_category = 2
+rarity = 4
+equip_slot = 13
+accessory_type = 5
+stack_size = 1
+sell_price = 4350
+buy_price = 14500
+item_level = 38
+required_level = 38
+stats = {
+"strength": 6,
+"vitality": 5
+}

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_bracelet_high"
+display_name = "Highcountry Bracelet"
+description = "A banded bracelet of pale metal and braided cord, cut for the wrist that steadies the blade."
+icon_path = "res://icons/items/ring_first_light.png"
+item_category = 2
+rarity = 4
+equip_slot = 9
+accessory_type = 3
+stack_size = 1
+sell_price = 2400
+buy_price = 8000
+item_level = 26
+required_level = 26
+stats = {
+"strength": 5,
+"vitality": 4
+}

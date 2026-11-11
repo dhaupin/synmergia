@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_mythril_spear_high"
+display_name = "Mythril War Spear"
+description = "A mythril war spear worked for the deep seam. Cut at the mythril rung and kept honest by use."
+icon_path = "res://icons/items/spear_iron.png"
+item_category = 0
+rarity = 5
+equip_slot = 8
+weapon_type = 9
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 2280
+buy_price = 7600
+item_level = 28
+required_level = 28
+stats = {
+"strength": 4
+}
+weapon_damage_min = 35
+weapon_damage_max = 54
+attack_speed = 1.0

@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_rune_staff"
+display_name = "Runesmith's Inscribed Staff"
+description = "Rowan-and-iron staff carved with a marching column of sigils. Each one was earned in a skirmish and remembers the skirmish."
+icon_path = "res://icons/items/staff_walnut.png"
+item_category = 0
+rarity = 3
+equip_slot = 8
+weapon_type = 7
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 210
+buy_price = 700
+item_level = 10
+required_level = 10
+required_class = "akkan_rune"
+stats = {
+"intelligence": 7
+}
+weapon_damage_min = 17
+weapon_damage_max = 27
+attack_speed = 1.1

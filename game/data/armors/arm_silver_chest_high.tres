@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_silver_chest_high"
+display_name = "Silver Chestguard"
+description = "Silver mail gear for the low marches. It holds a shape through weather, blade, and the long walk back."
+icon_path = "res://icons/items/armor_iron_mail.png"
+item_category = 1
+rarity = 4
+equip_slot = 2
+armor_type = 3
+stack_size = 1
+sell_price = 1860
+buy_price = 6200
+item_level = 20
+required_level = 20
+stats = {
+"vitality": 9
+}
+armor_value = 44

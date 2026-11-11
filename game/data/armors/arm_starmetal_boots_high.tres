@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_starmetal_boots_high"
+display_name = "Starmetal Boots"
+description = "Starmetal leather gear for the high crags. It holds a shape through weather, blade, and the long walk back."
+icon_path = "res://icons/items/armor_leather_chest.png"
+item_category = 1
+rarity = 5
+equip_slot = 4
+armor_type = 2
+stack_size = 1
+sell_price = 3540
+buy_price = 11800
+item_level = 34
+required_level = 34
+stats = {
+"vitality": 11
+}
+armor_value = 50

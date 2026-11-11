@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_conduit_chest"
+display_name = "Conduit Relay Vestment"
+description = "Light plates woven with conduit filigree, built to pass a charge straight through without spilling a spark."
+icon_path = "res://icons/items/armor_golden_scale.png"
+item_category = 1
+rarity = 3
+equip_slot = 2
+armor_type = 1
+stack_size = 1
+sell_price = 228
+buy_price = 760
+item_level = 10
+required_level = 10
+required_class = "synthetic_conduit"
+stats = {
+"vitality": 6
+}
+armor_value = 12
