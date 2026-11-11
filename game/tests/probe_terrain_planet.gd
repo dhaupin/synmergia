@@ -248,6 +248,40 @@ func _run() -> void:
 		ok = _check("lod: face %d ground law is level-independent" % f, \
 			absf(meshes_h - law_h) < 0.01) and ok
 
+	# THE MESH-LAW SWEEP (lane-H3): every streamed face's DRAWN main-surface
+	# vertices must ride the analytic law at their own direction -- the
+	# planet-wide form of the spawn-face vertex pin above, and the receipt
+	# for the face-16 vertex-mesh defect. A corruption that pushed a face's
+	# verts off-law (the old ~2791 m crumple) lights up HERE on that face,
+	# not just at the spawn; a clean sweep proves the drawn ground is the
+	# walk ground everywhere the player can stand.
+	var sweep_faces := 0
+	var sweep_worst := 0.0
+	var sweep_worst_face := -1
+	var sweep_bad := 0
+	for f in _globe.streamer.active_faces():
+		var mi_s: MeshInstance3D = _globe.streamer._patches.get(f)
+		if mi_s == null or mi_s.mesh == null or mi_s.mesh.get_surface_count() < 1:
+			continue
+		var s_arrays: Array = (mi_s.mesh as ArrayMesh).surface_get_arrays(0)
+		var s_verts: PackedVector3Array = s_arrays[ArrayMesh.ARRAY_VERTEX]
+		var s_xf: Transform3D = mi_s.global_transform
+		var s_step: int = maxi(1, s_verts.size() / 512)
+		for vi in range(0, s_verts.size(), s_step):
+			var wv: Vector3 = s_xf * s_verts[vi]
+			var vdir: Vector3 = (wv - _globe.planet_center).normalized()
+			var drawn: float = wv.distance_to(_globe.planet_center) - (R20KM + 0.52)
+			var lawv: float = Gen.terrain_height(vdir, seed_b)
+			var dev: float = absf(drawn - lawv)
+			if dev > sweep_worst:
+				sweep_worst = dev
+				sweep_worst_face = f
+			if dev > 2.0:
+				sweep_bad += 1
+		sweep_faces += 1
+	ok = _check("mesh: every active face's verts ride the law (worst %.3f m on face %d, %d bad, %d faces)" % [sweep_worst, sweep_worst_face, sweep_bad, sweep_faces], \
+		sweep_faces > 0 and sweep_bad == 0) and ok
+
 	# The provider really feeds the terrain law: sample it at the body.
 	var d_body: Vector3 = (player.global_position - _globe.planet_center).normalized()
 	var prov: float = player.snap_height_provider.call(player.global_position)
