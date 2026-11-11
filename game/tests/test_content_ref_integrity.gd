@@ -7,7 +7,9 @@
 ## runtime-expanded by GroundLootService, so they validate as skill+tier.
 ##
 ## The npc-offering half guards catalog_items: a vendor entry whose item_id or
-## currency_id names nothing is a shop row that can never be bought.
+## currency_id names nothing is a shop row that can never be bought. The enemy
+## half guards loot_table_id / secondary_loot_table_id: a typo'd table id makes
+## an enemy silently drop nothing.
 extends SceneTree
 
 const TIERS: Array = ["common", "rare", "epic", "legendary", "mythic"]
@@ -110,6 +112,27 @@ func _run() -> void:
 	_check("every offering catalog_items currency_id resolves", off_bad_curr.is_empty())
 	if not off_bad_curr.is_empty():
 		print("    phantom offering currencies: " + str(off_bad_curr))
+
+	var e_bad: Array = []
+	var edir := DirAccess.open("res://data/enemies")
+	if edir != null:
+		edir.list_dir_begin()
+		var ef := edir.get_next()
+		while ef != "":
+			if ef.ends_with(".tres"):
+				var e = load("res://data/enemies/" + ef)
+				if e != null:
+					for key in ["loot_table_id", "secondary_loot_table_id"]:
+						var tid: String = str(e.get(key))
+						if not tid.is_empty():
+							# The resolver tolerates a bare id or a full res:// path.
+							var tpath: String = tid if tid.begins_with("res://") else "res://data/loot_tables/" + tid + ".tres"
+							if not FileAccess.file_exists(tpath):
+								e_bad.append("%s: %s=%s" % [ef, key, tid])
+				ef = edir.get_next()
+	_check("every enemy loot_table_id resolves", e_bad.is_empty())
+	if not e_bad.is_empty():
+		print("    phantom enemy loot refs: " + str(e_bad))
 
 	print("--- CONTENT REF INTEGRITY: %d passed, %d failed ---" % [_checks - _fails, _fails])
 	quit(0 if _fails == 0 else 1)
