@@ -152,9 +152,9 @@ function GameFrame() {
       </div>
 
       <p className="mt-3 text-xs text-ink-soft text-center">
-        Desktop browsers load the WASM engine (~46 MB, cached after the first visit).
-        Mobile Safari/Chromium supported; the game runs threaded terrain workers
-        when cross-origin isolation is active on this origin.
+        Best on desktop — the game is about 46 MB and caches after your first visit,
+        so the second load is instant. Phones and tablets work too. If the world will
+        not load, give it a moment or hit the restart button above.
       </p>
     </div>
   );

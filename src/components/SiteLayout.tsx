@@ -46,6 +46,7 @@ const NAV = [
   { to: '/codex', label: 'Codex' },
   { to: '/lore', label: 'Lore' },
   { to: '/rules', label: 'Rules' },
+  { to: '/opensource', label: 'Open Source' },
 ];
 
 export default function SiteLayout() {
@@ -142,6 +143,7 @@ export default function SiteLayout() {
           <div className="flex items-center gap-4">
             <Link to="/lore" className="hover:text-accent">Lore</Link>
             <Link to="/rules" className="hover:text-accent">Rules</Link>
+            <Link to="/opensource" className="hover:text-accent">Open Source</Link>
             <Link to="/privacy" className="hover:text-accent">Privacy</Link>
             <Link to="/terms" className="hover:text-accent">Terms</Link>
             <a

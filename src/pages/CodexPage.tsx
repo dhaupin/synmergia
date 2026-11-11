@@ -84,9 +84,10 @@ export default function CodexPage() {
         <h1 className="font-display text-3xl sm:text-4xl mb-3">Everything the world is made of</h1>
         <p className="text-sm text-ink-soft max-w-2xl leading-relaxed">
           Classes, skills, species, enemies, items, recipes, mounts, the sky, and the hordes
-          — read straight from the same data files the server loads.{' '}
+          — every entry with the real numbers behind it.{' '}
           <span className="text-ink">{CODEX_TOTAL.toLocaleString()} entries</span> across{' '}
-          {categories.length} categories. Nothing here is aspirational; it is what ships.
+          {categories.length} categories. Nothing here is aspirational; it is what is
+          actually in the world.
         </p>
       </header>
 

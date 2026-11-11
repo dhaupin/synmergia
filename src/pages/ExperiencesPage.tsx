@@ -47,28 +47,28 @@ const SECTIONS: Section[] = [
   },
   {
     kicker: 'Combat',
-    title: 'Skills with real costs, not fire-and-forget',
+    title: 'Skills with real weight, not fire-and-forget',
     body: [
-      'Every ability has a real mana cost, a real cooldown, and a real cast time. Some are instant, some channel, some land on the ground where you aim them. What the tooltip says is what the server does.',
+      'Every ability has a real mana cost, a real cooldown, and a real cast time. Some are instant, some channel, some land on the ground where you aim them. What the tooltip promises is what actually happens when you press it.',
       'Fights read clearly: you see the hit, the miss, the crit, and the kill in the combat log, and a threat meter that actually matters when you are standing next to something that hits back.',
     ],
     aside: `${counts.skills} skills · ${counts.enemies} enemies · ${counts.world_bosses} world bosses`,
   },
   {
     kicker: 'Exploration',
-    title: 'One sphere, streamed face by face',
+    title: 'One endless horizon, no loading screens',
     body: [
-      'The world is a single planet, not a set of stitched maps. Terrain streams in around you as you walk, hills and rivers and snowlines all derived from the same world seed — so the ground agrees with itself wherever you stand.',
-      'Discover waypoints and the map becomes a fast-travel network. Click a marker and you are moving; the horizon you see is the horizon you can reach.',
+      'The world is a single planet, not a set of stitched-together maps. The land rolls out around you as you walk — hills, rivers, and snowlines that all agree with each other, so the ground under your feet always makes sense.',
+      'Discover waypoints and the map becomes a fast-travel network. Click a marker and you are moving; the horizon you can see is the horizon you can reach.',
     ],
-    aside: 'Deterministic terrain from one seed',
+    aside: 'A whole world, with no edges',
   },
   {
     kicker: 'The sky',
     title: 'A sky that means something',
     body: [
-      'Above everything runs the Concord: a communal sky clock the whole planet reads together. Its signs turn on a shared schedule, and an ancient door re-seals at every dawn until someone solves the day.',
-      'Each solved day writes a chapter into the Chronicle — the world keeps a real record of what its players figured out. There is a daily beat to the sky, and it is the same beat for everyone on the shard.',
+      'Above everything runs the Concord: a shared sky clock the whole world reads together. Its signs turn on a common schedule, and an ancient door re-seals at every dawn until someone solves the day.',
+      'Each solved day writes a chapter into the Chronicle — the world keeps a real record of what its players figured out. There is a daily beat to the sky, and everyone in the world feels it at once.',
     ],
     aside: `${counts.signs} sky signs · ${counts.acts} chronicle acts · ${counts.mysteries} mysteries`,
   },
@@ -86,7 +86,7 @@ const SECTIONS: Section[] = [
     title: 'Weather rolls in, and so do the hordes',
     body: [
       'Weather events move across the world on their own clock — aurora, storms, and stranger skies. Some of them stir things up: a horde event scales to the players who answer it, wave after wave, with a real payout at the end.',
-      'World bosses keep their own schedule and announce themselves. When one rises, the whole shard knows.',
+      'World bosses keep their own schedule and announce themselves. When one rises, the whole world knows.',
     ],
     aside: `${counts.weather_events} weather events · ${counts.hordes} hordes`,
   },
@@ -102,8 +102,8 @@ const SECTIONS: Section[] = [
     kicker: 'Money and making',
     title: 'An economy you can work in',
     body: [
-      'Coin buys gear, mounts, and passage. Crafting turns gathered resources into potions, gear, and the odd impossible accessory — each recipe has real inputs and, sometimes, a real chance to fail.',
-      'Beyond coin there are the rarer currencies: standing with a faction, favor at a harbor, and the Concord Sigil that only the payment seam ever mints.',
+      'Coin buys gear, mounts, and passage. Crafting turns gathered resources into potions, gear, and the odd impossible accessory — each recipe has real ingredients and, sometimes, a real chance to fail.',
+      'Beyond coin there are the rarer currencies: standing with a faction, favor at a harbor, and the Concord Sigils you can only ever earn.',
     ],
     aside: `${counts.recipes} recipes · ${counts.resources} resources · ${counts.currencies} currencies`,
   },
@@ -145,9 +145,9 @@ export default function ExperiencesPage() {
           A world you can learn the rules of
         </h1>
         <p className="text-base text-ink-soft leading-relaxed">
-          Synmergia is free, open source, and plays in your browser. It is also a
-          real place with real rules — here is what meets you when you step onto
-          the planet, in the order you will meet it.
+          Synmergia is free to play, runs in your browser, and is a real place with
+          real rules — here is what meets you when you step onto the planet, in the
+          order you will meet it.
         </p>
       </header>
 
@@ -170,20 +170,26 @@ export default function ExperiencesPage() {
         ))}
       </div>
 
-      {/* Honest scope: what it is not (yet). The build-in-the-open voice. */}
+      {/* Honest scope: what it is not (yet). Kept player-facing; the
+          build/technical home is the Open Source page. */}
       <section className="mt-12 border-t border-line pt-8">
         <p className="text-[11px] uppercase tracking-[0.24em] text-accent/80 mb-2">
           Honest scope
         </p>
         <h2 className="font-display text-xl sm:text-2xl mb-3">What it is not, yet</h2>
         <p className="text-sm text-ink-soft leading-relaxed mb-3">
-          Synmergia is in active development, built in the open. It is a working
-          world with real systems, and it is not finished. Some art is placeholder,
-          some systems are early, and the roadmap is public.
+          Synmergia is a real, working world — and it is still growing. Some art is
+          still placeholder, some systems are early, and there is more to come. We
+          would rather tell you that up front than pretend otherwise.
         </p>
         <p className="text-sm text-ink-soft leading-relaxed">
-          That is the point: what you are told should match what happens, and the
-          way to trust that is to be able to read the source.
+          It is free to play and it is being built in the open, which means you can
+          watch it grow and even help shape it. If that sounds like your kind of
+          project,{' '}
+          <Link to="/opensource" className="text-accent hover:underline">
+            come build it with us
+          </Link>
+          .
         </p>
       </section>
 

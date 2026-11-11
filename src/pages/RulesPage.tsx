@@ -76,7 +76,7 @@ export default function RulesPage() {
           <h2 className="font-display text-xl mb-2">Enforcement</h2>
           <p>
             When a rule is broken, the moderation tools can mute you, kick you
-            from the shard, or ban you. A ban may be temporary or effectively
+            out of the game, or ban you. A ban may be temporary or effectively
             permanent. Serious or repeated violations — cheating, real-world
             threats, or attacks on the service — may be banned permanently and
             without warning.

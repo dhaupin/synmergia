@@ -242,7 +242,7 @@ export function buildCodex(): CodexCategory[] {
   categories.push({
     key: 'skills',
     label: 'Skills',
-    blurb: 'Every ability the server ships, with its real cost, cooldown, and effect.',
+    blurb: 'Every ability in the world, with its real cost, cooldown, and effect.',
     entries: mapCategory('skills', (id, v) => {
       const effects = asArray(v.effects)
         .map((e: Raw) => {
@@ -453,7 +453,7 @@ export function buildCodex(): CodexCategory[] {
   categories.push({
     key: 'world_bosses',
     label: 'World Bosses',
-    blurb: 'The scheduled threats that gather the whole shard.',
+    blurb: 'The scheduled threats that gather the whole world.',
     entries: mapCategory('world_bosses', (id, v) => {
       const facts = [
         { label: 'Zone', value: prettyId(v.zone_id) },

@@ -57,6 +57,16 @@ export default {
       },
     },
     {
+      path: '/opensource',
+      priority: '0.7',
+      changefreq: 'monthly',
+      meta: {
+        title: 'Open Source | Synmergia',
+        description:
+          'Synmergia is free, MIT-licensed, and built in the open. Why we opened the source, who we are looking for, and how to start contributing to the engine, the art, the world, and the tests.',
+      },
+    },
+    {
       path: '/play',
       priority: '0.9',
       changefreq: 'weekly',

@@ -31,23 +31,23 @@ const CODEX_HEADLINES = ['classes', 'skills', 'enemies', 'recipes', 'mounts']
 const PILLARS = [
   {
     glyph: '◍',
-    title: 'One real planet',
-    body: 'A sphere 20 km in radius, not a flat map with a horizon painted on. Terrain streams face by face, rivers find the strait, and the snowline caps the peaks because the natural law put it there.',
+    title: 'A whole planet, not a painted backdrop',
+    body: 'Twenty kilometres of sphere in every direction — real hills, real rivers, real snowlines. No invisible walls, no stitched-together maps, no horizon that is just a picture. Walk far enough in any direction and the ground is still there, agreeing with itself.',
   },
   {
     glyph: '◧',
     title: 'A world that keeps time',
-    body: 'Day and night, a moon, tides, and the Concord sky clock all run on the same planetary clock. The sky is not scenery — the constellations are a calendar, and the calendar means something.',
+    body: 'Day and night, a moon, tides, and the Concord sky all turn on one clock. The constellations are a calendar, and the calendar means something — read it right and you can solve the day.',
   },
   {
     glyph: '⬡',
-    title: 'Systems, not set dressing',
-    body: 'Villages place real NPCs at real seats. Ferries run a closed-form schedule. Hordes march on a timer. Weather events open windows the whole shard answers. It is all data-driven.',
+    title: 'A living world, not set dressing',
+    body: 'Villages have real people at real seats. Ferries leave on a schedule you can miss. Hordes march on a timer. Storms roll in and open windows everyone races for. The world keeps happening whether or not you are watching.',
   },
   {
     glyph: '⇄',
-    title: 'Open, and honest about it',
-    body: 'MIT-licensed, built in the open. What players are told matches what happens — the terrain is deterministic from the world seed, and every claim on this page traces to a file in the repo.',
+    title: 'Honest to the last detail',
+    body: 'What you are told is what happens. If a thing can be done, it can be done; if a promise is made, it is kept in the world itself. Nothing on this page is a number we made up to look bigger.',
   },
 ];
 
@@ -65,33 +65,33 @@ const WORLD_FACTS = [
 const SYSTEMS = [
   {
     glyph: '◈',
-    title: 'Spherical terrain',
-    body: 'The planet is the map. Heights, rivers, and the strait come from a deterministic seed, so the same world boots the same way every time — and a new face loads as you walk onto it.',
+    title: 'Explore a world with no edges',
+    body: 'The planet is the map. Climb a ridge and the next valley is already real, waiting to be walked into — no loading screen, no wall, no "you may not go here." Everything you can see, you can reach.',
   },
   {
     glyph: '✦',
-    title: 'The Concord sky',
-    body: 'A communal sky clock: constellations rise on schedule, the moon runs its phase, and the Ancient Door re-seals at dawn. Watch the sky, solve the day, and the Chronicle records a chapter.',
+    title: 'Read the sky, solve the day',
+    body: 'A shared sky clock turns above the whole world: constellations rise on schedule, the moon runs its phases, and the Ancient Door re-seals every dawn until someone cracks the day. Watch the sky, work it out, and the Chronicle writes your chapter into the world\'s record.',
   },
   {
     glyph: '⚔',
-    title: 'Combat with real math',
-    body: 'Action combat resolved on the server: skills, auras, aggro, hitboxes, and damage all speak the same numbers. Level curve to 60, with a band past it that breathes instead of exploding.',
+    title: 'Combat you can feel',
+    body: 'Fight with skills that have real weight — real costs, real timings, real openings. Every blow, miss, and crit reads clearly, and threat matters when you are standing toe-to-toe with something that hits back. Level to 60, then keep going.',
   },
   {
     glyph: '⚖',
-    title: 'A working economy',
-    body: 'Vendors, a blacksmith, a vault, a ferry, and per-entry currencies. One purse holds it all — gold, Junker Scrip, Concord Sigils — and every spend is a real debit with an honest refusal when the purse is short.',
+    title: 'An economy worth working',
+    body: 'Sell to vendors, forge at the blacksmith, stash in the vault, catch the ferry. Gather, craft, and trade across gold, Junker Scrip, and the rare Concord Sigils — one purse, real prices, and an honest "you cannot afford that" when you cannot.',
   },
   {
     glyph: '☍',
-    title: 'Weather and hordes',
-    body: 'Weather events open windows off a live geomagnetic feed; five horde configs march on a timer and stir waves when a window opens. The world does things whether or not you are watching.',
+    title: 'A wild world with weather',
+    body: 'Storms, auroras, and stranger skies roll across the planet on their own clock — and some of them stir things up. Hordes rise in waves that scale to everyone who answers the call, with a real payout at the end for the ones still standing.',
   },
   {
     glyph: '⌁',
-    title: 'Browser-first, no install',
-    body: 'The web client is the primary client: Godot 4.7 compiled to WebAssembly with threaded terrain workers. Open a tab and you are on the planet — no download, no launcher.',
+    title: 'Play in a browser tab',
+    body: 'No download, no launcher, no install. Open the page and you are on the planet in seconds. Free to play, and it runs on the machine you already have.',
   },
 ];
 
@@ -107,7 +107,7 @@ const WORLDS = [
     glyph: '☾',
     name: 'the pale stone',
     role: 'the moon',
-    body: 'A smaller body on a closed-form orbit. It rises and sets on the same clock the tides run on — the world\u2019s sky and its water agree.',
+    body: 'A smaller body on a steady orbit. It rises and sets on the same clock the tides run on — the world\u2019s sky and its water agree.',
   },
   {
     glyph: '◆',
@@ -138,10 +138,9 @@ export default function LanderPage() {
             className="mx-auto w-[min(90vw,420px)] h-auto mb-6 drop-shadow-[0_0_30px_rgba(232,182,76,0.15)]"
           />
           <p className="mt-2 max-w-2xl mx-auto text-ink-soft text-base sm:text-lg leading-relaxed">
-            A free and open source MMORPG on a hand-built planet: procedural terrain
-            streamed face by face, villages that place real people at real seats,
-            ferries that run on schedule, and a sky that means something. Runs in
-            your browser.
+            A free-to-play online world on a hand-built planet: villages full of real
+            people, ferries that keep a real schedule, weather that rolls in on its own,
+            and a sky that means something. It all starts the moment you open the page.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <Link
@@ -158,7 +157,7 @@ export default function LanderPage() {
             </Link>
           </div>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
-            {['spherical world', 'browser-first', 'MIT-licensed', 'open source', 'deterministic seed'].map(
+            {['a whole planet', 'no download', 'free to play', 'play with friends', 'always growing'].map(
               (chip) => (
                 <span
                   key={chip}
@@ -184,11 +183,10 @@ export default function LanderPage() {
               The thesis
             </p>
             <p className="font-display text-xl sm:text-2xl leading-snug text-ink">
-              Most MMOs give you a map with a painted horizon and call it a world.
-              Synmergia is <span className="text-accent">one sphere</span> — its terrain,
-              its tides, its sky, and its seasons all derive from the{' '}
-              <span className="text-accent">same seed</span>, so the world agrees with
-              itself wherever you stand on it.
+              Most online worlds hand you a map with a painted horizon and call it a
+              planet. Synmergia is <span className="text-accent">one real sphere</span> —
+              its hills, its rivers, its tides, and its sky all agree with each other,
+              so wherever you stand the world still makes sense.
             </p>
           </div>
         </div>
@@ -217,8 +215,7 @@ export default function LanderPage() {
       <section className="max-w-6xl mx-auto px-4 pb-14">
         <h2 className="font-display text-2xl sm:text-3xl mb-2">The world, counted</h2>
         <p className="text-sm text-ink-soft mb-8 max-w-2xl">
-          Straight from the data files the server loads. Nothing here is aspirational
-          — it is what ships.
+          Not a wishlist — this is what is already out there to find.
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {WORLD_FACTS.map((f) => (
@@ -244,8 +241,8 @@ export default function LanderPage() {
           <div>
             <h2 className="font-display text-2xl sm:text-3xl mb-2">Browse the world itself</h2>
             <p className="text-sm text-ink-soft max-w-2xl">
-              The Codex reads the same data files the server loads — every class, skill,
-              enemy, recipe, and mount, with its real numbers. No marketing layer.
+              Every class, skill, enemy, recipe, and mount the world ships — with the
+              real numbers behind them. Look anything up before you go chase it down.
             </p>
           </div>
           <Link
@@ -312,35 +309,45 @@ export default function LanderPage() {
         </div>
       </section>
 
-      {/* Built in the open */}
+      {/* Your story starts here (player-facing). The dev/technical home
+          is the Open Source page; this card stays in-world. */}
       <section className="max-w-4xl mx-auto px-4 pb-20">
         <div className="rounded-2xl border border-line bg-surface p-8">
-          <h2 className="font-display text-2xl mb-4">Built in the open</h2>
+          <h2 className="font-display text-2xl mb-4">Your story starts here</h2>
           <p className="text-sm text-ink-soft leading-relaxed max-w-2xl">
-            The world runs on a law system: deterministic terrain from the world seed,
-            weather events off a real geomagnetic feed, and a strict understanding that
-            what players are told should match what happens. Every commit is public —
-            follow along, file an issue, or fork the planet.
+            Roll a character, walk out of the village, and the world is already
+            moving around you — ferries crossing the bay, storms on the horizon,
+            a horde gathering somewhere you have not been yet. Pick a fight, follow
+            the sky, make some coin, or just go see what is over the next ridge.
+            It is your planet to wander.
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
-            <a
-              href="https://github.com/dhaupin/synmergia"
-              target="_blank"
-              rel="noreferrer"
-              className="px-5 py-2.5 rounded-lg border border-line text-ink text-sm hover:border-accent hover:text-accent transition-colors"
-            >
-              GitHub
-            </a>
             <Link
-              to="/rules"
+              to="/play"
+              className="px-5 py-2.5 rounded-lg bg-accent text-paper text-sm font-semibold hover:bg-accent-deep transition-colors shadow"
+            >
+              Start playing
+            </Link>
+            <Link
+              to="/experiences"
               className="px-5 py-2.5 rounded-lg border border-line text-ink text-sm hover:border-accent hover:text-accent transition-colors"
             >
-              Rules
+              See what to expect
             </Link>
-            <span className="text-xs text-ink-soft">
-              Godot Engine · WebAssembly · MIT-licensed · deterministic world seed
-            </span>
+            <Link
+              to="/lore"
+              className="px-5 py-2.5 rounded-lg border border-line text-ink text-sm hover:border-accent hover:text-accent transition-colors"
+            >
+              Read the lore
+            </Link>
           </div>
+          <p className="mt-5 text-xs text-ink-soft">
+            Curious how it is built, or want to help make it?{' '}
+            <Link to="/opensource" className="text-accent hover:underline">
+              It is all open source
+            </Link>
+            .
+          </p>
         </div>
       </section>
 
@@ -351,7 +358,7 @@ export default function LanderPage() {
             Step onto the planet.
           </h2>
           <p className="text-sm text-ink-soft mb-8">
-            It loads in this tab — no download, no launcher. Free, and open source.
+            It loads right here in this tab — no download, no launcher. Free to play.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link
@@ -360,14 +367,12 @@ export default function LanderPage() {
             >
               Play in browser
             </Link>
-            <a
-              href="https://github.com/dhaupin/synmergia"
-              target="_blank"
-              rel="noreferrer"
+            <Link
+              to="/codex"
               className="px-6 py-3 rounded-lg border border-line text-ink hover:border-accent hover:text-accent transition-colors"
             >
-              View source
-            </a>
+              Browse the Codex
+            </Link>
           </div>
         </div>
       </section>
