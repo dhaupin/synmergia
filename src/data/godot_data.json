@@ -1,9 +1,9 @@
 {
-  "lastSyncedAt": "2026-11-11T10:46:33.649Z",
+  "lastSyncedAt": "2026-11-11T11:22:37.652Z",
   "counts": {
     "classes": 39,
-    "weapons": 14,
-    "armors": 14,
+    "weapons": 72,
+    "armors": 53,
     "consumables": 13,
     "enemies": 25,
     "zones": 12,
@@ -20,7 +20,7 @@
     "vehicles": 4,
     "resources": 29,
     "items": 16,
-    "accessories": 15,
+    "accessories": 38,
     "recipes": 40,
     "status_effects": 62,
     "npcs": 20,
@@ -28,7 +28,7 @@
     "signs": 3,
     "mysteries": 2,
     "acts": 3,
-    "loot_tables": 17,
+    "loot_tables": 19,
     "hordes": 5,
     "weather_events": 4,
     "gateways": 10,
@@ -2013,6 +2013,122 @@
     }
   },
   "weapons": {
+    "wep_attacker_sword": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_attacker_sword",
+      "display_name": "Voidraze Saber",
+      "description": "Akkan steel drawn thin and quenched in deepwater. The edge drinks the light that touches it.",
+      "icon_path": "res://icons/items/sword_iron.png",
+      "item_category": 0,
+      "rarity": 3,
+      "equip_slot": 8,
+      "weapon_type": 1,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 210,
+      "buy_price": 700,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "akkan_attacker",
+      "stats": {
+        "strength": 7
+      },
+      "weapon_damage_min": 17,
+      "weapon_damage_max": 28,
+      "attack_speed": 1.2,
+      "_sourceFile": "game/data/weapons/wep_attacker_sword.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_bulwark_towershield": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_bulwark_towershield",
+      "display_name": "Bulwark Tower Shield",
+      "description": "A slab of akkan wall-iron, wide enough to hide the shield-bearer and stubborn enough to hide the one behind them.",
+      "icon_path": "res://icons/items/shield_haven_wall.png",
+      "item_category": 0,
+      "rarity": 3,
+      "equip_slot": 8,
+      "weapon_type": 10,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 210,
+      "buy_price": 700,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "akkan_bulwark",
+      "stats": {
+        "strength": 7
+      },
+      "weapon_damage_min": 15,
+      "weapon_damage_max": 24,
+      "attack_speed": 0.8,
+      "_sourceFile": "game/data/weapons/wep_bulwark_towershield.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_cleric_staff": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_cleric_staff",
+      "display_name": "Cleric's Ashwood Staff",
+      "description": "Ashwood grown slow and set with a dawnstone ferrule. It steadies the hand that mends the line.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 3,
+      "equip_slot": 8,
+      "weapon_type": 7,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 210,
+      "buy_price": 700,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "human_cleric",
+      "stats": {
+        "wisdom": 7
+      },
+      "weapon_damage_min": 17,
+      "weapon_damage_max": 27,
+      "attack_speed": 1.1,
+      "_sourceFile": "game/data/weapons/wep_cleric_staff.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_conduit_wand": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_conduit_wand",
+      "display_name": "Conduit Channeling Wand",
+      "description": "A pale wand threaded with silver conduit, humming low when held near its twin. It carries a gift from one hand to another.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 3,
+      "equip_slot": 8,
+      "weapon_type": 8,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 210,
+      "buy_price": 700,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "synthetic_conduit",
+      "stats": {
+        "intelligence": 7
+      },
+      "weapon_damage_min": 16,
+      "weapon_damage_max": 25,
+      "attack_speed": 1.3,
+      "_sourceFile": "game/data/weapons/wep_conduit_wand.tres",
+      "_scriptClass": "Item"
+    },
     "wep_copper_cleaver": {
       "script": {
         "_extResource": "1"
@@ -2051,6 +2167,63 @@
       "_sourceFile": "game/data/weapons/wep_copper_cleaver.tres",
       "_scriptClass": "Item"
     },
+    "wep_exploiter_fang": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_exploiter_fang",
+      "display_name": "Exploiter Twin Fangs",
+      "description": "A matched pair of thin blades, each edge a fracture line waiting for the right angle. Efficiency is the whole doctrine.",
+      "icon_path": "res://icons/items/dagger_iron.png",
+      "item_category": 0,
+      "rarity": 3,
+      "equip_slot": 8,
+      "weapon_type": 4,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 210,
+      "buy_price": 700,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "synthetic_exploiter",
+      "stats": {
+        "agility": 7
+      },
+      "weapon_damage_min": 16,
+      "weapon_damage_max": 26,
+      "attack_speed": 1.6,
+      "_sourceFile": "game/data/weapons/wep_exploiter_fang.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_golden_axe_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_golden_axe_high",
+      "display_name": "Golden War Axe",
+      "description": "A golden war axe worked for the golden fords. Cut at the golden rung and kept honest by use.",
+      "icon_path": "res://icons/items/axe_iron.png",
+      "item_category": 0,
+      "rarity": 4,
+      "equip_slot": 8,
+      "weapon_type": 2,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 1740,
+      "buy_price": 5800,
+      "item_level": 22,
+      "required_level": 22,
+      "stats": {
+        "strength": 3
+      },
+      "weapon_damage_min": 29,
+      "weapon_damage_max": 47,
+      "attack_speed": 0.9,
+      "_sourceFile": "game/data/weapons/wep_golden_axe_high.tres",
+      "_scriptClass": "Item"
+    },
     "wep_golden_estoc": {
       "script": {
         "_extResource": "1"
@@ -2079,6 +2252,35 @@
       "_sourceFile": "game/data/weapons/wep_golden_estoc.tres",
       "_scriptClass": "Item"
     },
+    "wep_guardian_maul": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_guardian_maul",
+      "display_name": "Haven Bulwark Maul",
+      "description": "A weighted head on a banded haft, meant to be set against a charge and swung once. The line it holds does not move.",
+      "icon_path": "res://icons/items/halberd_mythril.png",
+      "item_category": 0,
+      "rarity": 3,
+      "equip_slot": 8,
+      "weapon_type": 3,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 210,
+      "buy_price": 700,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "human_guardian",
+      "stats": {
+        "strength": 7
+      },
+      "weapon_damage_min": 20,
+      "weapon_damage_max": 34,
+      "attack_speed": 0.9,
+      "_sourceFile": "game/data/weapons/wep_guardian_maul.tres",
+      "_scriptClass": "Item"
+    },
     "wep_iron_axe": {
       "script": {
         "_extResource": "1"
@@ -2104,6 +2306,34 @@
       "weapon_damage_max": 20,
       "attack_speed": 0.9,
       "_sourceFile": "game/data/weapons/wep_iron_axe.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_iron_crossbow": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_iron_crossbow",
+      "display_name": "Iron Crossbow",
+      "description": "An iron-bowed crossbow on a timber stock, wound by windlass and loosed flat. It trades the bow's reach for a bolt that never tires of flying.",
+      "icon_path": "res://icons/items/bow_long.png",
+      "item_category": 0,
+      "rarity": 2,
+      "equip_slot": 8,
+      "weapon_type": 6,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 72,
+      "buy_price": 240,
+      "item_level": 7,
+      "required_level": 7,
+      "stats": {
+        "agility": 3
+      },
+      "weapon_damage_min": 16,
+      "weapon_damage_max": 27,
+      "attack_speed": 0.9,
+      "_sourceFile": "game/data/weapons/wep_iron_crossbow.tres",
       "_scriptClass": "Item"
     },
     "wep_iron_dagger": {
@@ -2226,6 +2456,63 @@
       "_sourceFile": "game/data/weapons/wep_longbow.tres",
       "_scriptClass": "Item"
     },
+    "wep_marksman_bow": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_marksman_bow",
+      "display_name": "Marksman's Yew Bow",
+      "description": "Layered yew and a kelp-fiber string, drawn to the ear. The arrow leaves before the target hears the draw.",
+      "icon_path": "res://icons/items/bow_long.png",
+      "item_category": 0,
+      "rarity": 3,
+      "equip_slot": 8,
+      "weapon_type": 5,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 210,
+      "buy_price": 700,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "human_marksman",
+      "stats": {
+        "agility": 7
+      },
+      "weapon_damage_min": 18,
+      "weapon_damage_max": 30,
+      "attack_speed": 1,
+      "_sourceFile": "game/data/weapons/wep_marksman_bow.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_mythril_crossbow_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_mythril_crossbow_high",
+      "display_name": "Mythril Crossbow",
+      "description": "A mythril crossbow worked for the mythril barrows. Cut at the mythril rung and kept honest by use.",
+      "icon_path": "res://icons/items/bow_long.png",
+      "item_category": 0,
+      "rarity": 4,
+      "equip_slot": 8,
+      "weapon_type": 6,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 1890,
+      "buy_price": 6300,
+      "item_level": 24,
+      "required_level": 24,
+      "stats": {
+        "agility": 4
+      },
+      "weapon_damage_min": 31,
+      "weapon_damage_max": 49,
+      "attack_speed": 0.9,
+      "_sourceFile": "game/data/weapons/wep_mythril_crossbow_high.tres",
+      "_scriptClass": "Item"
+    },
     "wep_mythril_halberd": {
       "script": {
         "_extResource": "1"
@@ -2292,6 +2579,207 @@
       "_sourceFile": "game/data/weapons/wep_mythril_shortblade.tres",
       "_scriptClass": "Item"
     },
+    "wep_mythril_spear_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_mythril_spear_high",
+      "display_name": "Mythril War Spear",
+      "description": "A mythril war spear worked for the deep seam. Cut at the mythril rung and kept honest by use.",
+      "icon_path": "res://icons/items/spear_iron.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 9,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 2280,
+      "buy_price": 7600,
+      "item_level": 28,
+      "required_level": 28,
+      "stats": {
+        "strength": 4
+      },
+      "weapon_damage_min": 35,
+      "weapon_damage_max": 54,
+      "attack_speed": 1,
+      "_sourceFile": "game/data/weapons/wep_mythril_spear_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_mythril_wand_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_mythril_wand_high",
+      "display_name": "Mythril Wand",
+      "description": "A mythril wand worked for the pale shelf. Cut at the mythril rung and kept honest by use.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 4,
+      "equip_slot": 8,
+      "weapon_type": 8,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 2070,
+      "buy_price": 6900,
+      "item_level": 26,
+      "required_level": 26,
+      "stats": {
+        "agility": 4
+      },
+      "weapon_damage_min": 30,
+      "weapon_damage_max": 45,
+      "attack_speed": 1.3,
+      "_sourceFile": "game/data/weapons/wep_mythril_wand_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_overclocker_staff": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_overclocker_staff",
+      "display_name": "Overclocker Cycle Staff",
+      "description": "A staff ringed with concentric bands, each one a gear of the world's slow turning. Held, it makes the turning hurry.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 3,
+      "equip_slot": 8,
+      "weapon_type": 7,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 210,
+      "buy_price": 700,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "synthetic_overclocker",
+      "stats": {
+        "intelligence": 7
+      },
+      "weapon_damage_min": 17,
+      "weapon_damage_max": 27,
+      "attack_speed": 1.1,
+      "_sourceFile": "game/data/weapons/wep_overclocker_staff.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_psion_staff": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_psion_staff",
+      "display_name": "Psion's Waking Staff",
+      "description": "A focus-staff cored with a filament that answers thought faster than the hand can move.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 3,
+      "equip_slot": 8,
+      "weapon_type": 7,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 210,
+      "buy_price": 700,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "synthetic_psion",
+      "stats": {
+        "intelligence": 7
+      },
+      "weapon_damage_min": 17,
+      "weapon_damage_max": 27,
+      "attack_speed": 1.1,
+      "_sourceFile": "game/data/weapons/wep_psion_staff.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_rune_staff": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_rune_staff",
+      "display_name": "Runesmith's Inscribed Staff",
+      "description": "Rowan-and-iron staff carved with a marching column of sigils. Each one was earned in a skirmish and remembers the skirmish.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 3,
+      "equip_slot": 8,
+      "weapon_type": 7,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 210,
+      "buy_price": 700,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "akkan_rune",
+      "stats": {
+        "intelligence": 7
+      },
+      "weapon_damage_min": 17,
+      "weapon_damage_max": 27,
+      "attack_speed": 1.1,
+      "_sourceFile": "game/data/weapons/wep_rune_staff.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_seer_wand": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_seer_wand",
+      "display_name": "Seer's Voidgaze Wand",
+      "description": "A wand of blackened bone and a single obsidian bead, heavy with the weight of things not yet seen.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 3,
+      "equip_slot": 8,
+      "weapon_type": 8,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 210,
+      "buy_price": 700,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "akkan_seer",
+      "stats": {
+        "intelligence": 7
+      },
+      "weapon_damage_min": 16,
+      "weapon_damage_max": 25,
+      "attack_speed": 1.3,
+      "_sourceFile": "game/data/weapons/wep_seer_wand.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_shaman_staff": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_shaman_staff",
+      "display_name": "Shaman's Spirit Staff",
+      "description": "A totem-staff crowned with feathers and riverbone. The ancestors speak through it, and the shaman listens.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 3,
+      "equip_slot": 8,
+      "weapon_type": 7,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 210,
+      "buy_price": 700,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "akkan_shaman",
+      "stats": {
+        "wisdom": 7
+      },
+      "weapon_damage_min": 17,
+      "weapon_damage_max": 27,
+      "attack_speed": 1.1,
+      "_sourceFile": "game/data/weapons/wep_shaman_staff.tres",
+      "_scriptClass": "Item"
+    },
     "wep_silver_rapier": {
       "script": {
         "_extResource": "1"
@@ -2328,6 +2816,34 @@
       "attack_speed": 1.5,
       "armor_value": 0,
       "_sourceFile": "game/data/weapons/wep_silver_rapier.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_silver_sword_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_silver_sword_high",
+      "display_name": "Silver Arming Sword",
+      "description": "A silver arming sword worked for the low marches. Cut at the silver rung and kept honest by use.",
+      "icon_path": "res://icons/items/sword_iron.png",
+      "item_category": 0,
+      "rarity": 4,
+      "equip_slot": 8,
+      "weapon_type": 1,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 1620,
+      "buy_price": 5400,
+      "item_level": 20,
+      "required_level": 20,
+      "stats": {
+        "strength": 3
+      },
+      "weapon_damage_min": 26,
+      "weapon_damage_max": 41,
+      "attack_speed": 1.2,
+      "_sourceFile": "game/data/weapons/wep_silver_sword_high.tres",
       "_scriptClass": "Item"
     },
     "wep_silver_warhammer": {
@@ -2368,6 +2884,810 @@
       "_sourceFile": "game/data/weapons/wep_silver_warhammer.tres",
       "_scriptClass": "Item"
     },
+    "wep_skyforged_bow_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_skyforged_bow_high",
+      "display_name": "Skyforged War Bow",
+      "description": "A skyforged war bow worked for the outer air. Cut at the skyforged rung and kept honest by use.",
+      "icon_path": "res://icons/items/bow_long.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 5,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 11610,
+      "buy_price": 38700,
+      "item_level": 56,
+      "required_level": 56,
+      "stats": {
+        "agility": 9
+      },
+      "weapon_damage_min": 59,
+      "weapon_damage_max": 88,
+      "attack_speed": 1,
+      "_sourceFile": "game/data/weapons/wep_skyforged_bow_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_skyforged_fang_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_skyforged_fang_high",
+      "display_name": "Skyforged Shortblade",
+      "description": "A skyforged shortblade worked for the skyward stair. Cut at the skyforged rung and kept honest by use.",
+      "icon_path": "res://icons/items/dagger_iron.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 4,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 9060,
+      "buy_price": 30200,
+      "item_level": 52,
+      "required_level": 52,
+      "stats": {
+        "agility": 8
+      },
+      "weapon_damage_min": 53,
+      "weapon_damage_max": 79,
+      "attack_speed": 1.6,
+      "_sourceFile": "game/data/weapons/wep_skyforged_fang_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_skyforged_maul_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_skyforged_maul_high",
+      "display_name": "Skyforged Maul",
+      "description": "A skyforged maul worked for the outer air. Cut at the skyforged rung and kept honest by use.",
+      "icon_path": "res://icons/items/halberd_mythril.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 3,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 10260,
+      "buy_price": 34200,
+      "item_level": 54,
+      "required_level": 54,
+      "stats": {
+        "strength": 9
+      },
+      "weapon_damage_min": 59,
+      "weapon_damage_max": 89,
+      "attack_speed": 0.9,
+      "_sourceFile": "game/data/weapons/wep_skyforged_maul_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_skyforged_sword_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_skyforged_sword_high",
+      "display_name": "Skyforged Arming Sword",
+      "description": "A skyforged arming sword worked for the roof of the world. Cut at the skyforged rung and kept honest by use.",
+      "icon_path": "res://icons/items/sword_iron.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 1,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 13140,
+      "buy_price": 43800,
+      "item_level": 58,
+      "required_level": 58,
+      "stats": {
+        "strength": 9
+      },
+      "weapon_damage_min": 60,
+      "weapon_damage_max": 88,
+      "attack_speed": 1.2,
+      "_sourceFile": "game/data/weapons/wep_skyforged_sword_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_sorcerer_staff": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_sorcerer_staff",
+      "display_name": "Sorcerer's Focus Staff",
+      "description": "A spiral of storm-cut timber around a shard of conduit glass. The glass remembers the storm; the sorcerer answers it.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 3,
+      "equip_slot": 8,
+      "weapon_type": 7,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 210,
+      "buy_price": 700,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "human_sorcerer",
+      "stats": {
+        "intelligence": 7
+      },
+      "weapon_damage_min": 17,
+      "weapon_damage_max": 27,
+      "attack_speed": 1.1,
+      "_sourceFile": "game/data/weapons/wep_sorcerer_staff.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_stalker_fang": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_stalker_fang",
+      "display_name": "Stalker's Voidfang Dagger",
+      "description": "An akkan dagger weighted for the ambush. The void between heartbeats is the one it hunts.",
+      "icon_path": "res://icons/items/dagger_iron.png",
+      "item_category": 0,
+      "rarity": 3,
+      "equip_slot": 8,
+      "weapon_type": 4,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 210,
+      "buy_price": 700,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "akkan_stalker",
+      "stats": {
+        "agility": 7
+      },
+      "weapon_damage_min": 16,
+      "weapon_damage_max": 26,
+      "attack_speed": 1.6,
+      "_sourceFile": "game/data/weapons/wep_stalker_fang.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_bow_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_bow_high",
+      "display_name": "Starmetal War Bow",
+      "description": "A starmetal war bow worked for the high crags. Cut at the starmetal rung and kept honest by use.",
+      "icon_path": "res://icons/items/bow_long.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 5,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 3480,
+      "buy_price": 11600,
+      "item_level": 36,
+      "required_level": 36,
+      "stats": {
+        "agility": 6
+      },
+      "weapon_damage_min": 41,
+      "weapon_damage_max": 63,
+      "attack_speed": 1,
+      "_sourceFile": "game/data/weapons/wep_starmetal_bow_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_crossbow_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_crossbow_high",
+      "display_name": "Starmetal Crossbow",
+      "description": "A starmetal crossbow worked for the windward shelf. Cut at the starmetal rung and kept honest by use.",
+      "icon_path": "res://icons/items/bow_long.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 6,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 4380,
+      "buy_price": 14600,
+      "item_level": 40,
+      "required_level": 40,
+      "stats": {
+        "agility": 6
+      },
+      "weapon_damage_min": 46,
+      "weapon_damage_max": 69,
+      "attack_speed": 0.9,
+      "_sourceFile": "game/data/weapons/wep_starmetal_crossbow_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_fang_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_fang_high",
+      "display_name": "Starmetal Shortblade",
+      "description": "A starmetal shortblade worked for the high crags. Cut at the starmetal rung and kept honest by use.",
+      "icon_path": "res://icons/items/dagger_iron.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 4,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 3120,
+      "buy_price": 10400,
+      "item_level": 34,
+      "required_level": 34,
+      "stats": {
+        "agility": 5
+      },
+      "weapon_damage_min": 37,
+      "weapon_damage_max": 56,
+      "attack_speed": 1.6,
+      "_sourceFile": "game/data/weapons/wep_starmetal_fang_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_master_attacker": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_master_attacker",
+      "display_name": "Starmetal Arming Sword of the Attacker",
+      "description": "A master's arming sword in starmetal, fitted to the Attacker's grip and nothing else. It is signed once and re-signed by every hand it passes to.",
+      "icon_path": "res://icons/items/sword_iron.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 1,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 4380,
+      "buy_price": 14600,
+      "item_level": 40,
+      "required_level": 40,
+      "required_class": "akkan_attacker",
+      "stats": {
+        "strength": 13
+      },
+      "weapon_damage_min": 44,
+      "weapon_damage_max": 66,
+      "attack_speed": 1.2,
+      "_sourceFile": "game/data/weapons/wep_starmetal_master_attacker.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_master_bulwark": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_master_bulwark",
+      "display_name": "Starmetal Tower Shield of the Bulwark",
+      "description": "A master's tower shield in starmetal, fitted to the Bulwark's grip and nothing else. It is signed once and re-signed by every hand it passes to.",
+      "icon_path": "res://icons/items/shield_haven_wall.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 10,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 4380,
+      "buy_price": 14600,
+      "item_level": 40,
+      "required_level": 40,
+      "required_class": "akkan_bulwark",
+      "stats": {
+        "strength": 13
+      },
+      "weapon_damage_min": 42,
+      "weapon_damage_max": 62,
+      "attack_speed": 0.8,
+      "_sourceFile": "game/data/weapons/wep_starmetal_master_bulwark.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_master_cleric": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_master_cleric",
+      "display_name": "Starmetal Battle Staff of the Cleric",
+      "description": "A master's battle staff in starmetal, fitted to the Cleric's grip and nothing else. It is signed once and re-signed by every hand it passes to.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 7,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 4380,
+      "buy_price": 14600,
+      "item_level": 40,
+      "required_level": 40,
+      "required_class": "human_cleric",
+      "stats": {
+        "wisdom": 13
+      },
+      "weapon_damage_min": 44,
+      "weapon_damage_max": 65,
+      "attack_speed": 1.1,
+      "_sourceFile": "game/data/weapons/wep_starmetal_master_cleric.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_master_conduit": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_master_conduit",
+      "display_name": "Starmetal Wand of the Conduit",
+      "description": "A master's wand in starmetal, fitted to the Conduit's grip and nothing else. It is signed once and re-signed by every hand it passes to.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 8,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 4380,
+      "buy_price": 14600,
+      "item_level": 40,
+      "required_level": 40,
+      "required_class": "synthetic_conduit",
+      "stats": {
+        "intelligence": 13
+      },
+      "weapon_damage_min": 43,
+      "weapon_damage_max": 63,
+      "attack_speed": 1.3,
+      "_sourceFile": "game/data/weapons/wep_starmetal_master_conduit.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_master_exploiter": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_master_exploiter",
+      "display_name": "Starmetal Shortblade of the Exploiter",
+      "description": "A master's shortblade in starmetal, fitted to the Exploiter's grip and nothing else. It is signed once and re-signed by every hand it passes to.",
+      "icon_path": "res://icons/items/dagger_iron.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 4,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 4380,
+      "buy_price": 14600,
+      "item_level": 40,
+      "required_level": 40,
+      "required_class": "synthetic_exploiter",
+      "stats": {
+        "agility": 13
+      },
+      "weapon_damage_min": 43,
+      "weapon_damage_max": 64,
+      "attack_speed": 1.6,
+      "_sourceFile": "game/data/weapons/wep_starmetal_master_exploiter.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_master_guardian": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_master_guardian",
+      "display_name": "Starmetal Maul of the Guardian",
+      "description": "A master's maul in starmetal, fitted to the Guardian's grip and nothing else. It is signed once and re-signed by every hand it passes to.",
+      "icon_path": "res://icons/items/halberd_mythril.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 3,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 4380,
+      "buy_price": 14600,
+      "item_level": 40,
+      "required_level": 40,
+      "required_class": "human_guardian",
+      "stats": {
+        "strength": 13
+      },
+      "weapon_damage_min": 47,
+      "weapon_damage_max": 72,
+      "attack_speed": 0.9,
+      "_sourceFile": "game/data/weapons/wep_starmetal_master_guardian.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_master_marksman": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_master_marksman",
+      "display_name": "Starmetal War Bow of the Marksman",
+      "description": "A master's war bow in starmetal, fitted to the Marksman's grip and nothing else. It is signed once and re-signed by every hand it passes to.",
+      "icon_path": "res://icons/items/bow_long.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 5,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 4380,
+      "buy_price": 14600,
+      "item_level": 40,
+      "required_level": 40,
+      "required_class": "human_marksman",
+      "stats": {
+        "agility": 13
+      },
+      "weapon_damage_min": 45,
+      "weapon_damage_max": 68,
+      "attack_speed": 1,
+      "_sourceFile": "game/data/weapons/wep_starmetal_master_marksman.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_master_overclocker": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_master_overclocker",
+      "display_name": "Starmetal Battle Staff of the Overclocker",
+      "description": "A master's battle staff in starmetal, fitted to the Overclocker's grip and nothing else. It is signed once and re-signed by every hand it passes to.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 7,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 4380,
+      "buy_price": 14600,
+      "item_level": 40,
+      "required_level": 40,
+      "required_class": "synthetic_overclocker",
+      "stats": {
+        "intelligence": 13
+      },
+      "weapon_damage_min": 44,
+      "weapon_damage_max": 65,
+      "attack_speed": 1.1,
+      "_sourceFile": "game/data/weapons/wep_starmetal_master_overclocker.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_master_psion": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_master_psion",
+      "display_name": "Starmetal Battle Staff of the Psion",
+      "description": "A master's battle staff in starmetal, fitted to the Psion's grip and nothing else. It is signed once and re-signed by every hand it passes to.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 7,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 4380,
+      "buy_price": 14600,
+      "item_level": 40,
+      "required_level": 40,
+      "required_class": "synthetic_psion",
+      "stats": {
+        "intelligence": 13
+      },
+      "weapon_damage_min": 44,
+      "weapon_damage_max": 65,
+      "attack_speed": 1.1,
+      "_sourceFile": "game/data/weapons/wep_starmetal_master_psion.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_master_rune": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_master_rune",
+      "display_name": "Starmetal Battle Staff of the Runesmith",
+      "description": "A master's battle staff in starmetal, fitted to the Runesmith's grip and nothing else. It is signed once and re-signed by every hand it passes to.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 7,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 4380,
+      "buy_price": 14600,
+      "item_level": 40,
+      "required_level": 40,
+      "required_class": "akkan_rune",
+      "stats": {
+        "intelligence": 13
+      },
+      "weapon_damage_min": 44,
+      "weapon_damage_max": 65,
+      "attack_speed": 1.1,
+      "_sourceFile": "game/data/weapons/wep_starmetal_master_rune.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_master_seer": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_master_seer",
+      "display_name": "Starmetal Wand of the Seer",
+      "description": "A master's wand in starmetal, fitted to the Seer's grip and nothing else. It is signed once and re-signed by every hand it passes to.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 8,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 4380,
+      "buy_price": 14600,
+      "item_level": 40,
+      "required_level": 40,
+      "required_class": "akkan_seer",
+      "stats": {
+        "intelligence": 13
+      },
+      "weapon_damage_min": 43,
+      "weapon_damage_max": 63,
+      "attack_speed": 1.3,
+      "_sourceFile": "game/data/weapons/wep_starmetal_master_seer.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_master_shaman": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_master_shaman",
+      "display_name": "Starmetal Battle Staff of the Shaman",
+      "description": "A master's battle staff in starmetal, fitted to the Shaman's grip and nothing else. It is signed once and re-signed by every hand it passes to.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 7,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 4380,
+      "buy_price": 14600,
+      "item_level": 40,
+      "required_level": 40,
+      "required_class": "akkan_shaman",
+      "stats": {
+        "wisdom": 13
+      },
+      "weapon_damage_min": 44,
+      "weapon_damage_max": 65,
+      "attack_speed": 1.1,
+      "_sourceFile": "game/data/weapons/wep_starmetal_master_shaman.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_master_sorcerer": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_master_sorcerer",
+      "display_name": "Starmetal Battle Staff of the Sorcerer",
+      "description": "A master's battle staff in starmetal, fitted to the Sorcerer's grip and nothing else. It is signed once and re-signed by every hand it passes to.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 7,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 4380,
+      "buy_price": 14600,
+      "item_level": 40,
+      "required_level": 40,
+      "required_class": "human_sorcerer",
+      "stats": {
+        "intelligence": 13
+      },
+      "weapon_damage_min": 44,
+      "weapon_damage_max": 65,
+      "attack_speed": 1.1,
+      "_sourceFile": "game/data/weapons/wep_starmetal_master_sorcerer.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_master_stalker": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_master_stalker",
+      "display_name": "Starmetal Shortblade of the Stalker",
+      "description": "A master's shortblade in starmetal, fitted to the Stalker's grip and nothing else. It is signed once and re-signed by every hand it passes to.",
+      "icon_path": "res://icons/items/dagger_iron.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 4,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 4380,
+      "buy_price": 14600,
+      "item_level": 40,
+      "required_level": 40,
+      "required_class": "akkan_stalker",
+      "stats": {
+        "agility": 13
+      },
+      "weapon_damage_min": 43,
+      "weapon_damage_max": 64,
+      "attack_speed": 1.6,
+      "_sourceFile": "game/data/weapons/wep_starmetal_master_stalker.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_master_temporalist": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_master_temporalist",
+      "display_name": "Starmetal Battle Staff of the Temporalist",
+      "description": "A master's battle staff in starmetal, fitted to the Temporalist's grip and nothing else. It is signed once and re-signed by every hand it passes to.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 7,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 4380,
+      "buy_price": 14600,
+      "item_level": 40,
+      "required_level": 40,
+      "required_class": "human_temporalist",
+      "stats": {
+        "intelligence": 13
+      },
+      "weapon_damage_min": 44,
+      "weapon_damage_max": 65,
+      "attack_speed": 1.1,
+      "_sourceFile": "game/data/weapons/wep_starmetal_master_temporalist.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_master_tracker": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_master_tracker",
+      "display_name": "Starmetal Crossbow of the Tracker",
+      "description": "A master's crossbow in starmetal, fitted to the Tracker's grip and nothing else. It is signed once and re-signed by every hand it passes to.",
+      "icon_path": "res://icons/items/bow_long.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 6,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 4380,
+      "buy_price": 14600,
+      "item_level": 40,
+      "required_level": 40,
+      "required_class": "synthetic_tracker",
+      "stats": {
+        "agility": 13
+      },
+      "weapon_damage_min": 46,
+      "weapon_damage_max": 69,
+      "attack_speed": 0.9,
+      "_sourceFile": "game/data/weapons/wep_starmetal_master_tracker.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_master_warden": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_master_warden",
+      "display_name": "Starmetal Tower Shield of the Warden",
+      "description": "A master's tower shield in starmetal, fitted to the Warden's grip and nothing else. It is signed once and re-signed by every hand it passes to.",
+      "icon_path": "res://icons/items/shield_haven_wall.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 10,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 4380,
+      "buy_price": 14600,
+      "item_level": 40,
+      "required_level": 40,
+      "required_class": "synthetic_warden",
+      "stats": {
+        "strength": 13
+      },
+      "weapon_damage_min": 42,
+      "weapon_damage_max": 62,
+      "attack_speed": 0.8,
+      "_sourceFile": "game/data/weapons/wep_starmetal_master_warden.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_master_warrior": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_master_warrior",
+      "display_name": "Starmetal Arming Sword of the Warrior",
+      "description": "A master's arming sword in starmetal, fitted to the Warrior's grip and nothing else. It is signed once and re-signed by every hand it passes to.",
+      "icon_path": "res://icons/items/sword_iron.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 1,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 4380,
+      "buy_price": 14600,
+      "item_level": 40,
+      "required_level": 40,
+      "required_class": "human_warrior",
+      "stats": {
+        "strength": 13
+      },
+      "weapon_damage_min": 44,
+      "weapon_damage_max": 66,
+      "attack_speed": 1.2,
+      "_sourceFile": "game/data/weapons/wep_starmetal_master_warrior.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_maul_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_maul_high",
+      "display_name": "Starmetal Maul",
+      "description": "A starmetal maul worked for the starfall reach. Cut at the starmetal rung and kept honest by use.",
+      "icon_path": "res://icons/items/halberd_mythril.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 3,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 2520,
+      "buy_price": 8400,
+      "item_level": 30,
+      "required_level": 30,
+      "stats": {
+        "strength": 5
+      },
+      "weapon_damage_min": 38,
+      "weapon_damage_max": 59,
+      "attack_speed": 0.9,
+      "_sourceFile": "game/data/weapons/wep_starmetal_maul_high.tres",
+      "_scriptClass": "Item"
+    },
     "wep_starmetal_skysplitter": {
       "script": {
         "_extResource": "1"
@@ -2396,6 +3716,260 @@
       "_sourceFile": "game/data/weapons/wep_starmetal_skysplitter.tres",
       "_scriptClass": "Item"
     },
+    "wep_starmetal_spear_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_spear_high",
+      "display_name": "Starmetal War Spear",
+      "description": "A starmetal war spear worked for the windward shelf. Cut at the starmetal rung and kept honest by use.",
+      "icon_path": "res://icons/items/spear_iron.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 9,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 3900,
+      "buy_price": 13000,
+      "item_level": 38,
+      "required_level": 38,
+      "stats": {
+        "strength": 6
+      },
+      "weapon_damage_min": 44,
+      "weapon_damage_max": 66,
+      "attack_speed": 1,
+      "_sourceFile": "game/data/weapons/wep_starmetal_spear_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_starmetal_sword_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_sword_high",
+      "display_name": "Starmetal Arming Sword",
+      "description": "A starmetal arming sword worked for the starfall reach. Cut at the starmetal rung and kept honest by use.",
+      "icon_path": "res://icons/items/sword_iron.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 1,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 2790,
+      "buy_price": 9300,
+      "item_level": 32,
+      "required_level": 32,
+      "stats": {
+        "strength": 5
+      },
+      "weapon_damage_min": 36,
+      "weapon_damage_max": 56,
+      "attack_speed": 1.2,
+      "_sourceFile": "game/data/weapons/wep_starmetal_sword_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_sunforged_axe_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_sunforged_axe_high",
+      "display_name": "Sunforged War Axe",
+      "description": "A sunforged war axe worked for the sun-touched rim. Cut at the sunforged rung and kept honest by use.",
+      "icon_path": "res://icons/items/axe_iron.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 2,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 5550,
+      "buy_price": 18500,
+      "item_level": 44,
+      "required_level": 44,
+      "stats": {
+        "strength": 7
+      },
+      "weapon_damage_min": 49,
+      "weapon_damage_max": 75,
+      "attack_speed": 0.9,
+      "_sourceFile": "game/data/weapons/wep_sunforged_axe_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_sunforged_crossbow_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_sunforged_crossbow_high",
+      "display_name": "Sunforged Crossbow",
+      "description": "A sunforged crossbow worked for the sun-touched rim. Cut at the sunforged rung and kept honest by use.",
+      "icon_path": "res://icons/items/bow_long.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 6,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 4920,
+      "buy_price": 16400,
+      "item_level": 42,
+      "required_level": 42,
+      "stats": {
+        "agility": 7
+      },
+      "weapon_damage_min": 47,
+      "weapon_damage_max": 71,
+      "attack_speed": 0.9,
+      "_sourceFile": "game/data/weapons/wep_sunforged_crossbow_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_sunforged_spear_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_sunforged_spear_high",
+      "display_name": "Sunforged War Spear",
+      "description": "A sunforged war spear worked for the skyward stair. Cut at the sunforged rung and kept honest by use.",
+      "icon_path": "res://icons/items/spear_iron.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 9,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 8010,
+      "buy_price": 26700,
+      "item_level": 50,
+      "required_level": 50,
+      "stats": {
+        "strength": 8
+      },
+      "weapon_damage_min": 55,
+      "weapon_damage_max": 81,
+      "attack_speed": 1,
+      "_sourceFile": "game/data/weapons/wep_sunforged_spear_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_sunforged_sword_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_sunforged_sword_high",
+      "display_name": "Sunforged Arming Sword",
+      "description": "A sunforged arming sword worked for the long ascent. Cut at the sunforged rung and kept honest by use.",
+      "icon_path": "res://icons/items/sword_iron.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 1,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 7080,
+      "buy_price": 23600,
+      "item_level": 48,
+      "required_level": 48,
+      "stats": {
+        "strength": 8
+      },
+      "weapon_damage_min": 51,
+      "weapon_damage_max": 76,
+      "attack_speed": 1.2,
+      "_sourceFile": "game/data/weapons/wep_sunforged_sword_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_sunforged_wand_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_sunforged_wand_high",
+      "display_name": "Sunforged Wand",
+      "description": "A sunforged wand worked for the long ascent. Cut at the sunforged rung and kept honest by use.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 8,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 6270,
+      "buy_price": 20900,
+      "item_level": 46,
+      "required_level": 46,
+      "stats": {
+        "agility": 7
+      },
+      "weapon_damage_min": 48,
+      "weapon_damage_max": 70,
+      "attack_speed": 1.3,
+      "_sourceFile": "game/data/weapons/wep_sunforged_wand_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_temporalist_staff": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_temporalist_staff",
+      "display_name": "Temporalist's Hourglass Staff",
+      "description": "A crystal hourglass the sand refuses to leave. It marks the moment a working should have landed, and lands it there.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 3,
+      "equip_slot": 8,
+      "weapon_type": 7,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 210,
+      "buy_price": 700,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "human_temporalist",
+      "stats": {
+        "intelligence": 7
+      },
+      "weapon_damage_min": 17,
+      "weapon_damage_max": 27,
+      "attack_speed": 1.1,
+      "_sourceFile": "game/data/weapons/wep_temporalist_staff.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_tracker_crossbow": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_tracker_crossbow",
+      "display_name": "Tracker's Longshot Crossbow",
+      "description": "A compact crossbow with a silent latch and a lens of ground glass. The shot arrives before the report does.",
+      "icon_path": "res://icons/items/bow_long.png",
+      "item_category": 0,
+      "rarity": 3,
+      "equip_slot": 8,
+      "weapon_type": 6,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 210,
+      "buy_price": 700,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "synthetic_tracker",
+      "stats": {
+        "agility": 7
+      },
+      "weapon_damage_min": 19,
+      "weapon_damage_max": 31,
+      "attack_speed": 0.9,
+      "_sourceFile": "game/data/weapons/wep_tracker_crossbow.tres",
+      "_scriptClass": "Item"
+    },
     "wep_walnut_staff": {
       "script": {
         "_extResource": "1"
@@ -2421,6 +3995,92 @@
       "weapon_damage_max": 12,
       "attack_speed": 1.1,
       "_sourceFile": "game/data/weapons/wep_walnut_staff.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_warden_towershield": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_warden_towershield",
+      "display_name": "Warden Bastion Shield",
+      "description": "A broad lock-plate shield, scalloped to seat against a companion's back and share the weight of the line.",
+      "icon_path": "res://icons/items/shield_haven_wall.png",
+      "item_category": 0,
+      "rarity": 3,
+      "equip_slot": 8,
+      "weapon_type": 10,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 210,
+      "buy_price": 700,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "synthetic_warden",
+      "stats": {
+        "strength": 7
+      },
+      "weapon_damage_min": 15,
+      "weapon_damage_max": 24,
+      "attack_speed": 0.8,
+      "_sourceFile": "game/data/weapons/wep_warden_towershield.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_warrior_sword": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_warrior_sword",
+      "display_name": "Soldier's Arming Sword",
+      "description": "A Concord-pattern blade, its fuller stamped with the muster mark of the Haven levy. It has kept more farmsteads than any banner.",
+      "icon_path": "res://icons/items/sword_iron.png",
+      "item_category": 0,
+      "rarity": 3,
+      "equip_slot": 8,
+      "weapon_type": 1,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 210,
+      "buy_price": 700,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "human_warrior",
+      "stats": {
+        "strength": 7
+      },
+      "weapon_damage_min": 17,
+      "weapon_damage_max": 28,
+      "attack_speed": 1.2,
+      "_sourceFile": "game/data/weapons/wep_warrior_sword.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_willow_wand": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_willow_wand",
+      "display_name": "Willow Wand",
+      "description": "A willow rod banded with silver, light as a switch and warm as a hand. It does not work much on its own; it only helps.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 2,
+      "equip_slot": 8,
+      "weapon_type": 8,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 195,
+      "buy_price": 650,
+      "item_level": 10,
+      "required_level": 10,
+      "stats": {
+        "intelligence": 5
+      },
+      "weapon_damage_min": 16,
+      "weapon_damage_max": 25,
+      "attack_speed": 1.3,
+      "_sourceFile": "game/data/weapons/wep_willow_wand.tres",
       "_scriptClass": "Item"
     },
     "wep_wooden_bow": {
@@ -2455,6 +4115,56 @@
     }
   },
   "armors": {
+    "arm_attacker_chest": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_attacker_chest",
+      "display_name": "Voidraze Harness",
+      "description": "Segmented akkan plate that swallows the glow of a struck rune. The void it rides never lets go of the hand.",
+      "icon_path": "res://icons/items/armor_iron_mail.png",
+      "item_category": 1,
+      "rarity": 3,
+      "equip_slot": 2,
+      "armor_type": 3,
+      "stack_size": 1,
+      "sell_price": 228,
+      "buy_price": 760,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "akkan_attacker",
+      "stats": {
+        "vitality": 6
+      },
+      "armor_value": 20,
+      "_sourceFile": "game/data/armors/arm_attacker_chest.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_bulwark_pauldrons": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_bulwark_pauldrons",
+      "display_name": "Bulwark Anchor Plate",
+      "description": "Pauldrons and chest plated into one unbroken shell. The akkan fortress is not a metaphor; it is what you are wearing.",
+      "icon_path": "res://icons/items/armor_starmetal_bulwark.png",
+      "item_category": 1,
+      "rarity": 3,
+      "equip_slot": 6,
+      "armor_type": 4,
+      "stack_size": 1,
+      "sell_price": 228,
+      "buy_price": 760,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "akkan_bulwark",
+      "stats": {
+        "vitality": 6
+      },
+      "armor_value": 20,
+      "_sourceFile": "game/data/armors/arm_bulwark_pauldrons.tres",
+      "_scriptClass": "Item"
+    },
     "arm_cartographer_belt": {
       "script": {
         "_extResource": "1"
@@ -2477,6 +4187,56 @@
       },
       "armor_value": 4,
       "_sourceFile": "game/data/armors/arm_cartographer_belt.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_cleric_chest": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_cleric_chest",
+      "display_name": "Cleric's Devotional Vestment",
+      "description": "Mourning cloth bleached pale and re-stitched for the tending of the living, not the burying of the dead.",
+      "icon_path": "res://icons/items/armor_golden_scale.png",
+      "item_category": 1,
+      "rarity": 3,
+      "equip_slot": 2,
+      "armor_type": 1,
+      "stack_size": 1,
+      "sell_price": 228,
+      "buy_price": 760,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "human_cleric",
+      "stats": {
+        "vitality": 6
+      },
+      "armor_value": 13,
+      "_sourceFile": "game/data/armors/arm_cleric_chest.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_conduit_chest": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_conduit_chest",
+      "display_name": "Conduit Relay Vestment",
+      "description": "Light plates woven with conduit filigree, built to pass a charge straight through without spilling a spark.",
+      "icon_path": "res://icons/items/armor_golden_scale.png",
+      "item_category": 1,
+      "rarity": 3,
+      "equip_slot": 2,
+      "armor_type": 1,
+      "stack_size": 1,
+      "sell_price": 228,
+      "buy_price": 760,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "synthetic_conduit",
+      "stats": {
+        "vitality": 6
+      },
+      "armor_value": 12,
+      "_sourceFile": "game/data/armors/arm_conduit_chest.tres",
       "_scriptClass": "Item"
     },
     "arm_copper_helm": {
@@ -2505,6 +4265,55 @@
       "_sourceFile": "game/data/armors/arm_copper_helm.tres",
       "_scriptClass": "Item"
     },
+    "arm_exploiter_chest": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_exploiter_chest",
+      "display_name": "Exploiter Sync Harness",
+      "description": "Light hide plates with a laced, segmented core, so the wearer moves a half-step ahead of the blow.",
+      "icon_path": "res://icons/items/armor_leather_chest.png",
+      "item_category": 1,
+      "rarity": 3,
+      "equip_slot": 2,
+      "armor_type": 2,
+      "stack_size": 1,
+      "sell_price": 228,
+      "buy_price": 760,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "synthetic_exploiter",
+      "stats": {
+        "vitality": 6
+      },
+      "armor_value": 15,
+      "_sourceFile": "game/data/armors/arm_exploiter_chest.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_golden_boots_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_golden_boots_high",
+      "display_name": "Golden Boots",
+      "description": "Golden leather gear for the golden fords. It holds a shape through weather, blade, and the long walk back.",
+      "icon_path": "res://icons/items/armor_leather_chest.png",
+      "item_category": 1,
+      "rarity": 4,
+      "equip_slot": 4,
+      "armor_type": 2,
+      "stack_size": 1,
+      "sell_price": 2010,
+      "buy_price": 6700,
+      "item_level": 22,
+      "required_level": 22,
+      "stats": {
+        "vitality": 9
+      },
+      "armor_value": 38,
+      "_sourceFile": "game/data/armors/arm_golden_boots_high.tres",
+      "_scriptClass": "Item"
+    },
     "arm_golden_scale_chest": {
       "script": {
         "_extResource": "1"
@@ -2529,6 +4338,31 @@
       },
       "armor_value": 26,
       "_sourceFile": "game/data/armors/arm_golden_scale_chest.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_guardian_chest": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_guardian_chest",
+      "display_name": "Haven Wall Plate",
+      "description": "Door-plank steel banded across the chest and shoulder. It has turned away wolves, weather, and one very confused agent.",
+      "icon_path": "res://icons/items/armor_starmetal_bulwark.png",
+      "item_category": 1,
+      "rarity": 3,
+      "equip_slot": 2,
+      "armor_type": 4,
+      "stack_size": 1,
+      "sell_price": 228,
+      "buy_price": 760,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "human_guardian",
+      "stats": {
+        "vitality": 6
+      },
+      "armor_value": 20,
+      "_sourceFile": "game/data/armors/arm_guardian_chest.tres",
       "_scriptClass": "Item"
     },
     "arm_iron_mail_chest": {
@@ -2680,6 +4514,31 @@
       "_sourceFile": "game/data/armors/arm_leather_legs.tres",
       "_scriptClass": "Item"
     },
+    "arm_marksman_chest": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_marksman_chest",
+      "display_name": "Marksman's Fieldcoat",
+      "description": "Waxed hide over a quilted lining, cut free at the arms. Made to draw, not to duel.",
+      "icon_path": "res://icons/items/armor_leather_chest.png",
+      "item_category": 1,
+      "rarity": 3,
+      "equip_slot": 2,
+      "armor_type": 2,
+      "stack_size": 1,
+      "sell_price": 228,
+      "buy_price": 760,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "human_marksman",
+      "stats": {
+        "vitality": 6
+      },
+      "armor_value": 15,
+      "_sourceFile": "game/data/armors/arm_marksman_chest.tres",
+      "_scriptClass": "Item"
+    },
     "arm_mythril_gauntlets": {
       "script": {
         "_extResource": "1"
@@ -2704,6 +4563,78 @@
       },
       "armor_value": 20,
       "_sourceFile": "game/data/armors/arm_mythril_gauntlets.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_mythril_gauntlets_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_mythril_gauntlets_high",
+      "display_name": "Mythril Gauntlets",
+      "description": "Mythril mail gear for the pale shelf. It holds a shape through weather, blade, and the long walk back.",
+      "icon_path": "res://icons/items/armor_iron_mail.png",
+      "item_category": 1,
+      "rarity": 4,
+      "equip_slot": 5,
+      "armor_type": 3,
+      "stack_size": 1,
+      "sell_price": 2400,
+      "buy_price": 8000,
+      "item_level": 26,
+      "required_level": 26,
+      "stats": {
+        "vitality": 10
+      },
+      "armor_value": 50,
+      "_sourceFile": "game/data/armors/arm_mythril_gauntlets_high.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_mythril_helm_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_mythril_helm_high",
+      "display_name": "Mythril Helm",
+      "description": "Mythril cloth gear for the mythril barrows. It holds a shape through weather, blade, and the long walk back.",
+      "icon_path": "res://icons/items/armor_golden_scale.png",
+      "item_category": 1,
+      "rarity": 4,
+      "equip_slot": 1,
+      "armor_type": 1,
+      "stack_size": 1,
+      "sell_price": 2190,
+      "buy_price": 7300,
+      "item_level": 24,
+      "required_level": 24,
+      "stats": {
+        "vitality": 10
+      },
+      "armor_value": 34,
+      "_sourceFile": "game/data/armors/arm_mythril_helm_high.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_mythril_legs_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_mythril_legs_high",
+      "display_name": "Mythril Legguards",
+      "description": "Mythril plate gear for the deep seam. It holds a shape through weather, blade, and the long walk back.",
+      "icon_path": "res://icons/items/armor_starmetal_bulwark.png",
+      "item_category": 1,
+      "rarity": 5,
+      "equip_slot": 3,
+      "armor_type": 4,
+      "stack_size": 1,
+      "sell_price": 2640,
+      "buy_price": 8800,
+      "item_level": 28,
+      "required_level": 28,
+      "stats": {
+        "vitality": 10
+      },
+      "armor_value": 60,
+      "_sourceFile": "game/data/armors/arm_mythril_legs_high.tres",
       "_scriptClass": "Item"
     },
     "arm_mythril_wardmail": {
@@ -2733,6 +4664,131 @@
       "_sourceFile": "game/data/armors/arm_mythril_wardmail.tres",
       "_scriptClass": "Item"
     },
+    "arm_overclocker_legs": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_overclocker_legs",
+      "display_name": "Overclocker Continuum Plating",
+      "description": "Tight-linked plates over a soft weave, tuned so a hurried step never trips the one behind it.",
+      "icon_path": "res://icons/items/armor_golden_scale.png",
+      "item_category": 1,
+      "rarity": 3,
+      "equip_slot": 3,
+      "armor_type": 1,
+      "stack_size": 1,
+      "sell_price": 228,
+      "buy_price": 760,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "synthetic_overclocker",
+      "stats": {
+        "vitality": 6
+      },
+      "armor_value": 12,
+      "_sourceFile": "game/data/armors/arm_overclocker_legs.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_psion_chest": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_psion_chest",
+      "display_name": "Psion's Mindward Robe",
+      "description": "A close robe woven with a single unbroken filament. The weave knows its wearer and refuses to know anyone else.",
+      "icon_path": "res://icons/items/armor_golden_scale.png",
+      "item_category": 1,
+      "rarity": 3,
+      "equip_slot": 2,
+      "armor_type": 1,
+      "stack_size": 1,
+      "sell_price": 228,
+      "buy_price": 760,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "synthetic_psion",
+      "stats": {
+        "vitality": 6
+      },
+      "armor_value": 12,
+      "_sourceFile": "game/data/armors/arm_psion_chest.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_rune_gauntlets": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_rune_gauntlets",
+      "display_name": "Runesmith's Sigil Gauntlets",
+      "description": "Iron-scaled gloves, the knuckles inset with sigil tablets. To scribe a ward you must be touching the world.",
+      "icon_path": "res://icons/items/armor_iron_mail.png",
+      "item_category": 1,
+      "rarity": 3,
+      "equip_slot": 5,
+      "armor_type": 3,
+      "stack_size": 1,
+      "sell_price": 228,
+      "buy_price": 760,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "akkan_rune",
+      "stats": {
+        "vitality": 6
+      },
+      "armor_value": 12,
+      "_sourceFile": "game/data/armors/arm_rune_gauntlets.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_seer_chest": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_seer_chest",
+      "display_name": "Seer's Farseeing Robe",
+      "description": "A robe of shadow-silk that softens the wearer at the edges, as if half of them is already elsewhere.",
+      "icon_path": "res://icons/items/armor_golden_scale.png",
+      "item_category": 1,
+      "rarity": 3,
+      "equip_slot": 2,
+      "armor_type": 1,
+      "stack_size": 1,
+      "sell_price": 228,
+      "buy_price": 760,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "akkan_seer",
+      "stats": {
+        "vitality": 6
+      },
+      "armor_value": 12,
+      "_sourceFile": "game/data/armors/arm_seer_chest.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_shaman_chest": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_shaman_chest",
+      "display_name": "Shaman's Ancestral Mantle",
+      "description": "Hide and cord hung with bone charms, each one a name the shaman has promised to carry.",
+      "icon_path": "res://icons/items/armor_leather_chest.png",
+      "item_category": 1,
+      "rarity": 3,
+      "equip_slot": 2,
+      "armor_type": 2,
+      "stack_size": 1,
+      "sell_price": 228,
+      "buy_price": 760,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "akkan_shaman",
+      "stats": {
+        "vitality": 6
+      },
+      "armor_value": 13,
+      "_sourceFile": "game/data/armors/arm_shaman_chest.tres",
+      "_scriptClass": "Item"
+    },
     "arm_shield_haven_wall": {
       "script": {
         "_extResource": "1"
@@ -2744,7 +4800,7 @@
       "item_category": 1,
       "rarity": 2,
       "equip_slot": 6,
-      "weapon_type": 11,
+      "weapon_type": 10,
       "armor_type": 3,
       "stack_size": 1,
       "bind_on_equip": true,
@@ -2758,6 +4814,55 @@
         "block_chance": 18
       },
       "_sourceFile": "game/data/armors/arm_shield_haven_wall.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_shield_iron_wall": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_shield_iron_wall",
+      "display_name": "Iron Wall Shield",
+      "description": "A round iron-bound shield over a planked core. Plain work, and plain work is what survives a border winter.",
+      "icon_path": "res://icons/items/shield_haven_wall.png",
+      "item_category": 1,
+      "rarity": 2,
+      "equip_slot": 6,
+      "weapon_type": 10,
+      "armor_type": 3,
+      "stack_size": 1,
+      "sell_price": 96,
+      "buy_price": 320,
+      "item_level": 8,
+      "required_level": 8,
+      "stats": {
+        "vitality": 4
+      },
+      "armor_value": 32,
+      "_sourceFile": "game/data/armors/arm_shield_iron_wall.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_silver_chest_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_silver_chest_high",
+      "display_name": "Silver Chestguard",
+      "description": "Silver mail gear for the low marches. It holds a shape through weather, blade, and the long walk back.",
+      "icon_path": "res://icons/items/armor_iron_mail.png",
+      "item_category": 1,
+      "rarity": 4,
+      "equip_slot": 2,
+      "armor_type": 3,
+      "stack_size": 1,
+      "sell_price": 1860,
+      "buy_price": 6200,
+      "item_level": 20,
+      "required_level": 20,
+      "stats": {
+        "vitality": 9
+      },
+      "armor_value": 44,
+      "_sourceFile": "game/data/armors/arm_silver_chest_high.tres",
       "_scriptClass": "Item"
     },
     "arm_silver_scale_legs": {
@@ -2786,6 +4891,176 @@
       "_sourceFile": "game/data/armors/arm_silver_scale_legs.tres",
       "_scriptClass": "Item"
     },
+    "arm_skyforged_boots_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_skyforged_boots_high",
+      "display_name": "Skyforged Boots",
+      "description": "Skyforged plate gear for the outer air. It holds a shape through weather, blade, and the long walk back.",
+      "icon_path": "res://icons/items/armor_starmetal_bulwark.png",
+      "item_category": 1,
+      "rarity": 5,
+      "equip_slot": 4,
+      "armor_type": 4,
+      "stack_size": 1,
+      "sell_price": 10410,
+      "buy_price": 34700,
+      "item_level": 54,
+      "required_level": 54,
+      "stats": {
+        "vitality": 15
+      },
+      "armor_value": 86,
+      "_sourceFile": "game/data/armors/arm_skyforged_boots_high.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_skyforged_chest_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_skyforged_chest_high",
+      "display_name": "Skyforged Chestguard",
+      "description": "Skyforged plate gear for the roof of the world. It holds a shape through weather, blade, and the long walk back.",
+      "icon_path": "res://icons/items/armor_starmetal_bulwark.png",
+      "item_category": 1,
+      "rarity": 5,
+      "equip_slot": 2,
+      "armor_type": 4,
+      "stack_size": 1,
+      "sell_price": 13080,
+      "buy_price": 43600,
+      "item_level": 58,
+      "required_level": 58,
+      "stats": {
+        "vitality": 15
+      },
+      "armor_value": 90,
+      "_sourceFile": "game/data/armors/arm_skyforged_chest_high.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_skyforged_helm_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_skyforged_helm_high",
+      "display_name": "Skyforged Helm",
+      "description": "Skyforged leather gear for the skyward stair. It holds a shape through weather, blade, and the long walk back.",
+      "icon_path": "res://icons/items/armor_leather_chest.png",
+      "item_category": 1,
+      "rarity": 5,
+      "equip_slot": 1,
+      "armor_type": 2,
+      "stack_size": 1,
+      "sell_price": 9300,
+      "buy_price": 31000,
+      "item_level": 52,
+      "required_level": 52,
+      "stats": {
+        "vitality": 14
+      },
+      "armor_value": 68,
+      "_sourceFile": "game/data/armors/arm_skyforged_helm_high.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_skyforged_legs_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_skyforged_legs_high",
+      "display_name": "Skyforged Legguards",
+      "description": "Skyforged cloth gear for the outer air. It holds a shape through weather, blade, and the long walk back.",
+      "icon_path": "res://icons/items/armor_golden_scale.png",
+      "item_category": 1,
+      "rarity": 5,
+      "equip_slot": 3,
+      "armor_type": 1,
+      "stack_size": 1,
+      "sell_price": 11670,
+      "buy_price": 38900,
+      "item_level": 56,
+      "required_level": 56,
+      "stats": {
+        "vitality": 15
+      },
+      "armor_value": 66,
+      "_sourceFile": "game/data/armors/arm_skyforged_legs_high.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_sorcerer_pauldrons": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_sorcerer_pauldrons",
+      "display_name": "Sorcerer's Stormweave Mantle",
+      "description": "Woven from unquiet thread, the mantle sheds the backwash of every working that passes through it.",
+      "icon_path": "res://icons/items/armor_golden_scale.png",
+      "item_category": 1,
+      "rarity": 3,
+      "equip_slot": 6,
+      "armor_type": 1,
+      "stack_size": 1,
+      "sell_price": 228,
+      "buy_price": 760,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "human_sorcerer",
+      "stats": {
+        "vitality": 6
+      },
+      "armor_value": 12,
+      "_sourceFile": "game/data/armors/arm_sorcerer_pauldrons.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_stalker_chest": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_stalker_chest",
+      "display_name": "Stalker's Shadowhide Jerkin",
+      "description": "Blackened hide over a silent lining, scented with deepwood resin so the dark does not notice the wearer.",
+      "icon_path": "res://icons/items/armor_leather_chest.png",
+      "item_category": 1,
+      "rarity": 3,
+      "equip_slot": 2,
+      "armor_type": 2,
+      "stack_size": 1,
+      "sell_price": 228,
+      "buy_price": 760,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "akkan_stalker",
+      "stats": {
+        "vitality": 6
+      },
+      "armor_value": 15,
+      "_sourceFile": "game/data/armors/arm_stalker_chest.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_starmetal_boots_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_starmetal_boots_high",
+      "display_name": "Starmetal Boots",
+      "description": "Starmetal leather gear for the high crags. It holds a shape through weather, blade, and the long walk back.",
+      "icon_path": "res://icons/items/armor_leather_chest.png",
+      "item_category": 1,
+      "rarity": 5,
+      "equip_slot": 4,
+      "armor_type": 2,
+      "stack_size": 1,
+      "sell_price": 3540,
+      "buy_price": 11800,
+      "item_level": 34,
+      "required_level": 34,
+      "stats": {
+        "vitality": 11
+      },
+      "armor_value": 50,
+      "_sourceFile": "game/data/armors/arm_starmetal_boots_high.tres",
+      "_scriptClass": "Item"
+    },
     "arm_starmetal_bulwark": {
       "script": {
         "_extResource": "1"
@@ -2810,6 +5085,346 @@
       },
       "armor_value": 44,
       "_sourceFile": "game/data/armors/arm_starmetal_bulwark.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_starmetal_chest_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_starmetal_chest_high",
+      "display_name": "Starmetal Chestguard",
+      "description": "Starmetal mail gear for the starfall reach. It holds a shape through weather, blade, and the long walk back.",
+      "icon_path": "res://icons/items/armor_iron_mail.png",
+      "item_category": 1,
+      "rarity": 5,
+      "equip_slot": 2,
+      "armor_type": 3,
+      "stack_size": 1,
+      "sell_price": 2910,
+      "buy_price": 9700,
+      "item_level": 30,
+      "required_level": 30,
+      "stats": {
+        "vitality": 11
+      },
+      "armor_value": 54,
+      "_sourceFile": "game/data/armors/arm_starmetal_chest_high.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_starmetal_gauntlets_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_starmetal_gauntlets_high",
+      "display_name": "Starmetal Gauntlets",
+      "description": "Starmetal mail gear for the windward shelf. It holds a shape through weather, blade, and the long walk back.",
+      "icon_path": "res://icons/items/armor_iron_mail.png",
+      "item_category": 1,
+      "rarity": 5,
+      "equip_slot": 5,
+      "armor_type": 3,
+      "stack_size": 1,
+      "sell_price": 4350,
+      "buy_price": 14500,
+      "item_level": 38,
+      "required_level": 38,
+      "stats": {
+        "vitality": 12
+      },
+      "armor_value": 62,
+      "_sourceFile": "game/data/armors/arm_starmetal_gauntlets_high.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_starmetal_helm_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_starmetal_helm_high",
+      "display_name": "Starmetal Helm",
+      "description": "Starmetal plate gear for the starfall reach. It holds a shape through weather, blade, and the long walk back.",
+      "icon_path": "res://icons/items/armor_starmetal_bulwark.png",
+      "item_category": 1,
+      "rarity": 5,
+      "equip_slot": 1,
+      "armor_type": 4,
+      "stack_size": 1,
+      "sell_price": 3210,
+      "buy_price": 10700,
+      "item_level": 32,
+      "required_level": 32,
+      "stats": {
+        "vitality": 11
+      },
+      "armor_value": 64,
+      "_sourceFile": "game/data/armors/arm_starmetal_helm_high.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_starmetal_legs_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_starmetal_legs_high",
+      "display_name": "Starmetal Legguards",
+      "description": "Starmetal cloth gear for the high crags. It holds a shape through weather, blade, and the long walk back.",
+      "icon_path": "res://icons/items/armor_golden_scale.png",
+      "item_category": 1,
+      "rarity": 5,
+      "equip_slot": 3,
+      "armor_type": 1,
+      "stack_size": 1,
+      "sell_price": 3930,
+      "buy_price": 13100,
+      "item_level": 36,
+      "required_level": 36,
+      "stats": {
+        "vitality": 12
+      },
+      "armor_value": 46,
+      "_sourceFile": "game/data/armors/arm_starmetal_legs_high.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_starmetal_pauldrons_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_starmetal_pauldrons_high",
+      "display_name": "Starmetal Pauldrons",
+      "description": "Starmetal plate gear for the windward shelf. It holds a shape through weather, blade, and the long walk back.",
+      "icon_path": "res://icons/items/armor_starmetal_bulwark.png",
+      "item_category": 1,
+      "rarity": 5,
+      "equip_slot": 6,
+      "armor_type": 4,
+      "stack_size": 1,
+      "sell_price": 4830,
+      "buy_price": 16100,
+      "item_level": 40,
+      "required_level": 40,
+      "stats": {
+        "vitality": 12
+      },
+      "armor_value": 72,
+      "_sourceFile": "game/data/armors/arm_starmetal_pauldrons_high.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_sunforged_boots_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_sunforged_boots_high",
+      "display_name": "Sunforged Boots",
+      "description": "Sunforged leather gear for the sun-touched rim. It holds a shape through weather, blade, and the long walk back.",
+      "icon_path": "res://icons/items/armor_leather_chest.png",
+      "item_category": 1,
+      "rarity": 5,
+      "equip_slot": 4,
+      "armor_type": 2,
+      "stack_size": 1,
+      "sell_price": 5970,
+      "buy_price": 19900,
+      "item_level": 44,
+      "required_level": 44,
+      "stats": {
+        "vitality": 13
+      },
+      "armor_value": 60,
+      "_sourceFile": "game/data/armors/arm_sunforged_boots_high.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_sunforged_chest_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_sunforged_chest_high",
+      "display_name": "Sunforged Chestguard",
+      "description": "Sunforged plate gear for the long ascent. It holds a shape through weather, blade, and the long walk back.",
+      "icon_path": "res://icons/items/armor_starmetal_bulwark.png",
+      "item_category": 1,
+      "rarity": 5,
+      "equip_slot": 2,
+      "armor_type": 4,
+      "stack_size": 1,
+      "sell_price": 7440,
+      "buy_price": 24800,
+      "item_level": 48,
+      "required_level": 48,
+      "stats": {
+        "vitality": 14
+      },
+      "armor_value": 80,
+      "_sourceFile": "game/data/armors/arm_sunforged_chest_high.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_sunforged_gauntlets_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_sunforged_gauntlets_high",
+      "display_name": "Sunforged Gauntlets",
+      "description": "Sunforged mail gear for the skyward stair. It holds a shape through weather, blade, and the long walk back.",
+      "icon_path": "res://icons/items/armor_iron_mail.png",
+      "item_category": 1,
+      "rarity": 5,
+      "equip_slot": 5,
+      "armor_type": 3,
+      "stack_size": 1,
+      "sell_price": 8310,
+      "buy_price": 27700,
+      "item_level": 50,
+      "required_level": 50,
+      "stats": {
+        "vitality": 14
+      },
+      "armor_value": 74,
+      "_sourceFile": "game/data/armors/arm_sunforged_gauntlets_high.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_sunforged_helm_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_sunforged_helm_high",
+      "display_name": "Sunforged Helm",
+      "description": "Sunforged mail gear for the sun-touched rim. It holds a shape through weather, blade, and the long walk back.",
+      "icon_path": "res://icons/items/armor_iron_mail.png",
+      "item_category": 1,
+      "rarity": 5,
+      "equip_slot": 1,
+      "armor_type": 3,
+      "stack_size": 1,
+      "sell_price": 5370,
+      "buy_price": 17900,
+      "item_level": 42,
+      "required_level": 42,
+      "stats": {
+        "vitality": 13
+      },
+      "armor_value": 66,
+      "_sourceFile": "game/data/armors/arm_sunforged_helm_high.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_sunforged_legs_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_sunforged_legs_high",
+      "display_name": "Sunforged Legguards",
+      "description": "Sunforged cloth gear for the long ascent. It holds a shape through weather, blade, and the long walk back.",
+      "icon_path": "res://icons/items/armor_golden_scale.png",
+      "item_category": 1,
+      "rarity": 5,
+      "equip_slot": 3,
+      "armor_type": 1,
+      "stack_size": 1,
+      "sell_price": 6660,
+      "buy_price": 22200,
+      "item_level": 46,
+      "required_level": 46,
+      "stats": {
+        "vitality": 13
+      },
+      "armor_value": 56,
+      "_sourceFile": "game/data/armors/arm_sunforged_legs_high.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_temporalist_legs": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_temporalist_legs",
+      "display_name": "Temporalist's Continuum Robe",
+      "description": "A robe cut from a single unbroken thread, hem to collar. It does not unravel, and neither does its wearer's nerve.",
+      "icon_path": "res://icons/items/armor_golden_scale.png",
+      "item_category": 1,
+      "rarity": 3,
+      "equip_slot": 3,
+      "armor_type": 1,
+      "stack_size": 1,
+      "sell_price": 228,
+      "buy_price": 760,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "human_temporalist",
+      "stats": {
+        "vitality": 6
+      },
+      "armor_value": 12,
+      "_sourceFile": "game/data/armors/arm_temporalist_legs.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_tracker_chest": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_tracker_chest",
+      "display_name": "Tracker's Fieldcloak Rig",
+      "description": "Layered hide and a folding cowl, cut to keep the wearer's outline a rumor at range.",
+      "icon_path": "res://icons/items/armor_leather_chest.png",
+      "item_category": 1,
+      "rarity": 3,
+      "equip_slot": 2,
+      "armor_type": 2,
+      "stack_size": 1,
+      "sell_price": 228,
+      "buy_price": 760,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "synthetic_tracker",
+      "stats": {
+        "vitality": 6
+      },
+      "armor_value": 15,
+      "_sourceFile": "game/data/armors/arm_tracker_chest.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_warden_chest": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_warden_chest",
+      "display_name": "Warden Lockplate",
+      "description": "Interlocking plate that redistributes a blow across the whole frame. It does not stop the hit; it files it somewhere harmless.",
+      "icon_path": "res://icons/items/armor_starmetal_bulwark.png",
+      "item_category": 1,
+      "rarity": 3,
+      "equip_slot": 2,
+      "armor_type": 4,
+      "stack_size": 1,
+      "sell_price": 228,
+      "buy_price": 760,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "synthetic_warden",
+      "stats": {
+        "vitality": 6
+      },
+      "armor_value": 20,
+      "_sourceFile": "game/data/armors/arm_warden_chest.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_warrior_chest": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_warrior_chest",
+      "display_name": "Soldier's Ringmail",
+      "description": "Riveted rings over a padded gambeson, cut long to the knee. Heavy on the shoulders and honest about it.",
+      "icon_path": "res://icons/items/armor_iron_mail.png",
+      "item_category": 1,
+      "rarity": 3,
+      "equip_slot": 2,
+      "armor_type": 3,
+      "stack_size": 1,
+      "sell_price": 228,
+      "buy_price": 760,
+      "item_level": 10,
+      "required_level": 10,
+      "required_class": "human_warrior",
+      "stats": {
+        "vitality": 6
+      },
+      "armor_value": 20,
+      "_sourceFile": "game/data/armors/arm_warrior_chest.tres",
       "_scriptClass": "Item"
     }
   },
@@ -3616,7 +6231,7 @@
       "is_elite": true,
       "is_boss": false,
       "is_social": false,
-      "loot_table_id": "",
+      "loot_table_id": "loot_skyward_reach",
       "secondary_loot_table_id": "loot_elite_ore",
       "gold_min": 350,
       "gold_max": 600,
@@ -3821,7 +6436,7 @@
       "is_elite": false,
       "is_boss": true,
       "is_social": false,
-      "loot_table_id": "",
+      "loot_table_id": "loot_high_marches",
       "gold_min": 800,
       "gold_max": 1500,
       "xp_reward": 4000,
@@ -13879,6 +16494,30 @@
     }
   },
   "accessories": {
+    "acc_belt_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_belt_high",
+      "display_name": "Highcountry Girdle",
+      "description": "A broad hide belt laced with silver rings, hung with every tool a long campaign asks for.",
+      "icon_path": "res://icons/items/belt_reclaimer.png",
+      "item_category": 2,
+      "rarity": 4,
+      "equip_slot": 13,
+      "accessory_type": 5,
+      "stack_size": 1,
+      "sell_price": 2640,
+      "buy_price": 8800,
+      "item_level": 28,
+      "required_level": 28,
+      "stats": {
+        "strength": 5,
+        "agility": 3
+      },
+      "_sourceFile": "game/data/accessories/acc_belt_high.tres",
+      "_scriptClass": "Item"
+    },
     "acc_belt_reclaimer": {
       "script": {
         "_extResource": "1"
@@ -13903,6 +16542,245 @@
         "carry_capacity": 20
       },
       "_sourceFile": "game/data/accessories/acc_belt_reclaimer.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_belt_skyforged": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_belt_skyforged",
+      "display_name": "Skyforged Girdle",
+      "description": "A girdle of skyforged plate, worn by the few who have walked the top rung and come back down.",
+      "icon_path": "res://icons/items/belt_reclaimer.png",
+      "item_category": 2,
+      "rarity": 5,
+      "equip_slot": 13,
+      "accessory_type": 5,
+      "stack_size": 1,
+      "sell_price": 13080,
+      "buy_price": 43600,
+      "item_level": 58,
+      "required_level": 58,
+      "stats": {
+        "strength": 9,
+        "vitality": 9
+      },
+      "_sourceFile": "game/data/accessories/acc_belt_skyforged.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_belt_sunforged": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_belt_sunforged",
+      "display_name": "Sunforged War Girdle",
+      "description": "A girdle of sunforged plate and hide, cut for the one who carries the whole column's kit.",
+      "icon_path": "res://icons/items/belt_reclaimer.png",
+      "item_category": 2,
+      "rarity": 5,
+      "equip_slot": 13,
+      "accessory_type": 5,
+      "stack_size": 1,
+      "sell_price": 7440,
+      "buy_price": 24800,
+      "item_level": 48,
+      "required_level": 48,
+      "stats": {
+        "strength": 7,
+        "vitality": 7
+      },
+      "_sourceFile": "game/data/accessories/acc_belt_sunforged.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_belt_titanhide": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_belt_titanhide",
+      "display_name": "Titanhide War Girdle",
+      "description": "A girdle of hide and banded plate, cut for the one who carries the whole column's kit.",
+      "icon_path": "res://icons/items/belt_reclaimer.png",
+      "item_category": 2,
+      "rarity": 4,
+      "equip_slot": 13,
+      "accessory_type": 5,
+      "stack_size": 1,
+      "sell_price": 4350,
+      "buy_price": 14500,
+      "item_level": 38,
+      "required_level": 38,
+      "stats": {
+        "strength": 6,
+        "vitality": 5
+      },
+      "_sourceFile": "game/data/accessories/acc_belt_titanhide.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_bracelet_copper": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_bracelet_copper",
+      "display_name": "Copper Bracelet",
+      "description": "A hammered copper band worn at the wrist. It buys no luck; it only reminds the arm to keep working.",
+      "icon_path": "res://icons/items/ring_first_light.png",
+      "item_category": 2,
+      "rarity": 1,
+      "equip_slot": 9,
+      "accessory_type": 3,
+      "stack_size": 1,
+      "sell_price": 12,
+      "buy_price": 50,
+      "item_level": 3,
+      "required_level": 2,
+      "stats": {
+        "agility": 2
+      },
+      "_sourceFile": "game/data/accessories/acc_bracelet_copper.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_bracelet_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_bracelet_high",
+      "display_name": "Highcountry Bracelet",
+      "description": "A banded bracelet of pale metal and braided cord, cut for the wrist that steadies the blade.",
+      "icon_path": "res://icons/items/ring_first_light.png",
+      "item_category": 2,
+      "rarity": 4,
+      "equip_slot": 9,
+      "accessory_type": 3,
+      "stack_size": 1,
+      "sell_price": 2400,
+      "buy_price": 8000,
+      "item_level": 26,
+      "required_level": 26,
+      "stats": {
+        "strength": 5,
+        "vitality": 4
+      },
+      "_sourceFile": "game/data/accessories/acc_bracelet_high.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_bracelet_skyforged": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_bracelet_skyforged",
+      "display_name": "Skyforged Bracer",
+      "description": "A skyforged cuff, cold to the touch and light as a held breath. The wrist forgets it is wearing anything.",
+      "icon_path": "res://icons/items/ring_first_light.png",
+      "item_category": 2,
+      "rarity": 5,
+      "equip_slot": 9,
+      "accessory_type": 3,
+      "stack_size": 1,
+      "sell_price": 11670,
+      "buy_price": 38900,
+      "item_level": 56,
+      "required_level": 56,
+      "stats": {
+        "strength": 10,
+        "agility": 6
+      },
+      "_sourceFile": "game/data/accessories/acc_bracelet_skyforged.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_bracelet_starmetal": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_bracelet_starmetal",
+      "display_name": "Starmetal Bracer",
+      "description": "A starmetal band seated over a woven lining. It does not loosen, and neither does the wrist it steadies.",
+      "icon_path": "res://icons/items/ring_first_light.png",
+      "item_category": 2,
+      "rarity": 4,
+      "equip_slot": 9,
+      "accessory_type": 3,
+      "stack_size": 1,
+      "sell_price": 700,
+      "buy_price": 2400,
+      "item_level": 18,
+      "required_level": 18,
+      "stats": {
+        "vitality": 3,
+        "strength": 3
+      },
+      "_sourceFile": "game/data/accessories/acc_bracelet_starmetal.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_bracelet_sunforged": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_bracelet_sunforged",
+      "display_name": "Sunforged Bracer",
+      "description": "A sunforged cuff over braided cord, warm at the wrist through the coldest ascent.",
+      "icon_path": "res://icons/items/ring_first_light.png",
+      "item_category": 2,
+      "rarity": 5,
+      "equip_slot": 9,
+      "accessory_type": 3,
+      "stack_size": 1,
+      "sell_price": 6660,
+      "buy_price": 22200,
+      "item_level": 46,
+      "required_level": 46,
+      "stats": {
+        "strength": 8,
+        "vitality": 6
+      },
+      "_sourceFile": "game/data/accessories/acc_bracelet_sunforged.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_bracelet_tide": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_bracelet_tide",
+      "display_name": "Tidewrought Bracelet",
+      "description": "A bracelet of braided kelp and shore-iron, worn where the pulse shows. The harbor-folk say it knows the current before the water does.",
+      "icon_path": "res://icons/items/ring_first_light.png",
+      "item_category": 2,
+      "rarity": 2,
+      "equip_slot": 9,
+      "accessory_type": 3,
+      "stack_size": 1,
+      "sell_price": 90,
+      "buy_price": 320,
+      "item_level": 12,
+      "required_level": 10,
+      "stats": {
+        "agility": 4,
+        "vitality": 2
+      },
+      "_sourceFile": "game/data/accessories/acc_bracelet_tide.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_bracelet_titanhide": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_bracelet_titanhide",
+      "display_name": "Titanhide Bracer",
+      "description": "A titanhide cuff over a woven lining, laced tight at the forearm. It does not slip, whatever the hand is doing.",
+      "icon_path": "res://icons/items/ring_first_light.png",
+      "item_category": 2,
+      "rarity": 4,
+      "equip_slot": 9,
+      "accessory_type": 3,
+      "stack_size": 1,
+      "sell_price": 3930,
+      "buy_price": 13100,
+      "item_level": 36,
+      "required_level": 36,
+      "stats": {
+        "strength": 6,
+        "agility": 4
+      },
+      "_sourceFile": "game/data/accessories/acc_bracelet_titanhide.tres",
       "_scriptClass": "Item"
     },
     "acc_breather_abyss_pearl": {
@@ -14002,6 +16880,102 @@
       "_sourceFile": "game/data/accessories/acc_cloak_saltworn.tres",
       "_scriptClass": "Item"
     },
+    "acc_cloak_skyforged": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_cloak_skyforged",
+      "display_name": "Skyforged Cloak",
+      "description": "A cloak that hangs a half-breath lighter than the hand expects, cut from the sky's own salvage.",
+      "icon_path": "res://icons/items/cloak_wanderer.png",
+      "item_category": 2,
+      "rarity": 5,
+      "equip_slot": 12,
+      "accessory_type": 4,
+      "stack_size": 1,
+      "sell_price": 10410,
+      "buy_price": 34700,
+      "item_level": 54,
+      "required_level": 54,
+      "stats": {
+        "vitality": 12,
+        "agility": 6
+      },
+      "_sourceFile": "game/data/accessories/acc_cloak_skyforged.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_cloak_stormwrought": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_cloak_stormwrought",
+      "display_name": "Stormwrought Cloak",
+      "description": "A cloak of layered salvage cloth, tarred against the high wind and the long walk down.",
+      "icon_path": "res://icons/items/cloak_wanderer.png",
+      "item_category": 2,
+      "rarity": 3,
+      "equip_slot": 12,
+      "accessory_type": 4,
+      "stack_size": 1,
+      "sell_price": 2190,
+      "buy_price": 7300,
+      "item_level": 24,
+      "required_level": 24,
+      "stats": {
+        "vitality": 6,
+        "agility": 3
+      },
+      "_sourceFile": "game/data/accessories/acc_cloak_stormwrought.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_cloak_sunforged": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_cloak_sunforged",
+      "display_name": "Sunforged Mantle",
+      "description": "A mantle woven with dawn thread, warm in the cold and cool in the heat. It has opinions about weather.",
+      "icon_path": "res://icons/items/cloak_wanderer.png",
+      "item_category": 2,
+      "rarity": 5,
+      "equip_slot": 12,
+      "accessory_type": 4,
+      "stack_size": 1,
+      "sell_price": 5970,
+      "buy_price": 19900,
+      "item_level": 44,
+      "required_level": 44,
+      "stats": {
+        "vitality": 10,
+        "wisdom": 6
+      },
+      "_sourceFile": "game/data/accessories/acc_cloak_sunforged.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_cloak_titanhide": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_cloak_titanhide",
+      "display_name": "Titanhide Cloak",
+      "description": "A cloak of titanhide, cured over a full season. Nothing high and nothing cold gets through it.",
+      "icon_path": "res://icons/items/cloak_wanderer.png",
+      "item_category": 2,
+      "rarity": 4,
+      "equip_slot": 12,
+      "accessory_type": 4,
+      "stack_size": 1,
+      "sell_price": 3540,
+      "buy_price": 11800,
+      "item_level": 34,
+      "required_level": 34,
+      "stats": {
+        "vitality": 8,
+        "strength": 4
+      },
+      "_sourceFile": "game/data/accessories/acc_cloak_titanhide.tres",
+      "_scriptClass": "Item"
+    },
     "acc_cloak_wanderer": {
       "script": {
         "_extResource": "1"
@@ -14050,6 +17024,30 @@
         "wisdom": 1
       },
       "_sourceFile": "game/data/accessories/acc_necklace_haven_pearl.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_necklace_highward": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_necklace_highward",
+      "display_name": "Highward Necklace",
+      "description": "A warded bead on a braided cord, cut for the ones who stand where the frontier thins out.",
+      "icon_path": "res://icons/items/necklace_haven_pearl.png",
+      "item_category": 2,
+      "rarity": 3,
+      "equip_slot": 11,
+      "accessory_type": 2,
+      "stack_size": 1,
+      "sell_price": 2010,
+      "buy_price": 6700,
+      "item_level": 22,
+      "required_level": 22,
+      "stats": {
+        "wisdom": 5,
+        "vitality": 3
+      },
+      "_sourceFile": "game/data/accessories/acc_necklace_highward.tres",
       "_scriptClass": "Item"
     },
     "acc_necklace_paleshard_ward": {
@@ -14128,6 +17126,78 @@
       "_sourceFile": "game/data/accessories/acc_necklace_sinew.tres",
       "_scriptClass": "Item"
     },
+    "acc_necklace_skyforged": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_necklace_skyforged",
+      "display_name": "Skyforged Ward",
+      "description": "A ward-bead of skyforged metal on a woven cord, cut for the highest walk in the world.",
+      "icon_path": "res://icons/items/necklace_paleshard_ward.png",
+      "item_category": 2,
+      "rarity": 5,
+      "equip_slot": 11,
+      "accessory_type": 2,
+      "stack_size": 1,
+      "sell_price": 9300,
+      "buy_price": 31000,
+      "item_level": 52,
+      "required_level": 52,
+      "stats": {
+        "wisdom": 10,
+        "vitality": 8
+      },
+      "_sourceFile": "game/data/accessories/acc_necklace_skyforged.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_necklace_sunforged": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_necklace_sunforged",
+      "display_name": "Sunforged Pendant",
+      "description": "A dawnstone on a sunforged chain. Held to the light it shows a horizon that is not quite this one.",
+      "icon_path": "res://icons/items/necklace_pearl_sigil.png",
+      "item_category": 2,
+      "rarity": 5,
+      "equip_slot": 11,
+      "accessory_type": 2,
+      "stack_size": 1,
+      "sell_price": 5370,
+      "buy_price": 17900,
+      "item_level": 42,
+      "required_level": 42,
+      "stats": {
+        "wisdom": 8,
+        "vitality": 6
+      },
+      "_sourceFile": "game/data/accessories/acc_necklace_sunforged.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_necklace_titanbone": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_necklace_titanbone",
+      "display_name": "Titanbone Torc",
+      "description": "A torc of the same titanbone, worn where the pulse shows. It does not quiet the heart; it steadies it.",
+      "icon_path": "res://icons/items/necklace_paleshard_ward.png",
+      "item_category": 2,
+      "rarity": 4,
+      "equip_slot": 11,
+      "accessory_type": 2,
+      "stack_size": 1,
+      "sell_price": 3210,
+      "buy_price": 10700,
+      "item_level": 32,
+      "required_level": 32,
+      "stats": {
+        "vitality": 6,
+        "strength": 4
+      },
+      "_sourceFile": "game/data/accessories/acc_necklace_titanbone.tres",
+      "_scriptClass": "Item"
+    },
     "acc_ring_copper_band": {
       "script": {
         "_extResource": "1"
@@ -14176,6 +17246,30 @@
       "_sourceFile": "game/data/accessories/acc_ring_first_light.tres",
       "_scriptClass": "Item"
     },
+    "acc_ring_golden_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_ring_golden_high",
+      "display_name": "Golden Ring of the Ledger",
+      "description": "A tempered-gold band cut with the Concord pillar, worn by those who answer for sums they did not spend.",
+      "icon_path": "res://icons/items/ring_golden_signet.png",
+      "item_category": 2,
+      "rarity": 3,
+      "equip_slot": 9,
+      "accessory_type": 1,
+      "stack_size": 1,
+      "sell_price": 1860,
+      "buy_price": 6200,
+      "item_level": 20,
+      "required_level": 20,
+      "stats": {
+        "vitality": 4,
+        "strength": 3
+      },
+      "_sourceFile": "game/data/accessories/acc_ring_golden_high.tres",
+      "_scriptClass": "Item"
+    },
     "acc_ring_golden_signet": {
       "script": {
         "_extResource": "1"
@@ -14199,6 +17293,30 @@
         "strength": 2
       },
       "_sourceFile": "game/data/accessories/acc_ring_golden_signet.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_ring_skyforged": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_ring_skyforged",
+      "display_name": "Skyforged Signet",
+      "description": "A signet cut from a fallen sky-crate's band. It carries the sky's own weight and none of its hurry.",
+      "icon_path": "res://icons/items/ring_starbinder.png",
+      "item_category": 2,
+      "rarity": 5,
+      "equip_slot": 9,
+      "accessory_type": 1,
+      "stack_size": 1,
+      "sell_price": 8310,
+      "buy_price": 27700,
+      "item_level": 50,
+      "required_level": 50,
+      "stats": {
+        "strength": 10,
+        "vitality": 8
+      },
+      "_sourceFile": "game/data/accessories/acc_ring_skyforged.tres",
       "_scriptClass": "Item"
     },
     "acc_ring_starbinder": {
@@ -14226,6 +17344,30 @@
       "_sourceFile": "game/data/accessories/acc_ring_starbinder.tres",
       "_scriptClass": "Item"
     },
+    "acc_ring_sunforged": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_ring_sunforged",
+      "display_name": "Sunforged Ring",
+      "description": "A ring quenched in the dawn tide, warm to the touch long after the sun has gone.",
+      "icon_path": "res://icons/items/ring_first_light.png",
+      "item_category": 2,
+      "rarity": 5,
+      "equip_slot": 9,
+      "accessory_type": 1,
+      "stack_size": 1,
+      "sell_price": 4830,
+      "buy_price": 16100,
+      "item_level": 40,
+      "required_level": 40,
+      "stats": {
+        "strength": 8,
+        "vitality": 6
+      },
+      "_sourceFile": "game/data/accessories/acc_ring_sunforged.tres",
+      "_scriptClass": "Item"
+    },
     "acc_ring_tidecaller": {
       "script": {
         "_extResource": "1"
@@ -14249,6 +17391,30 @@
         "vitality": 1
       },
       "_sourceFile": "game/data/accessories/acc_ring_tidecaller.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_ring_titanbone": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_ring_titanbone",
+      "display_name": "Titanbone Ring",
+      "description": "A ring of titanbone bound in silver, heavy enough to be felt and light enough to forget.",
+      "icon_path": "res://icons/items/ring_starbinder.png",
+      "item_category": 2,
+      "rarity": 4,
+      "equip_slot": 9,
+      "accessory_type": 1,
+      "stack_size": 1,
+      "sell_price": 2910,
+      "buy_price": 9700,
+      "item_level": 30,
+      "required_level": 30,
+      "stats": {
+        "strength": 6,
+        "vitality": 4
+      },
+      "_sourceFile": "game/data/accessories/acc_ring_titanbone.tres",
       "_scriptClass": "Item"
     }
   },
@@ -17658,6 +20824,22 @@
       "_sourceFile": "game/data/loot_tables/loot_gloam_spores.tres",
       "_scriptClass": "LootTable"
     },
+    "loot_high_marches": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "loot_high_marches",
+      "name": "High Marches Drops",
+      "description": "What the mid-high country pays out: silver and mythril gear from the lower rungs, starmetal from the deep seam, and the first of the sunforged pieces from the ones that hold the high crags.",
+      "entries": "[{\n\"item_id\": \"wep_silver_sword_high\",\n\"min_quantity\": 1,\n\"max_quantity\": 1,\n\"drop_rate\": 0.06,\n\"rarity_weight\": 2.0,\n\"is_guaranteed\": false,\n\"conditions\": []",
+      "currency_drops": [],
+      "base_drop_chance": 1,
+      "min_items_dropped": 0,
+      "max_items_dropped": 2,
+      "level": 34,
+      "_sourceFile": "game/data/loot_tables/loot_high_marches.tres",
+      "_scriptClass": "LootTable"
+    },
     "loot_meadow_litter": {
       "script": {
         "_extResource": "1"
@@ -17767,6 +20949,22 @@
         "LEGENDARY": 0.01
       },
       "_sourceFile": "game/data/loot_tables/loot_sky_crate_daily.tres",
+      "_scriptClass": "LootTable"
+    },
+    "loot_skyward_reach": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "loot_skyward_reach",
+      "name": "Skyward Reach Drops",
+      "description": "The top rungs pay out: sunforged and skyforged gear from the long ascent and the outer air, carried by the few things that live that high. Salvage of the sky's own make, cut for the walk nobody comes back down from unchanged.",
+      "entries": "[{\n\"item_id\": \"wep_sunforged_crossbow_high\",\n\"min_quantity\": 1,\n\"max_quantity\": 1,\n\"drop_rate\": 0.05,\n\"rarity_weight\": 3.0,\n\"is_guaranteed\": false,\n\"conditions\": []",
+      "currency_drops": [],
+      "base_drop_chance": 1,
+      "min_items_dropped": 0,
+      "max_items_dropped": 2,
+      "level": 54,
+      "_sourceFile": "game/data/loot_tables/loot_skyward_reach.tres",
       "_scriptClass": "LootTable"
     },
     "loot_slime": {
