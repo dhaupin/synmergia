@@ -12,6 +12,38 @@ Legend: `[x]` done · `[~]` partial / needs a decision · `[ ]` open · `[!]` bl
 
 ---
 
+## Progress (2026-11-11 — the build-out round)
+
+The owner's decisions landed and the blockers are cleared. What changed
+since the audit was written (see `labs/TASKS.md` 2026-11-11 for the full
+receipt):
+
+- **Copyright holder of record:** Creadev.org (LICENSE + `package.json`).
+- **All-MIT vs code-MIT:** the whole repo (code + generated content) is
+  MIT; third-party pieces are carved out in `CREDITS.md`; the name/logo is
+  carved out in `TRADEMARK.md`.
+- **§1/§3 blockers DONE:** README License section with carve-outs;
+  `TRADEMARK.md`; Godot's MIT notice ships at `web/LICENSE.godot.txt`;
+  the two fonts' OFL 1.1 texts ship at `public/fonts/OFL-*.txt`;
+  `CREDITS.md` enumerates engine / deps / fonts / asset provenance.
+- **§6 blockers DONE:** `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`
+  (Contributor Covenant v2.1), `SECURITY.md`; `.github/` issue + PR
+  templates + `CODEOWNERS`.
+- **§4 horcrux decision RESOLVED:** `horcrux/` STAYS (it is the repo's
+  recovery contract — see `DEVCODE.md`), and the plaintext password is
+  GONE: the key rides the stone's filename after `p_` (the vant
+  convention), which is the design — a contributor restores the brain
+  without asking a human. The README explains the convention, prints no
+  key. `scripts/cairn_recover.sh` sets `VANT_ALLOW_FILENAME_PW=true`.
+- **§8 partially DONE:** site `/opensource` links the new docs; README
+  links the repo + contributing path.
+- **Still open (owner decisions / ops, not blockers):** wasm/pck weight
+  (§4) — LFS vs release artifacts; `labs/` disclosure posture (§5);
+  Dependabot + branch protection + secret scanning (§7); GitHub repo
+  description/topics/social preview (§8). These are recorded, not done.
+
+---
+
 ## 1. Licensing (the actual grant)
 
 - [x] **Top-level LICENSE exists and is the intended license.** `LICENSE`
@@ -28,14 +60,14 @@ Legend: `[x]` done · `[~]` partial / needs a decision · `[ ]` open · `[!]` bl
       about the source being open.)
 - [x] **`game/` (Godot project) carries no conflicting license header.**
       No per-file headers to reconcile.
-- [ ] **Decide: is ALL of the repo under MIT, or just the code?** Right
+- [x] **Decide: is ALL of the repo under MIT, or just the code?** DECIDED: code + generated content MIT; third-party carved in `CREDITS.md`; brand carved in `TRADEMARK.md`. (was: Right
       now MIT covers everything tracked. If you want the *game code* MIT
       but the *art / audio / brand* under a different (or all-rights-
       reserved / CC) license, say so explicitly — see §3.
-- [ ] **Add a short "License" section to README** that names MIT, links
+- [x] **Add a short "License" section to README** that names MIT, links
       LICENSE, and states any asset carve-outs. (README has a License
       section already; make it carry the carve-outs if any.)
-- [ ] **Trademark / brand is NOT granted by MIT.** MIT grants copyright
+- [x] **Trademark / brand is NOT granted by MIT.** DONE: `TRADEMARK.md`. MIT grants copyright
       rights, not trademark. State plainly that the "Synmergia" name and
       logo are not licensed for reuse by the code grant (prevents someone
       shipping a confusing fork as "Synmergia"). One paragraph, usually in
@@ -59,11 +91,11 @@ Legend: `[x]` done · `[~]` partial / needs a decision · `[ ]` open · `[!]` bl
 - [x] **The `/play` and `/admin` password hashes are not committed.** The
       gate compares against `VITE_*_PASSWORD_SHA` build-time env; no
       plaintext or hash is in the tree.
-- [ ] **Run a dedicated scanner anyway before flipping public.** Add
+- [ ] **Run a dedicated scanner anyway before flipping public.** (Still open.) Add
       `gitleaks` / `trufflehog` (or GitHub's push-protection + secret
       scanning) as a one-time sweep, not just grep. Grep misses encodings.
       Enable **GitHub secret scanning + push protection** on the repo.
-- [ ] **Confirm no personal data (PII) is tracked.** Player data, test
+- [ ] **Confirm no personal data (PII) is tracked.** (Still open.) Player data, test
       accounts, real names beyond the maintainer, emails, IPs. (See §5 for
       the specific `horcrux/` and infra-name items.)
 
@@ -78,32 +110,32 @@ compatible license or a written grant.
       `scripts/gen_*_model.py`. You own them.
 - [x] **`gamestruct` (build dep) is MIT.** Pinned to a `dhaupin/gamestruct`
       commit. Compatible.
-- [~] **Self-hosted fonts carry their license files.** Cinzel and Plus
+- [x] **Self-hosted fonts carry their license files.** DONE: `public/fonts/OFL-Cinzel.txt` + `OFL-PlusJakartaSans.txt`. Cinzel and Plus
       Jakarta Sans (both SIL OFL) are self-hosted in `public/fonts/`, but
       no `OFL.txt` is shipped. **Action:** drop each font's `OFL.txt`
       beside it (or a `public/fonts/LICENSES.md`). OFL requires the
       license travel with the font.
-- [!] **Godot Engine attribution is missing from the web export.** The
+- [x] **Godot Engine attribution is missing from the web export.** DONE: `web/LICENSE.godot.txt` ships beside the export. The
       browser build embeds Godot's runtime (`web/game.js`, `game.wasm`)
       with no license/notice shipped alongside. Godot is MIT — you must
       reproduce its copyright + license notice. **Action:** add a
       `web/LICENSE.godot.txt` (Godot's MIT text + the `(c) 2014-present
       Juan Linietsky, Ariel Manzur and contributors` line) and link it
       from the game shell / README. Same for any other vendored runtime.
-- [ ] **Enumerate every remaining asset and record provenance.** Screenshots
+- [x] **Enumerate every remaining asset and record provenance.** DONE: `CREDITS.md`. Screenshots
       (`art/screenshots/`), icons, `public/branding/*`, any hand-authored
       PNG/SVG/WAV/GLB not produced by a gen script. For each: who made it,
       under what license, and is it yours to MIT. Put the answer in a
       `CREDITS.md` / `THIRD_PARTY_NOTICES.md`.
-- [ ] **No "inspired by" IP leakage.** README references "Ultima Online",
+- [ ] **No "inspired by" IP leakage.** (Still open -- review the references.) README references "Ultima Online",
       "RYL2 / Risk Your Life 2". Descriptive comparisons are fine; make
       sure no borrowed assets, names, or copied data from those games are
       in the tree.
-- [ ] **Dependency license sweep.** Run `license-checker` / `licensee`
+- [x] **Dependency license sweep.** DONE: swept; all deps MIT/ISC/Apache-2.0, recorded in `CREDITS.md`. Run `license-checker` / `licensee
       over `node_modules` and the Godot addons; confirm every dependency is
       permissive (MIT/Apache/BSD/ISC). Flag any GPL/AGPL/SSPL or
       non-commercial dep — those poison an MIT-only release.
-- [ ] **Decide the asset license explicitly.** Even if everything is
+- [x] **Decide the asset license explicitly.** DONE: MIT for code + content, carved in `CREDITS.md` / `TRADEMARK.md`. Even if everything is
       currently "yours", state in README/CREDITS whether art+audio ship
       under MIT, CC-BY-4.0, CC0, or "all rights reserved, code is MIT".
 
@@ -123,7 +155,7 @@ compatible license or a written grant.
       blobs that were added then deleted. If something huge or sensitive
       lives in history, decide whether to rewrite history (BFG / filter-repo)
       *before* the repo is public — it is far harder after.
-- [ ] **`horcrux/` should probably NOT be in the public repo.** It holds an
+- [x] **`horcrux/` decision RESOLVED.** It STAYS (the repo's recovery contract), and the plaintext password is GONE -- the key rides the stone filename after `p_` by design. Original note: It holds an
       agent-memory stone whose **password is printed in plaintext in
       `horcrux/README.md`** (`p_windtheclock2026`). It is harmless as a
       secret (nothing is protected by it that matters), but it reads as a
@@ -171,28 +203,28 @@ A repo can be legally open and still impossible to contribute to. These
 files are the difference.
 
 - [x] **README.** Present and substantial.
-- [!] **CONTRIBUTING.md — MISSING.** Add: how to set up (Godot version,
+- [x] **CONTRIBUTING.md.** DONE (root). Add: how to set up (Godot version,
       `npm ci`/`bun install`, the test runner), the PR process, commit
       style, the tab/ASCII rules, where to ask questions, and the DCO/sign-
       off expectation if any. This is the single most important missing
       file for "come build it with us".
-- [!] **CODE_OF_CONDUCT.md — MISSING.** Adopt the Contributor Covenant
+- [x] **CODE_OF_CONDUCT.md.** DONE (Contributor Covenant v2.1). Adopt the Contributor Covenant
       (v2.1) or write a short one. Include the enforcement contact. Required
       by most community norms and by GitHub's community profile.
-- [!] **SECURITY.md — MISSING.** State how to report a vulnerability
+- [x] **SECURITY.md.** DONE (root, GitHub advisories + scope + posture). State how to report a vulnerability
       **privately** (email or GitHub Security Advisories), what is in scope,
       and the response expectation. Critical for a networked game with an
       economy and auth.
-- [ ] **Issue + PR templates** (`.github/ISSUE_TEMPLATE/`,
+- [x] **Issue + PR templates** (`.github/ISSUE_TEMPLATE/` + `PULL_REQUEST_TEMPLATE.md`). DONE.
       `.github/PULL_REQUEST_TEMPLATE.md`). Guide reports toward repro steps
       and keep PRs reviewable.
-- [ ] **CODEOWNERS** (`.github/CODEOWNERS`). Route reviews; even one owner
+- [x] **CODEOWNERS** (`.github/CODEOWNERS`). DONE. Route reviews; even one owner
       line helps.
 - [ ] **CHANGELOG.md** (optional but recommended). Or state that GitHub
       Releases are the changelog.
 - [ ] **GOVERNANCE.md / decision-making** (optional). For a BDFL project, a
       short "how decisions get made" note prevents contributor friction.
-- [ ] **AUTHORS / CREDITS** (optional). Credit contributors.
+- [x] **AUTHORS / CREDITS.** DONE: `CREDITS.md`. Credit contributors.
 
 ## 7. Security & operations posture (you are about to be read by everyone)
 
@@ -229,7 +261,7 @@ files are the difference.
 - [ ] **Confirm the README's marketing tone is honest** (it is
       enthusiastic; make sure every claim is true and nothing promises
       features that do not exist — the project's own honesty law).
-- [ ] **Link the site from the repo and the repo from the site.** The
+- [x] **Link the site from the repo and the repo from the site.** DONE: `/opensource` links the docs; README links repo + contributing. The
       site's Open Source page links GitHub; add the site link + a
       "Contributing" pointer to the README.
 - [ ] **`/opensource` page already tells the "why"** — keep it in sync with
@@ -241,14 +273,14 @@ files are the difference.
 
 If you do nothing else, these four are the ones that matter:
 
-1. **[!] Godot license notice** shipped with the web export (§3) — legal
-   requirement, currently missing.
-2. **[!] CONTRIBUTING.md + CODE_OF_CONDUCT.md + SECURITY.md** (§6) — the
-   difference between "open" and "contributable".
-3. **[!] `horcrux/` decision** (§4) — a plaintext password in a public repo
-   will be flagged, even if it protects nothing.
-4. **[ ] Asset license sweep + explicit carve-out** (§3) — make sure every
-   tracked asset is yours to MIT, and say what covers art vs. code.
+1. **[x] Godot license notice** shipped with the web export (§3) —
+   DONE (`web/LICENSE.godot.txt`).
+2. **[x] CONTRIBUTING.md + CODE_OF_CONDUCT.md + SECURITY.md** (§6) — DONE
+   (root), plus `.github/` templates + CODEOWNERS.
+3. **[x] `horcrux/` decision** (§4) — RESOLVED: it stays; the plaintext
+   password is gone (key rides the filename).
+4. **[x] Asset license sweep + explicit carve-out** (§3) — DONE
+   (`CREDITS.md` + `TRADEMARK.md`).
 
 Everything else is polish, but the repo weight (§4), the `labs/` disclosure
 decision (§5), and branch protection (§7) are the next tier.
@@ -257,10 +289,14 @@ decision (§5), and branch protection (§7) are the next tier.
 
 ## Decisions to make (not tasks — choices only you can make)
 
-- Who is the copyright holder of record? (Creadev.org vs. a person vs. an
-  entity)
-- Is everything MIT, or code-MIT + assets-under-X?
-- Is `labs/` public, curated, or private?
+Resolved 2026-11-11:
+- **Copyright holder of record:** Creadev.org.
+- **License scope:** everything MIT (code + generated content); third-party
+  in `CREDITS.md`, brand in `TRADEMARK.md`.
+- **`horcrux/`:** in the public tree (recovery contract); no plaintext key.
+- **Contributions:** DCO-style `Signed-off-by` requested (no CLA).
+
+Still open:
+- Is `labs/` public, curated, or private? (The repo currently publishes it.)
 - Does the wasm/pck stay tracked, or move to LFS / release artifacts?
-- Do contributions need a DCO or a CLA?
-- Is `horcrux/` in or out of the public tree?
+- Dependabot + branch protection + secret scanning (§7) — ops posture.

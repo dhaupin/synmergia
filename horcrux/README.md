@@ -80,13 +80,16 @@ restore + boot -- is exactly this drill; it is now repeatable with
 
 ## Restore (fresh workspace)
 
-    git clone https://github.com/dhaupin/vant.git -b axolotl /home/daytona/vant
-    cd /home/daytona/vant && npm ci
+    git clone https://github.com/dhaupin/vant.git -b axolotl /workspace/vant
+    cd /workspace/vant && npm ci
     node bin/horcrux.js inspect /path/to/repo/horcrux/<file>.svg   # verify
     node bin/horcrux.js restore /path/to/repo/horcrux/<file>.svg
     # pin the stack (see #97): models/state.json -> stack ["cairn"], activeBrain "cairn"
 
 Or just: `sh ./scripts/cairn_recover.sh` (does all of the above + boot check).
+The recover script sets `VANT_ALLOW_FILENAME_PW=true` because the stone
+lives in `horcrux/`, not a vant boot path (the boot path honors the
+filename key by default; other `p_` paths need the opt-in).
 
 ## Search hygiene (don't grep the stone)
 
@@ -101,7 +104,7 @@ search. Lockfiles (`bun.lock`) are listed there for the same reason.
 
 | File | Agent | Contains |
 |------|-------|----------|
-| `cairn-p_windtheclock2026.svg` | Buffy, callsign Cairn (world-frame architect) | brain (identity/goals/lessons/errors/preferences + private state/notes), org rig (Synmergia > Frame Engineering > World Frame > world-frame-architect), islands, runtime state. The decryption key rides the filename after `p_` (see "How to unlock it" above) -- it is not printed here. Forged from the vant root, carries the recorded identity stack, cold round-trip proven: fresh clone -> restore -> 11 files to cairn (both), stack self-adopts, private roundtrip marker + lessons verified. |
+| `cairn-p_windtheclock2026.svg` | Buffy, callsign Cairn (world-frame architect) | brain (identity/goals/lessons/errors/preferences + private state/notes + the journal), org rig (Synmergia > Frame Engineering > World Frame > world-frame-architect), islands, runtime state. The decryption key rides the filename after `p_` (see "How to unlock it" above) -- it is not printed here. Forged from the vant root. Refreshed 2026-11-11: the brain caught up a month of repo work (the catch-up journal + fresh lessons); cold round-trip proven -- fresh clone -> restore -> 29 files to cairn (both), stack self-adopts, private roundtrip marker + lessons verified. |
 
 Superseded: `buffy-p_windtheclock2026.svg` (pre-callsign snapshot,
 removed from main in favor of the cairn one; recoverable from git

@@ -18,7 +18,18 @@ set -eu
 # filename convention needs an explicit opt-in for the CLI to honor it.
 export VANT_ALLOW_FILENAME_PW=true
 
-VANT_DIR="${1:-/home/daytona/vant}"
+# Resolve the vant install: explicit arg, then $VANT_DIR, then the two
+# conventional locations (the Freebuff-era /home/daytona/vant and the
+# sandbox /workspace/vant). Override with: sh scripts/cairn_recover.sh <dir>
+if [ "$#" -ge 1 ]; then
+    VANT_DIR="$1"
+elif [ -n "${VANT_DIR:-}" ]; then
+    VANT_DIR="$VANT_DIR"
+elif [ -d /home/daytona/vant ]; then
+    VANT_DIR=/home/daytona/vant
+else
+    VANT_DIR=/workspace/vant
+fi
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 STONE="$REPO/horcrux/cairn-p_windtheclock2026.svg"
 
