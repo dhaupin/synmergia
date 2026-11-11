@@ -15,15 +15,24 @@ bound), `test_terrain_determinism` (byte-stable), `probe_world_boot_speed`.
 
 | Metric | Before | After | Delta |
 |--------|--------|-------|-------|
-| perf_budget: full-detail patch build (hot) | 12.39 s (FAIL vs 10.0 s) | 11.46 s | -0.93 s (-7.5%) |
-| perf_budget: planet subwalk (8 faces) | 38.9 s | 38.7 s | -0.2 s |
-| perf_budget: hot build | 12.39 / 6.54 s | 11.46 / 6.54 s | -0.93 s |
+| perf_budget: full-detail patch build (hot) | 12.39 s (FAIL vs 10.0 s) | 7.66 s (PASS) | -4.73 s (-38%) |
+| perf_budget: planet subwalk (8 faces) | 38.9 s | 23.6 s | -15.3 s (-39%) |
+| perf_budget: hot build | 12.39 / 6.54 s | 7.66 / 6.54 s | -4.73 s |
 | boot_speed: ready-wall ms | 41 (old boot) | 41 | unchanged |
 | planet: checks | 43 PASS | 43 PASS | unchanged |
-| audit: anchor lvl7-cap delta | -0.23 m | | |
-| audit: anchor lvl6-web delta | -0.72 m | | |
+| audit: anchor lvl7-cap delta | -0.23 m | -0.23 m | unchanged |
+| audit: anchor lvl6-web delta | -0.72 m | -0.72 m | unchanged |
 | walk_gap: worst abs gap | 0.52 m | 0.52 m | unchanged |
 | determinism | byte-stable | byte-stable | unchanged |
+
+Slice-by-slice (each committed separately; numbers are the perf_budget hot
+patch build):
+
+| Slice | Change | hot build | note |
+|-------|--------|-----------|------|
+| 0 | baseline | 12.39 s | FAIL vs 10.0 s |
+| 1 | seed-constant memo (`_seed_salt`, `sea_level`) | 11.46 s | -7.5% |
+| 2 | carved-height memo (`terrain_height_carved` default mode) | 7.66 s | -38% vs base, now PASS |
 
 ## Hot-path profile (counted, one level-6 patch build, before any fix)
 

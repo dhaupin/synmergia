@@ -50,6 +50,16 @@ static var _skin_cache = SECTOR_CACHE.new()  # the splat class weights (skin law
 static var _channel_cache = SECTOR_CACHE.new()
 static var _crag_cache = SECTOR_CACHE.new()
 static var _river_spec_cache = LRU_CACHE.new(8)
+## LANE-H2 CARVED-HEIGHT MEMO: terrain_height_carved in its default
+## mode is a pure function of (dir sector, seed) -- base field, lake
+## carve, river channel, road override all read only pure per-(dir,
+## seed) laws. Measured ~207k calls per level-6 build, ~24 us each;
+## only the inner _terrain_height_base was memoized, so the carve /
+## channel / road legs re-ran every call. This caches the FULL carved
+## height. The non-default modes ("_raw", "_noroad") stay uncached
+## (they are the pathing law's own read, and the road seam hashes
+## them).
+static var _carved_cache = SECTOR_CACHE.new()
 
 ## Bump to invalidate all derived content deliberately. v2: the
 ## heightfield + boulders join the world (all rocks/trees re-derive).
@@ -616,6 +626,7 @@ static func install_terrain_backend(backend: Callable) -> void:
 	# are not stale-able but wrong. Capacity eviction (the LRU path)
 	# never lands here.
 	_height_cache.clear()      # fresh sectors: no stale law answers
+	_carved_cache.clear()      # the carved result rides the ground law
 	_channel_cache.clear()     # channel field rides the ground law
 	_temperature_cache.clear() # lapse rides the ground law
 	_water_table_cache.clear() # perch rides the ground law
@@ -628,6 +639,7 @@ static func uninstall_terrain_backend() -> void:
 	_height_backend = Callable()
 	LAW_EPOCH += 1
 	_height_cache.clear()
+	_carved_cache.clear()
 	_crag_cache.clear()
 	_waterfall_cache.clear()
 	_channel_cache.clear()
@@ -1915,6 +1927,21 @@ static func hydrology_prime(world_seed: PackedByteArray) -> int:
 ## mode "_raw" = river carving ONLY (the flow law reads no lakes to
 ## avoid recursion); plain mode = full v3 law (lakes + channels).
 static func terrain_height_carved(d: Vector3, world_seed: PackedByteArray, mode: String = "") -> float:
+	# LANE-H2: the default mode is a pure per-(dir sector, seed) law, so
+	# the whole carved result memoizes (not just the base field). Non-
+	# default modes keep the original uncached path below.
+	if mode == "":
+		var ckey_dir: Vector3 = d.normalized()
+		var cchit = _carved_cache.get_value(ckey_dir, world_seed)
+		if cchit != null:
+			return float(cchit)
+		var ch: float = _terrain_height_carved_uncached(ckey_dir, world_seed, mode)
+		_carved_cache.set_value(ckey_dir, world_seed, ch)
+		return ch
+	return _terrain_height_carved_uncached(d, world_seed, mode)
+
+
+static func _terrain_height_carved_uncached(d: Vector3, world_seed: PackedByteArray, mode: String) -> float:
 	var h: float = _terrain_height_base(d, world_seed)
 	if mode != "_raw":
 		h = hydro_lake_carve(d, world_seed, h)
