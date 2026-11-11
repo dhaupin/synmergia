@@ -1,5 +1,5 @@
 {
-  "lastSyncedAt": "2026-11-11T06:27:35.130Z",
+  "lastSyncedAt": "2026-11-11T10:10:22.161Z",
   "counts": {
     "classes": 39,
     "weapons": 14,
@@ -16546,8 +16546,6 @@
           "ref_id": "armory"
         }
       ],
-      "npc_type": 2,
-      "shop_title": "Royal Armory",
       "_sourceFile": "game/data/npc/npc_armory_capital.tres",
       "_scriptClass": "NPCData"
     },
@@ -16575,11 +16573,6 @@
           "ref_id": "bank_vault"
         }
       ],
-      "npc_type": 6,
-      "shop_title": "Concord Vault",
-      "services": [
-        "bank"
-      ],
       "_sourceFile": "game/data/npc/npc_banker_capital.tres",
       "_scriptClass": "NPCData"
     },
@@ -16606,11 +16599,6 @@
           "type": "offering",
           "ref_id": "bank_vault"
         }
-      ],
-      "npc_type": 6,
-      "shop_title": "Village Vault",
-      "services": [
-        "bank"
       ],
       "_sourceFile": "game/data/npc/npc_banker_village.tres",
       "_scriptClass": "NPCData"
@@ -16654,8 +16642,6 @@
           "ref_id": "black_market_premium"
         }
       ],
-      "npc_type": 6,
-      "shop_title": "Underdeck Ledgers",
       "_sourceFile": "game/data/npc/npc_black_market_fixer.tres",
       "_scriptClass": "NPCData"
     },
@@ -16690,11 +16676,6 @@
           "type": "dialogue",
           "dialogue_id": "blacksmith_village_intro"
         }
-      ],
-      "npc_type": 3,
-      "shop_title": "Concord Forge",
-      "services": [
-        "repair"
       ],
       "_sourceFile": "game/data/npc/npc_blacksmith_capital.tres",
       "_scriptClass": "NPCData"
@@ -16739,11 +16720,6 @@
           "type": "quest",
           "ref_id": "quest_intro_core_npcs"
         }
-      ],
-      "npc_type": 1,
-      "shop_title": "Village Smithy",
-      "services": [
-        "repair"
       ],
       "_sourceFile": "game/data/npc/npc_blacksmith_village.tres",
       "_scriptClass": "NPCData"
@@ -16839,7 +16815,6 @@
           ]
         }
       ],
-      "npc_type": 1,
       "_sourceFile": "game/data/npc/npc_elder_capital.tres",
       "_scriptClass": "NPCData"
     },
@@ -16888,8 +16863,6 @@
           "ref_id": "shoal_freight_quests"
         }
       ],
-      "npc_type": 6,
-      "shop_title": "Ferry Passage",
       "_sourceFile": "game/data/npc/npc_ferryman_sundered.tres",
       "_scriptClass": "NPCData"
     },
@@ -16916,11 +16889,6 @@
           "type": "offering",
           "ref_id": "potions"
         }
-      ],
-      "npc_type": 6,
-      "shop_title": "Strand Apothecary",
-      "services": [
-        "potions"
       ],
       "_sourceFile": "game/data/npc/npc_herbalist_capital.tres",
       "_scriptClass": "NPCData"
@@ -16958,8 +16926,6 @@
           "ref_id": "potions"
         }
       ],
-      "npc_type": 4,
-      "shop_title": "Potions & Supplies",
       "_sourceFile": "game/data/npc/npc_herbalist_village.tres",
       "_scriptClass": "NPCData"
     },
@@ -17001,8 +16967,6 @@
           ]
         }
       ],
-      "npc_type": 6,
-      "shop_title": "Haven Bench of Pearls",
       "_sourceFile": "game/data/npc/npc_jeweler_haven.tres",
       "_scriptClass": "NPCData"
     },
@@ -17041,8 +17005,6 @@
           "ref_id": "vendor_craft_shelf"
         }
       ],
-      "npc_type": 6,
-      "shop_title": "Strand Bourse",
       "_sourceFile": "game/data/npc/npc_merchant_capital.tres",
       "_scriptClass": "NPCData"
     },
@@ -17090,8 +17052,6 @@
           "ref_id": "vendor_craft_shelf"
         }
       ],
-      "npc_type": 6,
-      "shop_title": "General Store",
       "_sourceFile": "game/data/npc/npc_merchant_general.tres",
       "_scriptClass": "NPCData"
     },
@@ -17138,8 +17098,6 @@
           "ref_id": "shoal_freight_quests"
         }
       ],
-      "npc_type": 6,
-      "shop_title": "Salvor's Table",
       "_sourceFile": "game/data/npc/npc_salvor_wreck.tres",
       "_scriptClass": "NPCData"
     },
@@ -17172,14 +17130,6 @@
           "ref_id": "skill_academy"
         }
       ],
-      "npc_type": 8,
-      "shop_title": "Skill Academy",
-      "services": [
-        "skill_books",
-        "skill_upgrade",
-        "respec",
-        "signature_selection"
-      ],
       "_sourceFile": "game/data/npc/npc_skill_academy_capital.tres",
       "_scriptClass": "NPCData"
     },
@@ -17206,12 +17156,6 @@
           "type": "offering",
           "ref_id": "skill_academy"
         }
-      ],
-      "npc_type": 8,
-      "shop_title": "Warden Drill Hall",
-      "services": [
-        "skill_books",
-        "skill_upgrade"
       ],
       "_sourceFile": "game/data/npc/npc_skill_academy_village.tres",
       "_scriptClass": "NPCData"
@@ -17256,8 +17200,6 @@
           ]
         }
       ],
-      "npc_type": 6,
-      "shop_title": "Fenwick's Fence & Plank",
       "_sourceFile": "game/data/npc/npc_tidewright_fenwick.tres",
       "_scriptClass": "NPCData"
     },
