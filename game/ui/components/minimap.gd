@@ -732,15 +732,7 @@ func _on_entity_spawned(entity, metadata) -> void:
 			else:
 				return
 		Entity.EntityType.NPC:
-			var npc_data = entity.get("npc_data")
-			if npc_data:
-				var services = npc_data.get("services", [])
-				if "vendor" in services or "merchant" in services:
-					marker_type = MARKER_VENDOR
-				else:
-					marker_type = MARKER_NPC
-			else:
-				marker_type = MARKER_NPC
+			marker_type = _npc_marker_type(entity)
 		Entity.EntityType.ENEMY:
 			marker_type = MARKER_ENEMY
 		_: return
@@ -827,6 +819,15 @@ func set_player_rotation(rotation: float) -> void:
 func set_zone_name(name: String) -> void:
 	if _zone_label:
 		_zone_label.text = name
+
+## Classify an NPC marker from its REAL vendor truth (NPCEntity.is_vendor,
+## resolved from the offering model). An entity without the method is a plain
+## NPC -- never assume a vendor.
+func _npc_marker_type(entity) -> int:
+	if entity != null and entity.has_method("is_vendor") and entity.is_vendor():
+		return MARKER_VENDOR
+	return MARKER_NPC
+
 
 func add_marker(entity_id: String, position: Vector3, marker_type: int, label: String = "") -> void:
 	if _entity_markers.has(entity_id):

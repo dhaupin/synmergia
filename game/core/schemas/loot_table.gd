@@ -104,6 +104,13 @@ func roll_drop(rng: RandomNumberGenerator = null) -> Dictionary:
 		if d.get("is_guaranteed", false) or rng.randf() <= d.get("drop_rate", 1.0):
 			var amount := rng.randi_range(d.get("min_amount", 0), d.get("max_amount", 0))
 			var cid: String = d.get("currency_id", "gold")
+			# Gold has one canonical result key. Data may spell it either
+			# "gold" or the full resource id "currency_gold"; the consumers
+			# (enemy_data.roll_loot, GroundLootService) read gold as "gold", so
+			# a "currency_gold" entry used to be silently dropped as a phantom
+			# currency. Normalize at the source.
+			if cid == "currency_gold":
+				cid = "gold"
 			result.currency[cid] = result.currency.get(cid, 0) + amount
 			result.got_any = true
 
