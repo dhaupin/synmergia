@@ -119,13 +119,16 @@ export default function LanderPage() {
           <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-line to-transparent" />
         </div>
         <div className="relative max-w-6xl mx-auto px-4 pt-20 pb-16 text-center">
-          <p className="text-xs tracking-[0.3em] uppercase text-accent/80 mb-4">
+          <p className="text-xs tracking-[0.3em] uppercase text-accent/80 mb-6">
             A spherical open world
           </p>
-          <h1 className="font-display text-4xl sm:text-6xl font-bold leading-tight">
-            Synmergia
-          </h1>
-          <p className="mt-6 max-w-2xl mx-auto text-ink-soft text-base sm:text-lg leading-relaxed">
+          <h1 className="sr-only">Synmergia</h1>
+          <img
+            src="/branding/logo-synmergia-horizontal.png"
+            alt="Synmergia"
+            className="mx-auto w-[min(90vw,420px)] h-auto mb-6 drop-shadow-[0_0_30px_rgba(232,182,76,0.15)]"
+          />
+          <p className="mt-2 max-w-2xl mx-auto text-ink-soft text-base sm:text-lg leading-relaxed">
             A free and open source MMORPG on a hand-built planet: procedural terrain
             streamed face by face, villages that place real people at real seats,
             ferries that run on schedule, and a sky that means something. Runs in

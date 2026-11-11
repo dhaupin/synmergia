@@ -9,6 +9,8 @@ import { useEffect } from 'react';
 import SiteLayout from './components/SiteLayout';
 import LanderPage from './pages/LanderPage';
 import PlayPage from './pages/PlayPage';
+import CodexPage from './pages/CodexPage';
+import ExperiencesPage from './pages/ExperiencesPage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -34,6 +36,8 @@ export function AppRoutes() {
       <Routes>
         <Route element={<SiteLayout />}>
           <Route path="/" element={<LanderPage />} />
+          <Route path="/experiences" element={<ExperiencesPage />} />
+          <Route path="/codex" element={<CodexPage />} />
           <Route path="/play" element={<PlayPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />

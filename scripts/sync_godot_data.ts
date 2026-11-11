@@ -25,6 +25,21 @@ export interface GodotDataPayload {
   items: Record<string, any>;
   accessories: Record<string, any>;
   recipes: Record<string, any>;
+  status_effects: Record<string, any>;
+  npcs: Record<string, any>;
+  world_bosses: Record<string, any>;
+  signs: Record<string, any>;
+  mysteries: Record<string, any>;
+  acts: Record<string, any>;
+  loot_tables: Record<string, any>;
+  hordes: Record<string, any>;
+  weather_events: Record<string, any>;
+  gateways: Record<string, any>;
+  oceans: Record<string, any>;
+  biomes: Record<string, any>;
+  dwellings: Record<string, any>;
+  gliders: Record<string, any>;
+  thermals: Record<string, any>;
 }
 
 // Helper to convert Godot values into JS primitives/objects
@@ -205,6 +220,21 @@ export function syncGodotData(): GodotDataPayload {
     items: {},
     accessories: {},
     recipes: {},
+    status_effects: {},
+    npcs: {},
+    world_bosses: {},
+    signs: {},
+    mysteries: {},
+    acts: {},
+    loot_tables: {},
+    hordes: {},
+    weather_events: {},
+    gateways: {},
+    oceans: {},
+    biomes: {},
+    dwellings: {},
+    gliders: {},
+    thermals: {},
   };
 
   const categories: Array<keyof Omit<GodotDataPayload, 'lastSyncedAt' | 'counts'>> = [
@@ -229,10 +259,27 @@ export function syncGodotData(): GodotDataPayload {
     'items',
     'accessories',
     'recipes',
+    'status_effects',
+    'npcs',
+    'world_bosses',
+    'signs',
+    'mysteries',
+    'acts',
+    'loot_tables',
+    'hordes',
+    'weather_events',
+    'gateways',
+    'oceans',
+    'biomes',
+    'dwellings',
+    'gliders',
+    'thermals',
   ];
 
   for (const cat of categories) {
-    const catDir = path.join(dataDir, cat);
+    // Some payload keys are the plural of the on-disk dir (npc -> npcs).
+    const dirName = cat === 'npcs' ? 'npc' : cat;
+    const catDir = path.join(dataDir, dirName);
     const files = scanDir(catDir);
     for (const file of files) {
       try {

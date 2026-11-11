@@ -43,9 +43,13 @@ export default function SiteLayout() {
       <header className="border-b border-line bg-surface/80 backdrop-blur sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-y-2 gap-x-3">
           <Link to="/" className="flex items-center gap-3 shrink-0">
-            <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-accent-deep flex items-center justify-center font-bold text-paper text-sm shadow">
-              S
-            </span>
+            <img
+              src="/branding/logo-synmergia-emblem-small.png"
+              alt=""
+              width={32}
+              height={26}
+              className="h-7 w-auto"
+            />
             <span className="font-display font-bold text-lg tracking-tight">Synmergia</span>
             {pckHash && (
               <span
@@ -58,6 +62,8 @@ export default function SiteLayout() {
           </Link>
           <nav className="flex flex-wrap items-center gap-1">
             <NavItem to="/">Home</NavItem>
+            <NavItem to="/experiences">Experiences</NavItem>
+            <NavItem to="/codex">Codex</NavItem>
             <NavItem to="/play">Play</NavItem>
             <NavItem to="/privacy">Privacy</NavItem>
             <NavItem to="/terms">Terms</NavItem>
@@ -71,7 +77,14 @@ export default function SiteLayout() {
 
       <footer className="border-t border-line mt-16">
         <div className="max-w-6xl mx-auto px-4 py-8 text-xs text-ink-soft flex flex-wrap items-center justify-between gap-3">
-          <span>© 2026 dhaupin · Synmergia is free and open source (game code) · site {new Date().getFullYear()}</span>
+          <div className="flex items-center gap-3">
+            <img
+              src="/branding/logo-synmergia-wordmark.png"
+              alt="Synmergia"
+              className="h-5 w-auto opacity-80"
+            />
+            <span>© 2026 dhaupin · Synmergia is free and open source (game code) · site {new Date().getFullYear()}</span>
+          </div>
           <div className="flex items-center gap-4">
             <Link to="/privacy" className="hover:text-accent">Privacy</Link>
             <Link to="/terms" className="hover:text-accent">Terms</Link>

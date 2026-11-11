@@ -1,5 +1,5 @@
 {
-  "lastSyncedAt": "2026-11-11T00:37:23.849Z",
+  "lastSyncedAt": "2026-11-11T01:25:45.792Z",
   "counts": {
     "classes": 39,
     "weapons": 10,
@@ -21,7 +21,22 @@
     "resources": 17,
     "items": 8,
     "accessories": 12,
-    "recipes": 28
+    "recipes": 28,
+    "status_effects": 62,
+    "npcs": 20,
+    "world_bosses": 4,
+    "signs": 3,
+    "mysteries": 2,
+    "acts": 3,
+    "loot_tables": 15,
+    "hordes": 5,
+    "weather_events": 4,
+    "gateways": 10,
+    "oceans": 5,
+    "biomes": 5,
+    "dwellings": 6,
+    "gliders": 6,
+    "thermals": 10
   },
   "classes": {
     "akkan_attacker": {
@@ -14106,6 +14121,3990 @@
       "failure_rate": 0,
       "_sourceFile": "game/data/recipes/recipe_weaver_kite.tres",
       "_scriptClass": "RecipeData"
+    }
+  },
+  "status_effects": {
+    "buff_aggro_horn": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_aggro_horn",
+      "display_name": "Aggro Horn",
+      "description": "Generating maximum threat on all nearby enemies.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 5,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_aggro_horn.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_ancestral_guardian": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_ancestral_guardian",
+      "display_name": "Ancestral Guardian",
+      "description": "An ancestral spirit defends you, absorbing damage and healing.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 20,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_ancestral_guardian.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_barrier_field": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_barrier_field",
+      "display_name": "Barrier Field",
+      "description": "Localized barrier absorbs incoming damage.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 12,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_barrier_field.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_battle_cry_dmg": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_battle_cry_dmg",
+      "display_name": "Battle Fury",
+      "description": "Attack power increased from battle cry.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 4,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_battle_cry_dmg.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_catalyst_crit": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_catalyst_crit",
+      "display_name": "Catalyzed",
+      "description": "Critical strike chance increased.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 12,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_catalyst_crit.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_damage_shunt": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_damage_shunt",
+      "display_name": "Damage Shunt",
+      "description": "Incoming damage is redistributed to shields.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 8,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_damage_shunt.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_deaggro": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_deaggro",
+      "display_name": "Threat Reset",
+      "description": "Threat has been reset — enemies have lost interest.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 3,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_deaggro.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_divine_shield": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_divine_shield",
+      "display_name": "Divine Shield",
+      "description": "Immune to all damage.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 3,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_divine_shield.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_earthshield": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_earthshield",
+      "display_name": "Earthshield",
+      "description": "Damage reduced and receiving periodic healing.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 12,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_earthshield.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_emergency_override": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_emergency_override",
+      "display_name": "Emergency Override",
+      "description": "Massive damage reduction from emergency systems.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 5,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_emergency_override.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_enchant_weapon": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_enchant_weapon",
+      "display_name": "Enchanted Weapon",
+      "description": "Weapon attacks deal bonus spell damage.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 30,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_enchant_weapon.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_energy_transfer": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_energy_transfer",
+      "display_name": "Energy Transfer",
+      "description": "Mana has been restored by energy transfer.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 0,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_energy_transfer.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_firewall_protect": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_firewall_protect",
+      "display_name": "Firewall Protected",
+      "description": "Protected by firewall barrier.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 8,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_firewall_protect.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_fortify": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_fortify",
+      "display_name": "Fortified",
+      "description": "Armor and resistance significantly increased.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 10,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_fortify.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_haste": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_haste",
+      "display_name": "Haste",
+      "description": "Movement and attack speed increased by 20%.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 10,
+      "max_stacks": 1,
+      "can_refresh": true,
+      "speed_type": "haste",
+      "speed_percent": 20,
+      "show_in_buff_bar": true,
+      "icon_path": "res://icons/buffs/haste.png",
+      "particle_effect": "buff_wind",
+      "_sourceFile": "game/data/status_effects/buff_haste.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_immortal_form": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_immortal_form",
+      "display_name": "Immortal Form",
+      "description": "Massively reduced damage taken.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 6,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_immortal_form.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_immune_stun": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_immune_stun",
+      "display_name": "Stun Immunity",
+      "description": "Immune to stun effects.",
+      "category": 0,
+      "effect_type": 2,
+      "duration": 10,
+      "max_stacks": 1,
+      "can_refresh": true,
+      "immune_stun": true,
+      "show_in_buff_bar": true,
+      "icon_path": "res://icons/buffs/immune_stun.png",
+      "particle_effect": "shield_blue",
+      "_sourceFile": "game/data/status_effects/buff_immune_stun.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_intervene": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_intervene",
+      "display_name": "Intervened",
+      "description": "A portion of damage is being absorbed for you.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 5,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_intervene.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_last_stand": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_last_stand",
+      "display_name": "Last Stand",
+      "description": "Immune to death. Maximum threat generated.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 5,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_last_stand.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_mana_shield": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_mana_shield",
+      "display_name": "Mana Shield",
+      "description": "Incoming damage is absorbed by mana.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 8,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_mana_shield.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_mana_surge": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_mana_surge",
+      "display_name": "Mana Surge",
+      "description": "Mana regeneration dramatically increased.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 10,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_mana_surge.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_overcharge": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_overcharge",
+      "display_name": "Overcharged",
+      "description": "Attack and cast speed dramatically increased.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 10,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_overcharge.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_overclock_ally": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_overclock_ally",
+      "display_name": "Overclocked",
+      "description": "Processing cycles accelerated. Attack and cast speed increased.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 10,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_overclock_ally.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_reflect": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_reflect",
+      "display_name": "Reflective Barrier",
+      "description": "A portion of melee damage is reflected to attackers.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 8,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_reflect.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_regeneration": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_regeneration",
+      "display_name": "Regeneration",
+      "description": "Recovering health over time.",
+      "category": 0,
+      "effect_type": 1,
+      "duration": 10,
+      "max_stacks": 1,
+      "can_refresh": true,
+      "heal_per_tick": 25,
+      "tick_interval": 2,
+      "show_in_buff_bar": true,
+      "icon_path": "res://icons/buffs/regen.png",
+      "particle_effect": "heal_glow",
+      "_sourceFile": "game/data/status_effects/buff_regeneration.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_resistance_stolen": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_resistance_stolen",
+      "display_name": "Resistance Siphon",
+      "description": "Stolen resistance increases your defense.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 8,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_resistance_stolen.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_rune_transfer": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_rune_transfer",
+      "display_name": "Rune Energy",
+      "description": "Rune energy transferred. Mana restored.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 0,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_rune_transfer.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_rune_ward": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_rune_ward",
+      "display_name": "Rune Ward",
+      "description": "Protective rune absorbs damage and reflects some back.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 10,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_rune_ward.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_sanctuary_aura": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_sanctuary_aura",
+      "display_name": "Sanctuary Aura",
+      "description": "Receiving passive healing and damage reduction.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 15,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_sanctuary_aura.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_shield_all": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_shield_all",
+      "display_name": "Shielded",
+      "description": "Energy barriers absorbing incoming damage.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 8,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_shield_all.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_shield_wall": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_shield_wall",
+      "display_name": "Shield Wall",
+      "description": "All damage taken is dramatically reduced.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 6,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_shield_wall.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_storm_aura": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_storm_aura",
+      "display_name": "Storm Aura",
+      "description": "Attack speed increased. Nearby enemies take damage.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 15,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_storm_aura.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_system_shield": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_system_shield",
+      "display_name": "System Shield",
+      "description": "Defenses hardened against hostile code.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 9,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_system_shield.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_threat_matrix": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_threat_matrix",
+      "display_name": "Threat Matrix",
+      "description": "Threat generation dramatically increased.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 5,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_threat_matrix.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "buff_time_anchor": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "buff_time_anchor",
+      "display_name": "Time Anchored",
+      "description": "Immune to all slow and speed effects.",
+      "category": 0,
+      "effect_type": 0,
+      "duration": 12,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/buff_time_anchor.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "debuff_aggro_horn": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "debuff_aggro_horn",
+      "display_name": "Aggro Horn Target",
+      "description": "This unit is the target of an aggro horn. Maximum threat on them.",
+      "category": 1,
+      "effect_type": 4,
+      "duration": 5,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/debuff_aggro_horn.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "debuff_armor_reduce": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "debuff_armor_reduce",
+      "display_name": "Armor Reduced",
+      "description": "Armor has been reduced by the shield strike.",
+      "category": 1,
+      "effect_type": 4,
+      "duration": 5,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/debuff_armor_reduce.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "debuff_clock_surge": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "debuff_clock_surge",
+      "display_name": "Clock Surged",
+      "description": "Processing cycles erratic. Movement and actions slowed.",
+      "category": 1,
+      "effect_type": 4,
+      "duration": 5,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/debuff_clock_surge.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "debuff_full_stall": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "debuff_full_stall",
+      "display_name": "Full Stall",
+      "description": "All processes frozen. Cannot move, act, or regenerate.",
+      "category": 1,
+      "effect_type": 4,
+      "control_type": 1,
+      "duration": 4,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/debuff_full_stall.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "debuff_hex": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "debuff_hex",
+      "display_name": "Hexed",
+      "description": "Damage and movement speed reduced by a curse.",
+      "category": 1,
+      "effect_type": 4,
+      "duration": 6,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/debuff_hex.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "debuff_marked": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "debuff_marked",
+      "display_name": "Marked",
+      "description": "Target has been revealed and marked for the party.",
+      "category": 1,
+      "effect_type": 4,
+      "duration": 8,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/debuff_marked.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "debuff_redirect": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "debuff_redirect",
+      "display_name": "Redirected",
+      "description": "Targeting system corrupted. Next attack will miss and redirect.",
+      "category": 1,
+      "effect_type": 4,
+      "duration": 6,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/debuff_redirect.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "debuff_regen_mitigate": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "debuff_regen_mitigate",
+      "display_name": "Regeneration Mitigated",
+      "description": "Health and mana regeneration are suppressed.",
+      "category": 1,
+      "effect_type": 4,
+      "duration": 10,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/debuff_regen_mitigate.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "debuff_resistance_drain": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "debuff_resistance_drain",
+      "display_name": "Resistance Drained",
+      "description": "Magical resistance is being drained.",
+      "category": 1,
+      "effect_type": 4,
+      "duration": 8,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/debuff_resistance_drain.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "debuff_resistance_reduce": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "debuff_resistance_reduce",
+      "display_name": "Resistance Reduced",
+      "description": "Magical resistance reduced.",
+      "category": 1,
+      "effect_type": 4,
+      "duration": 5,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/debuff_resistance_reduce.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "debuff_silence": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "debuff_silence",
+      "display_name": "Silenced",
+      "description": "Cannot cast spells or use abilities.",
+      "category": 1,
+      "effect_type": 4,
+      "control_type": 5,
+      "duration": 4,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/debuff_silence.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "debuff_slow_field": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "debuff_slow_field",
+      "display_name": "Slowed",
+      "description": "Movement and actions dramatically slowed.",
+      "category": 1,
+      "effect_type": 4,
+      "duration": 8,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/debuff_slow_field.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "debuff_taunt": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "debuff_taunt",
+      "display_name": "Taunted",
+      "description": "Forced to attack the source of the taunt.",
+      "category": 1,
+      "effect_type": 4,
+      "duration": 4,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/debuff_taunt.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "debuff_tick_slow": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "debuff_tick_slow",
+      "display_name": "Tick Slow",
+      "description": "Processing frequency reduced. All actions slowed.",
+      "category": 1,
+      "effect_type": 4,
+      "duration": 8,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/debuff_tick_slow.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "debuff_time_stop": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "debuff_time_stop",
+      "display_name": "Time Stopped",
+      "description": "Time has stopped. Cannot move or act.",
+      "category": 1,
+      "effect_type": 4,
+      "control_type": 1,
+      "duration": 4,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/debuff_time_stop.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "debuff_time_warp": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "debuff_time_warp",
+      "display_name": "Time Warped",
+      "description": "Time moves slowly around this unit.",
+      "category": 1,
+      "effect_type": 4,
+      "duration": 6,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/debuff_time_warp.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "debuff_wall_block": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "debuff_wall_block",
+      "display_name": "Wall Blocked",
+      "description": "Movement is blocked by a barrier.",
+      "category": 1,
+      "effect_type": 4,
+      "control_type": 2,
+      "duration": 6,
+      "show_in_buff_bar": true,
+      "_sourceFile": "game/data/status_effects/debuff_wall_block.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "dot_burn_fire": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "dot_burn_fire",
+      "display_name": "Burning",
+      "description": "Taking fire damage over time.",
+      "category": 1,
+      "effect_type": 1,
+      "duration": 6,
+      "max_stacks": 1,
+      "can_refresh": true,
+      "damage_per_tick": 20,
+      "tick_interval": 1,
+      "dot_type": "magical",
+      "can_cleanse": true,
+      "show_in_buff_bar": true,
+      "icon_path": "res://icons/status/burn.png",
+      "particle_effect": "fire_flames",
+      "school": "fire",
+      "_sourceFile": "game/data/status_effects/dot_burn_fire.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "dot_poison_basic": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "dot_poison_basic",
+      "display_name": "Poison",
+      "description": "Taking damage over time.",
+      "category": 1,
+      "effect_type": 1,
+      "duration": 8,
+      "max_stacks": 3,
+      "stack_behavior": "add",
+      "can_refresh": true,
+      "damage_per_tick": 15,
+      "tick_interval": 2,
+      "dot_type": "magical",
+      "can_cleanse": true,
+      "show_in_buff_bar": true,
+      "icon_path": "res://icons/status/poison.png",
+      "particle_effect": "poison_bubbles",
+      "school": "nature",
+      "_sourceFile": "game/data/status_effects/dot_poison_basic.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "knockback_common": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "knockback_common",
+      "display_name": "Knockback",
+      "description": "Pushed away by force.",
+      "category": 1,
+      "effect_type": 4,
+      "control_type": 3,
+      "duration": 0,
+      "show_in_buff_bar": false,
+      "_sourceFile": "game/data/status_effects/knockback_common.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "root_common": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "root_common",
+      "display_name": "Rooted",
+      "description": "Cannot move.",
+      "category": 1,
+      "effect_type": 4,
+      "control_type": 2,
+      "duration": 3,
+      "max_stacks": 1,
+      "can_refresh": false,
+      "speed_type": "root",
+      "speed_percent": -100,
+      "show_in_buff_bar": true,
+      "icon_path": "res://icons/status/root.png",
+      "particle_effect": "root_pools",
+      "school": "physical",
+      "_sourceFile": "game/data/status_effects/root_common.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "slow_common": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "slow_common",
+      "display_name": "Slow",
+      "description": "Movement speed reduced by 30%.",
+      "category": 1,
+      "effect_type": 4,
+      "control_type": 3,
+      "duration": 5,
+      "max_stacks": 1,
+      "can_refresh": true,
+      "speed_type": "slow",
+      "speed_percent": -30,
+      "show_in_buff_bar": true,
+      "can_cleanse": true,
+      "icon_path": "res://icons/status/slow.png",
+      "particle_effect": "slow_wounds",
+      "school": "physical",
+      "_sourceFile": "game/data/status_effects/slow_common.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "stealth_deep": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "stealth_deep",
+      "display_name": "Deep Stealth",
+      "description": "Heavy shadow concealment. Reduces detection range by 60%. Breaks on damage or combat actions.",
+      "category": 0,
+      "effect_type": 3,
+      "duration": 20,
+      "stealth_type": 2,
+      "break_on_damage": true,
+      "break_on_action": true,
+      "detection_radius": 4,
+      "can_refresh": true,
+      "_sourceFile": "game/data/status_effects/stealth_deep.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "stealth_invisibility": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "stealth_invisibility",
+      "display_name": "Invisibility",
+      "description": "Cannot be seen by enemies.",
+      "category": 0,
+      "effect_type": 3,
+      "duration": 8,
+      "max_stacks": 1,
+      "can_refresh": false,
+      "stealth_type": 1,
+      "break_on_damage": true,
+      "break_on_action": false,
+      "show_in_buff_bar": true,
+      "icon_path": "res://icons/buffs/invis.png",
+      "particle_effect": "fade_out",
+      "_sourceFile": "game/data/status_effects/stealth_invisibility.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "stealth_light": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "stealth_light",
+      "display_name": "Light Stealth",
+      "description": "Soft shadow concealment. Reduces detection range by 30%. Breaks on taking damage.",
+      "category": 0,
+      "effect_type": 3,
+      "duration": 30,
+      "stealth_type": 1,
+      "break_on_damage": true,
+      "break_on_action": false,
+      "detection_radius": 8,
+      "can_refresh": true,
+      "_sourceFile": "game/data/status_effects/stealth_light.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "stealth_vanish": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "stealth_vanish",
+      "display_name": "Vanish",
+      "description": "Complete removal from enemy awareness. Zero detection radius. Breaks only on taking direct damage.",
+      "category": 0,
+      "effect_type": 3,
+      "duration": 8,
+      "stealth_type": 3,
+      "break_on_damage": true,
+      "break_on_action": false,
+      "detection_radius": 0,
+      "can_refresh": false,
+      "_sourceFile": "game/data/status_effects/stealth_vanish.tres",
+      "_scriptClass": "StatusEffectData"
+    },
+    "stun_common": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "stun_common",
+      "display_name": "Stunned",
+      "description": "Cannot move or act.",
+      "category": 1,
+      "effect_type": 4,
+      "control_type": 1,
+      "duration": 3,
+      "max_stacks": 1,
+      "can_refresh": false,
+      "show_in_buff_bar": true,
+      "icon_path": "res://icons/status/stun.png",
+      "particle_effect": "stun_stars",
+      "school": "physical",
+      "_sourceFile": "game/data/status_effects/stun_common.tres",
+      "_scriptClass": "StatusEffectData"
+    }
+  },
+  "npcs": {
+    "npc_armory_capital": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "npc_armory_capital",
+      "display_name": "Royal Armorer",
+      "description": "The capital's premier source for weapons and armor.",
+      "npc_type": 2,
+      "level": 1,
+      "faction": "friendly",
+      "model_path": "",
+      "zone_id": "zone_nexus_central",
+      "spawn_offset": {
+        "x": -6,
+        "y": 0,
+        "z": -4
+      },
+      "greeting": "Fine arms and armor, straight from the forge.",
+      "farewell": "May your blade stay sharp.",
+      "shop_title": "Royal Armory",
+      "location_type": 4,
+      "buy_multiplier": 0.5,
+      "sell_multiplier": 1,
+      "buy_categories": [
+        "WEAPON",
+        "ARMOR"
+      ],
+      "sell_categories": [
+        "WEAPON",
+        "ARMOR"
+      ],
+      "includes": [
+        {
+          "type": "offering",
+          "ref_id": "armory"
+        }
+      ],
+      "_sourceFile": "game/data/npc/npc_armory_capital.tres",
+      "_scriptClass": "NPCData"
+    },
+    "npc_banker_capital": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "npc_banker_capital",
+      "display_name": "Concord Banker",
+      "description": "The Federation's ledger keeper at the strand: deposits screened, withdrawals sealed, bullion stored below the plaza.",
+      "npc_type": 6,
+      "level": 1,
+      "faction": "friendly",
+      "zone_id": "zone_nexus_central",
+      "spawn_offset": {
+        "x": 3,
+        "y": 0,
+        "z": 3
+      },
+      "greeting": "The Concord vault honors every posted rate.",
+      "farewell": "Your coin is watched.",
+      "shop_title": "Concord Vault",
+      "location_type": 0,
+      "services": [
+        "bank"
+      ],
+      "includes": [
+        {
+          "type": "offering",
+          "ref_id": "bank_vault"
+        }
+      ],
+      "_sourceFile": "game/data/npc/npc_banker_capital.tres",
+      "_scriptClass": "NPCData"
+    },
+    "npc_banker_village": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "npc_banker_village",
+      "display_name": "Village Banker",
+      "description": "The keep's vault keeper. Deposits, withdrawals, and the safe-keeping of coin that adventurers lose to the sea.",
+      "npc_type": 6,
+      "level": 1,
+      "faction": "friendly",
+      "zone_id": "zone_village_center",
+      "spawn_offset": {
+        "x": 4,
+        "y": 0,
+        "z": 2
+      },
+      "greeting": "Coin or keepsakes? The vault holds both.",
+      "farewell": "The vault keeps its word.",
+      "shop_title": "Village Vault",
+      "location_type": 2,
+      "services": [
+        "bank"
+      ],
+      "includes": [
+        {
+          "type": "offering",
+          "ref_id": "bank_vault"
+        }
+      ],
+      "_sourceFile": "game/data/npc/npc_banker_village.tres",
+      "_scriptClass": "NPCData"
+    },
+    "npc_black_market_fixer": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "npc_black_market_fixer",
+      "display_name": "Underdeck Fixer",
+      "description": "The underdeck's quietest stall keeps no face and takes no coin it cannot trace. Scrap in, scrip out -- and for the sigils nobody mints, the deep vault ledger signs for itself.",
+      "npc_type": 6,
+      "level": 1,
+      "faction": "friendly",
+      "scene_path": "res://scenes/npcs/merchant_general.tscn",
+      "zone_id": "zone_nexus_central",
+      "spawn_offset": {
+        "x": 3,
+        "y": 0,
+        "z": -2
+      },
+      "greeting": "You found this stall. Nobody showed you.",
+      "farewell": "The ledger forgets nothing.",
+      "shop_title": "Underdeck Ledgers",
+      "location_type": 4,
+      "buy_multiplier": 0.4,
+      "sell_multiplier": 1.6,
+      "buy_categories": [
+        "MISC",
+        "RESOURCE"
+      ],
+      "sell_categories": [
+        "ACCESSORY",
+        "MISC"
+      ],
+      "includes": [
+        {
+          "type": "offering",
+          "ref_id": "black_market_ledger"
+        },
+        {
+          "type": "offering",
+          "ref_id": "black_market_premium"
+        }
+      ],
+      "_sourceFile": "game/data/npc/npc_black_market_fixer.tres",
+      "_scriptClass": "NPCData"
+    },
+    "npc_blacksmith_capital": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "npc_blacksmith_capital",
+      "display_name": "Concord Smithy",
+      "description": "The Federation's forge at the strand. Same repair law, better leather -- the city smith runs the Concord rate book.",
+      "npc_type": 3,
+      "level": 1,
+      "faction": "friendly",
+      "zone_id": "zone_nexus_central",
+      "spawn_offset": {
+        "x": 9,
+        "y": 0,
+        "z": 1
+      },
+      "greeting": "City rates, city work. Bring the worn gear.",
+      "farewell": "Sharp edges travel far.",
+      "shop_title": "Concord Forge",
+      "location_type": 0,
+      "base_repair_cost_multiplier": 1.2,
+      "offers_bulk_discount": true,
+      "bulk_discount_percent": 15,
+      "bulk_discount_threshold": 3,
+      "services": [
+        "repair"
+      ],
+      "includes": [
+        {
+          "type": "offering",
+          "ref_id": "blacksmith_service"
+        },
+        {
+          "type": "dialogue",
+          "dialogue_id": "blacksmith_village_intro"
+        }
+      ],
+      "_sourceFile": "game/data/npc/npc_blacksmith_capital.tres",
+      "_scriptClass": "NPCData"
+    },
+    "npc_blacksmith_village": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "npc_blacksmith_village",
+      "display_name": "Village Smithy",
+      "description": "The local blacksmith serving a small rural community.",
+      "npc_type": 1,
+      "level": 1,
+      "faction": "friendly",
+      "scene_path": "res://scenes/npcs/blacksmith_village.tscn",
+      "zone_id": "zone_village_center",
+      "spawn_offset": {
+        "x": 6,
+        "y": 0,
+        "z": -4
+      },
+      "greeting": "Good to see ye, traveler. Bring me yer worn gear.",
+      "farewell": "Safe travels, friend.",
+      "shop_title": "Village Smithy",
+      "location_type": 2,
+      "base_repair_cost_multiplier": 1,
+      "offers_bulk_discount": true,
+      "bulk_discount_percent": 15,
+      "bulk_discount_threshold": 3,
+      "services": [
+        "repair"
+      ],
+      "includes": [
+        {
+          "type": "offering",
+          "ref_id": "vendor_smithy_iron"
+        },
+        {
+          "type": "offering",
+          "ref_id": "blacksmith_service"
+        },
+        {
+          "type": "dialogue",
+          "dialogue_id": "blacksmith_village_intro"
+        },
+        {
+          "type": "quest",
+          "ref_id": "quest_intro_core_npcs"
+        }
+      ],
+      "_sourceFile": "game/data/npc/npc_blacksmith_village.tres",
+      "_scriptClass": "NPCData"
+    },
+    "npc_concord_herald": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "npc_concord_herald",
+      "display_name": "Concord Herald",
+      "description": "Keeper of the pillared shrine on the capitol strand -- the Concord's honest out. Steed deeds and degree stakes are sealed at this pillar; the sigils the webhook armor delivers go out here, never bartered, never buried.",
+      "faction": "friendly",
+      "scene_path": "res://scenes/npcs/merchant_general.tscn",
+      "zone_id": "zone_nexus_central",
+      "spawn_offset": {
+        "x": -6,
+        "y": 0,
+        "z": 3
+      },
+      "greeting": "The pillar keeps its own ledger. Sigils in, deeds out -- and the Concord never buries a coin.",
+      "farewell": "May your deed ride true.",
+      "includes": [
+        {
+          "type": "offering",
+          "ref_id": "concord_pillar_vault"
+        }
+      ],
+      "_sourceFile": "game/data/npc/npc_concord_herald.tres",
+      "_scriptClass": "NPCData"
+    },
+    "npc_deep_warden": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "npc_deep_warden",
+      "display_name": "Deep Warden",
+      "description": "Keeper of the Root Camp. The Warden counts the glow tides and tends the first hearth ever lit down here.",
+      "scene_path": "res://scenes/npcs/deep_warden.tscn",
+      "zone_id": "zone_deep_root_camp",
+      "spawn_offset": {
+        "x": 3,
+        "y": 0,
+        "z": 2
+      },
+      "greeting": "You came down the sky way, or up from nothing? Either way: the glow tide is rising. Sit.",
+      "location_type": 0,
+      "buy_multiplier": 0.5,
+      "sell_multiplier": 1,
+      "includes": [
+        {
+          "type": "dialogue",
+          "dialogue_id": "deep_warden_greeting"
+        },
+        {
+          "type": "quest",
+          "quest_ids": [
+            "quest_listen_to_the_deep",
+            "quest_cross_the_cistern"
+          ]
+        }
+      ],
+      "_sourceFile": "game/data/npc/npc_deep_warden.tres",
+      "_scriptClass": "NPCData"
+    },
+    "npc_elder_capital": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "npc_elder_capital",
+      "display_name": "Strand Keeper",
+      "description": "The Federation's town warden on the baywalk. The same taught-lore the village elder carries, at city reach.",
+      "npc_type": 1,
+      "level": 1,
+      "faction": "friendly",
+      "scene_path": "res://scenes/npcs/village_elder.tscn",
+      "zone_id": "zone_nexus_central",
+      "spawn_offset": {
+        "x": 14,
+        "y": 0,
+        "z": -4
+      },
+      "greeting": "Union memory. The Baywalk wants your way home too.",
+      "farewell": "Concord keeps its lights.",
+      "includes": [
+        {
+          "type": "dialogue",
+          "dialogue_id": "village_elder_greeting"
+        },
+        {
+          "type": "quest",
+          "quest_ids": [
+            "quest_wolves_hunt",
+            "quest_herb_gathering"
+          ]
+        }
+      ],
+      "_sourceFile": "game/data/npc/npc_elder_capital.tres",
+      "_scriptClass": "NPCData"
+    },
+    "npc_ferryman_sundered": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "npc_ferryman_sundered",
+      "display_name": "Old Brack, the Ferryman",
+      "description": "He kept the crossing alive when the strait closed. Now that the Sundered Sea is open again, the barque sails twice a tide -- if someone pays the crew.",
+      "npc_type": 6,
+      "level": 1,
+      "faction": "friendly",
+      "scene_path": "res://scenes/npcs/merchant_general.tscn",
+      "zone_id": "zone_sundered_sea",
+      "spawn_offset": {
+        "x": 2,
+        "y": 0,
+        "z": -4
+      },
+      "greeting": "Tide's turning. You crossing, or just gawking at the wreck?",
+      "farewell": "Mind the shoal. She took the barque; she'll take slower ships.",
+      "shop_title": "Ferry Passage",
+      "location_type": 1,
+      "buy_multiplier": 0.5,
+      "sell_multiplier": 1,
+      "buy_categories": [
+        "MISC"
+      ],
+      "sell_categories": [
+        "MISC"
+      ],
+      "includes": [
+        {
+          "type": "dialogue",
+          "dialogue_id": "sundered_ferry_talk"
+        },
+        {
+          "type": "offering",
+          "ref_id": "ferry_dock_service"
+        },
+        {
+          "type": "offering",
+          "ref_id": "ferry_passage_sundered"
+        },
+        {
+          "type": "offering",
+          "ref_id": "shoal_freight_quests"
+        }
+      ],
+      "_sourceFile": "game/data/npc/npc_ferryman_sundered.tres",
+      "_scriptClass": "NPCData"
+    },
+    "npc_herbalist_capital": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "npc_herbalist_capital",
+      "display_name": "Strand Apothecary",
+      "description": "The Federation's herb counter on the baywalk. The same draughts the village sells, kept in sea-glass jars.",
+      "npc_type": 6,
+      "level": 1,
+      "faction": "friendly",
+      "zone_id": "zone_nexus_central",
+      "spawn_offset": {
+        "x": 12,
+        "y": 0,
+        "z": 3
+      },
+      "greeting": "Sea air needs different teas. Browse the shelf.",
+      "farewell": "Stay bilious away.",
+      "shop_title": "Strand Apothecary",
+      "location_type": 0,
+      "services": [
+        "potions"
+      ],
+      "includes": [
+        {
+          "type": "offering",
+          "ref_id": "potions"
+        }
+      ],
+      "_sourceFile": "game/data/npc/npc_herbalist_capital.tres",
+      "_scriptClass": "NPCData"
+    },
+    "npc_herbalist_village": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "npc_herbalist_village",
+      "display_name": "Herbalist",
+      "description": "A village herbalist specializing in potions and remedies.",
+      "npc_type": 4,
+      "level": 1,
+      "faction": "friendly",
+      "model_path": "",
+      "zone_id": "zone_village_center",
+      "spawn_offset": {
+        "x": 4,
+        "y": 0,
+        "z": 5
+      },
+      "greeting": "Welcome! I have remedies for what ails you.",
+      "farewell": "Safe travels.",
+      "shop_title": "Potions & Supplies",
+      "location_type": 2,
+      "buy_multiplier": 0.5,
+      "sell_multiplier": 1,
+      "buy_categories": [
+        "CONSUMABLE"
+      ],
+      "sell_categories": [
+        "CONSUMABLE"
+      ],
+      "includes": [
+        {
+          "type": "offering",
+          "ref_id": "potions"
+        }
+      ],
+      "_sourceFile": "game/data/npc/npc_herbalist_village.tres",
+      "_scriptClass": "NPCData"
+    },
+    "npc_jeweler_haven": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "npc_jeweler_haven",
+      "display_name": "Haven Jeweler",
+      "description": "Marsh Piper, the shore's pearl-cutting jeweler. She braids kelp, cuts abyss pearls, and prices the Concord's debt steel off her own bench.",
+      "npc_type": 6,
+      "level": 1,
+      "faction": "friendly",
+      "scene_path": "res://scenes/npcs/merchant_general.tscn",
+      "zone_id": "zone_village_center",
+      "spawn_offset": {
+        "x": 3,
+        "y": 0,
+        "z": -2
+      },
+      "greeting": "Careful with that on my bench, dear. Everything here has already been one tragedy (pearl, dive, or debt).",
+      "farewell": "Mind the clasp of anything you bought from me. The sea tests hasty work.",
+      "shop_title": "Haven Bench of Pearls",
+      "location_type": 0,
+      "base_repair_cost_multiplier": 1,
+      "buy_multiplier": 0.5,
+      "sell_multiplier": 1,
+      "includes": [
+        {
+          "type": "offering",
+          "ref_id": "vendor_haven_jewelry"
+        },
+        {
+          "type": "dialogue",
+          "dialogue_id": "jeweler_haven_intro"
+        },
+        {
+          "type": "quest",
+          "quest_ids": [
+            "quest_deep_toll"
+          ]
+        }
+      ],
+      "_sourceFile": "game/data/npc/npc_jeweler_haven.tres",
+      "_scriptClass": "NPCData"
+    },
+    "npc_merchant_capital": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "npc_merchant_capital",
+      "display_name": "Strand Merchant",
+      "description": "The gift-trade bourse at the cove: the same stock the village store carries, at Federation rates.",
+      "npc_type": 6,
+      "level": 1,
+      "faction": "friendly",
+      "scene_path": "res://scenes/npcs/merchant_general.tscn",
+      "zone_id": "zone_nexus_central",
+      "spawn_offset": {
+        "x": 10,
+        "y": 0,
+        "z": -2
+      },
+      "greeting": "The cove carries everything. Names your want.",
+      "farewell": "Mind the pier, it is slick.",
+      "shop_title": "Strand Bourse",
+      "location_type": 0,
+      "buy_multiplier": 0.6,
+      "sell_multiplier": 1,
+      "includes": [
+        {
+          "type": "dialogue",
+          "dialogue_id": "merchant_greeting"
+        },
+        {
+          "type": "offering",
+          "ref_id": "general_store"
+        },
+        {
+          "type": "offering",
+          "ref_id": "vendor_craft_shelf"
+        }
+      ],
+      "_sourceFile": "game/data/npc/npc_merchant_capital.tres",
+      "_scriptClass": "NPCData"
+    },
+    "npc_merchant_general": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "npc_merchant_general",
+      "display_name": "General Merchant",
+      "description": "A traveling merchant selling various goods.",
+      "npc_type": 6,
+      "level": 1,
+      "faction": "friendly",
+      "scene_path": "res://scenes/npcs/merchant_general.tscn",
+      "zone_id": "zone_village_center",
+      "spawn_offset": {
+        "x": -2,
+        "y": 0,
+        "z": 5
+      },
+      "greeting": "Take a look at my wares!",
+      "farewell": "Come back anytime.",
+      "shop_title": "General Store",
+      "location_type": 0,
+      "buy_multiplier": 0.5,
+      "sell_multiplier": 1,
+      "buy_categories": [
+        "MISC",
+        "RESOURCE"
+      ],
+      "sell_categories": [
+        "CONSUMABLE",
+        "ACCESSORY",
+        "MISC"
+      ],
+      "includes": [
+        {
+          "type": "dialogue",
+          "dialogue_id": "merchant_greeting"
+        },
+        {
+          "type": "offering",
+          "ref_id": "general_store"
+        },
+        {
+          "type": "offering",
+          "ref_id": "vendor_craft_shelf"
+        }
+      ],
+      "_sourceFile": "game/data/npc/npc_merchant_general.tres",
+      "_scriptClass": "NPCData"
+    },
+    "npc_salvor_wreck": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "npc_salvor_wreck",
+      "display_name": "Mag the Salvor",
+      "description": "She charts the wreck shoal by memory and claims the barque's hold is still full. Nobody has paid her diving fee to find out.",
+      "npc_type": 6,
+      "level": 1,
+      "faction": "friendly",
+      "scene_path": "res://scenes/npcs/merchant_general.tscn",
+      "zone_id": "zone_sundered_sea",
+      "spawn_offset": {
+        "x": -3,
+        "y": 0,
+        "z": 2
+      },
+      "greeting": "You'll be wanting rope, boots, and nerve. The shoal takes all three.",
+      "farewell": "Bring back what the water kept, and we'll talk coin.",
+      "shop_title": "Salvor's Table",
+      "location_type": 1,
+      "buy_multiplier": 0.5,
+      "sell_multiplier": 1,
+      "buy_categories": [
+        "MISC",
+        "RESOURCE"
+      ],
+      "sell_categories": [
+        "CONSUMABLE",
+        "MISC"
+      ],
+      "includes": [
+        {
+          "type": "dialogue",
+          "dialogue_id": "sundered_salvor_talk"
+        },
+        {
+          "type": "offering",
+          "ref_id": "salvor_stock"
+        },
+        {
+          "type": "offering",
+          "ref_id": "shoal_freight_quests"
+        }
+      ],
+      "_sourceFile": "game/data/npc/npc_salvor_wreck.tres",
+      "_scriptClass": "NPCData"
+    },
+    "npc_skill_academy_capital": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "npc_skill_academy_capital",
+      "display_name": "Master Trainer",
+      "description": "A seasoned master who teaches warriors the ancient arts of combat mastery. Choose your signature ability at level 10.",
+      "npc_type": 8,
+      "level": 60,
+      "faction": "friendly",
+      "model_path": "",
+      "zone_id": "zone_nexus_central",
+      "spawn_offset": {
+        "x": 8,
+        "y": 0,
+        "z": -6
+      },
+      "greeting": "Greetings, warrior. Would you like to expand your combat knowledge or choose your signature ability?",
+      "farewell": "May your blade stay sharp. Return when you are ready to learn more.",
+      "shop_title": "Skill Academy",
+      "location_type": 0,
+      "base_repair_cost_multiplier": 1,
+      "offers_bulk_discount": false,
+      "bulk_discount_percent": 0,
+      "bulk_discount_threshold": 0,
+      "services": [
+        "skill_books",
+        "skill_upgrade",
+        "respec",
+        "signature_selection"
+      ],
+      "includes": [
+        {
+          "type": "offering",
+          "ref_id": "skill_academy"
+        }
+      ],
+      "_sourceFile": "game/data/npc/npc_skill_academy_capital.tres",
+      "_scriptClass": "NPCData"
+    },
+    "npc_skill_academy_village": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "npc_skill_academy_village",
+      "display_name": "Warden Trainer",
+      "description": "A retired campaign warden who drills the village's young fighters. The Academy's reach is long -- the basics are taught wherever a student stands.",
+      "npc_type": 8,
+      "level": 40,
+      "faction": "friendly",
+      "zone_id": "zone_village_center",
+      "spawn_offset": {
+        "x": 2,
+        "y": 0,
+        "z": 4
+      },
+      "greeting": "Feet square, blade steady. What shall we drill?",
+      "farewell": "Return when your stance falters.",
+      "shop_title": "Warden Drill Hall",
+      "location_type": 2,
+      "services": [
+        "skill_books",
+        "skill_upgrade"
+      ],
+      "includes": [
+        {
+          "type": "offering",
+          "ref_id": "skill_academy"
+        }
+      ],
+      "_sourceFile": "game/data/npc/npc_skill_academy_village.tres",
+      "_scriptClass": "NPCData"
+    },
+    "npc_tidewright_fenwick": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "npc_tidewright_fenwick",
+      "display_name": "Haven Tidewright",
+      "description": "Old Fenwick, the shore's plankwright. He built the strait's two moor banks and rebuilt the barque's deck six times, and rents timber out of the same yard slats to whomever the fences pay for.",
+      "npc_type": 6,
+      "level": 1,
+      "faction": "friendly",
+      "scene_path": "res://scenes/npcs/merchant_general.tscn",
+      "zone_id": "zone_village_center",
+      "spawn_offset": {
+        "x": -3,
+        "y": 0,
+        "z": 2
+      },
+      "greeting": "Mind the tar bucket, the yard's wet through. Half this village's fence is my hand and the other half is what the tide takes back come the next blow.",
+      "farewell": "Keep clear of the wet slats. The fence outlasts tempers, and it outlasted yours too, most likely.",
+      "shop_title": "Fenwick's Fence & Plank",
+      "location_type": 0,
+      "base_repair_cost_multiplier": 1,
+      "buy_multiplier": 0.5,
+      "sell_multiplier": 1,
+      "includes": [
+        {
+          "type": "offering",
+          "ref_id": "vendor_fenwick_planks"
+        },
+        {
+          "type": "dialogue",
+          "dialogue_id": "tidewright_fenwick_intro"
+        },
+        {
+          "type": "quest",
+          "quest_ids": [
+            "quest_tide_salvage",
+            "quest_sentinel_wake",
+            "quest_gloamwood_ledger"
+          ]
+        }
+      ],
+      "_sourceFile": "game/data/npc/npc_tidewright_fenwick.tres",
+      "_scriptClass": "NPCData"
+    },
+    "npc_village_elder": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "npc_village_elder",
+      "display_name": "Village Elder",
+      "description": "The elder of Haven village, keeper of ancient lore.",
+      "scene_path": "res://scenes/npcs/village_elder.tscn",
+      "zone_id": "zone_village_center",
+      "spawn_offset": {
+        "x": -6,
+        "y": 0,
+        "z": -4
+      },
+      "greeting": "Welcome, traveler. The village has been troubled by wolves...",
+      "location_type": 0,
+      "buy_multiplier": 0.5,
+      "sell_multiplier": 1,
+      "includes": [
+        {
+          "type": "dialogue",
+          "dialogue_id": "village_elder_greeting"
+        },
+        {
+          "type": "quest",
+          "quest_ids": [
+            "quest_wolves_hunt",
+            "quest_herb_gathering"
+          ]
+        }
+      ],
+      "_sourceFile": "game/data/npc/npc_village_elder.tres",
+      "_scriptClass": "NPCData"
+    }
+  },
+  "world_bosses": {
+    "clockwork_saint": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "clockwork_saint",
+      "boss_template_id": "clockwork_saint",
+      "display_name": "",
+      "zone_id": "zone_dungeon_forest_depths",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "interval_seconds": 14400,
+      "first_delay_s": 1200,
+      "announce": true,
+      "window_seconds": 0,
+      "_sourceFile": "game/data/world_bosses/world_boss_clockwork_saint.tres",
+      "_scriptClass": "WorldBossData"
+    },
+    "forest_void_lord": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "forest_void_lord",
+      "boss_template_id": "void_lord",
+      "display_name": "The Forest Devourer",
+      "zone_id": "zone_forest_meadow",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "interval_seconds": 10800,
+      "first_delay_s": 900,
+      "announce": true,
+      "window_seconds": 0,
+      "_sourceFile": "game/data/world_bosses/world_boss_forest_void_lord.tres",
+      "_scriptClass": "WorldBossData"
+    },
+    "mossbound_herald": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "mossbound_herald",
+      "boss_template_id": "mossbound_herald",
+      "display_name": "",
+      "zone_id": "zone_starter_plains",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "interval_seconds": 21600,
+      "first_delay_s": 1800,
+      "announce": true,
+      "window_seconds": 0,
+      "_sourceFile": "game/data/world_bosses/world_boss_mossbound_herald.tres",
+      "_scriptClass": "WorldBossData"
+    },
+    "trench_sentinel": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "trench_sentinel",
+      "boss_template_id": "trench_sentinel",
+      "display_name": "The Trench Sentinel",
+      "zone_id": "zone_sundered_sea",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "interval_seconds": 14400,
+      "first_delay_s": 600,
+      "announce": true,
+      "window_seconds": 3600,
+      "_sourceFile": "game/data/world_bosses/world_boss_trench_sentinel.tres",
+      "_scriptClass": "WorldBossData"
+    }
+  },
+  "signs": {
+    "sign_the_awakening": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "sign_the_awakening",
+      "display_name": "The Awakening",
+      "description": "The horizon splits along a seam of pale light. The oldest of the Concord's signs: what slept is waking, and the sky remembers it first.",
+      "glyph": "WAKE",
+      "sky_tint": {
+        "r": 0.62,
+        "g": 0.85,
+        "b": 1,
+        "a": 1
+      },
+      "observation_hint": "Seen at first light in the eastern sky.",
+      "icon_path": "",
+      "_sourceFile": "game/data/signs/sign_the_awakening.tres",
+      "_scriptClass": "SignProfile"
+    },
+    "sign_the_sunken_choir": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "sign_the_sunken_choir",
+      "display_name": "The Sunken Choir",
+      "description": "Faint points of light arrange below the horizon line, as if a constellation had drowned and kept singing. Not an omen of loss: an anthem that outlived the singer.",
+      "glyph": "SUNKEN",
+      "sky_tint": {
+        "r": 0.4,
+        "g": 0.55,
+        "b": 0.9,
+        "a": 1
+      },
+      "observation_hint": "Only visible when the moon is dark.",
+      "icon_path": "",
+      "_sourceFile": "game/data/signs/sign_the_sunken_choir.tres",
+      "_scriptClass": "SignProfile"
+    },
+    "sign_the_wandering_grove": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "sign_the_wandering_grove",
+      "display_name": "The Wandering Grove",
+      "description": "A cluster of green-white lights that drifts across the sky over the hours, rooted in nothing. The Concord read it as proof that home is a thing you carry.",
+      "glyph": "GROVE",
+      "sky_tint": {
+        "r": 0.55,
+        "g": 0.95,
+        "b": 0.65,
+        "a": 1
+      },
+      "observation_hint": "Tracked by the caravan folk; it leans toward wherever most people gathered that day.",
+      "icon_path": "",
+      "_sourceFile": "game/data/signs/sign_the_wandering_grove.tres",
+      "_scriptClass": "SignProfile"
+    }
+  },
+  "mysteries": {
+    "mystery_the_first_vault": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "mystery_the_first_vault",
+      "display_name": "The Vault That Answered the Sky",
+      "riddle": "The first vault kept one question above its door, and its builders claimed the answer was already written -- nightly, overhead, for anyone who kept the ledger of lights. Speak the four words in the order the sky said them on the day the vault last answered.",
+      "gate_act_id": "act_1_the_first_vault",
+      "gate_chapter_index": 1,
+      "answer_kind": 0,
+      "answer_day": 1,
+      "hint": "The Concord's almanac re-derives any past day's code. Which day did the vault open? Act I remembers.",
+      "reward_title_id": "title_vault_reader",
+      "reward_xp": 75,
+      "_sourceFile": "game/data/mysteries/mystery_the_first_vault.tres",
+      "_scriptClass": "MysteryData"
+    },
+    "mystery_the_watcher_tally": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "mystery_the_watcher_tally",
+      "display_name": "The Warden's Tally",
+      "riddle": "A warden's slate lists every figure the Concord keeps in its sky-ledger. Count the signs the shard has catalogued, and speak the tally.",
+      "gate_act_id": "act_2_the_unpaid_debt",
+      "gate_chapter_index": 2,
+      "answer_kind": 1,
+      "answer_day": -1,
+      "hint": "Not the sky's rotation -- the ledger itself. How many signs does the almanac know?",
+      "reward_title_id": "title_wardens_word",
+      "reward_xp": 60,
+      "_sourceFile": "game/data/mysteries/mystery_the_watcher_tally.tres",
+      "_scriptClass": "MysteryData"
+    }
+  },
+  "acts": {
+    "act_1_the_first_vault": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "act_1_the_first_vault",
+      "display_name": "Act I: The First Vault",
+      "description": "The oldest record in the Chronicle. A city that planned four hundred years ahead and died anyway -- what remains is not ruins, it is a curriculum.",
+      "advance_from_day": -1,
+      "chapters": [
+        {
+          "gate_day": 1,
+          "index": 1,
+          "record_text": "The first vault's doors were rated in generations, not seasons. The builders wrote their work orders for heirs they would never meet: 'to those who keep what we kept.' Every mechanism still turns. Nobody is left who remembers why.",
+          "source_name": "The First Vault"
+        },
+        {
+          "gate_day": 2,
+          "index": 2,
+          "record_text": "The vault stores no treasure. Its deepest chamber holds a planning ledger and one line, struck through: 'the city will outlast the need for cities.' The Concord reads this as a caution: planning is not the same as knowing.",
+          "source_name": "The Concord of Vault-Watchers"
+        },
+        {
+          "gate_day": 3,
+          "index": 3,
+          "record_text": "The vault kept a room where citizens filed objections to their own plans -- and the plans waited for them. The Concord keeps the room open. Attention, not certainty, is what made it work.",
+          "source_name": "The Concord of Vault-Keepers"
+        }
+      ],
+      "_sourceFile": "game/data/acts/act_1_the_first_vault.tres",
+      "_scriptClass": "ActProfile"
+    },
+    "act_2_the_unpaid_debt": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "act_2_the_unpaid_debt",
+      "display_name": "Act II: The Unpaid Debt",
+      "description": "The dead built what you live in. This act reads the maintenance logs they left behind -- obligations without owners, kept anyway.",
+      "advance_from_day": 3,
+      "chapters": [
+        {
+          "gate_day": -1,
+          "index": 1,
+          "record_text": "A conduit line has been re-wound every eleven years since before the Bloom. The log holds 214 signatures and one instruction, addressed to nobody: 'rewind it again.' Nobody was paid. Everybody was obliged.",
+          "source_name": "The Conduit Wardens"
+        },
+        {
+          "gate_day": 3,
+          "index": 2,
+          "record_text": "The wardens refused replacement parts when the originals could be mended. Their reason, on file: 'a spare teaches you nothing; a mend teaches you the whole.' The Skill Academy still teaches from their mends.",
+          "source_name": "The Concord of Wardens"
+        },
+        {
+          "gate_day": -1,
+          "index": 3,
+          "record_text": "The final maintenance log has no repair entry at all -- only a roster of names and, beside each, the name of another. Every name appears twice: once as keeper, once as kept. The roster was the repair.",
+          "source_name": "The Last Warden Roster"
+        }
+      ],
+      "_sourceFile": "game/data/acts/act_2_the_unpaid_debt.tres",
+      "_scriptClass": "ActProfile"
+    },
+    "act_3_the_trust_audit": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "act_3_the_trust_audit",
+      "display_name": "Act III: The Trust Audit",
+      "description": "Vault records from a society that ran on trust audits instead of commandments. No enforcement -- only attention, and the shared expectation of it.",
+      "advance_from_day": -1,
+      "chapters": [
+        {
+          "gate_day": -1,
+          "index": 1,
+          "record_text": "The audit chamber has no lock. Its door reads: 'you were trusted to arrive.' Records show 400 years of arrivals, and the ledgers reconcile to the coin. The Concord never duplicated the design; it duplicated the expectation.",
+          "source_name": "The Vault Auditors"
+        },
+        {
+          "gate_day": -1,
+          "index": 2,
+          "record_text": "A wheat shortage was answered by an unlocked granary and a sign-up sheet, not guards. The sheet came back overfilled. The auditors' note on the surplus: 'the community kept the audit for us.'",
+          "source_name": "The Granary Ledger"
+        },
+        {
+          "gate_day": -1,
+          "index": 3,
+          "record_text": "The last audit found nothing to correct and the auditors filed it anyway -- a clean sheet is a record too. The Concord's custom of the daily tally descends from that filing: attention is the audit, not the finding.",
+          "source_name": "The Final Tally"
+        }
+      ],
+      "_sourceFile": "game/data/acts/act_3_the_trust_audit.tres",
+      "_scriptClass": "ActProfile"
+    }
+  },
+  "loot_tables": {
+    "loot_bandit": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "loot_bandit",
+      "name": "Bandit Loot",
+      "description": "Drops from Bandit enemies. Road-dogs rob ore carts as much as coin: their hauls carry silver and golden seam.",
+      "level": 5,
+      "min_items_dropped": 1,
+      "max_items_dropped": 4,
+      "base_drop_chance": 1,
+      "entries": "[{\n\"item_id\": \"potion_health_small\",\n\"min_quantity\": 1,\n\"max_quantity\": 3,\n\"drop_rate\": 0.4,\n\"rarity_weight\": 1.0,\n\"is_guaranteed\": false,\n\"conditions\": []",
+      "_sourceFile": "game/data/loot_tables/loot_bandit.tres",
+      "_scriptClass": "LootTable"
+    },
+    "loot_black_market_depths": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "loot_black_market_depths",
+      "name": "Fixer's Depths Pull",
+      "description": "The Underdeck Fixer's deep pull: 12 sigils rides the pressure where the rare gear dreams. Documented shape: as higher-tier weapons/armors arrive (data/weapons, data/armors), append entries and the roll honors them.",
+      "level": 5,
+      "min_items_dropped": 1,
+      "max_items_dropped": 1,
+      "base_drop_chance": 1,
+      "entries": "[{\n\"item_id\": \"wep_starmetal_skysplitter\",\n\"min_quantity\": 1,\n\"max_quantity\": 1,\n\"drop_rate\": 1.0,\n\"rarity_weight\": 9.0,\n\"is_guaranteed\": false,\n\"conditions\": []",
+      "auto_loot": false,
+      "share_loot": false,
+      "need_before_greed": false,
+      "currency_drops": [],
+      "_sourceFile": "game/data/loot_tables/loot_black_market_depths.tres",
+      "_scriptClass": "LootTable"
+    },
+    "loot_black_market_tide": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "loot_black_market_tide",
+      "name": "Fixer's Tide Pull",
+      "description": "The Underdeck Fixer's cheap tide-pull: 3 sigils rides the shallow wash where odds still breathe. Documented shape: append real entries here and the roll honors them.",
+      "level": 5,
+      "min_items_dropped": 1,
+      "max_items_dropped": 1,
+      "base_drop_chance": 1,
+      "entries": "[{\n\"item_id\": \"potion_health_small\",\n\"min_quantity\": 1,\n\"max_quantity\": 2,\n\"drop_rate\": 1.0,\n\"rarity_weight\": 7.0,\n\"is_guaranteed\": false,\n\"conditions\": []",
+      "auto_loot": false,
+      "share_loot": false,
+      "need_before_greed": false,
+      "currency_drops": [],
+      "_sourceFile": "game/data/loot_tables/loot_black_market_tide.tres",
+      "_scriptClass": "LootTable"
+    },
+    "loot_coast_bounty": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "loot_coast_bounty",
+      "name": "Coast Bounty",
+      "description": "What the island's thieves and nesters haul together: wreck kelp, drowned pearls pried off the reef edge, and the brass the sea never counts honest. One coin in ten still carries a mint mark.",
+      "level": 25,
+      "min_items_dropped": 1,
+      "max_items_dropped": 3,
+      "base_drop_chance": 1,
+      "entries": "[{\n\"item_id\": \"res_kelp_fiber\",\n\"min_quantity\": 2,\n\"max_quantity\": 4,\n\"drop_rate\": 0.40,\n\"rarity_weight\": 1.5,\n\"is_guaranteed\": false,\n\"conditions\": []",
+      "_sourceFile": "game/data/loot_tables/loot_coast_bounty.tres",
+      "_scriptClass": "LootTable"
+    },
+    "loot_elite_ore": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "loot_elite_ore",
+      "name": "Elite Seam Drops",
+      "description": "Ore from elite and boss pursuits. The big guards carry the deep grades: troll caches hold golden and starmetal, and what a void lord sheds is beyond (starmetal always, mythril vanishingly).",
+      "level": 30,
+      "min_items_dropped": 0,
+      "max_items_dropped": 2,
+      "base_drop_chance": 1,
+      "entries": "[{\n\"item_id\": \"wep_golden_estoc\",\n\"min_quantity\": 1,\n\"max_quantity\": 1,\n\"drop_rate\": 0.12,\n\"rarity_weight\": 3.0,\n\"is_guaranteed\": false,\n\"conditions\": []",
+      "currency_drops": [],
+      "_sourceFile": "game/data/loot_tables/loot_elite_ore.tres",
+      "_scriptClass": "LootTable"
+    },
+    "loot_gloam_litter": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "loot_gloam_litter",
+      "name": "Gloam Litter",
+      "description": "The gloam holds what its tenants scraped up: iron out of old field burrows, silver the roots bit, and the mushrooms nobody harvests honest.",
+      "level": 10,
+      "min_items_dropped": 1,
+      "max_items_dropped": 3,
+      "base_drop_chance": 1,
+      "entries": "[{\n\"item_id\": \"res_iron_ore\",\n\"min_quantity\": 1,\n\"max_quantity\": 2,\n\"drop_rate\": 0.30,\n\"rarity_weight\": 1.5,\n\"is_guaranteed\": false,\n\"conditions\": []",
+      "_sourceFile": "game/data/loot_tables/loot_gloam_litter.tres",
+      "_scriptClass": "LootTable"
+    },
+    "loot_gloam_spores": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "loot_gloam_spores",
+      "name": "Gloam Spores",
+      "description": "The polyps and hides of the deep bloom carry their own medicine in the gills: dried cap, brewable steep, and a pale ore the root bit down past the frost line. One gem in a hundred is real.",
+      "level": 40,
+      "min_items_dropped": 1,
+      "max_items_dropped": 3,
+      "base_drop_chance": 1,
+      "entries": "[{\n\"item_id\": \"potion_health_medium\",\n\"min_quantity\": 1,\n\"max_quantity\": 2,\n\"drop_rate\": 0.30,\n\"rarity_weight\": 1.2,\n\"is_guaranteed\": false,\n\"conditions\": []",
+      "_sourceFile": "game/data/loot_tables/loot_gloam_spores.tres",
+      "_scriptClass": "LootTable"
+    },
+    "loot_meadow_litter": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "loot_meadow_litter",
+      "name": "Meadow Litter",
+      "description": "What the meadow's tenants carry or leave behind: dropped bite-rations, the odd shed timber, and the wild cap or petal their Owners never planted.",
+      "level": 5,
+      "min_items_dropped": 1,
+      "max_items_dropped": 3,
+      "base_drop_chance": 1,
+      "entries": "[{\n\"item_id\": \"potion_health_small\",\n\"min_quantity\": 1,\n\"max_quantity\": 1,\n\"drop_rate\": 0.18,\n\"rarity_weight\": 1.0,\n\"is_guaranteed\": false,\n\"conditions\": []",
+      "_sourceFile": "game/data/loot_tables/loot_meadow_litter.tres",
+      "_scriptClass": "LootTable"
+    },
+    "loot_pan_dust": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "loot_pan_dust",
+      "name": "Pan Dust",
+      "description": "What the salt keeps after the brine drains: silver in crust, iron in marrow, and the flat stone the pans set like coins. The hounds carry their shimmer in dust.",
+      "level": 20,
+      "min_items_dropped": 1,
+      "max_items_dropped": 3,
+      "base_drop_chance": 1,
+      "entries": "[{\n\"item_id\": \"res_iron_ore\",\n\"min_quantity\": 1,\n\"max_quantity\": 2,\n\"drop_rate\": 0.35,\n\"rarity_weight\": 1.5,\n\"is_guaranteed\": false,\n\"conditions\": []",
+      "_sourceFile": "game/data/loot_tables/loot_pan_dust.tres",
+      "_scriptClass": "LootTable"
+    },
+    "loot_skill_books": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "loot_skill_books",
+      "name": "Skill Book Drops",
+      "description": "Drops epic/legendary skill books. Attach to elite and boss enemies. Book item ids (book_<skill>_<tier>) are expanded to runtime SkillBook items by GroundLootService via SkillAcademyService.create_book. Common and rare books are purchased at the Skill Academy.",
+      "level": 1,
+      "min_items_dropped": 0,
+      "max_items_dropped": 2,
+      "base_drop_chance": 0.05,
+      "rarity_weights": {
+        "COMMON": 1,
+        "UNCOMMON": 0.5,
+        "RARE": 0.2,
+        "EPIC": 0.05,
+        "LEGENDARY": 0.01
+      },
+      "entries": "[\n{\n\"item_id\": \"book_human_battle_cry_epic\",\n\"min_quantity\": 1,\n\"max_quantity\": 1,\n\"drop_rate\": 0.04,\n\"rarity_weight\": 0.2,\n\"is_guaranteed\": false,\n\"conditions\": []",
+      "currency_drops": [],
+      "_sourceFile": "game/data/loot_tables/loot_skill_books.tres",
+      "_scriptClass": "LootTable"
+    },
+    "loot_sky_crate_daily": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "loot_sky_crate_daily",
+      "name": "Sky Crate Daily Loot",
+      "description": "Rewards from the Concord's daily sky observation crate. Contents lean toward coin and soul; storm days may yet surprise.",
+      "level": 1,
+      "min_items_dropped": 1,
+      "max_items_dropped": 2,
+      "base_drop_chance": 1,
+      "entries": "[{\n\"item_id\": \"potion_health_small\",\n\"min_quantity\": 1,\n\"max_quantity\": 3,\n\"drop_rate\": 0.6,\n\"rarity_weight\": 1.0,\n\"is_guaranteed\": false,\n\"conditions\": []",
+      "currency_drops": [
+        {
+          "currency_id": "currency_gold",
+          "min_amount": 15,
+          "max_amount": 40,
+          "drop_rate": 1,
+          "is_guaranteed": true
+        }
+      ],
+      "rarity_weights": {
+        "COMMON": 1,
+        "UNCOMMON": 0.5,
+        "RARE": 0.2,
+        "EPIC": 0.05,
+        "LEGENDARY": 0.01
+      },
+      "auto_loot": false,
+      "share_loot": true,
+      "need_before_greed": false,
+      "_sourceFile": "game/data/loot_tables/loot_sky_crate_daily.tres",
+      "_scriptClass": "LootTable"
+    },
+    "loot_slime": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "loot_slime",
+      "name": "Slime Loot",
+      "description": "Drops from Slime enemies. Mostly gel and junk; even the junk includes common seam-ore (slimes sift the ground).",
+      "level": 1,
+      "min_items_dropped": 0,
+      "max_items_dropped": 2,
+      "base_drop_chance": 1,
+      "entries": "[{\n\"item_id\": \"potion_health_small\",\n\"min_quantity\": 1,\n\"max_quantity\": 1,\n\"drop_rate\": 0.15,\n\"rarity_weight\": 1.0,\n\"is_guaranteed\": false,\n\"conditions\": []",
+      "currency_drops": [
+        {
+          "currency_id": "gold",
+          "min_amount": 1,
+          "max_amount": 4,
+          "drop_rate": 0.6,
+          "is_guaranteed": false
+        }
+      ],
+      "_sourceFile": "game/data/loot_tables/loot_slime.tres",
+      "_scriptClass": "LootTable"
+    },
+    "loot_sunken_salvage": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "loot_sunken_salvage",
+      "name": "Sunken Salvage",
+      "description": "What a tidecursed body trails up and what the kelp net snagged after them. The dig-grade fibers keep their shape; the pearls stayed whole because the sea wanted them back anyway; and somewhere in the drag someone still had a vial in their teeth.",
+      "level": 40,
+      "min_items_dropped": 1,
+      "max_items_dropped": 3,
+      "base_drop_chance": 1,
+      "entries": "[{\n\"item_id\": \"res_kelp_fiber\",\n\"min_quantity\": 2,\n\"max_quantity\": 5,\n\"drop_rate\": 0.45,\n\"rarity_weight\": 1.0,\n\"is_guaranteed\": false,\n\"conditions\": []",
+      "_sourceFile": "game/data/loot_tables/loot_sunken_salvage.tres",
+      "_scriptClass": "LootTable"
+    },
+    "loot_trench_dream": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "loot_trench_dream",
+      "name": "Trench Dream Drops",
+      "description": "What the Sentinel carries up from past the squeeze line. The pearl it grows around is the trench's own dream: whoever wears it hears the squeeze line loosen. The ores are the garden's debris caught in its kelp net -- the deep grades, shed honestly.",
+      "level": 40,
+      "min_items_dropped": 1,
+      "max_items_dropped": 3,
+      "base_drop_chance": 1,
+      "entries": "[{\n\"item_id\": \"acc_necklace_pearl_sigil\",\n\"min_quantity\": 1,\n\"max_quantity\": 1,\n\"drop_rate\": 0.10,\n\"rarity_weight\": 3.0,\n\"is_guaranteed\": false,\n\"conditions\": []",
+      "_sourceFile": "game/data/loot_tables/loot_trench_dream.tres",
+      "_scriptClass": "LootTable"
+    },
+    "loot_wolf": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "loot_wolf",
+      "name": "Wolf Loot",
+      "description": "Drops from Grey Wolf enemies. Pack carriers bite for seam-iron: copper shows up crushed in the denmaw.",
+      "level": 3,
+      "min_items_dropped": 1,
+      "max_items_dropped": 3,
+      "base_drop_chance": 1,
+      "entries": "[{\n\"item_id\": \"potion_health_small\",\n\"min_quantity\": 1,\n\"max_quantity\": 2,\n\"drop_rate\": 0.3,\n\"rarity_weight\": 1.0,\n\"is_guaranteed\": false,\n\"conditions\": []",
+      "currency_drops": [
+        {
+          "currency_id": "gold",
+          "min_amount": 2,
+          "max_amount": 8,
+          "drop_rate": 0.9,
+          "is_guaranteed": false
+        }
+      ],
+      "_sourceFile": "game/data/loot_tables/loot_wolf.tres",
+      "_scriptClass": "LootTable"
+    }
+  },
+  "hordes": {
+    "boss_gauntlet": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "boss_gauntlet",
+      "display_name": "Gauntlet of the Void",
+      "waves": [
+        {
+          "spawns": [],
+          "boss_template_id": "void_lord",
+          "boss_name": "Vault Warden",
+          "reward_gold": 1500,
+          "reward_xp": 700
+        },
+        {
+          "spawns": [
+            {
+              "template_id": "wolf",
+              "count": 4
+            }
+          ],
+          "boss_template_id": "void_lord",
+          "boss_name": "Void Ascendant",
+          "reward_gold": 1500,
+          "reward_xp": 700
+        },
+        {
+          "spawns": [
+            {
+              "template_id": "troll_elite",
+              "count": 2
+            }
+          ],
+          "boss_template_id": "void_lord",
+          "boss_name": "The Unmaker",
+          "reward_gold": 2000,
+          "reward_xp": 1100
+        }
+      ],
+      "bosses_alert": false,
+      "reward_gold": 0,
+      "reward_xp": 0,
+      "scale_levels": false,
+      "inter_wave_delay": 8,
+      "instance_scope": "",
+      "_sourceFile": "game/data/hordes/horde_boss_gauntlet.tres",
+      "_scriptClass": "HordeData"
+    },
+    "haven_siege": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "haven_siege",
+      "display_name": "Siege of Haven",
+      "waves": [
+        {
+          "spawns": [
+            {
+              "template_id": "bandit",
+              "count": 6
+            }
+          ],
+          "boss_template_id": "",
+          "boss_name": "",
+          "reward_gold": 300,
+          "reward_xp": 150
+        },
+        {
+          "spawns": [
+            {
+              "template_id": "bandit",
+              "count": 5
+            },
+            {
+              "template_id": "wolf",
+              "count": 4
+            }
+          ],
+          "boss_template_id": "",
+          "boss_name": "",
+          "reward_gold": 400,
+          "reward_xp": 200
+        },
+        {
+          "spawns": [
+            {
+              "template_id": "wolf",
+              "count": 5
+            },
+            {
+              "template_id": "troll_elite",
+              "count": 3
+            }
+          ],
+          "boss_template_id": "",
+          "boss_name": "",
+          "reward_gold": 500,
+          "reward_xp": 250
+        }
+      ],
+      "boss_template_id": "",
+      "boss_name": "",
+      "bosses_alert": true,
+      "reward_gold": 1200,
+      "reward_xp": 600,
+      "scale_levels": true,
+      "inter_wave_delay": 6,
+      "instance_scope": "",
+      "_sourceFile": "game/data/hordes/horde_haven_siege.tres",
+      "_scriptClass": "HordeData"
+    },
+    "storm_wolves": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "storm_wolves",
+      "display_name": "Storm Wolves",
+      "waves": [
+        {
+          "spawns": [
+            {
+              "template_id": "wolf",
+              "count": 4
+            }
+          ],
+          "reward_gold": -1,
+          "reward_xp": -1
+        },
+        {
+          "spawns": [
+            {
+              "template_id": "wolf",
+              "count": 5
+            },
+            {
+              "template_id": "slime",
+              "count": 3
+            }
+          ],
+          "reward_gold": -1,
+          "reward_xp": -1
+        }
+      ],
+      "boss_template_id": "",
+      "boss_name": "",
+      "reward_gold": 200,
+      "reward_xp": 120,
+      "scale_levels": true,
+      "inter_wave_delay": 5,
+      "_sourceFile": "game/data/hordes/horde_storm_wolves.tres",
+      "_scriptClass": "HordeData"
+    },
+    "trollmoot": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "trollmoot",
+      "display_name": "Trollmoot",
+      "waves": [
+        {
+          "spawns": [
+            {
+              "template_id": "slime",
+              "count": 8
+            }
+          ],
+          "reward_gold": -1,
+          "reward_xp": -1
+        },
+        {
+          "spawns": [
+            {
+              "template_id": "slime",
+              "count": 6
+            },
+            {
+              "template_id": "wolf",
+              "count": 4
+            }
+          ],
+          "reward_gold": -1,
+          "reward_xp": -1
+        },
+        {
+          "spawns": [
+            {
+              "template_id": "wolf",
+              "count": 6
+            },
+            {
+              "template_id": "troll_elite",
+              "count": 2
+            }
+          ],
+          "reward_gold": -1,
+          "reward_xp": -1
+        }
+      ],
+      "boss_template_id": "troll_elite",
+      "boss_name": "Trollmoot Chieftain",
+      "reward_gold": 1500,
+      "reward_xp": 800,
+      "scale_levels": true,
+      "inter_wave_delay": 5,
+      "instance_scope": "",
+      "_sourceFile": "game/data/hordes/horde_trollmoot.tres",
+      "_scriptClass": "HordeData"
+    },
+    "vault_seal": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "vault_seal",
+      "display_name": "Vault Seal",
+      "waves": [
+        {
+          "spawns": [
+            {
+              "template_id": "slime",
+              "count": 6
+            }
+          ],
+          "reward_gold": -1,
+          "reward_xp": -1
+        },
+        {
+          "spawns": [
+            {
+              "template_id": "bandit",
+              "count": 5
+            },
+            {
+              "template_id": "slime",
+              "count": 3
+            }
+          ],
+          "reward_gold": -1,
+          "reward_xp": -1
+        }
+      ],
+      "boss_template_id": "void_lord",
+      "boss_name": "Vault Warden",
+      "reward_gold": 3000,
+      "reward_xp": 1500,
+      "scale_levels": false,
+      "inter_wave_delay": 4,
+      "instance_scope": "dungeon",
+      "_sourceFile": "game/data/hordes/horde_vault_seal.tres",
+      "_scriptClass": "HordeData"
+    }
+  },
+  "weather_events": {
+    "aurora_window": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "aurora_window",
+      "display_name": "Aurora Window",
+      "trigger_kinds": "Array[int]([2])",
+      "band_names": "Array[String]([])",
+      "aurora_min": 0.5,
+      "cooldown_sec": 600,
+      "zone_ids": "Array[String]([])",
+      "stir_horde_config": "",
+      "stir_waves": 2,
+      "open_window_sec": 1800,
+      "notify_message": "An aurora unfolds — the sky is writing. Something may be answered.",
+      "_sourceFile": "game/data/weather_events/weather_aurora_window.tres",
+      "_scriptClass": "WeatherEventData"
+    },
+    "fog_mystery": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "fog_mystery",
+      "display_name": "Fog Watchers",
+      "trigger_kinds": "Array[int]([1])",
+      "band_names": "Array[String]([\"cloudy\"])",
+      "aurora_min": 0.5,
+      "cooldown_sec": 900,
+      "zone_ids": "Array[String]([])",
+      "stir_horde_config": "",
+      "stir_waves": 2,
+      "open_window_sec": 600,
+      "notify_message": "Fog settles low — shapes watch from the treeline. The sky listens tonight.",
+      "_sourceFile": "game/data/weather_events/weather_fog_mystery.tres",
+      "_scriptClass": "WeatherEventData"
+    },
+    "kp_gate": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "kp_gate",
+      "display_name": "Tempest Gate",
+      "trigger_kinds": "Array[int]([2])",
+      "band_names": "Array[String]([])",
+      "aurora_min": 1,
+      "cooldown_sec": 3600,
+      "zone_ids": "Array[String]([])",
+      "stir_horde_config": "",
+      "stir_waves": 2,
+      "open_window_sec": 900,
+      "notify_message": "The tempest burns green — the gate is open. Answer it.",
+      "_sourceFile": "game/data/weather_events/weather_kp_gate.tres",
+      "_scriptClass": "WeatherEventData"
+    },
+    "storm_pack": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "storm_pack",
+      "display_name": "Storm Pack",
+      "trigger_kinds": "Array[int]([0, 1])",
+      "band_names": "Array[String]([\"storm\", \"tempest\", \"rain\"])",
+      "aurora_min": 0.5,
+      "cooldown_sec": 240,
+      "zone_ids": "Array[String]([])",
+      "stir_horde_config": "storm_wolves",
+      "stir_waves": 2,
+      "open_window_sec": 0,
+      "notify_message": "The storm stirs the wilds — something is coming.",
+      "_sourceFile": "game/data/weather_events/weather_storm_pack.tres",
+      "_scriptClass": "WeatherEventData"
+    }
+  },
+  "gateways": {
+    "ankh_village_shrine": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "ankh_village_shrine",
+      "display_name": "Village Shrine",
+      "description": "A sacred ankh for binding your spirit.",
+      "gateway_type": 0,
+      "source_zone_id": "zone_village_center",
+      "source_position": {
+        "x": 25,
+        "y": 0,
+        "z": 30
+      },
+      "destination_zone_id": "zone_village_center",
+      "destination_position": {
+        "x": 25,
+        "y": 0,
+        "z": 30
+      },
+      "model_path": "",
+      "particle_effect": "ankh_glow_gold",
+      "sound_idle": "ankh_idle_ambient",
+      "icon_path": "res://icons/ankh.png",
+      "min_level": 1,
+      "is_two_way": false,
+      "_sourceFile": "game/data/gateways/ankh_village_shrine.tres",
+      "_scriptClass": "GatewayData"
+    },
+    "dungeon_forest_depths_entrance": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "dungeon_forest_depths_entrance",
+      "display_name": "Forest Depths Entrance",
+      "description": "A dark portal leading into the depths of the forest.",
+      "gateway_type": 2,
+      "source_zone_id": "zone_forest_meadow",
+      "source_position": {
+        "x": 100,
+        "y": 1,
+        "z": 80
+      },
+      "destination_zone_id": "zone_dungeon_forest_depths",
+      "destination_position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "model_path": "",
+      "particle_effect": "portal_dark_green",
+      "sound_idle": "portal_loop_dungeon",
+      "icon_path": "res://icons/portals/dungeon.png",
+      "min_level": 10,
+      "max_level": 100,
+      "dungeon_id": "dungeon_forest_depths",
+      "difficulty": 1,
+      "required_party_size": 1,
+      "combat_lockout": true,
+      "is_two_way": true,
+      "reverse_gateway_id": "",
+      "_sourceFile": "game/data/gateways/dungeon_forest_depths_entrance.tres",
+      "_scriptClass": "GatewayData"
+    },
+    "waypoint_capitol_pier": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "waypoint_capitol_pier",
+      "display_name": "Capitol Pier Waypoint",
+      "description": "The Baywalk's ferry berth: the timber pier off the city strand where the Haven Ferry calls between tides. The bay opens toward the island.",
+      "gateway_type": 1,
+      "source_zone_id": "zone_nexus_central",
+      "source_position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "destination_zone_id": "zone_nexus_central",
+      "destination_position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "model_path": "",
+      "particle_effect": "waypoint_glow_blue",
+      "icon_path": "res://icons/waypoint.png",
+      "min_level": 1,
+      "is_two_way": true,
+      "_sourceFile": "game/data/gateways/waypoint_capitol_pier.tres",
+      "_scriptClass": "GatewayData"
+    },
+    "waypoint_island_dock": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "waypoint_island_dock",
+      "display_name": "Island Dock Waypoint",
+      "description": "A salt-worn waypoint at the island's only break in the cliffs. The ferry knows it by heart.",
+      "gateway_type": 1,
+      "source_zone_id": "zone_starter_plains",
+      "source_position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "destination_zone_id": "zone_gull_island",
+      "destination_position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "model_path": "",
+      "particle_effect": "waypoint_glow_blue",
+      "icon_path": "res://icons/waypoint.png",
+      "min_level": 1,
+      "is_two_way": true,
+      "_sourceFile": "game/data/gateways/waypoint_island_dock.tres",
+      "_scriptClass": "GatewayData"
+    },
+    "waypoint_nexus_central": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "waypoint_nexus_central",
+      "display_name": "Nexus Central Waypoint",
+      "description": "An old-world waypoint stone flickering teal, answering the roads toward the dormant capital.",
+      "gateway_type": 1,
+      "source_zone_id": "zone_starter_plains",
+      "source_position": {
+        "x": 60,
+        "y": 1,
+        "z": 60
+      },
+      "destination_zone_id": "zone_nexus_central",
+      "destination_position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "model_path": "",
+      "particle_effect": "waypoint_glow_blue",
+      "icon_path": "res://icons/waypoint.png",
+      "min_level": 1,
+      "is_two_way": true,
+      "_sourceFile": "game/data/gateways/waypoint_nexus_central.tres",
+      "_scriptClass": "GatewayData"
+    },
+    "waypoint_shipwreck_quay": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "waypoint_shipwreck_quay",
+      "display_name": "Shipwreck Quay",
+      "description": "The headland quay the salvor calls home: a rope rack, a drum of pitch, and a shelf of things the strait gave back. The shoal ford starts here at low water.",
+      "gateway_type": 4,
+      "source_zone_id": "zone_sundered_sea",
+      "source_position": {
+        "x": -5973.88,
+        "y": 14555.64,
+        "z": 12346.91
+      },
+      "destination_zone_id": "zone_village_center",
+      "destination_position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "model_path": "",
+      "particle_effect": "waypoint_glow_blue",
+      "icon_path": "res://icons/waypoint.png",
+      "min_level": 1,
+      "is_two_way": true,
+      "_sourceFile": "game/data/gateways/waypoint_shipwreck_quay.tres",
+      "_scriptClass": "GatewayData"
+    },
+    "waypoint_strait_moor": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "waypoint_strait_moor",
+      "display_name": "Moor Side Waypoint",
+      "description": "The moat-side ferry pin: the barque casts off from the shadow of the near headland, where the channel opens toward the sea.",
+      "gateway_type": 4,
+      "source_zone_id": "zone_sundered_sea",
+      "source_position": {
+        "x": -5848.442,
+        "y": 14829.4,
+        "z": 12078.28
+      },
+      "destination_zone_id": "zone_sundered_sea",
+      "destination_position": {
+        "x": -5848.442,
+        "y": 14829.4,
+        "z": 12078.28
+      },
+      "model_path": "",
+      "particle_effect": "waypoint_glow_blue",
+      "icon_path": "res://icons/waypoint.png",
+      "min_level": 1,
+      "is_two_way": true,
+      "_sourceFile": "game/data/gateways/waypoint_strait_moor.tres",
+      "_scriptClass": "GatewayData"
+    },
+    "waypoint_strait_seaward": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "waypoint_strait_seaward",
+      "display_name": "Seaward Waypoint",
+      "description": "The open-water ferry pin past the wreck shoal, where the barque turns for the open sea and the headlands sink behind you.",
+      "gateway_type": 4,
+      "source_zone_id": "zone_sundered_sea",
+      "source_position": {
+        "x": -10030.64,
+        "y": 11674.2,
+        "z": 12771.04
+      },
+      "destination_zone_id": "zone_sundered_sea",
+      "destination_position": {
+        "x": -10030.64,
+        "y": 11674.2,
+        "z": 12771.04
+      },
+      "model_path": "",
+      "particle_effect": "waypoint_glow_blue",
+      "icon_path": "res://icons/waypoint.png",
+      "min_level": 1,
+      "is_two_way": true,
+      "_sourceFile": "game/data/gateways/waypoint_strait_seaward.tres",
+      "_scriptClass": "GatewayData"
+    },
+    "waypoint_sun_pans": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "waypoint_sun_pans",
+      "display_name": "Sun Pans Waypoint",
+      "description": "A salt-scoured waypoint on the atoll's outer bank. The ferry knows the bearing; the pans' furnace heat does the rest.",
+      "gateway_type": 1,
+      "source_zone_id": "zone_starter_plains",
+      "source_position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "destination_zone_id": "zone_sun_pans",
+      "destination_position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "model_path": "",
+      "particle_effect": "waypoint_glow_amber",
+      "icon_path": "res://icons/waypoint.png",
+      "min_level": 1,
+      "is_two_way": true,
+      "_sourceFile": "game/data/gateways/waypoint_sun_pans.tres",
+      "_scriptClass": "GatewayData"
+    },
+    "waypoint_village_center": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "waypoint_village_center",
+      "display_name": "Village Center Waypoint",
+      "description": "The village harbor's shared berth: the mystical waypoint stones above the strand where the bay barge and the island skiff both moor -- two boats know this pin.",
+      "gateway_type": 1,
+      "source_zone_id": "zone_forest_meadow",
+      "source_position": {
+        "x": 50,
+        "y": 1,
+        "z": 50
+      },
+      "destination_zone_id": "zone_village_center",
+      "destination_position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "model_path": "",
+      "particle_effect": "waypoint_glow_blue",
+      "icon_path": "res://icons/waypoint.png",
+      "min_level": 1,
+      "is_two_way": true,
+      "_sourceFile": "game/data/gateways/waypoint_village_center.tres",
+      "_scriptClass": "GatewayData"
+    }
+  },
+  "oceans": {
+    "lava_underglow_lake": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "lava_underglow_lake",
+      "display_name": "The Underglow Lake",
+      "surface_height": 2001.2,
+      "floor_is_radial": false,
+      "floor_center": {
+        "x": -26,
+        "y": 2001.2,
+        "z": 20
+      },
+      "floor_radius": 9,
+      "floor_y": 2000,
+      "max_depth": 4,
+      "current_direction": {
+        "x": 0.25,
+        "y": 0,
+        "z": 0.25
+      },
+      "current_strength": 0.35,
+      "pressure_per_meter": 0,
+      "liquid": 1,
+      "burn_dps": 8,
+      "salinity": 0,
+      "ambient_fog_color": {
+        "r": 0.4,
+        "g": 0.12,
+        "b": 0.03,
+        "a": 1
+      },
+      "ambient_fog_density": 0.03,
+      "ambient_sounds": "Array[String]([\"ocean_deep\"])",
+      "lore": "The Deep Root's own fire: a slow lake of strata-melt that pools where the shell sweats magma. The Warden does not count its crossings. It drifts a palm's width east every clock -- the lake licks the wall in the same direction the glow tide runs. Nothing lives in it and nothing ever crossed twice.",
+      "_sourceFile": "game/data/oceans/lava_underglow_lake.tres",
+      "_scriptClass": "OceanVolume"
+    },
+    "ocean_deep_root_pool": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "ocean_deep_root_pool",
+      "display_name": "The Glow Cistern",
+      "surface_height": 2002.4,
+      "floor_is_radial": false,
+      "floor_center": {
+        "x": 12,
+        "y": 2002.4,
+        "z": 0
+      },
+      "floor_radius": 3.4,
+      "floor_y": 2000,
+      "max_depth": 4,
+      "current_direction": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "current_strength": 0,
+      "pressure_per_meter": 0,
+      "salinity": 1,
+      "ambient_fog_color": {
+        "r": 0.08,
+        "g": 0.28,
+        "b": 0.3,
+        "a": 1
+      },
+      "ambient_fog_density": 0.02,
+      "ambient_sounds": "Array[String]([\"ocean_lap\"])",
+      "lore": "The Deep Root's own water: the Concord cistern at the camp shelf catches the glow tide high and keeps it sweet. The Warden calls it the pool that remembers the surface. Nothing lives in it -- nothing has ever tried. Swim it once and the strata glow holds your outline longer than it should.",
+      "_sourceFile": "game/data/oceans/ocean_deep_root_pool.tres",
+      "_scriptClass": "OceanVolume"
+    },
+    "ocean_haven_shelf": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "ocean_haven_shelf",
+      "display_name": "The Haven Shelf",
+      "surface_height": 0,
+      "floor_is_radial": false,
+      "floor_center": {
+        "x": 3000,
+        "y": 0,
+        "z": 0
+      },
+      "floor_radius": 2500,
+      "floor_y": -75,
+      "max_depth": 60,
+      "current_direction": {
+        "x": 1,
+        "y": 0,
+        "z": 0
+      },
+      "current_strength": 0.4,
+      "pressure_per_meter": 0.1,
+      "salinity": 1,
+      "ambient_fog_color": {
+        "r": 0.1,
+        "g": 0.3,
+        "b": 0.45,
+        "a": 1
+      },
+      "ambient_fog_density": 0.02,
+      "ambient_sounds": "Array[String]([\"ocean_lap\", \"ocean_deep\"])",
+      "lore": "West of Haven the green world remembers it was once all water. The reef gardens start shallow; the kelp keeps the middle dark; the trench keeps whatever it keeps. The Concord charted the shelf top to bottom -- what lives below the light is the sea's own business.",
+      "_sourceFile": "game/data/oceans/ocean_haven_shelf.tres",
+      "_scriptClass": "OceanVolume"
+    },
+    "ocean_lunar_crater": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "ocean_lunar_crater",
+      "display_name": "The Builder's Pool",
+      "surface_height": -6,
+      "floor_is_radial": false,
+      "floor_center": {
+        "x": 0,
+        "y": -6,
+        "z": 0
+      },
+      "floor_radius": 40,
+      "floor_y": -30,
+      "max_depth": 24,
+      "current_direction": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "current_strength": 0,
+      "pressure_per_meter": 0,
+      "salinity": 0.3,
+      "ambient_fog_color": {
+        "r": 0.35,
+        "g": 0.4,
+        "b": 0.5,
+        "a": 1
+      },
+      "ambient_fog_density": 0.015,
+      "ambient_sounds": "Array[String]([\"ocean_lap\"])",
+      "lore": "The builders filled a crater to learn what water is. Tame by design: no currents, no pressure, nothing that bites -- the workshop pool where the world works on itself. Whatever swims here first swims on the moon.",
+      "_sourceFile": "game/data/oceans/ocean_lunar_crater.tres",
+      "_scriptClass": "OceanVolume"
+    },
+    "ocean_sundered_sea": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "ocean_sundered_sea",
+      "display_name": "The Sundered Sea",
+      "surface_height": 0,
+      "floor_is_radial": true,
+      "floor_center": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "floor_radius": 19400,
+      "floor_y": 0,
+      "waterline_is_radial": true,
+      "max_depth": 60,
+      "current_direction": {
+        "x": -0.24,
+        "y": -0.146,
+        "z": 0.06
+      },
+      "current_strength": 0.5,
+      "pressure_per_meter": 0.1,
+      "salinity": 1,
+      "ambient_fog_color": {
+        "r": 0.04,
+        "g": 0.16,
+        "b": 0.24,
+        "a": 1
+      },
+      "ambient_fog_density": 0.03,
+      "ambient_sounds": "Array[String]([\"ocean_lap\", \"ocean_deep\"])",
+      "lore": "After the sundering the sea took the west face whole. The reef gardens wait just past the light; the kelp keeps the middle dark; the trench at the far bank holds whatever the shelf was willing to lose. The Concord charter says the sea is landing -- its currents say ferry.",
+      "_sourceFile": "game/data/oceans/ocean_sundered_sea.tres",
+      "_scriptClass": "OceanVolume"
+    }
+  },
+  "biomes": {
+    "biome_underworld_crag_ring": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "biome_underworld_crag_ring",
+      "display_name": "The Crag Ring",
+      "world_id": "underworld",
+      "family": 0,
+      "radius_inner_m": 22,
+      "radius_outer_m": 34,
+      "angular_offset": 0.27,
+      "count": 12,
+      "sub_count": 1,
+      "collider_mode": "stone",
+      "palette_dark": {
+        "r": 0.14,
+        "g": 0.12,
+        "b": 0.16,
+        "a": 1
+      },
+      "palette_accent": {
+        "r": 0.2,
+        "g": 0.18,
+        "b": 0.23,
+        "a": 1
+      },
+      "palette_emission": {
+        "r": 0.35,
+        "g": 0.8,
+        "b": 0.55,
+        "a": 1
+      },
+      "emission_energy": 0.5,
+      "clearance_m": 6,
+      "lore": "The ring ridge: twelve leaning slabs the shell dropped on its own doorstep. One in three carries veins the strata lights, so the ring reads even when the tide sleeps. Every third leaning slab keeps a stone-sweet swerve away from the camp's two gates.",
+      "_sourceFile": "game/data/biomes/biome_underworld_crag_ring.tres",
+      "_scriptClass": "BiomeBand"
+    },
+    "biome_underworld_dead_grove": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "biome_underworld_dead_grove",
+      "display_name": "The Dead Grove",
+      "world_id": "underworld",
+      "family": 1,
+      "radius_inner_m": 34,
+      "radius_outer_m": 48,
+      "angular_offset": 2.1,
+      "count": 7,
+      "sub_count": 2,
+      "collider_mode": "stone",
+      "palette_dark": {
+        "r": 0.16,
+        "g": 0.13,
+        "b": 0.11,
+        "a": 1
+      },
+      "palette_accent": {
+        "r": 0.16,
+        "g": 0.13,
+        "b": 0.11,
+        "a": 1
+      },
+      "palette_emission": {
+        "r": 0.35,
+        "g": 0.8,
+        "b": 0.55,
+        "a": 1
+      },
+      "emission_energy": 0,
+      "clearance_m": 0,
+      "lore": "The green world's bones: seven charcoal trunks standing where a forest once had a claim. The Deep Root keeps them bare -- no light under the strata feeds leaves, and the Warden finds bare forks more honest than fake color.",
+      "_sourceFile": "game/data/biomes/biome_underworld_dead_grove.tres",
+      "_scriptClass": "BiomeBand"
+    },
+    "biome_underworld_mycelium_field": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "biome_underworld_mycelium_field",
+      "display_name": "The Mycelium Field",
+      "world_id": "underworld",
+      "family": 2,
+      "radius_inner_m": 22,
+      "radius_outer_m": 62,
+      "angular_offset": 0.9,
+      "count": 9,
+      "sub_count": 3,
+      "collider_mode": "paint",
+      "palette_dark": {
+        "r": 0.45,
+        "g": 0.6,
+        "b": 0.5,
+        "a": 0.85
+      },
+      "palette_accent": {
+        "r": 0.45,
+        "g": 0.6,
+        "b": 0.5,
+        "a": 0.85
+      },
+      "palette_emission": {
+        "r": 0.25,
+        "g": 0.75,
+        "b": 0.65,
+        "a": 1
+      },
+      "emission_energy": 0.8,
+      "clearance_m": 0,
+      "lore": "The understory light: nine clumps of glow caps pooled between the crags. The strata feeds the shelf and the fungi answer -- a body walking the field steps over the glow, never through it, and the caps never block a boot.",
+      "_sourceFile": "game/data/biomes/biome_underworld_mycelium_field.tres",
+      "_scriptClass": "BiomeBand"
+    },
+    "biome_underworld_odd_grasses": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "biome_underworld_odd_grasses",
+      "display_name": "The Dark Meadow",
+      "world_id": "underworld",
+      "family": 4,
+      "radius_inner_m": 16,
+      "radius_outer_m": 70,
+      "angular_offset": 0.13,
+      "count": 36,
+      "sub_count": 3,
+      "collider_mode": "paint",
+      "palette_dark": {
+        "r": 0.4,
+        "g": 0.62,
+        "b": 0.42,
+        "a": 1
+      },
+      "palette_accent": {
+        "r": 0.4,
+        "g": 0.62,
+        "b": 0.42,
+        "a": 1
+      },
+      "palette_emission": {
+        "r": 0.35,
+        "g": 0.8,
+        "b": 0.55,
+        "a": 1
+      },
+      "emission_energy": 0.7,
+      "clearance_m": 0,
+      "lore": "The Deep Root's one honest soft edge: odd luminous grasses scattered through every band, thin as needles and gentle as a promise. The dark meadow has no other purpose than to be walked through -- grass never blocks a foot.",
+      "_sourceFile": "game/data/biomes/biome_underworld_odd_grasses.tres",
+      "_scriptClass": "BiomeBand"
+    },
+    "biome_underworld_stalagmite_runs": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "biome_underworld_stalagmite_runs",
+      "display_name": "The Stalagmite Runs",
+      "world_id": "underworld",
+      "family": 3,
+      "radius_inner_m": 18,
+      "radius_outer_m": 64,
+      "angular_offset": 1.57,
+      "count": 14,
+      "sub_count": 1,
+      "collider_mode": "stone",
+      "palette_dark": {
+        "r": 0.5,
+        "g": 0.48,
+        "b": 0.45,
+        "a": 1
+      },
+      "palette_accent": {
+        "r": 0.5,
+        "g": 0.48,
+        "b": 0.45,
+        "a": 1
+      },
+      "palette_emission": {
+        "r": 0.35,
+        "g": 0.8,
+        "b": 0.55,
+        "a": 1
+      },
+      "emission_energy": 0,
+      "clearance_m": 0,
+      "lore": "Where the shell sweats, pale stone grows slow and patient: fourteen spikes in sheltered lanes. Each stands as a wall a climber can own, not a shrub a body pushes through -- the shell's patience is PropCollider law.",
+      "_sourceFile": "game/data/biomes/biome_underworld_stalagmite_runs.tres",
+      "_scriptClass": "BiomeBand"
+    }
+  },
+  "dwellings": {
+    "dwel_anvil_iron": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "dwel_anvil_iron",
+      "display_name": "Iron Anvil",
+      "description": "A blacksmith's anvil for your hall. Repair worn blades at home -- no more hauling to the village smithy. Interact once placed to open the smithy at this anvil.",
+      "icon_path": "res://icons/dwellings/anvil_iron.png",
+      "item_category": 7,
+      "rarity": 2,
+      "equip_slot": 0,
+      "stack_size": 1,
+      "sell_price": 1200,
+      "buy_price": 24000,
+      "required_level": 0,
+      "dwelling_category": "functional",
+      "is_placeable": true,
+      "is_interactable": true,
+      "interaction_type": "blacksmith",
+      "interaction_radius": 1.5,
+      "provides_function": "blacksmith",
+      "function_capacity": 0,
+      "tax_modifier": 0.08,
+      "maintenance_cost": 15,
+      "decay_time_days": 0,
+      "allow_guild_access": true,
+      "allow_friends_access": true,
+      "allow_public_view": true,
+      "dyeable": false,
+      "dismantle_returns": [
+        {
+          "amount": 12,
+          "id": "res_iron_ore",
+          "type": "resource"
+        },
+        {
+          "amount": 6,
+          "id": "res_stone",
+          "type": "resource"
+        }
+      ],
+      "_sourceFile": "game/data/dwellings/dwel_anvil_iron.tres",
+      "_scriptClass": "Item"
+    },
+    "dwel_cauldron_brew": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "dwel_cauldron_brew",
+      "display_name": "Brew Cauldron",
+      "description": "A squat cauldron over a low flame. The alchemy station awaits its recipes; placing it now prepares your hall for them.",
+      "icon_path": "res://icons/dwellings/cauldron_brew.png",
+      "item_category": 7,
+      "rarity": 2,
+      "equip_slot": 0,
+      "stack_size": 1,
+      "sell_price": 700,
+      "buy_price": 14000,
+      "required_level": 0,
+      "dwelling_category": "functional",
+      "is_placeable": true,
+      "is_interactable": true,
+      "interaction_type": "craft",
+      "interaction_radius": 1.5,
+      "provides_function": "crafting_alchemy",
+      "function_capacity": 0,
+      "tax_modifier": 0.05,
+      "maintenance_cost": 8,
+      "decay_time_days": 0,
+      "allow_guild_access": true,
+      "allow_friends_access": true,
+      "allow_public_view": true,
+      "dyeable": false,
+      "dismantle_returns": [
+        {
+          "amount": 10,
+          "id": "res_stone",
+          "type": "resource"
+        },
+        {
+          "amount": 3,
+          "id": "res_iron_ore",
+          "type": "resource"
+        }
+      ],
+      "_sourceFile": "game/data/dwellings/dwel_cauldron_brew.tres",
+      "_scriptClass": "Item"
+    },
+    "dwel_fireplace_stone": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "dwel_fireplace_stone",
+      "display_name": "Stone Fireplace",
+      "description": "A cozy stone fireplace. Provides ambient warmth and lighting.",
+      "icon_path": "res://icons/dwellings/fireplace_stone.png",
+      "item_category": 7,
+      "rarity": 1,
+      "equip_slot": 0,
+      "dwelling_category": "lighting",
+      "dwelling_size": {
+        "x": 3,
+        "y": 2,
+        "z": 1
+      },
+      "is_placeable": true,
+      "placement_zones": [
+        "housing_zone_1"
+      ],
+      "is_interactable": true,
+      "interaction_type": "light_fire",
+      "interaction_radius": 1,
+      "cooldown_seconds": 0,
+      "provides_function": "ambient_light",
+      "function_capacity": 0,
+      "tax_modifier": 0.05,
+      "maintenance_cost": 10,
+      "decay_time_days": 0,
+      "allow_guild_access": true,
+      "allow_friends_access": true,
+      "allow_public_view": true,
+      "dyeable": false,
+      "is_animated": true,
+      "animation_path": "res://animations/dwellings/fireplace_burn.tres",
+      "dismantle_returns": [
+        {
+          "amount": 20,
+          "id": "res_stone",
+          "type": "resource"
+        },
+        {
+          "amount": 5,
+          "id": "res_iron",
+          "type": "resource"
+        }
+      ],
+      "_sourceFile": "game/data/dwellings/dwel_fireplace_stone.tres",
+      "_scriptClass": "Item"
+    },
+    "dwel_forge_coal": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "dwel_forge_coal",
+      "display_name": "Coal Forge",
+      "description": "A house forge fed by charcoal bellows. Smelts ore and hammers ingots at home, failure roll and all. Interact once placed to open the craft table at the FORGE.",
+      "icon_path": "res://icons/dwellings/forge_coal.png",
+      "item_category": 7,
+      "rarity": 3,
+      "equip_slot": 0,
+      "stack_size": 1,
+      "sell_price": 1800,
+      "buy_price": 36000,
+      "required_level": 0,
+      "dwelling_category": "functional",
+      "is_placeable": true,
+      "is_interactable": true,
+      "interaction_type": "craft",
+      "interaction_radius": 1.5,
+      "provides_function": "crafting_forge",
+      "function_capacity": 0,
+      "tax_modifier": 0.1,
+      "maintenance_cost": 25,
+      "decay_time_days": 0,
+      "allow_guild_access": true,
+      "allow_friends_access": true,
+      "allow_public_view": true,
+      "dyeable": false,
+      "dismantle_returns": [
+        {
+          "amount": 20,
+          "id": "res_stone",
+          "type": "resource"
+        },
+        {
+          "amount": 8,
+          "id": "res_iron_ore",
+          "type": "resource"
+        }
+      ],
+      "_sourceFile": "game/data/dwellings/dwel_forge_coal.tres",
+      "_scriptClass": "Item"
+    },
+    "dwel_wooden_chair": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "dwel_wooden_chair",
+      "display_name": "Wooden Chair",
+      "description": "A simple wooden chair. Perfect for any dining room.",
+      "icon_path": "res://icons/dwellings/chair_wood.png",
+      "item_category": 7,
+      "rarity": 0,
+      "equip_slot": 0,
+      "dwelling_category": "",
+      "dwelling_size": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "is_placeable": true,
+      "placement_zones": [
+        "housing_zone_1",
+        "housing_zone_2"
+      ],
+      "event_id": "",
+      "event_expires": false,
+      "event_end_date": "",
+      "use_skill_id": "",
+      "cooldown": 0,
+      "duration": 0,
+      "model_path": "",
+      "color": {
+        "r": 0.6,
+        "g": 0.4,
+        "b": 0.2,
+        "a": 1
+      },
+      "is_interactable": true,
+      "interaction_type": "sit",
+      "interaction_radius": 0.5,
+      "cooldown_seconds": 0,
+      "provides_function": "",
+      "function_capacity": 0,
+      "tax_modifier": 0,
+      "maintenance_cost": 0,
+      "decay_time_days": 0,
+      "allow_guild_access": true,
+      "allow_friends_access": true,
+      "allow_public_view": false,
+      "allowed_zones": [],
+      "dyeable": true,
+      "dye_channels": 1,
+      "default_colors": [
+        {
+          "color": [
+            0.6,
+            0.4,
+            0.2,
+            1
+          ]
+        }
+      ],
+      "dismantle_returns": [
+        {
+          "amount": 3,
+          "id": "res_wood",
+          "type": "resource"
+        }
+      ],
+      "_sourceFile": "game/data/dwellings/dwel_wooden_chair.tres",
+      "_scriptClass": "Item"
+    },
+    "dwel_workbench_oak": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "dwel_workbench_oak",
+      "display_name": "Oak Workbench",
+      "description": "A sturdy carpenter's bench for your hall. Sew kites and tinker trinkets at home. Interact once placed to open the craft table at the WORKBENCH.",
+      "icon_path": "res://icons/dwellings/workbench_oak.png",
+      "item_category": 7,
+      "rarity": 2,
+      "equip_slot": 0,
+      "stack_size": 1,
+      "sell_price": 900,
+      "buy_price": 18000,
+      "required_level": 0,
+      "dwelling_category": "functional",
+      "is_placeable": true,
+      "is_interactable": true,
+      "interaction_type": "craft",
+      "interaction_radius": 1.5,
+      "provides_function": "crafting_workbench",
+      "function_capacity": 0,
+      "tax_modifier": 0.06,
+      "maintenance_cost": 10,
+      "decay_time_days": 0,
+      "allow_guild_access": true,
+      "allow_friends_access": true,
+      "allow_public_view": true,
+      "dyeable": false,
+      "dismantle_returns": [
+        {
+          "amount": 4,
+          "id": "res_timber",
+          "type": "resource"
+        }
+      ],
+      "_sourceFile": "game/data/dwellings/dwel_workbench_oak.tres",
+      "_scriptClass": "Item"
+    }
+  },
+  "gliders": {
+    "glider_drift_kite": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "glider_drift_kite",
+      "display_name": "Drift Kite",
+      "description": "A ridged linen wing on a willow frame. Snap it open over a drop and the valley slows down beneath you.",
+      "icon_path": "res://icons/mounts/gullwing.png",
+      "model_path": "",
+      "kind": 1,
+      "speed_multiplier": 1.25,
+      "required_level": 5,
+      "faction_id": "",
+      "source": 2,
+      "currency_id": "currency_gold",
+      "cost": 120,
+      "source_ref": "",
+      "soulbound": false,
+      "tint": {
+        "r": 0.72,
+        "g": 0.8,
+        "b": 0.9,
+        "a": 1
+      },
+      "movement_profile_id": "movement_glider",
+      "_sourceFile": "game/data/gliders/glider_drift_kite.tres",
+      "_scriptClass": "MountData"
+    },
+    "glider_gullwing_shade": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "glider_gullwing_shade",
+      "display_name": "Gullwing Shade",
+      "description": "A gull-boned frame under dyed canvas, tuned by the harbor wind-readers. Holds a thermal like it owes it something.",
+      "icon_path": "res://icons/mounts/gullwing.png",
+      "model_path": "",
+      "kind": 1,
+      "speed_multiplier": 1.65,
+      "required_level": 25,
+      "faction_id": "",
+      "source": 2,
+      "currency_id": "currency_gold",
+      "cost": 1100,
+      "source_ref": "",
+      "soulbound": false,
+      "tint": {
+        "r": 0.55,
+        "g": 0.66,
+        "b": 0.78,
+        "a": 1
+      },
+      "movement_profile_id": "movement_glider",
+      "_sourceFile": "game/data/gliders/glider_gullwing_shade.tres",
+      "_scriptClass": "MountData"
+    },
+    "glider_reclaimer_ribs": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "glider_reclaimer_ribs",
+      "display_name": "Reclaimer Ribs",
+      "description": "A wing of salvaged alloy ribs and patched membrane, carried up the Spire rung by rung. The favor that bought it is sewn into every seam.",
+      "icon_path": "res://icons/mounts/gullwing.png",
+      "model_path": "",
+      "kind": 1,
+      "speed_multiplier": 1.8,
+      "required_level": 30,
+      "faction_id": "faction_human",
+      "source": 3,
+      "currency_id": "currency_reclaimer_favor",
+      "cost": 400,
+      "source_ref": "",
+      "soulbound": true,
+      "tint": {
+        "r": 0.5,
+        "g": 0.6,
+        "b": 0.72,
+        "a": 1
+      },
+      "movement_profile_id": "movement_glider",
+      "_sourceFile": "game/data/gliders/glider_reclaimer_ribs.tres",
+      "_scriptClass": "MountData"
+    },
+    "glider_sewn_swallow": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "glider_sewn_swallow",
+      "display_name": "Sewn Swallow",
+      "description": "A swallow-cut wing stitched from retted flax. Answers a lean before you finish making it.",
+      "icon_path": "res://icons/mounts/gullwing.png",
+      "model_path": "",
+      "kind": 1,
+      "speed_multiplier": 1.45,
+      "required_level": 15,
+      "faction_id": "",
+      "source": 2,
+      "currency_id": "currency_gold",
+      "cost": 450,
+      "source_ref": "",
+      "soulbound": false,
+      "tint": {
+        "r": 0.62,
+        "g": 0.72,
+        "b": 0.82,
+        "a": 1
+      },
+      "movement_profile_id": "movement_glider",
+      "_sourceFile": "game/data/gliders/glider_sewn_swallow.tres",
+      "_scriptClass": "MountData"
+    },
+    "glider_storm_spine": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "glider_storm_spine",
+      "display_name": "Storm Spine",
+      "description": "A spine of storm-forged struts carrying a wing of woven sky. It does not fall so much as choose where the ground happens.",
+      "icon_path": "res://icons/mounts/gullwing.png",
+      "model_path": "",
+      "kind": 1,
+      "speed_multiplier": 1.95,
+      "required_level": 35,
+      "faction_id": "",
+      "source": 4,
+      "currency_id": "currency_gold",
+      "cost": 0,
+      "source_ref": "",
+      "soulbound": true,
+      "tint": {
+        "r": 0.45,
+        "g": 0.55,
+        "b": 0.7,
+        "a": 1
+      },
+      "movement_profile_id": "movement_glider",
+      "_sourceFile": "game/data/gliders/glider_storm_spine.tres",
+      "_scriptClass": "MountData"
+    },
+    "glider_weaver_kite": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "glider_weaver_kite",
+      "display_name": "Weaver's Kite",
+      "description": "A workbench kite: pine spars, flax web, and a stone-weighted tail. The cheapest wings in the reclaim that still answer a lean -- the training kite a carpenter sews for their own first jump.",
+      "icon_path": "res://icons/mounts/gullwing.png",
+      "model_path": "",
+      "kind": 1,
+      "speed_multiplier": 1.25,
+      "required_level": 5,
+      "faction_id": "",
+      "source": 2,
+      "currency_id": "",
+      "cost": 0,
+      "source_ref": "",
+      "soulbound": false,
+      "tint": {
+        "r": 0.68,
+        "g": 0.62,
+        "b": 0.5,
+        "a": 1
+      },
+      "movement_profile_id": "movement_glider",
+      "_sourceFile": "game/data/gliders/glider_weaver_kite.tres",
+      "_scriptClass": "MountData"
+    }
+  },
+  "thermals": {
+    "launcher_haven_spire": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "launcher_haven_spire",
+      "display_name": "The Haven Spire Apparatus",
+      "kind": 1,
+      "activation": 1,
+      "zone_id": "zone_village_center",
+      "position": {
+        "x": 90,
+        "y": 0,
+        "z": 60
+      },
+      "radius": 5,
+      "column_height": 220,
+      "strength": 0,
+      "launch_speed": 30,
+      "feeds_thermal_id": "thermal_meadow_column",
+      "lore": "Rings of old-world alloy, humming faintly. The elders say the ancients did not build stairs -- they built throws.",
+      "_sourceFile": "game/data/thermals/launcher_haven_spire.tres",
+      "_scriptClass": "ThermalUpdraft"
+    },
+    "launcher_meadow_gate": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "launcher_meadow_gate",
+      "display_name": "The Meadow Gate",
+      "kind": 1,
+      "activation": 1,
+      "zone_id": "zone_forest_meadow",
+      "position": {
+        "x": 10,
+        "y": 0,
+        "z": 40
+      },
+      "radius": 5,
+      "column_height": 220,
+      "strength": 0,
+      "launch_speed": 32,
+      "feeds_thermal_id": "thermal_coliseum_bowl",
+      "lore": "Two standing stones and a basin of cool fire. It waits for the shard to remember how to wake it.",
+      "_sourceFile": "game/data/thermals/launcher_meadow_gate.tres",
+      "_scriptClass": "ThermalUpdraft"
+    },
+    "thermal_ascent_thrower": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "thermal_ascent_thrower",
+      "display_name": "The Ascent Thrower",
+      "world_id": "underworld",
+      "kind": 1,
+      "activation": 1,
+      "zone_id": "zone_deep_root_camp",
+      "position": {
+        "x": 4,
+        "y": 2000,
+        "z": 4
+      },
+      "radius": 5,
+      "column_height": 90,
+      "strength": 0,
+      "launch_speed": 30,
+      "feeds_thermal_id": "thermal_underworld_vent_east",
+      "lore": "The ancients built one door out of the Deep Root and one throw up to it: a stone ring by the Ascent that hurls a wake rider into the deep dark, where the wings catch the East Stack and ride the wall's own currents. It sleeps until the shard says the mystery moves -- the underworld's launcher, dormant like every other piece of the old machine (prd-mystery land).",
+      "_sourceFile": "game/data/thermals/thermal_ascent_thrower.tres",
+      "_scriptClass": "ThermalUpdraft"
+    },
+    "thermal_coliseum_bowl": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "thermal_coliseum_bowl",
+      "display_name": "Coliseum Bowl",
+      "kind": 0,
+      "activation": 0,
+      "zone_id": "zone_arena_coliseum",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "radius": 30,
+      "column_height": 200,
+      "strength": 0.9,
+      "launch_speed": 26,
+      "feeds_thermal_id": "",
+      "lore": "Ten thousand shouted duels warmed the air in the bowl. The sky remembers a crowd.",
+      "_sourceFile": "game/data/thermals/thermal_coliseum_bowl.tres",
+      "_scriptClass": "ThermalUpdraft"
+    },
+    "thermal_haven_rise": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "thermal_haven_rise",
+      "display_name": "Haven Rise",
+      "kind": 0,
+      "activation": 0,
+      "zone_id": "zone_village_center",
+      "position": {
+        "x": 60,
+        "y": 0,
+        "z": 30
+      },
+      "radius": 14,
+      "column_height": 140,
+      "strength": 0.7,
+      "launch_speed": 26,
+      "feeds_thermal_id": "",
+      "lore": "The warm breath of the valley, rising off the hearth-stones since before the village had a name.",
+      "_sourceFile": "game/data/thermals/thermal_haven_rise.tres",
+      "_scriptClass": "ThermalUpdraft"
+    },
+    "thermal_meadow_column": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "thermal_meadow_column",
+      "display_name": "Meadow Column",
+      "kind": 0,
+      "activation": 0,
+      "zone_id": "zone_forest_meadow",
+      "position": {
+        "x": -40,
+        "y": 0,
+        "z": -20
+      },
+      "radius": 12,
+      "column_height": 120,
+      "strength": 0.5,
+      "launch_speed": 26,
+      "feeds_thermal_id": "",
+      "lore": "Pollens and warm air braid together here; the birds learned the spiral before the people did.",
+      "_sourceFile": "game/data/thermals/thermal_meadow_column.tres",
+      "_scriptClass": "ThermalUpdraft"
+    },
+    "thermal_underworld_vent_east": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "thermal_underworld_vent_east",
+      "display_name": "The East Stack",
+      "world_id": "underworld",
+      "kind": 0,
+      "activation": 0,
+      "zone_id": "zone_deep_root_camp",
+      "position": {
+        "x": 24,
+        "y": 2000,
+        "z": -14
+      },
+      "radius": 9,
+      "column_height": 70,
+      "strength": 0.55,
+      "launch_speed": 26,
+      "feeds_thermal_id": "",
+      "lore": "A crack in the shell that breathes upward always: the Deep Root's standing column. The wing folk circle it the way surface fliers ride the Concord lift -- the underworld's air answered the roof fell and never stopped asking why.",
+      "_sourceFile": "game/data/thermals/thermal_underworld_vent_east.tres",
+      "_scriptClass": "ThermalUpdraft"
+    },
+    "thermal_underworld_vent_flow": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "thermal_underworld_vent_flow",
+      "display_name": "The Flow Vein",
+      "world_id": "underworld",
+      "kind": 0,
+      "activation": 0,
+      "zone_id": "zone_deep_root_camp",
+      "position": {
+        "x": -20,
+        "y": 2000,
+        "z": 28
+      },
+      "radius": 8,
+      "column_height": 60,
+      "strength": 0.45,
+      "launch_speed": 26,
+      "feeds_thermal_id": "",
+      "lore": "The gentle vein: a smaller crack that exhales over the mycelium field. The Warden says the flow vein is the underworld's own breath -- slow, patient, and waking nobody.",
+      "_sourceFile": "game/data/thermals/thermal_underworld_vent_flow.tres",
+      "_scriptClass": "ThermalUpdraft"
+    },
+    "thermal_valley_east": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "thermal_valley_east",
+      "display_name": "The Eastern Lift",
+      "kind": 0,
+      "activation": 0,
+      "zone_id": "zone_royale_valley",
+      "position": {
+        "x": 90,
+        "y": 0,
+        "z": 45
+      },
+      "radius": 12,
+      "column_height": 120,
+      "strength": 0.6,
+      "launch_speed": 26,
+      "feeds_thermal_id": "",
+      "lore": "A rift-draft climbing off the eastern scar. The marshals pretend they do not use it to reposition.",
+      "_sourceFile": "game/data/thermals/thermal_valley_east.tres",
+      "_scriptClass": "ThermalUpdraft"
+    },
+    "thermal_valley_west": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "thermal_valley_west",
+      "display_name": "The Western Lift",
+      "kind": 0,
+      "activation": 0,
+      "zone_id": "zone_royale_valley",
+      "position": {
+        "x": -85,
+        "y": 0,
+        "z": -50
+      },
+      "radius": 12,
+      "column_height": 120,
+      "strength": 0.6,
+      "launch_speed": 26,
+      "feeds_thermal_id": "",
+      "lore": "The western wall exhales at dusk. Drop-disengage, ride, and fall back into the circle before the fog forgets you.",
+      "_sourceFile": "game/data/thermals/thermal_valley_west.tres",
+      "_scriptClass": "ThermalUpdraft"
     }
   }
 }

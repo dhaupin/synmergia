@@ -12,7 +12,7 @@ export default {
   siteName: 'Synmergia',
   author: 'dhaupin',
   tagline: 'A free and open source spherical-world MMORPG',
-  ogImage: '', // set when a hero screenshot ships (art/screenshots/)
+  ogImage: 'https://synmergia.creadev.org/og-image.png', // 1200x630 card (scripts/gen_site_branding.py)
   // appLayoutPath: '/src/AppLayout.tsx', // prerender default already matches
 
   routes: [
@@ -24,6 +24,26 @@ export default {
         title: 'Synmergia | A free and open source spherical-world MMORPG',
         description:
           'Plays in your browser. A hand-built planet with streamed terrain, living villages, real weather events, and honest worldbuilding. Free and open source.',
+      },
+    },
+    {
+      path: '/experiences',
+      priority: '0.9',
+      changefreq: 'weekly',
+      meta: {
+        title: 'What to expect | Synmergia',
+        description:
+          'A deeper look at the world: character creation, combat with real costs, exploration on one sphere, the Concord sky, ferries and mounts, weather and hordes, death, the economy, arenas, and the three worlds.',
+      },
+    },
+    {
+      path: '/codex',
+      priority: '0.8',
+      changefreq: 'weekly',
+      meta: {
+        title: 'Codex | Synmergia',
+        description:
+          'Browse everything the world is made of — classes, skills, species, enemies, items, recipes, mounts, the sky, and the hordes — read straight from the data files the server loads.',
       },
     },
     {

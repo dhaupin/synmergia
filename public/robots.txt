@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /game/
+
+# The raw engine client at /game/ is a pre-launch build (the /play page
+# gates it); keep crawlers off it and off operator tooling.
+
+Sitemap: https://synmergia.creadev.org/sitemap.xml
