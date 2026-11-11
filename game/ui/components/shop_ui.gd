@@ -255,6 +255,22 @@ func _setup_grid() -> void:
 		var slot := _make_slot(i)
 		_item_grid.add_child(slot)
 
+## Grow the slot pool to hold at least `needed` entries, in whole rows.
+## The grid was fixed at COLS*4 slots and _refresh_grid silently truncated
+## past that, so a by-category vendor whose shelf (armory, general store)
+## exceeded 16 rows shipped a store where most stock could never be seen or
+## bought. Slots are only ever added, never removed, so a click binding on
+## an existing slot is never invalidated mid-session.
+func _ensure_slot_count(needed: int) -> void:
+	if _item_grid == null:
+		return
+	var have := _item_grid.get_child_count()
+	if needed <= have:
+		return
+	var target := int(ceil(float(needed) / float(COLS))) * COLS
+	for i in range(have, target):
+		_item_grid.add_child(_make_slot(i))
+
 
 func _setup_footer() -> void:
 	pass  # handled in _setup_tabs
@@ -340,6 +356,7 @@ func _refresh_grid() -> void:
 			sel.visible = false
 
 	var items: Array = (_catalog if _current_tab == Tab.BUY else _sellable)
+	_ensure_slot_count(items.size())
 	var slot_idx := 0
 	for i in range(items.size()):
 		if slot_idx >= _item_grid.get_child_count():
