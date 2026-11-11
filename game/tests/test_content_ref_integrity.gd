@@ -1,10 +1,13 @@
-## Receipt: loot-table integrity -- every entry item id and currency id resolves.
+## Receipt: content ref integrity -- loot-table AND npc-offering item/currency ids resolve.
 ##
 ## Guards the exact silent-break class the data layer cannot: a loot entry whose
 ## item_id names no item (a typo, or a removed item) drops nothing at runtime
 ## with no error; a currency_id that names no currency is dropped by the
 ## consumers. Book entries are the one exception -- book_<skill>_<tier> ids are
 ## runtime-expanded by GroundLootService, so they validate as skill+tier.
+##
+## The npc-offering half guards catalog_items: a vendor entry whose item_id or
+## currency_id names nothing is a shop row that can never be bought.
 extends SceneTree
 
 const TIERS: Array = ["common", "rare", "epic", "legendary", "mythic"]
@@ -83,5 +86,30 @@ func _run() -> void:
 	if not bad_curr.is_empty():
 		print("    phantom currencies: " + str(bad_curr))
 
-	print("--- LOOT TABLE INTEGRITY: %d passed, %d failed ---" % [_checks - _fails, _fails])
+	var off_bad_items: Array = []
+	var off_bad_curr: Array = []
+	var odir := DirAccess.open("res://data/npc_offerings")
+	if odir != null:
+		odir.list_dir_begin()
+		var of := odir.get_next()
+		while of != "":
+			if of.ends_with(".tres"):
+				var o = load("res://data/npc_offerings/" + of)
+				if o != null and "catalog_items" in o:
+					for it in o.catalog_items:
+						var oiid: String = str(it.get("item_id", ""))
+						if not oiid.is_empty() and ds.get_item(oiid) == null:
+							off_bad_items.append("%s: %s" % [of, oiid])
+						var ocid: String = str(it.get("currency_id", ""))
+						if not ocid.is_empty() and ocid != "gold" and ocid != "currency_gold" and ds.get_currency(ocid) == null:
+							off_bad_curr.append("%s: %s" % [of, ocid])
+				of = odir.get_next()
+	_check("every offering catalog_items item_id resolves", off_bad_items.is_empty())
+	if not off_bad_items.is_empty():
+		print("    phantom offering items: " + str(off_bad_items))
+	_check("every offering catalog_items currency_id resolves", off_bad_curr.is_empty())
+	if not off_bad_curr.is_empty():
+		print("    phantom offering currencies: " + str(off_bad_curr))
+
+	print("--- CONTENT REF INTEGRITY: %d passed, %d failed ---" % [_checks - _fails, _fails])
 	quit(0 if _fails == 0 else 1)
