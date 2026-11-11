@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "debuff_tick_slow"
 display_name = "Tick Slow"
 description = "Processing frequency reduced. All actions slowed."

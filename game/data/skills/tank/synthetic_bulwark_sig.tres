@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "synthetic_bulwark_sig"
 display_name = "Bulwark Override"
 description = "SIGNATURE Akkan Bulwark technique filtered through synthetic precision. An impenetrable defensive matrix that scales with the user's maximum health."
@@ -21,3 +18,4 @@ aoe_radius = 15.0
 effects = [{"type": "shield", "value": 150}, {"type": "buff", "effect_id": "buff_shield_aoe", "duration": 10.0}]
 required_level = 10
 required_class = "akkan_bulwark"
+upgradable = false

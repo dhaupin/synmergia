@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "synthetic_shaman_sig"
 display_name = "Redundancy Link"
 description = "SIGNATURE Akkan Shaman technique filtered through synthetic logic. A failsafe healing network that prioritizes the most critical ally."
@@ -21,3 +18,4 @@ aoe_radius = 15.0
 effects = [{"type": "heal", "value": 50}, {"type": "buff", "effect_id": "buff_smart_link", "duration": 10.0}]
 required_level = 10
 required_class = "akkan_shaman"
+upgradable = false

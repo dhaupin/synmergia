@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_catalyst_crit"
 display_name = "Catalyzed"
 description = "Critical strike chance increased."

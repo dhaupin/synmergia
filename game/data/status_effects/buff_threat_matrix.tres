@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_threat_matrix"
 display_name = "Threat Matrix"
 description = "Threat generation dramatically increased."

@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "akkan_rune_void_bolt"
 display_name = "Void Bolt"
 description = "Channels Akkan void energy into a bolt of destruction."
@@ -17,7 +16,6 @@ animation_duration = 1.0
 range = 30.0
 aoe_radius = 0.0
 effects = [{"type": "damage", "value": 25}]
-
 required_level = 5
 required_class = "akkan_rune"
 upgrade_tiers = [

@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "akkan_sorcerer_human_sig"
 display_name = "Void Arcane"
 description = "SIGNATURE Human Sorcerer technique through Akkan void energy. Channels Akkan void into a devastating arcane attack."
@@ -21,3 +18,4 @@ aoe_radius = 0.0
 effects = [{"type": "damage", "value": 320}]
 required_level = 10
 required_class = "human_sorcerer"
+upgradable = false

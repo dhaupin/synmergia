@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_intervene"
 display_name = "Intervened"
 description = "A portion of damage is being absorbed for you."

@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_overcharge"
 display_name = "Overcharged"
 description = "Attack and cast speed dramatically increased."

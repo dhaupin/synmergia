@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "synthetic_temporalist_sig"
 display_name = "Clock Desync"
 description = "SIGNATURE Human Temporalist technique running on synthetic time dilation. Desynchronizes enemy processing cycles."
@@ -21,3 +18,4 @@ aoe_radius = 20.0
 effects = [{"type": "debuff", "effect_id": "debuff_desync", "duration": 10.0}]
 required_level = 10
 required_class = "human_temporalist"
+upgradable = false

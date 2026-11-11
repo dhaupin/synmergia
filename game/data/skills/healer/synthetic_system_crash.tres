@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "synthetic_system_crash"
 display_name = "System Crash"
 description = "SIGNATURE Synthetic technique. Broadcasts a corrupted signal that crashes the target's processes entirely. Massive damage and silence. Works at extreme range. Powerful in any group composition."
@@ -16,7 +15,6 @@ cast_time = 1.0
 animation_duration = 0.7
 range = 35.0
 effects = [{"type": "damage", "value": 75}, {"type": "debuff", "effect_id": "debuff_silence", "duration": 4.0}]
-
 required_level = 10
 required_class = "synthetic_conduit"
 upgrade_tiers = [

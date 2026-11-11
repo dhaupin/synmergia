@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "akkan_sorcerer_synthetic_sig"
 display_name = "Void Cascade"
 description = "SIGNATURE Synthetic Sorcerer technique through Akkan void energy. Channels Akkan void into a cascading arcane attack."
@@ -21,3 +18,4 @@ aoe_radius = 0.0
 effects = [{"type": "damage", "value": 310}]
 required_level = 10
 required_class = "synthetic_psion"
+upgradable = false

@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_system_shield"
 display_name = "System Shield"
 description = "Defenses hardened against hostile code."

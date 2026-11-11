@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "akkan_rune_human_sig"
 display_name = "Rune Mastery"
 description = "SIGNATURE Akkan Mage technique through human rune mastery. A powerful rune-enhanced arcane attack."
@@ -21,3 +18,4 @@ aoe_radius = 0.0
 effects = [{"type": "damage", "value": 300}]
 required_level = 10
 required_class = "akkan_rune"
+upgradable = false

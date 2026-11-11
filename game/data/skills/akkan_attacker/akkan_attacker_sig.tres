@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "akkan_attacker_sig"
 display_name = "Void Strike"
 description = "SIGNATURE Akkan Attacker technique. A devastating strike channeling Akkan void energy."
@@ -21,3 +18,4 @@ aoe_radius = 0.0
 effects = [{"type": "damage", "value": 320}]
 required_level = 10
 required_class = "akkan_attacker"
+upgradable = false

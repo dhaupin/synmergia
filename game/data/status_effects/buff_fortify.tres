@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_fortify"
 display_name = "Fortified"
 description = "Armor and resistance significantly increased."

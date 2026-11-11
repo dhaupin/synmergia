@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "human_arcane_slow"
 display_name = "Arcane Slow"
 description = "Applies a debuff that slows the target's movement and casting speed."
@@ -17,7 +16,6 @@ animation_duration = 1.0
 range = 30.0
 aoe_radius = 0.0
 effects = [{"type": "debuff", "effect_id": "debuff_arcane_slow", "duration": 8.0}]
-
 required_level = 10
 required_class = "human_sorcerer"
 upgrade_tiers = [

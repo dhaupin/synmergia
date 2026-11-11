@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="DialogueData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="DialogueData" load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
 
@@ -8,17 +8,17 @@ id = "merchant_greeting"
 npc_id = "npc_merchant_general"
 display_name = "Merchant Greeting"
 nodes = [
-	{
-		"speaker": "Merchant",
-		"text": "Welcome to my shop! I carry only the finest goods — weapons, armor, potions. Take a look around.",
-		"choices": [
-			{"text": "Show me your wares.", "next_node": 1},
-			{"text": "Just passing through. Farewell.", "next_node": -1}
-		]
-	},
-	{
-		"speaker": "Merchant",
-		"text": "Here, browse at your leisure. I also buy unwanted items at fair prices.",
-		"choices": []
-	}
+    {
+        "speaker": "Merchant",
+        "text": "Welcome to my shop! I carry only the finest goods - weapons, armor, potions. Take a look around.",
+        "choices": [
+            {"text": "Show me your wares.", "next_node": 1},
+            {"text": "Just passing through. Farewell.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Merchant",
+        "text": "Here, browse at your leisure. I also buy unwanted items at fair prices.",
+        "choices": []
+    }
 ]

@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "human_enchant_weapon"
 display_name = "Enchant Weapon"
 description = "Enchants the warrior's weapon with arcane energy, increasing attack power for a duration."
@@ -17,7 +16,6 @@ animation_duration = 1.0
 range = 0.0
 aoe_radius = 0.0
 effects = [{"type": "buff", "effect_id": "buff_enchant_weapon", "duration": 30.0}]
-
 required_level = 15
 required_class = "human_sorcerer"
 upgrade_tiers = [

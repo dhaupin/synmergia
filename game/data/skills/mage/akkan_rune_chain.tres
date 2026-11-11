@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "akkan_rune_chain"
 display_name = "Rune Chain"
 description = "Chains arcane runes between up to 3 enemies, dealing damage to each and slowing them."
@@ -17,6 +16,8 @@ animation_duration = 0.5
 range = 22.0
 max_targets = 3
 effects = [{"type": "damage", "value": 18}, {"type": "debuff", "effect_id": "slow_common", "duration": 3.0}]
+required_level = 10
+required_class = "akkan_rune"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -44,6 +45,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 10
-required_class = "akkan_rune"

@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_shield_all"
 display_name = "Shielded"
 description = "Energy barriers absorbing incoming damage."

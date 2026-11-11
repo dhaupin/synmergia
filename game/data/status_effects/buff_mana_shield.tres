@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_mana_shield"
 display_name = "Mana Shield"
 description = "Incoming damage is absorbed by mana."

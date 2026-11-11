@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "human_shield_wall"
 display_name = "Shield Wall"
 description = "Raises your shield, dramatically reducing all damage taken for a short duration."
@@ -16,6 +15,8 @@ cast_time = 0.0
 animation_duration = 0.3
 range = 0.0
 effects = [{"type": "buff", "effect_id": "buff_shield_wall", "duration": 6.0}]
+required_level = 10
+required_class = "human_guardian"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -43,6 +44,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "effect_duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 10
-required_class = "human_guardian"

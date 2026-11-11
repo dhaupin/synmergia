@@ -7,10 +7,6 @@ script = ExtResource("1")
 id = "loot_copper_seam"
 name = "Copper Seam"
 description = "The low seams give up their copper a handful at a time: green-veined ore, the grit the wheel leaves, and slag the forge always keeps."
-level = 4
-min_items_dropped = 1
-max_items_dropped = 3
-base_drop_chance = 1.0
 entries = [{
 "item_id": "res_copper_ore",
 "min_quantity": 1,
@@ -59,3 +55,7 @@ currency_drops = [{
 "drop_rate": 0.50,
 "is_guaranteed": false
 }]
+base_drop_chance = 1.0
+min_items_dropped = 1
+max_items_dropped = 3
+level = 4

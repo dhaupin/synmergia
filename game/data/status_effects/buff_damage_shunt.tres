@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_damage_shunt"
 display_name = "Damage Shunt"
 description = "Incoming damage is redistributed to shields."

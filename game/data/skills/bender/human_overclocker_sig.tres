@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "human_overclocker_sig"
 display_name = "Haste Cascade"
 description = "SIGNATURE Synthetic Overclocker through human creative improvisation. Applies a stacking speed buff to all allies."
@@ -21,3 +18,4 @@ aoe_radius = 15.0
 effects = [{"type": "buff", "effect_id": "buff_stack_haste", "duration": 20.0}]
 required_level = 10
 required_class = "synthetic_overclocker"
+upgradable = false

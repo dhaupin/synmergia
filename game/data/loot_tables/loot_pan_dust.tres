@@ -7,10 +7,6 @@ script = ExtResource("1")
 id = "loot_pan_dust"
 name = "Pan Dust"
 description = "What the salt keeps after the brine drains: silver in crust, iron in marrow, and the flat stone the pans set like coins. The hounds carry their shimmer in dust."
-level = 20
-min_items_dropped = 1
-max_items_dropped = 3
-base_drop_chance = 1.0
 entries = [{
 "item_id": "res_iron_ore",
 "min_quantity": 1,
@@ -44,3 +40,7 @@ entries = [{
 "is_guaranteed": false,
 "conditions": []
 }]
+base_drop_chance = 1.0
+min_items_dropped = 1
+max_items_dropped = 3
+level = 20

@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "human_battle_cry"
 display_name = "Battle Cry"
 description = "A powerful shout that enrages the warrior, increasing attack power."
@@ -17,7 +16,6 @@ animation_duration = 1.0
 range = 0.0
 aoe_radius = 0.0
 effects = [{"type": "buff", "effect_id": "buff_battle_cry", "duration": 15.0}]
-
 required_level = 10
 required_class = "human_warrior"
 upgrade_tiers = [

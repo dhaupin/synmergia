@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "debuff_time_stop"
 display_name = "Time Stopped"
 description = "Time has stopped. Cannot move or act."

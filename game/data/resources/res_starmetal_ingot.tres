@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1")
 id = "res_starmetal_ingot"
-description = "Sky metal, tempered through mythril. The Concord signs it where armorers work; the metal stays faintly warm on winter nights, which nobody who works it will discuss."
 display_name = "Starmetal Ingot"
+description = "Sky metal, tempered through mythril. The Concord signs it where armorers work; the metal stays faintly warm on winter nights, which nobody who works it will discuss."
 icon_path = "res://icons/resources/starmetal_ingot.png"
 item_category = 4
 rarity = 5

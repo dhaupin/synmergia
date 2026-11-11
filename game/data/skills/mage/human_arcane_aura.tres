@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "human_arcane_aura"
 display_name = "Arcane Aura"
 description = "Creates an aura of arcane energy that damages nearby enemies."
@@ -17,7 +16,6 @@ animation_duration = 1.0
 range = 10.0
 aoe_radius = 0.0
 effects = [{"type": "damage", "value": 8}]
-
 required_level = 10
 required_class = "human_sorcerer"
 upgrade_tiers = [

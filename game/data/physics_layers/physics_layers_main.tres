@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-id = "physics_layers_main"
-display_name = "Physics Layers (audit 2026-10-02)"
-audit_locked = true
 bits = [{
 "name": "entity",
 "bit": 1,
@@ -39,3 +36,6 @@ groups = [{
 "name": "everything",
 "value": 4294967295
 }]
+id = "physics_layers_main"
+display_name = "Physics Layers (audit 2026-10-02)"
+audit_locked = true

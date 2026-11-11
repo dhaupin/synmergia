@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "human_divine_shield"
 display_name = "Divine Shield"
 description = "Wraps an ally in divine protection, making them immune to all damage for a short time."
@@ -16,6 +15,8 @@ cast_time = 0.5
 animation_duration = 0.4
 range = 20.0
 effects = [{"type": "buff", "effect_id": "buff_divine_shield", "duration": 3.0}]
+required_level = 20
+required_class = "human_cleric"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -43,6 +44,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "effect_duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 20
-required_class = "human_cleric"

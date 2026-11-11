@@ -6,10 +6,10 @@
 script = ExtResource("1")
 id = "thermal_ascent_thrower"
 display_name = "The Ascent Thrower"
-world_id = "underworld"
 kind = 1
 activation = 1
 zone_id = "zone_deep_root_camp"
+world_id = "underworld"
 position = Vector3(4, 2000, 4)
 radius = 5.0
 column_height = 90.0

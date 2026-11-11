@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "human_shaman_sig"
 display_name = "Soul Link"
 description = "SIGNATURE Akkan Shaman technique through human connection. Links multiple allies to share incoming healing and damage."
@@ -21,3 +18,4 @@ aoe_radius = 20.0
 effects = [{"type": "buff", "effect_id": "buff_heal_link", "duration": 8.0}]
 required_level = 10
 required_class = "akkan_shaman"
+upgradable = false

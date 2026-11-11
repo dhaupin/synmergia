@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "synthetic_redistribute"
 display_name = "Redistribute"
 description = "SIGNATURE Synthetic technique. Fully restores all allies health, mana, and removes all debuffs. 45s cooldown."
@@ -19,6 +16,9 @@ animation_duration = 0.8
 range = 0.0
 aoe_radius = 20.0
 effects = [{"type": "heal", "value": 100}, {"type": "cleanse", "value": 0}]
+required_level = 10
+required_class = "synthetic_conduit"
+upgradable = false
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -46,6 +46,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "hot_mult", "value": 1.05}],
 },
 ]
-
-required_level = 10
-required_class = "synthetic_conduit"

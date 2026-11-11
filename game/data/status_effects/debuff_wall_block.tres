@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "debuff_wall_block"
 display_name = "Wall Blocked"
 description = "Movement is blocked by a barrier."

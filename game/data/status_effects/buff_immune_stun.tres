@@ -13,6 +13,6 @@ duration = 10.0
 max_stacks = 1
 can_refresh = true
 immune_stun = true
-show_in_buff_bar = true
 icon_path = "res://icons/buffs/immune_stun.png"
 particle_effect = "shield_blue"
+show_in_buff_bar = true

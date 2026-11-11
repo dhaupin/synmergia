@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_shield_wall"
 display_name = "Shield Wall"
 description = "All damage taken is dramatically reduced."

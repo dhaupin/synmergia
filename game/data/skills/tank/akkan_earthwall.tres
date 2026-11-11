@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "akkan_earthwall"
 display_name = "Earthwall"
 description = "Raises an earthen barrier that blocks enemy movement and protects nearby allies."
@@ -17,6 +16,8 @@ animation_duration = 0.5
 range = 15.0
 aoe_radius = 4.0
 effects = [{"type": "debuff", "effect_id": "debuff_wall_block", "duration": 6.0}]
+required_level = 20
+required_class = "akkan_bulwark"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -44,6 +45,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 20
-required_class = "akkan_bulwark"

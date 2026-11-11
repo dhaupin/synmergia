@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "akkan_chain_heal"
 display_name = "Chain Heal"
 description = "Healing wave that bounces between up to 3 allies, each bounce reducing in power."
@@ -17,6 +16,8 @@ animation_duration = 0.5
 range = 25.0
 max_targets = 3
 effects = [{"type": "heal", "value": 30}]
+required_level = 15
+required_class = "akkan_shaman"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -44,6 +45,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "hot_mult", "value": 1.05}],
 },
 ]
-
-required_level = 15
-required_class = "akkan_shaman"

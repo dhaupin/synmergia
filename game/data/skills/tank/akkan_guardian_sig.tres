@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "akkan_guardian_sig"
 display_name = "Last Bastion"
 description = "SIGNATURE Human Guardian fortitude expressed through Akkan endurance. Becomes immune to damage for a short time at critical health."
@@ -21,3 +18,4 @@ aoe_radius = 0.0
 effects = [{"type": "buff", "effect_id": "buff_immunity", "duration": 3.0}]
 required_level = 10
 required_class = "human_guardian"
+upgradable = false

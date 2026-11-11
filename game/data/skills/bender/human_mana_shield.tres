@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "human_mana_shield"
 display_name = "Mana Shield"
 description = "Wraps the caster in a protective barrier of mana. Absorbs incoming damage before health is reduced."
@@ -16,6 +15,8 @@ cast_time = 0.5
 animation_duration = 0.5
 range = 0.0
 effects = [{"type": "buff", "effect_id": "buff_mana_shield", "duration": 8.0}]
+required_level = 5
+required_class = "human_temporalist"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -43,6 +44,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "effect_duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 5
-required_class = "human_temporalist"

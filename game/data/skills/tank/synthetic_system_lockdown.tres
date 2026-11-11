@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "synthetic_system_lockdown"
 display_name = "System Lockdown"
 description = "Overloads a target system, dealing damage and preventing them from moving or acting for a moment."
@@ -16,6 +15,8 @@ cast_time = 0.0
 animation_duration = 0.4
 range = 3.0
 effects = [{"type": "damage", "value": 18}, {"type": "debuff", "effect_id": "root_common", "duration": 2.0}]
+required_level = 1
+required_class = "synthetic_warden"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -43,6 +44,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 1
-required_class = "synthetic_warden"

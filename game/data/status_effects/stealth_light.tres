@@ -4,15 +4,14 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "stealth_light"
 display_name = "Light Stealth"
 description = "Soft shadow concealment. Reduces detection range by 30%. Breaks on taking damage."
 category = 0
 effect_type = 3
 duration = 30.0
+can_refresh = true
 stealth_type = 1
 break_on_damage = true
 break_on_action = false
 detection_radius = 8.0
-can_refresh = true

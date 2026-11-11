@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "akkan_sorcerer_sig"
 display_name = "Arcane Surge"
 description = "SIGNATURE Akkan Stalker technique through Akkan arcane mastery. A devastating arcane blast that bypasses magical resistance."
@@ -21,3 +18,4 @@ aoe_radius = 0.0
 effects = [{"type": "damage", "value": 280}]
 required_level = 10
 required_class = "akkan_stalker"
+upgradable = false

@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "synthetic_revive_ally"
 display_name = "Revive Ally"
 description = "Initiates a system reboot on a fallen ally, restoring them to consciousness."
@@ -16,6 +15,8 @@ cast_time = 5.0
 animation_duration = 0.6
 range = 25.0
 effects = [{"type": "revive", "value": 50}]
+required_level = 15
+required_class = "synthetic_overclocker"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -43,6 +44,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "effect_duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 15
-required_class = "synthetic_overclocker"

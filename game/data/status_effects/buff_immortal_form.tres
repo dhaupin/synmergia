@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_immortal_form"
 display_name = "Immortal Form"
 description = "Massively reduced damage taken."

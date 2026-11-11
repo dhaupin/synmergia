@@ -14,4 +14,4 @@ zone_ids = Array[String]([])
 stir_horde_config = ""
 stir_waves = 2
 open_window_sec = 600.0
-notify_message = "Fog settles low — shapes watch from the treeline. The sky listens tonight."
+notify_message = "Fog settles low - shapes watch from the treeline. The sky listens tonight."

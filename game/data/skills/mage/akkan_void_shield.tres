@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "akkan_void_shield"
 display_name = "Void Shield"
 description = "Creates a protective void barrier absorbing damage."
@@ -17,7 +16,6 @@ animation_duration = 1.0
 range = 0.0
 aoe_radius = 0.0
 effects = [{"type": "shield", "value": 80}]
-
 required_level = 10
 required_class = "akkan_rune"
 upgrade_tiers = [

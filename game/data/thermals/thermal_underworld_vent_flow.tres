@@ -6,10 +6,10 @@
 script = ExtResource("1")
 id = "thermal_underworld_vent_flow"
 display_name = "The Flow Vein"
-world_id = "underworld"
 kind = 0
 activation = 0
 zone_id = "zone_deep_root_camp"
+world_id = "underworld"
 position = Vector3(-20, 2000, 28)
 radius = 8.0
 column_height = 60.0

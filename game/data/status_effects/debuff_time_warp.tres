@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "debuff_time_warp"
 display_name = "Time Warped"
 description = "Time moves slowly around this unit."

@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "human_taunt"
 display_name = "Taunt"
 description = "Provokes all enemies within range into attacking you. Essential aggro grab."
@@ -17,6 +16,8 @@ animation_duration = 0.3
 range = 0.0
 aoe_radius = 8.0
 effects = [{"type": "debuff", "effect_id": "debuff_taunt", "duration": 4.0}]
+required_level = 5
+required_class = "human_guardian"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -44,6 +45,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 5
-required_class = "human_guardian"

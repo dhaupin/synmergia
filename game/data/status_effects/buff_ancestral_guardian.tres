@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_ancestral_guardian"
 display_name = "Ancestral Guardian"
 description = "An ancestral spirit defends you, absorbing damage and healing."

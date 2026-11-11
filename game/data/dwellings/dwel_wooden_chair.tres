@@ -11,22 +11,18 @@ icon_path = "res://icons/dwellings/chair_wood.png"
 item_category = 7
 rarity = 0
 equip_slot = 0
-dwelling_category = ""
-dwelling_size = Vector3(1, 1, 1)
-is_placeable = true
-placement_zones = ["housing_zone_1", "housing_zone_2"]
-event_id = ""
-event_expires = false
-event_end_date = ""
 use_skill_id = ""
 cooldown = 0.0
 duration = 0.0
 model_path = ""
 color = Color(0.6, 0.4, 0.2, 1)
+dwelling_category = ""
+dwelling_size = Vector3(1, 1, 1)
+is_placeable = true
+placement_zones = ["housing_zone_1", "housing_zone_2"]
 is_interactable = true
 interaction_type = "sit"
 interaction_radius = 0.5
-cooldown_seconds = 0.0
 provides_function = ""
 function_capacity = 0
 tax_modifier = 0.0
@@ -35,12 +31,12 @@ decay_time_days = 0.0
 allow_guild_access = true
 allow_friends_access = true
 allow_public_view = false
-allowed_zones = []
 dyeable = true
-dye_channels = 1
-default_colors = [Color(0.6, 0.4, 0.2, 1)]
 dismantle_returns = [{
 "amount": 3,
 "id": "res_wood",
 "type": "resource"
 }]
+event_id = ""
+event_expires = false
+event_end_date = ""

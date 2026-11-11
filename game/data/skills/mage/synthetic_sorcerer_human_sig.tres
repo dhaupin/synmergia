@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "synthetic_sorcerer_human_sig"
 display_name = "Adaptive Corruption"
 description = "SIGNATURE Human Sorcerer technique through synthetic adaptability. Adapts corruption to exploit the target's weaknesses."
@@ -21,3 +18,4 @@ aoe_radius = 0.0
 effects = [{"type": "damage", "value": 270}, {"type": "debuff", "effect_id": "debuff_adaptive_corruption", "duration": 8.0}]
 required_level = 10
 required_class = "human_sorcerer"
+upgradable = false

@@ -7,10 +7,6 @@ script = ExtResource("1")
 id = "loot_elite_ore"
 name = "Elite Seam Drops"
 description = "Ore from elite and boss pursuits. The big guards carry the deep grades: troll caches hold golden and starmetal, and what a void lord sheds is beyond (starmetal always, mythril vanishingly)."
-level = 30
-min_items_dropped = 0
-max_items_dropped = 2
-base_drop_chance = 1.0
 entries = [{
 "item_id": "wep_golden_estoc",
 "min_quantity": 1,
@@ -61,3 +57,7 @@ entries = [{
 "conditions": []
 }]
 currency_drops = []
+base_drop_chance = 1.0
+min_items_dropped = 0
+max_items_dropped = 2
+level = 30

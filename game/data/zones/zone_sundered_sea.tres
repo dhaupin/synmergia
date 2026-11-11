@@ -5,7 +5,6 @@
 [resource]
 script = ExtResource("1")
 id = "zone_sundered_sea"
-world_id = "main"
 display_name = "Sundered Sea"
 description = "The strait the sundered world remembers. Two headlands pin the ferry moat into a channel, a wreck shoal crosses it, and the last barques still route through. Sail or ford at low tide."
 pvp_mode = 0
@@ -24,3 +23,4 @@ environment_path = "res://environments/day_01.tres"
 has_weather = true
 weather_type = "clear"
 spawn_points = [Vector3(0, 0, 0)]
+world_id = "main"

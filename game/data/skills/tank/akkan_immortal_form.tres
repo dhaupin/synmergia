@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "akkan_immortal_form"
 display_name = "Immortal Form"
 description = "SIGNATURE Akkan technique. Transforms into an unstoppable earthen titan. All damage reduced massively, enemies are rooted around you, and you generate maximum threat. Devastating group save."
@@ -19,6 +16,9 @@ animation_duration = 0.6
 range = 0.0
 aoe_radius = 10.0
 effects = [{"type": "buff", "effect_id": "buff_immortal_form", "duration": 6.0}, {"type": "debuff", "effect_id": "root_common", "duration": 6.0}]
+required_level = 10
+required_class = "akkan_bulwark"
+upgradable = false
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -46,6 +46,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "effect_duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 10
-required_class = "akkan_bulwark"

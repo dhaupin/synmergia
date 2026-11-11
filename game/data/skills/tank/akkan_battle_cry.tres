@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "akkan_battle_cry"
 display_name = "Battle Cry"
 description = "Lets out a primal roar that taunts nearby enemies and boosts your own damage briefly."
@@ -17,6 +16,8 @@ animation_duration = 0.3
 range = 0.0
 aoe_radius = 10.0
 effects = [{"type": "debuff", "effect_id": "debuff_taunt", "duration": 3.0}, {"type": "buff", "effect_id": "buff_battle_cry_dmg", "duration": 4.0}]
+required_level = 1
+required_class = "akkan_bulwark"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -44,6 +45,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "effect_duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 1
-required_class = "akkan_bulwark"

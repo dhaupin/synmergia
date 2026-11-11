@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "akkan_warden_sig"
 display_name = "Fortress Protocol"
 description = "SIGNATURE Synthetic Warden defense running on Akkan structural engineering. Creates an impenetrable barrier zone."
@@ -21,3 +18,4 @@ aoe_radius = 10.0
 effects = [{"type": "buff", "effect_id": "buff_barrier_zone", "duration": 12.0}]
 required_level = 10
 required_class = "synthetic_warden"
+upgradable = false

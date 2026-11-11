@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "synthetic_packet_flood"
 display_name = "Packet Flood"
 description = "Floods the target with overwhelming data packets, dealing damage over time and reducing their processing efficiency."
@@ -16,6 +15,8 @@ cast_time = 0.6
 animation_duration = 0.6
 range = 22.0
 effects = [{"type": "damage_over_time", "value": 8, "duration": 6.0}]
+required_level = 10
+required_class = "synthetic_exploiter"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -43,6 +44,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "effect_duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 10
-required_class = "synthetic_exploiter"

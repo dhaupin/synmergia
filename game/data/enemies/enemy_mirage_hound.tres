@@ -48,4 +48,3 @@ animation_set = "wolf"
 respawn_time = 360.0
 despawn_time = 0.0
 difficulty_modifier = 1.6
-

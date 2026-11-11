@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "debuff_redirect"
 display_name = "Redirected"
 description = "Targeting system corrupted. Next attack will miss and redirect."

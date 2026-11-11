@@ -7,10 +7,6 @@ script = ExtResource("1")
 id = "loot_black_market_depths"
 name = "Fixer's Depths Pull"
 description = "The Underdeck Fixer's deep pull: 12 sigils rides the pressure where the rare gear dreams. Documented shape: as higher-tier weapons/armors arrive (data/weapons, data/armors), append entries and the roll honors them."
-level = 5
-min_items_dropped = 1
-max_items_dropped = 1
-base_drop_chance = 1.0
 entries = [{
 "item_id": "wep_starmetal_skysplitter",
 "min_quantity": 1,
@@ -84,7 +80,11 @@ entries = [{
 "is_guaranteed": false,
 "conditions": []
 }]
+currency_drops = []
+base_drop_chance = 1.0
 auto_loot = false
 share_loot = false
 need_before_greed = false
-currency_drops = []
+min_items_dropped = 1
+max_items_dropped = 1
+level = 5

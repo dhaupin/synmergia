@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="DialogueData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="DialogueData" load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
 
@@ -8,23 +8,23 @@ id = "village_elder_greeting"
 npc_id = "npc_village_elder"
 display_name = "Village Elder Greeting"
 nodes = [
-	{
-		"speaker": "Village Elder",
-		"text": "Greetings, young one. You stand in the Village of Haven, a sanctuary at the edge of the Gloomwood. Few travelers find their way here.",
-		"choices": [
-			{"text": "What is this place?", "next_node": 1},
-			{"text": "Do you have work for me?", "next_node": 2},
-			{"text": "Farewell.", "next_node": -1}
-		]
-	},
-	{
-		"speaker": "Village Elder",
-		"text": "We are a small community, but we have weathered many storms. The Darkwood Forest lies to the north, and the Shattered Mountains to the east. Trade caravans pass through weekly.",
-		"choices": []
-	},
-	{
-		"speaker": "Village Elder",
-		"text": "Indeed we do. Speak with me again and I will tell you of the wolves that plague our livestock. A capable warrior could earn good coin.",
-		"choices": []
-	}
+    {
+        "speaker": "Village Elder",
+        "text": "Greetings, young one. You stand in the Village of Haven, a sanctuary at the edge of the Gloomwood. Few travelers find their way here.",
+        "choices": [
+            {"text": "What is this place?", "next_node": 1},
+            {"text": "Do you have work for me?", "next_node": 2},
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Village Elder",
+        "text": "We are a small community, but we have weathered many storms. The Darkwood Forest lies to the north, and the Shattered Mountains to the east. Trade caravans pass through weekly.",
+        "choices": []
+    },
+    {
+        "speaker": "Village Elder",
+        "text": "Indeed we do. Speak with me again and I will tell you of the wolves that plague our livestock. A capable warrior could earn good coin.",
+        "choices": []
+    }
 ]

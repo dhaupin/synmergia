@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "akkan_warrior_sig"
 display_name = "Arcane Strike"
 description = "SIGNATURE Human Warrior technique through Akkan energy. Channels Akkan energy into a powerful attack that ignores armor."
@@ -21,3 +18,4 @@ aoe_radius = 0.0
 effects = [{"type": "damage", "value": 280}]
 required_level = 10
 required_class = "human_warrior"
+upgradable = false

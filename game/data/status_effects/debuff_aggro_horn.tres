@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "debuff_aggro_horn"
 display_name = "Aggro Horn Target"
 description = "This unit is the target of an aggro horn. Maximum threat on them."

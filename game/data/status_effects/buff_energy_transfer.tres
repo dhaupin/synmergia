@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_energy_transfer"
 display_name = "Energy Transfer"
 description = "Mana has been restored by energy transfer."

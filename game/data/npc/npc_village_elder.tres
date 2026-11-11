@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="NPCData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="NPCData" load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://core/schemas/npc_data.gd" id="1"]
 
@@ -8,12 +8,12 @@ id = "npc_village_elder"
 display_name = "Village Elder"
 description = "The elder of Haven village, keeper of ancient lore."
 scene_path = "res://scenes/npcs/village_elder.tscn"
-zone_id = "zone_village_center"
-spawn_offset = Vector3(-6, 0, -4)
 greeting = "Welcome, traveler. The village has been troubled by wolves..."
 location_type = 0
 buy_multiplier = 0.5
 sell_multiplier = 1.0
+spawn_offset = Vector3(-6, 0, -4)
+zone_id = "zone_village_center"
 includes = [
   {"type": "dialogue", "dialogue_id": "village_elder_greeting"},
   {"type": "quest", "quest_ids": ["quest_wolves_hunt", "quest_herb_gathering"]}

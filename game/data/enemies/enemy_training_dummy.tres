@@ -39,6 +39,7 @@ gold_min = 0
 gold_max = 0
 xp_reward = 0
 skills = []
+hitbox_profile_id = "hitbox_dummy"
 model_path = "res://models/enemies/enemy_training_dummy.glb"
 icon_path = ""
 scale = 1.0
@@ -46,5 +47,3 @@ animation_set = ""
 respawn_time = 15.0
 despawn_time = 0.0
 difficulty_modifier = 1.0
-
-hitbox_profile_id = "hitbox_dummy"

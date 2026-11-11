@@ -7,10 +7,6 @@ script = ExtResource("1")
 id = "loot_sky_crate_daily"
 name = "Sky Crate Daily Loot"
 description = "Rewards from the Concord's daily sky observation crate. Contents lean toward coin and soul; storm days may yet surprise."
-level = 1
-min_items_dropped = 1
-max_items_dropped = 2
-base_drop_chance = 1.0
 entries = [{
 "item_id": "potion_health_small",
 "min_quantity": 1,
@@ -43,6 +39,13 @@ currency_drops = [{
 "drop_rate": 1.0,
 "is_guaranteed": true
 }]
+base_drop_chance = 1.0
+auto_loot = false
+share_loot = true
+need_before_greed = false
+min_items_dropped = 1
+max_items_dropped = 2
+level = 1
 rarity_weights = {
 "COMMON": 1.0,
 "UNCOMMON": 0.5,
@@ -50,6 +53,3 @@ rarity_weights = {
 "EPIC": 0.05,
 "LEGENDARY": 0.01
 }
-auto_loot = false
-share_loot = true
-need_before_greed = false

@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "synthetic_system_shield"
 display_name = "System Shield"
 description = "Hardens the target's local defenses against hostile code. Absorbs incoming damage for a duration."
@@ -16,6 +15,8 @@ cast_time = 0.5
 animation_duration = 0.5
 range = 18.0
 effects = [{"type": "buff", "effect_id": "buff_system_shield", "duration": 9.0}]
+required_level = 5
+required_class = "synthetic_warden"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -43,6 +44,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "effect_duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 5
-required_class = "synthetic_warden"

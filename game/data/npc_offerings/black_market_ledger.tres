@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="NPCOffering" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="NPCOffering" load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://core/schemas/npc_offering.gd" id="1"]
 
@@ -8,6 +8,7 @@ id = "black_market_ledger"
 type = "vendor"
 display_name = "Underdeck Stock"
 stock_mode = "by_item_id"
+buy_categories = [1, 3]
 catalog_items = [{
 "item_id": "acc_ring_first_light",
 "qty": 1,
@@ -37,4 +38,3 @@ catalog_items = [{
 price_multiplier = 1.0
 unlimited_stock = true
 stock_qty = 99
-buy_categories = [1, 3]

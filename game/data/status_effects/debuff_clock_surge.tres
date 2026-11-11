@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "debuff_clock_surge"
 display_name = "Clock Surged"
 description = "Processing cycles erratic. Movement and actions slowed."

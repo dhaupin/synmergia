@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "akkan_temporalist_sig"
 display_name = "Temporal Rift"
 description = "SIGNATURE Human Temporalist manipulation through Akkan space-time. Creates a zone where time flows slower for enemies."
@@ -21,3 +18,4 @@ aoe_radius = 15.0
 effects = [{"type": "debuff", "effect_id": "debuff_time_slow", "duration": 8.0}]
 required_level = 10
 required_class = "human_temporalist"
+upgradable = false

@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "akkan_exploding_rune"
 display_name = "Exploding Rune"
 description = "Plants a volatile rune at the target location. After a brief delay it detonates violently."
@@ -17,6 +16,8 @@ animation_duration = 0.4
 range = 20.0
 aoe_radius = 6.0
 effects = [{"type": "damage", "value": 45}]
+required_level = 15
+required_class = "akkan_rune"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -44,6 +45,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "max_targets_mult", "value": 1}],
 },
 ]
-
-required_level = 15
-required_class = "akkan_rune"

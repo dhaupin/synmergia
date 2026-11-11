@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "akkan_hex"
 display_name = "Hex"
 description = "Places a debilitating curse on an enemy, slowing movement and reducing damage output."
@@ -16,6 +15,8 @@ cast_time = 0.6
 animation_duration = 0.5
 range = 20.0
 effects = [{"type": "debuff", "effect_id": "debuff_hex", "duration": 6.0}]
+required_level = 10
+required_class = "akkan_shaman"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -43,6 +44,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 10
-required_class = "akkan_shaman"

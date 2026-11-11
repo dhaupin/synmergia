@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_overclock_ally"
 display_name = "Overclocked"
 description = "Processing cycles accelerated. Attack and cast speed increased."

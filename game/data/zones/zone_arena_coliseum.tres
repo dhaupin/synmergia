@@ -29,5 +29,5 @@ loot_multiplier = 1.0
 xp_multiplier = 1.0
 is_instanced = true
 instance_capacity = 12
-horde_config_id = ""
 instance_entry_deadline = 60.0
+horde_config_id = ""

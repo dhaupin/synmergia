@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_battle_cry_dmg"
 display_name = "Battle Fury"
 description = "Attack power increased from battle cry."

@@ -7,10 +7,6 @@ script = ExtResource("1")
 id = "loot_gloam_spores"
 name = "Gloam Spores"
 description = "The polyps and hides of the deep bloom carry their own medicine in the gills: dried cap, brewable steep, and a pale ore the root bit down past the frost line. One gem in a hundred is real."
-level = 40
-min_items_dropped = 1
-max_items_dropped = 3
-base_drop_chance = 1.0
 entries = [{
 "item_id": "potion_health_medium",
 "min_quantity": 1,
@@ -52,3 +48,7 @@ entries = [{
 "is_guaranteed": false,
 "conditions": []
 }]
+base_drop_chance = 1.0
+min_items_dropped = 1
+max_items_dropped = 3
+level = 40

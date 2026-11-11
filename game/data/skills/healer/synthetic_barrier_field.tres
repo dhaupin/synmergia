@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "synthetic_barrier_field"
 display_name = "Barrier Field"
 description = "Generates a localized barrier around an ally that absorbs a large amount of damage before shattering."
@@ -16,6 +15,8 @@ cast_time = 0.5
 animation_duration = 0.4
 range = 20.0
 effects = [{"type": "buff", "effect_id": "buff_barrier_field", "duration": 12.0}]
+required_level = 20
+required_class = "synthetic_conduit"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -43,6 +44,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "effect_duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 20
-required_class = "synthetic_conduit"

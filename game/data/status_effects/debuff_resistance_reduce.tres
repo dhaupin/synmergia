@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "debuff_resistance_reduce"
 display_name = "Resistance Reduced"
 description = "Magical resistance reduced."

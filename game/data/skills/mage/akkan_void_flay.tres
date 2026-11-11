@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "akkan_void_flay"
 display_name = "Void Flay"
 description = "A sustained void attack dealing damage over time."
@@ -17,7 +16,6 @@ animation_duration = 1.0
 range = 25.0
 aoe_radius = 0.0
 effects = [{"type": "damage_over_time", "value": 6, "duration": 8.0}]
-
 required_level = 15
 required_class = "akkan_rune"
 upgrade_tiers = [

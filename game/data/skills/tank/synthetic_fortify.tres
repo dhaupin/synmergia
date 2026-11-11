@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "synthetic_fortify"
 display_name = "Fortify"
 description = "Hardens local defenses, granting a significant armor and resistance boost to yourself and nearby allies."
@@ -17,6 +16,8 @@ animation_duration = 0.4
 range = 0.0
 aoe_radius = 8.0
 effects = [{"type": "buff", "effect_id": "buff_fortify", "duration": 10.0}]
+required_level = 15
+required_class = "synthetic_warden"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -44,6 +45,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "effect_duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 15
-required_class = "synthetic_warden"

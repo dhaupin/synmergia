@@ -12,6 +12,6 @@ category = 0
 rarity = 1
 target = 100
 target_type = "enemy"
+gold_reward = 500
 icon_path = "res://icons/achievements/master_slayer.png"
 sort_order = 11
-gold_reward = 500

@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "human_seer_sig"
 display_name = "Farsight"
 description = "SIGNATURE Akkan Seer technique amplified by human insight. Reveals all enemies in a vast area and reduces their defenses."
@@ -21,3 +18,4 @@ aoe_radius = 30.0
 effects = [{"type": "debuff", "effect_id": "debuff_revealed_armor", "duration": 6.0}]
 required_level = 10
 required_class = "akkan_seer"
+upgradable = false

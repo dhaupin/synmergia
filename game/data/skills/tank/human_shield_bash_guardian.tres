@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "human_shield_bash_guardian"
 display_name = "Shield Bash"
 description = "Bashes an enemy with your shield, dealing damage and briefly stunning them."
@@ -16,6 +15,8 @@ cast_time = 0.0
 animation_duration = 0.4
 range = 3.0
 effects = [{"type": "damage", "value": 15}, {"type": "debuff", "effect_id": "stun_common", "duration": 1.5}]
+required_level = 1
+required_class = "human_guardian"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -43,6 +44,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 1
-required_class = "human_guardian"

@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "akkan_cleric_sig"
 display_name = "Divine Judgment"
 description = "SIGNATURE Human Cleric doctrine filtered through Akkan discipline. A powerful holy blast that damages undead and demonic enemies."
@@ -21,3 +18,4 @@ aoe_radius = 6.0
 effects = [{"type": "damage", "value": 200}, {"type": "debuff", "effect_id": "debuff_holy_wound", "duration": 6.0}]
 required_level = 10
 required_class = "human_cleric"
+upgradable = false

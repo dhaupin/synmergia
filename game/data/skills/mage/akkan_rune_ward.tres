@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "akkan_rune_ward"
 display_name = "Rune Ward"
 description = "Places a protective rune on an ally that absorbs damage and reflects a portion back to attackers."
@@ -16,6 +15,8 @@ cast_time = 0.6
 animation_duration = 0.5
 range = 20.0
 effects = [{"type": "buff", "effect_id": "buff_rune_ward", "duration": 10.0}]
+required_level = 5
+required_class = "akkan_rune"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -43,6 +44,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "effect_duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 5
-required_class = "akkan_rune"

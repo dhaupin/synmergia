@@ -4,11 +4,10 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "human_cleric"
 display_name = "Cleric"
 description = "Human divine healer. Channels sacred light to mend wounds and protect the party. Auras, stuns, and enough damage to clear solo. All classes have long and short range."
-	role = 6
+    role = 6
 resource_type = 1
 base_stats = {"strength": 6, "agility": 5, "vitality": 10, "intelligence": 10, "wisdom": 14, "endurance": 10}
 stat_growth = {"strength": 1, "agility": 1, "vitality": 2, "intelligence": 2, "wisdom": 3, "endurance": 2}

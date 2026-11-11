@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "synthetic_psion_synthetic_sig"
 display_name = "System Corruption"
 description = "SIGNATURE Synthetic Sorcerer technique. A devastating system-level arcane attack that corrupts target data."
@@ -21,3 +18,4 @@ aoe_radius = 0.0
 effects = [{"type": "damage", "value": 330}]
 required_level = 10
 required_class = "synthetic_psion"
+upgradable = false

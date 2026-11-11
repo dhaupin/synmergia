@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "akkan_healing_totem"
 display_name = "Healing Totem"
 description = "Places a totem that heals nearby allies over time."
@@ -17,7 +16,6 @@ animation_duration = 1.0
 range = 0.0
 aoe_radius = 0.0
 effects = [{"type": "hot", "value": 8, "duration": 15.0}]
-
 required_level = 10
 required_class = "akkan_shaman"
 upgrade_tiers = [

@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "human_sorcerer_synthetic_sig"
 display_name = "System Breach"
 description = "SIGNATURE Synthetic Sorcerer technique through human precision. A devastating system-level arcane attack."
@@ -21,3 +18,4 @@ aoe_radius = 0.0
 effects = [{"type": "damage", "value": 290}]
 required_level = 10
 required_class = "synthetic_psion"
+upgradable = false

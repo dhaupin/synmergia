@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "akkan_void_curse"
 display_name = "Void Curse"
 description = "Curses the target reducing their resistance."
@@ -17,7 +16,6 @@ animation_duration = 1.0
 range = 30.0
 aoe_radius = 0.0
 effects = [{"type": "debuff", "effect_id": "debuff_void_curse", "duration": 10.0}]
-
 required_level = 10
 required_class = "akkan_rune"
 upgrade_tiers = [

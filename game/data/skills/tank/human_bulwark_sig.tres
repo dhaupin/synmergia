@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "human_bulwark_sig"
 display_name = "Bulwark Surge"
 description = "SIGNATURE Akkan Bulwark technique channeled through human resilience. A massive defensive surge that absorbs incoming damage and reflects a portion back to attackers."
@@ -21,3 +18,4 @@ aoe_radius = 0.0
 effects = [{"type": "shield", "value": 80}, {"type": "buff", "effect_id": "buff_reflect", "duration": 8.0, "value": 30}]
 required_level = 10
 required_class = "akkan_bulwark"
+upgradable = false

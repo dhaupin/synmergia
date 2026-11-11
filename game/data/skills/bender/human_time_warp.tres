@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "human_time_warp"
 display_name = "Time Warp"
 description = "Bends the moments around you, hurrying your own strikes and slowing the enemy's next swing."

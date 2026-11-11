@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "human_holy_light"
 display_name = "Holy Light"
 description = "Channels divine energy to heal a single ally. Strong single-target heal."
@@ -16,6 +15,8 @@ cast_time = 0.5
 animation_duration = 0.4
 range = 25.0
 effects = [{"type": "heal", "value": 40}]
+required_level = 1
+required_class = "human_cleric"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -43,6 +44,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "hot_mult", "value": 1.05}],
 },
 ]
-
-required_level = 1
-required_class = "human_cleric"

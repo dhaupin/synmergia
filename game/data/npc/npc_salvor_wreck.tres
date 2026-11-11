@@ -7,22 +7,22 @@ script = ExtResource("1")
 id = "npc_salvor_wreck"
 display_name = "Mag the Salvor"
 description = "She charts the wreck shoal by memory and claims the barque's hold is still full. Nobody has paid her diving fee to find out."
-npc_type = 6
 level = 1
 faction = "friendly"
 scene_path = "res://scenes/npcs/merchant_general.tscn"
-zone_id = "zone_sundered_sea"
-spawn_offset = Vector3(-3, 0, 2)
 greeting = "You'll be wanting rope, boots, and nerve. The shoal takes all three."
 farewell = "Bring back what the water kept, and we'll talk coin."
-shop_title = "Salvor's Table"
 location_type = 1
 buy_multiplier = 0.5
 sell_multiplier = 1.0
 buy_categories = ["MISC", "RESOURCE"]
 sell_categories = ["CONSUMABLE", "MISC"]
+spawn_offset = Vector3(-3, 0, 2)
+zone_id = "zone_sundered_sea"
 includes = [
   {"type": "dialogue", "dialogue_id": "sundered_salvor_talk"},
   {"type": "offering", "ref_id": "salvor_stock"},
   {"type": "offering", "ref_id": "shoal_freight_quests"}
 ]
+npc_type = 6
+shop_title = "Salvor's Table"

@@ -11,15 +11,15 @@ quest_type = 1
 difficulty = 0
 giver_npc_id = "npc_blacksmith_village"
 turn_in_npc_id = "npc_blacksmith_village"
-auto_complete = true
 min_level = 1
-xp_reward = 250
-gold_reward = 25
 objectives = [
-	{"id": "meet_blacksmith", "type": 5, "target": "npc_blacksmith_village", "count": 1, "optional": false, "description": "Talk to the village blacksmith"},
-	{"id": "meet_academy", "type": 5, "target": "npc_skill_academy_capital", "count": 1, "optional": true, "description": "Speak with the skill academy instructor"},
-	{"id": "meet_store", "type": 5, "target": "npc_merchant_general", "count": 1, "optional": true, "description": "Speak with the general merchant"}
+    {"id": "meet_blacksmith", "type": 5, "target": "npc_blacksmith_village", "count": 1, "optional": false, "description": "Talk to the village blacksmith"},
+    {"id": "meet_academy", "type": 5, "target": "npc_skill_academy_capital", "count": 1, "optional": true, "description": "Speak with the skill academy instructor"},
+    {"id": "meet_store", "type": 5, "target": "npc_merchant_general", "count": 1, "optional": true, "description": "Speak with the general merchant"}
 ]
 rewards = []
+gold_reward = 25
+xp_reward = 250
 next_quest_id = ""
 previous_quest_id = ""
+auto_complete = true

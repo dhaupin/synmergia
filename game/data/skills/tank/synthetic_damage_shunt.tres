@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "synthetic_damage_shunt"
 display_name = "Damage Shunt"
 description = "Reroutes incoming damage away from the Warden's core, redistributing it into local shields so the hit lands softer."
@@ -16,6 +15,8 @@ cast_time = 0.3
 animation_duration = 0.4
 range = 0.0
 effects = [{"type": "buff", "effect_id": "buff_damage_shunt", "duration": 8.0}]
+required_level = 10
+required_class = "synthetic_warden"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -43,6 +44,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "effect_duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 10
-required_class = "synthetic_warden"

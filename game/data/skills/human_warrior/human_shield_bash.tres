@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "human_shield_bash"
 display_name = "Shield Bash"
 description = "Bashes the target with a shield, dealing damage and stunning briefly."
@@ -17,7 +16,6 @@ animation_duration = 1.0
 range = 3.0
 aoe_radius = 0.0
 effects = [{"type": "damage", "value": 25}, {"type": "debuff", "effect_id": "debuff_stun", "duration": 2.0}]
-
 required_level = 10
 required_class = "human_warrior"
 upgrade_tiers = [

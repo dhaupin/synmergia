@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "human_resurrection"
 display_name = "Resurrection"
 description = "SIGNATURE Divine technique. Channels sacred light to resurrect a fallen ally with partial health. Essential in any group."
@@ -18,6 +15,9 @@ cast_time = 8.0
 animation_duration = 0.6
 range = 25.0
 effects = [{"type": "revive", "value": 50}]
+required_level = 10
+required_class = "human_cleric"
+upgradable = false
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -45,6 +45,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "effect_duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 10
-required_class = "human_cleric"

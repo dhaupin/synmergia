@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "debuff_full_stall"
 display_name = "Full Stall"
 description = "All processes frozen. Cannot move, act, or regenerate."

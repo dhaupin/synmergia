@@ -4,11 +4,10 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "human_temporalist"
 display_name = "Temporalist"
-description = "Human time weaver. Manipulates the flow of time itself — slowing enemies, hastening allies, and warping space. Revives, teleports, and controls the pace of battle."
-	role = 5
+description = "Human time weaver. Manipulates the flow of time itself - slowing enemies, hastening allies, and warping space. Revives, teleports, and controls the pace of battle."
+    role = 5
 resource_type = 1
 base_stats = {"strength": 5, "agility": 8, "vitality": 8, "intelligence": 14, "wisdom": 12, "endurance": 7}
 stat_growth = {"strength": 1, "agility": 1, "vitality": 1, "intelligence": 3, "wisdom": 2, "endurance": 1}

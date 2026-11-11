@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "human_guardian"
 display_name = "Guardian"
 description = "Human bulwark. Intercepts danger and holds the line. Taunt, shield walls, and counter-attacks protect the party. Aggro management and AoE damage."

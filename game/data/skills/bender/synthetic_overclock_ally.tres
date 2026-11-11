@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "synthetic_overclock_ally"
 display_name = "Overclock Ally"
 description = "Overclocks an ally systems, dramatically increasing their attack and cast speed."
@@ -16,6 +15,8 @@ cast_time = 0.5
 animation_duration = 0.4
 range = 25.0
 effects = [{"type": "buff", "effect_id": "buff_overclock_ally", "duration": 10.0}]
+required_level = 5
+required_class = "synthetic_overclocker"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -43,6 +44,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "effect_duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 5
-required_class = "synthetic_overclocker"

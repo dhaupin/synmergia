@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_time_anchor"
 display_name = "Time Anchored"
 description = "Immune to all slow and speed effects."

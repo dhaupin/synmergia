@@ -18,6 +18,6 @@ objectives = [{"id": "wake_waypoints", "type": 4, "target": "zone_starter_plains
 rewards = [{"type": "gold", "id": "", "quantity": 40}, {"type": "experience", "id": "", "quantity": 60}]
 gold_reward = 40
 xp_reward = 60
+next_quest_id = ""
 icon_path = "res://icons/quests/waypoint.png"
 map_marker = "explore"
-next_quest_id = ""

@@ -8,41 +8,41 @@ id = "blacksmith_village_intro"
 npc_id = "npc_blacksmith_village"
 display_name = "Village Smithy"
 nodes = [
-	{
-		"speaker": "Village Smithy",
-		"text": "You’re the first new face I’ve seen all cycle. Come close — let’s have a proper word before the forge gets crowded.",
-		"choices": [
-			{"text": "I didn’t come for talk. I came for work.", "next_node": 1},
-			{"text": "You look like the sort of person who knows what’s going on around here.", "next_node": 2}
-		]
-	},
-	{
-		"speaker": "Village Smithy",
-		"text": "Work’s the reason I keep the fire lit, sure. But around here, the steel’s only as honest as the person standing at the anvil. If you want straight work, start by saying what you’re looking for.",
-		"choices": [
-			{"text": "I need gear that holds up.", "next_node": 3},
-			{"text": "Fine — what does this place actually do?", "next_node": 3}
-		]
-	},
-	{
-		"speaker": "Village Smithy",
-		"text": "I don’t run a story shop — I run the only forge in walking distance that won’t hand you a blade that bends in the first hard use. If you’re new to this corner of the world, that alone is worth a conversation.",
-		"choices": [
-			{"text": "You sound like there’s a reason I’m here right now.", "next_node": 3},
-			{"text": "I’ll take your word for it. What do I owe you?", "next_node": 3}
-		]
-	},
-	{
-		"speaker": "Village Smithy",
-		"text": "Owe? Depends. If you came because you heard this village was worth a second look, start by meeting the people who keep it running. The academy’s round the bend, and the general merchant’s the sort of place you don’t realize you needed until you’re carrying something awkward.",
-		"choices": [
-			{"text": "Point me at the people who matter.", "next_node": 4, "action_type": 1, "action_data": {"quest_id": "quest_intro_core_npcs"}},
-			{"text": "I’ll start with the forge.", "next_node": -1, "action_type": 6, "action_data": {"shop_id": "blacksmith_service"}}
-		]
-	},
-	{
-		"speaker": "Village Smithy",
-		"text": "Smart choice. I’ll be at the anvil while you do that. Come back when you’ve got a reason to make something that lasts longer than tonight.",
-		"choices": []
-	}
+    {
+        "speaker": "Village Smithy",
+        "text": "You're the first new face I've seen all cycle. Come close - let's have a proper word before the forge gets crowded.",
+        "choices": [
+            {"text": "I didn't come for talk. I came for work.", "next_node": 1},
+            {"text": "You look like the sort of person who knows what's going on around here.", "next_node": 2}
+        ]
+    },
+    {
+        "speaker": "Village Smithy",
+        "text": "Work's the reason I keep the fire lit, sure. But around here, the steel's only as honest as the person standing at the anvil. If you want straight work, start by saying what you're looking for.",
+        "choices": [
+            {"text": "I need gear that holds up.", "next_node": 3},
+            {"text": "Fine - what does this place actually do?", "next_node": 3}
+        ]
+    },
+    {
+        "speaker": "Village Smithy",
+        "text": "I don't run a story shop - I run the only forge in walking distance that won't hand you a blade that bends in the first hard use. If you're new to this corner of the world, that alone is worth a conversation.",
+        "choices": [
+            {"text": "You sound like there's a reason I'm here right now.", "next_node": 3},
+            {"text": "I'll take your word for it. What do I owe you?", "next_node": 3}
+        ]
+    },
+    {
+        "speaker": "Village Smithy",
+        "text": "Owe? Depends. If you came because you heard this village was worth a second look, start by meeting the people who keep it running. The academy's round the bend, and the general merchant's the sort of place you don't realize you needed until you're carrying something awkward.",
+        "choices": [
+            {"text": "Point me at the people who matter.", "next_node": 4, "action_type": 1, "action_data": {"quest_id": "quest_intro_core_npcs"}},
+            {"text": "I'll start with the forge.", "next_node": -1, "action_type": 6, "action_data": {"shop_id": "blacksmith_service"}}
+        ]
+    },
+    {
+        "speaker": "Village Smithy",
+        "text": "Smart choice. I'll be at the anvil while you do that. Come back when you've got a reason to make something that lasts longer than tonight.",
+        "choices": []
+    }
 ]

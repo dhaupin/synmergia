@@ -18,7 +18,6 @@ placement_zones = ["housing_zone_1"]
 is_interactable = true
 interaction_type = "light_fire"
 interaction_radius = 1.0
-cooldown_seconds = 0.0
 provides_function = "ambient_light"
 function_capacity = 0
 tax_modifier = 0.05
@@ -28,8 +27,6 @@ allow_guild_access = true
 allow_friends_access = true
 allow_public_view = true
 dyeable = false
-is_animated = true
-animation_path = "res://animations/dwellings/fireplace_burn.tres"
 dismantle_returns = [{
 "amount": 20,
 "id": "res_stone",

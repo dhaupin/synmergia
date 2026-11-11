@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "akkan_conduit_sig"
 display_name = "Soul Conduit"
 description = "SIGNATURE Synthetic Conduit routing through Akkan spirit energy. Drains life from all nearby enemies to heal allies."
@@ -21,3 +18,4 @@ aoe_radius = 12.0
 effects = [{"type": "damage_over_time", "value": 150, "duration": 6.0}, {"type": "heal", "value": 150}]
 required_level = 10
 required_class = "synthetic_conduit"
+upgradable = false

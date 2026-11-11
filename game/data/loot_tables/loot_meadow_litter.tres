@@ -7,10 +7,6 @@ script = ExtResource("1")
 id = "loot_meadow_litter"
 name = "Meadow Litter"
 description = "What the meadow's tenants carry or leave behind: dropped bite-rations, the odd shed timber, and the wild cap or petal their Owners never planted."
-level = 5
-min_items_dropped = 1
-max_items_dropped = 3
-base_drop_chance = 1.0
 entries = [{
 "item_id": "potion_health_small",
 "min_quantity": 1,
@@ -44,3 +40,7 @@ entries = [{
 "is_guaranteed": false,
 "conditions": []
 }]
+base_drop_chance = 1.0
+min_items_dropped = 1
+max_items_dropped = 3
+level = 5

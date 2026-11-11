@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "synthetic_system_override"
 display_name = "System Override"
 description = "Attempts to override the target's systems, dealing damage and silencing them."
@@ -17,7 +16,6 @@ animation_duration = 1.0
 range = 25.0
 aoe_radius = 0.0
 effects = [{"type": "damage", "value": 20}, {"type": "debuff", "effect_id": "debuff_silence", "duration": 3.0}]
-
 required_level = 10
 required_class = "synthetic_psion"
 upgrade_tiers = [

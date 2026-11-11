@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "human_warden_sig"
 display_name = "Shield Wall"
 description = "SIGNATURE Synthetic Warden technique through human coordination. All nearby allies gain damage absorption shields."
@@ -21,3 +18,4 @@ aoe_radius = 15.0
 effects = [{"type": "shield", "value": 80}, {"type": "buff", "effect_id": "buff_group_shield", "duration": 10.0}]
 required_level = 10
 required_class = "synthetic_warden"
+upgradable = false

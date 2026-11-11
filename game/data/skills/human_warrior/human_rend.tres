@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "human_rend"
 display_name = "Rend"
 description = "Tears at the target's armor, dealing damage over time."
@@ -17,7 +16,6 @@ animation_duration = 1.0
 range = 3.0
 aoe_radius = 0.0
 effects = [{"type": "damage_over_time", "value": 4, "duration": 10.0}]
-
 required_level = 10
 required_class = "human_warrior"
 upgrade_tiers = [

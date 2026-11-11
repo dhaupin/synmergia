@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_earthshield"
 display_name = "Earthshield"
 description = "Damage reduced and receiving periodic healing."

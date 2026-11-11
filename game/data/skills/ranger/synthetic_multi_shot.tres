@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "synthetic_multi_shot"
 display_name = "Multi-Shot"
 description = "Fires a spread of targeted projectiles hitting up to 4 enemies."
@@ -17,6 +16,8 @@ animation_duration = 0.5
 range = 25.0
 max_targets = 4
 effects = [{"type": "damage", "value": 25}]
+required_level = 20
+required_class = "synthetic_tracker"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -44,6 +45,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "max_targets_mult", "value": 1}],
 },
 ]
-
-required_level = 20
-required_class = "synthetic_tracker"

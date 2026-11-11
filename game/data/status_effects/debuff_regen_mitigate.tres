@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "debuff_regen_mitigate"
 display_name = "Regeneration Mitigated"
 description = "Health and mana regeneration are suppressed."

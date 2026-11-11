@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "synthetic_backdoor"
 display_name = "Backdoor"
 description = "Exploits a security vulnerability to deal massive damage from any range."
@@ -16,6 +15,8 @@ cast_time = 0.4
 animation_duration = 0.4
 range = 40.0
 effects = [{"type": "damage", "value": 40}]
+required_level = 5
+required_class = "synthetic_tracker"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -43,6 +44,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "max_targets_mult", "value": 1}],
 },
 ]
-
-required_level = 5
-required_class = "synthetic_tracker"

@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "akkan_ancestral_guardian"
 display_name = "Ancestral Guardian"
 description = "SIGNATURE Akkan technique. Calls forth an ancestral spirit to defend the target ally. Essential for sustained fights."
@@ -18,6 +15,9 @@ cast_time = 1.5
 animation_duration = 0.8
 range = 20.0
 effects = [{"type": "buff", "effect_id": "buff_ancestral_guardian", "duration": 20.0}]
+required_level = 10
+required_class = "akkan_shaman"
+upgradable = false
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -45,6 +45,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "effect_duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 10
-required_class = "akkan_shaman"

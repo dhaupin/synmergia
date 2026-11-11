@@ -7,17 +7,6 @@ script = ExtResource("1")
 id = "loot_skill_books"
 name = "Skill Book Drops"
 description = "Drops epic/legendary skill books. Attach to elite and boss enemies. Book item ids (book_<skill>_<tier>) are expanded to runtime SkillBook items by GroundLootService via SkillAcademyService.create_book. Common and rare books are purchased at the Skill Academy."
-level = 1
-min_items_dropped = 0
-max_items_dropped = 2
-base_drop_chance = 0.05
-rarity_weights = {
-"COMMON": 1.0,
-"UNCOMMON": 0.5,
-"RARE": 0.2,
-"EPIC": 0.05,
-"LEGENDARY": 0.01
-}
 entries = [
 {
 "item_id": "book_human_battle_cry_epic",
@@ -75,3 +64,14 @@ entries = [
 }
 ]
 currency_drops = []
+base_drop_chance = 0.05
+min_items_dropped = 0
+max_items_dropped = 2
+level = 1
+rarity_weights = {
+"COMMON": 1.0,
+"UNCOMMON": 0.5,
+"RARE": 0.2,
+"EPIC": 0.05,
+"LEGENDARY": 0.01
+}

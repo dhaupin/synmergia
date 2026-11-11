@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "human_arcane_bolt"
 display_name = "Arcane Bolt"
 description = "Fires a bolt of pure arcane energy."
@@ -17,7 +16,6 @@ animation_duration = 1.0
 range = 30.0
 aoe_radius = 0.0
 effects = [{"type": "damage", "value": 22}]
-
 required_level = 5
 required_class = "human_sorcerer"
 upgrade_tiers = [

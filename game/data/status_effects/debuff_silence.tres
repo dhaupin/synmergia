@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "debuff_silence"
 display_name = "Silenced"
 description = "Cannot cast spells or use abilities."

@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "human_smite"
 display_name = "Smite"
 description = "Strikes an enemy with divine wrath. Reliable damage for solo leveling."
@@ -16,6 +15,8 @@ cast_time = 0.4
 animation_duration = 0.4
 range = 25.0
 effects = [{"type": "damage", "value": 25}]
+required_level = 10
+required_class = "human_cleric"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -43,6 +44,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "max_targets_mult", "value": 1}],
 },
 ]
-
-required_level = 10
-required_class = "human_cleric"

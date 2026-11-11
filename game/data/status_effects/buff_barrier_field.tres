@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_barrier_field"
 display_name = "Barrier Field"
 description = "Localized barrier absorbs incoming damage."

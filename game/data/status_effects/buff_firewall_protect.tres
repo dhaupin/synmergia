@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_firewall_protect"
 display_name = "Firewall Protected"
 description = "Protected by firewall barrier."

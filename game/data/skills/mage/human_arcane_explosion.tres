@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "human_arcane_explosion"
 display_name = "Arcane Explosion"
 description = "Detonates stored arcane energy for massive damage."
@@ -17,7 +16,6 @@ animation_duration = 1.0
 range = 25.0
 aoe_radius = 0.0
 effects = [{"type": "damage", "value": 45}]
-
 required_level = 10
 required_class = "human_sorcerer"
 upgrade_tiers = [

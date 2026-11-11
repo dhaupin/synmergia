@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "akkan_marksman_sig"
 display_name = "Void Snare"
 description = "SIGNATURE Human Marksman technique through Akkan void energy. Places a void snare that traps enemies and detonates for massive void damage."
@@ -21,3 +18,4 @@ aoe_radius = 0.0
 effects = [{"type": "damage", "value": 300}, {"type": "debuff", "effect_id": "debuff_void_snare", "duration": 6.0}]
 required_level = 10
 required_class = "human_marksman"
+upgradable = false

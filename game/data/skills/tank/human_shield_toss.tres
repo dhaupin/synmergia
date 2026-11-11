@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "human_shield_toss"
 display_name = "Shield Toss"
 description = "Hurls your shield at an enemy, dealing damage and reducing their armor."
@@ -16,6 +15,8 @@ cast_time = 0.0
 animation_duration = 0.4
 range = 15.0
 effects = [{"type": "damage", "value": 30}, {"type": "debuff", "effect_id": "debuff_armor_reduce", "duration": 5.0}]
+required_level = 1
+required_class = "human_guardian"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -43,6 +44,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 1
-required_class = "human_guardian"

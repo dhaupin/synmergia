@@ -4,12 +4,9 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "synthetic_emergency_override"
 display_name = "Emergency Override"
-description = "SIGNATURE Synthetic technique. Triggers a full-system emergency override. All party members receive massive damage reduction and the Warden blares an aggro horn — generating maximum threat on all nearby enemies. Keeps the party alive while you hold everything. Panic button that saves raids."
+description = "SIGNATURE Synthetic technique. Triggers a full-system emergency override. All party members receive massive damage reduction and the Warden blares an aggro horn - generating maximum threat on all nearby enemies. Keeps the party alive while you hold everything. Panic button that saves raids."
 skill_type = 0
 target_type = 2
 mana_cost = 50
@@ -19,6 +16,9 @@ animation_duration = 0.5
 range = 0.0
 aoe_radius = 25.0
 effects = [{"type": "buff", "effect_id": "buff_emergency_override", "duration": 5.0}, {"type": "debuff", "effect_id": "debuff_aggro_horn", "duration": 5.0}]
+required_level = 10
+required_class = "synthetic_warden"
+upgradable = false
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -46,6 +46,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "effect_duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 10
-required_class = "synthetic_warden"

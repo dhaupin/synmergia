@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "synthetic_tick_slow"
 display_name = "Tick Slow"
 description = "Reduces the target processing frequency, dramatically slowing all their actions and movement."
@@ -16,6 +15,8 @@ cast_time = 0.4
 animation_duration = 0.4
 range = 25.0
 effects = [{"type": "debuff", "effect_id": "debuff_tick_slow", "duration": 8.0}]
+required_level = 5
+required_class = "synthetic_overclocker"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -43,6 +44,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 5
-required_class = "synthetic_overclocker"

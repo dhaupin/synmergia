@@ -4,15 +4,14 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "stealth_deep"
 display_name = "Deep Stealth"
 description = "Heavy shadow concealment. Reduces detection range by 60%. Breaks on damage or combat actions."
 category = 0
 effect_type = 3
 duration = 20.0
+can_refresh = true
 stealth_type = 2
 break_on_damage = true
 break_on_action = true
 detection_radius = 4.0
-can_refresh = true

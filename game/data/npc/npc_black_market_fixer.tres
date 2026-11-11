@@ -7,21 +7,21 @@ script = ExtResource("1")
 id = "npc_black_market_fixer"
 display_name = "Underdeck Fixer"
 description = "The underdeck's quietest stall keeps no face and takes no coin it cannot trace. Scrap in, scrip out -- and for the sigils nobody mints, the deep vault ledger signs for itself."
-npc_type = 6
 level = 1
 faction = "friendly"
 scene_path = "res://scenes/npcs/merchant_general.tscn"
-zone_id = "zone_nexus_central"
-spawn_offset = Vector3(3, 0, -2)
 greeting = "You found this stall. Nobody showed you."
 farewell = "The ledger forgets nothing."
-shop_title = "Underdeck Ledgers"
 location_type = 4
 buy_multiplier = 0.4
 sell_multiplier = 1.6
 buy_categories = ["MISC", "RESOURCE"]
 sell_categories = ["ACCESSORY", "MISC"]
+spawn_offset = Vector3(3, 0, -2)
+zone_id = "zone_nexus_central"
 includes = [
   {"type": "offering", "ref_id": "black_market_ledger"},
   {"type": "offering", "ref_id": "black_market_premium"}
 ]
+npc_type = 6
+shop_title = "Underdeck Ledgers"

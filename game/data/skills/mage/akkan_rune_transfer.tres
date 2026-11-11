@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "akkan_rune_transfer"
 display_name = "Rune Transfer"
 description = "Channels rune energy into an ally, transferring a portion of the caster's mana to them."
@@ -16,6 +15,8 @@ cast_time = 1.5
 animation_duration = 0.6
 range = 20.0
 effects = [{"type": "buff", "effect_id": "buff_rune_transfer", "duration": 0.0}]
+required_level = 20
+required_class = "akkan_rune"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -43,6 +44,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "effect_duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 20
-required_class = "akkan_rune"

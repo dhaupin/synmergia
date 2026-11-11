@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "akkan_bulwark"
 display_name = "Bulwark"
 description = "Akkan fortress. Unmovable anchor in combat. Taunts, area denial, and damage reflection keep enemies locked on. Aggro control and AoE disruption."

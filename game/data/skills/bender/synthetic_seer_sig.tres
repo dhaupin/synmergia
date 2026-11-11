@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "synthetic_seer_sig"
 display_name = "Sensor Array"
 description = "SIGNATURE Akkan Seer technique running on synthetic sensors. A perfect scan that debuffs all detected enemies."
@@ -21,3 +18,4 @@ aoe_radius = 25.0
 effects = [{"type": "debuff", "effect_id": "debuff_vulnerability", "duration": 10.0}]
 required_level = 10
 required_class = "akkan_seer"
+upgradable = false

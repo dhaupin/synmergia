@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "synthetic_system_spam"
 display_name = "System Spam"
 description = "Spams the target with corrupted data packets, dealing damage over time."
@@ -17,7 +16,6 @@ animation_duration = 1.0
 range = 25.0
 aoe_radius = 0.0
 effects = [{"type": "damage_over_time", "value": 5, "duration": 10.0}]
-
 required_level = 5
 required_class = "synthetic_psion"
 upgrade_tiers = [

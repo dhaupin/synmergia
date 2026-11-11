@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "debuff_armor_reduce"
 display_name = "Armor Reduced"
 description = "Armor has been reduced by the shield strike."

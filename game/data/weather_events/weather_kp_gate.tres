@@ -14,4 +14,4 @@ zone_ids = Array[String]([])
 stir_horde_config = ""
 stir_waves = 2
 open_window_sec = 900.0
-notify_message = "The tempest burns green — the gate is open. Answer it."
+notify_message = "The tempest burns green - the gate is open. Answer it."

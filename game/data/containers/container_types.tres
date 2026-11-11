@@ -4,10 +4,8 @@
 
 [resource]
 script = ExtResource("1")
-
 # Container Types Registry
 # Add new container types here - no code changes needed!
-
 container_type = 0
 expansion_tier = 0
 instance_id = ""

@@ -5,7 +5,6 @@
 [resource]
 script = ExtResource("1")
 id = "zone_sun_pans"
-world_id = "main"
 display_name = "The Sun Pans"
 description = "A desert atoll far across the sea: broken badlands rise into a ring of volcanic walls around a dry salt-pan core, and grass holds the outer bank. The Concord's charts mark it as the far country -- a climate the homeland never grows. No main-world law applies: its zone id is all it claims."
 pvp_mode = 0
@@ -24,3 +23,4 @@ environment_path = "res://environments/day_01.tres"
 has_weather = true
 weather_type = "clear"
 spawn_points = [Vector3(0, 0, 0)]
+world_id = "main"

@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "akkan_rune"
 display_name = "Runesmith"
 description = "Akkan rune specialist. Inscribes explosive sigils that detonate on command. Ground-targeted area damage and protective wards for allies."

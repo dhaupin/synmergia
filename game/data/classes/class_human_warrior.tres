@@ -4,15 +4,12 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "human_warrior"
 display_name = "Warrior"
 description = "Human melee damage dealer. Strong physical attacks and battle cries."
 icon_path = "res://ui/icons/classes/human_warrior.png"
-
 role = 2
 resource_type = 1
-
 base_stats = {
 "strength": 14,
 "agility": 10,
@@ -21,7 +18,6 @@ base_stats = {
 "endurance": 10,
 "wisdom": 6
 }
-
 stat_growth = {
 "focal_stat_1": "strength",
 "focal_stat_2": "agility",
@@ -32,22 +28,17 @@ stat_growth = {
 "endurance": 1,
 "wisdom": 1
 }
-
 base_resource = 100
 resource_per_level = 10
 resource_regen_per_second = 5.0
 resource_regen_combat = 1.0
-
 base_attack_power = 12
 attack_power_per_level = 2
 base_spell_power = 5
 spell_power_per_level = 1
-
 starting_skills = ["human_strike", "human_shield_bash"]
 skill_tree_unlocks = {}
-
 respec_cost_gold = 500
-
 can_use_melee_weapons = true
 can_use_ranged_weapons = true
 can_use_staves = false

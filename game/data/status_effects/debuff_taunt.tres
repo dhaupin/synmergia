@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "debuff_taunt"
 display_name = "Taunted"
 description = "Forced to attack the source of the taunt."

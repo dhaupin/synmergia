@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_reflect"
 display_name = "Reflective Barrier"
 description = "A portion of melee damage is reflected to attackers."

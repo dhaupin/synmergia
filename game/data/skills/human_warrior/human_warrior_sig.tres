@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "human_warrior_sig"
 display_name = "Warrior's Fury"
 description = "SIGNATURE Human Warrior technique. A devastating strike that deals massive damage and increases the warrior's attack power."
@@ -21,3 +18,4 @@ aoe_radius = 0.0
 effects = [{"type": "damage", "value": 300}]
 required_level = 10
 required_class = "human_warrior"
+upgradable = false

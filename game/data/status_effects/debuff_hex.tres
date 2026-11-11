@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "debuff_hex"
 display_name = "Hexed"
 description = "Damage and movement speed reduced by a curse."

@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "synthetic_deaggro_pulse"
 display_name = "Deaggro Pulse"
 description = "Broadcasts a signal that reduces threat on all party members, causing enemies to lose interest. Essential for managing aggro in large pulls."
@@ -17,6 +16,8 @@ animation_duration = 0.5
 range = 0.0
 aoe_radius = 20.0
 effects = [{"type": "buff", "effect_id": "buff_deaggro", "duration": 3.0}]
+required_level = 20
+required_class = "synthetic_warden"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -44,6 +45,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "effect_duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 20
-required_class = "synthetic_warden"

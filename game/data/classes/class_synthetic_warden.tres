@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "synthetic_warden"
 display_name = "Warden"
 description = "Synthetic defensive matrix. Locks down threat vectors and redistributes incoming damage. Agile positioning, deaggro, and counter-exploits. Aggro and protection."

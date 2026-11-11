@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "debuff_slow_field"
 display_name = "Slowed"
 description = "Movement and actions dramatically slowed."

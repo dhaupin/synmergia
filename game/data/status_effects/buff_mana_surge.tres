@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_mana_surge"
 display_name = "Mana Surge"
 description = "Mana regeneration dramatically increased."

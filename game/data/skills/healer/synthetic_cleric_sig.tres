@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "synthetic_cleric_sig"
 display_name = "Medical Protocol"
 description = "SIGNATURE Human Cleric technique running as synthetic medical subroutines. Deploys nanite healing swarms to all allies."
@@ -21,3 +18,4 @@ aoe_radius = 20.0
 effects = [{"type": "hot", "value": 200, "duration": 8.0}]
 required_level = 10
 required_class = "human_cleric"
+upgradable = false

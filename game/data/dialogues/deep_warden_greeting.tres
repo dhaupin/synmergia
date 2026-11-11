@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="DialogueData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="DialogueData" load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
 
@@ -8,63 +8,63 @@ id = "deep_warden_greeting"
 npc_id = "npc_deep_warden"
 display_name = "Deep Warden Greeting"
 nodes = [
-	{
-		"speaker": "Deep Warden",
-		"text": "A visitor. Look at that -- the strata brightened the moment you landed. The Deep Root knows when someone is watching. Welcome to the camp, traveler.",
-		"choices": [
-			{"text": "Where are we exactly?", "next_node": 1},
-			{"text": "Why is the rock glowing?", "next_node": 2},
-			{"text": "Do you have work for me?", "next_node": 3},
-			{"text": "Farewell.", "next_node": -1}
-		]
-	},
-	{
-		"speaker": "Deep Warden",
-		"text": "Under everything. The green world above has a hollow, and the hollow has a floor -- you are standing on it. That sky? Not stars. That is the INSIDE of the world over your head.",
-		"choices": [
-			{"text": "That is... a lot.", "next_node": 4},
-			{"text": "Back to the camp.", "next_node": 0}
-		]
-	},
-	{
-		"speaker": "Deep Warden",
-		"text": "Strata glow. It breathes once a day -- high tide when dawn hits the surface, low tide when their sun lets the wall rest. I count the tides. Somebody has to. The veins in the wall carry it like sap.",
-		"choices": [
-			{"text": "Counting tides. Noble work.", "next_node": 4},
-			{"text": "Back to the camp.", "next_node": 0}
-		]
-	},
-	{
-		"speaker": "Deep Warden",
-		"text": "Listen, then. Stand still at the shelf's edge and really listen -- the deep hums when you give it an ear. The old keepers called it tuning yourself to the Root. Do that, and I will know you heard it.",
-		"choices": [
-			{"text": "What is that glow past the camp?", "next_node": 5},
-			{"text": "On it.", "next_node": -1},
-			{"text": "Back to the camp.", "next_node": 0}
-		]
-	},
-	{
-		"speaker": "Deep Warden",
-		"text": "The Warden smiles. The glow tide crests, and for one breath the whole wall is ember-bright. Whatever this place is, it is not empty.",
-		"choices": [
-			{"text": "Farewell.", "next_node": -1}
-		]
-	},
-	{
-		"speaker": "Deep Warden",
-		"text": "That is the Glow Cistern -- the catch-dish the glow tide pours into. The wall drinks the tide, the dish holds what the wall spills, and the water remembers every body it covers. A crossing is a count. Get one honest wet crossing -- rim to rim, halfway out the sheave bench on the low side -- and the count has your name in it.",
-		"choices": [
-			{"text": "How is the water?", "next_node": 6},
-			{"text": "I will swim it.", "next_node": -1},
-			{"text": "Back to the camp.", "next_node": 0}
-		]
-	},
-	{
-		"speaker": "Deep Warden",
-		"text": "Gentle, warm as a hearthstone that never cooled. The dish is stone, the water is shallow, and the pressure is nothing -- the deep ocean's teeth are on the far side of the world, not here. The only rule is honesty: you go in, the pool covers you, you climb out by the bench. That is the whole crossing.",
-		"choices": [
-			{"text": "Then I will swim it.", "next_node": -1},
-			{"text": "Back to the camp.", "next_node": 0}
-		]
-	}
+    {
+        "speaker": "Deep Warden",
+        "text": "A visitor. Look at that -- the strata brightened the moment you landed. The Deep Root knows when someone is watching. Welcome to the camp, traveler.",
+        "choices": [
+            {"text": "Where are we exactly?", "next_node": 1},
+            {"text": "Why is the rock glowing?", "next_node": 2},
+            {"text": "Do you have work for me?", "next_node": 3},
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Deep Warden",
+        "text": "Under everything. The green world above has a hollow, and the hollow has a floor -- you are standing on it. That sky? Not stars. That is the INSIDE of the world over your head.",
+        "choices": [
+            {"text": "That is... a lot.", "next_node": 4},
+            {"text": "Back to the camp.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Deep Warden",
+        "text": "Strata glow. It breathes once a day -- high tide when dawn hits the surface, low tide when their sun lets the wall rest. I count the tides. Somebody has to. The veins in the wall carry it like sap.",
+        "choices": [
+            {"text": "Counting tides. Noble work.", "next_node": 4},
+            {"text": "Back to the camp.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Deep Warden",
+        "text": "Listen, then. Stand still at the shelf's edge and really listen -- the deep hums when you give it an ear. The old keepers called it tuning yourself to the Root. Do that, and I will know you heard it.",
+        "choices": [
+            {"text": "What is that glow past the camp?", "next_node": 5},
+            {"text": "On it.", "next_node": -1},
+            {"text": "Back to the camp.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Deep Warden",
+        "text": "The Warden smiles. The glow tide crests, and for one breath the whole wall is ember-bright. Whatever this place is, it is not empty.",
+        "choices": [
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Deep Warden",
+        "text": "That is the Glow Cistern -- the catch-dish the glow tide pours into. The wall drinks the tide, the dish holds what the wall spills, and the water remembers every body it covers. A crossing is a count. Get one honest wet crossing -- rim to rim, halfway out the sheave bench on the low side -- and the count has your name in it.",
+        "choices": [
+            {"text": "How is the water?", "next_node": 6},
+            {"text": "I will swim it.", "next_node": -1},
+            {"text": "Back to the camp.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Deep Warden",
+        "text": "Gentle, warm as a hearthstone that never cooled. The dish is stone, the water is shallow, and the pressure is nothing -- the deep ocean's teeth are on the far side of the world, not here. The only rule is honesty: you go in, the pool covers you, you climb out by the bench. That is the whole crossing.",
+        "choices": [
+            {"text": "Then I will swim it.", "next_node": -1},
+            {"text": "Back to the camp.", "next_node": 0}
+        ]
+    }
 ]

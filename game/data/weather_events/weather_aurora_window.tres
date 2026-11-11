@@ -14,4 +14,4 @@ zone_ids = Array[String]([])
 stir_horde_config = ""
 stir_waves = 2
 open_window_sec = 1800.0
-notify_message = "An aurora unfolds — the sky is writing. Something may be answered."
+notify_message = "An aurora unfolds - the sky is writing. Something may be answered."

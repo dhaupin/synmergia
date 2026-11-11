@@ -22,26 +22,23 @@ home_zone = "zone_nexus_central"
 home_faction = "faction_synthetic"
 allied_species = ["human"]
 hostile_species = []
-
 health_modifier = 1.0
 mana_modifier = 1.1
 stamina_modifier = 1.0
 speed_modifier = 1.0
+is_agent_controlled = true
+is_human_controlled = false
 available_skin_tones = [
-	Color(0.7, 0.75, 0.8, 1),
-	Color(0.3, 0.4, 0.5, 1),
-	Color(0.5, 0.3, 0.5, 1),
-	Color(0.2, 0.6, 0.4, 1),
-	Color(0.8, 0.6, 0.2, 1),
+    Color(0.7, 0.75, 0.8, 1),
+    Color(0.3, 0.4, 0.5, 1),
+    Color(0.5, 0.3, 0.5, 1),
+    Color(0.2, 0.6, 0.4, 1),
+    Color(0.8, 0.6, 0.2, 1),
 ]
 available_hair_colors = []
 available_eye_colors = [
-	Color(0.2, 0.8, 1, 1),
-	Color(1, 0.3, 0.3, 1),
-	Color(0.3, 1, 0.3, 1),
-	Color(1, 1, 0.2, 1)
+    Color(0.2, 0.8, 1, 1),
+    Color(1, 0.3, 0.3, 1),
+    Color(0.3, 1, 0.3, 1),
+    Color(1, 1, 0.2, 1)
 ]
-
-
-is_agent_controlled = true
-is_human_controlled = false

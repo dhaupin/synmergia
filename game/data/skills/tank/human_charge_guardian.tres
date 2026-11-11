@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "human_charge_guardian"
 display_name = "Shield Charge"
 description = "Charges forward, slamming into enemies in your path and knocking them back."
@@ -17,6 +16,8 @@ animation_duration = 0.5
 range = 15.0
 aoe_radius = 3.0
 effects = [{"type": "damage", "value": 25}, {"type": "debuff", "effect_id": "knockback_common", "duration": 1.0}]
+required_level = 15
+required_class = "human_guardian"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -44,6 +45,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 15
-required_class = "human_guardian"

@@ -20,6 +20,6 @@ rewards = [{"type": "gold", "id": "", "quantity": 2800}, {"type": "experience", 
 reward_choice_count = 0
 gold_reward = 2800
 xp_reward = 3500
+previous_quest_id = ""
 icon_path = "res://icons/quests/deep_toll.png"
 map_marker = "collect"
-previous_quest_id = ""

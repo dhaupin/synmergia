@@ -4,12 +4,9 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "synthetic_full_stall"
 display_name = "Full Stall"
-description = "SIGNATURE Synthetic technique. System-wide halt signal. All enemies freeze — no movement, no actions, no regeneration. Ultimate team setup."
+description = "SIGNATURE Synthetic technique. System-wide halt signal. All enemies freeze - no movement, no actions, no regeneration. Ultimate team setup."
 skill_type = 5
 target_type = 2
 mana_cost = 80
@@ -21,3 +18,4 @@ aoe_radius = 25.0
 effects = [{"type": "debuff", "effect_id": "debuff_full_stall", "duration": 4.0}]
 required_level = 10
 required_class = "synthetic_overclocker"
+upgradable = false

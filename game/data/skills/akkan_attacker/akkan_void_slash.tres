@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "akkan_void_slash"
 display_name = "Void Slash"
 description = "A powerful slash imbued with void energy."
@@ -17,7 +16,6 @@ animation_duration = 1.0
 range = 3.0
 aoe_radius = 0.0
 effects = [{"type": "damage", "value": 28}]
-
 required_level = 5
 required_class = "akkan_attacker"
 upgrade_tiers = [

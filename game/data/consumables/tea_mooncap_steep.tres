@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "tea_mooncap_steep"
 display_name = "Mooncap Steep"
-description = "A wanderer-flask of pale broth. Knits 25 health back every two seconds for eight — slowly, and then all at once again."
+description = "A wanderer-flask of pale broth. Knits 25 health back every two seconds for eight - slowly, and then all at once again."
 icon_path = "res://icons/items/tea_mooncap.png"
 item_category = 3
 rarity = 1

@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_resistance_stolen"
 display_name = "Resistance Siphon"
 description = "Stolen resistance increases your defense."

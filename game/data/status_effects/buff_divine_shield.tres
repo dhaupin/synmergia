@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_divine_shield"
 display_name = "Divine Shield"
 description = "Immune to all damage."

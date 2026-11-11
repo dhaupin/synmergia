@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_last_stand"
 display_name = "Last Stand"
 description = "Immune to death. Maximum threat generated."

@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "human_defensive_stance"
 display_name = "Defensive Stance"
 description = "Adopts a defensive posture, reducing damage taken."
@@ -17,7 +16,6 @@ animation_duration = 1.0
 range = 0.0
 aoe_radius = 0.0
 effects = [{"type": "buff", "effect_id": "buff_defensive_stance", "duration": 15.0}]
-
 required_level = 10
 required_class = "human_warrior"
 upgrade_tiers = [

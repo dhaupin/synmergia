@@ -14,4 +14,4 @@ zone_ids = Array[String]([])
 stir_horde_config = "storm_wolves"
 stir_waves = 2
 open_window_sec = 0.0
-notify_message = "The storm stirs the wilds — something is coming."
+notify_message = "The storm stirs the wilds - something is coming."

@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "akkan_stealth_deep"
 display_name = "Deep Stealth"
 description = "Melds into deep shadow. Reduces detection range by 60%. Breaks on damage or combat actions."
@@ -18,6 +15,9 @@ cast_time = 0.5
 animation_duration = 0.4
 range = 0.0
 effects = [{"type": "buff", "effect_id": "stealth_deep", "duration": 0.0}]
+required_level = 10
+required_class = "akkan_stalker"
+upgradable = false
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -45,6 +45,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "effect_duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 10
-required_class = "akkan_stalker"

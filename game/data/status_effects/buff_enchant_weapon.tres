@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "buff_enchant_weapon"
 display_name = "Enchanted Weapon"
 description = "Weapon attacks deal bonus spell damage."

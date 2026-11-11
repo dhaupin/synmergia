@@ -4,7 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
 id = "akkan_resistance_drain"
 display_name = "Resistance Drain"
 description = "Drains the target magical resistance and transfers a portion to the caster."
@@ -16,6 +15,8 @@ cast_time = 0.6
 animation_duration = 0.5
 range = 25.0
 effects = [{"type": "debuff", "effect_id": "debuff_resistance_drain", "duration": 8.0}, {"type": "buff", "effect_id": "buff_resistance_stolen", "duration": 8.0}]
+required_level = 5
+required_class = "akkan_seer"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -43,6 +44,3 @@ upgrade_tiers = [
 "unlocks": [{"type": "effect_duration_mult", "value": 1.1}],
 },
 ]
-
-required_level = 5
-required_class = "akkan_seer"

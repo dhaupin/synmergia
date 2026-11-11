@@ -7,21 +7,21 @@ script = ExtResource("1")
 id = "npc_blacksmith_capital"
 display_name = "Concord Smithy"
 description = "The Federation's forge at the strand. Same repair law, better leather -- the city smith runs the Concord rate book."
-npc_type = 3
 level = 1
 faction = "friendly"
-zone_id = "zone_nexus_central"
-spawn_offset = Vector3(9, 0, 1)
 greeting = "City rates, city work. Bring the worn gear."
 farewell = "Sharp edges travel far."
-shop_title = "Concord Forge"
 location_type = 0
 base_repair_cost_multiplier = 1.2
 offers_bulk_discount = true
 bulk_discount_percent = 15.0
 bulk_discount_threshold = 3
-services = ["repair"]
+spawn_offset = Vector3(9, 0, 1)
+zone_id = "zone_nexus_central"
 includes = [
-	{"type": "offering", "ref_id": "blacksmith_service"},
-	{"type": "dialogue", "dialogue_id": "blacksmith_village_intro"}
+    {"type": "offering", "ref_id": "blacksmith_service"},
+    {"type": "dialogue", "dialogue_id": "blacksmith_village_intro"}
 ]
+npc_type = 3
+shop_title = "Concord Forge"
+services = ["repair"]

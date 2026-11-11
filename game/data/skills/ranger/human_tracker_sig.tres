@@ -4,9 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-
-upgradable = false
-
 id = "human_tracker_sig"
 display_name = "Adaptive Trap"
 description = "SIGNATURE Synthetic Tracker technique through human adaptability. Deploys an adaptive trap that identifies and exploits the weakest resistance of caught enemies."
@@ -21,3 +18,4 @@ aoe_radius = 0.0
 effects = [{"type": "debuff", "effect_id": "debuff_adaptive_trap", "duration": 8.0}]
 required_level = 10
 required_class = "synthetic_tracker"
+upgradable = false

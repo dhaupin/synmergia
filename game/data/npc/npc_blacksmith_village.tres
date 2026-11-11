@@ -7,24 +7,24 @@ script = ExtResource("1")
 id = "npc_blacksmith_village"
 display_name = "Village Smithy"
 description = "The local blacksmith serving a small rural community."
-npc_type = 1
 level = 1
 faction = "friendly"
 scene_path = "res://scenes/npcs/blacksmith_village.tscn"
-zone_id = "zone_village_center"
-spawn_offset = Vector3(6, 0, -4)
 greeting = "Good to see ye, traveler. Bring me yer worn gear."
 farewell = "Safe travels, friend."
-shop_title = "Village Smithy"
 location_type = 2
 base_repair_cost_multiplier = 1.0
 offers_bulk_discount = true
 bulk_discount_percent = 15.0
 bulk_discount_threshold = 3
-services = ["repair"]
+spawn_offset = Vector3(6, 0, -4)
+zone_id = "zone_village_center"
 includes = [
-	{"type": "offering", "ref_id": "vendor_smithy_iron"},
-	{"type": "offering", "ref_id": "blacksmith_service"},
-	{"type": "dialogue", "dialogue_id": "blacksmith_village_intro"},
-	{"type": "quest", "ref_id": "quest_intro_core_npcs"}
+    {"type": "offering", "ref_id": "vendor_smithy_iron"},
+    {"type": "offering", "ref_id": "blacksmith_service"},
+    {"type": "dialogue", "dialogue_id": "blacksmith_village_intro"},
+    {"type": "quest", "ref_id": "quest_intro_core_npcs"}
 ]
+npc_type = 1
+shop_title = "Village Smithy"
+services = ["repair"]

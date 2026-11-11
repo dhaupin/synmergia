@@ -7,10 +7,6 @@ script = ExtResource("1")
 id = "loot_slime"
 name = "Slime Loot"
 description = "Drops from Slime enemies. Mostly gel and junk; even the junk includes common seam-ore (slimes sift the ground)."
-level = 1
-min_items_dropped = 0
-max_items_dropped = 2
-base_drop_chance = 1.0
 entries = [{
 "item_id": "potion_health_small",
 "min_quantity": 1,
@@ -51,3 +47,7 @@ currency_drops = [{
 "drop_rate": 0.6,
 "is_guaranteed": false
 }]
+base_drop_chance = 1.0
+min_items_dropped = 0
+max_items_dropped = 2
+level = 1
