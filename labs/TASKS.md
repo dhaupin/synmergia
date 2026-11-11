@@ -14,7 +14,7 @@ CURRENT state + ACTIVE work only.
 - LINT GAP CLOSED: `test_data_naming_lint.gd` never covered skills. Added a Skills section -- filename == id, unique ids (no silent shadow), and every class `starting_skills`/`skill_tree_unlocks` ref resolves to a skill OWNED by that class (bracket-aware extraction so `can_use_armor`'s cloth/leather/mail/plate never leak). Verified it FAILS on an injected duplicate id (27 passed / 3 failed) and passes clean (30/0).
 - REPORTED, NOT WIRED (out of scope, needs a design call): 6 playable classes have EMPTY `starting_skills`/`skill_tree_unlocks` -- `akkan_attacker`, `akkan_stalker`, `human_marksman`, `human_sorcerer`, `synthetic_psion`, `synthetic_tracker` -- even though fully-authored skills are tagged to them via `required_class`. Wiring them is a leveling-schedule decision (some have no level-1 skill; `akkan_attacker`'s void line starts at L5), so the class cards render empty on purpose pending that call. NOT a regression -- empty since the Oct-19 snapshot too.
 - VERIFICATION: `test_data_naming_lint` 30/0; lint suite (syntax/indent/charset/general/autoload) all green; `test_loot_tables_live` PASS (incl. the corrected book id); `npm run build` (sync:data 169 skills + tsc + vite + prerender 5/5) exit 0. Did NOT run the full runner (rework in flight).
-- PUSHED: `staging`.
+- PUSHED: `staging` `bf2ed8af`; PROMOTED `staging` -> `main` (fast-forward, both at `bf2ed8af`).
 
 
 
