@@ -1,7 +1,14 @@
 RESUME -- your last run died on an infra 503 (OpenAIError: Service Temporarily
-Unavailable) mid-investigation. Your worktree is intact and was reset onto the
-current staging HEAD. NOTHING of yours was committed last run, so this round we
-commit EARLY and OFTEN so a crash cannot lose the work.
+Unavailable) mid-investigation. NOTHING of yours was committed last run, so this
+round we commit EARLY and OFTEN so a crash cannot lose the work.
+
+STEP 0 (do this first): get to a clean, known base.
+  git status --short          # expect nothing or only stray temp files
+  git stash -u 2>/dev/null || true   # park any stray edits from the crashed run
+  git log --oneline -1        # record the base hash in your report
+  rm -f game/tests/tmp_h2_*.gd   # drop any temp probe the crash left behind
+  (If `git status` shows real edits you want to keep, inspect them first -- but
+  the crashed run committed nothing, so a clean base is almost certainly right.)
 
 Same goal as the brief above (lane-H2: the math-first terrain performance pass),
 but run it in SMALL, COMMITTED, MEASURED slices:
