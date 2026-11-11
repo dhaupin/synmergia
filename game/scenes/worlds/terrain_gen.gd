@@ -358,18 +358,61 @@ class BoulderSpec:
 
 
 ## Per-seed scalar in [0, 1) from the seed bytes (stream salt).
+## LANE-H2 SEED-CONSTANT MEMO: _seed_salt is a pure function of
+## (world_seed, tag) -- no direction, no state. Measured: ~958k calls
+## per level-6 patch build, each walking the whole seed + tag bytes
+## through a modulo chain, always returning the same integer for the
+## same (seed, tag). The memo answers the SAME integer from a per-seed
+## tag table (pure law, zero behavior change). Mutex-guarded because
+## the mesh derive runs on worker lanes (the same discipline the
+## SectorCache statics already follow).
+static var _salt_mutex := Mutex.new()
+static var _salt_seed: PackedByteArray = PackedByteArray()
+static var _salt_table: Dictionary = {}
+
 static func _seed_salt(world_seed: PackedByteArray, tag: String) -> int:
+	_salt_mutex.lock()
+	if world_seed == _salt_seed and _salt_table.has(tag):
+		var hit: int = _salt_table[tag]
+		_salt_mutex.unlock()
+		return hit
+	_salt_mutex.unlock()
 	var acc: int = 0
 	for b in tag.to_utf8_buffer():
 		acc = (acc * 131 + b) % 9007199254740991
 	for b in world_seed:
 		acc = (acc * 131 + b) % 9007199254740991
+	_salt_mutex.lock()
+	if world_seed != _salt_seed:
+		_salt_seed = world_seed
+		_salt_table = {}
+	_salt_table[tag] = acc
+	_salt_mutex.unlock()
 	return acc
 
 
 ## The sea line for this world (pure function of the seed).
+## LANE-H2: the sea line is a pure scalar per seed, yet it was
+## re-derived ~353k times per level-6 build (every climate/hydro
+## corner reads it). Memoized under the same seed-guarded table.
+static var _sea_seed: PackedByteArray = PackedByteArray()
+static var _sea_valid: bool = false
+static var _sea_val: float = 0.0
+
 static func sea_level(world_seed: PackedByteArray) -> float:
-	return SEA_LEVEL_MIN + SEA_LEVEL_SPAN * fposmod(float(_seed_salt(world_seed, "sea")), 1000003.0) / 1000003.0
+	_salt_mutex.lock()
+	if _sea_valid and world_seed == _sea_seed:
+		var hit: float = _sea_val
+		_salt_mutex.unlock()
+		return hit
+	_salt_mutex.unlock()
+	var v: float = SEA_LEVEL_MIN + SEA_LEVEL_SPAN * fposmod(float(_seed_salt(world_seed, "sea")), 1000003.0) / 1000003.0
+	_salt_mutex.lock()
+	_sea_seed = world_seed
+	_sea_val = v
+	_sea_valid = true
+	_salt_mutex.unlock()
+	return v
 
 
 ## Value-noise cell hash: integer lattice cell + salt -> [0, 1).

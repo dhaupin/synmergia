@@ -15,15 +15,15 @@ bound), `test_terrain_determinism` (byte-stable), `probe_world_boot_speed`.
 
 | Metric | Before | After | Delta |
 |--------|--------|-------|-------|
-| perf_budget: full-detail patch build (hot) | 12.39 s (FAIL vs 10.0 s) | | |
-| perf_budget: planet subwalk (8 faces) | 38.9 s | | |
-| perf_budget: hot build | 12.39 / 6.54 s | | |
-| boot_speed: ready-wall ms | 41 (old boot) | | |
-| planet: checks | 43 PASS | | |
+| perf_budget: full-detail patch build (hot) | 12.39 s (FAIL vs 10.0 s) | 11.46 s | -0.93 s (-7.5%) |
+| perf_budget: planet subwalk (8 faces) | 38.9 s | 38.7 s | -0.2 s |
+| perf_budget: hot build | 12.39 / 6.54 s | 11.46 / 6.54 s | -0.93 s |
+| boot_speed: ready-wall ms | 41 (old boot) | 41 | unchanged |
+| planet: checks | 43 PASS | 43 PASS | unchanged |
 | audit: anchor lvl7-cap delta | -0.23 m | | |
 | audit: anchor lvl6-web delta | -0.72 m | | |
-| walk_gap: worst abs gap | 0.52 m | | |
-| determinism | byte-stable | | |
+| walk_gap: worst abs gap | 0.52 m | 0.52 m | unchanged |
+| determinism | byte-stable | byte-stable | unchanged |
 
 ## Hot-path profile (counted, one level-6 patch build, before any fix)
 
