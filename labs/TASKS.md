@@ -7,6 +7,16 @@ commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
 
+## 2026-11-04bw -- web: logo=home, nav reorder, burger menu, Lore page (+ Lane K spawned) (staging, no PRs)
+- SESSION CONTEXT: continued on `staging`; web lane; no game/ code changes. User: brand = home link (drop "Home"), nav order Play / Experiences / Codex / Lore / Rules, burger on mobile, Rules also in footer, and a new Lore page. User also asked to spin up the lane-3-style subagent for data .tres content.
+- NAV: the brand lockup (emblem + wordmark) is now the home link (`aria-label="Synmergia home"`); "Home" is removed from the menu. Primary nav is Play, Experiences, Codex, Lore, Rules (Play leads). Desktop nav is `hidden md:flex`; a burger (`lucide-react` Menu/X) opens a `md:hidden` dropdown that closes on route change. Footer row is Lore / Rules / Privacy / Terms / GitHub.
+- LORE (/lore): new `src/pages/LorePage.tsx` -- the story of the world in the canon voice (labs/prd-story.md + labs/prd-ancient-movers.md): the Convergence that hummed, the Silence (nobody knows what happened), the Long Sleep + the Bloom, the Waking; five open mysteries (Silence / who made it / the Nexus Core / the Bloom / why things wake half); and the ancients (ferries awake, standing rings + the Ascent Thrower sleeping, ruin movers unfound) with the no-technology law (woken/mended/grown, never engines). No religion, no recorded history. Registered in App.tsx + ssr.config.js (meta + sitemap) + footer.
+- LANE K SPAWNED: `labs/lanes/lane-K.md` -- a content lane (data .tres fill: resources/items/consumables/gear/recipes/loot/quests, all refs resolving, naming lint green, commit `lane-K:`). Spawned via `labs/lane_spawn.sh` flow (POST /api/conversations/<parent>/children, isolation=worktree); child id `b253897d-1cad-420a-a993-c4d589f30033`, own worktree, touches only game/data. Parent owns shared files + the merge.
+- VERIFICATION: `tsc` 0; `npm run build` 9/9 pages prerendered (added /lore); header nav = Play/Experiences/Codex/Lore/Rules, no Home, burger present; sitemap lists /lore.
+- PUSHED: `staging`; PROMOTED `staging` -> `main`.
+
+
+
 ## 2026-11-04bv -- web: rules page, codex wired to the lander, nav tidy (staging, no PRs)
 - SESSION CONTEXT: continued on `staging`; web lane; no game/ changes. User: dark mode stays; wire the Codex to the lander; move Terms + Privacy out of the header into the footer; add a Rules page.
 - RULES (/rules): new `src/pages/RulesPage.tsx` -- plain-language conduct law grounded in the REAL moderation machinery (chat `/report` -> PlayerReporter; PermissionManager mute/kick/ban, where a ban is temporary OR effectively permanent -- `ban()` defaults to 1 year). Sections: short version, play fair (no cheating/exploits/economy duping/tampering), be decent (no harassment/real-world harm), names & content, enforcement (mute/kick/ban, permanent for serious or repeated), reporting (`/report` + issues), changes. Registered in App.tsx + ssr.config.js (meta + sitemap) + the footer.

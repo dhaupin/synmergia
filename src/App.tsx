@@ -11,6 +11,7 @@ import LanderPage from './pages/LanderPage';
 import PlayPage from './pages/PlayPage';
 import CodexPage from './pages/CodexPage';
 import ExperiencesPage from './pages/ExperiencesPage';
+import LorePage from './pages/LorePage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import RulesPage from './pages/RulesPage';
@@ -39,6 +40,7 @@ export function AppRoutes() {
           <Route path="/" element={<LanderPage />} />
           <Route path="/experiences" element={<ExperiencesPage />} />
           <Route path="/codex" element={<CodexPage />} />
+          <Route path="/lore" element={<LorePage />} />
           <Route path="/play" element={<PlayPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />

@@ -47,6 +47,16 @@ export default {
       },
     },
     {
+      path: '/lore',
+      priority: '0.7',
+      changefreq: 'monthly',
+      meta: {
+        title: 'Lore | Synmergia',
+        description:
+          'The story of the world: the Convergence that hummed and went silent, the Bloom that outlived its purpose, and the ancient machines left sleeping — with their wake-keys unwritten.',
+      },
+    },
+    {
       path: '/play',
       priority: '0.9',
       changefreq: 'weekly',
