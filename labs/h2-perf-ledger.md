@@ -15,9 +15,9 @@ bound), `test_terrain_determinism` (byte-stable), `probe_world_boot_speed`.
 
 | Metric | Before | After | Delta |
 |--------|--------|-------|-------|
-| perf_budget: full-detail patch build (hot) | 12.39 s (FAIL vs 10.0 s) | 6.59 s (PASS) | -5.80 s (-47%) |
+| perf_budget: full-detail patch build (hot) | 12.39 s (FAIL vs 10.0 s) | 6.6 s (PASS; 6.59-6.69 across runs) | -5.8 s (-47%) |
 | perf_budget: planet subwalk (8 faces) | 38.9 s | 20.9 s | -18.0 s (-46%) |
-| perf_budget: hot build | 12.39 / 6.54 s | 6.59 / 6.54 s | -5.80 s |
+| perf_budget: hot build | 12.39 / 6.54 s | 6.6 / 6.54 s | -5.8 s |
 | boot_speed: ready-wall ms | 41 (old boot) | 41 | unchanged |
 | planet: checks | 43 PASS | 43 PASS | unchanged |
 | audit: anchor lvl7-cap delta | -0.23 m | -0.23 m | unchanged |
@@ -59,4 +59,37 @@ Per-call micro-bench (before): `_seed_salt` 1.157 us, `sea_level` 1.154 us,
 
 - SLICE 1 -- seed-constant memo (`_seed_salt`, `sea_level`).
 - SLICE 2 -- carved-height memo (`terrain_height_carved` full mode).
-- SLICE 3 -- sector_key seed-hex memo.
+- SLICE 3 -- sector_key packed-int key (was str(Vector3i); 2.1x cheaper key build).
+- SLICE 4 -- derive-local `splat_skin` memo (per unique corner).
+
+## Rejected slices (measured, then reverted -- recorded so they are not re-tried blind)
+
+The build is now dominated by the SKIRT phase (~5.1 s of a ~6.9 s cold build;
+the main tint/fusion derive is ~2.5 s, and a warm re-derive is only ~0.31 s --
+the remaining cost is cold cache population, not repeated law math).
+
+- SLICE 5 (REJECTED) -- `_land_mass` sector memo. `_land_mass` was still the
+  biggest uncached law (~75k calls/build, 9.6 us each ~= 0.72 s), and all five
+  call sites pass the same `"terrain"` salt, so it memoizes cleanly
+  (value-equality probe `LAND-EQ n=2000 bad=0`). But the measured hot build
+  did NOT move (6.59 -> 6.65/6.69 s, within run-to-run noise): the wall cost
+  is the FIRST cold derive, and `_land_mass`'s ~0.72 s of *law time* is
+  overlapped with the worker thread / dwarfed by the skirt. New cache + a
+  salt-bytes helper for zero wall gain = not the smallest change, so reverted.
+
+- SLICE 6 (REJECTED) -- dedup the corner-fusion neighbor sweep to unique
+  corners. The fused sweep's own comment claims a raw-corner sweep is needed
+  ("a corner whose own height was populated as an earlier corner's neighbor
+  STILL owns its three slope-neighbors ... skipping the sweep for aliased
+  corners leaves holes the build dies on"). Guarding the sweep under
+  `dir_slope.has(kc)` is perf-neutral in measurement (fusion phase unchanged
+  within noise) AND reintroduces exactly the aliasing hazard the comment
+  warns about. Not worth the risk for no measured gain, so reverted.
+
+Conclusion for the next lane: further law-math memoization has hit diminishing
+returns. The remaining budget headroom (6.6 s vs the 10.0 s cap) is comfortable;
+the next lever, if one is wanted, is the SKIRT phase (5.1 s) -- specifically
+the per-border-edge taper probes and the `vertex_color` top-color read
+(~30-77 us of the border loop), which are per-border-edge rather than
+per-unique-corner. That work needs its own correctness proof for the taper
+depth, so it is out of scope for this round.
