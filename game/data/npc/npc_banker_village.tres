@@ -15,6 +15,3 @@ location_type = 2
 spawn_offset = Vector3(4, 0, 2)
 zone_id = "zone_village_center"
 includes = [{"type": "offering", "ref_id": "bank_vault"}]
-npc_type = 6
-shop_title = "Village Vault"
-services = ["bank"]

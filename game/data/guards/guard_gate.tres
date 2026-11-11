@@ -22,4 +22,3 @@ protected_faction = "town"
 bounty_per_offense = 0
 forgive_after_seconds = 0.0
 greeting_text = "State your business at the gate."
-description = "Watches the east gate. Separate watch from the plaza: its grudge list stays its own."

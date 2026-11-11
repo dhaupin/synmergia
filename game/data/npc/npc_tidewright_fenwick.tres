@@ -23,5 +23,3 @@ includes = [
     {"type": "dialogue", "dialogue_id": "tidewright_fenwick_intro"},
     {"type": "quest", "quest_ids": ["quest_tide_salvage", "quest_sentinel_wake", "quest_gloamwood_ledger"]}
 ]
-npc_type = 6
-shop_title = "Fenwick's Fence & Plank"

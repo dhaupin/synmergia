@@ -25,5 +25,3 @@ includes = [
   {"type": "offering", "ref_id": "ferry_passage_sundered"},
   {"type": "offering", "ref_id": "shoal_freight_quests"}
 ]
-npc_type = 6
-shop_title = "Ferry Passage"

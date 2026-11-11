@@ -15,6 +15,3 @@ location_type = 2
 spawn_offset = Vector3(2, 0, 4)
 zone_id = "zone_village_center"
 includes = [{"type": "offering", "ref_id": "skill_academy"}]
-npc_type = 8
-shop_title = "Warden Drill Hall"
-services = ["skill_books", "skill_upgrade"]

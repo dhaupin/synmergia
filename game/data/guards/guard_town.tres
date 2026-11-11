@@ -21,4 +21,3 @@ protected_faction = "town"
 bounty_per_offense = 0
 forgive_after_seconds = 0.0
 greeting_text = "Move along, citizen."
-description = "A sworn member of the town watch. Friendly to law-abiding citizens, relentless to offenders."

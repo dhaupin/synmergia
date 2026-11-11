@@ -22,6 +22,3 @@ includes = [
     {"type": "offering", "ref_id": "blacksmith_service"},
     {"type": "dialogue", "dialogue_id": "blacksmith_village_intro"}
 ]
-npc_type = 3
-shop_title = "Concord Forge"
-services = ["repair"]

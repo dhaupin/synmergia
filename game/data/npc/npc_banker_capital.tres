@@ -15,6 +15,3 @@ location_type = 0
 spawn_offset = Vector3(3, 0, 3)
 zone_id = "zone_nexus_central"
 includes = [{"type": "offering", "ref_id": "bank_vault"}]
-npc_type = 6
-shop_title = "Concord Vault"
-services = ["bank"]

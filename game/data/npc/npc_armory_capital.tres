@@ -20,5 +20,3 @@ sell_categories = ["WEAPON", "ARMOR"]
 spawn_offset = Vector3(-6, 0, -4)
 zone_id = "zone_nexus_central"
 includes = [{"type": "offering", "ref_id": "armory"}]
-npc_type = 2
-shop_title = "Royal Armory"

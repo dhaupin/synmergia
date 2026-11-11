@@ -6,10 +6,7 @@
 script = ExtResource("1")
 # Container Configuration Data
 # All container types defined here - edit this file to add/modify containers!
-# Expansion tier format: [slots_added, currency, base_cost]
-expansion_tiers = {
-    0: {"slots": 12, "currency": "gold", "cost_curve": [1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000]},
-}
+# Expansion tier costs are fixed in container_config_data.gd (DEFAULT_EXPANSION_COSTS).
 # Container configurations
 containers = {
     0: {

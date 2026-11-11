@@ -18,4 +18,3 @@ includes = [
     {"type": "dialogue", "dialogue_id": "village_elder_greeting"},
     {"type": "quest", "quest_ids": ["quest_wolves_hunt", "quest_herb_gathering"]}
 ]
-npc_type = 1

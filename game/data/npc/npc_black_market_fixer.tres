@@ -23,5 +23,3 @@ includes = [
   {"type": "offering", "ref_id": "black_market_ledger"},
   {"type": "offering", "ref_id": "black_market_premium"}
 ]
-npc_type = 6
-shop_title = "Underdeck Ledgers"

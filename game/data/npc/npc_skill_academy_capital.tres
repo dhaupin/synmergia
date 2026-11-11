@@ -20,6 +20,3 @@ bulk_discount_threshold = 0
 spawn_offset = Vector3(8, 0, -6)
 zone_id = "zone_nexus_central"
 includes = [{"type": "offering", "ref_id": "skill_academy"}]
-npc_type = 8
-shop_title = "Skill Academy"
-services = ["skill_books", "skill_upgrade", "respec", "signature_selection"]

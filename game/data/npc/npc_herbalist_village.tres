@@ -20,5 +20,3 @@ sell_categories = ["CONSUMABLE"]
 spawn_offset = Vector3(4, 0, 5)
 zone_id = "zone_village_center"
 includes = [{"type": "offering", "ref_id": "potions"}]
-npc_type = 4
-shop_title = "Potions & Supplies"

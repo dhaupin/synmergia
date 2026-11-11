@@ -142,12 +142,30 @@ written in the **same order** the schema exports them.
 | `roads/` | `road_data.gd` |
 | `events/` | `event_data.gd` |
 | `guards/` | `guard_data.gd` |
+| `containers/` | `container_config_data.gd` |
 
 A field you set that the schema does not declare is a **phantom**: Godot
 silently drops it on load (`resource.get("field")` returns `null`). A
 field the schema declares that no file sets is **dead**. Both are bugs to
 report; fix the phantom, and only set the dead field where it is clearly
 meant to carry a value.
+
+### Closed phantoms (do not re-add)
+
+A baseline sweep removed the last phantom fields from `game/data/`. They
+were written into `.tres` files but never declared on the bound schema, so
+Godot dropped every one of them and no code read them. Do not add them
+back; if you want the behavior they seem to imply, declare a real field on
+the schema and wire a reader first.
+
+| Field | Family | Why it went |
+|---|---|---|
+| `npc_type` | `npc/` | `npc_data.gd` declares no such field. NPC role is carried by the `includes` offering refs (a vendor NPC references a `vendor`/`service` offering), not by a numeric type. |
+| `shop_title` | `npc/` | Never declared, never read. A vendor's storefront name lives on its offering's `display_name` (for example `vendor_smithy_iron.tres`). |
+| `services` | `npc/` | Never declared. The nearest reader (the minimap's vendor marker) reads `services` off a dict, not off `NPCData`, and even then looks for the literal `vendor`/`merchant` tokens the old data never used. |
+| `description` | `guards/` | `guard_data.gd` declares `display_name` and `greeting_text`, not `description`. Guards are not shown in an item/NPC tooltip, so there was nowhere to read it. |
+| `expansion_tiers` | `containers/` | `container_config_data.gd` holds expansion costs as the `DEFAULT_EXPANSION_COSTS` constant plus `SLOTS_PER_TIER`; it has no `expansion_tiers` field. The `.tres` dict was inert. |
+
 
 ### Item families in detail (`item.gd`)
 

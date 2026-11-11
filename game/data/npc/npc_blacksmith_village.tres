@@ -25,6 +25,3 @@ includes = [
     {"type": "dialogue", "dialogue_id": "blacksmith_village_intro"},
     {"type": "quest", "ref_id": "quest_intro_core_npcs"}
 ]
-npc_type = 1
-shop_title = "Village Smithy"
-services = ["repair"]

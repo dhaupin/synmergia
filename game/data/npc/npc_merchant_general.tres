@@ -24,5 +24,3 @@ includes = [
   {"type": "offering", "ref_id": "general_store"},
   {"type": "offering", "ref_id": "vendor_craft_shelf"}
 ]
-npc_type = 6
-shop_title = "General Store"

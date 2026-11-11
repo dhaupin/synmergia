@@ -24,5 +24,3 @@ includes = [
   {"type": "offering", "ref_id": "salvor_stock"},
   {"type": "offering", "ref_id": "shoal_freight_quests"}
 ]
-npc_type = 6
-shop_title = "Salvor's Table"

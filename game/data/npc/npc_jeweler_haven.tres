@@ -23,5 +23,3 @@ includes = [
     {"type": "dialogue", "dialogue_id": "jeweler_haven_intro"},
     {"type": "quest", "quest_ids": ["quest_deep_toll"]}
 ]
-npc_type = 6
-shop_title = "Haven Bench of Pearls"
