@@ -157,6 +157,7 @@ test_character_select_zone
 test_globe_wildlife
 test_globe_gates_guards
 test_globe_input_parity
+test_minimap_vendor_marker
 test_world_content_builder
 test_globe_autosave_guard
 test_blessed_mark

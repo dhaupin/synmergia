@@ -103,6 +103,24 @@ func _load_offering(ref_id: String) -> Resource:
 	return res
 
 
+## True when this NPC has a live vendor offering (a "vendor"-type entry
+## in includes[], ref-based or inline). The minimap's MARKER_VENDOR read
+## this off an undeclared "services" field that no longer exists -- the
+## real vendor truth is the offering model, so resolve it here.
+func is_vendor() -> bool:
+	if npc_data == null:
+		return false
+	for inc: Dictionary in npc_data.includes:
+		var t := str(inc.get("type", ""))
+		if t == "vendor":
+			return true
+		if t == "offering":
+			var offering := _load_offering(str(inc.get("ref_id", "")))
+			if offering != null and str(offering.get("type")) == "vendor":
+				return true
+	return false
+
+
 ## Derive a human-readable prompt from the offering type.
 func _prompt_for_offering(offering: Resource) -> String:
 	if offering.type == "vendor":
