@@ -8,6 +8,11 @@
 # key is NOT the server key and returns 401).
 #
 #   lane_spawn.sh spawn "<task>" "<title>"      -> prints the child id
+#   lane_spawn.sh spawn-file <brief.md> <title> -> spawn from a file
+#   lane_spawn.sh send   <child_id> <brief.md>  -> RE-USE a finished lane: post
+#                                                  the brief as the next user
+#                                                  message and run it (keeps the
+#                                                  lane's context; no new convo)
 #   lane_spawn.sh status <child_id>             -> execution_status
 #   lane_spawn.sh final  <child_id>             -> the agent's final response
 #   lane_spawn.sh wait   <child_id> [tries]     -> poll until finished
@@ -45,6 +50,13 @@ case "$cmd" in
         body=$(python3 -c 'import json,sys;print(json.dumps({"task":sys.argv[1],"title":sys.argv[2],"isolation":"worktree"}))' "$task" "$title")
         api -X POST -H "Content-Type: application/json" -d "$body" "$SRV/api/conversations/$PARENT/children" \
             | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d.get("conversation_id") or d.get("id") or d)'
+        ;;
+    send)
+        # send <child_id> <brief.md> -- RE-USE a finished lane: append the brief
+        # as the next user message and start a run, in the lane's OWN context.
+        id="$1"; content="$(cat "$2")"
+        body=$(python3 -c 'import json,sys;print(json.dumps({"role":"user","content":[{"type":"text","text":sys.argv[1]}],"run":True}))' "$content")
+        api -X POST -H "Content-Type: application/json" -d "$body" "$SRV/api/conversations/$id/events" >/dev/null && echo "sent to $id"
         ;;
     status)
         api "$SRV/api/conversations/$1" \
