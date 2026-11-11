@@ -15,9 +15,9 @@ bound), `test_terrain_determinism` (byte-stable), `probe_world_boot_speed`.
 
 | Metric | Before | After | Delta |
 |--------|--------|-------|-------|
-| perf_budget: full-detail patch build (hot) | 12.39 s (FAIL vs 10.0 s) | 7.19 s (PASS) | -5.20 s (-42%) |
-| perf_budget: planet subwalk (8 faces) | 38.9 s | 23.1 s | -15.8 s (-41%) |
-| perf_budget: hot build | 12.39 / 6.54 s | 7.19 / 6.54 s | -5.20 s |
+| perf_budget: full-detail patch build (hot) | 12.39 s (FAIL vs 10.0 s) | 6.59 s (PASS) | -5.80 s (-47%) |
+| perf_budget: planet subwalk (8 faces) | 38.9 s | 20.9 s | -18.0 s (-46%) |
+| perf_budget: hot build | 12.39 / 6.54 s | 6.59 / 6.54 s | -5.80 s |
 | boot_speed: ready-wall ms | 41 (old boot) | 41 | unchanged |
 | planet: checks | 43 PASS | 43 PASS | unchanged |
 | audit: anchor lvl7-cap delta | -0.23 m | -0.23 m | unchanged |
@@ -34,6 +34,7 @@ patch build):
 | 1 | seed-constant memo (`_seed_salt`, `sea_level`) | 11.46 s | -7.5% |
 | 2 | carved-height memo (`terrain_height_carved` default mode) | 7.66 s | -38% vs base, now PASS |
 | 3 | sector_key packed-int key (was str(Vector3i)) | 7.19 s | -42% vs base |
+| 4 | derive-local splat_skin memo (per unique corner) | 6.59 s | -47% vs base |
 
 ## Hot-path profile (counted, one level-6 patch build, before any fix)
 

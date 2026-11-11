@@ -704,6 +704,13 @@ func _derive_mesh_data(face: int, use_lvl: int) -> Dictionary:
 	# also runs once per UNIQUE key; the tint pass picks up its vertex
 	# slope from here.
 	var dir_slope := {}  # Vector3 (quantized globe dir) -> slope seed [0,1]
+	# LANE-H2 SLICE 4: the tint pass runs once per RAW triangle corner
+	# (~17.6k/patch) but only ~8.4k are unique -- the same corner is
+	# re-tinted for every triangle that touches it, and splat_skin is a
+	# ~109 us law. Memoize its result per quantized corner so each unique
+	# corner pays it once. Same equivalence class as dir_h/dir_slope
+	# (the 4096-quantized key), so aliased corners read identical output.
+	var dir_skin := {}  # Vector3 (quantized globe dir) -> splat result dict
 	var sea: float = TerrainGen.sea_level(world_seed)
 	## THE CORNER FUSION (perf leg v8.2): one sweep over the UNIQUE
 	## quantized corners populates dir_h with the corner's height AND
@@ -782,7 +789,10 @@ func _derive_mesh_data(face: int, use_lvl: int) -> Dictionary:
 				var slope_seed: float = dir_slope[key]
 				if TerrainGen.SPLAT_SKIN:
 					# THE SKIN LANE: splat weights for the skin shader.
-					var skin_d: Dictionary = TerrainGen.splat_skin(d_abs, world_seed, h_here, slope_seed)
+					var skin_d = dir_skin.get(key)
+					if skin_d == null:
+						skin_d = TerrainGen.splat_skin(d_abs, world_seed, h_here, slope_seed)
+						dir_skin[key] = skin_d
 					col = skin_d["splat"]
 					aux = skin_d["aux"]
 					face_skin = true
