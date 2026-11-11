@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_warden_towershield"
+display_name = "Warden Bastion Shield"
+description = "A broad lock-plate shield, scalloped to seat against a companion's back and share the weight of the line."
+icon_path = "res://icons/items/shield_haven_wall.png"
+item_category = 0
+rarity = 3
+equip_slot = 8
+weapon_type = 10
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 210
+buy_price = 700
+item_level = 10
+required_level = 10
+required_class = "synthetic_warden"
+stats = {
+"strength": 7
+}
+weapon_damage_min = 15
+weapon_damage_max = 24
+attack_speed = 0.8

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_starmetal_chest_high"
+display_name = "Starmetal Chestguard"
+description = "Starmetal mail gear for the starfall reach. It holds a shape through weather, blade, and the long walk back."
+icon_path = "res://icons/items/armor_iron_mail.png"
+item_category = 1
+rarity = 5
+equip_slot = 2
+armor_type = 3
+stack_size = 1
+sell_price = 2910
+buy_price = 9700
+item_level = 30
+required_level = 30
+stats = {
+"vitality": 11
+}
+armor_value = 54

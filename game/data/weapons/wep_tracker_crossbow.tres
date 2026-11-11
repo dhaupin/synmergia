@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_tracker_crossbow"
+display_name = "Tracker's Longshot Crossbow"
+description = "A compact crossbow with a silent latch and a lens of ground glass. The shot arrives before the report does."
+icon_path = "res://icons/items/bow_long.png"
+item_category = 0
+rarity = 3
+equip_slot = 8
+weapon_type = 6
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 210
+buy_price = 700
+item_level = 10
+required_level = 10
+required_class = "synthetic_tracker"
+stats = {
+"agility": 7
+}
+weapon_damage_min = 19
+weapon_damage_max = 31
+attack_speed = 0.9

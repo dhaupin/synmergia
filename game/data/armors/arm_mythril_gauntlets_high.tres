@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_mythril_gauntlets_high"
+display_name = "Mythril Gauntlets"
+description = "Mythril mail gear for the pale shelf. It holds a shape through weather, blade, and the long walk back."
+icon_path = "res://icons/items/armor_iron_mail.png"
+item_category = 1
+rarity = 4
+equip_slot = 5
+armor_type = 3
+stack_size = 1
+sell_price = 2400
+buy_price = 8000
+item_level = 26
+required_level = 26
+stats = {
+"vitality": 10
+}
+armor_value = 50

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_stalker_chest"
+display_name = "Stalker's Shadowhide Jerkin"
+description = "Blackened hide over a silent lining, scented with deepwood resin so the dark does not notice the wearer."
+icon_path = "res://icons/items/armor_leather_chest.png"
+item_category = 1
+rarity = 3
+equip_slot = 2
+armor_type = 2
+stack_size = 1
+sell_price = 228
+buy_price = 760
+item_level = 10
+required_level = 10
+required_class = "akkan_stalker"
+stats = {
+"vitality": 6
+}
+armor_value = 15

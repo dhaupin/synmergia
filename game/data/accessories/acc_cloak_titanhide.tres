@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_cloak_titanhide"
+display_name = "Titanhide Cloak"
+description = "A cloak of titanhide, cured over a full season. Nothing high and nothing cold gets through it."
+icon_path = "res://icons/items/cloak_wanderer.png"
+item_category = 2
+rarity = 4
+equip_slot = 12
+accessory_type = 4
+stack_size = 1
+sell_price = 3540
+buy_price = 11800
+item_level = 34
+required_level = 34
+stats = {
+"vitality": 8,
+"strength": 4
+}

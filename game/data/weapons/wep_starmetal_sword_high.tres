@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_starmetal_sword_high"
+display_name = "Starmetal Arming Sword"
+description = "A starmetal arming sword worked for the starfall reach. Cut at the starmetal rung and kept honest by use."
+icon_path = "res://icons/items/sword_iron.png"
+item_category = 0
+rarity = 5
+equip_slot = 8
+weapon_type = 1
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 2790
+buy_price = 9300
+item_level = 32
+required_level = 32
+stats = {
+"strength": 5
+}
+weapon_damage_min = 36
+weapon_damage_max = 56
+attack_speed = 1.2

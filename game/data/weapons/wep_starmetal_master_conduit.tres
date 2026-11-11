@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_starmetal_master_conduit"
+display_name = "Starmetal Wand of the Conduit"
+description = "A master's wand in starmetal, fitted to the Conduit's grip and nothing else. It is signed once and re-signed by every hand it passes to."
+icon_path = "res://icons/items/staff_walnut.png"
+item_category = 0
+rarity = 5
+equip_slot = 8
+weapon_type = 8
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 4380
+buy_price = 14600
+item_level = 40
+required_level = 40
+required_class = "synthetic_conduit"
+stats = {
+"intelligence": 13
+}
+weapon_damage_min = 43
+weapon_damage_max = 63
+attack_speed = 1.3

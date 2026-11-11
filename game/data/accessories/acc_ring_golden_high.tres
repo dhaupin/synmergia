@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_ring_golden_high"
+display_name = "Golden Ring of the Ledger"
+description = "A tempered-gold band cut with the Concord pillar, worn by those who answer for sums they did not spend."
+icon_path = "res://icons/items/ring_golden_signet.png"
+item_category = 2
+rarity = 3
+equip_slot = 9
+accessory_type = 1
+stack_size = 1
+sell_price = 1860
+buy_price = 6200
+item_level = 20
+required_level = 20
+stats = {
+"vitality": 4,
+"strength": 3
+}

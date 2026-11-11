@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_iron_crossbow"
+display_name = "Iron Crossbow"
+description = "An iron-bowed crossbow on a timber stock, wound by windlass and loosed flat. It trades the bow's reach for a bolt that never tires of flying."
+icon_path = "res://icons/items/bow_long.png"
+item_category = 0
+rarity = 2
+equip_slot = 8
+weapon_type = 6
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 72
+buy_price = 240
+item_level = 7
+required_level = 7
+stats = {
+"agility": 3
+}
+weapon_damage_min = 16
+weapon_damage_max = 27
+attack_speed = 0.9

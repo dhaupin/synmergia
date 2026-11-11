@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_sunforged_chest_high"
+display_name = "Sunforged Chestguard"
+description = "Sunforged plate gear for the long ascent. It holds a shape through weather, blade, and the long walk back."
+icon_path = "res://icons/items/armor_starmetal_bulwark.png"
+item_category = 1
+rarity = 5
+equip_slot = 2
+armor_type = 4
+stack_size = 1
+sell_price = 7440
+buy_price = 24800
+item_level = 48
+required_level = 48
+stats = {
+"vitality": 14
+}
+armor_value = 80

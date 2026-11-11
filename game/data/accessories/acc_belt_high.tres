@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_belt_high"
+display_name = "Highcountry Girdle"
+description = "A broad hide belt laced with silver rings, hung with every tool a long campaign asks for."
+icon_path = "res://icons/items/belt_reclaimer.png"
+item_category = 2
+rarity = 4
+equip_slot = 13
+accessory_type = 5
+stack_size = 1
+sell_price = 2640
+buy_price = 8800
+item_level = 28
+required_level = 28
+stats = {
+"strength": 5,
+"agility": 3
+}

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_bracelet_tide"
+display_name = "Tidewrought Bracelet"
+description = "A bracelet of braided kelp and shore-iron, worn where the pulse shows. The harbor-folk say it knows the current before the water does."
+icon_path = "res://icons/items/ring_first_light.png"
+item_category = 2
+rarity = 2
+equip_slot = 9
+accessory_type = 3
+stack_size = 1
+sell_price = 90
+buy_price = 320
+item_level = 12
+required_level = 10
+stats = {
+"agility": 4,
+"vitality": 2
+}

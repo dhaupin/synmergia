@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_skyforged_maul_high"
+display_name = "Skyforged Maul"
+description = "A skyforged maul worked for the outer air. Cut at the skyforged rung and kept honest by use."
+icon_path = "res://icons/items/halberd_mythril.png"
+item_category = 0
+rarity = 5
+equip_slot = 8
+weapon_type = 3
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 10260
+buy_price = 34200
+item_level = 54
+required_level = 54
+stats = {
+"strength": 9
+}
+weapon_damage_min = 59
+weapon_damage_max = 89
+attack_speed = 0.9

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_rune_gauntlets"
+display_name = "Runesmith's Sigil Gauntlets"
+description = "Iron-scaled gloves, the knuckles inset with sigil tablets. To scribe a ward you must be touching the world."
+icon_path = "res://icons/items/armor_iron_mail.png"
+item_category = 1
+rarity = 3
+equip_slot = 5
+armor_type = 3
+stack_size = 1
+sell_price = 228
+buy_price = 760
+item_level = 10
+required_level = 10
+required_class = "akkan_rune"
+stats = {
+"vitality": 6
+}
+armor_value = 12

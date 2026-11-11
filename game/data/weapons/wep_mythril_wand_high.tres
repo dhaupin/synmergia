@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_mythril_wand_high"
+display_name = "Mythril Wand"
+description = "A mythril wand worked for the pale shelf. Cut at the mythril rung and kept honest by use."
+icon_path = "res://icons/items/staff_walnut.png"
+item_category = 0
+rarity = 4
+equip_slot = 8
+weapon_type = 8
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 2070
+buy_price = 6900
+item_level = 26
+required_level = 26
+stats = {
+"agility": 4
+}
+weapon_damage_min = 30
+weapon_damage_max = 45
+attack_speed = 1.3

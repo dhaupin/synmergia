@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_silver_sword_high"
+display_name = "Silver Arming Sword"
+description = "A silver arming sword worked for the low marches. Cut at the silver rung and kept honest by use."
+icon_path = "res://icons/items/sword_iron.png"
+item_category = 0
+rarity = 4
+equip_slot = 8
+weapon_type = 1
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 1620
+buy_price = 5400
+item_level = 20
+required_level = 20
+stats = {
+"strength": 3
+}
+weapon_damage_min = 26
+weapon_damage_max = 41
+attack_speed = 1.2

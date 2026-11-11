@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_starmetal_maul_high"
+display_name = "Starmetal Maul"
+description = "A starmetal maul worked for the starfall reach. Cut at the starmetal rung and kept honest by use."
+icon_path = "res://icons/items/halberd_mythril.png"
+item_category = 0
+rarity = 5
+equip_slot = 8
+weapon_type = 3
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 2520
+buy_price = 8400
+item_level = 30
+required_level = 30
+stats = {
+"strength": 5
+}
+weapon_damage_min = 38
+weapon_damage_max = 59
+attack_speed = 0.9

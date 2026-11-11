@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_stalker_fang"
+display_name = "Stalker's Voidfang Dagger"
+description = "An akkan dagger weighted for the ambush. The void between heartbeats is the one it hunts."
+icon_path = "res://icons/items/dagger_iron.png"
+item_category = 0
+rarity = 3
+equip_slot = 8
+weapon_type = 4
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 210
+buy_price = 700
+item_level = 10
+required_level = 10
+required_class = "akkan_stalker"
+stats = {
+"agility": 7
+}
+weapon_damage_min = 16
+weapon_damage_max = 26
+attack_speed = 1.6

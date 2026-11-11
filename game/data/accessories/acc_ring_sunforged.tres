@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_ring_sunforged"
+display_name = "Sunforged Ring"
+description = "A ring quenched in the dawn tide, warm to the touch long after the sun has gone."
+icon_path = "res://icons/items/ring_first_light.png"
+item_category = 2
+rarity = 5
+equip_slot = 9
+accessory_type = 1
+stack_size = 1
+sell_price = 4830
+buy_price = 16100
+item_level = 40
+required_level = 40
+stats = {
+"strength": 8,
+"vitality": 6
+}

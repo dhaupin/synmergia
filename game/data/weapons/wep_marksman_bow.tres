@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_marksman_bow"
+display_name = "Marksman's Yew Bow"
+description = "Layered yew and a kelp-fiber string, drawn to the ear. The arrow leaves before the target hears the draw."
+icon_path = "res://icons/items/bow_long.png"
+item_category = 0
+rarity = 3
+equip_slot = 8
+weapon_type = 5
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 210
+buy_price = 700
+item_level = 10
+required_level = 10
+required_class = "human_marksman"
+stats = {
+"agility": 7
+}
+weapon_damage_min = 18
+weapon_damage_max = 30
+attack_speed = 1.0

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_cloak_skyforged"
+display_name = "Skyforged Cloak"
+description = "A cloak that hangs a half-breath lighter than the hand expects, cut from the sky's own salvage."
+icon_path = "res://icons/items/cloak_wanderer.png"
+item_category = 2
+rarity = 5
+equip_slot = 12
+accessory_type = 4
+stack_size = 1
+sell_price = 10410
+buy_price = 34700
+item_level = 54
+required_level = 54
+stats = {
+"vitality": 12,
+"agility": 6
+}
