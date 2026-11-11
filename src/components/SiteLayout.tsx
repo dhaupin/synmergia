@@ -132,13 +132,31 @@ export default function SiteLayout() {
 
       <footer className="border-t border-line mt-16">
         <div className="max-w-6xl mx-auto px-4 py-8 text-xs text-ink-soft flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <img
               src="/branding/logo-synmergia-wordmark.png"
               alt="Synmergia"
               className="h-5 w-auto opacity-80"
             />
-            <span>© 2026 dhaupin · Synmergia is free and open source (game code) · site {new Date().getFullYear()}</span>
+            <span>
+              <a
+                href="https://github.com/dhaupin/synmergia"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-accent"
+              >
+                Free &amp; open source
+              </a>
+              {' · '}© {new Date().getFullYear()}{' '}
+              <a
+                href="https://creadev.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-accent"
+              >
+                Creadev.org
+              </a>
+            </span>
           </div>
           <div className="flex items-center gap-4">
             <Link to="/lore" className="hover:text-accent">Lore</Link>
