@@ -42,14 +42,26 @@ var _lru: LRUCache
 func _init(max_entries: int = 524288) -> void:
 	_lru = LRU_CACHE.new(max_entries)
 
-## THE key law: quantized direction string + "|" + seed hex. Shared
-## by every consumer so cross-cache key confusion is impossible.
+## THE key law: quantized direction + "|" + seed hex. Shared by every
+## consumer so cross-cache key confusion is impossible.
+##
+## LANE-H2 KEY-PACK: the quantized components live in [-2048, 2048]
+## (a unit dir times SECTORS_PER_AXIS, truncated). str(Vector3i) cost
+## ~0.53 us/call and was the dominant term in the ~0.73 us key build
+## -- 1.55M key builds per level-6 patch. Offsetting by SECTORS_PER_AXIS
+## puts each in [0, 4096], which fits 13 bits; the three fuse into ONE
+## int (2.1x cheaper to stringify). The mapping is injective and keeps
+## EXACTLY the same equivalence classes (same dir sector + seed => same
+## key; different either => different key), so the test_sector_cache
+## stability/spread pins still hold.
+const _KEY_OFFSET: int = SECTORS_PER_AXIS
+const _KEY_MASK: int = 0x1FFF
+
 static func sector_key(dir: Vector3, world_seed: PackedByteArray) -> String:
-	var q: Vector3i = Vector3i(
-		int(dir.x * float(SECTORS_PER_AXIS)),
-		int(dir.y * float(SECTORS_PER_AXIS)),
-		int(dir.z * float(SECTORS_PER_AXIS)))
-	return str(q) + "|" + world_seed.hex_encode()
+	var x: int = (int(dir.x * float(SECTORS_PER_AXIS)) + _KEY_OFFSET) & _KEY_MASK
+	var y: int = (int(dir.y * float(SECTORS_PER_AXIS)) + _KEY_OFFSET) & _KEY_MASK
+	var z: int = (int(dir.z * float(SECTORS_PER_AXIS)) + _KEY_OFFSET) & _KEY_MASK
+	return str((x << 26) | (y << 13) | z) + "|" + world_seed.hex_encode()
 
 func get_value(dir: Vector3, world_seed: PackedByteArray) -> Variant:
 	var key: String = sector_key(dir, world_seed)
