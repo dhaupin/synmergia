@@ -1,0 +1,48 @@
+name: Web Lockfile Guard
+
+# The Cloudflare Pages build installs with `bun install --frozen-lockfile`,
+# so package.json and bun.lock MUST agree. web-ci.yml only fires on game/**
+# paths, so a dependency edit could drift the lockfile and the deploy would
+# only fail later at the CF build. This guard runs the exact install the
+# deploy runs, on the paths that can drift it.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'bun.lock'
+      - '.github/workflows/web-lockfile-guard.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'bun.lock'
+      - '.github/workflows/web-lockfile-guard.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frozen-lockfile:
+    name: bun install --frozen-lockfile
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      # Pin the same bun the Cloudflare Pages build uses (its log reports
+      # bun 1.4.2) so the guard reproduces the deploy's resolution.
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+
+      # The exact command the CF build runs. A frozen-lockfile mismatch
+      # (package.json edited without regenerating bun.lock) fails here with
+      # "lockfile had changes, but lockfile is frozen" instead of in prod.
+      - name: Verify lockfile is in sync
+        run: bun install --frozen-lockfile
