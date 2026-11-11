@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1")
 
-id = "akkan_rune_transfer_attacker"
-display_name = "Rune Transfer (Attacker)"
+id = "akkan_rune_transfer"
+display_name = "Rune Transfer"
 description = "Channels rune energy into an ally, transferring a portion of the caster's mana to them."
 skill_type = 0
 target_type = 3
@@ -45,4 +45,4 @@ upgrade_tiers = [
 ]
 
 required_level = 20
-required_class = "akkan_attacker"
+required_class = "akkan_rune"

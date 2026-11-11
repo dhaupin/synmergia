@@ -130,7 +130,7 @@ func _static_checks() -> void:
 	# The academy catalog actually contains the skills we reference.
 	var academy := root.get_node_or_null("SkillAcademyService")
 	if academy != null:
-		for sid in ["human_charge", "human_rend", "akkan_rune_chain_attacker", "synthetic_packet_flood"]:
+		for sid in ["human_charge", "human_rend", "akkan_rune_chain", "synthetic_packet_flood"]:
 			_assert(academy.get_catalog_entry(sid) != null and not academy.get_catalog_entry(sid).is_empty(),
 					"academy catalog has upgradable skill: %s" % sid)
 

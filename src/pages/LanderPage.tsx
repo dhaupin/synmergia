@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { usePckHash } from '../components/SiteLayout';
+import godotData from '../data/godot_data.json';
 
 // Lander (honesty law): every claim here is traceable to code or data
 // under game/. The counts come from game/data/*; the systems named
@@ -7,6 +8,15 @@ import { usePckHash } from '../components/SiteLayout';
 // are the ones the world actually runs. No fake player counts, no
 // invented quotes — the pack-freshness chip is the real "it's alive"
 // signal.
+
+// Counts are read from the synced godot_data.json (regenerated from
+// game/data/*.tres on every build) so they cannot drift from the
+// source, the way a hardcoded "163 skills" silently did.
+const COUNTS = godotData.counts as Record<string, number>;
+const PLAYABLE_CLASSES = Object.keys(godotData.classes).filter(
+  (id) => /^(human|akkan|synthetic)_/.test(id),
+).length;
+
 
 /** What the world is, four ways (the load-bearing claims). */
 const PILLARS = [
@@ -34,12 +44,12 @@ const PILLARS = [
 
 /** The world, counted. Every number read from game/data. */
 const WORLD_FACTS = [
-  { n: '12', label: 'zones', sub: 'from Meadowhaven to the Sundered Sea' },
+  { n: String(COUNTS.zones), label: 'zones', sub: 'from Meadowhaven to the Sundered Sea' },
   { n: '3', label: 'worlds', sub: 'Synmergia, the pale stone, The Deep Root' },
-  { n: '18', label: 'playable classes', sub: 'across 3 species, plus GM seats' },
-  { n: '163', label: 'skills', sub: 'class trees wired to real combat' },
-  { n: '25', label: 'enemy templates', sub: 'normal, elite, and world bosses' },
-  { n: '11', label: 'mounts', sub: 'ground, sky, and sea' },
+  { n: String(PLAYABLE_CLASSES), label: 'playable classes', sub: 'across 3 species, plus GM seats' },
+  { n: String(COUNTS.skills), label: 'skills', sub: 'class trees wired to real combat' },
+  { n: String(COUNTS.enemies), label: 'enemy templates', sub: 'normal, elite, and world bosses' },
+  { n: String(COUNTS.mounts), label: 'mounts', sub: 'ground, sky, and sea' },
 ];
 
 /** What actually ships in the live world (traceable to game/ systems). */

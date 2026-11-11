@@ -38,7 +38,7 @@ entries = [
 "conditions": []
 },
 {
-"item_id": "book_akkan_rune_chain_attacker_epic",
+"item_id": "book_akkan_rune_chain_epic",
 "min_quantity": 1,
 "max_quantity": 1,
 "drop_rate": 0.04,
@@ -65,7 +65,7 @@ entries = [
 "conditions": []
 },
 {
-"item_id": "book_akkan_rune_chain_attacker_legendary",
+"item_id": "book_akkan_rune_chain_legendary",
 "min_quantity": 1,
 "max_quantity": 1,
 "drop_rate": 0.008,

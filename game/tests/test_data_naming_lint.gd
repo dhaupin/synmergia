@@ -104,6 +104,34 @@ func _objective_regex() -> RegEx:
 	re.compile("\"type\":\\s*(\\d+),\\s*\"target\":\\s*\"([^\"]*)\"")
 	return re
 
+## Matches a quoted skill id inside a class ref list (e.g. "akkan_rune_strike").
+func _skill_ref_regex() -> RegEx:
+	var re := RegEx.new()
+	re.compile("\"([a-z0-9_]+)\"")
+	return re
+
+## Return the text between the opening bracket after `key =` and its match.
+## Handles single-line and multi-line arrays/dicts; "" when the key is absent.
+func _bracket_block(txt: String, key: String) -> String:
+	var m := RegEx.new()
+	m.compile("(^|\\n)\\s*" + key + "\\s*=\\s*([\\[{])")
+	var mm := m.search(txt)
+	if mm == null:
+		return ""
+	var open_idx := mm.get_end() - 1
+	var open := txt[open_idx]
+	var close := "]" if open == "[" else "}"
+	var depth := 0
+	for i in range(open_idx, txt.length()):
+		var c := txt[i]
+		if c == open:
+			depth += 1
+		elif c == close:
+			depth -= 1
+			if depth == 0:
+				return txt.substr(open_idx, i - open_idx + 1)
+	return txt.substr(open_idx)
+
 func _run() -> void:
 	var npc_ids := _load_ids("data/npc")
 	var quest_ids := _load_ids("data/quests")
@@ -583,5 +611,92 @@ func _run() -> void:
 		_ok("Mysteries: all %d ids use 'mystery_' prefix, gates + title rewards resolve" % mystery_ids.size())
 	else:
 		_fail("Mystery style violations: %s" % ", ".join(bad_mysteries))
+
+	# --- Skills: unique ids, filename == id, class->skill refs resolve ---
+	# Skills live in data/skills/<archetype>/ and load into an id-keyed catalog,
+	# so a duplicate id silently SHADOWS another skill (real bug: akkan_void_bolt
+	# existed in both mage/ and bender/), and a class whose starting_skills /
+	# skill_tree_unlocks name a skill that was never authored (or is owned by a
+	# different class) silently grants nothing. No other check sees either bug.
+	var skill_id_set := {}
+	var skill_owner := {}
+	var skill_dupes: Array = []
+	var skill_name_mismatch: Array = []
+	var sdir2 := DirAccess.open("res://data/skills")
+	if sdir2 != null:
+		sdir2.list_dir_begin()
+		var ssub := sdir2.get_next()
+		while ssub != "":
+			var sub := ssub
+			ssub = sdir2.get_next()
+			if sub == "" or sub.begins_with("."):
+				continue
+			var kdir := DirAccess.open("res://data/skills/%s" % sub)
+			if kdir == null:
+				continue
+			kdir.list_dir_begin()
+			var kf := kdir.get_next()
+			while kf != "":
+				if kf.ends_with(".tres"):
+					var ktxt := FileAccess.get_file_as_string("res://data/skills/%s/%s" % [sub, kf])
+					var kid := ""
+					var kowner := ""
+					for line in ktxt.split("\n"):
+						var lt := line.strip_edges()
+						if lt.begins_with("id = \"") and kid == "":
+							kid = lt.trim_prefix("id = \"").trim_suffix("\"")
+						elif lt.begins_with("required_class = \""):
+							kowner = lt.trim_prefix("required_class = \"").trim_suffix("\"")
+					if kid == "":
+						kf = kdir.get_next()
+						continue
+					if kid != kf.trim_suffix(".tres"):
+						skill_name_mismatch.append("%s/%s -> id %s" % [sub, kf, kid])
+					if skill_id_set.has(kid):
+						skill_dupes.append("%s (also in %s)" % [kid, skill_id_set[kid]])
+					else:
+						skill_id_set[kid] = "%s/%s" % [sub, kf]
+						skill_owner[kid] = kowner
+				kf = kdir.get_next()
+	if skill_name_mismatch.is_empty():
+		_ok("Skills: all %d files named for their id" % skill_id_set.size())
+	else:
+		_fail("Skill filename/id mismatches: %s" % ", ".join(skill_name_mismatch))
+	if skill_dupes.is_empty():
+		_ok("Skills: all %d ids unique (no shadowed skill)" % skill_id_set.size())
+	else:
+		_fail("Duplicate skill ids (one silently shadows the other): %s" % ", ".join(skill_dupes))
+
+	var bad_skill_refs: Array = []
+	var cdir2 := DirAccess.open("res://data/classes")
+	if cdir2 != null:
+		cdir2.list_dir_begin()
+		var cf := cdir2.get_next()
+		while cf != "":
+			if cf.ends_with(".tres"):
+				var ctxt := FileAccess.get_file_as_string("res://data/classes/%s" % cf)
+				var cid2 := ""
+				for line in ctxt.split("\n"):
+					var ct := line.strip_edges()
+					if ct.begins_with("id = \""):
+						cid2 = ct.trim_prefix("id = \"").trim_suffix("\"")
+						break
+				# Pull the bracketed value of each ref key (single-line or multi-line)
+				# so quoted ids elsewhere (e.g. can_use_armor) never leak in.
+				for key in ["starting_skills", "skill_tree_unlocks"]:
+					var block := _bracket_block(ctxt, key)
+					if block == "":
+						continue
+					for m2 in _skill_ref_regex().search_all(block):
+						var ref := m2.get_string(1)
+						if not skill_id_set.has(ref):
+							bad_skill_refs.append("%s -> missing skill %s" % [cid2, ref])
+						elif skill_owner.get(ref, "") not in ["", cid2]:
+							bad_skill_refs.append("%s -> %s (owned by %s)" % [cid2, ref, skill_owner.get(ref, "")])
+			cf = cdir2.get_next()
+	if bad_skill_refs.is_empty():
+		_ok("Class skill refs all resolve to a skill owned by that class")
+	else:
+		_fail("Dangling/cross-class skill refs: %s" % ", ".join(bad_skill_refs))
 
 	_finish()

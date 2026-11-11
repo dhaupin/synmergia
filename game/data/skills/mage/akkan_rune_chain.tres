@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1")
 
-id = "akkan_rune_chain_attacker"
-display_name = "Rune Chain (Attacker)"
+id = "akkan_rune_chain"
+display_name = "Rune Chain"
 description = "Chains arcane runes between up to 3 enemies, dealing damage to each and slowing them."
 skill_type = 0
 target_type = 1
@@ -46,4 +46,4 @@ upgrade_tiers = [
 ]
 
 required_level = 10
-required_class = "akkan_attacker"
+required_class = "akkan_rune"

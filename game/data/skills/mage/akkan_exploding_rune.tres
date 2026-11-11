@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1")
 
-id = "akkan_exploding_rune_attacker"
-display_name = "Exploding Rune (Attacker)"
+id = "akkan_exploding_rune"
+display_name = "Exploding Rune"
 description = "Plants a volatile rune at the target location. After a brief delay it detonates violently."
 skill_type = 0
 target_type = 5
@@ -46,4 +46,4 @@ upgrade_tiers = [
 ]
 
 required_level = 15
-required_class = "akkan_attacker"
+required_class = "akkan_rune"
