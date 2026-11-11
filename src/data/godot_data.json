@@ -1,5 +1,5 @@
 {
-  "lastSyncedAt": "2026-11-11T10:10:22.161Z",
+  "lastSyncedAt": "2026-11-11T10:46:33.649Z",
   "counts": {
     "classes": 39,
     "weapons": 14,
@@ -17519,6 +17519,15 @@
       "name": "Bandit Loot",
       "description": "Drops from Bandit enemies. Road-dogs rob ore carts as much as coin: their hauls carry silver and golden seam.",
       "entries": "[{\n\"item_id\": \"potion_health_small\",\n\"min_quantity\": 1,\n\"max_quantity\": 3,\n\"drop_rate\": 0.4,\n\"rarity_weight\": 1.0,\n\"is_guaranteed\": false,\n\"conditions\": []",
+      "currency_drops": [
+        {
+          "currency_id": "gold",
+          "min_amount": 5,
+          "max_amount": 20,
+          "drop_rate": 0.9,
+          "is_guaranteed": false
+        }
+      ],
       "base_drop_chance": 1,
       "min_items_dropped": 1,
       "max_items_dropped": 4,
