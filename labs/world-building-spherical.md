@@ -253,6 +253,15 @@ func get_compass_direction_at_pole(player_pos: Vector3, waypoint: Vector3) -> St
 
 ## 6. Current Gaps & TODO
 
+> **HISTORICAL (2026-09-27).** This gaps list is the pre-globe design
+> snapshot. The spherical era has since SHIPPED: the icosahedral mesh
+> and NSC-9 addressing live in `core/frame/math/` (probe-pinned), the
+> streamed globe is the live world, `world_moon.tres` + `cosmic_service`
+> carry the moon/orbital layer, and `ui/components/world_map.gd` +
+> `minimap.gd` are the map surfaces. Read `prd-spherical-mvp.md` for the
+> execution record and `prd-world.md` v2 for topology truth; the boxes
+> below are kept for design history only.
+
 ### 6.1 Immediate (Phase 1)
 
 - [x] Implement haversine distance function
