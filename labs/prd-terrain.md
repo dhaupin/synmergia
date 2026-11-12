@@ -1,37 +1,46 @@
 # PRD: Terrain -- Biomes, Surface Look, Hydrology, Progressive Detail
 
-> **Status:** v2 (2026-10-19). ALL FOUR SLICES ARE IN THE GROUND LAW AND
-> LIVE IN THE STREAMED GLOBE (this doc's old line -- "slices 2-4
-> designed" -- was stale; the 2026-10-19 audit found the implementation
-> ahead of the doc). Current truth:
+> **Status:** v3 (2026-11-04). THE GROUND LAW IS THE PLANET. The four
+> slices below are SHIPPED, and on top of them the terrain arc grew
+> the **authored landmass sculpt** (homeland dome, boot cove, ferry
+> island, mountain lake, Sun Pans atoll, ring range) and the **stable
+> biome/variety ladders** (jungle/savanna/steppe/badlands, v11). This
+> doc is now the authority for the ground; `prd-world.md` v2 is the
+> topology intent on top of it. Where they disagree, the code's
+> `terrain_gen.gd` constants win.
+>
+> **Current truth:**
 >
 > - **Slice 1** climate field + biome law: SHIPPED, probe-pinned
->   (`probe_terrain_biome.gd`, `probe_terrain_climate.gd`).
+>   (`probe_terrain_biome.gd`, `probe_terrain_climate.gd`). BiomeId
+>   has 17 stable codes (0-16, NEVER renumber); the variety ladder
+>   (jungle/savanna/steppe/badlands) appended 13-16 at v7/v11.
 > - **Slice 2** surface colors: SHIPPED and beyond the v1 design --
 >   the vertex law carries the biome palette blend, slope rock,
 >   strata/fracture crag law, temperature snowline, wet dimming,
 >   shore foam, waterfall seams, the grass expression and the road
->   tint.
+>   tint. The splat-skin shader (`terrain_splat.gdshader`) rides it.
 > - **Slice 3** hydrology: SHIPPED -- water-table fields with gated
 >   basins at ANY elevation, carved river channels with moisture
 >   ripple and waterfall seams, bridge decks read by the biome law.
-> - **Roads** (originally "new PRD entry"): SHIPPED ahead of plan --
->   seeded route graph + corridor carve (bed/deck) + surface tints;
->   the starter village battery pins the connecting road to the
->   capitol plaza.
-> - **Slice 4** progressive scatter: SHIPPED and EXTENDED this
->   session -- v4 density raise (barycentric site draws, belt-dry
->   hydrology, homeland grass yield, boot grove pull), v5 grass
->   tier (tufts + blooms), v6 threading + MultiMesh grass fields.
->   Numbers: 25 collided trees / 1.2 km at boot, ~900 meadow clumps
->   per face in one draw call.
+> - **Roads**: SHIPPED ahead of plan -- seeded route graph + corridor
+>   carve (bed/deck) + surface tints; the starter village battery
+>   pins the connecting road to the capitol plaza.
+> - **Slice 4** progressive scatter: SHIPPED and EXTENDED -- v4
+>   density raise, v5 grass tier, v6 threading + MultiMesh fields,
+>   v7 biodiversity (tree species + fungal tier). Numbers: 25
+>   collided trees / 1.2 km at boot, ~900 meadow clumps per face.
+> - **Authored landmass sculpt (v11)**: SHIPPED (see section 2b).
+> - **Poles + floating islands**: DESIGNED here, NOT built (section
+>   6). The poles currently resolve as latitude-gated sea; floating
+>   islands have no heightfield law yet.
+> - **Planet-wide visible rendering**: the streaming LOD renders the
+>   near neighborhood; a full planet flyover is the open build item
+>   (section 6).
 >
-> The original visibility gap (props placed 6+ km from a boot that
-> sits in a face corner) is what kept slices 2-4 "invisible"; the
-> density law fixes it at the seams all four slices share.
 > **Last verified checks:** determinism/village/lint batteries green
-> 2026-10-19; perf budget build pin passes. See TASKS.md for the
-> session log.
+> 2026-10-19; perf budget build pin passes (lane-H2 -47% hot build).
+> See TASKS.md for the session log.
 
 ## 1. The law that already holds (context)
 
@@ -50,6 +59,32 @@ law's unsampled amplitude, and the walk surface rides the analytic law
 - **The probe contract:** every field ships with a `probe_*` that asserts
   the law analytically AND through a live streamed globe (the continent
   walk). Determinism test stays green.
+- **The external-backend seam:** `install_terrain_backend(callable)`
+  lets a world replace the RAW landfield (imported heightmaps, server
+  continents) while the sculpt + spawn laws ride on top. The default is
+  uninstalled (the analytic law runs). `world_<id>.tres` declares
+  `terrain_backend_id`; empty = natural law.
+
+## 2b. The authored landmass sculpt (v11, SHIPPED)
+
+Over the noise landfield, a set of authored features pin the places
+the game needs. All are pure functions of the direction (mesh, walk,
+biome, and dressing read the same law):
+
+| Feature | Constant(s) | Where | What it does |
+|---|---|---|---|
+| Homeland dome | `HOMELAND_ANGULAR_REACH` (0.70 rad ~14 km) | around `SPAWN_CENTER` (1,0,0) | guarantees the starter continent; plateau then smoothstep to coast; latitude-gated so polar seas survive |
+| Ring range | `RING_R0/R1/R2`, `MOUNTAIN_AMP` | 0.26-0.74 rad around spawn, in the spawn frame | the inland mountain range (~5-15 km), ridge arcs continuous in the polar frame |
+| Boot cove + capitol flat | `COVE_BEARING_DEG` 90, `CAPITOL_FLAT_*`, `CAPITOL_BASE_LIFT` 22 | on the coast ~1 km off boot | authored sea notch + shelf-city bench; the monolith/plaza anchor |
+| Ferry island + moat | `ISLAND_CENTER`, `ISLAND_ANGULAR_REACH` 0.012, `ISLAND_PLATEAU` 20 | ~10.5 km from spawn | volcanic plateau island; the moat cuts the ferry channel |
+| Mountain lake | `LAKE_CENTER`, `LAKE_RADIUS_ANG` 0.055, `LAKE_DROP` 7.5 | ~25.7 km from spawn | authored inland bowl |
+| Sun Pans atoll | `sun_pans_dir()` (face 12), `SUN_PANS_*` | far-side ocean | authored desert atoll; the seed rolls zero desert bands, so the desert rides an authored feature |
+| Spawn plaza + apron | `SPAWN_FLAT_ANG`, `SPAWN_APRON_*`, `SPAWN_HEIGHT` | at the boot | flat build/walk plaza + guaranteed-dry shore ring |
+
+The sculpt law (`_sculpt_and_spawn`) applies island + moat + plaza +
+apron over **any** installed backend, so the boot and the ferry
+crossing survive an imported heightfield. Spawn carving is
+last-writer-wins (the boot always lands dry on known ground).
 
 ## 2. Slice 1 -- The biome climate field (SHIPPED)
 
@@ -188,13 +223,49 @@ across LOD changes):
   MultiMesh count <= cap, hot demote+promote keeps prop identity,
   cold visit respawns (the accepted contract).
 
-## 6. Non-goals / later
+## 6. Open build items (the road to a fully-rendered planet)
 
-- Town/city detail meshes (covered by PRDs elsewhere).
-- Flowing river animation (river beds are carved; the water surface
-  animation rides the ocean shell law later).
-- Weather-driven biome tinting (the cosmic/weather band already tints
-  the SKY; ground tinting joins only if it proves cheap).
+These are the terrain-arc items that take the half-built planet to a
+fully-playable, fully-rendered world:
+
+- **Planet-wide visible rendering (the headline).** The streaming
+  LOD renders the player's neighborhood (near band + want set). The
+  goal is the whole planet reading as a coherent world -- a flyover
+  / orbit view where continents, poles, and islands are all visible
+  and correct, and the ground stays law-consistent wherever you
+  stand. This is what "finish the terrain" means: get the biome /
+  land / hydrology systems rendering across the sphere in the
+  playable game, not just under the boot.
+- **The Poles (DESIGNED, not built).** Two polar landmasses
+  (ice/snow/mountain biomes) at the top and bottom of the sphere.
+  The land law is currently latitude-gated so the poles resolve as
+  sea; the polar caps need a land treatment (a dome/plateau shaped
+  by the same continuity discipline) plus the compass fix that made
+  them "TBA" in the first place. See `prd-world.md` section 1.
+- **Floating islands (DESIGNED, not built).** Sky islands reachable
+  by thermal updraft or gate, in the main sky and the underworld. A
+  floating island is *real ground*: its own heightfield patch + walk
+  law, not a decorative box. The terrain law needs a floating-island
+  field (a local heightfield anchored to an altitude, blended into
+  the walk/pad law). See `prd-world.md` section 1.
+- **The Sundered Strait (authored, DORMANT).** `backend_sundered.gd`
+  exists (S14.7) but is not installed (`world_main.tres`
+  `terrain_backend_id` is empty), so the live terrain does not carve
+  the strait that the zone/barque/waypoints reference. Either
+  re-install it or reconcile the content. See `prd-world.md`.
+- **The floating-structure bug (OPEN).** Authored structures ride
+  the walk-law pedestal while the rendered mesh is a discrete LOD
+  sample; coarse far faces sag below the law, so structures float.
+  Fix: seat structures on the drawn surface, or pin their face to a
+  fine level. See `prd-world.md` section 5.
+- **Zone placement (blocked on the above).** `ZoneData` carries
+  rules but no real placement (every `zone_center` is ZERO). Once
+  the land renders planet-wide, zones get real centers/bounds.
+- **Town/city detail meshes** (covered by PRDs elsewhere).
+- **Flowing river animation** (river beds are carved; the water
+  surface animation rides the ocean shell law later).
+- **Weather-driven biome tinting** (the cosmic/weather band already
+  tints the SKY; ground tinting joins only if it proves cheap).
 
 ## 7. Acceptance gates (all slices)
 
@@ -206,3 +277,6 @@ across LOD changes):
 4. Runner battery + charset lint (ASCII) green after every slice.
 5. The continent-walk probe (stream probe section) extends naturally:
    walk law == analytic law at every stop even WITH hydrology carves.
+6. Any new landmass feature (pole, floating island) must be a pure
+   `(dir, seed)` function, keep the continuity bound, and be
+   reachable (a walk/updraft/gate path), never a decorative box.

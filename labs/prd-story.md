@@ -184,6 +184,20 @@ a little reverent. NPCs do not say "powered on" -- they say "woke,"
   Fix the dialogue when quests get authored.
 - Zone descriptions predate the art bible (safe/no-mood tone); when
   rewriting zone copy, use gemini_zones.md moods as canon.
+- **"Haven" naming (OPEN).** Act 1 calls the starter settlement
+  "Haven", but the zone display names are **"Meadowhaven"**
+  (`zone_starter_plains`) and **"Easthollow Village"**
+  (`zone_village_center`). "Haven" survives in flavor ("Haven
+  Coliseum", "Haven Sandpit", `veh_haven_ferry`, `horde_haven_siege`,
+  the naming in §2). Pick one canon settlement name and align the
+  zones + copy (or keep "Haven" as the region and Meadowhaven/
+  Easthollow as its places). Not yet resolved.
+- **Planet context (2026-11-04).** Act 1's locations stand, but the
+  planet-level context is now fixed by `prd-world.md` v2: the capital
+  (Nexus Central) is on the **coast**, the starter village is inland
+  ~1 km with a **road** to the capital, and the **mountain range**
+  rises behind the village. Act 1/Act 2 live on the home continent
+  (the ~14 km homeland dome).
 
 ## 11. Where canon lives (pointer table)
 

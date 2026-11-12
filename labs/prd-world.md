@@ -1,32 +1,93 @@
 # PRD: World Topology & Player Experience
 
-> **Status:** Decisions locked 2026-09-25 after the Nexus Central +
-> id-convention work. This is the "what kind of world is this" doc:
-> planet shape, land masses, seamless zone transitions, instanced
-> content, and the procgen pipeline that builds it all.
+> **Status:** v2 (2026-11-04). Rewritten to match the planet the
+> terrain law actually builds. The v1 doc (2026-09-25) was the
+> initial draft; the terrain arc (`terrain_gen.gd` + the streamer)
+> has since outgrown it. Where this doc and the code disagree, **the
+> code's `terrain_gen.gd` constants are the planet's truth** and this
+> doc is the intent behind them. This is the "what kind of world is
+> this" doc: planet shape, land masses, seamless zone transitions,
+> instanced content, and the procgen pipeline that builds it all.
 >
-> Related: `prd.md` (frame), `prd-geometry.md` (NSC-9 / spatial
-> addressing), `prd-story.md` (the world's history), `prd-quests.md`
-> (quest engine).
+> Related: `prd-terrain.md` (the biome/climate/hydrology law that
+> builds the ground), `prd.md` (frame), `prd-geometry.md` (NSC-9 /
+> spatial addressing), `prd-multiworld.md` (the moon + the lattice),
+> `prd-story.md` (the world's history), `prd-quests.md` (quest
+> engine).
 
 ## 1. The planet
 
 - **One sphere.** Synmergia is a single spherical world (NSC-9
-  icosahedral addressing; see prd-geometry.md). No floating-island
-  skyboxes, no "world map is a lie."
-- **Land masses (total: two + poles TBD):**
-  1. **The Starter Continent** -- the only inhabited land mass. The
-     Nexus Central capital sits **on its coast** (harbor district,
-     ferry docks), with the starter plains and Haven village inland.
+  icosahedral addressing; see prd-geometry.md). The ground is a pure
+  analytic heightfield law -- `TerrainGen.terrain_height(dir, seed)`
+  -- sampled by the streamed globe. No "world map is a lie": the
+  same law drives the mesh, the walk pad, and every placement.
+- **Land comes from a noise field, not a fixed map.** The landmass
+  law is value-noise gated by latitude, so continents, islands, and
+  coastlines emerge from the seed. On top of that, a set of
+  **authored features** pin the places the game needs (the home
+  continent, the boot cove, the ferry island, the lake, the desert
+  atoll). Both layers are in `terrain_gen.gd`; see `prd-terrain.md`
+  for the climate/biome law and the measured numbers.
+- **Floating islands are allowed (and wanted).** The v1 "no
+  floating-island skyboxes" rule is **retired**. Sky islands --
+  hovering landmasses reachable by **thermal updrafts** (the
+  `ThermalService` / `data/thermals/` system) or by **gates** -- are
+  first-class content, both in the main sky and in the underworld.
+  The floating-island law is **not built yet**; this doc records the
+  intent so the terrain arc can grow it. The rule that stands: a
+  floating island is *real ground* (its own heightfield + walk law),
+  not a decorative box parked at a fixed altitude.
+- **Land masses (the authored set + the emergent field):**
+  1. **The Starter Continent** -- the home landmass and the only
+     one inhabited at launch. Around `SPAWN_CENTER` (lat 0 / lon 0)
+     within `HOMELAND_ANGULAR_REACH` (0.70 rad ~ 14 km). It holds:
+     - the **Nexus Central capital on its coast** -- harbor
+       district, ferry docks, and a **large monolith visible for
+       kilometers** (the capitol plaza anchor on the cove's far rim);
+     - the **starter village inland** (~1 km from the coast) with a
+       **road** connecting it to the capital;
+     - an **inland mountain range** (the home-anchored ring range,
+       ~5-10 km from the village) so the boot's vista reads: village
+       on grassland, capital + ocean downhill in front, mountains
+       behind.
      All of Act 1 and Act 2 live here.
-  2. **The Dev Island** -- an isolated sandbox land mass for
-     tooling, tests, and experimental content. Not reachable by
-     normal travel; reachable by dev teleport. Never ships as
-     player-reachable unless promoted deliberately.
-  3. **Poles (ice):** deferred. Design later whether they are
-     walkable regions, ocean, or narrative-only.
-- **Everything else is ocean.** The fleet/ferry system (VehicleData,
-  kind=FERRY) is the canonical long-haul over water.
+  2. **The Ferry Island** -- a real player island off the coast,
+     reached by ferry (and its dock waypoint). Volcanic plateau
+     (`ISLAND_CENTER`, ~10.5 km from spawn), ringed by a deep moat
+     channel the ferry owns. This is **not** a dev sandbox.
+  3. **The Mountain Lake** -- an authored inland bowl on the
+     continent's hinterland (`LAKE_CENTER`), held by the hydrology
+     law at its own elevation (a lake above the sea line is legal).
+  4. **The Sun Pans** -- an authored desert atoll far across the sea
+     (a volcanic atoll on face 12), the only desert on this seed;
+     reached by the long-haul Pans ferry. Glide-reachable from the
+     homeland islands.
+  5. **The Poles** -- **designed, not yet built.** The intent is two
+     polar landmasses (ice/snow/mountain biomes) at the top and
+     bottom of the sphere, like a real planet. Today the land law is
+     **latitude-gated** (`_land_mass`'s band term), so the poles
+     resolve as **sea** -- but cold biomes DO exist at altitude
+     (the live scan shows TUNDRA ~0.5% + ALPINE ~0.3%). They were
+     "TBA" only because an early polar treatment broke the compass;
+     the build-out adds polar landmass shapes (a dome/plateau on the
+     same continuity discipline) plus the compass fix. See
+     `prd-terrain.md` section 6.
+  6. **Emergent continents** -- the noise field grows additional
+     far continents and islands anywhere the seed rolls land. These
+     are real ground (the terrain law renders them) and are
+     candidates for future content; nothing currently places on them.
+- **The Dev Island is retired.** The v1 "isolated dev sandbox
+  island" is **gone**. Dev/test content now lives on **the moon**
+  (`world_moon`, `labs/prd-multiworld.md`), which is gate-reachable
+  for normal players eventually (the moon gate; today DEV_ONLY). The
+  island off the coast is the real **Ferry Island** (item 2 above),
+  not a dev sandbox.
+- **The ocean is the connective tissue.** The fleet/ferry system
+  (VehicleData, kind=FERRY) is the canonical long-haul over water:
+  `veh_haven_ferry` (village <-> capitol bay), `veh_island_ferry`
+  (village docks <-> island), `veh_pans_ferry` (capitol pier <->
+  Sun Pans). See section 2b.
 
 ## 2. Zone model: seamless world + explicit jumps
 
@@ -69,30 +130,46 @@ Two movement truths, both first-class:
 
 ## 3. Procgen pipeline: how the world gets built
 
-Mostly procedural, hand-authored where it earns it:
+Mostly procedural, hand-authored where it earns it. **The ground
+itself is already built** (`prd-terrain.md`); this section is the
+pipeline for the content on top of it:
 
-1. **Common building blocks.** A library of authored primitives --
+1. **The ground law (SHIPPED).** `TerrainGen.terrain_height(dir,
+   seed)` is the analytic heightfield: noise landmasses + authored
+   features (homeland dome, boot cove, ferry island, lake, atoll,
+   ring range). Climate, biome, hydrology, roads, and scatter all
+   read it. See `prd-terrain.md`.
+2. **Common building blocks.** A library of authored primitives --
    walls, floors, conduits, ruins, props (DwellingData items double
    as world-scale pieces). Rules assemble them: settlements grow
    along roads, roads follow terrain, conduits follow old-world
-   lines from the story PRD.
-2. **Hand-authored anchors.** Signature places (Nexus Central
-   harbor plaza, the Spire doors, Haven) can be authored as whole
-   meshes (Blender/Meshy) and placed as anchors that procgen
-   respects rather than overwrites.
-3. **AI-assisted assembly (exploration).** A generative step that
+   lines from the story PRD. The starter village + capitol monolith
+   are the first authored anchors on the ground law.
+3. **Hand-authored anchors.** Signature places (Nexus Central
+   harbor plaza + monolith, the Spire doors, the village) are
+   authored as whole meshes and placed as anchors that procgen
+   respects rather than overwrites. Anchors ride the **walk law**
+   pedestal (analytic heightfield), never a fixed altitude -- this is
+   the floating-structure contract (see section 5).
+4. **AI-assisted assembly (exploration).** A generative step that
    composes block layouts from prompts/style constraints is worth a
    spike -- same contract as rule-based procgen: it must emit the
    same block vocabulary, so the pipeline cannot tell which hand
    made a layout.
-4. **Determinism law.** Every generated result must be reproducible
+5. **Determinism law.** Every generated result must be reproducible
    from a seed (the frame's seed authority, prd-frame-authority.md).
    A regenerated chunk is bit-identical.
 
 ## 4. Scale budget (the size question)
 
-- The current 20 km planet / 150 km2 continent numbers are a
-  **budget**, not a promise. The honest scaling factors:
+- The v1 "20 km planet / 150 km2 continent" numbers were a
+  **budget**, not a promise. Measured on the live seed
+  (`diag_biome_map.gd`, 6000-sample fibonacci scan, 2026-11-04):
+  **~79% deep ocean, ~11% shore, ~6% land, ~3% lake**. The land
+  splits between the **home continent** (faces 16 + 18, the ~14 km
+  homeland dome -- ~159-251 km2) and **emergent noise continents**
+  elsewhere; the whole-planet land is ~320 km2, inside the seed
+  sweep band of 100-380 km2. The honest scaling factors:
   - **State:** entity count x tick cost, not raw area. Ocean tiles
     are nearly free (no entities, no state tree writes); coastlines
     and settlements dominate cost.
@@ -116,19 +193,42 @@ Mostly procedural, hand-authored where it earns it:
 - **Instances need a lobby contract:** enter/exit must preserve
   player state cleanly (the frame's state tree already scopes by
   zone; instances add a per-instance scope id).
+- **The floating-structure contract (OPEN):** authored structures
+  (village halls, houses, docks, monoliths) ride the **walk law**
+  pedestal -- `planet_radius + tile_lift + walk_surface_h(dir)` --
+  while the **rendered mesh** is a discrete LOD sampling of the same
+  law. Where a far face's coarse mesh sags meters below the law
+  between samples, a structure reads as "floating". The `LOD_FLOOR_
+  LEVEL` raise (4 -> 5) shrank this; the durable fix is to seat
+  authored structures on the DRAWN surface (or keep their face at a
+  fine level). Reported live ("houses floating"); tracked as a bug.
 - **Procgen quality floor:** generated settlements must read as
   built by people in a post-machine world -- scarcity-driven,
   assembled from salvage. Block vocabulary inherits the art PRD's
   rules (no engines, no factory lines).
 - **Ocean is not empty:** ferries, sea content, and the horizon
   promise ("there is more out there") carry the sense of scale.
+- **Zones are meta until the land is online:** `ZoneData` currently
+  carries rules (PvP mode, level gates, instance flags) but no real
+  world placement -- every `zone_center` is `Vector3.ZERO` and
+  `bounds` is null. Once the terrain renders planet-wide, zones get
+  real centers/bounds so EXPLORE credit, spawn ownership, and PvP
+  boundaries key on actual ground.
 
 ## 6. What this changes in existing docs
 
+- **v1 sections 1 and the "no floating islands" rule are superseded
+  by this v2** -- the Dev Island is retired, the poles are real
+  landmasses, and floating islands are allowed.
 - `prd-story.md` Act 1 locations stand as written; this doc fixes
   their planet-level context (coast, harbor, waypoint hop).
 - `prd-geometry.md` remains the addressing authority; this doc adds
   the land/ocean/instance topology on top of it.
-- World-building docs' "capital at geographic center" is superseded:
-  **Nexus Central is on the coast.** Inland capital references in
-  older docs are pre-2026-09-25 drift.
+- `world-building.md` (the original 150 km2 plan) is **historical**:
+  its "capital at the geographic center" is superseded --
+  **Nexus Central is on the coast**, the village is inland ~1 km
+  with a road to the capital, and the mountain range is behind the
+  village. Its "one continent" claim is superseded by the authored
+  set + emergent continents in section 1.
+- `prd-terrain.md` is the ground-law authority; this doc is the
+  topology intent on top of it.

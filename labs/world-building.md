@@ -1,6 +1,18 @@
 # World-Building Plan
 
-> **Status:** Phase 2 - Frame primitives consolidated, single-process architecture. Companion reference: `m3-initial-world-audit.md`
+> **Status:** HISTORICAL (superseded by the terrain arc). This is the
+> original 2026-09-17 design draft. The world it describes has since
+> been **built differently** and the authoritative docs are now:
+> `prd-world.md` v2 (topology intent) and `prd-terrain.md` v3 (the
+> ground law). Read this doc for design history only; where it
+> conflicts with those two, they win. Notable superseded points:
+> **the capital is on the COAST, not the geographic center** (see
+> §3.9 below -- kept for history); the "one 150 km² continent" is now
+> the homeland dome + ferry island + lake + Sun Pans atoll + emergent
+> continents + (planned) polar landmasses; the dev island is retired
+> (dev lives on the moon).
+>
+> Companion reference: `m3-initial-world-audit.md`
 > (the "where we are today" snapshot) and `world-building-research.md`
 > (research companion for §21's experimental angles) and
 > `world-building-arch.md` (the systems architecture — frame
@@ -420,9 +432,15 @@ Decisions for the v1 dev/alpha/beta world:
 - **Landmass**: one continent, ~150 km², containing all
   biome variety for testing. The rest is ocean (intentional,
   for future boat/ship mechanics and to test spherical
-  wrap-around).
+  wrap-around). **[SUPERSEDED: the built planet has a ~14 km
+  homeland dome, a ferry island, a mountain lake, the Sun Pans
+  atoll, emergent noise continents, and planned polar landmasses.
+  See `prd-world.md` v2 / `prd-terrain.md` v3.]**
 - **Capital city**: at the geographic center of the
-  continent. New players start here.
+  continent. New players start here. **[SUPERSEDED: the capital is
+  on the COAST (harbor district, ferry docks); the starter village
+  is inland ~1 km with a road to the capital, and the mountain range
+  is behind the village. See `prd-world.md` v2 §1.]**
 - **Biome layout** (within ~5 km radius of the capital):
   - North: forest (tutorial zone, starter mobs).
   - East: plains + farmland (starter quests, low-level).
