@@ -63,9 +63,12 @@ law's unsampled amplitude, and the walk surface rides the analytic law
   walk). Determinism test stays green.
 - **The external-backend seam:** `install_terrain_backend(callable)`
   lets a world replace the RAW landfield (imported heightmaps, server
-  continents) while the sculpt + spawn laws ride on top. The default is
-  uninstalled (the analytic law runs). `world_<id>.tres` declares
-  `terrain_backend_id`; empty = natural law.
+  continents) while the sculpt + spawn laws ride on top. `world_<id>.tres`
+  declares `terrain_backend_id`; empty = natural law. `world_main` now
+  declares `sundered` (the play world runs the authored strait backend,
+  SHIPPED v12); `world_moon` declares nothing (natural law). A declared
+  id must resolve at `res://scenes/worlds/backend_<id>.gd` or the seam
+  logs and falls back to the natural law.
 
 ## 2b. The authored landmass sculpt (v11, SHIPPED)
 
@@ -259,11 +262,13 @@ fully-playable, fully-rendered world:
   law, not a decorative box. The terrain law needs a floating-island
   field (a local heightfield anchored to an altitude, blended into
   the walk/pad law). See `prd-world.md` section 1.
-- **The Sundered Strait (authored, DORMANT).** `backend_sundered.gd`
-  exists (S14.7) but is not installed (`world_main.tres`
-  `terrain_backend_id` is empty), so the live terrain does not carve
-  the strait that the zone/barque/waypoints reference. Either
-  re-install it or reconcile the content. See `prd-world.md`.
+- **The Sundered Strait (authored, SHIPPED).** `backend_sundered.gd`
+  (S14.7) composes over `TerrainGen._natural_raw` and carves the strait
+  (channel / headlands / wreck-shoal ford) into the natural geology;
+  `world_main.tres` declares `terrain_backend_id = "sundered"`, so the
+  live terrain carves the strait the zone/barque/waypoints reference.
+  The home continent and the v12 polar caps are untouched (compose law,
+  `probe_sundered_backend`). See `prd-world.md`.
 - **The floating-structure bug (OPEN).** Authored structures ride
   the walk-law pedestal while the rendered mesh is a discrete LOD
   sample; coarse far faces sag below the law, so structures float.
