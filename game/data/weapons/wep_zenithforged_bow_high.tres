@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_zenithforged_bow_high"
+display_name = "Zenithforged War Bow"
+description = "A zenithforged war bow, drawn for the outer air. At the top rung the wind stops arguing and the arrow goes where it was told."
+icon_path = "res://icons/items/bow_long.png"
+item_category = 0
+rarity = 5
+equip_slot = 8
+weapon_type = 5
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 14040
+buy_price = 46800
+item_level = 60
+required_level = 60
+stats = {
+"agility": 11
+}
+weapon_damage_min = 65
+weapon_damage_max = 97
+attack_speed = 1.0

@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_zenithforged_staff_high"
+display_name = "Zenithforged Staff"
+description = "A zenithforged staff, cut for the ones who read the sky and write it down. It carries the top rung's quiet the way a cup carries water."
+icon_path = "res://icons/items/staff_walnut.png"
+item_category = 0
+rarity = 5
+equip_slot = 8
+weapon_type = 7
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 14220
+buy_price = 47400
+item_level = 60
+required_level = 60
+stats = {
+"wisdom": 13
+}
+weapon_damage_min = 60
+weapon_damage_max = 89
+attack_speed = 1.1

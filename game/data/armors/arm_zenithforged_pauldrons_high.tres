@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_zenithforged_pauldrons_high"
+display_name = "Zenithforged Pauldrons"
+description = "A zenithforged pauldrons, wide across the shoulders that carry the column's kit. Plate for the ones who stand in front."
+icon_path = "res://icons/items/armor_leather_chest.png"
+item_category = 1
+rarity = 5
+equip_slot = 6
+armor_type = 4
+stack_size = 1
+sell_price = 14220
+buy_price = 47400
+item_level = 60
+required_level = 60
+stats = {
+"vitality": 16
+}
+armor_value = 86

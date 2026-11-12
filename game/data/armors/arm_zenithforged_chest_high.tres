@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_zenithforged_chest_high"
+display_name = "Zenithforged Chestguard"
+description = "A zenithforged chestguard, the heaviest plate the Concord writes. Worn by the few who have walked the top rung and come back down."
+icon_path = "res://icons/items/armor_starmetal_bulwark.png"
+item_category = 1
+rarity = 5
+equip_slot = 2
+armor_type = 4
+stack_size = 1
+sell_price = 15240
+buy_price = 50800
+item_level = 60
+required_level = 60
+stats = {
+"vitality": 18
+}
+armor_value = 104

@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_zenithforged_sword_high"
+display_name = "Zenithforged Arming Sword"
+description = "A zenithforged arming sword, worked for the top of the world and the last rung the Concord writes. It keeps its edge past the air where the weather gives up."
+icon_path = "res://icons/items/sword_iron.png"
+item_category = 0
+rarity = 5
+equip_slot = 8
+weapon_type = 1
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 14880
+buy_price = 49600
+item_level = 60
+required_level = 60
+stats = {
+"strength": 11
+}
+weapon_damage_min = 66
+weapon_damage_max = 96
+attack_speed = 1.2

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_zenithforged_boots_high"
+display_name = "Zenithforged Boots"
+description = "A zenithforged boots, soled for a ground that is mostly rock and mostly up. They hold a shape through the long walk back."
+icon_path = "res://icons/items/armor_starmetal_bulwark.png"
+item_category = 1
+rarity = 5
+equip_slot = 4
+armor_type = 4
+stack_size = 1
+sell_price = 14700
+buy_price = 49000
+item_level = 60
+required_level = 60
+stats = {
+"vitality": 17
+}
+armor_value = 96

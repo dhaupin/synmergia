@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_ring_zenithforged"
+display_name = "Zenithforged Signet"
+description = "A zenithforged signet, cut at the top rung and signed once. It remembers every hand it has passed to."
+icon_path = "res://icons/items/ring_golden_signet.png"
+item_category = 2
+rarity = 5
+equip_slot = 9
+accessory_type = 1
+stack_size = 1
+sell_price = 13680
+buy_price = 45600
+item_level = 60
+required_level = 60
+stats = {
+"strength": 11,
+"vitality": 9
+}

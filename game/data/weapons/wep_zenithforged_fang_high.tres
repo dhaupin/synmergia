@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_zenithforged_fang_high"
+display_name = "Zenithforged Shortblade"
+description = "A zenithforged shortblade, quick as a held breath. The top rung favors the hand that strikes before the eye follows."
+icon_path = "res://icons/items/dagger_iron.png"
+item_category = 0
+rarity = 5
+equip_slot = 8
+weapon_type = 4
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 13560
+buy_price = 45200
+item_level = 60
+required_level = 60
+stats = {
+"agility": 11
+}
+weapon_damage_min = 58
+weapon_damage_max = 86
+attack_speed = 1.6

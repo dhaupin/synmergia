@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_zenithforged_helm_high"
+display_name = "Zenithforged Helm"
+description = "A zenithforged helm, closed against the thin air of the top rung. It holds a shape through weather, blade, and the long walk back."
+icon_path = "res://icons/items/armor_leather_helm.png"
+item_category = 1
+rarity = 5
+equip_slot = 1
+armor_type = 4
+stack_size = 1
+sell_price = 13920
+buy_price = 46400
+item_level = 60
+required_level = 60
+stats = {
+"vitality": 16
+}
+armor_value = 82

@@ -133,6 +133,7 @@ probe_thermals
 DEFAULT_SET="
 test_data_naming_lint
 test_item_catalog
+test_zenith_capstone
 test_item_use
 test_a11y_service
 test_a11y_contrast

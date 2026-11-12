@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_zenithforged_maul_high"
+display_name = "Zenithforged Maul"
+description = "A zenithforged maul, slow and final. It was made for the things that stand between a body and the roof of the world."
+icon_path = "res://icons/items/halberd_mythril.png"
+item_category = 0
+rarity = 5
+equip_slot = 8
+weapon_type = 3
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 14460
+buy_price = 48200
+item_level = 60
+required_level = 60
+stats = {
+"strength": 12
+}
+weapon_damage_min = 66
+weapon_damage_max = 99
+attack_speed = 0.9

@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_zenithforged_shield_high"
+display_name = "Zenithforged Bulwark"
+description = "A zenithforged bulwark, wide as a door and just as stubborn. It was made for the one who stands still so the others can walk on."
+icon_path = "res://icons/items/shield_haven_wall.png"
+item_category = 0
+rarity = 5
+equip_slot = 8
+weapon_type = 10
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 13980
+buy_price = 46600
+item_level = 60
+required_level = 60
+stats = {
+"strength": 12
+}
+weapon_damage_min = 52
+weapon_damage_max = 76
+attack_speed = 0.8
