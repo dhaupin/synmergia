@@ -6,12 +6,13 @@
 ##    entity physically sits at its (subworld-frame) center.
 ## 4. THE TERRAFORM SCOPE PIN (authored-backend scoping): the world
 ##    DATA declarations scope the heightfield per world -- world_main
-##    declares NOTHING (the authored-backends round ended: the play
-##    world wants the natural analytic terrain; the penrose lattice
-##    backend stays available for any world that asks for it, none
-##    does right now) -- and the moon declares NOTHING too (both
-##    grounds are the natural analytic law). Strictly structural: the
-##    .tres declarations and the registered worlds must agree.
+##    declares the SUNDERED STRAIT backend (the S14.7 content pass
+##    installs over the natural analytic terrain: the strait carves,
+##    the home continent + poles do not move -- see probe_sundered_backend)
+##    -- and the moon declares NOTHING (its ground is the natural
+##    analytic law). Strictly structural: the .tres declarations and
+##    the registered worlds must agree, and a declared backend script
+##    must resolve at the seam path.
 extends SceneTree
 
 var _checks := 0
@@ -48,11 +49,18 @@ func _run() -> void:
 	if main_data == null or moon_data == null:
 		terra_ok = false
 	else:
-		if not str(main_data.terrain_backend_id).is_empty():
-			terra_ok = false  # the main ground is the natural law now
+		# The main ground carries the SUNDERED STRAIT backend (S14.7); the
+		# declaration must name a script that actually resolves at the seam
+		# path globe_world installs (a dangling id is the real defect).
+		var main_id := str(main_data.terrain_backend_id)
+		if main_id != "sundered":
+			terra_ok = false
+		elif not ResourceLoader.exists("res://scenes/worlds/backend_%s.gd" % main_id):
+			terra_ok = false
+		# The moon's ground is the natural analytic law (declares nothing).
 		if not str(moon_data.terrain_backend_id).is_empty():
-			terra_ok = false  # the moon's ground is the natural law
-	ok = _check("terraform scope: main and moon both declare nothing (natural law)", terra_ok) and ok
+			terra_ok = false
+	ok = _check("terraform scope: main declares the sundered backend (resolves), moon declares nothing", terra_ok) and ok
 
 	var zone = zm.get_zone("zone_deep_root_camp")
 	ok = _check("zone_deep_root_camp registered", zone != null) and ok
