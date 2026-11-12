@@ -9,8 +9,8 @@
 > **the capital is on the COAST, not the geographic center** (see
 > §3.9 below -- kept for history); the "one 150 km² continent" is now
 > the homeland dome + ferry island + lake + Sun Pans atoll + emergent
-> continents + (planned) polar landmasses; the dev island is retired
-> (dev lives on the moon).
+> continents + the two polar caps (shipped v12); the dev island is
+> retired (dev lives on the moon).
 >
 > Companion reference: `m3-initial-world-audit.md`
 > (the "where we are today" snapshot) and `world-building-research.md`

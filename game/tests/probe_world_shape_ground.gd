@@ -157,4 +157,9 @@ func _dir_in_cove(Gen, d: Vector3) -> bool:
 		- atan2(qa.dot(north), qa.dot(east)))
 	if dev > PI:
 		dev = TAU - dev
+	# v12 reach gate: the law now fades the window to nothing beyond the
+	# homeland reach (the bearing-only window used to wrap the planet).
+	var ang_spawn: float = d.angle_to(spawn)
+	if ang_spawn > Gen.HOMELAND_ANGULAR_REACH:
+		return false
 	return dev < Gen.COVE_HALF_WIDTH * 2.0
