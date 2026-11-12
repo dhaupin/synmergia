@@ -221,6 +221,19 @@ rungs:
 Gear follows the same metal rungs: copper -> iron -> silver -> golden ->
 mythril -> starmetal. A `wep_`/`arm_`/`acc_` id names its rung.
 
+Above the mined resource ladder the FORGE tiers keep climbing, and a
+`wep_`/`arm_`/`acc_` id still names its tier:
+
+- sunforged (mid-high country, ~L42+)
+- skyforged (the long ascent / outer air, ~L52+)
+- zenithforged (the last rung, the level cap: item_level =
+  required_level = 60)
+
+Zenithforged is the CAPSTONE: one weapon per `WeaponType`, one piece per
+armor slot, one per `AccessoryType`, sourced through
+`loot_zenith_reach`. There is nothing above it while the cap is 60; a
+future cap raise appends a rung, it does not renumber this one.
+
 ---
 
 ## 4. Cross-reference rules
