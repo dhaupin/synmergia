@@ -96,10 +96,13 @@ func _run() -> void:
 
 	# W1: continent-scale land inside a generous budget band. The PRD's
 	# 150 km2 is a budget, not a promise; the band catches both the
-	# under-culled green sheet AND the planet-wide land spill.
+	# under-culled green sheet AND the planet-wide land spill. v12: the
+	# two polar caps (now real landmasses, prd-world section 1) add ~105
+	# km2 measured (342 -> 447 on this seed), so the upper bound widens
+	# from the v1 380 to 560 -- a real spill (>1000 km2) is still caught.
 	var area_km2: float = float(land) / float(N) * 4.0 * PI * 400.0
-	_check(area_km2 > 100.0 and area_km2 < 380.0,
-		"world land is continent-scale (%.0f km2 inside 100..380 band; W1)" % area_km2)
+	_check(area_km2 > 100.0 and area_km2 < 560.0,
+		"world land is continent-scale (%.0f km2 inside 100..560 band; W1)" % area_km2)
 	# W2: the homeland plateau never opens on the sea.
 	_check(plateau_land_dirs == plateau_cap_dirs,
 		"homeland plateau is solid land (%d/%d dirs; W2)" % [plateau_land_dirs, plateau_cap_dirs])
