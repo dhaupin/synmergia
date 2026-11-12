@@ -169,6 +169,26 @@ const SEA_LEVEL_SPAN: float = 3.0
 ## Ocean floor depth range below the sea line (the swimmable shelf).
 const OCEAN_DEPTH_MIN: float = 9.0
 const OCEAN_DEPTH_SPAN: float = 6.0
+## THE POLAR CAPS (v12, the "real planet" law): two authored ice/snow
+## landmasses at the top and bottom of the sphere, like a real planet.
+## The natural land band (`_land_mass`'s latitude gate) zeroes land above
+## ~45 deg, so the poles resolve as open sea; this cap overrides that with
+## a plateau-then-coast dome around each pole, paying the SAME max-law the
+## homeland dome and the Sun Pans atoll pay (noise still carves the coast,
+## the skirt floor keeps the ring dry). The temperature law already reads
+## the poles as the coldest place on the sphere (lat 90 -> t = 0), so the
+## cap resolves the freeze ladder (TUNDRA / ALPINE) and the vertex snowline
+## tints it white -- ice/snow land with no new biome id. Symmetric across
+## both poles (absf(d.y)), so the north/south compass + map law is
+## untouched (the poles were "TBA" only because an early polar treatment
+## broke the map's lat sign -- fixed since by the shared lat_lon_to_uv law).
+## POLAR_CAP_ANG 0.34 rad ~ 6.8 km cap radius at the 20 km planet scale.
+const POLAR_CAP_ANG: float = 0.34
+## THE POLAR RELIEF: a masked mountain stream on the caps so the ice
+## reads as broken country (ridges + peaks), not a flat white pancake.
+## Lower than MOUNTAIN_AMP (1000) -- these are ice sheets, not the home
+## range; the snowline already tints the whole cap white.
+const POLAR_RELIEF_AMP: float = 420.0
 ## The mountain lake: direction (unit), angular radius, and how far
 ## its surface sits below the sea line (mountain bowls drain low).
 const LAKE_CENTER: Vector3 = Vector3(0.28, 0.26, 0.92)
@@ -508,6 +528,15 @@ static func _land_mass(d: Vector3, salt: int) -> float:
 	var pans: float = _sun_pans_island(d)
 	if pans > 0.0:
 		return clampf(maxf(noise_land, maxf(pans * 0.95 - detail * 0.35, pans * 0.42)), 0.0, 1.0)
+	# THE POLAR CAPS (v12): the ice/snow landmasses at the poles pay the
+	# same max-law (the natural latitude band zeroed land there). The cap
+	# floor is HIGHER than the homeland's (0.72 vs 0.42): the cap has no
+	# spawn/plains override to raise it, so its interior must sit solidly
+	# above the sea line on its own (measured: the 0.42 floor left the
+	# pole at -3.4 m -- noise tipped it under the sea).
+	var cap: float = _polar_cap(d)
+	if cap > 0.0:
+		return clampf(maxf(noise_land, maxf(cap * 1.02 - detail * 0.25, cap * 0.72)), 0.0, 1.0)
 	return noise_land
 
 
@@ -528,6 +557,22 @@ static func _homeland(d: Vector3) -> float:
 	if ang >= HOMELAND_ANGULAR_REACH:
 		return 0.0
 	var t: float = ang / HOMELAND_ANGULAR_REACH
+	return 1.0 if t <= 0.6 else smoothstep(1.0, 0.6, t)
+
+
+## THE POLAR CAP shape (0..1): a plateau-then-coast dome around BOTH
+## poles, symmetric in |d.y| (so north and south pay the same law and
+## the map/compass lat sign is untouched). Angle from the pole axis
+## (0,+1,0); full strength inside 60% of POLAR_CAP_ANG, then a
+## smoothstep falloff to the polar sea -- the SAME plateau dialect the
+## homeland dome uses, so the detail noise carves the ice coast into
+## bays and points. Pure function of the direction (mesh, walk, biome,
+## and dressing all read it).
+static func _polar_cap(d: Vector3) -> float:
+	var ang: float = acos(clampf(absf(d.y), -1.0, 1.0))
+	if ang >= POLAR_CAP_ANG:
+		return 0.0
+	var t: float = ang / POLAR_CAP_ANG
 	return 1.0 if t <= 0.6 else smoothstep(1.0, 0.6, t)
 
 
@@ -571,7 +616,18 @@ static func _cove_window(d: Vector3) -> float:
 		- atan2(qa.dot(north), qa.dot(east)))
 	if dev > PI:
 		dev = TAU - dev
-	return 1.0 - smoothstep(COVE_HALF_WIDTH, COVE_HALF_WIDTH * 2.0, dev)
+	# THE REACH GATE (v12): the bearing window ALONE wraps the WHOLE
+	# planet along the cove's great circle -- harmless while the poles
+	# were open ocean, but it cut a phantom sea notch into the new polar
+	# land (the north pole sits ON the cove bearing at 1.57 rad, so the
+	# window read 1.0 there and the sea cut pressed the pole to -3.4 m).
+	# The authored cove is a HOMELAND feature: full window out to the
+	# homeland reach, fading to nothing just beyond it, so the coast is
+	# unchanged near the boot and nothing wraps.
+	var ang_spawn: float = d.angle_to(SPAWN_CENTER)
+	var reach: float = 1.0 - smoothstep(HOMELAND_ANGULAR_REACH - 0.04, \
+		HOMELAND_ANGULAR_REACH, ang_spawn)
+	return (1.0 - smoothstep(COVE_HALF_WIDTH, COVE_HALF_WIDTH * 2.0, dev)) * reach
 
 
 ## THE GROUND LAW (v2 core, renamed at v3). Height (meters) of the
@@ -739,6 +795,14 @@ static func _natural_raw(d: Vector3, world_seed: PackedByteArray) -> float:
 			* (1.0 - smoothstep(RING_T_HI, RING_T_HI + 0.25, blobs))
 		var land_gate: float = smoothstep(0.20, 0.34, land)
 		land_h += ramp * chain_gate * (0.35 + 0.65 * pow(crest, 1.6)) * land_gate * MOUNTAIN_AMP
+	# THE POLAR RELIEF (v12): a masked mountain stream on the ice caps so
+	# the caps read as broken country, not a flat pancake. The mask rides
+	# the cap strength, so the coast still ramps gently (continuity).
+	var cap_r: float = _polar_cap(d)
+	if cap_r > 0.0:
+		var cap_noise: float = _vnoise(d, salt + 31, 4.0)
+		var cap_mask: float = smoothstep(0.55, 0.92, cap_noise) * smoothstep(0.35, 0.7, land)
+		land_h += cap_r * cap_mask * pow(cap_noise, 2.0) * POLAR_RELIEF_AMP
 	var h: float = minf(lerpf(ocean_floor, land_h, smoothstep(0.0, 0.18, land)), TERRAIN_MAX)
 	var bowl: float = _lake_bowl(d) * smoothstep(0.1, 0.3, land)
 	if bowl > 0.0:
@@ -1698,6 +1762,12 @@ static func _hydro_gates(d: Vector3, world_seed: PackedByteArray) -> Vector2:
 	# a lake into dry ground and the standing-water law never fills
 	# the salt pans.
 	if sun_pans_factor(d) > 0.0:
+		return Vector2(0.0, 0.0)
+	# THE POLAR EXCLUSION (v12): an ice cap holds no basins either --
+	# the district gate dies over the caps, so the carve never presses a
+	# lake into the polar land (measured: a stray basin pressed the north
+	# pole to -3.4 m, under the sea, before this).
+	if _polar_cap(d) > 0.0:
 		return Vector2(0.0, 0.0)
 	var salt: int = _seed_salt(world_seed, "hydro_table")
 	var cell: float = _vnoise(d, salt, 2.0)
