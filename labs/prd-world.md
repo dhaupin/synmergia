@@ -63,16 +63,22 @@
      (a volcanic atoll on face 12), the only desert on this seed;
      reached by the long-haul Pans ferry. Glide-reachable from the
      homeland islands.
-  5. **The Poles** -- **designed, not yet built.** The intent is two
-     polar landmasses (ice/snow/mountain biomes) at the top and
-     bottom of the sphere, like a real planet. Today the land law is
-     **latitude-gated** (`_land_mass`'s band term), so the poles
-     resolve as **sea** -- but cold biomes DO exist at altitude
-     (the live scan shows TUNDRA ~0.5% + ALPINE ~0.3%). They were
-     "TBA" only because an early polar treatment broke the compass;
-     the build-out adds polar landmass shapes (a dome/plateau on the
-     same continuity discipline) plus the compass fix. See
-     `prd-terrain.md` section 6.
+  5. **The Poles** -- **SHIPPED (v12, 2026-11-04).** Two authored
+     ice/snow landmasses at the top and bottom of the sphere. The land
+     law's latitude band zeroes land above ~45 deg, so the poles were
+     open sea; the v12 polar cap adds a plateau-then-coast dome around
+     each pole (the SAME max-law the homeland and the Sun Pans atoll
+     pay) plus a masked relief stream, so the caps read as broken ice,
+     not a flat pancake. The temperature law already reads the poles as
+     the coldest place on the sphere, so the caps resolve the freeze
+     ladder (TUNDRA/ALPINE) and the snowline tints them white -- no new
+     biome id. Symmetric in `absf(d.y)`, so the north/south compass +
+     map lat sign are untouched (the early "polar broke the compass"
+     fear was a lat-sign bug in the map, fixed since by the shared
+     `lat_lon_to_uv` law). Constants: `POLAR_CAP_ANG` 0.34 rad (~6.8 km
+     cap radius), `POLAR_RELIEF_AMP` 420 m. Receipt:
+     `game/tests/probe_polar_caps.gd`. The build-out also exposed and
+     fixed a latent `_cove_window` bug (see `prd-terrain.md` section 6).
   6. **Emergent continents** -- the noise field grows additional
      far continents and islands anywhere the seed rolls land. These
      are real ground (the terrain law renders them) and are

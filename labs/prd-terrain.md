@@ -31,9 +31,11 @@
 >   v7 biodiversity (tree species + fungal tier). Numbers: 25
 >   collided trees / 1.2 km at boot, ~900 meadow clumps per face.
 > - **Authored landmass sculpt (v11)**: SHIPPED (see section 2b).
-> - **Poles + floating islands**: DESIGNED here, NOT built (section
->   6). The poles currently resolve as latitude-gated sea; floating
->   islands have no heightfield law yet.
+> - **Polar caps (v12)**: SHIPPED -- two ice/snow landmasses at the
+>   poles (plateau-then-coast dome + relief), resolving TUNDRA/ALPINE.
+>   Receipt `game/tests/probe_polar_caps.gd`.
+> - **Floating islands**: DESIGNED here, NOT built (section 6).
+>   Floating islands have no heightfield law yet.
 > - **Planet-wide visible rendering**: the streaming LOD renders the
 >   near neighborhood; a full planet flyover is the open build item
 >   (section 6).
@@ -236,12 +238,21 @@ fully-playable, fully-rendered world:
   stand. This is what "finish the terrain" means: get the biome /
   land / hydrology systems rendering across the sphere in the
   playable game, not just under the boot.
-- **The Poles (DESIGNED, not built).** Two polar landmasses
-  (ice/snow/mountain biomes) at the top and bottom of the sphere.
-  The land law is currently latitude-gated so the poles resolve as
-  sea; the polar caps need a land treatment (a dome/plateau shaped
-  by the same continuity discipline) plus the compass fix that made
-  them "TBA" in the first place. See `prd-world.md` section 1.
+- **The Poles (SHIPPED v12).** Two polar landmasses (ice/snow
+  biomes) at the top and bottom of the sphere. The land law's
+  latitude band zeroes land above ~45 deg, so the poles were open
+  sea; the v12 cap adds a plateau-then-coast dome around each pole
+  (`_polar_cap`, the same max-law the homeland/Sun Pans pay) plus a
+  masked relief stream (`POLAR_RELIEF_AMP`), resolving TUNDRA/ALPINE.
+  The temperature law already reads the poles as coldest, so no new
+  biome id. Symmetric in `absf(d.y)`, so the compass/map lat sign is
+  untouched. Receipt: `game/tests/probe_polar_caps.gd`. This exposed a
+  LATENT BUG now fixed: `_cove_window` was a bearing-only window with
+  NO distance bound, so its sea cut wrapped the WHOLE planet along the
+  cove's great circle -- harmless while the poles were ocean, but the
+  north pole sits on that bearing, so the cut pressed it to -3.4 m.
+  The window is now gated to the homeland reach (its authored home).
+  See `prd-world.md` section 1.
 - **Floating islands (DESIGNED, not built).** Sky islands reachable
   by thermal updraft or gate, in the main sky and the underworld. A
   floating island is *real ground*: its own heightfield patch + walk
