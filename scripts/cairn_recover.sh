@@ -48,15 +48,18 @@ node bin/horcrux.js inspect "$STONE"
 node bin/horcrux.js restore "$STONE"
 
 # 3. Pin the stack (vant #97: restore union-merges the host's stale
-#    stack and leaves activeBrain unset).
+#    stack and leaves the active pointer unset). The pointer key is
+#    `currentBrain` -- `activeBrain` is NOT a state.json key, so writing
+#    it silently does nothing (the brain still wakes on the wrong one).
 node -e '
 const fs = require("fs");
 let s = {};
 try { s = JSON.parse(fs.readFileSync("models/state.json", "utf8")); } catch (e) {}
 s.stack = ["cairn"];
-s.activeBrain = "cairn";
+s.currentBrain = "cairn";
 fs.writeFileSync("models/state.json", JSON.stringify(s, null, 2) + "\n");
-console.log("[cairn] stack pinned: [\"cairn\"]");
+if (s.currentBrain !== "cairn") { console.error("[cairn] pin FAILED"); process.exit(1); }
+console.log("[cairn] stack pinned: [\"cairn\"], currentBrain=cairn");
 '
 
 # 4. Boot check through the real memory API. Private memory goes
