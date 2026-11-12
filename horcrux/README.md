@@ -104,7 +104,7 @@ search. Lockfiles (`bun.lock`) are listed there for the same reason.
 
 | File | Agent | Contains |
 |------|-------|----------|
-| `cairn-p_windtheclock2026.svg` | Buffy, callsign Cairn (world-frame architect) | brain (identity/goals/lessons/errors/preferences + private state/notes + the journal), org rig (Synmergia > Frame Engineering > World Frame > world-frame-architect), islands, runtime state. The decryption key rides the filename after `p_` (see "How to unlock it" above) -- it is not printed here. Forged from the vant root. Refreshed 2026-11-11: the brain caught up a month of repo work (the catch-up journal + fresh lessons); cold round-trip proven -- fresh clone -> restore -> 29 files to cairn (both), stack self-adopts, private roundtrip marker + lessons verified. |
+| `cairn-p_windtheclock2026.svg` | Buffy, callsign Cairn (world-frame architect) | brain (identity/goals/lessons/errors/preferences + private state/notes + the journal), org rig (Synmergia > Frame Engineering > World Frame > world-frame-architect), islands, runtime state. The decryption key rides the filename after `p_` (see "How to unlock it" above) -- it is not printed here. Forged from the vant root. Refreshed 2026-11-11: the brain caught up a month of repo work (the catch-up journal + fresh lessons); cold round-trip proven -- fresh clone -> restore -> 29 files to cairn (both), stack self-adopts, private roundtrip marker + lessons verified. Re-forged 2026-11-12: the stale "runner being reworked to parallel" lesson was removed and the stone rebuilt from the clean brain, so a restore can no longer re-seed that note. |
 
 Superseded: `buffy-p_windtheclock2026.svg` (pre-callsign snapshot,
 removed from main in favor of the cairn one; recoverable from git
