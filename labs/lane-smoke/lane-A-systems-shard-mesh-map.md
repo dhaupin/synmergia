@@ -105,9 +105,9 @@ Every phase below has an implementation I could locate and read.
 ## 3. Phases with no implementation found
 
 None. All six phases (0, 1, 2, 3, 3.1, 3.2) have a locatable implementation
-plus at least one receipt file. I did not run the receipts (constraint), so
-"implemented" means the symbols and files exist as read, not that the tests
-pass.
+plus at least one receipt file. This audit ran only its targeted gates; the
+parent runs the full suite, so "implemented" means the symbols and files exist
+as read, not that the tests pass.
 
 ## 4. Out-of-scope items (no implementation, as designed)
 

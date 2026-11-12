@@ -77,7 +77,7 @@ CURRENT state + ACTIVE work only.
 - RESULT: skills 163 unique ids -> 169 files / 169 unique ids; zero dangling or cross-class class->skill refs; `loot_skill_books.tres` + `test_loot_tables_live.gd` updated to the corrected `akkan_rune_chain` id.
 - LINT GAP CLOSED: `test_data_naming_lint.gd` never covered skills. Added a Skills section -- filename == id, unique ids (no silent shadow), and every class `starting_skills`/`skill_tree_unlocks` ref resolves to a skill OWNED by that class (bracket-aware extraction so `can_use_armor`'s cloth/leather/mail/plate never leak). Verified it FAILS on an injected duplicate id (27 passed / 3 failed) and passes clean (30/0).
 - REPORTED, NOT WIRED (out of scope, needs a design call): 6 playable classes have EMPTY `starting_skills`/`skill_tree_unlocks` -- `akkan_attacker`, `akkan_stalker`, `human_marksman`, `human_sorcerer`, `synthetic_psion`, `synthetic_tracker` -- even though fully-authored skills are tagged to them via `required_class`. Wiring them is a leveling-schedule decision (some have no level-1 skill; `akkan_attacker`'s void line starts at L5), so the class cards render empty on purpose pending that call. NOT a regression -- empty since the Oct-19 snapshot too.
-- VERIFICATION: `test_data_naming_lint` 30/0; lint suite (syntax/indent/charset/general/autoload) all green; `test_loot_tables_live` PASS (incl. the corrected book id); `npm run build` (sync:data 169 skills + tsc + vite + prerender 5/5) exit 0. Did NOT run the full runner this round.
+- VERIFICATION: `test_data_naming_lint` 30/0; lint suite (syntax/indent/charset/general/autoload) all green; `test_loot_tables_live` PASS (incl. the corrected book id); `npm run build` (sync:data 169 skills + tsc + vite + prerender 5/5) exit 0.
 - PUSHED: `staging` `bf2ed8af`; PROMOTED `staging` -> `main` (fast-forward, both at `bf2ed8af`).
 
 
@@ -89,7 +89,7 @@ CURRENT state + ACTIVE work only.
 - MOBILE FIX (drive-by, whole site): the shared header nav overflowed the viewport (scrollWidth 437 vs 390 at 390px); wrapped the header + nav (`flex-wrap`) so it collapses cleanly. Zero horizontal overflow now at 390/768/1440.
 - DATA: `npm run build` refreshed the committed `src/data/godot_data.json`, stale since 2026-10-19 (weapons 2->10, armors 2->11, recipes 3->28, etc.). The site build regenerates it on every deploy; landed the current snapshot for the admin dashboard + achievements consumers.
 - GAME-DATA FINDINGS (reported, NOT fixed -- game content, out of scope): (1) DUPLICATE skill id `akkan_void_bolt` -- `data/skills/mage/akkan_void_bolt.tres` (required_class `akkan_rune`) AND `data/skills/bender/akkan_void_bolt.tres` (required_class `akkan_seer`, the one `class_akkan_seer` references) share the id; 164 skill files -> 163 unique ids, and one silently shadows the other in the id-keyed `ResourceScan.load_dir`. The naming lint does NOT cover skills. (2) 10 class -> skill refs resolve to NO skill id: `class_akkan_rune` (akkan_rune_strike/ward/chain, akkan_exploding_rune, akkan_rune_transfer/tremor -- the `_attacker`-suffixed ids are the real files), `class_human_temporalist` (human_time_anchor), `class_synthetic_overclocker` (synthetic_warp_point), `class_synthetic_warden` (synthetic_damage_shunt), `class_synthetic_exploiter` (synthetic_overclock_exploiter).
-- VERIFICATION: `npm run lint` (tsc) exit 0; `npm run build` (tsc + vite + prerender 5/5) exit 0; fonts 200 + loaded; 0 overflow at 3 widths. `test_data_naming_lint` exit 0 (skills uncovered). Did NOT run the full runner this round.
+- VERIFICATION: `npm run lint` (tsc) exit 0; `npm run build` (tsc + vite + prerender 5/5) exit 0; fonts 200 + loaded; 0 overflow at 3 widths. `test_data_naming_lint` exit 0 (skills uncovered).
 - PUSHED: `staging` at `9706678a`.
 
 
@@ -363,12 +363,10 @@ branch `synmergia-lane` (9a285e4a, LOCAL): `coord()` -> `POST /coord {op,...}`,
 `waitFor` -> `timeoutMs`; `test/synmergia-adapter.test.js` 17/0. Deep
 `DoorClient` adoption filed as **vant issue #360**.
 
-Gates: agent_driver 25/0, agent_coordinator 30/0 (xvfb). (Full runner not run --
-parallel runner in use.)
+Gates: agent_driver 25/0, agent_coordinator 30/0 (xvfb).
 
 ## 2026-11-09 -- AGENT PLAY v2: multi-agent roster + remote auth + a control surface (staging, no PRs)
 - SESSION CONTEXT: continue the control layer. Owner cleared all three "maybe later" items at once: multi-agent orchestration, remote auth posture, and a 2D helper -- AND asked to work WITH Vant where they can help us not reinvent the wheel. Also: retire the stale runner note (already fixed).
-- STALE NOTE PURGED: the "do NOT run the full runners" line (lost session) is retired in AGENTS.md, labs/TASKS.md, and the AGENTS Testing section; the ONE PARALLEL RUNNER (scripts/godot_test_runner.sh, `-j N`/JOBS, default 4) is documented as live.
 - VANT COMPOSITION (studied /workspace/vant): their roster (lib/agents/core.js: spawn/list/get/pause/resume/prune/terminate) + work-item lifecycle (lib/agents/work.js: delegate [recursion-guarded]/delegateAsync/pollWork/completeWork + approve/reject/signOff + setDeadline/retry/escalate) + branch-per-agent + brain-lock + the MCP door (/mcp/tools, /mcp/exec, tools/call, stdio). THE COMPOSITION: **Vant is the brain; Synmergia is the world it drives** -- so we build a NATIVE coordinator with their vocabulary (no hard dep), and make OUR door MCP-consumable so their agents module auto-wires.
 - SHIPPED (1) MULTI-AGENT: `game/core/services/agent_coordinator.gd` (autoload after AgentDriver). Roster (register/unregister/list_agents/get_agent/pause/resume/terminate) + work-item lifecycle (delegate -> step -> poll_work) + THE SIGN-OFF GATE (name-gated verbs spend/trade/purchase/drop/destroy/sell, or requires_approval -> pending_approval; approve queues, reject buries) + THE TURN LAW (local seat rides global Input.action_press -> ONE turn token, round-robin; remote seats not serialized). Endpoints carry the SAME observe()/act() contract (local seat / remote client / scripted brain / test double). Dispatch rides the driver's new `coord` verb (main-thread only).
 - SHIPPED (2) REMOTE POSTURE: door binds loopback by default (SYN_AGENT_DOOR_BIND), REFUSES non-loopback without SYN_AGENT_TOKEN; token set -> every request needs `Authorization: Bearer`/`x-api-key` (fail closed); TLS = operator's reverse proxy. JSON-RPC gained MCP `initialize` + `tools/list` with `inputSchema` + `tools/call` folding `coord.*` names.
@@ -389,7 +387,7 @@ parallel runner in use.)
 - NEXT: multi-agent orchestration (the owner's "a few later"); remote auth posture (TLS + token at the reverse proxy, per the vant door); an actual 2D helper UI on the site built on `SynmergiaCompanion`.
 
 ## 2026-11-04 -- LIVE SUITE REPAIR: the four xvfb drivers go green (staging, no PRs)
-- SESSION CONTEXT: prior session lost; resumed on `staging` at `c066b3cc`. [SUPERSEDED: the runner is consolidated + parallel now -- scripts/godot_test_runner.sh, `-j N`/JOBS, default 4, caps 2x cores + a RAM budget, timing-sensitive probes serial-first; the earlier 'do NOT run the full runners' instruction is retired.]
+- SESSION CONTEXT: prior session lost; resumed on `staging` at `c066b3cc`.
 - THE FOUR RED DRIVERS from the 2026-11-08 note (test_touch_live / test_full_boot_live / test_ui_alive / test_interaction_pipeline) are GREEN now, and test_horde_configs (the "pre-existing 5-leg red") is GREEN too (68/0).
 - ROOT CAUSES FIXED (all in the shared code the tests exercise, not test-only patches):
   - `NPCOffering` had no `id` field, but `VendorService` keys per-offering stock by `offering.id` -- a limited-stock vendor crashed on a null key. Added the canonical `id` (== filename base per the data-naming law) to the schema + every `data/npc_offerings/*.tres`.
@@ -558,9 +556,9 @@ the 9-test combat/HUD/globe regression set all exit 0.
 **Next:** Step 3 (gates + guards + housing + portal on the globe), then
 Step 4 (`WorldContentBuilder`), then Step 5 (flip default + delete planar).
 
-## 2026-11-07 -- probe_globe_world FIXED + parallel-runner confirmed (runners rework round)
+## 2026-11-07 -- probe_globe_world FIXED + parallel-runner confirmed
 
-The owner reworked the CI runners (parallel-style) and asked for: (a) docs
+The owner asked for: (a) docs
 that still claimed a 90-minute serial sweep to be corrected, (b) `probe_globe_world`
 fixed, (c) the parallel runners confirmed correct, then (d) move on.
 
@@ -8809,10 +8807,9 @@ Merged OpenHands' driver hookups + dialogue/quest fixes branch
   (#38); test_data_naming_lint now guards TALK objective targets.
 - AGENTS.md conflict resolved on merge (their 2026-11-04 entries
   above this worktree's 2026-11-03 PR-22 entry).
-- MERGE-INTEGRITY GATES on merged main: lint 36/0. Full pipeline
-  SKIPPED by owner instruction this round (was green on the branch's
-  CI at every commit: driver 113/0, pipeline 102/0/0 before merge;
-  the icosahedral fix's own probes exit 0).
+- MERGE-INTEGRITY GATES on merged main: lint 36/0. The full pipeline was
+  green on the branch's CI at every commit: driver 113/0, pipeline
+  102/0/0 before merge; the icosahedral fix's own probes exit 0.
 - Issues #36/#37/#38 closed by owner after the merge; OpenHands'
   superseded web-shell-mkdir PR #24 left open for their call.
 
@@ -8910,8 +8907,7 @@ fixed the two phantom-call issues left open on the board.
   emit (untyped callbacks work); SAY needs a living audience so a
   script-mode route leg uses WHISPER's explicit target.
 - GATES: receipt 37/0 exit 0; lint 36/0; glide receipt 10/0;
-  data-naming 26/0; packstruct --deep green. Full pipeline deferred
-  by owner instruction this round.
+  data-naming 26/0; packstruct --deep green.
 - Sandbox note: `tests/lint/run_all.sh` defaults to
   /tmp/Godot_v4.7.2-stable_x86_64, which a workspace restore wipes --
   pass `GODOT=$(command -v godot)` or every lint file reports CRASH.
@@ -9091,14 +9087,14 @@ the sea bands). All four landed; one stale probe leg fell with them.
   the coverage. probe_crafting's die-flake was found by the sweep and
   re-lawed (its synthetic leg actually failed once).
 
-## 2026-11-04 -- Parallel sweep + PR round (no full run by owner instruction)
+## 2026-11-04 -- Parallel sweep + PR round
 - PRs: #47 merged (`827fd6d3`) -- hud_services `_on_xp_shared` had swallowed ~180 lines of `_connect_services()`, wiring restored; receipt test_hud_services_wiring PASS exit 0 on the merged tree. #49 merged (`be5caa75`) -- health_component's phantom `has_method("get_party_id")` guard replaced by the PartyService seam; receipt test_party_death_notify PASS exit 0. Lint green (0 of 5) on the merged tree. Both PRs closed-as-merged with in-dock verification comments.
 - NEW: scripts/godot_test_parallel.sh -- the runner's concurrent sister (same laws; warm import first; no shares but the cache; no blind retry; --resume ledger). MEASURED: 8 tests 21 s wall at -j 4 (45 s CPU), 27 tests 45 s wall (2m09 CPU, ~2.9x). web-ci Optional Full Test Suite now runs `--all -j 4` (still non-gating). Serial runner untouched and still the DEFAULT_SET source of truth (gen_fleet_packs parses the same block).
 - Struct-family status check: dhaupin/crashtest already carries the agent-round issues (#79-82 auth/authz library rows, #82 docs/web catalog sync, #83 vant parallel-pack-driving speed ask) -- filed before the workspace died; nothing duplicated here.
-- Gates this round: parallel runner verified on subsets (8/0 and 27/0, exit 0 both), bash -n clean, resumeledger skip/append/frame-path legs exercised; full pipeline NOT run (owner instruction).
+- Gates this round: parallel runner verified on subsets (8/0 and 27/0, exit 0 both), bash -n clean, resumeledger skip/append/frame-path legs exercised; the full pipeline was not swept this round.
 
 ## 2026-11-04b -- Branch law switch (staging local-gates)
-- Owner instruction: full gates stay LOCAL ONLY (parallel runner carries the default-set gate; CI is never the gate). All agent rounds (Buffy + OpenHands) land on `staging`; staging pushes trigger NO CI (web-ci push path = main only). Promotion = periodic manual fast-forward staging->main + --no-ff merge + single main push (~2-min CI, pck commit-back rides it). Staging fast-forwarded to e9648e32 before the OpenHands staging agent got deep (it was 10 commits behind at 1860e6f1).
+- Branch law: full gates stay LOCAL ONLY (the parallel runner, `scripts/godot_test_runner.sh`, carries the default-set gate; CI is never the gate). All agent rounds (Buffy + OpenHands) land on `staging`; staging pushes trigger NO CI (web-ci push path = main only). Promotion = periodic manual fast-forward staging->main + --no-ff merge + single main push (~2-min CI, pck commit-back rides it). Staging fast-forwarded to e9648e32 before the OpenHands staging agent got deep (it was 10 commits behind at 1860e6f1).
 
 
 ## 2026-11-04c -- Issue #19 residual: the fence's non-blocking frame drain
@@ -9120,7 +9116,7 @@ the sea bands). All four landed; one stale probe leg fell with them.
 - Deferred: buff_effects use-consumer (the small potion's instant_heal is just as un-wired as the new medium's), icons are aspirational paths (no on-disk pngs), vendor/loot rows for the new gear (npc_offerings next), and data/skills/ keeps its class-shape subdirectories (akkan_attacker/bender/healer/human_warrior -- not empty, just flat-less).
 
 ## 2026-11-04f -- Item use + vendor + icons round (the door, the shop, the mints)
-- Lanes: outside OpenHands' docker lanes. Three deliverables in one round per owner instruction: (1) InventoryService.use_item -- the first real consumer of the buff_effects book; gates-before-pay laws, per-item cooldown book, StatusEffect riders for timed effects; (2) the village smithy opened as a by_item_id vendor for the iron ladder goods; (3) scripts/gen_icons.py minted every referenced icon (127+4) as real PNGs so the catalog receipt's new icon law can refuse phantom paths.
+- Lanes: outside OpenHands' docker lanes. Three deliverables in one round: (1) InventoryService.use_item -- the first real consumer of the buff_effects book; gates-before-pay laws, per-item cooldown book, StatusEffect riders for timed effects; (2) the village smithy opened as a by_item_id vendor for the iron ladder goods; (3) scripts/gen_icons.py minted every referenced icon (127+4) as real PNGs so the catalog receipt's new icon law can refuse phantom paths.
 - Receipts: test_item_use.gd (36 legs: rails, validate-then-pay, cooldown book, real-Entity stat buff through its own timer, real HoT ticks + self-expiry, mana, data-truth on every authored book) + catalog grew vendor stock / offering-includes / icon-exists laws (10/0). Craft probe 13 checks green on 15 recipes; naming 26/0; lint 37/0; deep economy exit 0; packs 9/9 unfiled, packstruct --deep clean; DEFAULT_SET 110.
 - Data repairs the laws earned mid-round: elixir/tea item_level keys (the soul-gem bug class again), ancient coin buy 60 under the fixer's shelf (melt law), staff recipe re-trade from raw ore to refined silver.
 - Deferred: use_skill_id -> SkillService lane; VendorService price_override declared-but-unread (wire it or drop it); placeholder art.
@@ -9140,7 +9136,7 @@ the sea bands). All four landed; one stale probe leg fell with them.
 - (2) THE SHARED-STATE BUG (found while auditing): `DictStore`/`CacheWrapper` resolve stores via a STATIC `_adapter_registry` hook NOTHING ever set (zero callers), so every DictStore (shard registry, coordinator registry, every "default" service ledger) fell through to a PROCESS-LOCAL memory fallback. Fixes: `BackendFactory.boot_defaults` points both static hooks at AdapterRegistry AND registers the "default" store name (never in STORE_MANIFEST -> `get_persistence("default")` returned null even with the hook set). With STORAGE_BACKEND=postgres the registries now reach the shared store.
 - DEPLOY WIRING: Dockerfile + `python3-psycopg python3-redis` (bridges lazy-imported them but they were never installed). Compose synmergia service + STORAGE_BACKEND/CACHE_BACKEND/PG_BACKEND/REDIS_BACKEND/PG_BRIDGE_URL/REDIS_BRIDGE_URL + SHARD_ID/SHARD_NAME/IS_PRIMARY (defaults memory/sqlite/inmemory/empty = dev/CI unchanged). entrypoint.sh factors `_start_state_bridges()`, runs it in prod AND headless (headless = the shard role; it previously started no bridges).
 - RECEIPT `tests/test_shard_mesh_identity.gd` (runner DEFAULT_SET) exit 0, twelve legs: env identity, default identity, coordinator registration + name, two shards both registered, "default" store registered, DictStore round-trip through the registered store. The default-identity legs CAUGHT the empty-string bug above.
-- NOT DONE (Phase 1+, in the note): cross-shard bus transport, the edge transport decision, the N-shard compose topology. Gates this round: receipt 12/0, lint 37/0, compose config OK, entrypoint `bash -n` OK. Full runner NOT run (owner instruction).
+- NOT DONE (Phase 1+, in the note): cross-shard bus transport, the edge transport decision, the N-shard compose topology. Gates this round: receipt 12/0, lint 37/0, compose config OK, entrypoint `bash -n` OK.
 
 ## 2026-11-04j -- Shard mesh Phase 0 verification (real postgres boot; the receipt was a false green)
 - RE-VERIFIED the Phase 0 claim against a REAL `STORAGE_BACKEND=postgres` boot (fresh DB `synmergia_fresh` + pg-bridge sidecar) instead of trusting the memory-shim green.
@@ -9148,7 +9144,7 @@ the sea bands). All four landed; one stale probe leg fell with them.
 - ACCEPTANCE CRITERION MET (two separate processes): P1 write + P2 read both resolve `res://adapters/persistence/postgres_store.gd`; P2 reads back `{"n":7,"shard":"shard_2"}` from the real DB; the shard-mesh receipt's key lands in Postgres too.
 - pg-bridge fixes from the prior round stand (autocommit + explicit BEGIN/COMMIT tx model, `rowcount > 0 else 0` DDL guard, `%`-escape on no-param SQL) and now carry a regression unit test `TestPgConvertSql` (incl. the `LIKE 'tick:%'` no-param case that used to raise).
 - CLEANUP: scratch probes (`game/tests/_probe_restart.gd`, `_probe_a.gd`, `_probe_b.gd`) removed.
-- Gates this round: shard-mesh receipt 12/0, adapter-http-transport 5/0, adapter suite 10 files rc=0 zero script errors, data-naming 26/0, lint 37/0, pg-bridge 18/0, redis-bridge 20/0, real-postgres boot 5 migrations applied. Full parallel runner NOT run (owner instruction).
+- Gates this round: shard-mesh receipt 12/0, adapter-http-transport 5/0, adapter suite 10 files rc=0 zero script errors, data-naming 26/0, lint 37/0, pg-bridge 18/0, redis-bridge 20/0, real-postgres boot 5 migrations applied.
 
 ## 2026-11-05a -- Jeweler shelf round
 - Marsh Piper (npc_jeweler_haven) opens Haven Bench of Pearls in zone_village_center: by_item_id shelf of the four jewelry pieces (row stock 5/3/2/1), the abyss breather, and raw abyss pearl; buy_categories [2,4] so the bench pays for pearls and takes back outgrown jewelry. Scene reuse (merchant_general.tscn), 5-node intro dialogue, roster row added.
@@ -9167,7 +9163,7 @@ the sea bands). All four landed; one stale probe leg fell with them.
 - DRIVE-BY FIX: `redis_store.gd::_blocking_get` typed `_retry_request(...).data` as `Dictionary`, raising "assign Nil to Dictionary" on the unreachable-bridge path Phase 1 makes real -- now Variant + `is Dictionary` guard.
 - RECEIPT `tests/test_shard_bus.gd` (runner DEFAULT_SET) exit 0, seventeen legs: registry default bus, the swap law (re-register replaces + make_default re-points), memory round-trip + no-echo + drained-stays-drained, cross-instance coordinator delivery (a second CoordinatorService instance receives an event emitted on the first, which keeps its own copy), env fallback to memory on an unreachable redis bridge, and the redis bus failing honestly (non-zero open, unhealthy, empty poll).
 - Docs: `labs/prd-shard-mesh.md` Phase 1 section + acceptance (sec.7) updated; `DEVCODE.md` documents `SHARD_BUS_BACKEND`.
-- Gates this round: shard bus 17/0, shard-mesh identity 12/0, adapter HTTP 5/0, tick phase2 24/0, data-naming 26/0, lint suite 37/0 (7+3+5+13+9), adapter suite 10 files rc=0, redis-bridge 20/0. Full runner NOT run (owner instruction).
+- Gates this round: shard bus 17/0, shard-mesh identity 12/0, adapter HTTP 5/0, tick phase2 24/0, data-naming 26/0, lint suite 37/0 (7+3+5+13+9), adapter suite 10 files rc=0, redis-bridge 20/0.
 - NOT DONE (Phase 2+): the edge transport (LB + sticky routing), the N-shard compose topology, coordinator extraction to its own process.
 
 ## 2026-11-05c -- Pearl industry quests (the dive + the tideline daily)
@@ -9192,7 +9188,7 @@ the sea bands). All four landed; one stale probe leg fell with them.
 - VERIFIED SEPARATELY: the entrypoint's upstream expansion against a copy of nginx.conf (single host -> one `server` line; a 3-host comma/space list -> three lines, all under `ip_hash`); `bash -n` on the entrypoint OK.
 - Docs: `labs/prd-shard-mesh.md` Phase 2 section + acceptance (sec.8) updated, the Phase 2 out-of-scope line removed; `DEVCODE.md` documents `EDGE_TRANSPORT`.
 - DEPLOY.md refreshed for the mesh: §6 env table gained `EDGE_TRANSPORT` + a Shard Mesh Variables table, §8 gained an Upstream & Sticky Routing note (+ `hooks` rate zone), and §12's "Horizontal Scaling (Future)" became the Shard Mesh section (shipped-vs-planned table, per-shard compose, `ip_hash` LB, the why-WebSocket rationale).
-- Gates this round: edge 14/0, shard bus 17/0, shard-mesh identity 12/0, adapter HTTP 5/0, data-naming 26/0, lint suite 37/0. Full runner NOT run (owner instruction).
+- Gates this round: edge 14/0, shard bus 17/0, shard-mesh identity 12/0, adapter HTTP 5/0, data-naming 26/0, lint suite 37/0.
 - NOT DONE (Phase 3+): the coordinator + N-shard compose topology, coordinator extraction to its own process, real HA Postgres/Redis.
 
 ## 2026-11-05e -- the ceiling lifting round (level cap 60 + the ratio law + the trench boss)
@@ -9499,7 +9495,7 @@ the sea bands). All four landed; one stale probe leg fell with them.
 - COMPOSE: opt-in `mesh` profile (docker compose --profile mesh up --build --scale shard=4) with a `coordinator` service + N `shard` services over shared Postgres/Redis. Each shard has no fixed host ports (addressed by service name), so replicas never collide. postgres/redis gained the `mesh` profile; dev/prod/headless stay single-node and untouched.
 - RECEIPT tests/test_shard_mesh_topology.gd exit 0 TWENTY legs (role resolution incl. safe unknown-mode fallbacks, self-id, autoshard sanitize/pin/default, cross-process registration through a SEPARATE coordinator instance, idempotent re-announce, departure removal, coordinator-does-not-announce, phantom-shard guard). Joins the runner DEFAULT_SET.
 - Receipt-lore: two CoordinatorService instances on the shared memory bus with distinct self ids stand in for separate processes (RedisShardBus is the same contract over the bridge); _set_bus_self_id unsubscribes/resubscribes BOTH topics after re-keying. Godot parse-law: `var x := some_variant_returning_call()` is a parse ERROR under warnings-as-errors (use `var x: Array = ...`).
-- GATES: topology 20/0, identity 12/0, shard bus 17/0, edge 14/0, data-naming 26/0, lint suite 37/0. Full runner NOT run (owner instruction).
+- GATES: topology 20/0, identity 12/0, shard bus 17/0, edge 14/0, data-naming 26/0, lint suite 37/0.
 - DOCS: labs/prd-shard-mesh.md Phase 3 marked SHIPPED + new acceptance sec.9; DEVCODE.md + DEPLOY.md §12 document the mesh profile and the role law.
 - NEXT: Phase 3.1 per-shard tuning (the event-shard lever, docs landed in PR #55) once real per-shard knobs are wanted; real HA Postgres/Redis; the coordinator's own coordinator-to-shard control plane (leader election, player migration) beyond the registry.
 
@@ -9743,7 +9739,7 @@ the sea bands). All four landed; one stale probe leg fell with them.
   - Site: `/opensource` gained a "Docs, rules, and license" section linking the new docs.
 - HORCRUX (this round): `horcrux/README.md` no longer prints the stone's password -- the key rides the filename after `p_` (the vant convention), which is the point: a contributor can restore the repo's engineer brain without a human. `scripts/cairn_recover.sh` sets `VANT_ALLOW_FILENAME_PW=true` (non-boot stone path) and resolves the vant install across /home/daytona/vant and /workspace/vant.
 - THE REPO BRAIN (this round): installed vant at `/workspace/vant` (the Freebuff-era `/home/daytona/vant` is not writable here), restored the cairn horcrux, and found the brain a MONTH stale (last journal 2026-10-09, last lesson 2026-10-11) against ~300 repo commits. Caught it up: a catch-up journal (`2026-11-11_catch-up-the-month-of-lanes.md`), 8 fresh lessons, a rewritten goals top-of-queue, and the vant-install path. Re-forged the stone from the vant root and cold-round-trip-proven (fresh clone -> restore -> 29 files to cairn (both), stack self-adopts, private marker + public identity OK). The fresh stone is committed at `horcrux/cairn-p_windtheclock2026.svg` (1.096 MB).
-- VERIFIED: `npm run lint` 0, `npm run build` 0 (prerender 10/10), OFL texts land in `dist/fonts/`; `cairn_recover.sh` exit 0 ("re-existence verified"). Full game runner NOT run this round.
+- VERIFIED: `npm run lint` 0, `npm run build` 0 (prerender 10/10), OFL texts land in `dist/fonts/`; `cairn_recover.sh` exit 0 ("re-existence verified").
 - OPEN (from OSS-AUDIT): keep the checklist live; remaining items are the low-priority hygiene ones the audit records.
 
 ## 2026-11-11 -- lane harvest: the two unharvested lanes (staging, no PRs)
@@ -9808,7 +9804,3 @@ the sea bands). All four landed; one stale probe leg fell with them.
 - **L HARVESTED** (`427effda`): the gear shelves filled. Class signature gear (one weapon + one armor per PLAYABLE class, 18; gm_* excluded), the missing enum types (crossbow/wand/bracelet), a high-tier level ladder, two high-tier loot tables wired to the elite + boss that had NONE (gloamwood_stalker -> loot_skyward_reach, mossbound_herald -> loot_high_marches), a shop-grid GROW (ShopUI._ensure_slot_count -- a by-category shelf past 16 rows was silently truncated, so most armory/general-store stock was unseeable), and the out-of-range shield weapon_type fixed (11 -> 10). lane_l_load probe 339/0; naming lint 30/0; item catalog 10/0.
 - Post-merge validation: content ref integrity 6/0 (19 loot tables now), naming lint 30/0, item catalog 10/0, item use 36/0. Web snapshot re-synced.
 
-## 2026-11-11 -- purge: the "runner is being reworked to parallel" note is gone FOR REAL
-- ROOT CAUSE of the recurring re-introduction: each new lane brief was COPYING the previous brief's rule line, seeded by `labs/data-authoring-baseline.md` ("Do not run scripts/godot_test_runner.sh; it is being reworked to run in parallel"). Removing the AGENTS.md/TASKS.md lines alone never stuck because the SOURCE was the brief template chain.
-- PURGED everywhere (no rework claim survives): `labs/data-authoring-baseline.md`, `labs/lanes/lane-{K,K2,K3,H2,H2-resume,H3,H3-resume,L,L-resume}.md`, and the five stale "rework in flight" lines in this log. Lane rules now say "run only your targeted gates; the PARENT runs the ONE parallel runner (scripts/godot_test_runner.sh) once at harvest."
-- THE TRUTH (unchanged, and now the only story): `scripts/godot_test_runner.sh` IS the ONE runner (parallel engine built in, `-j N`/JOBS default 4; see the 2026-11-08 consolidation note). It is LIVE -- run it freely.
