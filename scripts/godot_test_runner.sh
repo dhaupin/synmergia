@@ -147,6 +147,7 @@ test_quest_glide_bridge
 test_quest_craft_bridge
 test_general_skills
 test_item_catalog
+test_canon_bosses
 test_zenith_capstone
 test_item_use
 test_a11y_service
