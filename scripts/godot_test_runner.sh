@@ -136,6 +136,11 @@ test_achievements
 test_achievement_flow
 test_waking_verbs
 test_sky_witness
+test_quest_bridge_coverage
+test_quest_lore_bridges
+test_quest_explore_bridge
+test_quest_swim_bridge
+test_quest_glide_bridge
 test_general_skills
 test_item_catalog
 test_zenith_capstone
