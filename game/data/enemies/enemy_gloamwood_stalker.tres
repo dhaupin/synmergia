@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "gloamwood_stalker"
 display_name = "Gloamwood Stalker"
-description = "Something in the Gloomwood learned to keep still for hours under the moss, then finish the gap in four strides. It digs before it eats -- the settlers' iron rolls up around its denmaw, strip by strip, and whatever ore it swallowed stays swallowed. The deep grades too: mythril and star crush without grace in that gullet."
+description = "Something in the Gloamwood learned to keep still for hours under the moss, then finish the gap in four strides. It digs before it eats -- the settlers' iron rolls up around its denmaw, strip by strip, and whatever ore it swallowed stays swallowed. The deep grades too: mythril and star crush without grace in that gullet."
 enemy_type = 1
 level = 50
 faction = "hostile"

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "spawn_forest_depths"
-display_name = "Gloomwood Depths shelf"
+display_name = "Gloamwood Depths shelf"
 zone_id = "zone_dungeon_forest_depths"
 activate_radius_m = 0.0
 deactivate_radius_m = 0.0

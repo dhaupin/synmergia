@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1")
 id = "zone_forest_meadow"
-display_name = "Gloomwood Meadow"
-description = "A misty meadow at the edge of Gloomwood Forest. Grey wolves hunt in packs near the treeline. Safe from PvP, but dangerous wildlife roams freely."
+display_name = "Gloamwood Meadow"
+description = "A misty meadow at the edge of Gloamwood Forest. Grey wolves hunt in packs near the treeline. Safe from PvP, but dangerous wildlife roams freely."
 pvp_mode = 0
 level_requirement = 1
 max_level = 999

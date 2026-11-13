@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "sky_witness_1"
+display_name = "First Witness"
+description = "Record your first insight -- look up, and write down what the sky said"
+achievement_type = 1
+category = 3
+rarity = 0
+target = 1
+target_type = "insight"
+gold_reward = 40
+xp_reward = 60
+title_reward = "skywatcher"
+icon_path = "res://icons/achievements/explorer.png"
+sort_order = 65

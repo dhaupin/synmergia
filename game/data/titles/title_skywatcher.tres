@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TitleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/title_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "skywatcher"
+display_name = "Skywatcher"
+description = "Record your first insight -- look up, and write down what the sky said"
+prefix_form = "The Skywatcher"
+suffix_form = "the Skywatcher"
+category = 3
+rarity = 0
+unlock_method = 0
+unlock_source = "sky_witness_1"
+is_account_title = false
+sort_order = 65

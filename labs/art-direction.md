@@ -152,7 +152,7 @@ first boss visual: **The Forest Devourer** (`forest_void_lord`,
 zone_forest_meadow). Design traits now canon for this boss: violet
 corruption mantle + cracked geometric hull + magenta eyes + rodent-
 swarm add waves. Poison/violet waterfalls in its meadow = corruption
-runoff (a Gloomwood tell).
+runoff (a Gloamwood tell).
 
 ### 8.3 AETHER-CONDUIT is the in-world terminal term
 
@@ -398,7 +398,7 @@ Zone splash set (all six canon; world map + zone-entry splashes):
   winding path. Drift ruling: one pod rendered with GOLD seams
   (first-waking tech) and one with violet root-veins -- acceptable
   variety under the semantics, no magenta anywhere.
-- **Gloomwood Meadow:** mist, dark conifers, violet corruption veins
+- **Gloamwood Meadow:** mist, dark conifers, violet corruption veins
   creeping from the forest edge (up the trunks), violet stream under
   the mossy bridge, wolf pack at the treeline, dormant waypoint
   stone. Exactly the Devourer's front yard.

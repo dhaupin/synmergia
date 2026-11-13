@@ -1,5 +1,5 @@
 {
-  "lastSyncedAt": "2026-11-13T13:50:43.284Z",
+  "lastSyncedAt": "2026-11-13T14:30:08.168Z",
   "counts": {
     "classes": 39,
     "weapons": 82,
@@ -11,8 +11,8 @@
     "quests": 27,
     "buffs": 0,
     "factions": 4,
-    "achievements": 37,
-    "titles": 25,
+    "achievements": 40,
+    "titles": 28,
     "species": 3,
     "dialogues": 20,
     "currencies": 5,
@@ -6805,7 +6805,7 @@
       },
       "id": "gloamwood_stalker",
       "display_name": "Gloamwood Stalker",
-      "description": "Something in the Gloomwood learned to keep still for hours under the moss, then finish the gap in four strides. It digs before it eats -- the settlers' iron rolls up around its denmaw, strip by strip, and whatever ore it swallowed stays swallowed. The deep grades too: mythril and star crush without grace in that gullet.",
+      "description": "Something in the Gloamwood learned to keep still for hours under the moss, then finish the gap in four strides. It digs before it eats -- the settlers' iron rolls up around its denmaw, strip by strip, and whatever ore it swallowed stays swallowed. The deep grades too: mythril and star crush without grace in that gullet.",
       "enemy_type": 1,
       "level": 50,
       "faction": "hostile",
@@ -7362,7 +7362,7 @@
       },
       "id": "thistle_boar",
       "display_name": "Thistle Boar",
-      "description": "The Gloomwood's boar wears its armor in living thistle -- the matting grows across the shoulder like a hedgerow. Farmers lose hedges and tempers to these; barbs break tools, not patience.",
+      "description": "The Gloamwood's boar wears its armor in living thistle -- the matting grows across the shoulder like a hedgerow. Farmers lose hedges and tempers to these; barbs break tools, not patience.",
       "enemy_type": 0,
       "level": 10,
       "faction": "hostile",
@@ -7998,8 +7998,8 @@
         "_extResource": "1"
       },
       "id": "zone_dungeon_forest_depths",
-      "display_name": "Gloomwood Depths",
-      "description": "The dark heart of Gloomwood Forest. Ancient roots twist through the cavern walls. Looters and cultists have made this dungeon their lair. Difficulty: Normal.",
+      "display_name": "Gloamwood Depths",
+      "description": "The dark heart of Gloamwood Forest. Ancient roots twist through the cavern walls. Looters and cultists have made this dungeon their lair. Difficulty: Normal.",
       "pvp_mode": 0,
       "level_requirement": 10,
       "max_level": 999,
@@ -8053,8 +8053,8 @@
         "_extResource": "1"
       },
       "id": "zone_forest_meadow",
-      "display_name": "Gloomwood Meadow",
-      "description": "A misty meadow at the edge of Gloomwood Forest. Grey wolves hunt in packs near the treeline. Safe from PvP, but dangerous wildlife roams freely.",
+      "display_name": "Gloamwood Meadow",
+      "description": "A misty meadow at the edge of Gloamwood Forest. Grey wolves hunt in packs near the treeline. Safe from PvP, but dangerous wildlife roams freely.",
       "pvp_mode": 0,
       "level_requirement": 1,
       "max_level": 999,
@@ -13702,7 +13702,7 @@
       },
       "id": "quest_cull_the_warden",
       "display_name": "The Warden That Never Stood Down",
-      "description": "The Gloomwood Ledger names a sentinel still walking its patrol around a vault that stopped answering centuries ago, and the Bloom has grafted itself into the joints. Fenwick's last line: put it down honest. It has been on duty long enough.",
+      "description": "The Gloamwood Ledger names a sentinel still walking its patrol around a vault that stopped answering centuries ago, and the Bloom has grafted itself into the joints. Fenwick's last line: put it down honest. It has been on duty long enough.",
       "quest_type": 1,
       "difficulty": 4,
       "giver_npc_id": "npc_tidewright_fenwick",
@@ -13841,7 +13841,7 @@
       },
       "id": "quest_gloamwood_ledger",
       "display_name": "The Gloamwood Ledger",
-      "description": "Fenwick's last unbalanced line is the Gloomwood: the settlers' iron rolls up through the depths in stalker gullets and comes back as ore nobody hauled down. Six stills dig the same den -- clear the ledger line and bring its mythril up honest, from the mouths that swallowed it.",
+      "description": "Fenwick's last unbalanced line is the Gloamwood: the settlers' iron rolls up through the depths in stalker gullets and comes back as ore nobody hauled down. Six stills dig the same den -- clear the ledger line and bring its mythril up honest, from the mouths that swallowed it.",
       "giver_npc_id": "npc_tidewright_fenwick",
       "turn_in_npc_id": "npc_tidewright_fenwick",
       "min_level": 48,
@@ -15428,6 +15428,72 @@
       "_sourceFile": "game/data/achievements/achievement_sky_trail_500.tres",
       "_scriptClass": "AchievementData"
     },
+    "sky_witness_1": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "sky_witness_1",
+      "display_name": "First Witness",
+      "description": "Record your first insight -- look up, and write down what the sky said",
+      "achievement_type": 1,
+      "category": 3,
+      "rarity": 0,
+      "target": 1,
+      "target_type": "insight",
+      "gold_reward": 40,
+      "xp_reward": 60,
+      "title_reward": "skywatcher",
+      "icon_path": "res://icons/achievements/explorer.png",
+      "sort_order": 65,
+      "_sourceFile": "game/data/achievements/achievement_sky_witness_1.tres",
+      "_scriptClass": "AchievementData"
+    },
+    "sky_witness_10": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "sky_witness_10",
+      "display_name": "Keeper of the Sky",
+      "description": "Record ten insights -- the almanac is your ledger and the sky is the account",
+      "achievement_type": 1,
+      "category": 3,
+      "rarity": 1,
+      "target": 10,
+      "target_type": "insight",
+      "required_achievements": [
+        "sky_witness_1"
+      ],
+      "gold_reward": 150,
+      "xp_reward": 200,
+      "title_reward": "skykeeper",
+      "icon_path": "res://icons/achievements/explorer.png",
+      "sort_order": 66,
+      "_sourceFile": "game/data/achievements/achievement_sky_witness_10.tres",
+      "_scriptClass": "AchievementData"
+    },
+    "sky_witness_30": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "sky_witness_30",
+      "display_name": "The Long Watch",
+      "description": "Record thirty insights -- a month of looking up, kept honestly",
+      "achievement_type": 1,
+      "category": 3,
+      "rarity": 2,
+      "target": 30,
+      "target_type": "insight",
+      "required_achievements": [
+        "sky_witness_10"
+      ],
+      "gold_reward": 400,
+      "xp_reward": 500,
+      "title_reward": "longwatch",
+      "icon_path": "res://icons/achievements/explorer.png",
+      "sort_order": 67,
+      "_sourceFile": "game/data/achievements/achievement_sky_witness_30.tres",
+      "_scriptClass": "AchievementData"
+    },
     "slayer_10": {
       "script": {
         "_extResource": "1"
@@ -15804,6 +15870,24 @@
       "_sourceFile": "game/data/titles/title_last_light.tres",
       "_scriptClass": "TitleData"
     },
+    "longwatch": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "longwatch",
+      "display_name": "The Long Watch",
+      "description": "Record thirty insights -- a month of looking up, kept honestly",
+      "prefix_form": "The Long Watch",
+      "suffix_form": "the Long Watch",
+      "category": 3,
+      "rarity": 2,
+      "unlock_method": 0,
+      "unlock_source": "sky_witness_30",
+      "is_account_title": false,
+      "sort_order": 67,
+      "_sourceFile": "game/data/titles/title_longwatch.tres",
+      "_scriptClass": "TitleData"
+    },
     "mvp": {
       "script": {
         "_extResource": "1"
@@ -15856,6 +15940,42 @@
       "is_account_title": false,
       "sort_order": 62,
       "_sourceFile": "game/data/titles/title_roadkeeper.tres",
+      "_scriptClass": "TitleData"
+    },
+    "skykeeper": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "skykeeper",
+      "display_name": "Keeper of the Sky",
+      "description": "Record ten insights -- the almanac is your ledger and the sky is the account",
+      "prefix_form": "The Keeper of the Sky",
+      "suffix_form": "Keeper of the Sky",
+      "category": 3,
+      "rarity": 1,
+      "unlock_method": 0,
+      "unlock_source": "sky_witness_10",
+      "is_account_title": false,
+      "sort_order": 66,
+      "_sourceFile": "game/data/titles/title_skykeeper.tres",
+      "_scriptClass": "TitleData"
+    },
+    "skywatcher": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "skywatcher",
+      "display_name": "Skywatcher",
+      "description": "Record your first insight -- look up, and write down what the sky said",
+      "prefix_form": "The Skywatcher",
+      "suffix_form": "the Skywatcher",
+      "category": 3,
+      "rarity": 0,
+      "unlock_method": 0,
+      "unlock_source": "sky_witness_1",
+      "is_account_title": false,
+      "sort_order": 65,
+      "_sourceFile": "game/data/titles/title_skywatcher.tres",
       "_scriptClass": "TitleData"
     },
     "slayer": {
@@ -16551,7 +16671,7 @@
       "id": "village_elder_greeting",
       "npc_id": "npc_village_elder",
       "display_name": "Village Elder Greeting",
-      "nodes": "[\n{\n\"speaker\": \"Village Elder\",\n\"text\": \"Greetings, young one. You stand in the Village of Haven, a sanctuary at the edge of the Gloomwood. Few travelers find their way here.\",\n\"choices\": [\n{\"text\": \"What is this place?\", \"next_node\": 1},\n{\"text\": \"Do you have work for me?\", \"next_node\": 2},\n{\"text\": \"Farewell.\", \"next_node\": -1}\n]",
+      "nodes": "[\n{\n\"speaker\": \"Village Elder\",\n\"text\": \"Greetings, young one. You stand in the Village of Haven, a sanctuary at the edge of the Gloamwood. Few travelers find their way here.\",\n\"choices\": [\n{\"text\": \"What is this place?\", \"next_node\": 1},\n{\"text\": \"Do you have work for me?\", \"next_node\": 2},\n{\"text\": \"Farewell.\", \"next_node\": -1}\n]",
       "_sourceFile": "game/data/dialogues/village_elder_greeting.tres",
       "_scriptClass": "DialogueData"
     },
@@ -17658,7 +17778,7 @@
       },
       "id": "res_timber",
       "display_name": "Timber",
-      "description": "A straight-cut billet of Gloomwood pine. The village carpenters want it; so does every axe handle in the reclaim.",
+      "description": "A straight-cut billet of Gloamwood pine. The village carpenters want it; so does every axe handle in the reclaim.",
       "icon_path": "res://icons/resources/timber.png",
       "item_category": 4,
       "rarity": 0,

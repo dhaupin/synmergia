@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "res_timber"
 display_name = "Timber"
-description = "A straight-cut billet of Gloomwood pine. The village carpenters want it; so does every axe handle in the reclaim."
+description = "A straight-cut billet of Gloamwood pine. The village carpenters want it; so does every axe handle in the reclaim."
 icon_path = "res://icons/resources/timber.png"
 item_category = 4
 rarity = 0

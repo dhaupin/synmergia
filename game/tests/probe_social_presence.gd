@@ -101,7 +101,7 @@ func _run() -> void:
 	_check("self-petition refused", lobby.petition_party(party_id, "pres_leader") == false)
 
 	# ---- E. LFG kinds in the same book -----------------------------------
-	var dpost: String = lobby.post_lfg("", "pres_leader", "Gloomwood delve, need healer", 10, 30, lobby.LfgKind.DUNGEON)
+	var dpost: String = lobby.post_lfg("", "pres_leader", "Gloamwood delve, need healer", 10, 30, lobby.LfgKind.DUNGEON)
 	var rpost: String = lobby.post_lfg("", "pres_leader", "Raid the Spire", 20, 999, lobby.LfgKind.RAID)
 	_check("dungeon + raid posts issue", dpost != "" and rpost != "")
 	var dpost_id: String = lobby.post_lfg("", "pres_leader", "dup", 10, 30, lobby.LfgKind.DUNGEON)
