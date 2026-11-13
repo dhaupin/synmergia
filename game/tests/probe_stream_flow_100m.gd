@@ -1,11 +1,20 @@
 ## Terrain streaming probe, CHUNK 1 of 2 (prototype flow laws)
 ## Carved from probe_terrain_stream.gd (prd-spherical-mvp.md S5) so
 ## CI minutes fit: this chunk runs only the 100 m prototype globe
-## (cheap). The planet-scale skirt/checks live in
-## probe_stream_continent_20km.gd (chunk 2, heavy).
+## (cheap). The planet-scale walk/arc checks live in
+## probe_terrain_planet.gd + the continent shards (heavy).
 ## Run headless: godot --headless --path . --script res://tests/probe_stream_flow_100m.gd
 ## Run rendered: GODOT_PROBE_XVFB=1 xvfb-run -a godot --path . --script res://tests/probe_stream_flow_100m.gd
 ##   -> writes /tmp/play/stream_stage{1,2}.png
+##
+## The clipmap is the SOLE renderer now. Its laws differ from the retired
+## icosa streamer's, so this probe pins the CLIPMAP's laws at the 100 m
+## scale: a full ring ladder builds (cap + 5 rings), the triangle count is
+## constant (geometric rings), the walk law the drawn world serves is the
+## analytic law, and the world re-centres as the player walks (the L1
+## hysteresis law). The streamer's per-face want-set / skirt / discrete-LOD
+## laws are GONE (constant SEG cells stitch the rings, no skirts); their
+## replacements are pinned by probe_clipmap G1-G5 at planet scale.
 extends SceneTree
 
 const GLOBE_SCENE := "res://scenes/worlds/globe_world.tscn"
@@ -15,16 +24,12 @@ var _globe: Node3D
 
 
 func _init() -> void:
-	# Reads icosa STREAMER internals (level/edge + Sundered deep beds);
-	# pin the renderer so the default clipmap does not change what it inspects.
-	ProjectSettings.set_setting("synmergia/world/terrain_render", "streamer")
 	call_deferred("_run")
 
 
 func _run() -> void:
-	# PROTOTYPE-SCALE CONTRACT: streaming order/unload laws at the 100 m
-	# shell (the shipped game boots 20 km with terrain; probe_terrain_planet
-	# and chunk 2 cover that). Pin the prototype radius explicitly.
+	# PROTOTYPE-SCALE CONTRACT: the clipmap renders every scale (the old
+	# sub-1000 m streamer fallback is gone). Pin the prototype radius.
 	ProjectSettings.set_setting("synmergia/world/planet_radius", 100.0)
 	var ok := true
 	var packed: PackedScene = load(GLOBE_SCENE)
@@ -49,24 +54,19 @@ func _run() -> void:
 		quit(1)
 		return
 
-	# --- Invariant 1: initial active set = spawn face + 3 neighbors.
+	# --- Invariant 1: the clipmap builds its full ring ladder at boot.
 	var F0 = load(FacesScript)
 	var spawn_face: int = F0.face_for_direction(_globe.player.global_position)
-	# THE ASYNC WANT SET (planar mode removed): the prototype globe is a
-	# REAL terrain globe now, so the current face mounts sync and its 3
-	# neighbors ride the worker lane. The 4-patch law is a SETTLE law,
-	# not a first-frame law -- wait for the lane to drain, then read.
 	await _settle()
-	var initial: Array = _globe.stream_active_faces()
-	ok = _check("initial want set settles at 4 patches (got %d)" % initial.size(), initial.size() == 4) and ok
 	ok = _check("spawn face %d active" % spawn_face, streamer.is_loaded(spawn_face)) and ok
 	var tris: int = _globe.stream_triangle_count()
 	ok = _check("patch geometry present (%d tris)" % tris, tris > 500) and ok
+	ok = _check("clipmap built the full ring ladder (5 rings)", streamer.patch_count() >= 5) and ok
 	_shoot("stream_stage1")
 
-	# --- Invariant 2: crossing a face border swaps stale patches.
-	# Relocate to the face whose center is at lat 19.4712, lon 0 (id
-	# derived from the primitive, never hardcoded).
+	# --- Invariant 2: the world re-centres as the player walks, and the
+	# drawn mesh is CONSTANT (the geometric-ring law). Relocate to a face
+	# center far from spawn and walk.
 	var F1 = load(FacesScript)
 	var Sph = load("res://core/frame/math/spherical.gd")
 	var target_dir: Vector3 = Sph.spherical_to_cartesian(19.4712, 0.0, 0.0, _globe.planet_radius)
@@ -81,134 +81,85 @@ func _run() -> void:
 
 	var start_face: int = streamer.current_face
 	ok = _check("relocated to face %d (got %d)" % [target_face, start_face], start_face == target_face) and ok
-	var before_set: Array = _globe.stream_active_faces()
+	var center_before: Vector3 = streamer._center_dir
 
+	# Walk a bit: the body stays glued and the drawn mesh stays CONSTANT
+	# (the geometric-ring law).
 	player.auto_walk = true
-	var waited: float = 0.0
-	var crossed := false
-	var walked_to_cross: float = 0.0
-	# SEED-ROBUST LAW (the v3 ruleset re-derives rocks/trees, so a re-
-	# rolled boulder CAN sit in the straight path on a 30 m prototype
-	# face): the walk tries a small fan of headings, one after another,
-	# until the face boundary swaps under the player OR the clock runs
-	# out. The pin is the FLOW LAW (crossing swaps the stale set), not
-	# "the seed placed no tree at lat 19.4712".
-	for _heading in range(9):
-		# Steer: the prototype walker walks its own facing; nudge it by
-		# rotating the target around the planet axis via a position
-		# teleport to a heading-perturbed point INSIDE the same face.
-		if _heading > 0:
-			var cur: Vector3 = player.global_position
-			var perturbed: Vector3 = cur.rotated(Vector3(0, 1, 0), float(_heading) * 0.18) \
-				.normalized() * cur.length()
-			player.global_position = perturbed
-			player.velocity = Vector3.ZERO
-			await root.get_tree().physics_frame
-		player.auto_walk = true
-		var last_face: int = streamer.current_face
-		waited = 0.0
-		while streamer.current_face == last_face and waited < 6.0:
-			await root.get_tree().physics_frame
-			waited += 1.0 / 60.0
-		walked_to_cross += player.path_walked
-		if streamer.current_face != last_face:
-			crossed = true
-			break
+	for i in range(90):
+		await root.get_tree().physics_frame
 	player.auto_walk = false
-	ok = _check("face crossed within %d m across heading fan (face %d -> %d)" % [int(walked_to_cross), start_face, streamer.current_face], crossed) and ok
-
-	# The stale set changed: old face far from the new one is gone.
-	var after_set: Array = _globe.stream_active_faces()
-	var changed: bool = false
-	for f in before_set:
-		if not after_set.has(f):
-			changed = true
-	ok = _check("stale patch unloaded on crossing", changed) and ok
 	await _settle()
-	ok = _check("steady state settles at 4 patches (got %d)" % _globe.stream_active_faces().size(), \
-		_globe.stream_active_faces().size() == 4) and ok
+	ok = _check("triangle count stays constant after the walk (%d)" % _globe.stream_triangle_count(), \
+		_globe.stream_triangle_count() == tris) and ok
 
-	# TERRAIN LOD (the NEAR law) -- the inverse of the old prototype pin:
-	# with planar mode removed the 100 m globe IS a terrain globe, so the
-	# LOD lane must be LIVE here. The near face sits at the base level and
-	# every other live face sits at the base level or the floor clamp. The
-	# floor is a planet-scale constant and reads FINER than the prototype
-	# base; that inversion is the standing clamp law, recorded rather than
-	# hidden.
-	var base_lvl: int = streamer._level_for_edge()
-	var floor_lvl: int = streamer.LOD_FLOOR_LEVEL
-	var lvl_ok: bool = int(streamer._patch_lvl.get(streamer.current_face, -1)) == base_lvl
-	for f in streamer.active_faces():
-		var lv: int = int(streamer._patch_lvl.get(f, -1))
-		if lv != base_lvl and lv != floor_lvl:
-			lvl_ok = false
-	ok = _check("terrain globe runs the LOD law (base %d, floor %d)" % [base_lvl, floor_lvl], lvl_ok) and ok
+	# RE-CENTRE LAW (L1 hysteresis): the lattice re-snaps only past
+	# RE_CENTER_M of ground arc. At the 100 m prototype that is a large
+	# fraction of the circumference, so drive the player there directly
+	# (a deterministic move, not a timed walk).
+	var away: Vector3 = target_dir.normalized().rotated(Vector3(0, 1, 0), 1.8).normalized()
+	player.global_position = away * (_globe.planet_radius + 1.0)
+	player.velocity = Vector3.ZERO
+	for i in range(8):
+		await root.get_tree().physics_frame
+	ok = _check("the lattice re-centres past the hysteresis ring", streamer._center_dir != center_before) and ok
+
+	# TERRAIN LOD (the clipmap's law): the drawn ground under the player IS
+	# the analytic law (the walk surface the player rides). At the 100 m
+	# scale the innermost cell is sub-metre, so the drawn-vs-law delta is
+	# tight -- the whole point of the clipmap.
+	var d_spawn: Vector3 = (player.global_position - _globe.planet_center).normalized()
+	var walk_h: float = streamer.walk_surface_h(d_spawn)
+	var Gen = load("res://scenes/worlds/terrain_gen.gd")
+	var law_h: float = Gen.terrain_height(d_spawn, streamer.world_seed)
+	ok = _check("walk law == terrain law at the body (walk %.2f law %.2f)" % [walk_h, law_h], \
+		absf(walk_h - law_h) < 6.0) and ok
 	ok = _check("current face is loaded", streamer.is_loaded(streamer.current_face)) and ok
 	_shoot("stream_stage2")
 
-	# --- Invariant 3: all 20 faces individually loadable/unloadable.
-	var F = load(FacesScript)
+	# --- Invariant 3: the world stays alive as the player sweeps around.
 	var sweep_ok := true
-	for f in range(F.face_count()):
-		var center: Vector3 = F.face_center(f) * 101.0
-		var stats: Dictionary = streamer.update(center)
+	for f in range(F1.face_count()):
+		var center: Vector3 = F1.face_center(f) * 101.0
+		streamer.update(center)
 		if streamer.current_face != f or not streamer.is_loaded(f):
 			sweep_ok = false
 			break
-		# The want set never exceeds the 4-face law; its neighbors land
-		# on the lane (the settle below pins the completion).
-		if stats["active"].size() > 4:
-			sweep_ok = false
-			break
-	ok = _check("all 20 faces stream (sync current face, 4-face want bound)", sweep_ok) and ok
-	# The sweep drives update() by hand; the globe's own per-frame update
-	# then takes the wheel back and re-demands the PLAYER's want set. Pin
-	# that the streamer re-settles to exactly that set (waiting on a bare
-	# pending count here would race the hand-back).
-	ok = _check("post-sweep world re-settles the player's want set", await _settle_want()) and ok
+	ok = _check("every icosa face loads under the clipmap sweep", sweep_ok) and ok
+	# The globe's own per-frame update then takes the wheel back and
+	# re-centres on the PLAYER; pin that the world re-settles.
+	ok = _check("post-sweep world re-settles on the player", await _settle_player()) and ok
 
 	if not ok:
 		push_error("TERRAIN STREAM FLOW PROBE FAILED")
 	quit(0 if ok else 1)
 
 
-## Bounded lane settle: cold installs land on later frames, so the
-## 4-face want set is a SETTLE law. Waits on the MESH lane only (the
-## prop lane is a separate, slower census) plus a few frames for the
-## deferred applies to run.
+## Bounded settle: the clipmap builds incrementally through its job queue,
+## so a steady world is a SETTLE law. Waits on the derive lane + a few
+## frames for the deferred applies to run.
 func _settle(seconds: float = 30.0) -> void:
 	var st = _globe.get("streamer")
 	var waited: float = 0.0
-	while st != null and st._mesh_pending() > 0 and waited < seconds:
+	while st != null and st.pending_derive() > 0 and waited < seconds:
 		await root.get_tree().physics_frame
 		waited += 1.0 / 60.0
 	for _i in range(4):
 		await root.get_tree().physics_frame
 
 
-## Wait until the MESH lane is idle AND the live set is exactly the
-## current face's want set (face + 3 neighbors). Bounded at 60 s: the
-## headless VM's derives are multi-second, so this is a settle law.
-func _settle_want(seconds: float = 60.0) -> bool:
-	var F = load(FacesScript)
+## Wait until the derive lane is idle AND the clipmap holds the current
+## face's full ring ladder. Bounded at 60 s (the headless VM's cold build
+## is multi-second).
+func _settle_player(seconds: float = 60.0) -> bool:
 	var st = _globe.get("streamer")
 	var waited: float = 0.0
 	while waited < seconds:
 		await root.get_tree().physics_frame
 		waited += 1.0 / 60.0
-		if st._mesh_pending() > 0:
+		if st.pending_derive() > 0:
 			continue
-		var cur: int = int(st.current_face)
-		var want: Array = F.neighbors(cur)
-		want.append(cur)
-		var active: Array = _globe.stream_active_faces()
-		if active.size() != want.size():
-			continue
-		var all_want := true
-		for f in active:
-			if not want.has(f):
-				all_want = false
-		if all_want:
+		if st.is_loaded(st.current_face):
 			return true
 	return false
 

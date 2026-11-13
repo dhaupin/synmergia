@@ -1,8 +1,12 @@
 ## probe_biodiversity_v7 - the species-shape census for the v7 leg.
-## Boots the streamed globe at the planet scale and counts the NEW
-## v7 content across the streamed set: species-variant trunks, bare
-## snag canopies, scree collars, mushrooms, mycelium patches, and
-## vine hangs (short thin cylinders hung below a tree's local +y).
+## Boots the globe at the planet scale and counts the NEW v7 content
+## across the PropLayer's built chunks: species-variant trunks, bare
+## snag canopies, vines, scree, mushrooms, and mycelium patches.
+##
+## This is a CENSUS diagnostic (no assertions): it prints the counts.
+## The clipmap's PropLayer is the sole flora path now (chunks named
+## "PropChunk_%d" carrying Tree/Rock/Boulder/Scree/Mushroom/Mycelium/...
+## nodes).
 ## Run headless:  godot --headless --path game --script res://tests/probe_biodiversity_v7.gd
 extends SceneTree
 
@@ -12,16 +16,16 @@ const RADIUS := 20000.0
 
 var _globe: Node3D
 
+
 func _init() -> void:
-	# This probe reads the icosa STREAMER internals; pin the renderer
-	# so the default (clipmap) does not change what it inspects.
-	ProjectSettings.set_setting("synmergia/world/terrain_render", "streamer")
 	call_deferred("_run")
+
 
 func _strip_digits(n: String) -> String:
 	while n.length() > 1 and (n[n.length() - 1].to_lower() in "0123456789"):
 		n = n.substr(0, n.length() - 1)
 	return n
+
 
 func _run() -> void:
 	ProjectSettings.set_setting(RADIUS_SETTING, RADIUS)
@@ -34,13 +38,11 @@ func _run() -> void:
 		await root.get_tree().physics_frame
 	var streamer = _globe.get("streamer")
 	var waited := 0
-	# v9: pending_derive covers BOTH async lanes (mesh + prop) -- the
-	# neighbor patches land off-thread now, so the census waits on
-	# them too before counting.
 	while streamer.pending_derive() > 0 and waited < 600:
 		await root.get_tree().physics_frame
 		waited += 1
-	var n_faces := 0
+	var pl = streamer.prop_layer()
+	var n_chunks := 0
 	var trees := 0
 	var species_variants := 0
 	var bare_snags := 0
@@ -48,49 +50,49 @@ func _run() -> void:
 	var scree := 0
 	var mushrooms := 0
 	var mycelium := 0
-	var faces_scree := {}
-	var faces_mushroom := {}
-	for face in streamer.active_faces():
-		n_faces += 1
-		var holder = streamer._prop_holders.get(face)
-		if holder == null or not is_instance_valid(holder):
-			continue
-		for prop in holder.get_children():
-			var base := _strip_digits(String(prop.name))
-			if base == "Tree":
-				trees += 1
-				var has_canopy := false
-				for child in prop.get_children():
-					if child is MeshInstance3D and child.mesh is SphereMesh:
-						has_canopy = true
-				if not has_canopy:
-					bare_snags += 1
-				else:
-					# Variant canopy: not the v4 default (h = 1.8 * r).
+	var chunks_scree := {}
+	var chunks_mushroom := {}
+	if pl != null:
+		for k in pl._built.keys():
+			var chunk = pl._built.get(k)
+			if chunk == null or not is_instance_valid(chunk):
+				continue
+			n_chunks += 1
+			for prop in chunk.get_children():
+				var base := _strip_digits(String(prop.name))
+				if base == "Tree":
+					trees += 1
+					var has_canopy := false
 					for child in prop.get_children():
 						if child is MeshInstance3D and child.mesh is SphereMesh:
-							var sm: SphereMesh = child.mesh
-							if not is_equal_approx(sm.height, sm.radius * 1.8):
-								species_variants += 1
-				for child in prop.get_children():
-					if child is MeshInstance3D and child.mesh is CylinderMesh \
-							and child.mesh.height < 1.0:
-						vines += 1
-			elif base == "Scree":
-				scree += 1
-				faces_scree[face] = true
-			elif base == "Mushroom":
-				mushrooms += 1
-				faces_mushroom[face] = true
-			elif base == "Mycelium":
-				mycelium += 1
+							has_canopy = true
+					if not has_canopy:
+						bare_snags += 1
+					else:
+						for child in prop.get_children():
+							if child is MeshInstance3D and child.mesh is SphereMesh:
+								var sm: SphereMesh = child.mesh
+								if not is_equal_approx(sm.height, sm.radius * 1.8):
+									species_variants += 1
+					for child in prop.get_children():
+						if child is MeshInstance3D and child.mesh is CylinderMesh \
+								and child.mesh.height < 1.0:
+							vines += 1
+				elif base == "Scree":
+					scree += 1
+					chunks_scree[k] = true
+				elif base == "Mushroom":
+					mushrooms += 1
+					chunks_mushroom[k] = true
+				elif base == "Mycelium":
+					mycelium += 1
 	print("BIO_CENSUS_v7:")
-	print("  live_faces=", n_faces)
+	print("  live_chunks=", n_chunks)
 	print("  trees_nodes=", trees)
 	print("  species_variant_canopies=", species_variants)
 	print("  bare_snags=", bare_snags)
 	print("  vines=", vines)
-	print("  scree_rubble=", scree, " faces_with=", faces_scree.size())
-	print("  mushrooms=", mushrooms, " faces_with=", faces_mushroom.size())
+	print("  scree_rubble=", scree, " chunks_with=", chunks_scree.size())
+	print("  mushrooms=", mushrooms, " chunks_with=", chunks_mushroom.size())
 	print("  mycelium_patches=", mycelium)
 	quit(0)

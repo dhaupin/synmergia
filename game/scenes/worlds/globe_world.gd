@@ -38,10 +38,10 @@ const SKIN_THICKNESS: float = 0.5
 ## Default 100 = the prototype globe; 20000 = the v1 planet scale
 ## (prd.md). S8 probe verifies systems at both scales.
 const PLANET_RADIUS_SETTING: String = "synmergia/world/planet_radius"
-## S8: keep in sync with globe_terrain_streamer.TILE_LIFT (0.52) --
-## the walk surface sits this far above the base shell when the
-## terrain streamer is on. (Constant mirrored rather than preloaded
-## to keep the scene's load order simple.)
+## S8: keep in sync with globe_clipmap.TILE_LIFT (0.52) --
+## the walk surface sits this far above the base shell. (Constant
+## mirrored rather than preloaded to keep the scene's load order
+## simple.)
 const STREAMER_TILE_LIFT: float = 0.52
 ## S8: shells larger than this cannot resolve a 1 m body contact
 ## (the S8 stall threshold note lives in _build_shell/_surface_lift).
@@ -98,18 +98,12 @@ const SHIFT_RADIUS: float = 1500.0
 ## stays the physics truth either way).
 var stream_terrain: bool = true
 
-## THE RENDERER SWITCH (clipmap round): "clipmap" (default) draws the
-## ground as a player-centred polar clipmap; "streamer" is the legacy
-## icosa face-patch streamer (kept as fallback until the clipmap's probe
-## set is green). Both draw the SAME ground law; only the mesh differs.
+## THE RENDERER (clipmap round): the player-centred polar clipmap is the
+## SOLE terrain renderer. The legacy icosa face-patch streamer was retired
+## once the clipmap proved out at every scale; this setting is kept only as
+## a compatibility read (a stale pin is warned about, then ignored).
 const TERRAIN_RENDER_SETTING: String = "synmergia/world/terrain_render"
 var terrain_render: String = "clipmap"
-
-## The clipmap's ring ladder is tuned for the canon 20 km planet; below this
-## radius the prototype bench sphere would re-centre every step, so the
-## renderer falls back to the streamer (same line as the world's other
-## planet-scale gates).
-const PLANET_RENDER_MIN_R: float = 1000.0
 
 ## WATER (terrain arc): at planet scale the scene paints a water shell
 ## at the terrain sea line (TerrainGen.sea_level). The shell is visual
@@ -118,8 +112,8 @@ const PLANET_RENDER_MIN_R: float = 1000.0
 const WATER_ON: bool = true
 var water_body: MeshInstance3D = null
 
-## The active ground renderer (GlobeClipmap or GlobeTerrainStreamer);
-## untyped - preload-by-path pattern. Both expose the same surface.
+## The active ground renderer (GlobeClipmap); untyped -- preload-by-path
+## pattern. Exposes update/build_all/ground_meshes/pending_derive etc.
 var streamer
 
 var player  # GlobeWorldPlayer; untyped on purpose - set_script + dynamic
@@ -519,30 +513,22 @@ func _exit_tree() -> void:
 func _setup_streamer() -> void:
 	if not stream_terrain:
 		return
-	# THE RENDERER SWITCH (clipmap round): clipmap (default) or the legacy
-	# streamer. Both draw the SAME ground law through the same public surface.
+	# THE RENDERER SWITCH (clipmap round): the clipmap is the SOLE terrain
+	# renderer now. The legacy icosa streamer was retired once the clipmap
+	# proved out at every scale (probe_clipmap + probe_stream_flow_100m at
+	# R=100); the setting is kept only so a stale project.godot pin does not
+	# silently disable terrain.
 	terrain_render = str(ProjectSettings.get_setting(TERRAIN_RENDER_SETTING, terrain_render))
-	# SCALE GATE: the clipmap's ring ladder (inner radius, hysteresis, cell
-	# sizes) is tuned for the canon 20 km planet. Below planet scale the
-	# prototype bench sphere (R=100) would re-centre every step, so it falls
-	# back to the streamer -- the same 1000 m line the world's other
-	# planet-scale gates use.
-	if terrain_render == "clipmap" and planet_radius < PLANET_RENDER_MIN_R:
-		terrain_render = "streamer"
-	if terrain_render == "clipmap":
-		streamer = load("res://scenes/worlds/globe_clipmap.gd").new()
-		streamer.configure(planet_radius, 7.0, world_root)
-		streamer.terrain_on = true
-		streamer.update(_spawn_dir() * planet_radius)
-		streamer.build_all()
-	else:
-		streamer = load("res://scenes/worlds/globe_terrain_streamer.gd").new()
-		streamer.configure(planet_radius, 7.0, world_root)
-		# Terrain arc: the heightfield joins the tiles at planet scale. The
-		# planar prototype mode is GONE (the cache-lane/planar cull round):
-		# every globe is a terrain globe.
-		streamer.terrain_on = true
-		streamer.update(_spawn_dir() * planet_radius)
+	if terrain_render != "clipmap":
+		var log5 = get_node_or_null("/root/GameLog")
+		if log5:
+			log5.warn("GlobeWorld: terrain_render '%s' is retired; using clipmap." % terrain_render)
+		terrain_render = "clipmap"
+	streamer = load("res://scenes/worlds/globe_clipmap.gd").new()
+	streamer.configure(planet_radius, 7.0, world_root)
+	streamer.terrain_on = true
+	streamer.update(_spawn_dir() * planet_radius)
+	streamer.build_all()
 	# CHART-LOD OVERLAY (renderer-agnostic): the penrose-lattice climb is a
 	# SEPARATE overlay root under world_root, so it rides EITHER renderer. The
 	# clipmap is the sole path now, so wire it here rather than inside the

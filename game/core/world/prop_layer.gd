@@ -231,7 +231,7 @@ func _derive_chunk(key: int) -> Dictionary:
 	# Detail props (the dense near-field layer: tufts, flowers, mushrooms,
 	# mycelium, shells, wrack, cattail, bush, ore).
 	var detail_density: float = provider.detail_density(bid)
-	var detail_n: int = _stochastic_count(detail_density * area_km2, _chunk_rng(key, "dcount"))
+	var detail_n: int = _stochastic_count(detail_density * area_km2, _chunk_rng(key, "dcount", false))
 	if detail_n > 0:
 		_derive_details(key, detail_n, out)
 	# Cache (LRU).
@@ -277,7 +277,12 @@ func _derive_trees(key: int, count: int, out: Dictionary) -> void:
 ## the shore splits shells vs kelp wrack; the marsh grows cattail; shrub
 ## bands grow bushes).
 func _derive_details(key: int, count: int, out: Dictionary) -> void:
-	var rng: RandomNumberGenerator = _chunk_rng(key, "detail")
+	# The site PLACEMENT (and every harvestable kind's params) is anchored:
+	# world-seed only, so the drawn prop is the gatherable node across days.
+	var rng: RandomNumberGenerator = _chunk_rng(key, "detail", false)
+	# The tuft field is the decorative band (grass): it mixes the session
+	# salt so the meadow look recombines between days (FIELD-2 split).
+	var tuft_rng: RandomNumberGenerator = _chunk_rng(key, "tuft", true)
 	var sea: float = provider.sea_level()
 	var placed: int = 0
 	var attempts: int = 0
@@ -298,7 +303,7 @@ func _derive_details(key: int, count: int, out: Dictionary) -> void:
 		if kind == KIND_TUFT:
 			# The tuft field is one MultiMesh per chunk (the batch law).
 			out["tufts"].append({"dir": dir, "h": h,
-					"scale": rng.randf_range(0.7, 1.6), "yaw": rng.randf_range(0.0, TAU)})
+					"scale": tuft_rng.randf_range(0.7, 1.6), "yaw": tuft_rng.randf_range(0.0, TAU)})
 			placed += 1
 			continue
 		# The stable per-site id (chunk-keyed): the paint and the harvest
@@ -463,13 +468,17 @@ func _stochastic_count(x: float, rng: RandomNumberGenerator) -> int:
 
 
 ## A deterministic RNG for one chunk's family stream (SeedChain-derived).
-func _chunk_rng(key: int, family: String) -> RandomNumberGenerator:
+func _chunk_rng(key: int, family: String, salted: bool = true) -> RandomNumberGenerator:
 	var seed_bytes: PackedByteArray = SeedChain.derive_seed([world_seed], "props/%s/%d/%d" % [family, chunk_depth, key])
 	var acc: int = 0
 	for b in seed_bytes:
 		acc = (acc * 131 + b) % 9007199254740991
 	var rng := RandomNumberGenerator.new()
-	rng.seed = (acc + _decor_salt) % 9007199254740991
+	# THE FIELD-2 SPLIT: decorative families (canopies, tufts) mix the
+	# session salt so nature recombines between days; anchored culture
+	# (the harvestable detail kinds) derives from the world seed alone so
+	# depletion/respawn ownership survives a re-stream (salted=false).
+	rng.seed = (acc + (_decor_salt if salted else 0)) % 9007199254740991
 	return rng
 
 

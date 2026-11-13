@@ -57,22 +57,17 @@ func _initialize() -> void:
 		# ready-wall while the dressing streams -- a waves-done time
 		# smaller than a right wall would mean the waves never ran.
 		_check("world dressing complete (all nine waves landed)", true)
-	# THE BOOT-CLAMP PROMOTE (the loading-speed round's second gate):
-	# the first cold mount builds COARSE (base - _boot_edge_drops());
-	# the standing LOD hysteresis law must promote the spawn face to
-	# the demanded level (_level_for_edge()) through the worker lane.
+	# THE CLIPMAP BOOT (the clipmap round): the sole renderer builds its
+	# full ring ladder synchronously at boot (build_all), so the ready
+	# wall already holds a drawn world -- there is no async promote leg
+	# to wait on (the retired streamer's boot-clamp promote is gone).
 	var st = globe.get("streamer")
 	if st == null:
-		print("PROMOTE: not probed (no streamer or planar scale)")
+		print("CLIPMAP: not probed (no terrain renderer)")
 	else:
-		var want_lvl := int(st._level_for_edge())
-		var cur_face := int(st.current_face)
-		var got_lvl := int(st._patch_lvl.get(cur_face, -1))
-		print("PROMOTE: face %d built %d / demanded %d at mount-end" % [cur_face, got_lvl, want_lvl])
-		var deadline2 := Time.get_ticks_msec() + WAVES_TIMEOUT_MS
-		while Time.get_ticks_msec() < deadline2 and int(st._patch_lvl.get(cur_face, -1)) != want_lvl:
-			await process_frame
-		var final_lvl := int(st._patch_lvl.get(cur_face, -1))
-		print("PROMOTE: face %d final level %d (demanded %d)" % [cur_face, final_lvl, want_lvl])
-		_check("boot-clamp promote reaches the demanded level asynchronously", final_lvl == want_lvl)
+		var patches := int(st.patch_count())
+		var tris := int(st.triangle_count())
+		print("CLIPMAP: built %d meshes, %d tris at the ready-wall" % [patches, tris])
+		_check("clipmap builds its ring ladder inside the ready-wall", patches >= 5 and tris > 0)
+		_check("clipmap renders the spawn face at boot", st.is_loaded(st.current_face))
 	_quit()

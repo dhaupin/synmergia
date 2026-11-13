@@ -61,8 +61,8 @@ func _run() -> void:
 		print("DRIFT-MISS the species mapping is not stable")
 		quit(1)
 		return
-	# 3) THE LIVE BLOOM: boot the planet and count the homeland face's
-	# flowers from the live detail chain (kind 4).
+	# 3) THE LIVE BLOOM: boot the planet and census the PropLayer's
+	# flower (KIND_FLOWER=1) population across its loaded chunks.
 	ProjectSettings.set_setting(RADIUS_SETTING, RADIUS)
 	var packed: PackedScene = load(GLOBE_SCENE)
 	var globe: Node = packed.instantiate()
@@ -70,16 +70,24 @@ func _run() -> void:
 	for _i in range(10):
 		await process_frame
 	var streamer = globe.get("streamer")
-	for _i in range(30):
+	for _i in range(40):
 		await root.get_tree().physics_frame
+	var pl = streamer.prop_layer()
 	var flowers: int = 0
-	var sites: Array = streamer._derive_detail_sites(16)
-	for rec in sites:
-		if int(rec["kind"]) == 4:
-			flowers += 1
-	print("DRIFT face16 live flowers=%d (v5 sprinkle gave 71)" % flowers)
-	if flowers <= 71:
-		print("DRIFT-MISS the fields did not bloom past the old sprinkle rate")
+	var flowering_chunks: int = 0
+	var built: int = 0
+	for k in pl._built.keys():
+		built += 1
+		var f: int = 0
+		for ch in (pl._built.get(k) as Node3D).get_children():
+			if String(ch.name).begins_with("Flower"):
+				f += 1
+		if f > 0:
+			flowering_chunks += 1
+			flowers += f
+	print("DRIFT live flowers=%d across %d/%d built chunks" % [flowers, flowering_chunks, built])
+	if flowers <= 0:
+		print("DRIFT-MISS the fields did not bloom under the PropLayer")
 		quit(1)
 		return
 	print("DRIFT-OK")

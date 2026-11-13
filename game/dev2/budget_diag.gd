@@ -14,5 +14,5 @@ func _run() -> void:
 		var t0: int = Time.get_ticks_usec()
 		st.update(F.face_center(tgt) * 20000.0)
 		var dt: float = float(Time.get_ticks_usec() - t0) / 1000000.0
-		print("LEG face=%d took %.2f s patches=%d" % [tgt, dt, (st._patches as Dictionary).size()])
+		print("LEG face=%d took %.2f s meshes=%d" % [tgt, dt, st.ground_meshes().size()])
 	quit(0)

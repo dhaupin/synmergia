@@ -1,9 +1,13 @@
 ## probe_walk_mesh_gap - the play-day clipping measurement.
 ## Within a small angular window around the player at the 20 km
-## planet scale, pair the DRAWN patch triangles (mesh truth) with the
+## planet scale, pair the DRAWN clipmap triangles (mesh truth) with the
 ## ANALYTIC walk law the player pad / props / spawns ride, and report
 ## the gap: positive = the drawn surface sits ABOVE where placements
 ## land ("player under the terrain"), negative = placements float.
+##
+## This is a CENSUS diagnostic (no assertions): it prints the worst gap
+## and a sample of pairs. The clipmap is the sole renderer now; the drawn
+## ground is its cap + ring meshes.
 ## Run headless:   godot --headless --path . --script res://tests/probe_walk_mesh_gap.gd
 extends SceneTree
 
@@ -16,9 +20,6 @@ var _globe: Node3D
 
 
 func _init() -> void:
-	# This probe reads the icosa STREAMER internals; pin the renderer
-	# so the default (clipmap) does not change what it inspects.
-	ProjectSettings.set_setting("synmergia/world/terrain_render", "streamer")
 	call_deferred("_run")
 
 
@@ -33,9 +34,8 @@ func _run() -> void:
 		await root.get_tree().physics_frame
 
 	var streamer = _globe.get("streamer")
-	# v9 MESH THREAD: the neighbor patches derive off-thread; the gap
-	# census compares the DRAWN surface's full near-band, so it waits
-	# (bounded) for both async lanes before reading meshes.
+	# The clipmap builds off-thread; wait (bounded) for the derive lane
+	# before reading meshes.
 	var drainage := 0
 	while streamer.pending_derive() > 0 and drainage < 1800:
 		await root.get_tree().physics_frame
@@ -50,8 +50,7 @@ func _run() -> void:
 
 	var n_shown := 0
 	var worst := 0.0
-	for face in streamer.active_faces():
-		var mi: MeshInstance3D = streamer._patches.get(face)
+	for mi in streamer.ground_meshes():
 		if mi == null or mi.mesh == null:
 			continue
 		var xf: Transform3D = mi.global_transform
@@ -81,7 +80,7 @@ func _run() -> void:
 				worst = maxf(worst, absf(gap))
 				if n_shown < 24:
 					n_shown += 1
-					print("  face=%d dir=%v drawn=%8.2f law=%8.2f gap=%+8.2f" \
-						% [face, dir, drawn_h, law_h, gap])
+					print("  dir=%v drawn=%8.2f law=%8.2f gap=%+8.2f" \
+						% [dir, drawn_h, law_h, gap])
 	print("NEAR_TRIANGLES compared; worst |gap| = %0.2f m" % worst)
 	quit(0)

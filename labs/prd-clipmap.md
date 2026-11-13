@@ -191,18 +191,16 @@ changes what is DRAWN.
 
 ## 5. The switch
 
-`globe_world.terrain_render` (`"clipmap"` | `"streamer"`, default
-`"clipmap"`, read from `synmergia/world/terrain_render`) selects the
-renderer in `_setup_streamer`, gated to `planet_radius >= 1000 m` (3b).
-The streamer stays in-tree as the fallback until the clipmap has a full
-probe green; a follow-up round deletes it once nothing references it.
+`globe_world.terrain_render` (`"clipmap"`, read from
+`synmergia/world/terrain_render`) selects the renderer in
+`_setup_streamer`. The clipmap is the SOLE terrain path: any other
+value logs a warn and falls back to `"clipmap"`. The legacy
+`globe_terrain_streamer.gd` was deleted once every probe read the
+shared surface (section 11a).
 
-Probes that read the streamer's *internals* (`_patches`, `_patch_lvl`,
-`_level_for_edge`, the Sundered deep beds) pin
-`synmergia/world/terrain_render = "streamer"` in their entry function, so
-they keep testing what they were written to test. Probes that read only
-the shared surface (`update`, `triangle_count`, `active_faces`,
-`pending_derive`, `_mesh_pending`) run against the default renderer.
+Probes read only the shared surface (`update`, `build_all`,
+`triangle_count`, `active_faces`, `ground_meshes`, `pending_derive`,
+`prop_layer`) against the clipmap.
 
 ## 6. Acceptance gates
 
@@ -263,7 +261,7 @@ local fix -- but the user asked for anything slow to be recorded here.
 | S4 | `TerrainGen.river_channel` | **111 µs** cold | IS sector-cached (`_channel_cache`), so only the first call per sector pays; the cost is the inner loop -- every river spec × every segment × 3 slerp samples, no bounding early-out. | Add a coarse bounding test (skip specs whose nearest endpoint is > the river's angular radius away) before the segment loop. |
 | S5 | The memo itself (`SectorCache`) | ~2 µs hit | fine, but the clipmap keys height and color separately, so a vertex costs two lookups. | One combined `(height, skin)` memo entry per quantized direction halves the lookups. |
 | S6 | Cold boot derive | **~2.0 s** (was ~3 s) | the boot `build_all()` derives every ring vertex cold (no memo warm yet). | **SHIPPED**: (a) the vertex skin is resolved ONCE per distinct vertex, not once per emission (the ring quad pass emits each shared vertex up to 6x); (b) `build_all` fans the cap + each ring onto a bounded worker pool (cores-sized) and installs the meshes on the main thread (the streamer's derive/apply split; the law is thread-safe). Bit-identical geometry, 1.5x faster cold. Still ~2 s because the cold ground-sample (~390 us) IS the cost. |
-| S7 | Streamer `_patches` machinery | 3945 lines | seams/skirts/hot-reload exist only because a face swaps wholesale. | Delete once the clipmap is the only path (7, Open items). |
+| S7 | Streamer `_patches` machinery | 3945 lines | seams/skirts/hot-reload exist only because a face swaps wholesale. | **SHIPPED**: `globe_terrain_streamer.gd` deleted; the clipmap is the sole path (11a step 5). |
 
 ### 8b. Resolutions (2026-11-04)
 
@@ -304,6 +302,11 @@ bit-identical plan) -- not done here.
 ## 9. The prop layer (v2 -- the world is bare without it)
 
 ### 9.1 The gap (measured)
+
+> **RESOLVED (11a steps 1-5).** This section records the ORIGINAL gap; the
+> port is shipped: `PropLayer` owns every prop family and the legacy
+> streamer is deleted. The measurements below are the historical
+> before/after, kept as the rationale for the chunk-addressed design.
 
 The clipmap is the DEFAULT renderer (`synmergia/world/terrain_render`,
 default `"clipmap"`; the world boots at 20 km so the scale gate never
@@ -532,20 +535,17 @@ without flora.
   gate stays OFF by default -- redundant decoration beside the Penrose ground
   backend). Receipts: `probe_clipmap` G6 (wet sheet builds / dry yields none)
   + G7 (deck quads > 0).
-- **Step 4 (retarget probes) -- IN PROGRESS.** The streamer owns nothing the
-  clipmap lacks now (the deep beds + the land harvest registration + the
-  water sheet + the road deck were the last gaps): `PropLayer` registers the drawn mushrooms / ore / bushes as
-  live `HarvestService` nodes (chunk-stable `hs_<key>_<n>` ids, zone resolved
-  by `GroundProvider.zone_for_dir`; receipt `probe_prop_layer` A9/A10), and
-  every registered deep plant is guaranteed at least one painted strand (the
-  per-plant coverage law; receipt `probe_deep_garden` C5b). The swim +
-  splat-skin receipts already read the clipmap; the remaining streamer-internal
-  reads live in `probe_terrain_planet`, `probe_prop_density`,
-  `probe_biodiversity_v7`, `probe_stream_flow_100m`, `probe_walk_mesh_gap`,
-  `diag_detail_kinds` (they pin `terrain_render = "streamer"` and read
-  `_patch_lvl` / `_patches` / `_level_for_edge` etc.). Retarget those, then
-  delete the streamer.
-- **Step 5 (delete streamer) -- OPEN** (unblocked once Step 4 is done).
+- **Step 4 (retarget probes) -- DONE.** Every streamer-internal probe now
+  reads the shared surface: `probe_prop_density` / `probe_biodiversity_v7` /
+  `diag_detail_kinds` census the `PropLayer`, `probe_mesh_surface_enum` /
+  `probe_perf_budget` read the clipmap ladder (`ground_meshes()` /
+  `build_all()` / `update()`), `probe_world_boot_speed` dropped the
+  streamer-internal PROMOTE leg for the clipmap build, and the `dev_temp` /
+  `dev2` diagnostics (`field2_salt_probe`, `pans_render_probe`,
+  `wildflower_drift_probe`, `budget_diag`) were retargeted to `PropLayer`.
+- **Step 5 (delete streamer) -- DONE.** `globe_terrain_streamer.gd` (3945
+  lines) is deleted; nothing references it. The clipmap is the SOLE terrain
+  renderer.
 
 ## 12. The scale law (what an online MMO needs)
 
@@ -583,7 +583,7 @@ The work splits cleanly along the existing subagent-lane pattern
 | **LANE B** | Port the detail kinds + grass field + harvest registration (stable chunk-keyed ids). | new prop builder files, `harvest_service.gd` |
 | **LANE C** | `UnderworldProvider` + wire `BiomeBand.family` dispatch + the lava lake/cistern as declared geography. | `globe_underworld.gd`, `biome_band.gd` |
 | **LANE D** | `MoonProvider` + build the declared crater pool + the moon's own biome bands. | `globe_moon.gd`, `world_moon.tres`, new `data/biomes/moon_*` |
-| **PARENT** (last) | Retarget the 14 streamer-internal probes; delete the streamer. | `game/tests/`, delete `globe_terrain_streamer.gd` |
+| **PARENT** (last) | Retarget the streamer-internal probes; delete the streamer. **DONE** (11a steps 4-5). | `game/tests/`, `globe_terrain_streamer.gd` (deleted) |
 
 Gates at every step: `probe_clipmap` ALL PASS; a NEW `probe_prop_layer`
 (family counts, determinism, chunk-keyed harvest ids, LOD parity);
