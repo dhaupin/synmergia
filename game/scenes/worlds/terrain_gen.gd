@@ -61,6 +61,13 @@ static var _river_spec_cache = LRU_CACHE.new(8)
 ## them).
 static var _carved_cache = SECTOR_CACHE.new()
 
+## GROUND-SAMPLE MEMO (the fused-sample refactor, labs/prd-ground-sample.md).
+## Stage 1: one GroundSample per quantized direction, built by calling the
+## existing sub-laws (so it is trivially bit-identical) and memoized together.
+## Stage 2 rewires the public entry points to read THIS struct instead of
+## re-deriving; Stage 3 collapses the per-field caches into this one.
+static var _ground_cache = SECTOR_CACHE.new()
+
 ## Bump to invalidate all derived content deliberately. v2: the
 ## heightfield + boulders join the world (all rocks/trees re-derive).
 ## v3: climate + hydrology join (biome ids/weights re-derive; the
@@ -689,6 +696,7 @@ static func install_terrain_backend(backend: Callable) -> void:
 	_river_spec_cache.clear()  # springs/pathing re-derive under the seam
 	_waterfall_cache.clear()   # the seam masks ride the specs
 	_crag_cache.clear()        # the color noises ride the seed law
+	_ground_cache.clear()      # the fused sample rides the ground law
 
 
 static func uninstall_terrain_backend() -> void:
@@ -703,6 +711,7 @@ static func uninstall_terrain_backend() -> void:
 	_water_table_cache.clear()
 	_river_spec_cache.clear()
 	_crag_cache.clear()
+	_ground_cache.clear()
 
 
 static func terrain_backend_installed() -> bool:
@@ -2657,3 +2666,70 @@ static func road_walk_dir(d: Vector3, world_seed: PackedByteArray) -> Vector3:
 					best = 1.0 - ang / ROAD_ANG
 					walk = axis.cross(mid).normalized()
 	return walk
+
+
+# -- THE GROUND SAMPLE (the fused-sample refactor, stage 1) -------------
+#
+# One value object holding every per-direction quantity the renderer, the
+# walk law, and the biome law need. Built ONCE per quantized direction and
+# memoized together (labs/prd-ground-sample.md). Stage 1 computes it by
+# calling the existing sub-laws, so it is trivially bit-identical to the
+# individual entry points; stage 2 rewires those entry points to read this
+# struct, stage 3 collapses the per-field caches into _ground_cache.
+#
+# The `primary` flag marks a sector as "used as a ground sample" so
+# _ground_cache can hold both fused samples (primary=true) and the bare
+# raw samples stage 2 reads internally (primary=false) without a
+# self-referential builder recursion.
+class GroundSample:
+	var dir: Vector3
+	var height: float          # terrain_height (carved, default mode)
+	var height_base: float     # _terrain_height_base
+	var water_table: float     # water_table_raw
+	var water_surface: float   # hydro_water_surface (-1e9 = no standing water)
+	var temperature: float
+	var moisture: float
+	var biome_id: int
+	var biome_weights: Dictionary
+	var skin: Color            # skin_classes
+	var crag: Vector4          # _crag_noise
+	var river_channel: float
+	var road_state: Vector3
+	var sea: float
+	var primary: bool = false
+
+
+## Build the fused sample for a direction (no memo). All fields are read
+## from the existing sub-laws, so the numbers are bit-identical to the
+## public entry points.
+static func _build_ground_sample(dir: Vector3, world_seed: PackedByteArray) -> GroundSample:
+	var d: Vector3 = dir.normalized()
+	var s := GroundSample.new()
+	s.dir = d
+	s.sea = sea_level(world_seed)
+	s.height = terrain_height(d, world_seed)
+	s.height_base = _terrain_height_base(d, world_seed)
+	s.water_table = water_table_raw(d, world_seed)
+	s.water_surface = hydro_water_surface(d, world_seed)
+	s.temperature = climate_temperature(d, world_seed)
+	s.moisture = climate_moisture(d, world_seed)
+	s.biome_id = climate_biome_at(d, world_seed, s.height, s.water_surface)
+	s.biome_weights = climate_biome_weights(d, world_seed)
+	s.skin = skin_classes(d, world_seed)
+	s.crag = _crag_noise(d, world_seed)
+	s.river_channel = river_channel(d, world_seed)
+	s.road_state = road_state_at(d, world_seed)
+	return s
+
+
+## The fused ground sample at a direction, memoized together on the
+## quantized sector. This is the ONE call a renderer needs per vertex.
+static func ground_sample(dir: Vector3, world_seed: PackedByteArray) -> GroundSample:
+	var d: Vector3 = dir.normalized()
+	var cached = _ground_cache.get_value(d, world_seed)
+	if cached is GroundSample and cached.primary:
+		return cached
+	var s: GroundSample = _build_ground_sample(d, world_seed)
+	s.primary = true
+	_ground_cache.set_value(d, world_seed, s)
+	return s

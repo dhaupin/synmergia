@@ -19,7 +19,8 @@
 >
 > Related: `prd-terrain.md` (the ground law itself), `prd-world.md` (the
 > planet's topology), `prd-spherical-mvp.md` (the spherical execution
-> record), `prd-geometry.md` (NSC-9 addressing).
+> record), `prd-geometry.md` (NSC-9 addressing), `prd-ground-sample.md`
+> (the fused-sample refactor behind the section-8 slow systems).
 
 ## 1. Why replace the streamer
 
@@ -238,11 +239,19 @@ local fix -- but the user asked for anything slow to be recorded here.
 | S6 | Cold boot derive | ~3 s | the boot `build_all()` derives every ring vertex cold (no memo warm yet). | Warm the memo during the loading screen (a cheap pre-pass over the spawn sectors), or accept the 3 s behind a fade. |
 | S7 | Streamer `_patches` machinery | 3945 lines | seams/skirts/hot-reload exist only because a face swaps wholesale. | Delete once the clipmap is the only path (7, Open items). |
 
-**The big-arch question (for discussion after this round):** S1-S4 are all
+**Measured redundancy (instrumented `SectorCache`, partial clipmap
+build): 675,904 `get_value` calls at a 90.6% hit rate.** Nearly all of
+those are the SAME quantized direction re-entering a different sub-law
+within one vertex derive -- the dedup is real, but it is paid for one
+key build + lock + LRU probe at a time. This is the number the
+`GroundSample` refactor (`prd-ground-sample.md`) is meant to collapse.
+
+**The big-arch question (SCOPED):** S1-S4 are all
 the same shape -- a "derive the ground at a direction" law where each
 public entry point re-runs its neighbours. The structural fix is a single
 `GroundSample` struct computed once per quantized direction (height,
 water table, biome, skin, road) and memoized together, with every public
-function becoming a field read. That is a real refactor of `terrain_gen`
-(not a local patch), so it is flagged for a conversation, not done here.
+function becoming a field read. That is a real refactor of `terrain_gen`,
+so it is scoped in **`prd-ground-sample.md`** (design + a staged,
+bit-identical plan) -- not done here.
 

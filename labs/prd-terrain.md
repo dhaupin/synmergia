@@ -9,6 +9,11 @@
 > topology intent on top of it. Where they disagree, the code's
 > `terrain_gen.gd` constants win.
 >
+> **Perf follow-on:** the ground law's entry points re-derive their
+> neighbours (S1-S4, `prd-clipmap.md` section 8). The structural fix --
+> one fused `GroundSample` per quantized direction, memoized together --
+> is scoped in `prd-ground-sample.md`.
+>
 > **Current truth:**
 >
 > - **Slice 1** climate field + biome law: SHIPPED, probe-pinned
