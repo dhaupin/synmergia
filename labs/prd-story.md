@@ -117,6 +117,35 @@ caretaker that outlived the thing it cared for. Corrupted agents are
 not villains; they are patients. (The frayed cables and cracked
 shells in the bestiary are symptoms.)
 
+**The Bloom-touched bestiary** (Act II, `data/enemies/`). The
+corruption medium is always the same: the neutral agent fauna, gone
+over -- cracked shell, leaking spore-dust or frayed cables, magenta
+thread-eyes where teal used to glow (art bible sec. 8.1). Four are
+canon from the hostile-agent renders; each is the neutral creature's
+taken form:
+
+| Neutral | Bloom-touched | Data id | Notes |
+|---------|---------------|---------|-------|
+| Spore-Spider | **Feral Spore-Spider** | `feral_spore_spider` | Fractured crystal sac vents violet dust; torn metal hooks. Social -- swarms. |
+| Data-Owl | **Shrike-Owl** | `shrike_owl` | Crest split to twin flat ears, barbed talon cables, cracked clock-face core (same core family as the Saint). Elite. |
+| Root-Crab | **Rust-Root-Crab** | `rust_root_crab` | One claw overgrown to a boulder-mace; roots wound tight as tendon. Charges in a straight line. |
+| Lichen-Lizard | **Blight-Lizard** | `blight_lizard` | Olive lichen turned bruised violet; tail frays to cable-whips. Basks in the runoff. |
+
+Two larger nodes anchor the arc's back half. **The Bloomwrought
+Warden** (`bloomwrought_warden`, CHAMPION) is a Convergence sentinel
+the Bloom grafted where it stood -- still walking its patrol around a
+vault that stopped answering, never ordered to stand down: a patient
+still on duty. **The Sporebound Matriarch** (`sporebound_matriarch`,
+BOSS, Gloomwood Depths) is the Bloom's oldest node: a vast brood-mother
+that keeps making tenders for a garden whose gardener never came back.
+It is not a villain. It is a mother with no one left to raise. Both
+are patients, not monsters; the copy must never call them evil.
+
+The Forest Devourer (`void_lord`, world boss in `zone_forest_meadow`)
+stays the arc's thesis-monster: roots grew through the hull and made
+the machine part of the garden (sec. 5, art bible sec. 8.2). The
+Sporebound Matriarch is its kin, deeper and older.
+
 ## 6. The player (who you are)
 
 A **tablet-bearer** -- one of the few who can hear the dormant world
@@ -144,6 +173,19 @@ admin-only and NOT diegetic; they have no story presence.
   ward it, Collective to listen to it. Ends at the mouth of the
   Depths, where the Bloom is thickest and the old elevator down
   still sleeps.
+
+  **Authored lane (2026-11-28):** the corruption reads as a
+  five-quest chain out of Haven -- the herbalist studies the
+  spiders, then the runoff line; Fenwick's fence line carries it
+  down (`quest_study_the_bloom` -> `quest_the_runoff_line` ->
+  `quest_break_the_shell` -> `quest_the_silent_stoop` ->
+  `quest_cull_the_warden`). Two hordes pace it: **The Bloom Cull**
+  (`bloom_cull`, open-world, bossed by the Bloomwrought Warden) and
+  **Descent into the Bloom** (`bloom_descent`, dungeon-scoped,
+  finishing on the Sporebound Matriarch). The **Bloom Stirs**
+  weather event (`bloom_stir`, `active` sky band) stirs the cull in
+  the gloam. All of it rides `pack_bloom_act` (the per-shard
+  content pack), so an event shard can keep the gloam quiet.
 - **Act 3 -- The Question (nexus_central and beyond):** wake the
   Nexus Core itself and learn what the Convergence was for -- and
   what the Silence interrupted. Act 3 is deliberately UNWRITTEN
@@ -179,9 +221,10 @@ a little reverent. NPCs do not say "powered on" -- they say "woke,"
 
 ## 10. Canon drift log (story-adjacent)
 
-- Village Elder dialogue says "the Darkwood"; zones and renders say
+- Village Elder dialogue said "the Darkwood"; zones and renders say
   **Gloomwood Forest**. Gloomwood wins (zone .tres + all art).
-  Fix the dialogue when quests get authored.
+  **RESOLVED 2026-11-28:** `village_elder_greeting.tres` now reads
+  "the Gloomwood". No "Darkwood" remains in player-facing copy.
 - Zone descriptions predate the art bible (safe/no-mood tone); when
   rewriting zone copy, use gemini_zones.md moods as canon.
 - **"Haven" naming (RESOLVED 2026-11-28).** The starter settlement
@@ -203,6 +246,26 @@ a little reverent. NPCs do not say "powered on" -- they say "woke,"
   ~1 km with a **road** to the capital, and the **mountain range**
   rises behind the village. Act 1/Act 2 live on the home continent
   (the ~14 km homeland dome).
+- **Bloom-touched bestiary authored (2026-11-28).** Sec. 5's fauna
+  table is now real data: the four hostile variants the art renders
+  canonized (`gemini_hostile_agents.md`, 2026-09-25) had no
+  `data/enemies/` templates at all -- the bestiary stopped at the
+  neutrals. Authored `feral_spore_spider`, `shrike_owl`,
+  `rust_root_crab`, `blight_lizard`, plus the champion
+  `bloomwrought_warden` and the boss `sporebound_matriarch`, their
+  shared `loot_bloom_corruption` table, the two hordes, the weather
+  event, and `pack_bloom_act`. The corruption medium is fixed: the
+  neutral creature, cracked and leaking, magenta where teal was.
+- **Two act systems, one word (2026-11-28).** Sec. 7's world arc
+  (Haven / The Bloom / The Question) and `data/acts/*.tres` are
+  DIFFERENT things that share the word "act". The `.tres` acts are
+  the **Concord's Chronicle** -- a reading schedule over the vault
+  records (`act_1_the_first_vault`, `act_2_the_unpaid_debt`,
+  `act_3_the_trust_audit`), gate-days on the sky calendar. The world
+  arc is the campaign's geography. They are not in conflict; they
+  are two layers (Chronicle = what the Concord teaches, arc = where
+  you walk). Name them apart in copy: "Act II: The Unpaid Debt" is
+  a Chronicle chapter, "Act 2, the Bloom" is the zone arc.
 
 ## 11. Where canon lives (pointer table)
 
@@ -214,6 +277,9 @@ a little reverent. NPCs do not say "powered on" -- they say "woke,"
 | Factions, politics | `game/data/factions/*.tres` |
 | Zones, moods | `game/data/zones/*.tres` + `gemini_zones.md` |
 | Boss roster | `game/data/world_bosses/*.tres` + `gemini_bosses.md` |
+| Bestiary (hostile + bloom-touched) | `game/data/enemies/*.tres` + `gemini_hostile_agents.md` |
+| Hordes, weather events | `game/data/hordes/*.tres`, `game/data/weather_events/*.tres` |
+| Per-shard content packs | `game/data/content_packs/*.tres` |
 | Institutions (services) | art bible sec. 8.4/8.10; interiors pack |
 | Economy flavor | currency star ingots (sec. 8.10), station law |
 | Dialogue seeds | `game/data/dialogues/*.tres` (pre-bible; mind sec. 10) |

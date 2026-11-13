@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/enemy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "blight_lizard"
+display_name = "Blight-Lizard"
+description = "The sleepy lizard, gone taut and long-limbed. Its lichen skin has turned from pale olive to bruised violet patches, its tail splits into cable-whip frays, and its eyes burn magenta. It basks in the runoff and waits for a warmth that is not the sun."
+enemy_type = 0
+level = 41
+faction = "hostile"
+health = 2400
+mana = 140
+stamina = 200
+strength = 58
+agility = 60
+intelligence = 8
+vitality = 50
+attack_power = 112
+spell_power = 20
+armor = 24
+resistance = 22
+attack_range = 2.2
+attack_speed = 1.50
+move_speed = 5.4
+aggro_range = 13.0
+chase_range = 30.0
+wander_range = 10.0
+see_stealth = false
+is_aggressive = true
+is_passive = false
+is_elite = false
+is_boss = false
+is_social = false
+loot_table_id = "loot_bloom_corruption"
+secondary_loot_table_id = "loot_gloam_spores"
+gold_min = 200
+gold_max = 360
+xp_reward = 2700
+skills = []
+movement_profile_id = "movement_quadruped"
+hitbox_profile_id = ""
+model_path = ""
+icon_path = ""
+scale = 1.0
+animation_set = "wolf"
+respawn_time = 360.0
+despawn_time = 0.0
+difficulty_modifier = 2.0

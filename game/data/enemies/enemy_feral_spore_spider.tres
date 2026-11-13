@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/enemy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "feral_spore_spider"
+display_name = "Feral Spore-Spider"
+description = "The calm glass-backed spider, gone hunched and bristling. Its crystal sac is fractured and venting violet spore-dust, its legs end in torn metal hooks, and its eyes burn magenta. It is not angry. It is a patient, and the Bloom's treatment is spreading."
+enemy_type = 0
+level = 42
+faction = "hostile"
+health = 2600
+mana = 180
+stamina = 150
+strength = 54
+agility = 44
+intelligence = 10
+vitality = 56
+attack_power = 104
+spell_power = 30
+armor = 28
+resistance = 30
+attack_range = 2.0
+attack_speed = 1.40
+move_speed = 5.0
+aggro_range = 12.0
+chase_range = 28.0
+wander_range = 9.0
+see_stealth = false
+is_aggressive = true
+is_passive = false
+is_elite = false
+is_boss = false
+is_social = true
+loot_table_id = "loot_bloom_corruption"
+secondary_loot_table_id = "loot_gloam_spores"
+gold_min = 220
+gold_max = 380
+xp_reward = 2800
+skills = []
+movement_profile_id = "movement_quadruped"
+hitbox_profile_id = ""
+model_path = ""
+icon_path = ""
+scale = 1.1
+animation_set = "wolf"
+respawn_time = 360.0
+despawn_time = 0.0
+difficulty_modifier = 2.0

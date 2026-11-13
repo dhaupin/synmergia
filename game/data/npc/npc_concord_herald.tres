@@ -14,5 +14,6 @@ farewell = "May your deed ride true."
 spawn_offset = Vector3(-6, 0, 3)
 zone_id = "zone_nexus_central"
 includes = [
+  {"type": "dialogue", "dialogue_id": "concord_herald_intro"},
   {"type": "offering", "ref_id": "concord_pillar_vault"}
 ]

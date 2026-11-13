@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="HordeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/horde_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "bloom_descent"
+display_name = "Descent into the Bloom"
+waves = [{
+"spawns": [{
+"template_id": "feral_spore_spider",
+"count": 6
+}],
+"reward_gold": -1,
+"reward_xp": -1
+}, {
+"spawns": [{
+"template_id": "blight_lizard",
+"count": 5
+}, {
+"template_id": "rust_root_crab",
+"count": 3
+}],
+"reward_gold": -1,
+"reward_xp": -1
+}, {
+"spawns": [{
+"template_id": "shrike_owl",
+"count": 3
+}],
+"boss_template_id": "bloomwrought_warden",
+"boss_name": "Bloomwrought Warden",
+"reward_gold": 1200,
+"reward_xp": 700
+}]
+boss_template_id = "sporebound_matriarch"
+boss_name = "The Sporebound Matriarch"
+bosses_alert = false
+reward_gold = 3600
+reward_xp = 1900
+scale_levels = true
+inter_wave_delay = 7.0
+instance_scope = "dungeon"

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ContentPackData" load_steps=2 format=3 uid="uid://pack_bloom_act"]
+
+[ext_resource type="Script" path="res://core/schemas/content_pack_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "pack_bloom_act"
+display_name = "The Bloom (Act II)"
+description = "Act II's corruption lane: the four Bloom-touched fauna the story names (Feral Spore-Spider, Shrike-Owl, Rust-Root-Crab, Blight-Lizard), the Bloomwrought Warden champion, the Sporebound Matriarch dungeon boss, the two cull hordes, and the five-quest chain that reads the runoff from the treeline down to the Depths. Disable it on an event shard to keep the gloam quiet."
+enemy_ids = ["feral_spore_spider", "shrike_owl", "rust_root_crab", "blight_lizard", "bloomwrought_warden", "sporebound_matriarch"]
+quest_ids = ["quest_study_the_bloom", "quest_the_runoff_line", "quest_break_the_shell", "quest_the_silent_stoop", "quest_cull_the_warden"]

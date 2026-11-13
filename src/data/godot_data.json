@@ -1,26 +1,26 @@
 {
-  "lastSyncedAt": "2026-11-11T11:22:37.652Z",
+  "lastSyncedAt": "2026-11-13T04:36:35.531Z",
   "counts": {
     "classes": 39,
-    "weapons": 72,
-    "armors": 53,
+    "weapons": 82,
+    "armors": 59,
     "consumables": 13,
-    "enemies": 25,
+    "enemies": 31,
     "zones": 12,
     "skills": 169,
-    "quests": 22,
+    "quests": 27,
     "buffs": 0,
     "factions": 4,
     "achievements": 32,
     "titles": 14,
     "species": 3,
-    "dialogues": 8,
+    "dialogues": 9,
     "currencies": 5,
     "mounts": 11,
     "vehicles": 4,
     "resources": 29,
     "items": 16,
-    "accessories": 38,
+    "accessories": 43,
     "recipes": 40,
     "status_effects": 62,
     "npcs": 20,
@@ -28,9 +28,9 @@
     "signs": 3,
     "mysteries": 2,
     "acts": 3,
-    "loot_tables": 19,
-    "hordes": 5,
-    "weather_events": 4,
+    "loot_tables": 21,
+    "hordes": 7,
+    "weather_events": 5,
     "gateways": 10,
     "oceans": 5,
     "biomes": 5,
@@ -4112,6 +4112,286 @@
       "attack_speed": 1.5,
       "_sourceFile": "game/data/weapons/wep_wooden_bow.tres",
       "_scriptClass": "Item"
+    },
+    "wep_zenithforged_axe_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_zenithforged_axe_high",
+      "display_name": "Zenithforged Battleaxe",
+      "description": "A zenithforged battleaxe, heavy enough that the swing carries the whole body behind it. Cut at the top rung and kept honest by use.",
+      "icon_path": "res://icons/items/axe_iron.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 2,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 14160,
+      "buy_price": 47200,
+      "item_level": 60,
+      "required_level": 60,
+      "stats": {
+        "strength": 12
+      },
+      "weapon_damage_min": 62,
+      "weapon_damage_max": 95,
+      "attack_speed": 0.9,
+      "_sourceFile": "game/data/weapons/wep_zenithforged_axe_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_zenithforged_bow_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_zenithforged_bow_high",
+      "display_name": "Zenithforged War Bow",
+      "description": "A zenithforged war bow, drawn for the outer air. At the top rung the wind stops arguing and the arrow goes where it was told.",
+      "icon_path": "res://icons/items/bow_long.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 5,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 14040,
+      "buy_price": 46800,
+      "item_level": 60,
+      "required_level": 60,
+      "stats": {
+        "agility": 11
+      },
+      "weapon_damage_min": 65,
+      "weapon_damage_max": 97,
+      "attack_speed": 1,
+      "_sourceFile": "game/data/weapons/wep_zenithforged_bow_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_zenithforged_crossbow_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_zenithforged_crossbow_high",
+      "display_name": "Zenithforged Crossbow",
+      "description": "A zenithforged crossbow, cranked and patient. It does not need the sky's permission to put a bolt through something.",
+      "icon_path": "res://icons/items/bow_long.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 6,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 13800,
+      "buy_price": 46000,
+      "item_level": 60,
+      "required_level": 60,
+      "stats": {
+        "agility": 10
+      },
+      "weapon_damage_min": 61,
+      "weapon_damage_max": 92,
+      "attack_speed": 0.9,
+      "_sourceFile": "game/data/weapons/wep_zenithforged_crossbow_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_zenithforged_fang_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_zenithforged_fang_high",
+      "display_name": "Zenithforged Shortblade",
+      "description": "A zenithforged shortblade, quick as a held breath. The top rung favors the hand that strikes before the eye follows.",
+      "icon_path": "res://icons/items/dagger_iron.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 4,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 13560,
+      "buy_price": 45200,
+      "item_level": 60,
+      "required_level": 60,
+      "stats": {
+        "agility": 11
+      },
+      "weapon_damage_min": 58,
+      "weapon_damage_max": 86,
+      "attack_speed": 1.6,
+      "_sourceFile": "game/data/weapons/wep_zenithforged_fang_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_zenithforged_maul_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_zenithforged_maul_high",
+      "display_name": "Zenithforged Maul",
+      "description": "A zenithforged maul, slow and final. It was made for the things that stand between a body and the roof of the world.",
+      "icon_path": "res://icons/items/halberd_mythril.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 3,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 14460,
+      "buy_price": 48200,
+      "item_level": 60,
+      "required_level": 60,
+      "stats": {
+        "strength": 12
+      },
+      "weapon_damage_min": 66,
+      "weapon_damage_max": 99,
+      "attack_speed": 0.9,
+      "_sourceFile": "game/data/weapons/wep_zenithforged_maul_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_zenithforged_shield_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_zenithforged_shield_high",
+      "display_name": "Zenithforged Bulwark",
+      "description": "A zenithforged bulwark, wide as a door and just as stubborn. It was made for the one who stands still so the others can walk on.",
+      "icon_path": "res://icons/items/shield_haven_wall.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 10,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 13980,
+      "buy_price": 46600,
+      "item_level": 60,
+      "required_level": 60,
+      "stats": {
+        "strength": 12
+      },
+      "weapon_damage_min": 52,
+      "weapon_damage_max": 76,
+      "attack_speed": 0.8,
+      "_sourceFile": "game/data/weapons/wep_zenithforged_shield_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_zenithforged_spear_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_zenithforged_spear_high",
+      "display_name": "Zenithforged War Spear",
+      "description": "A zenithforged war spear, long enough to reach the fight before the fight reaches back. Cut at the top rung and kept honest by use.",
+      "icon_path": "res://icons/items/spear_iron.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 9,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 14340,
+      "buy_price": 47800,
+      "item_level": 60,
+      "required_level": 60,
+      "stats": {
+        "strength": 11
+      },
+      "weapon_damage_min": 63,
+      "weapon_damage_max": 95,
+      "attack_speed": 1.1,
+      "_sourceFile": "game/data/weapons/wep_zenithforged_spear_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_zenithforged_staff_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_zenithforged_staff_high",
+      "display_name": "Zenithforged Staff",
+      "description": "A zenithforged staff, cut for the ones who read the sky and write it down. It carries the top rung's quiet the way a cup carries water.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 7,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 14220,
+      "buy_price": 47400,
+      "item_level": 60,
+      "required_level": 60,
+      "stats": {
+        "wisdom": 13
+      },
+      "weapon_damage_min": 60,
+      "weapon_damage_max": 89,
+      "attack_speed": 1.1,
+      "_sourceFile": "game/data/weapons/wep_zenithforged_staff_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_zenithforged_sword_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_zenithforged_sword_high",
+      "display_name": "Zenithforged Arming Sword",
+      "description": "A zenithforged arming sword, worked for the top of the world and the last rung the Concord writes. It keeps its edge past the air where the weather gives up.",
+      "icon_path": "res://icons/items/sword_iron.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 1,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 14880,
+      "buy_price": 49600,
+      "item_level": 60,
+      "required_level": 60,
+      "stats": {
+        "strength": 11
+      },
+      "weapon_damage_min": 66,
+      "weapon_damage_max": 96,
+      "attack_speed": 1.2,
+      "_sourceFile": "game/data/weapons/wep_zenithforged_sword_high.tres",
+      "_scriptClass": "Item"
+    },
+    "wep_zenithforged_wand_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_zenithforged_wand_high",
+      "display_name": "Zenithforged Wand",
+      "description": "A zenithforged wand, small for how much it holds. The Concord signs these last, and only for hands it has watched.",
+      "icon_path": "res://icons/items/staff_walnut.png",
+      "item_category": 0,
+      "rarity": 5,
+      "equip_slot": 8,
+      "weapon_type": 8,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 13680,
+      "buy_price": 45600,
+      "item_level": 60,
+      "required_level": 60,
+      "stats": {
+        "intelligence": 12
+      },
+      "weapon_damage_min": 58,
+      "weapon_damage_max": 86,
+      "attack_speed": 1.3,
+      "_sourceFile": "game/data/weapons/wep_zenithforged_wand_high.tres",
+      "_scriptClass": "Item"
     }
   },
   "armors": {
@@ -5426,6 +5706,150 @@
       "armor_value": 20,
       "_sourceFile": "game/data/armors/arm_warrior_chest.tres",
       "_scriptClass": "Item"
+    },
+    "arm_zenithforged_boots_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_zenithforged_boots_high",
+      "display_name": "Zenithforged Boots",
+      "description": "A zenithforged boots, soled for a ground that is mostly rock and mostly up. They hold a shape through the long walk back.",
+      "icon_path": "res://icons/items/armor_starmetal_bulwark.png",
+      "item_category": 1,
+      "rarity": 5,
+      "equip_slot": 4,
+      "armor_type": 4,
+      "stack_size": 1,
+      "sell_price": 14700,
+      "buy_price": 49000,
+      "item_level": 60,
+      "required_level": 60,
+      "stats": {
+        "vitality": 17
+      },
+      "armor_value": 96,
+      "_sourceFile": "game/data/armors/arm_zenithforged_boots_high.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_zenithforged_chest_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_zenithforged_chest_high",
+      "display_name": "Zenithforged Chestguard",
+      "description": "A zenithforged chestguard, the heaviest plate the Concord writes. Worn by the few who have walked the top rung and come back down.",
+      "icon_path": "res://icons/items/armor_starmetal_bulwark.png",
+      "item_category": 1,
+      "rarity": 5,
+      "equip_slot": 2,
+      "armor_type": 4,
+      "stack_size": 1,
+      "sell_price": 15240,
+      "buy_price": 50800,
+      "item_level": 60,
+      "required_level": 60,
+      "stats": {
+        "vitality": 18
+      },
+      "armor_value": 104,
+      "_sourceFile": "game/data/armors/arm_zenithforged_chest_high.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_zenithforged_gauntlets_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_zenithforged_gauntlets_high",
+      "display_name": "Zenithforged Gauntlets",
+      "description": "A zenithforged gauntlets, jointed so the grip never loosens. The top rung does not forgive a hand that lets go.",
+      "icon_path": "res://icons/items/armor_leather_gloves.png",
+      "item_category": 1,
+      "rarity": 5,
+      "equip_slot": 5,
+      "armor_type": 4,
+      "stack_size": 1,
+      "sell_price": 14100,
+      "buy_price": 47000,
+      "item_level": 60,
+      "required_level": 60,
+      "stats": {
+        "vitality": 16
+      },
+      "armor_value": 88,
+      "_sourceFile": "game/data/armors/arm_zenithforged_gauntlets_high.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_zenithforged_helm_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_zenithforged_helm_high",
+      "display_name": "Zenithforged Helm",
+      "description": "A zenithforged helm, closed against the thin air of the top rung. It holds a shape through weather, blade, and the long walk back.",
+      "icon_path": "res://icons/items/armor_leather_helm.png",
+      "item_category": 1,
+      "rarity": 5,
+      "equip_slot": 1,
+      "armor_type": 4,
+      "stack_size": 1,
+      "sell_price": 13920,
+      "buy_price": 46400,
+      "item_level": 60,
+      "required_level": 60,
+      "stats": {
+        "vitality": 16
+      },
+      "armor_value": 82,
+      "_sourceFile": "game/data/armors/arm_zenithforged_helm_high.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_zenithforged_legs_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_zenithforged_legs_high",
+      "display_name": "Zenithforged Legguards",
+      "description": "A zenithforged legguards, plated for the climb that never quite ends. They keep their line through weather and worse.",
+      "icon_path": "res://icons/items/armor_golden_scale.png",
+      "item_category": 1,
+      "rarity": 5,
+      "equip_slot": 3,
+      "armor_type": 4,
+      "stack_size": 1,
+      "sell_price": 14460,
+      "buy_price": 48200,
+      "item_level": 60,
+      "required_level": 60,
+      "stats": {
+        "vitality": 16
+      },
+      "armor_value": 78,
+      "_sourceFile": "game/data/armors/arm_zenithforged_legs_high.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_zenithforged_pauldrons_high": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_zenithforged_pauldrons_high",
+      "display_name": "Zenithforged Pauldrons",
+      "description": "A zenithforged pauldrons, wide across the shoulders that carry the column's kit. Plate for the ones who stand in front.",
+      "icon_path": "res://icons/items/armor_leather_chest.png",
+      "item_category": 1,
+      "rarity": 5,
+      "equip_slot": 6,
+      "armor_type": 4,
+      "stack_size": 1,
+      "sell_price": 14220,
+      "buy_price": 47400,
+      "item_level": 60,
+      "required_level": 60,
+      "stats": {
+        "vitality": 16
+      },
+      "armor_value": 86,
+      "_sourceFile": "game/data/armors/arm_zenithforged_pauldrons_high.tres",
+      "_scriptClass": "Item"
     }
   },
   "consumables": {
@@ -5843,6 +6267,108 @@
       "_sourceFile": "game/data/enemies/enemy_bandit.tres",
       "_scriptClass": "EnemyData"
     },
+    "blight_lizard": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "blight_lizard",
+      "display_name": "Blight-Lizard",
+      "description": "The sleepy lizard, gone taut and long-limbed. Its lichen skin has turned from pale olive to bruised violet patches, its tail splits into cable-whip frays, and its eyes burn magenta. It basks in the runoff and waits for a warmth that is not the sun.",
+      "enemy_type": 0,
+      "level": 41,
+      "faction": "hostile",
+      "health": 2400,
+      "mana": 140,
+      "stamina": 200,
+      "strength": 58,
+      "agility": 60,
+      "intelligence": 8,
+      "vitality": 50,
+      "attack_power": 112,
+      "spell_power": 20,
+      "armor": 24,
+      "resistance": 22,
+      "attack_range": 2.2,
+      "attack_speed": 1.5,
+      "move_speed": 5.4,
+      "aggro_range": 13,
+      "chase_range": 30,
+      "wander_range": 10,
+      "see_stealth": false,
+      "is_aggressive": true,
+      "is_passive": false,
+      "is_elite": false,
+      "is_boss": false,
+      "is_social": false,
+      "loot_table_id": "loot_bloom_corruption",
+      "secondary_loot_table_id": "loot_gloam_spores",
+      "gold_min": 200,
+      "gold_max": 360,
+      "xp_reward": 2700,
+      "skills": [],
+      "movement_profile_id": "movement_quadruped",
+      "hitbox_profile_id": "",
+      "model_path": "",
+      "icon_path": "",
+      "scale": 1,
+      "animation_set": "wolf",
+      "respawn_time": 360,
+      "despawn_time": 0,
+      "difficulty_modifier": 2,
+      "_sourceFile": "game/data/enemies/enemy_blight_lizard.tres",
+      "_scriptClass": "EnemyData"
+    },
+    "bloomwrought_warden": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "bloomwrought_warden",
+      "display_name": "Bloomwrought Warden",
+      "description": "A Convergence sentinel the Bloom grafted where it stood. It still walks its old patrol around a vault that has not answered in centuries, roots grown through the joints, a violet mantle where the back-plate split, magenta burning in the visor-slit. It has not been ordered to stop. Nobody is left to order it. It is a patient, and it is still on duty.",
+      "enemy_type": 2,
+      "level": 46,
+      "faction": "hostile",
+      "health": 5200,
+      "mana": 300,
+      "stamina": 220,
+      "strength": 74,
+      "agility": 46,
+      "intelligence": 40,
+      "vitality": 92,
+      "attack_power": 138,
+      "spell_power": 52,
+      "armor": 72,
+      "resistance": 44,
+      "attack_range": 3.2,
+      "attack_speed": 1,
+      "move_speed": 4,
+      "aggro_range": 16,
+      "chase_range": 36,
+      "wander_range": 12,
+      "see_stealth": true,
+      "is_aggressive": true,
+      "is_passive": false,
+      "is_elite": false,
+      "is_boss": false,
+      "is_social": true,
+      "loot_table_id": "loot_bloom_corruption",
+      "secondary_loot_table_id": "loot_elite_ore",
+      "gold_min": 480,
+      "gold_max": 780,
+      "xp_reward": 5200,
+      "skills": [],
+      "movement_profile_id": "",
+      "hitbox_profile_id": "hitbox_humanoid",
+      "model_path": "",
+      "icon_path": "",
+      "scale": 1.6,
+      "animation_set": "humanoid",
+      "respawn_time": 900,
+      "despawn_time": 0,
+      "difficulty_modifier": 2.6,
+      "_sourceFile": "game/data/enemies/enemy_bloomwrought_warden.tres",
+      "_scriptClass": "EnemyData"
+    },
     "clockwork_saint": {
       "script": {
         "_extResource": "1"
@@ -6043,6 +6569,57 @@
       "despawn_time": 0,
       "difficulty_modifier": 2.2,
       "_sourceFile": "game/data/enemies/enemy_drowned_custodian.tres",
+      "_scriptClass": "EnemyData"
+    },
+    "feral_spore_spider": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "feral_spore_spider",
+      "display_name": "Feral Spore-Spider",
+      "description": "The calm glass-backed spider, gone hunched and bristling. Its crystal sac is fractured and venting violet spore-dust, its legs end in torn metal hooks, and its eyes burn magenta. It is not angry. It is a patient, and the Bloom's treatment is spreading.",
+      "enemy_type": 0,
+      "level": 42,
+      "faction": "hostile",
+      "health": 2600,
+      "mana": 180,
+      "stamina": 150,
+      "strength": 54,
+      "agility": 44,
+      "intelligence": 10,
+      "vitality": 56,
+      "attack_power": 104,
+      "spell_power": 30,
+      "armor": 28,
+      "resistance": 30,
+      "attack_range": 2,
+      "attack_speed": 1.4,
+      "move_speed": 5,
+      "aggro_range": 12,
+      "chase_range": 28,
+      "wander_range": 9,
+      "see_stealth": false,
+      "is_aggressive": true,
+      "is_passive": false,
+      "is_elite": false,
+      "is_boss": false,
+      "is_social": true,
+      "loot_table_id": "loot_bloom_corruption",
+      "secondary_loot_table_id": "loot_gloam_spores",
+      "gold_min": 220,
+      "gold_max": 380,
+      "xp_reward": 2800,
+      "skills": [],
+      "movement_profile_id": "movement_quadruped",
+      "hitbox_profile_id": "",
+      "model_path": "",
+      "icon_path": "",
+      "scale": 1.1,
+      "animation_set": "wolf",
+      "respawn_time": 360,
+      "despawn_time": 0,
+      "difficulty_modifier": 2,
+      "_sourceFile": "game/data/enemies/enemy_feral_spore_spider.tres",
       "_scriptClass": "EnemyData"
     },
     "field_hopper": {
@@ -6333,7 +6910,7 @@
       "is_elite": true,
       "is_boss": false,
       "is_social": false,
-      "loot_table_id": "",
+      "loot_table_id": "loot_zenith_reach",
       "secondary_loot_table_id": "loot_elite_ore",
       "gold_min": 500,
       "gold_max": 900,
@@ -6502,6 +7079,57 @@
       "_sourceFile": "game/data/enemies/enemy_rootmaw_brute.tres",
       "_scriptClass": "EnemyData"
     },
+    "rust_root_crab": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "rust_root_crab",
+      "display_name": "Rust-Root-Crab",
+      "description": "The mossy grazer, grown into a siege shell. One claw has overgrown into a split boulder-mace, rust flakes off torn plating, and roots wind through it tight as tendon. It scuttles in a straight line and does not turn.",
+      "enemy_type": 0,
+      "level": 43,
+      "faction": "hostile",
+      "health": 3200,
+      "mana": 120,
+      "stamina": 170,
+      "strength": 66,
+      "agility": 22,
+      "intelligence": 6,
+      "vitality": 74,
+      "attack_power": 110,
+      "spell_power": 8,
+      "armor": 58,
+      "resistance": 34,
+      "attack_range": 2.4,
+      "attack_speed": 0.85,
+      "move_speed": 3.6,
+      "aggro_range": 11,
+      "chase_range": 24,
+      "wander_range": 7,
+      "see_stealth": false,
+      "is_aggressive": true,
+      "is_passive": false,
+      "is_elite": false,
+      "is_boss": false,
+      "is_social": false,
+      "loot_table_id": "loot_bloom_corruption",
+      "secondary_loot_table_id": "loot_elite_ore",
+      "gold_min": 240,
+      "gold_max": 420,
+      "xp_reward": 2950,
+      "skills": [],
+      "movement_profile_id": "movement_quadruped",
+      "hitbox_profile_id": "",
+      "model_path": "",
+      "icon_path": "",
+      "scale": 1.2,
+      "animation_set": "troll",
+      "respawn_time": 400,
+      "despawn_time": 0,
+      "difficulty_modifier": 2.1,
+      "_sourceFile": "game/data/enemies/enemy_rust_root_crab.tres",
+      "_scriptClass": "EnemyData"
+    },
     "salt_wretch": {
       "script": {
         "_extResource": "1"
@@ -6553,6 +7181,57 @@
       "_sourceFile": "game/data/enemies/enemy_salt_wretch.tres",
       "_scriptClass": "EnemyData"
     },
+    "shrike_owl": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "shrike_owl",
+      "display_name": "Shrike-Owl",
+      "description": "The Data-Owl, gone sleek and cruel. Its sensor crest split into twin ears laid flat, talon cables barbed, one magenta eye-slit where two teal lenses used to watch. It stoops in silence. The cracked clock-face core in its chest still tries to keep time.",
+      "enemy_type": 1,
+      "level": 44,
+      "faction": "hostile",
+      "health": 3100,
+      "mana": 260,
+      "stamina": 190,
+      "strength": 62,
+      "agility": 68,
+      "intelligence": 30,
+      "vitality": 60,
+      "attack_power": 124,
+      "spell_power": 48,
+      "armor": 34,
+      "resistance": 24,
+      "attack_range": 3,
+      "attack_speed": 1.15,
+      "move_speed": 6.2,
+      "aggro_range": 16,
+      "chase_range": 38,
+      "wander_range": 12,
+      "see_stealth": true,
+      "is_aggressive": true,
+      "is_passive": false,
+      "is_elite": true,
+      "is_boss": false,
+      "is_social": false,
+      "loot_table_id": "loot_bloom_corruption",
+      "secondary_loot_table_id": "loot_elite_ore",
+      "gold_min": 300,
+      "gold_max": 520,
+      "xp_reward": 3600,
+      "skills": [],
+      "movement_profile_id": "movement_aerial",
+      "hitbox_profile_id": "hitbox_sky_large",
+      "model_path": "",
+      "icon_path": "",
+      "scale": 1.3,
+      "animation_set": "",
+      "respawn_time": 420,
+      "despawn_time": 0,
+      "difficulty_modifier": 2.2,
+      "_sourceFile": "game/data/enemies/enemy_shrike_owl.tres",
+      "_scriptClass": "EnemyData"
+    },
     "slime": {
       "script": {
         "_extResource": "1"
@@ -6600,6 +7279,57 @@
       "despawn_time": 0,
       "difficulty_modifier": 1,
       "_sourceFile": "game/data/enemies/enemy_slime.tres",
+      "_scriptClass": "EnemyData"
+    },
+    "sporebound_matriarch": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "sporebound_matriarch",
+      "display_name": "The Sporebound Matriarch",
+      "description": "The Bloom's oldest node, down where the runoff pools and the elevator sleeps. A vast many-limbed mass hunched over a brood it keeps making and cannot stop making, each new creature grown to tend a garden whose gardener never came back. Violet mantle, magenta eyes by the dozen, a cracked agent-core for a heart. It is not a villain. It is a mother with no one left to raise.",
+      "enemy_type": 3,
+      "level": 48,
+      "faction": "hostile",
+      "health": 11000,
+      "mana": 620,
+      "stamina": 260,
+      "strength": 96,
+      "agility": 34,
+      "intelligence": 70,
+      "vitality": 140,
+      "attack_power": 158,
+      "spell_power": 120,
+      "armor": 96,
+      "resistance": 62,
+      "attack_range": 4,
+      "attack_speed": 0.7,
+      "move_speed": 3.2,
+      "aggro_range": 20,
+      "chase_range": 44,
+      "wander_range": 10,
+      "see_stealth": false,
+      "is_aggressive": true,
+      "is_passive": false,
+      "is_elite": false,
+      "is_boss": true,
+      "is_social": true,
+      "loot_table_id": "loot_skill_books",
+      "secondary_loot_table_id": "loot_bloom_corruption",
+      "gold_min": 900,
+      "gold_max": 1600,
+      "xp_reward": 9000,
+      "skills": [],
+      "movement_profile_id": "",
+      "hitbox_profile_id": "hitbox_beast_medium",
+      "model_path": "",
+      "icon_path": "",
+      "scale": 2.4,
+      "animation_set": "troll",
+      "respawn_time": 3600,
+      "despawn_time": 0,
+      "difficulty_modifier": 3,
+      "_sourceFile": "game/data/enemies/enemy_sporebound_matriarch.tres",
       "_scriptClass": "EnemyData"
     },
     "thistle_boar": {
@@ -12750,6 +13480,55 @@
       "_sourceFile": "game/data/quests/quest_boar_tusks.tres",
       "_scriptClass": "QuestData"
     },
+    "quest_break_the_shell": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "quest_break_the_shell",
+      "display_name": "Break the Shell",
+      "description": "Fenwick's fence line runs to the treeline, and something shelled has been walking through it. He does not care what it is. He cares that the posts stay up. Break the shells and the yard stays his.",
+      "quest_type": 1,
+      "difficulty": 3,
+      "giver_npc_id": "npc_tidewright_fenwick",
+      "turn_in_npc_id": "npc_tidewright_fenwick",
+      "min_level": 40,
+      "max_level": 100,
+      "required_quests": [
+        "quest_the_runoff_line"
+      ],
+      "required_faction": "",
+      "required_faction_rank": 0,
+      "zone_restriction": "",
+      "objectives": [
+        {
+          "id": "break_crabs",
+          "type": 0,
+          "target": "Rust-Root-Crab",
+          "count": 5
+        }
+      ],
+      "rewards": [
+        {
+          "type": "gold",
+          "id": "",
+          "quantity": 800
+        },
+        {
+          "type": "experience",
+          "id": "",
+          "quantity": 2200
+        }
+      ],
+      "reward_choice_count": 0,
+      "gold_reward": 800,
+      "xp_reward": 2200,
+      "next_quest_id": "quest_the_silent_stoop",
+      "previous_quest_id": "quest_the_runoff_line",
+      "icon_path": "res://icons/quests/gloamwood_ledger.png",
+      "map_marker": "kill",
+      "_sourceFile": "game/data/quests/quest_break_the_shell.tres",
+      "_scriptClass": "QuestData"
+    },
     "quest_copper_seam": {
       "script": {
         "_extResource": "1"
@@ -12835,6 +13614,55 @@
       "icon_path": "",
       "map_marker": "explore",
       "_sourceFile": "game/data/quests/quest_cross_the_cistern.tres",
+      "_scriptClass": "QuestData"
+    },
+    "quest_cull_the_warden": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "quest_cull_the_warden",
+      "display_name": "The Warden That Never Stood Down",
+      "description": "The Gloomwood Ledger names a sentinel still walking its patrol around a vault that stopped answering centuries ago, and the Bloom has grafted itself into the joints. Fenwick's last line: put it down honest. It has been on duty long enough.",
+      "quest_type": 1,
+      "difficulty": 4,
+      "giver_npc_id": "npc_tidewright_fenwick",
+      "turn_in_npc_id": "npc_tidewright_fenwick",
+      "min_level": 42,
+      "max_level": 100,
+      "required_quests": [
+        "quest_the_silent_stoop"
+      ],
+      "required_faction": "",
+      "required_faction_rank": 0,
+      "zone_restriction": "",
+      "objectives": [
+        {
+          "id": "down_warden",
+          "type": 0,
+          "target": "Bloomwrought Warden",
+          "count": 1
+        }
+      ],
+      "rewards": [
+        {
+          "type": "gold",
+          "id": "",
+          "quantity": 1600
+        },
+        {
+          "type": "experience",
+          "id": "",
+          "quantity": 4200
+        }
+      ],
+      "reward_choice_count": 0,
+      "gold_reward": 1600,
+      "xp_reward": 4200,
+      "next_quest_id": "",
+      "previous_quest_id": "quest_the_silent_stoop",
+      "icon_path": "res://icons/quests/gloamwood_ledger.png",
+      "map_marker": "kill",
+      "_sourceFile": "game/data/quests/quest_cull_the_warden.tres",
       "_scriptClass": "QuestData"
     },
     "quest_deep_toll": {
@@ -13391,6 +14219,157 @@
       "icon_path": "res://icons/quests/wreck.png",
       "map_marker": "collect",
       "_sourceFile": "game/data/quests/quest_shoal_freight.tres",
+      "_scriptClass": "QuestData"
+    },
+    "quest_study_the_bloom": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "quest_study_the_bloom",
+      "display_name": "Study the Bloom",
+      "description": "The herbalist will not go into the gloam, but she will pay to know what it is doing. Cull the feral spiders at the treeline and bring her spores, and she can start reading the corruption instead of fearing it.",
+      "quest_type": 1,
+      "difficulty": 3,
+      "giver_npc_id": "npc_herbalist_village",
+      "turn_in_npc_id": "npc_herbalist_village",
+      "min_level": 40,
+      "max_level": 100,
+      "required_quests": [],
+      "required_faction": "",
+      "required_faction_rank": 0,
+      "zone_restriction": "",
+      "objectives": [
+        {
+          "id": "cull_spiders",
+          "type": 0,
+          "target": "Feral Spore-Spider",
+          "count": 8
+        },
+        {
+          "id": "bring_spores",
+          "type": 1,
+          "target": "Gloam Spore",
+          "count": 4
+        }
+      ],
+      "rewards": [
+        {
+          "type": "gold",
+          "id": "",
+          "quantity": 600
+        },
+        {
+          "type": "experience",
+          "id": "",
+          "quantity": 1800
+        }
+      ],
+      "reward_choice_count": 0,
+      "gold_reward": 600,
+      "xp_reward": 1800,
+      "next_quest_id": "quest_the_runoff_line",
+      "previous_quest_id": "",
+      "icon_path": "res://icons/quests/gloamwood_ledger.png",
+      "map_marker": "kill",
+      "_sourceFile": "game/data/quests/quest_study_the_bloom.tres",
+      "_scriptClass": "QuestData"
+    },
+    "quest_the_runoff_line": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "quest_the_runoff_line",
+      "display_name": "The Runoff Line",
+      "description": "The herbalist has the spores and now she wants the source. Something in the runoff is making the lizards over -- follow the violet stream up into the meadow and thin what it has already touched.",
+      "quest_type": 1,
+      "difficulty": 3,
+      "giver_npc_id": "npc_herbalist_village",
+      "turn_in_npc_id": "npc_herbalist_village",
+      "min_level": 40,
+      "max_level": 100,
+      "required_quests": [
+        "quest_study_the_bloom"
+      ],
+      "required_faction": "",
+      "required_faction_rank": 0,
+      "zone_restriction": "",
+      "objectives": [
+        {
+          "id": "cull_lizards",
+          "type": 0,
+          "target": "Blight-Lizard",
+          "count": 6
+        }
+      ],
+      "rewards": [
+        {
+          "type": "gold",
+          "id": "",
+          "quantity": 750
+        },
+        {
+          "type": "experience",
+          "id": "",
+          "quantity": 2100
+        }
+      ],
+      "reward_choice_count": 0,
+      "gold_reward": 750,
+      "xp_reward": 2100,
+      "next_quest_id": "quest_break_the_shell",
+      "previous_quest_id": "quest_study_the_bloom",
+      "icon_path": "res://icons/quests/gloamwood_ledger.png",
+      "map_marker": "kill",
+      "_sourceFile": "game/data/quests/quest_the_runoff_line.tres",
+      "_scriptClass": "QuestData"
+    },
+    "quest_the_silent_stoop": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "quest_the_silent_stoop",
+      "display_name": "The Silent Stoop",
+      "description": "Something with a cracked clock-face core has been stooping on the yard crews out of the shafts of light, and it does not call before it comes. Fenwick wants it down. He wants the core, too -- he thinks the Concord can read it.",
+      "quest_type": 1,
+      "difficulty": 4,
+      "giver_npc_id": "npc_tidewright_fenwick",
+      "turn_in_npc_id": "npc_tidewright_fenwick",
+      "min_level": 40,
+      "max_level": 100,
+      "required_quests": [
+        "quest_break_the_shell"
+      ],
+      "required_faction": "",
+      "required_faction_rank": 0,
+      "zone_restriction": "",
+      "objectives": [
+        {
+          "id": "down_owls",
+          "type": 0,
+          "target": "Shrike-Owl",
+          "count": 4
+        }
+      ],
+      "rewards": [
+        {
+          "type": "gold",
+          "id": "",
+          "quantity": 950
+        },
+        {
+          "type": "experience",
+          "id": "",
+          "quantity": 2600
+        }
+      ],
+      "reward_choice_count": 0,
+      "gold_reward": 950,
+      "xp_reward": 2600,
+      "next_quest_id": "quest_cull_the_warden",
+      "previous_quest_id": "quest_break_the_shell",
+      "icon_path": "res://icons/quests/gloamwood_ledger.png",
+      "map_marker": "kill",
+      "_sourceFile": "game/data/quests/quest_the_silent_stoop.tres",
       "_scriptClass": "QuestData"
     },
     "quest_tide_markers": {
@@ -15005,6 +15984,17 @@
       "_sourceFile": "game/data/dialogues/blacksmith_village_intro.tres",
       "_scriptClass": "DialogueData"
     },
+    "concord_herald_intro": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "concord_herald_intro",
+      "npc_id": "npc_concord_herald",
+      "display_name": "Concord Herald",
+      "nodes": "[\n{\n\"speaker\": \"Concord Herald\",\n\"text\": \"You stand at the pillar. Sigils in, deeds out - that is the whole of the trade here. The Concord does not bury a coin, and it does not bless one either. It writes down what it saw.\",\n\"choices\": [\n{\"text\": \"What is this pillar, exactly?\", \"next_node\": 1},\n{\"text\": \"What does the Concord keep?\", \"next_node\": 2},\n{\"text\": \"Just looking. Farewell.\", \"next_node\": -1}\n]",
+      "_sourceFile": "game/data/dialogues/concord_herald_intro.tres",
+      "_scriptClass": "DialogueData"
+    },
     "deep_warden_greeting": {
       "script": {
         "_extResource": "1"
@@ -16616,6 +17606,30 @@
       "_sourceFile": "game/data/accessories/acc_belt_titanhide.tres",
       "_scriptClass": "Item"
     },
+    "acc_belt_zenithforged": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_belt_zenithforged",
+      "display_name": "Zenithforged Girdle",
+      "description": "A girdle of zenithforged plate, worn by the few who have walked the top rung and come back down.",
+      "icon_path": "res://icons/items/belt_reclaimer.png",
+      "item_category": 2,
+      "rarity": 5,
+      "equip_slot": 13,
+      "accessory_type": 5,
+      "stack_size": 1,
+      "sell_price": 14460,
+      "buy_price": 48200,
+      "item_level": 60,
+      "required_level": 60,
+      "stats": {
+        "strength": 10,
+        "vitality": 10
+      },
+      "_sourceFile": "game/data/accessories/acc_belt_zenithforged.tres",
+      "_scriptClass": "Item"
+    },
     "acc_bracelet_copper": {
       "script": {
         "_extResource": "1"
@@ -16781,6 +17795,30 @@
         "agility": 4
       },
       "_sourceFile": "game/data/accessories/acc_bracelet_titanhide.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_bracelet_zenithforged": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_bracelet_zenithforged",
+      "display_name": "Zenithforged Bracer",
+      "description": "A zenithforged cuff, cold to the touch and light as a held breath. The wrist forgets it is wearing anything.",
+      "icon_path": "res://icons/items/ring_golden_signet.png",
+      "item_category": 2,
+      "rarity": 5,
+      "equip_slot": 9,
+      "accessory_type": 3,
+      "stack_size": 1,
+      "sell_price": 14340,
+      "buy_price": 47800,
+      "item_level": 60,
+      "required_level": 60,
+      "stats": {
+        "strength": 11,
+        "agility": 7
+      },
+      "_sourceFile": "game/data/accessories/acc_bracelet_zenithforged.tres",
       "_scriptClass": "Item"
     },
     "acc_breather_abyss_pearl": {
@@ -17001,6 +18039,30 @@
       "_sourceFile": "game/data/accessories/acc_cloak_wanderer.tres",
       "_scriptClass": "Item"
     },
+    "acc_cloak_zenithforged": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_cloak_zenithforged",
+      "display_name": "Zenithforged Cloak",
+      "description": "A cloak of zenithforged weave, cured over a full season. Nothing high and nothing cold gets through it.",
+      "icon_path": "res://icons/items/cloak_wanderer.png",
+      "item_category": 2,
+      "rarity": 5,
+      "equip_slot": 12,
+      "accessory_type": 4,
+      "stack_size": 1,
+      "sell_price": 14100,
+      "buy_price": 47000,
+      "item_level": 60,
+      "required_level": 60,
+      "stats": {
+        "vitality": 13,
+        "agility": 7
+      },
+      "_sourceFile": "game/data/accessories/acc_cloak_zenithforged.tres",
+      "_scriptClass": "Item"
+    },
     "acc_necklace_haven_pearl": {
       "script": {
         "_extResource": "1"
@@ -17196,6 +18258,30 @@
         "strength": 4
       },
       "_sourceFile": "game/data/accessories/acc_necklace_titanbone.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_necklace_zenithforged": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_necklace_zenithforged",
+      "display_name": "Zenithforged Ward",
+      "description": "A ward-bead of zenithforged metal on a woven cord, cut for the highest walk in the world.",
+      "icon_path": "res://icons/items/necklace_haven_pearl.png",
+      "item_category": 2,
+      "rarity": 5,
+      "equip_slot": 11,
+      "accessory_type": 2,
+      "stack_size": 1,
+      "sell_price": 13860,
+      "buy_price": 46200,
+      "item_level": 60,
+      "required_level": 60,
+      "stats": {
+        "wisdom": 11,
+        "vitality": 9
+      },
+      "_sourceFile": "game/data/accessories/acc_necklace_zenithforged.tres",
       "_scriptClass": "Item"
     },
     "acc_ring_copper_band": {
@@ -17415,6 +18501,30 @@
         "vitality": 4
       },
       "_sourceFile": "game/data/accessories/acc_ring_titanbone.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_ring_zenithforged": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_ring_zenithforged",
+      "display_name": "Zenithforged Signet",
+      "description": "A zenithforged signet, cut at the top rung and signed once. It remembers every hand it has passed to.",
+      "icon_path": "res://icons/items/ring_golden_signet.png",
+      "item_category": 2,
+      "rarity": 5,
+      "equip_slot": 9,
+      "accessory_type": 1,
+      "stack_size": 1,
+      "sell_price": 13680,
+      "buy_price": 45600,
+      "item_level": 60,
+      "required_level": 60,
+      "stats": {
+        "strength": 11,
+        "vitality": 9
+      },
+      "_sourceFile": "game/data/accessories/acc_ring_zenithforged.tres",
       "_scriptClass": "Item"
     }
   },
@@ -19909,6 +21019,10 @@
       "zone_id": "zone_nexus_central",
       "includes": [
         {
+          "type": "dialogue",
+          "dialogue_id": "concord_herald_intro"
+        },
+        {
           "type": "offering",
           "ref_id": "concord_pillar_vault"
         }
@@ -20090,6 +21204,13 @@
         {
           "type": "offering",
           "ref_id": "potions"
+        },
+        {
+          "type": "quest",
+          "quest_ids": [
+            "quest_study_the_bloom",
+            "quest_the_runoff_line"
+          ]
         }
       ],
       "_sourceFile": "game/data/npc/npc_herbalist_village.tres",
@@ -20362,7 +21483,10 @@
           "quest_ids": [
             "quest_tide_salvage",
             "quest_sentinel_wake",
-            "quest_gloamwood_ledger"
+            "quest_gloamwood_ledger",
+            "quest_break_the_shell",
+            "quest_the_silent_stoop",
+            "quest_cull_the_warden"
           ]
         }
       ],
@@ -20739,6 +21863,21 @@
       "_sourceFile": "game/data/loot_tables/loot_black_market_tide.tres",
       "_scriptClass": "LootTable"
     },
+    "loot_bloom_corruption": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "loot_bloom_corruption",
+      "name": "Bloom Corruption",
+      "description": "What the Bloom leaves behind in the things it takes: violet-capped spores, a shard of the mycelium mantle, and the mooncap that grows wherever the runoff pools. One drop in a hundred is the ore the roots bit down past the frost line.",
+      "entries": "[{\n\"item_id\": \"res_gloam_spore\",\n\"min_quantity\": 1,\n\"max_quantity\": 3,\n\"drop_rate\": 0.40,\n\"rarity_weight\": 1.5,\n\"is_guaranteed\": false,\n\"conditions\": []",
+      "base_drop_chance": 1,
+      "min_items_dropped": 1,
+      "max_items_dropped": 3,
+      "level": 42,
+      "_sourceFile": "game/data/loot_tables/loot_bloom_corruption.tres",
+      "_scriptClass": "LootTable"
+    },
     "loot_coast_bounty": {
       "script": {
         "_extResource": "1"
@@ -21044,9 +22183,139 @@
       "level": 3,
       "_sourceFile": "game/data/loot_tables/loot_wolf.tres",
       "_scriptClass": "LootTable"
+    },
+    "loot_zenith_reach": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "loot_zenith_reach",
+      "name": "Zenith Reach Drops",
+      "description": "What the last rung pays: the zenithforged gear the Concord signs only for hands it has watched, carried by the old-order things that still keep the highest ledges. The top of the ladder, and nothing above it.",
+      "entries": "[{\n\"item_id\": \"wep_zenithforged_sword_high\",\n\"min_quantity\": 1,\n\"max_quantity\": 1,\n\"drop_rate\": 0.04,\n\"rarity_weight\": 4.0,\n\"is_guaranteed\": false,\n\"conditions\": []",
+      "currency_drops": [],
+      "base_drop_chance": 1,
+      "min_items_dropped": 0,
+      "max_items_dropped": 2,
+      "level": 60,
+      "_sourceFile": "game/data/loot_tables/loot_zenith_reach.tres",
+      "_scriptClass": "LootTable"
     }
   },
   "hordes": {
+    "bloom_cull": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "bloom_cull",
+      "display_name": "The Bloom Cull",
+      "waves": [
+        {
+          "spawns": [
+            {
+              "template_id": "feral_spore_spider",
+              "count": 5
+            }
+          ],
+          "reward_gold": -1,
+          "reward_xp": -1
+        },
+        {
+          "spawns": [
+            {
+              "template_id": "blight_lizard",
+              "count": 4
+            },
+            {
+              "template_id": "rust_root_crab",
+              "count": 2
+            }
+          ],
+          "reward_gold": -1,
+          "reward_xp": -1
+        },
+        {
+          "spawns": [
+            {
+              "template_id": "feral_spore_spider",
+              "count": 4
+            },
+            {
+              "template_id": "shrike_owl",
+              "count": 2
+            }
+          ],
+          "boss_template_id": "bloomwrought_warden",
+          "boss_name": "Bloomwrought Warden",
+          "reward_gold": 900,
+          "reward_xp": 450
+        }
+      ],
+      "boss_template_id": "",
+      "boss_name": "",
+      "bosses_alert": true,
+      "reward_gold": 1800,
+      "reward_xp": 900,
+      "scale_levels": true,
+      "inter_wave_delay": 6,
+      "instance_scope": "",
+      "_sourceFile": "game/data/hordes/horde_bloom_cull.tres",
+      "_scriptClass": "HordeData"
+    },
+    "bloom_descent": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "bloom_descent",
+      "display_name": "Descent into the Bloom",
+      "waves": [
+        {
+          "spawns": [
+            {
+              "template_id": "feral_spore_spider",
+              "count": 6
+            }
+          ],
+          "reward_gold": -1,
+          "reward_xp": -1
+        },
+        {
+          "spawns": [
+            {
+              "template_id": "blight_lizard",
+              "count": 5
+            },
+            {
+              "template_id": "rust_root_crab",
+              "count": 3
+            }
+          ],
+          "reward_gold": -1,
+          "reward_xp": -1
+        },
+        {
+          "spawns": [
+            {
+              "template_id": "shrike_owl",
+              "count": 3
+            }
+          ],
+          "boss_template_id": "bloomwrought_warden",
+          "boss_name": "Bloomwrought Warden",
+          "reward_gold": 1200,
+          "reward_xp": 700
+        }
+      ],
+      "boss_template_id": "sporebound_matriarch",
+      "boss_name": "The Sporebound Matriarch",
+      "bosses_alert": false,
+      "reward_gold": 3600,
+      "reward_xp": 1900,
+      "scale_levels": true,
+      "inter_wave_delay": 7,
+      "instance_scope": "dungeon",
+      "_sourceFile": "game/data/hordes/horde_bloom_descent.tres",
+      "_scriptClass": "HordeData"
+    },
     "boss_gauntlet": {
       "script": {
         "_extResource": "1"
@@ -21315,6 +22584,24 @@
       "open_window_sec": 1800,
       "notify_message": "An aurora unfolds - the sky is writing. Something may be answered.",
       "_sourceFile": "game/data/weather_events/weather_aurora_window.tres",
+      "_scriptClass": "WeatherEventData"
+    },
+    "bloom_stir": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "bloom_stir",
+      "display_name": "The Bloom Stirs",
+      "trigger_kinds": "Array[int]([0])",
+      "band_names": "Array[String]([\"active\"])",
+      "aurora_min": 0.5,
+      "cooldown_sec": 480,
+      "zone_ids": "Array[String]([\"zone_forest_meadow\", \"zone_dungeon_forest_depths\"])",
+      "stir_horde_config": "bloom_cull",
+      "stir_waves": 2,
+      "open_window_sec": 0,
+      "notify_message": "The sky turns active over the gloam - something the Bloom took is walking out of the trees.",
+      "_sourceFile": "game/data/weather_events/weather_bloom_stir.tres",
       "_scriptClass": "WeatherEventData"
     },
     "fog_mystery": {

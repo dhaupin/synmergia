@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "quest_cull_the_warden"
+display_name = "The Warden That Never Stood Down"
+description = "The Gloomwood Ledger names a sentinel still walking its patrol around a vault that stopped answering centuries ago, and the Bloom has grafted itself into the joints. Fenwick's last line: put it down honest. It has been on duty long enough."
+quest_type = 1
+difficulty = 4
+giver_npc_id = "npc_tidewright_fenwick"
+turn_in_npc_id = "npc_tidewright_fenwick"
+min_level = 42
+max_level = 100
+required_quests = ["quest_the_silent_stoop"]
+required_faction = ""
+required_faction_rank = 0
+zone_restriction = ""
+objectives = [{"id": "down_warden", "type": 0, "target": "Bloomwrought Warden", "count": 1}]
+rewards = [{"type": "gold", "id": "", "quantity": 1600}, {"type": "experience", "id": "", "quantity": 4200}]
+reward_choice_count = 0
+gold_reward = 1600
+xp_reward = 4200
+next_quest_id = ""
+previous_quest_id = "quest_the_silent_stoop"
+icon_path = "res://icons/quests/gloamwood_ledger.png"
+map_marker = "kill"

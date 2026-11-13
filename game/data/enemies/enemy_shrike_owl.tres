@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/enemy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "shrike_owl"
+display_name = "Shrike-Owl"
+description = "The Data-Owl, gone sleek and cruel. Its sensor crest split into twin ears laid flat, talon cables barbed, one magenta eye-slit where two teal lenses used to watch. It stoops in silence. The cracked clock-face core in its chest still tries to keep time."
+enemy_type = 1
+level = 44
+faction = "hostile"
+health = 3100
+mana = 260
+stamina = 190
+strength = 62
+agility = 68
+intelligence = 30
+vitality = 60
+attack_power = 124
+spell_power = 48
+armor = 34
+resistance = 24
+attack_range = 3.0
+attack_speed = 1.15
+move_speed = 6.2
+aggro_range = 16.0
+chase_range = 38.0
+wander_range = 12.0
+see_stealth = true
+is_aggressive = true
+is_passive = false
+is_elite = true
+is_boss = false
+is_social = false
+loot_table_id = "loot_bloom_corruption"
+secondary_loot_table_id = "loot_elite_ore"
+gold_min = 300
+gold_max = 520
+xp_reward = 3600
+skills = []
+movement_profile_id = "movement_aerial"
+hitbox_profile_id = "hitbox_sky_large"
+model_path = ""
+icon_path = ""
+scale = 1.3
+animation_set = ""
+respawn_time = 420.0
+despawn_time = 0.0
+difficulty_modifier = 2.2

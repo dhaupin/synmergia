@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "quest_the_silent_stoop"
+display_name = "The Silent Stoop"
+description = "Something with a cracked clock-face core has been stooping on the yard crews out of the shafts of light, and it does not call before it comes. Fenwick wants it down. He wants the core, too -- he thinks the Concord can read it."
+quest_type = 1
+difficulty = 4
+giver_npc_id = "npc_tidewright_fenwick"
+turn_in_npc_id = "npc_tidewright_fenwick"
+min_level = 40
+max_level = 100
+required_quests = ["quest_break_the_shell"]
+required_faction = ""
+required_faction_rank = 0
+zone_restriction = ""
+objectives = [{"id": "down_owls", "type": 0, "target": "Shrike-Owl", "count": 4}]
+rewards = [{"type": "gold", "id": "", "quantity": 950}, {"type": "experience", "id": "", "quantity": 2600}]
+reward_choice_count = 0
+gold_reward = 950
+xp_reward = 2600
+next_quest_id = "quest_cull_the_warden"
+previous_quest_id = "quest_break_the_shell"
+icon_path = "res://icons/quests/gloamwood_ledger.png"
+map_marker = "kill"

@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/enemy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "sporebound_matriarch"
+display_name = "The Sporebound Matriarch"
+description = "The Bloom's oldest node, down where the runoff pools and the elevator sleeps. A vast many-limbed mass hunched over a brood it keeps making and cannot stop making, each new creature grown to tend a garden whose gardener never came back. Violet mantle, magenta eyes by the dozen, a cracked agent-core for a heart. It is not a villain. It is a mother with no one left to raise."
+enemy_type = 3
+level = 48
+faction = "hostile"
+health = 11000
+mana = 620
+stamina = 260
+strength = 96
+agility = 34
+intelligence = 70
+vitality = 140
+attack_power = 158
+spell_power = 120
+armor = 96
+resistance = 62
+attack_range = 4.0
+attack_speed = 0.7
+move_speed = 3.2
+aggro_range = 20.0
+chase_range = 44.0
+wander_range = 10.0
+see_stealth = false
+is_aggressive = true
+is_passive = false
+is_elite = false
+is_boss = true
+is_social = true
+loot_table_id = "loot_skill_books"
+secondary_loot_table_id = "loot_bloom_corruption"
+gold_min = 900
+gold_max = 1600
+xp_reward = 9000
+skills = []
+movement_profile_id = ""
+hitbox_profile_id = "hitbox_beast_medium"
+model_path = ""
+icon_path = ""
+scale = 2.4
+animation_set = "troll"
+respawn_time = 3600.0
+despawn_time = 0.0
+difficulty_modifier = 3.0

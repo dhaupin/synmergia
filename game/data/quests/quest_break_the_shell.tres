@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "quest_break_the_shell"
+display_name = "Break the Shell"
+description = "Fenwick's fence line runs to the treeline, and something shelled has been walking through it. He does not care what it is. He cares that the posts stay up. Break the shells and the yard stays his."
+quest_type = 1
+difficulty = 3
+giver_npc_id = "npc_tidewright_fenwick"
+turn_in_npc_id = "npc_tidewright_fenwick"
+min_level = 40
+max_level = 100
+required_quests = ["quest_the_runoff_line"]
+required_faction = ""
+required_faction_rank = 0
+zone_restriction = ""
+objectives = [{"id": "break_crabs", "type": 0, "target": "Rust-Root-Crab", "count": 5}]
+rewards = [{"type": "gold", "id": "", "quantity": 800}, {"type": "experience", "id": "", "quantity": 2200}]
+reward_choice_count = 0
+gold_reward = 800
+xp_reward = 2200
+next_quest_id = "quest_the_silent_stoop"
+previous_quest_id = "quest_the_runoff_line"
+icon_path = "res://icons/quests/gloamwood_ledger.png"
+map_marker = "kill"

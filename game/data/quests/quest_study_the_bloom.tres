@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "quest_study_the_bloom"
+display_name = "Study the Bloom"
+description = "The herbalist will not go into the gloam, but she will pay to know what it is doing. Cull the feral spiders at the treeline and bring her spores, and she can start reading the corruption instead of fearing it."
+quest_type = 1
+difficulty = 3
+giver_npc_id = "npc_herbalist_village"
+turn_in_npc_id = "npc_herbalist_village"
+min_level = 40
+max_level = 100
+required_quests = []
+required_faction = ""
+required_faction_rank = 0
+zone_restriction = ""
+objectives = [{"id": "cull_spiders", "type": 0, "target": "Feral Spore-Spider", "count": 8}, {"id": "bring_spores", "type": 1, "target": "Gloam Spore", "count": 4}]
+rewards = [{"type": "gold", "id": "", "quantity": 600}, {"type": "experience", "id": "", "quantity": 1800}]
+reward_choice_count = 0
+gold_reward = 600
+xp_reward = 1800
+next_quest_id = "quest_the_runoff_line"
+previous_quest_id = ""
+icon_path = "res://icons/quests/gloamwood_ledger.png"
+map_marker = "kill"

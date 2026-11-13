@@ -21,5 +21,5 @@ zone_id = "zone_village_center"
 includes = [
     {"type": "offering", "ref_id": "vendor_fenwick_planks"},
     {"type": "dialogue", "dialogue_id": "tidewright_fenwick_intro"},
-    {"type": "quest", "quest_ids": ["quest_tide_salvage", "quest_sentinel_wake", "quest_gloamwood_ledger"]}
+    {"type": "quest", "quest_ids": ["quest_tide_salvage", "quest_sentinel_wake", "quest_gloamwood_ledger", "quest_break_the_shell", "quest_the_silent_stoop", "quest_cull_the_warden"]}
 ]

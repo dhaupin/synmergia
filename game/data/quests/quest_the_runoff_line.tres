@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "quest_the_runoff_line"
+display_name = "The Runoff Line"
+description = "The herbalist has the spores and now she wants the source. Something in the runoff is making the lizards over -- follow the violet stream up into the meadow and thin what it has already touched."
+quest_type = 1
+difficulty = 3
+giver_npc_id = "npc_herbalist_village"
+turn_in_npc_id = "npc_herbalist_village"
+min_level = 40
+max_level = 100
+required_quests = ["quest_study_the_bloom"]
+required_faction = ""
+required_faction_rank = 0
+zone_restriction = ""
+objectives = [{"id": "cull_lizards", "type": 0, "target": "Blight-Lizard", "count": 6}]
+rewards = [{"type": "gold", "id": "", "quantity": 750}, {"type": "experience", "id": "", "quantity": 2100}]
+reward_choice_count = 0
+gold_reward = 750
+xp_reward = 2100
+next_quest_id = "quest_break_the_shell"
+previous_quest_id = "quest_study_the_bloom"
+icon_path = "res://icons/quests/gloamwood_ledger.png"
+map_marker = "kill"
