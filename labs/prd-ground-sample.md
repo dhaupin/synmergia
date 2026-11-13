@@ -208,13 +208,20 @@ the redundant parallel caches, not the cold derivations).
   `splat_skin`) read the fused sample; the pure helpers
   (`_biome_weights_from`, `_skin_from`) let the builder use them without
   recursion. All bit-identical (probe + every gate green).
-- **Stage 3 (NEXT)** -- collapse the per-field caches into
-  `_ground_cache` (one `clear()` on backend install). The primitives
-  (`terrain_height`, `climate_temperature`, `water_table_raw`,
-  `hydro_water_surface`, `_crag_noise`) keep their own memos, because
-  they are the shared cold-derivation layer that the fused sample and
-  the raw renderer/waterfall paths both read -- the parallel caches to
-  collapse are the ones that now only hold redundant derived values.
+- **Stage 3 SHIPPED (partial, honest)** -- the only cache left holding a
+  redundant derived value was `_skin_cache`, orphaned by Stage 2's rewire
+  (`skin_classes` now reads `ground_sample().skin`), with ZERO readers
+  left -- removed. The remaining per-field memos are NOT redundant: they
+  are the primitives' own cold-derivation layer, and each is still read
+  directly by a non-fused caller, so folding them into `_ground_cache`
+  would either recurse (the fused builder calls them) or force those
+  callers through the fused sample they do not need. Full inventory:
+  `_height_cache` (setter + external readers), `_crag_cache` (feeds
+  `_crag_noise`), `_temperature_cache` / `_water_table_cache` /
+  `_water_surface_cache` / `_blend_cache` / `_channel_cache` / `_carved_cache`
+  (primitive setter+getter pairs), `_ground_cache` (the fused sample).
+  Collapsing further is a behavior-preserving but non-trivial relayout
+  with no measurable win; deferred, documented here.
 - **Stage 4 SHIPPED** -- the clipmap dropped its private `_memo_h` /
   `_memo_col` (and the now-dead `SectorCache` preload + `MEMO_MAX`);
   `_memo_height` reads `TerrainGen.ground_sample(dir).height` and
