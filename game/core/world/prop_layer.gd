@@ -65,6 +65,15 @@ var _decor_salt: int = 0
 # The shared prop mesh registry (quantized-key dedup, the streamer's law).
 var _mesh_registry: Dictionary = {}
 
+# Rocks + boulders are PER-FACE fixed content (TerrainGen.rock_specs /
+# boulder_specs), bucketed into chunks lazily: the first time a chunk near a
+# face is derived, that face's specs are computed once and each spec is
+# assigned to the chunk containing its direction. Same specs the streamer
+# used, so parity holds; the chunk grid stays the addressing truth.
+var _rocks_by_chunk: Dictionary = {}
+var _boulders_by_chunk: Dictionary = {}
+var _rocks_faces_done: Dictionary = {}
+
 
 func configure(p_provider, p_radius: float, p_parent: Node3D, p_depth: int = PropChunk.DEFAULT_DEPTH) -> void:
 	provider = p_provider
@@ -157,6 +166,12 @@ func _derive_chunk(key: int) -> Dictionary:
 	var area_km2: float = PropChunk.chunk_area_km2(radius_m, chunk_depth)
 	var bid: int = provider.biome_id(center)
 	var sea: float = provider.sea_level()
+	# Rocks + boulders (per-face specs, bucketed into this chunk).
+	_bucket_face_content(PropChunk.face_of(key))
+	for r in _rocks_by_chunk.get(key, []):
+		out["instances"].append(r)
+	for b in _boulders_by_chunk.get(key, []):
+		out["instances"].append(b)
 	# Trees. Count = density * area with UNBIASED stochastic rounding, so a
 	# small chunk still gets a tree some of the time and the average matches
 	# the density (a plain round() would zero every chunk below 0.5 expected).
@@ -201,6 +216,36 @@ func _derive_trees(key: int, count: int, out: Dictionary) -> void:
 		placed += 1
 
 
+## Bucket a face's fixed rock/boulder specs into their chunks (once per
+## face). Each spec lands in the chunk containing its direction, so the
+## chunk grid stays the addressing truth and no prop is duplicated.
+func _bucket_face_content(face: int) -> void:
+	if _rocks_faces_done.has(face):
+		return
+	_rocks_faces_done[face] = true
+	var sea: float = provider.sea_level()
+	for s in TerrainGen.rock_specs(world_seed, face):
+		var d: Vector3 = s.dir
+		var h: float = provider.ground_height(d)
+		if h < sea - 0.6:
+			continue
+		var k: int = PropChunk.chunk_for_dir(d, chunk_depth)
+		if not _rocks_by_chunk.has(k):
+			_rocks_by_chunk[k] = []
+		_rocks_by_chunk[k].append({"family": FAMILY_ROCK, "dir": d, "h": h,
+				"scale": s.scale, "yaw": s.yaw, "face": face})
+	for b in TerrainGen.boulder_specs(world_seed, face):
+		var d2: Vector3 = b.dir
+		var h2: float = provider.ground_height(d2)
+		if h2 < sea - 0.6:
+			continue
+		var k2: int = PropChunk.chunk_for_dir(d2, chunk_depth)
+		if not _boulders_by_chunk.has(k2):
+			_boulders_by_chunk[k2] = []
+		_boulders_by_chunk[k2].append({"family": FAMILY_BOULDER, "dir": d2, "h": h2,
+				"radius": b.radius, "yaw": b.yaw, "face": face})
+
+
 ## Unbiased stochastic rounding of a non-negative expected count: returns
 ## floor(x) + 1 with probability frac(x). Average == x.
 func _stochastic_count(x: float, rng: RandomNumberGenerator) -> int:
@@ -229,6 +274,63 @@ func _build_instance(inst: Dictionary, node: Node3D, near: bool) -> void:
 	match int(inst.get("family", -1)):
 		FAMILY_TREE:
 			_build_tree(inst, node, near)
+		FAMILY_ROCK:
+			_build_rock(inst, node)
+		FAMILY_BOULDER:
+			_build_boulder(inst, node)
+
+
+## The rock's biome color law (ported from the streamer: alpine/tundra gray,
+## badlands rust, desert sandstone, swamp mossy, default weathered).
+func _rock_color(dir: Vector3) -> Color:
+	match provider.biome_id(dir):
+		TerrainGen.BiomeId.ALPINE, TerrainGen.BiomeId.TUNDRA:
+			return Color(0.52, 0.54, 0.58)
+		TerrainGen.BiomeId.BADLANDS:
+			return Color(0.52, 0.33, 0.24)
+		TerrainGen.BiomeId.DESERT:
+			return Color(0.60, 0.52, 0.38)
+		TerrainGen.BiomeId.SWAMP:
+			return Color(0.36, 0.40, 0.30)
+	return Color(0.45, 0.42, 0.40)
+
+
+## A rock: a squat ellipsoid on its own radial, embedded ROCK_EMBED.
+func _build_rock(inst: Dictionary, node: Node3D) -> void:
+	var dir: Vector3 = inst["dir"]
+	var rmi := MeshInstance3D.new()
+	rmi.name = "Rock%d" % node.get_child_count()
+	rmi.mesh = _shared_sphere(TerrainGen.ROCK_RADIUS * float(inst["scale"]), 2.0)
+	var rmat := StandardMaterial3D.new()
+	rmat.albedo_color = _rock_color(dir)
+	rmat.roughness = 1.0
+	rmi.material_override = rmat
+	rmi.position = dir * (radius_m + float(inst["h"]) + TerrainGen.ROCK_EMBED)
+	rmi.rotation.y = float(inst["yaw"])
+	node.add_child(rmi)
+
+
+## A boulder: a squat climbable ellipsoid, collider-carried (blocks/climb).
+func _build_boulder(inst: Dictionary, node: Node3D) -> void:
+	var dir: Vector3 = inst["dir"]
+	var bmi := MeshInstance3D.new()
+	bmi.name = "Boulder%d" % node.get_child_count()
+	var br: float = float(inst["radius"])
+	bmi.mesh = _shared_sphere(br, 1.7)
+	var bmat := StandardMaterial3D.new()
+	bmat.albedo_color = Color(0.40, 0.38, 0.37)
+	bmat.roughness = 1.0
+	bmi.material_override = bmat
+	bmi.position = dir * (radius_m + float(inst["h"]) + br * 0.28)
+	var up: Vector3 = dir
+	var hint := Vector3(0, 1, 0)
+	if absf(up.dot(hint)) > 0.999:
+		hint = Vector3(0, 0, -1)
+	var east: Vector3 = (hint - up * hint.dot(up)).normalized()
+	var north: Vector3 = east.cross(up)
+	bmi.basis = Basis(east, up, north)
+	node.add_child(bmi)
+	PropCollider.attach(bmi)
 
 
 ## A tree: trunk cylinder + species canopy sphere, radial placement.

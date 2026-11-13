@@ -46,6 +46,24 @@ func _init() -> void:
 	# A6: no tree lands below the waterline (sea skip honored).
 	_check("A6 no tree below the waterline", _no_subsea_trees(layer, key))
 
+	# A7: rocks (per-face specs) bucket into chunks and build. The spawn face's
+	# rocks are sparse, so build a chunk that actually holds one.
+	layer.update(TerrainGen.SPAWN_CENTER * 20000.0)
+	_check("A7 the spawn face's rocks bucket into chunks", not layer._rocks_by_chunk.is_empty())
+	var rock_key: int = -1
+	for k in layer._rocks_by_chunk.keys():
+		if not layer._rocks_by_chunk[k].is_empty():
+			rock_key = k
+			break
+	var rock_built: bool = false
+	if rock_key != -1:
+		if not layer._built.has(rock_key):
+			layer._build_chunk(rock_key, TerrainGen.SPAWN_CENTER)
+		var rn = layer._built.get(rock_key)
+		if rn != null:
+			rock_built = _count_desc(rn, "Rock") > 0
+	_check("A8 a rock-bearing chunk builds Rock nodes", rock_built)
+
 	print("[probe_prop_layer] %s (%d fails)" % ["ALL PASS" if _fails == 0 else "FAILURES", _fails])
 	quit(0 if _fails == 0 else 1)
 
@@ -72,6 +90,19 @@ func _count_desc(node: Node, prefix: String) -> int:
 			c += 1
 		c += _count_desc(ch, prefix)
 	return c
+
+
+func _count_all(layer, prefix: String) -> int:
+	var n: int = 0
+	for key in layer._built.keys():
+		n += _count_desc(layer._built[key], prefix)
+	return n
+
+
+func _boulders_placed(layer) -> bool:
+	# Boulders are per-face fixed content; the bucketing must have run for
+	# the spawn face (its specs exist). True if the face is marked done.
+	return not layer._rocks_faces_done.is_empty()
 
 
 func _no_subsea_trees(layer, key: int) -> bool:
