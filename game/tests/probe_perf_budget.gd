@@ -1,53 +1,24 @@
-## Probe: the PER/BUDGET slice -- per-patch performance budgets as
-## pinned checks (the ledger's parked "the per/budget slice"). Headless:
+## Probe: the PER/BUDGET slice -- performance budgets as pinned checks
+## (the ledger's parked "the per/budget slice"). Headless:
 ##   godot --headless --path game --script res://tests/probe_perf_budget.gd
 ##
-## The pretty passes (crag law, tint stack, village, roads) all ride the
-## mesh pass -- one budget probe keeps future polish from silently
-## regenerating the streaming contracts the world already meets:
-##   B1. A full-detail patch build stays inside the PER-PATCH TIME
-##       budget (one hot _load_patch call at 20 km, measured).
-##   B2. A patch's mesh stays inside the TRI budget across its
-##       surfaces (main + skirts + water sheet).
-##   B3. The full 20-face planet sweep completes inside the SWEEP
-##       budget (the walk-a-planet wall clock) and the live set stays
-##       at the 4-patch steady state the memory anchor promises.
-##   B4. The sweep leaves no stale machinery behind (patch count and
-##       prop holders over the faces all reclaimed to the set).
+## The clipmap is the SOLE renderer now: it draws a FIXED ring ladder
+## (a centre cap + N_LEVELS rings), so the streaming contract is the
+## ladder staying inside budget, not a per-face patch build:
+##   B1. The cold build (build_all) stays inside the BUILD time budget.
+##   B2. The drawn ground stays inside the TRI budget (cap + rings).
+##   B3. A spread player sweep (update at 8 bearings) stays inside the
+##       SWEEP budget and the mesh count stays at the fixed ladder size.
+##   B4. The sweep leaves no stale machinery (mesh count == ladder size).
 extends SceneTree
 
 const GLOBE_SCENE := "res://scenes/worlds/globe_world.tscn"
 ## Budgets (s, honest headless-machine values -- pinned loose enough to
 ## cross machines, tight enough to catch a real stall; the probe PRINTS
 ## the measured numbers so recalibration is a reading, not a guess).
-const PER_PATCH_TIME_S: float = 10.0     # one full-detail level-6 build
-## (calibrated: 6.54 s measured cold at 20 km on the dev box -- the
-## first build pays the road spec + channel caches; the pin is the
-## honest wall with headroom, printed every run).
-## The sweep pin is the SPREAD SUBWALK (8 faces across the planet's
-## bearing ring, streamed in one chain) -- the FULL 20-face sweep is
-## the stream probe's own pinned walk (it needs its whole command
-## window). The subwalk catches the same budget regressions: hot
-## builds + unloads + steady-state caps, four times over.
-const SWEEP_FACES: Array = [0, 4, 8, 10, 14, 17, 19, 2]
-## (calibrated: per-face legs measured 9-21 s hot at 20 km — each
-## leg loads 4 level-6 patches wet with the crag/tint stacks; the
-## 200 s wall is the honest chain-run with headroom, printed).
-const SWEEP_TIME_S: float = 200.0
-## The wall is HARDWARE-CALIBRATED (the 2026-11-05 subwalk round): the
-## 200 s reading above was taken on the dev box (cold build 6.54 s),
-## and a slower machine runs the SAME code over the wall without a
-## regression -- the probe must catch a REAL stall, not a kin student
-## running the dev box's homework. So the wall scales with the
-## machine's own measured hot build against the SAME reference the
-## per-patch budget was calibrated on (6.54 s cold at 20 km); on a
-## box at the reference speed the wall stays 200 s byte-identical.
-const REFERENCE_HOT_S: float = 6.54
-const MAIN_TRI_BUDGET: int = 400000      # one patch, surface 0
-const TOTAL_TRI_BUDGET: int = 600000     # one patch, all surfaces combined
-const SKIRT_TRI_BUDGET: int = 100000     # one patch, seams
-const WATER_TRI_BUDGET: int = 100000     # one patch, the water sheet
-const LIVE_PATCH_CAP: int = 4            # the steady-state law
+const BUILD_TIME_S: float = 30.0      # one cold build_all at 20 km
+const SWEEP_TIME_S: float = 60.0      # 8-bearing re-centre sweep
+const GROUND_TRI_BUDGET: int = 60000  # the whole ladder (cap + rings)
 
 var _fails: int = 0
 
@@ -62,9 +33,6 @@ func _check(label: String, cond: bool) -> bool:
 
 
 func _init() -> void:
-	# This probe reads the icosa STREAMER internals; pin the renderer
-	# so the default (clipmap) does not change what it inspects.
-	ProjectSettings.set_setting("synmergia/world/terrain_render", "streamer")
 	call_deferred("_run")
 
 
@@ -76,64 +44,44 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	var st = globe.get("streamer")
-	var F = load("res://core/frame/math/icosahedral_faces.gd")
 	var pl: float = float(globe.get("planet_radius"))
+	var ladder: int = st.ground_meshes().size()
 
-	# B1 + B2: one full-detail patch, built hot, timed and weighed.
-	var face: int = (st.current_face + 1) % F.face_count()
+	# B1: the cold build (a fresh build_all) stays inside the budget.
 	var t0: int = Time.get_ticks_usec()
-	st._load_patch(face, 6)
+	st.build_all()
 	var build_s: float = float(Time.get_ticks_usec() - t0) / 1000000.0
-	_check("full-detail patch build %.2f s < %.1f s" % [build_s, PER_PATCH_TIME_S],
-		build_s < PER_PATCH_TIME_S)
+	_check("cold build %.2f s < %.1f s" % [build_s, BUILD_TIME_S], build_s < BUILD_TIME_S)
 
-	var mi = (st._patches as Dictionary).get(face)
-	if not _check("the hot patch holds a mesh", mi != null and mi.mesh != null):
-		quit(1)
-		return
-	# The mesh weigher: get_faces() reads the rendered triangle soup
-	# across ALL surfaces (robust against the partial-array quirk the
-	# raw surface_get_arrays read hit); seam/water buckets come from
-	# the streamer's own stored counts.
-	var buckets: Array = [0, 0, 0]          # [index-total, skirt, water]
-	var faces: PackedVector3Array = mi.mesh.get_faces()
-	buckets[0] = faces.size() / 3
-	buckets[1] = int((st._patch_skirt_tris as Dictionary).get(face, 0))
-	buckets[2] = int((st._patch_water_tris as Dictionary).get(face, 0))
-	var main_tris: int = maxi(0, buckets[0] - buckets[1] - buckets[2])
-	_check("patch surfaces %d total tris < %d combined budget" % [buckets[0], TOTAL_TRI_BUDGET],
-		buckets[0] > 0 and buckets[0] < TOTAL_TRI_BUDGET)
-	_check("main surface %d tris (total %d, skirt %d, water %d)" % [main_tris, buckets[0], buckets[1], buckets[2]],
-		main_tris >= 0)
-	var skirt_tris: int = buckets[1]
-	_check("skirt surface %d tris < %d" % [skirt_tris, SKIRT_TRI_BUDGET],
-		skirt_tris < SKIRT_TRI_BUDGET)
-	var water_tris: int = buckets[2]
-	_check("water surface %d tris < %d" % [water_tris, WATER_TRI_BUDGET],
-		water_tris < WATER_TRI_BUDGET)
+	# B2: the drawn ground's triangle budget.
+	var total_tris: int = 0
+	for mi in st.ground_meshes():
+		if mi == null or mi.mesh == null:
+			continue
+		var faces: PackedVector3Array = mi.mesh.get_faces()
+		total_tris += faces.size() / 3
+	_check("drawn ground %d tris < %d combined budget" % [total_tris, GROUND_TRI_BUDGET],
+		total_tris > 0 and total_tris < GROUND_TRI_BUDGET)
 
-	# B3 + B4: the spread planet subwalk, same live instance -- the
-	# two-boot dance spent the command window on boots; one globe
-	# keeps the whole battery inside a headless slice.
-	var st2 = st
+	# B3 + B4: the spread player sweep, same live instance.
+	var F = load("res://core/frame/math/icosahedral_faces.gd")
 	var t1: int = Time.get_ticks_usec()
 	var steady_ok := true
-	for f in SWEEP_FACES as Array:
+	for f in range(20):
+		if f % 2 != 0:
+			continue
 		var tf0: int = Time.get_ticks_usec()
-		st2.update(F.face_center(int(f)) * pl)
-		print("SWEEP face=%d took %.2f s (running %.2f s)" % [int(f), float(Time.get_ticks_usec() - tf0) / 1000000.0, float(Time.get_ticks_usec() - t1) / 1000000.0])
-		if (st2._patches as Dictionary).size() > LIVE_PATCH_CAP:
+		st.update(F.face_center(int(f)) * pl)
+		print("SWEEP face=%d took %.2f s (running %.2f s) meshes=%d" % [
+			int(f), float(Time.get_ticks_usec() - tf0) / 1000000.0,
+			float(Time.get_ticks_usec() - t1) / 1000000.0, st.ground_meshes().size()])
+		if st.ground_meshes().size() != ladder:
 			steady_ok = false
 	var sweep_s: float = float(Time.get_ticks_usec() - t1) / 1000000.0
-	# Calibrated wall: max(untouched 200 s law, 200 s scaled by this
-	# machine's hot build / the 6.54 s reference) -- never TIGHTER than
-	# the reference reading, and printed both ways every run.
-	var wall_s: float = maxf(SWEEP_TIME_S, SWEEP_TIME_S * build_s / REFERENCE_HOT_S)
-	_check("planet subwalk %.1f s < %.0f s calibrated (200 s wall, hot build %.2f/6.54 s, %d faces)"
-		% [sweep_s, wall_s, build_s, SWEEP_FACES.size()], sweep_s < wall_s)
-	_check("live set capped at %d patches through the sweep" % LIVE_PATCH_CAP, steady_ok)
-	_check("subwalk leaves the steady state", (st2._patches as Dictionary).size() <= LIVE_PATCH_CAP)
-	print("probe_perf_budget: %s (per-patch %.2f s, main %d tris, sweep %.1f s)"
-		% ["ALL PASS" if _fails == 0 else "%d FAIL" % _fails,
-		build_s, main_tris, sweep_s])
+	_check("planet sweep %.1f s < %.0f s (%d bearings)" % [sweep_s, SWEEP_TIME_S, 10],
+		sweep_s < SWEEP_TIME_S)
+	_check("mesh count stays at the fixed ladder size (%d) through the sweep" % ladder, steady_ok)
+	_check("sweep leaves the ladder at steady state", st.ground_meshes().size() == ladder)
+	print("probe_perf_budget: %s (cold build %.2f s, %d tris, sweep %.1f s, ladder %d)"
+		% ["ALL PASS" if _fails == 0 else "%d FAIL" % _fails, build_s, total_tris, sweep_s, ladder])
 	quit(0 if _fails == 0 else 1)

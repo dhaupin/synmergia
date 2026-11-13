@@ -60,12 +60,14 @@ samples it per vertex with a quantized direction cache (shared corners
 never crack) and the walk surface rides the analytic law
 (level-independent). Two renderers exist behind `globe_world.terrain_render`:
 
-- **`clipmap`** (default, `globe_clipmap.gd`) -- a player-centred polar
+- **`clipmap`** (SOLE path, `globe_clipmap.gd`) -- a player-centred polar
   clipmap with geometric rings and NO discrete per-face LOD, so the drawn
   surface tracks the law without band pops (the floating-structure fix).
   See `prd-clipmap.md`. Planet scale only (>= 1000 m radius).
-- **`streamer`** (`globe_terrain_streamer.gd`, legacy fallback) -- icosa
-  face-patch LOD; skirt taper reads the law's unsampled amplitude.
+- **`streamer`** (`globe_terrain_streamer.gd`, RETIRED) -- the legacy icosa
+  face-patch LOD with skirt taper; deleted once every probe read the
+  shared surface (`prd-clipmap.md` 11a). A stale pin falls back to the
+  clipmap.
 
 Every slice below must preserve:
 

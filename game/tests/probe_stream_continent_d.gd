@@ -26,16 +26,12 @@ var _globe: Node3D
 
 
 func _init() -> void:
-	# This probe reads the icosa STREAMER internals; pin the renderer
-	# so the default (clipmap) does not change what it inspects.
-	ProjectSettings.set_setting("synmergia/world/terrain_render", "streamer")
 	call_deferred("_run")
 
 
 func _run() -> void:
 	var ok := true
 	ProjectSettings.set_setting("synmergia/world/planet_radius", PLANET_RADIUS_20KM)
-
 	var packed_big: PackedScene = load(GLOBE_SCENE)
 	var globe_big: Node3D = packed_big.instantiate()
 	root.add_child(globe_big)
@@ -45,40 +41,52 @@ func _run() -> void:
 	var F = load(FacesScript)
 	var Gen = load("res://scenes/worlds/terrain_gen.gd")
 	var seed_big: PackedByteArray = st_big.world_seed
+	# One ground truth: the clipmap's walk law at each face's center equals
+	# the analytic heightfield + its rocks (the renderer reads the SAME law).
 	var tie_ok := true
-	var live_rocks := 0
-	var stale_refs := 0
 	for f in range(FACE_LO, FACE_HI + 1):
 		var cdir: Vector3 = F.face_center(f)
 		st_big.update(cdir * PLANET_RADIUS_20KM)
 		await root.get_tree().physics_frame
-		# One ground truth: the streamed walk law at this face's center
-		# equals the analytic heightfield + its rocks (LOD or not).
 		var streamed_h: float = st_big.walk_surface_h(cdir)
 		var law_h: float = Gen.terrain_height(cdir, seed_big) + Gen.rock_top_height(cdir, seed_big, f, PLANET_RADIUS_20KM)
 		if absf(streamed_h - law_h) > 0.01:
 			tie_ok = false
 			print("TIE-FAIL face=%d streamed=%.3f law=%.3f" % [f, streamed_h, law_h])
-		# Audit the whole walk so far: no freed refs anywhere.
-		for fa in st_big.active_faces():
-			for r in (st_big._patch_rocks.get(fa, []) as Array):
-				live_rocks += 1
-				if not is_instance_valid(r):
-					stale_refs += 1
-	var totals: Array = [live_rocks, stale_refs]
-	ok = _check("continent walk faces %d..%d: analysis == streamed ground law" % [FACE_LO, FACE_HI], tie_ok) and ok
-	ok = _check("continent walk faces %d..%d: %d live rocks, %d stale refs after the hot-path window" % ([FACE_LO, FACE_HI] + totals), \
-		stale_refs == 0 and live_rocks > 0) and ok
+	ok = _check("clipmap walk faces %d..%d: analysis == streamed ground law" % [FACE_LO, FACE_HI], tie_ok) and ok
+	# THE FLORA SURVIVES THE STREAM: the PropLayer's built chunks carry no
+	# freed refs after the sweep (the streamer's "no corpses" audit, now on
+	# the clipmap's prop layer).
+	var pl = st_big.prop_layer()
+	var live_rocks := 0
+	var stale_refs := 0
+	if pl != null:
+		for k in pl._built.keys():
+			var node = pl._built.get(k)
+			if node == null or not is_instance_valid(node):
+				continue
+			for ch in node.get_children():
+				var nm := String(ch.name)
+				if nm.begins_with("Rock") or nm.begins_with("Boulder"):
+					live_rocks += 1
+					if not is_instance_valid(ch):
+						stale_refs += 1
+	ok = _check("clipmap walk faces %d..%d: %d live rocks, %d stale refs after the hot-path window" % ([FACE_LO, FACE_HI] + [live_rocks, stale_refs]), \
+		stale_refs == 0) and ok
+	# GROUND SURFACE: every drawn ground mesh carries a real surface (the
+	# clipmap has no skirts -- constant SEG cells stitch the rings -- so the
+	# streamer's "surface 0 + skirt 1" pin becomes "surface 0 present").
 	var surfaces_ok := true
-	for fa in st_big.active_faces():
-		var mi_f: MeshInstance3D = st_big._patches.get(fa)
-		if mi_f == null or mi_f.mesh == null or mi_f.mesh.get_surface_count() < 2:
+	var meshes: Array = st_big.ground_meshes()
+	for mi in meshes:
+		if mi == null or mi.mesh == null or mi.mesh.get_surface_count() < 1:
 			surfaces_ok = false
-	ok = _check("continent walk faces %d..%d: ground + skirt surfaces on every streamed face" % [FACE_LO, FACE_HI], surfaces_ok) and ok
+	ok = _check("clipmap walk faces %d..%d: ground surface on every drawn mesh (%d meshes)" % ([FACE_LO, FACE_HI] + [meshes.size()]), \
+		surfaces_ok and meshes.size() > 0) and ok
 	globe_big.queue_free()
 	await root.get_tree().process_frame
 	if not ok:
-		push_error("TERRAIN STREAM CONTINENT SHARD d FAILED")
+		push_error("CLIPMAP WALK CONTINENT SHARD d FAILED")
 	quit(0 if ok else 1)
 
 

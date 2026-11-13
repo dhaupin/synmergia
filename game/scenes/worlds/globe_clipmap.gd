@@ -1,9 +1,10 @@
 ## GlobeClipmap - the player-centred polar clipmap terrain renderer.
 ##
-## Replaces globe_terrain_streamer's RENDERING (the icosa face-patch LOD
-## with skirts + async derive + hot-reload graft) with a geometric ring
-## ladder that draws the SAME ground law (TerrainGen.terrain_height +
-## splat_skin). Addressing stays icosahedral; only the drawn mesh changes.
+## Replaces the retired globe_terrain_streamer's RENDERING (the icosa
+## face-patch LOD with skirts + async derive + hot-reload graft) with a
+## geometric ring ladder that draws the SAME ground law
+## (TerrainGen.terrain_height + splat_skin). Addressing stays
+## icosahedral; only the drawn mesh changes.
 ##
 ## WHY (see labs/prd-clipmap.md):
 ##  - The streamer's discrete per-face LOD draws the ground in ~165 m
@@ -452,6 +453,16 @@ func _all_ground_meshes() -> Array:
 
 func mesh_lane_stats() -> Dictionary:
 	return {"pending": _jobs.size(), "lanes": 0}
+
+
+## The drawn ground meshes (cap + live rings) and the flora layer -- the
+## public seam receipts read instead of the retired streamer's internals.
+func ground_meshes() -> Array:
+	return _all_ground_meshes()
+
+
+func prop_layer():
+	return _prop_layer
 
 
 func async_shutdown() -> void:
