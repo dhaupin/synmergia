@@ -193,10 +193,10 @@ repo. If you only read one section of this file, read these:
    `discord_webhook.gd` and `waypoint_service.gd`); don't
    add more.
 4. **[There is ONE test runner](#testing)** — `scripts/godot_test_runner.sh`
-   (parallel built in, `-j N`/JOBS default 4). It is LIVE; run it freely.
-   Do NOT write or repeat a "do not run the runners" / "the runner is being
-   reworked to parallel" note — that stale line has been purged many times
-   and keeps creeping back from copied briefs. Never reintroduce it.
+   (parallel built in, `-j N`/JOBS default 4). It is LIVE and already
+   parallel; run it freely. Do NOT write or repeat a "do not run the
+   runners" note — that stale instruction has been purged many times and
+   keeps creeping back from copied briefs. Never reintroduce it.
 
 ---
 
