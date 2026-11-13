@@ -38,7 +38,9 @@
 >   Floating islands have no heightfield law yet.
 > - **Planet-wide visible rendering**: the streaming LOD renders the
 >   near neighborhood; a full planet flyover is the open build item
->   (section 6).
+>   (section 6). The default renderer is now the **clipmap**
+>   (`prd-clipmap.md`), which also closed the floating-structure
+>   band-pop.
 >
 > **Last verified checks:** determinism/village/lint batteries green
 > 2026-10-19; perf budget build pin passes (lane-H2 -47% hot build).
@@ -48,11 +50,19 @@
 
 Everything under this PRD extends ONE seam: `TerrainGen.terrain_height(dir,
 world_seed)` in `game/scenes/worlds/terrain_gen.gd`. It is a pure function
-of (direction, seed): no time, order, or locality. The streamer
-(`globe_terrain_streamer.gd`) samples it per tile vertex with a quantized
-direction cache (shared corners never crack), the skirt taper reads the
-law's unsampled amplitude, and the walk surface rides the analytic law
-(level-independent). Every slice below must preserve:
+of (direction, seed): no time, order, or locality. The ground RENDERER
+samples it per vertex with a quantized direction cache (shared corners
+never crack) and the walk surface rides the analytic law
+(level-independent). Two renderers exist behind `globe_world.terrain_render`:
+
+- **`clipmap`** (default, `globe_clipmap.gd`) -- a player-centred polar
+  clipmap with geometric rings and NO discrete per-face LOD, so the drawn
+  surface tracks the law without band pops (the floating-structure fix).
+  See `prd-clipmap.md`. Planet scale only (>= 1000 m radius).
+- **`streamer`** (`globe_terrain_streamer.gd`, legacy fallback) -- icosa
+  face-patch LOD; skirt taper reads the law's unsampled amplitude.
+
+Every slice below must preserve:
 
 - **Purity:** any new field (climate, hydrology) is a pure function of
   `(dir, seed)`. Same answer twice, same answer on every machine.
@@ -269,11 +279,16 @@ fully-playable, fully-rendered world:
   live terrain carves the strait the zone/barque/waypoints reference.
   The home continent and the v12 polar caps are untouched (compose law,
   `probe_sundered_backend`). See `prd-world.md`.
-- **The floating-structure bug (OPEN).** Authored structures ride
-  the walk-law pedestal while the rendered mesh is a discrete LOD
-  sample; coarse far faces sag below the law, so structures float.
-  Fix: seat structures on the drawn surface, or pin their face to a
-  fine level. See `prd-world.md` section 5.
+- **The floating-structure bug (SHIPPED, clipmap).** Authored
+  structures rode the walk-law pedestal while the rendered mesh was a
+  discrete LOD sample; coarse far faces sagged below the law (measured
+  -23 m at level 5, -149 m at level 7 on the steep home continent), so
+  structures floated and the gap snapped in LOD bands on approach. The
+  clipmap renderer (`globe_clipmap.gd`, `prd-clipmap.md`) replaces the
+  discrete per-face LOD with geometric rings: the drawn surface tracks
+  the law to 0.52 m in the fine rings, and there is no face-level flip,
+  so the gap closes smoothly. The streamer path remains as a fallback.
+  See `prd-clipmap.md` sections 3a + 6.
 - **Zone placement (blocked on the above).** `ZoneData` carries
   rules but no real placement (every `zone_center` is ZERO). Once
   the land renders planet-wide, zones get real centers/bounds.

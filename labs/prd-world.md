@@ -199,15 +199,19 @@ pipeline for the content on top of it:
 - **Instances need a lobby contract:** enter/exit must preserve
   player state cleanly (the frame's state tree already scopes by
   zone; instances add a per-instance scope id).
-- **The floating-structure contract (OPEN):** authored structures
-  (village halls, houses, docks, monoliths) ride the **walk law**
-  pedestal -- `planet_radius + tile_lift + walk_surface_h(dir)` --
-  while the **rendered mesh** is a discrete LOD sampling of the same
-  law. Where a far face's coarse mesh sags meters below the law
-  between samples, a structure reads as "floating". The `LOD_FLOOR_
-  LEVEL` raise (4 -> 5) shrank this; the durable fix is to seat
-  authored structures on the DRAWN surface (or keep their face at a
-  fine level). Reported live ("houses floating"); tracked as a bug.
+- **The floating-structure contract (SHIPPED, clipmap):** authored
+  structures (village halls, houses, docks, monoliths) ride the **walk
+  law** pedestal -- `planet_radius + tile_lift + walk_surface_h(dir)`
+  -- while the **rendered mesh** samples the same law. On the legacy
+  streamer that sampling was discrete per-face LOD, so a far face's
+  coarse mesh sagged meters below the law between samples and a
+  structure read as "floating" (measured -23 m at level 5, -149 m at
+  level 7). The default **clipmap** renderer (`globe_clipmap.gd`,
+  `prd-clipmap.md`) uses geometric rings with no face-level flip: the
+  drawn surface tracks the law to 0.52 m in the fine rings and the gap
+  closes smoothly on approach (no band pop). The streamer remains a
+  fallback for sub-planet scales. Reported live ("houses floating");
+  now closed.
 - **Procgen quality floor:** generated settlements must read as
   built by people in a post-machine world -- scarcity-driven,
   assembled from salvage. Block vocabulary inherits the art PRD's
