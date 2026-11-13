@@ -233,6 +233,9 @@ test_terrain_determinism
 test_terrain_splat_skin
 probe_terrain_planet
 probe_terrain_backend
+test_julia_bridge
+test_julia_parity
+test_julia_terrain
 probe_terrain_climate
 probe_ground_law_audit
 probe_clipmap
