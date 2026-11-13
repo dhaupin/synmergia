@@ -28,7 +28,7 @@ func build(parent: Node3D, half: float, mode: int, salt: int, palette: Dictionar
 	rng.seed = _seed_int("instances/props/%d/%d" % [mode, salt])
 	var keep_in: float = 0.35 * half      # the bout center stays clean
 	var band: float = 0.95 * half         # props never touch the wall
-	var candidates: int = maxi(12, int(half * 0.9))
+	var candidates: int = maxi(24, int(half * 1.8))
 	var placed: int = 0
 	for _i in range(candidates):
 		var ang: float = rng.randf_range(0.0, TAU)
@@ -65,6 +65,19 @@ func _build_one(parent: Node3D, pos: Vector3, rng: RandomNumberGenerator, mode: 
 			bush.material_override = _mat("bush", palette.get("bush", Color(0.28, 0.38, 0.20)))
 			bush.position = Vector3(0.0, r * 0.5, 0.0)
 			g.add_child(bush)
+		3:  # flower: a stem + a saturated head (the pretty beat)
+			var fmat := _mat("flower", palette.get("flower", Color(0.90, 0.55, 0.62)))
+			var stem := MeshInstance3D.new()
+			var sh: float = rng.randf_range(0.22, 0.40)
+			stem.mesh = _cyl(0.02, 0.02, sh)
+			stem.material_override = _mat("stem", Color(0.26, 0.40, 0.20))
+			stem.position = Vector3(0.0, sh * 0.5, 0.0)
+			g.add_child(stem)
+			var head := MeshInstance3D.new()
+			head.mesh = _sphere(rng.randf_range(0.06, 0.11), 0.7)
+			head.material_override = fmat
+			head.position = Vector3(0.0, sh, 0.0)
+			g.add_child(head)
 		_:  # stone: a small half-buried pebble (decoration, never solid)
 			var stone := MeshInstance3D.new()
 			var sr: float = rng.randf_range(0.18, 0.42)
@@ -80,12 +93,12 @@ func _build_one(parent: Node3D, pos: Vector3, rng: RandomNumberGenerator, mode: 
 func _pick_kind(rng: RandomNumberGenerator, mode: int) -> int:
 	var roll: float = rng.randf()
 	match mode:
-		0:  # ELIMINATION (coliseum): tuft 60 / stone 30 / bush 10
-			return 0 if roll < 0.60 else (2 if roll < 0.90 else 1)
-		2:  # ROYALE (Sundered Valley): stone 55 / tuft 35 / bush 10
-			return 2 if roll < 0.55 else (0 if roll < 0.90 else 1)
-		_:  # TEAM_DEATHMATCH (sandpit): bush 45 / tuft 40 / stone 15
-			return 1 if roll < 0.45 else (0 if roll < 0.85 else 2)
+		0:  # ELIMINATION (coliseum): tuft 55 / stone 25 / bush 12 / flower 8
+			return 0 if roll < 0.55 else (2 if roll < 0.80 else (1 if roll < 0.92 else 3))
+		2:  # ROYALE (Sundered Valley): stone 50 / tuft 32 / bush 10 / flower 8
+			return 2 if roll < 0.50 else (0 if roll < 0.82 else (1 if roll < 0.92 else 3))
+		_:  # TEAM_DEATHMATCH (sandpit): bush 40 / tuft 36 / stone 14 / flower 10
+			return 1 if roll < 0.40 else (0 if roll < 0.76 else (2 if roll < 0.90 else 3))
 
 
 func _near_keep_clear(pos: Vector3, keep_clear: Array) -> bool:

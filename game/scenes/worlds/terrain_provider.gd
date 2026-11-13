@@ -18,13 +18,13 @@ const PLANET_RADIUS: float = 20000.0
 ## near view -- this is the one art knob, deliberately data so a world may
 ## override it. (labs/prd-clipmap.md 9.4.)
 const TREE_DENSITY_KM2 := {
-	TerrainGen.BiomeId.FOREST: 18.0,
-	TerrainGen.BiomeId.TAIGA: 16.0,
-	TerrainGen.BiomeId.JUNGLE: 18.0,
-	TerrainGen.BiomeId.GRASSLAND: 9.0,
-	TerrainGen.BiomeId.SWAMP: 2.0,
-	TerrainGen.BiomeId.SAVANNA: 1.5,
-	TerrainGen.BiomeId.SHORE: 1.2,
+	TerrainGen.BiomeId.FOREST: 46.0,
+	TerrainGen.BiomeId.TAIGA: 42.0,
+	TerrainGen.BiomeId.JUNGLE: 50.0,
+	TerrainGen.BiomeId.GRASSLAND: 15.0,
+	TerrainGen.BiomeId.SWAMP: 9.0,
+	TerrainGen.BiomeId.SAVANNA: 5.0,
+	TerrainGen.BiomeId.SHORE: 3.0,
 	# The streamer plants NO trees past the tree line (desert / steppe /
 	# badlands / tundra / alpine): those bands are detail-prop country.
 	TerrainGen.BiomeId.STEPPE: 0.0,
@@ -36,21 +36,43 @@ const TREE_DENSITY_KM2 := {
 
 ## Detail-prop density per biome, in props per square kilometre. Calibrated
 ## from the streamer's `_DETAIL_BUDGETS` (a face is ~251 km2; grassland 700
-## per face ~= 2.8/km2, scaled up for the near view).
+## per face ~= 2.8/km2) then tuned UP ~3x for the AAA near view -- the
+## discrete mushrooms/ore/bushes/flowers that read as ground furniture.
 const DETAIL_DENSITY_KM2 := {
-	TerrainGen.BiomeId.GRASSLAND: 60.0,
-	TerrainGen.BiomeId.SAVANNA: 34.0,
-	TerrainGen.BiomeId.STEPPE: 34.0,
-	TerrainGen.BiomeId.FOREST: 42.0,
-	TerrainGen.BiomeId.JUNGLE: 42.0,
-	TerrainGen.BiomeId.TAIGA: 34.0,
-	TerrainGen.BiomeId.ALPINE_MEADOW: 28.0,
-	TerrainGen.BiomeId.SWAMP: 20.0,
-	TerrainGen.BiomeId.ALPINE: 16.0,
-	TerrainGen.BiomeId.TUNDRA: 16.0,
-	TerrainGen.BiomeId.BADLANDS: 16.0,
-	TerrainGen.BiomeId.DESERT: 16.0,
-	TerrainGen.BiomeId.SHORE: 13.0,
+	TerrainGen.BiomeId.GRASSLAND: 165.0,
+	TerrainGen.BiomeId.SAVANNA: 95.0,
+	TerrainGen.BiomeId.STEPPE: 95.0,
+	TerrainGen.BiomeId.FOREST: 120.0,
+	TerrainGen.BiomeId.JUNGLE: 120.0,
+	TerrainGen.BiomeId.TAIGA: 95.0,
+	TerrainGen.BiomeId.ALPINE_MEADOW: 80.0,
+	TerrainGen.BiomeId.SWAMP: 58.0,
+	TerrainGen.BiomeId.ALPINE: 45.0,
+	TerrainGen.BiomeId.TUNDRA: 45.0,
+	TerrainGen.BiomeId.BADLANDS: 45.0,
+	TerrainGen.BiomeId.DESERT: 40.0,
+	TerrainGen.BiomeId.SHORE: 40.0,
+}
+
+## Grass-blade density per biome, in blades per square kilometre. The DENSE
+## ground-cover carpet (one MultiMesh per chunk), separate from the discrete
+## detail kinds so a meadow can be thick without flooding the prop tree. The
+## grass-family bands carry the carpet; dry/frozen bands a thin straggle;
+## deep water grows none (the sea skip in the derive pass handles the rest).
+const GRASS_DENSITY_KM2 := {
+	TerrainGen.BiomeId.GRASSLAND: 2600.0,
+	TerrainGen.BiomeId.SAVANNA: 1500.0,
+	TerrainGen.BiomeId.STEPPE: 1500.0,
+	TerrainGen.BiomeId.FOREST: 1900.0,
+	TerrainGen.BiomeId.JUNGLE: 2100.0,
+	TerrainGen.BiomeId.TAIGA: 1300.0,
+	TerrainGen.BiomeId.ALPINE_MEADOW: 1700.0,
+	TerrainGen.BiomeId.SWAMP: 1000.0,
+	TerrainGen.BiomeId.ALPINE: 320.0,
+	TerrainGen.BiomeId.TUNDRA: 320.0,
+	TerrainGen.BiomeId.BADLANDS: 420.0,
+	TerrainGen.BiomeId.DESERT: 160.0,
+	TerrainGen.BiomeId.SHORE: 260.0,
 }
 
 var _seed: PackedByteArray
@@ -132,6 +154,10 @@ func tree_density(bid: int) -> float:
 
 func detail_density(bid: int) -> float:
 	return float(DETAIL_DENSITY_KM2.get(bid, 0.0))
+
+
+func grass_density(bid: int) -> float:
+	return float(GRASS_DENSITY_KM2.get(bid, 0.0))
 
 
 func seed_bytes() -> PackedByteArray:

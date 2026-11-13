@@ -86,6 +86,12 @@ const BIOME_DETAIL_KM2 := {
         BIOME_GRASSES: 130.0,
 }
 
+## Biome -> grass-carpet density (blades per square kilometre). Only the glow
+## meadow carries a carpet (the Deep Root's other bands are stone/fungal).
+const BIOME_GRASS_KM2 := {
+        BIOME_GRASSES: 2200.0,
+}
+
 ## Biome -> the drawn ground albedo (the dusk-read palette: the Deep Root's
 ## stone is dark; the glow bands carry a faint green).
 const BIOME_COLOR := {
@@ -215,6 +221,10 @@ func tree_density(_bid: int) -> float:
 
 func detail_density(bid: int) -> float:
         return float(BIOME_DETAIL_KM2.get(bid, 0.0))
+
+
+func grass_density(bid: int) -> float:
+        return float(BIOME_GRASS_KM2.get(bid, 0.0))
 
 
 ## The biome->kind dispatch the prop layer calls: the biome's DECLARED

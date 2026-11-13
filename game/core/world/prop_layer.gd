@@ -43,6 +43,8 @@ const KIND_WRACK: int = 5
 const KIND_CATTAIL: int = 6
 const KIND_BUSH: int = 7
 const KIND_ORE: int = 8
+const KIND_CACTUS: int = 9
+const KIND_FERN: int = 10
 
 ## The DEEP family (the Sundered Sea's kelp/pearl gardens): a per-bed
 ## cluster, not a scattered point. Owned by the world's provider
@@ -60,6 +62,11 @@ const DEEP_PEARL_RESPAWN: float = 900.0
 
 ## Per-frame build budget (ms) -- the clipmap's own L3 law.
 const BUILD_BUDGET_MS: int = 3
+
+## The grass carpet's per-chunk ceiling: even a very dense biome caps its
+## blades per chunk so the derive stays bounded (the near view still reads
+## as a carpet; the far view never pays for it).
+const GRASS_PER_CHUNK_CAP: int = 640
 
 ## Near/far split: chunks within this many meters of the viewer build real
 ## nodes (colliders, harvest); beyond, batched MultiMesh; beyond
@@ -187,6 +194,8 @@ func _build_chunk(key: int, viewer_dir: Vector3) -> void:
 		_build_instance(inst, node, near)
 	if not data.get("tufts", []).is_empty():
 		_build_tuft_batch(data["tufts"], node)
+	if not data.get("grass", []).is_empty():
+		_build_grass_batch(data["grass"], node)
 	_built[key] = node
 	_built_order.append(key)
 
@@ -234,6 +243,14 @@ func _derive_chunk(key: int) -> Dictionary:
 	var detail_n: int = _stochastic_count(detail_density * area_km2, _chunk_rng(key, "dcount", false))
 	if detail_n > 0:
 		_derive_details(key, detail_n, out)
+	# Grass carpet (the dense ground-cover field): a world may declare a
+	# separate per-biome grass density so a meadow can be thick without
+	# flooding the discrete detail kinds. One MultiMesh per chunk.
+	if provider.has_method("grass_density"):
+		var grass_density: float = provider.grass_density(bid)
+		var grass_n: int = _stochastic_count(grass_density * area_km2, _chunk_rng(key, "gcount", false))
+		if grass_n > 0:
+			_derive_grass(key, grass_n, out)
 	# Cache (LRU).
 	_cache[key] = out
 	_cache_order.append(key)
@@ -350,11 +367,40 @@ func _derive_details(key: int, count: int, out: Dictionary) -> void:
 				rec["tint_g"] = 0.42 + 0.1 * rng.randf()
 			KIND_ORE:
 				rec["r_o"] = rng.randf_range(0.35, 0.7)
+			KIND_CACTUS:
+				rec["h_c"] = rng.randf_range(1.0, 2.2)
+				rec["arms"] = rng.randi() % 3
+			KIND_FERN:
+				rec["fronds"] = 5 + rng.randi() % 3
+				rec["frond_h"] = rng.randf_range(0.4, 0.9)
 			_:
 				rec["scale"] = rng.randf_range(0.7, 1.6)
 				rec["yaw"] = rng.randf_range(0.0, TAU)
 		out["instances"].append(rec)
 		placed += 1
+
+
+## Grass carpet: dense blade clusters placed like the tuft field but at the
+## biome's grass density. Purely decorative (no harvest, no collider); one
+## MultiMesh per chunk. Session-salted so the carpet recombines between days
+## (the FIELD-2 decorative split -- grass is not anchored culture).
+func _derive_grass(key: int, count: int, out: Dictionary) -> void:
+	count = mini(count, GRASS_PER_CHUNK_CAP)
+	var rng: RandomNumberGenerator = _chunk_rng(key, "grass", true)
+	var sea: float = provider.sea_level()
+	var blades: Array = []
+	var attempts: int = 0
+	while blades.size() < count and attempts < count * 2:
+		attempts += 1
+		var dir: Vector3 = PropChunk.cell_point(key, rng.randf(), rng.randf(), chunk_depth)
+		if provider.grass_density(provider.biome_id(dir)) <= 0.0:
+			continue
+		var h: float = provider.ground_height(dir)
+		if h < sea - 0.6:
+			continue
+		blades.append({"dir": dir, "h": h,
+				"scale": rng.randf_range(0.6, 1.5), "yaw": rng.randf_range(0.0, TAU)})
+	out["grass"] = blades
 
 
 ## The detail kind for a biome (mirrors the streamer's tier ladder).
@@ -386,16 +432,24 @@ func _detail_kind(bid: int, rng: RandomNumberGenerator) -> int:
 			return KIND_TUFT
 		TerrainGen.BiomeId.FOREST, TerrainGen.BiomeId.JUNGLE, TerrainGen.BiomeId.TAIGA:
 			var ff: float = rng.randf()
-			if ff < 0.14:
+			if ff < 0.13:
 				return KIND_MUSHROOM
-			if ff < 0.22:
+			if ff < 0.20:
 				return KIND_MYCELIUM
-			if ff < 0.35:
+			if ff < 0.32:
 				return KIND_BUSH
-			if ff < 0.45:
+			if ff < 0.42:
+				return KIND_FERN
+			if ff < 0.52:
 				return KIND_FLOWER
 			return KIND_TUFT
-		TerrainGen.BiomeId.DESERT, TerrainGen.BiomeId.BADLANDS, \
+		TerrainGen.BiomeId.DESERT, TerrainGen.BiomeId.BADLANDS:
+			var fd: float = rng.randf()
+			if fd < 0.30:
+				return KIND_CACTUS
+			if fd < 0.62:
+				return KIND_TUFT
+			return KIND_ORE
 		TerrainGen.BiomeId.TUNDRA, TerrainGen.BiomeId.STEPPE, TerrainGen.BiomeId.ALPINE:
 			if rng.randf() < 0.55:
 				return KIND_TUFT
@@ -580,6 +634,10 @@ func _build_detail(inst: Dictionary, node: Node3D) -> void:
 			_build_bush(inst, node)
 		KIND_ORE:
 			_build_ore(inst, node)
+		KIND_CACTUS:
+			_build_cactus(inst, node)
+		KIND_FERN:
+			_build_fern(inst, node)
 
 
 ## The tuft field: one MultiMesh per chunk (a node per blade would flood
@@ -604,6 +662,69 @@ func _build_tuft_batch(tufts: Array, node: Node3D) -> void:
 	mmi.multimesh = mm
 	mmi.material_override = _tuft_material()
 	node.add_child(mmi)
+
+
+## The grass carpet: one MultiMesh per chunk (a node per blade would flood
+## the tree; the streamer paints the field the same way). The mesh is a
+## shared 3-blade cluster; per-site variance rides the transform (scale/yaw).
+func _build_grass_batch(blades: Array, node: Node3D) -> void:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = _shared_grass_mesh()
+	mm.instance_count = blades.size()
+	for i in range(blades.size()):
+		var b: Dictionary = blades[i]
+		var dir: Vector3 = b["dir"]
+		var up: Vector3 = dir
+		var hint := Vector3(0, 1, 0)
+		if absf(up.dot(hint)) > 0.999:
+			hint = Vector3(1, 0, 0)
+		var east: Vector3 = (hint - up * hint.dot(up)).normalized()
+		var basis := Basis(east, up, east.cross(up)).rotated(up, float(b["yaw"])).scaled(Vector3.ONE * float(b["scale"]))
+		mm.set_instance_transform(i, Transform3D(basis, dir * (radius_m + float(b["h"]))))
+	var mmi := MultiMeshInstance3D.new()
+	mmi.name = "Grass"
+	mmi.multimesh = mm
+	mmi.material_override = _grass_material()
+	node.add_child(mmi)
+
+
+## The grass-blade cluster: one shared 3-blade mesh, vertex-graded base ->
+## sun-tip (the streamer's tuft law, taller). One instance per grass site.
+func _shared_grass_mesh() -> Mesh:
+	var key: String = "grass_mesh"
+	if _mesh_registry.has(key):
+		return _mesh_registry[key]
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var base_col := Color(0.30, 0.42, 0.20)
+	var tip_col := Color(0.62, 0.70, 0.34)
+	for b in range(3):
+		var ang: float = TAU * float(b) / 3.0
+		var bx: float = cos(ang)
+		var bz: float = sin(ang)
+		var wide: float = 0.06
+		var lean: float = 0.10
+		st.set_color(base_col)
+		st.add_vertex(Vector3(bx * wide, 0.0, bz * wide))
+		st.set_color(base_col)
+		st.add_vertex(Vector3(bx * -wide, 0.0, bz * -wide))
+		st.set_color(tip_col)
+		st.add_vertex(Vector3(bx * lean, 0.55, bz * lean))
+	_mesh_registry[key] = st.commit()
+	return _mesh_registry[key]
+
+
+func _grass_material() -> StandardMaterial3D:
+	var key: String = "grass_mat"
+	if _mesh_registry.has(key):
+		return _mesh_registry[key]
+	var mat := StandardMaterial3D.new()
+	mat.vertex_color_use_as_albedo = true
+	mat.roughness = 1.0
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_mesh_registry[key] = mat
+	return mat
 
 
 ## A tuft: a thin tapered cone (a blade clump), pivoted at the ground.
@@ -790,6 +911,55 @@ func _build_ore(inst: Dictionary, node: Node3D) -> void:
 	mi.material_override = mat
 	mi.position = dir * (radius_m + float(inst["h"]) + r * 0.2)
 	node.add_child(mi)
+
+
+func _build_cactus(inst: Dictionary, node: Node3D) -> void:
+	var dir: Vector3 = inst["dir"]
+	var base: Vector3 = dir * (radius_m + float(inst["h"]))
+	var g := Node3D.new()
+	g.name = "Cactus%d" % node.get_child_count()
+	g.position = base
+	var h: float = float(inst["h_c"])
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.26, 0.42, 0.24)
+	mat.roughness = 1.0
+	var trunk := MeshInstance3D.new()
+	trunk.mesh = _shared_cyl(0.16, 0.19, h)
+	trunk.position = Vector3(0.0, h * 0.5, 0.0)
+	trunk.material_override = mat
+	g.add_child(trunk)
+	for a in range(int(inst.get("arms", 0))):
+		var arm_h: float = h * (0.35 + 0.15 * float(a))
+		var arm := MeshInstance3D.new()
+		arm.mesh = _shared_cyl(0.10, 0.11, arm_h * 0.5)
+		arm.material_override = mat
+		var side: float = 1.0 if a % 2 == 0 else -1.0
+		arm.position = Vector3(side * 0.16, arm_h, 0.0)
+		arm.rotation.z = side * deg_to_rad(70.0)
+		g.add_child(arm)
+	node.add_child(g)
+
+
+func _build_fern(inst: Dictionary, node: Node3D) -> void:
+	var dir: Vector3 = inst["dir"]
+	var base: Vector3 = dir * (radius_m + float(inst["h"]))
+	var g := Node3D.new()
+	g.name = "Fern%d" % node.get_child_count()
+	g.position = base
+	var frond_h: float = float(inst["frond_h"])
+	var n: int = int(inst.get("fronds", 5))
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.22, 0.40, 0.20)
+	mat.roughness = 1.0
+	for k in range(n):
+		var frond := MeshInstance3D.new()
+		frond.mesh = _shared_cyl(0.015, 0.03, frond_h)
+		frond.material_override = mat
+		var fa: float = TAU * float(k) / float(n)
+		frond.position = Vector3(cos(fa) * 0.05, frond_h * 0.42, sin(fa) * 0.05)
+		frond.rotation = Vector3(sin(fa) * deg_to_rad(48.0), 0.0, -cos(fa) * deg_to_rad(48.0))
+		g.add_child(frond)
+	node.add_child(g)
 
 
 ## The rock's biome color law (ported from the streamer: alpine/tundra gray,

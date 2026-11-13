@@ -37,7 +37,7 @@ func _kind_of(base: String) -> String:
 
 
 func _looks_detail(base: String) -> bool:
-	for pre in ["Cattail", "Ore", "Bush", "Tuft", "Flower", "Reed", "Detail", "Shell", "Wrack"]:
+	for pre in ["Cattail", "Ore", "Bush", "Tuft", "Flower", "Reed", "Detail", "Shell", "Wrack", "Cactus", "Fern", "Mushroom", "Mycelium"]:
 		if base.begins_with(pre):
 			return true
 	return false
@@ -74,8 +74,8 @@ func _run() -> void:
 
 	var band_counts: Dictionary = {}
 	for b in BANDS:
-		band_counts[b] = {"rock": 0, "boulder": 0, "tree": 0, "detail": 0}
-	var total := {"rock": 0, "boulder": 0, "tree": 0, "detail": 0}
+		band_counts[b] = {"rock": 0, "boulder": 0, "tree": 0, "detail": 0, "grass": 0}
+	var total := {"rock": 0, "boulder": 0, "tree": 0, "detail": 0, "grass": 0}
 	var chunks_empty := 0
 	var nearest: Array = []  # [ground_m, kind]
 	var chunk_report: Array = []
@@ -85,7 +85,7 @@ func _run() -> void:
 			var chunk = pl._built.get(k)
 			if chunk == null or not is_instance_valid(chunk):
 				continue
-			var per := {"rock": 0, "boulder": 0, "tree": 0, "detail": 0}
+			var per := {"rock": 0, "boulder": 0, "tree": 0, "detail": 0, "grass": 0}
 			if chunk.get_child_count() == 0:
 				chunks_empty += 1
 				chunk_report.append("chunk=%d EMPTY" % k)
@@ -102,6 +102,12 @@ func _run() -> void:
 					if tmm != null:
 						per["detail"] = int(per["detail"]) + int(tmm.instance_count)
 						total["detail"] = int(total["detail"]) + int(tmm.instance_count)
+					continue
+				if cname == "Grass":
+					var gmm = ch.get("multimesh")
+					if gmm != null:
+						per["grass"] = int(per["grass"]) + int(gmm.instance_count)
+						total["grass"] = int(total["grass"]) + int(gmm.instance_count)
 					continue
 				if name_samples.size() < 10:
 					name_samples.append(cname)
@@ -130,6 +136,6 @@ func _run() -> void:
 		print("  NEAREST %02d: ground=%6.0f m kind=%s" % [i, nearest[i][0], nearest[i][1]])
 	for b in BANDS:
 		var bc: Dictionary = band_counts[b]
-		print("BAND <=%4.2f rad (%5.0f m): rock=%d boulder=%d tree=%d detail=%d" %
-			[float(b), float(b) * radius_pl, bc["rock"], bc["boulder"], bc["tree"], bc["detail"]])
+		print("BAND <=%4.2f rad (%5.0f m): rock=%d boulder=%d tree=%d detail=%d grass=%d" %
+			[float(b), float(b) * radius_pl, bc["rock"], bc["boulder"], bc["tree"], bc["detail"], bc["grass"]])
 	quit(0)

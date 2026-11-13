@@ -104,6 +104,14 @@ func detail_density(_biome_id: int) -> float:
 	return 0.0
 
 
+## The grass-blade density for a biome, in blades per square kilometre. This
+## is the DENSE ground-cover field (drawn as a MultiMesh per chunk), separate
+## from `detail_density` so a world can carpet a meadow without also flooding
+## the discrete detail kinds. Default = 0 (no grass; the world stays bare).
+func grass_density(_biome_id: int) -> float:
+	return 0.0
+
+
 ## The authored deep-water beds (the Sundered Sea's kelp/pearl gardens): an
 ## array of {dir: Vector3, kind: int, bed: int}. Default = none, so only the
 ## world that authored beds grows them (the streamer's DEEP_BEDS, now a

@@ -87,6 +87,27 @@ func _run() -> void:
 	_register_hs(layer, sid)
 	_check("A10 the land registration reaches the live service, once", first)
 
+	# A11: the grass carpet -- the dense ground-cover family (one MultiMesh per
+	# chunk). The provider declares a grass density; the built near chunks carry
+	# a "Grass" MultiMeshInstance3D with blades.
+	_check("A11 the built chunks carry a grass carpet", _count_grass_blades(layer) > 0)
+
+	# A12: the dry-band + understory prop kinds resolve from the detail ladder
+	# (cactus in desert/badlands, fern in the forest bands).
+	var krng := RandomNumberGenerator.new()
+	krng.seed = 1
+	var saw_cactus: bool = false
+	for _i in range(300):
+		if layer._detail_kind(TerrainGen.BiomeId.DESERT, krng) == PropLayer.KIND_CACTUS:
+			saw_cactus = true
+			break
+	var saw_fern: bool = false
+	for _i in range(300):
+		if layer._detail_kind(TerrainGen.BiomeId.JUNGLE, krng) == PropLayer.KIND_FERN:
+			saw_fern = true
+			break
+	_check("A12 the dry + understory prop kinds resolve", saw_cactus and saw_fern)
+
 	print("[probe_prop_layer] %s (%d fails)" % ["ALL PASS" if _fails == 0 else "FAILURES", _fails])
 	quit(0 if _fails == 0 else 1)
 
@@ -101,6 +122,17 @@ func _same_first(a: Dictionary, b: Dictionary) -> bool:
 	var da: Vector3 = a["instances"][0]["dir"]
 	var db: Vector3 = b["instances"][0]["dir"]
 	return da.distance_to(db) < 1e-9
+
+
+func _count_grass_blades(layer) -> int:
+	var n: int = 0
+	for key in layer._built.keys():
+		for ch in layer._built[key].get_children():
+			if String(ch.name) == "Grass":
+				var mm = ch.get("multimesh")
+				if mm != null:
+					n += int(mm.instance_count)
+	return n
 
 
 func _count_trees(layer) -> int:
