@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_zenithforged_leather_boots"
+display_name = "Zenithforged Leather Boots"
+description = "A zenithforged boots, tanned over slow heat until it moves like a second skin. Worn by those who climbed the last rung light enough to keep climbing."
+icon_path = "res://icons/items/armor_leather_boots.png"
+item_category = 1
+rarity = 5
+equip_slot = 4
+armor_type = 2
+stack_size = 1
+sell_price = 13800
+buy_price = 46000
+item_level = 60
+required_level = 60
+stats = {
+"agility": 6,
+"vitality": 12
+}
+armor_value = 70

@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "clockwork_saint"
 boss_template_id = "clockwork_saint"
-display_name = ""
+display_name = "The Clockwork Saint"
 zone_id = "zone_dungeon_forest_depths"
 position = Vector3(0, 0, 0)
 interval_seconds = 14400.0

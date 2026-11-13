@@ -33,6 +33,6 @@ dismantle_returns = [{
 "type": "resource"
 }, {
 "amount": 5,
-"id": "res_iron",
+"id": "res_iron_ore",
 "type": "resource"
 }]

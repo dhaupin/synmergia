@@ -30,6 +30,7 @@ func _initialize() -> void:
 func _run() -> void:
         _test_every_class_loads_focals()
         _test_focal_bonus_applies()
+        _test_every_class_declares_role()
         _finish()
 
 ## --- Leg 1: every non-GM class declares two real, distinct focal stats ---
@@ -119,3 +120,31 @@ func _fail(msg: String) -> void:
 func _finish() -> void:
         print("--- CLASS FOCAL STATS: %d passed, %d failed ---" % [_passed, _failed])
         quit(0 if _failed == 0 else 1)
+
+## --- Leg 3: every non-GM class declares a real role (not the schema
+## default). The role gate (ward_gate_service._has_role) and the class
+## card read this field; a missing role silently falls back to
+## DPS_MELEE (7), which is a legacy alias -- never a real role -- so a
+## role-gated door can never open for that class. A mis-indented line
+## (leading whitespace) is invisible to the .tres parser, which is the
+## bug this leg freezes out.
+func _test_every_class_declares_role() -> void:
+        var files := _class_files()
+        var bad: Array = []
+        var checked: int = 0
+        for fn in files:
+                var res = load(CLASS_DIR + "/" + fn)
+                if res == null:
+                        continue
+                var cid: String = str(res.id)
+                if cid.begins_with("gm_"):
+                        continue
+                checked += 1
+                var r: int = int(res.role)
+                # 0 GM (exempt); 7 DPS_MELEE and 8 DPS_RANGED are legacy aliases.
+                if r == 0 or r == 7 or r == 8:
+                        bad.append("%s role=%d" % [cid, r])
+        if bad.is_empty():
+                _ok("all %d non-GM classes declare a real role" % checked)
+        else:
+                _fail("classes with missing/legacy role: %s" % ", ".join(bad))
