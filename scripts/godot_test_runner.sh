@@ -189,6 +189,7 @@ test_ambience_driver
 test_cosmic_service
 test_flywheel_service
 test_weather_events
+test_event_service
 frame/math/test_spherical
 frame/math/test_icosahedral_faces
 frame/kv/test_folded_shell

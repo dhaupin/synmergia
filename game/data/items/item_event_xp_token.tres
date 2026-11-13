@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "item_event_xp_token"
+display_name = "Festival Token"
+description = "A stamped brass token handed out during world events. Keep it for the merchants who trade in festival coin."
+icon_path = "res://icons/items/coin_ancient.png"
+item_category = 6
+rarity = 2
+equip_slot = 0
+stack_size = 99
+sell_price = 5
+buy_price = 0
+required_level = 0

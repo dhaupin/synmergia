@@ -1605,4 +1605,36 @@ func _run() -> void:
 	else:
 		_fail("Species stat_modifier key violations: %s" % ", ".join(bad_stat_keys))
 
+	# --- Events (data/events): event_ prefix + reward items resolve ---
+	# The EventData catalog drives the global event multipliers (EventService).
+	# Its `rewards` lines name items by bare id; a typo'd id was silently inert
+	# (the shipped weekend event pointed at a nonexistent token). Resolve every
+	# item reward against the item-bearing data dirs.
+	var event_ids := _load_ids("data/events")
+	var item_id_set := {}
+	for item_dir in ["data/items", "data/consumables", "data/accessories", "data/armors", "data/weapons", "data/resources"]:
+		for k in _load_ids(item_dir):
+			item_id_set[_load_ids(item_dir)[k]] = true
+	var bad_events: Array = []
+	for eb in event_ids:
+		var eid := str(event_ids[eb])
+		if not eid.begins_with("event_"):
+			bad_events.append("%s (missing event_ prefix)" % eid)
+		var etxt := _file_text("data/events", eb)
+		for entry in _bracket_inner(etxt, "rewards", "[").split("}"):
+			if not entry.contains("\"type\": \"item\""):
+				continue
+			var rid := ""
+			var rm := RegEx.new()
+			rm.compile("\"id\"\\s*:\\s*\"([^\"]+)\"")
+			var rmm := rm.search(entry)
+			if rmm != null:
+				rid = rmm.get_string(1)
+			if not rid.is_empty() and not item_id_set.has(rid):
+				bad_events.append("%s reward -> %s (phantom item)" % [eid, rid])
+	if bad_events.is_empty():
+		_ok("Events: all %d ids use 'event_' prefix and reward items resolve" % event_ids.size())
+	else:
+		_fail("Event data violations: %s" % ", ".join(bad_events))
+
 	_finish()
