@@ -11,16 +11,16 @@ model_path = ""
 icon_path = "res://icons/species/human.png"
 default_skin_color = Color(0.9, 0.75, 0.6, 1)
 stat_modifiers = {
-"agility": 0,
-"endurance": 0,
-"intelligence": 0,
-"strength": 0,
+"agility": 1,
+"endurance": 1,
+"intelligence": 1,
+"strength": 1,
 "vitality": 5,
-"wisdom": 0
+"wisdom": 1
 }
 home_zone = "zone_starter_plains"
 home_faction = "faction_human"
-allied_species = ["elf", "dwarf"]
+allied_species = ["synthetic"]
 hostile_species = ["akkan"]
 health_modifier = 1.05
 mana_modifier = 1.0

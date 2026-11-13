@@ -125,10 +125,11 @@ func _on_play_pressed() -> void:
 	var data := CharacterData.new(selected_species_id, selected_class_id, player_name)
 	data.species_data = selected_species
 	data.class_data = selected_class
-	# The home zone must NAME a real zone: an authored species may point at a
-	# zone that does not exist yet (species_akkan -> dark_highlands), and a
-	# phantom zone_id on a live character is a dead end. Resolve it against
-	# the zone catalog and fall back to the spawn zone.
+	# The home zone must NAME a real zone: a species may point at a zone that
+	# is not authored, and a phantom zone_id on a live character is a dead end.
+	# Resolve it against the zone catalog and fall back to the spawn zone.
+	# (The data is now gated by the naming lint home_zone leg, so an unauthored
+	# home zone is a lint failure, not a silent fallback.)
 	var home_zone: String = selected_species.home_zone if selected_species else ""
 	data.zone_id = home_zone if _zone_exists(home_zone) else "zone_starter_plains"
 

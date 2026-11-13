@@ -131,6 +131,67 @@ func _declared_field_re() -> RegEx:
 	return re
 
 
+## The text between the matching brackets of `field = [ ... ]` (open_ch "[")
+## or `field = { ... }` (open_ch "{"). "" when the field is absent.
+func _bracket_inner(txt: String, field: String, open_ch: String) -> String:
+	var start := txt.find(field)
+	if start < 0:
+		return ""
+	var close_ch := "]" if open_ch == "[" else "}"
+	var open := txt.find(open_ch, start)
+	var depth := 0
+	var i := open
+	while i < txt.length():
+		var c := txt.substr(i, 1)
+		if c == open_ch:
+			depth += 1
+		elif c == close_ch:
+			depth -= 1
+			if depth == 0:
+				return txt.substr(open + 1, i - open - 1)
+		i += 1
+	return ""
+
+
+## The string entries of a `field = [...]` array (single- or multi-line).
+func _string_array_field(txt: String, field: String) -> Array:
+	var out: Array = []
+	var re := RegEx.new()
+	re.compile("\"([^\"]+)\"")
+	for m in re.search_all(_bracket_inner(txt, field, "[")):
+		out.append(m.get_string(1))
+	return out
+
+
+## The keys of a `field = { ... }` dict (single- or multi-line).
+func _dict_keys_field(txt: String, field: String) -> Array:
+	var out: Array = []
+	var re := RegEx.new()
+	re.compile("\"([^\"]+)\"\\s*:")
+	for m in re.search_all(_bracket_inner(txt, field, "{")):
+		out.append(m.get_string(1))
+	return out
+
+
+## The int key/value pairs of a `field = { "k": v, ... }` dict.
+func _dict_int_pairs_field(txt: String, field: String) -> Dictionary:
+	var out: Dictionary = {}
+	var re := RegEx.new()
+	re.compile("\"([^\"]+)\"\\s*:\\s*(-?\\d+)")
+	for m in re.search_all(_bracket_inner(txt, field, "{")):
+		out[m.get_string(1)] = int(m.get_string(2))
+	return out
+
+
+## A single-line `field = "value"` string in a .tres body ("" if absent/empty).
+func _string_field(txt: String, field: String) -> String:
+	for line in txt.split("\n"):
+		var t := line.strip_edges()
+		if t.begins_with("%s = \"" % field):
+			return t.trim_prefix("%s = \"" % field).trim_suffix("\"")
+	return ""
+
+
 ## DFS colouring for the achievement chain cycle check. 0=unseen, 1=on-stack,
 ## 2=done. A back-edge to an on-stack node is a cycle.
 func _ach_cycle_dfs(aid: String, req_map: Dictionary, colour: Dictionary, bad: Array) -> void:
@@ -1435,5 +1496,112 @@ func _run() -> void:
 		_ok("No phantom fields (every depth-0 .tres key is a declared property)")
 	else:
 		_fail("Phantom fields (undeclared, dropped on load): %s" % ", ".join(phantoms))
+
+	# --- Species home_zone must name a real zone (the Akkan phantom) ---
+	# character_select copies species.home_zone into CharacterData.zone_id; a
+	# phantom there is a dead-end character (the lane-C bug: dark_highlands named
+	# no file). The creation path now falls back, but the DATA must still be
+	# sound -- author the zone or repoint the species.
+	var species_ids := _load_ids("data/species")
+	var bad_home_zones: Array = []
+	for sb in species_ids:
+		var stxt := _file_text("data/species", sb)
+		var hz := _string_field(stxt, "home_zone")
+		if hz != "" and not zone_id_set.has(hz):
+			bad_home_zones.append("%s -> %s" % [str(species_ids[sb]), hz])
+	if bad_home_zones.is_empty():
+		_ok("Species home_zone refs all resolve (%d species)" % species_ids.size())
+	else:
+		_fail("Phantom species home_zone refs: %s" % ", ".join(bad_home_zones))
+
+	# --- Faction controlled_zones must name real zones ---
+	var bad_ctrl_zones: Array = []
+	for fb in faction_ids:
+		var fctxt := _file_text("data/factions", fb)
+		for cz in _string_array_field(fctxt, "controlled_zones"):
+			if not zone_id_set.has(cz):
+				bad_ctrl_zones.append("%s -> %s" % [str(faction_ids[fb]), cz])
+	if bad_ctrl_zones.is_empty():
+		_ok("Faction controlled_zones refs all resolve")
+	else:
+		_fail("Phantom faction controlled_zones refs: %s" % ", ".join(bad_ctrl_zones))
+
+	# --- Faction relations must name real factions, symmetrically ---
+	# A relation to a faction that does not exist (elf_faction/dwarf_faction were
+	# both phantoms) can never resolve; and a one-sided relation makes
+	# FactionManager.get_relation answer differently depending on argument order.
+	var bad_relations: Array = []
+	var rel_map: Dictionary = {}
+	for fb3 in faction_ids:
+		var fid := str(faction_ids[fb3])
+		var rels := _dict_int_pairs_field(_file_text("data/factions", fb3), "relations")
+		rel_map[fid] = rels
+		for other in rels:
+			if not faction_id_set.has(other):
+				bad_relations.append("%s -> %s (phantom faction)" % [fid, other])
+	for fid2 in rel_map:
+		for other2 in rel_map[fid2]:
+			if not faction_id_set.has(other2):
+				continue
+			var back: int = int(rel_map.get(other2, {}).get(fid2, 1))
+			if back != int(rel_map[fid2][other2]):
+				bad_relations.append("%s/%s asymmetric (%d vs %d)" % [fid2, other2, int(rel_map[fid2][other2]), back])
+	if bad_relations.is_empty():
+		_ok("Faction relations resolve and are symmetric (%d factions)" % faction_ids.size())
+	else:
+		_fail("Faction relation violations: %s" % ", ".join(bad_relations))
+
+	# --- Species relations must name real species, symmetrically ---
+	# entity_service.is_ally/is_enemy read allied_species/hostile_species by id;
+	# "elf"/"dwarf" resolved to nothing. Hostility/alliance is a mutual fact:
+	# if A is hostile to B, B must be hostile to A (and likewise for allies).
+	var species_id_set := {}
+	for sb2 in species_ids:
+		species_id_set[species_ids[sb2]] = true
+	var bad_species_rels: Array = []
+	var allied_map: Dictionary = {}
+	var hostile_map: Dictionary = {}
+	for sb3 in species_ids:
+		var sid := str(species_ids[sb3])
+		var sstxt := _file_text("data/species", sb3)
+		allied_map[sid] = _string_array_field(sstxt, "allied_species")
+		hostile_map[sid] = _string_array_field(sstxt, "hostile_species")
+		for ref in allied_map[sid]:
+			if not species_id_set.has(ref):
+				bad_species_rels.append("%s allied -> %s (phantom species)" % [sid, ref])
+		for ref2 in hostile_map[sid]:
+			if not species_id_set.has(ref2):
+				bad_species_rels.append("%s hostile -> %s (phantom species)" % [sid, ref2])
+	for sid2 in species_id_set:
+		for ally in allied_map[sid2]:
+			if species_id_set.has(ally) and not allied_map[ally].has(sid2):
+				bad_species_rels.append("%s allied %s but not mutual" % [sid2, ally])
+		for foe in hostile_map[sid2]:
+			if species_id_set.has(foe) and not hostile_map[foe].has(sid2):
+				bad_species_rels.append("%s hostile %s but not mutual" % [sid2, foe])
+	if bad_species_rels.is_empty():
+		_ok("Species relations resolve and are symmetric (%d species)" % species_ids.size())
+	else:
+		_fail("Species relation violations: %s" % ", ".join(bad_species_rels))
+
+	# --- Species stat_modifiers must use real stat names ---
+	# get_stat_modifier(stat) reads by name; a typo'd key ("str" for "strength")
+	# is silently ignored by every reader (character_data, entity.gd). The six
+	# canonical stats are the schema's own default dict keys.
+	var stat_names := {}
+	for dk in _dict_keys_field(FileAccess.get_file_as_string("res://core/schemas/species.gd"), "stat_modifiers"):
+		stat_names[dk] = true
+	var bad_stat_keys: Array = []
+	for sb4 in species_ids:
+		var keys := _dict_keys_field(_file_text("data/species", sb4), "stat_modifiers")
+		if keys.is_empty():
+			bad_stat_keys.append("%s -> no stat_modifiers" % str(species_ids[sb4]))
+		for k in keys:
+			if not stat_names.has(k):
+				bad_stat_keys.append("%s -> %s" % [str(species_ids[sb4]), k])
+	if bad_stat_keys.is_empty():
+		_ok("Species stat_modifiers use the 6 canonical stat names (%d species)" % species_ids.size())
+	else:
+		_fail("Species stat_modifier key violations: %s" % ", ".join(bad_stat_keys))
 
 	_finish()
