@@ -529,7 +529,25 @@ func _handle_command(sender_id: String, channel: Channel, command: String, targe
 		"mesh":
 			return _cmd_mesh(sender_id, args)
 
+	# Fallback layer: the player command shell owns the per-player
+	# customization surface (/alias, /macro, /settings, /stats, /whois,
+	# /online, /hide, /show) and the social-report verbs. Only reached
+	# for commands ChatService does not own.
+	var ps := _player_shell()
+	if ps != null:
+		var res = ps.execute(command, sender_id)
+		if res != null and (res.success or str(res.error) != ""):
+			_send_system_message(sender_id, str(res.output) if res.success else str(res.error))
+			return true
+
 	return false
+
+## Runtime PlayerShell lookup (script-mode-safe). The player command
+## shell (aliases, macros, /stats, /whois, /settings, ...) is the
+## fallback layer for any slash command ChatService itself does not own.
+func _player_shell() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PlayerShell")) if tree and tree.root else null
 
 ## Deliver a one-player system line (command feedback). Delegates to
 ## _notify_player (_notify_svc() typed pipeline) -- same path the

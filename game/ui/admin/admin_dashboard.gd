@@ -20,6 +20,7 @@ func glog() -> Node:
 	var tree := Engine.get_main_loop() as SceneTree
 	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
 const AdminShell = preload("res://core/admin/admin_shell.gd")
+const AdminCatalogScript = preload("res://core/admin/admin_catalog.gd")
 
 
 ## Main container
@@ -99,6 +100,7 @@ func _setup_panel() -> void:
 
 	# Create tabs
 	_create_shell_tab()
+	_create_catalog_tab()
 	_create_players_tab()
 	_create_restrictions_tab()
 	_create_stats_tab()
@@ -148,6 +150,19 @@ func _create_shell_tab() -> void:
 	input_container.add_child(_command_input)
 
 	tab.add_child(input_container)
+
+## The spawn/manage catalog: browse the live data and spawn through the
+## owning service (SpawnService / inventory / ZoneManager / QuestService /
+## SkillAcademyService). The panel is the AdminCatalog Control.
+func _create_catalog_tab() -> void:
+	var tab := VBoxContainer.new()
+	_tab_container.add_child(tab)
+	_tab_container.set_tab_title(_tab_container.get_child_count() - 1, " Catalog")
+	var catalog = AdminCatalogScript.new()
+	catalog.name = "AdminCatalog"
+	catalog.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	tab.add_child(catalog)
+
 
 func _create_players_tab() -> void:
 	var tab := VBoxContainer.new()

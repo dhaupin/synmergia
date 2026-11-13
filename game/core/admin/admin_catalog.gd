@@ -1,5 +1,13 @@
-## AdminCatalog - In-game catalog for spawning/managing entities
-## Provides UI for browsing and spawning entities by ID
+## AdminCatalog - In-game catalog for spawning/managing entities.
+## Browses the REAL loaded data (DataService) and spawns through the REAL
+## services (SpawnService / inventory / ZoneManager / QuestService /
+## SkillAcademyService). It is a MOD-facing panel, mounted as a tab in
+## AdminDashboard.
+##
+## The original file shipped as a mock: a hardcoded list of invented ids
+## (eny_goblin, zn_tutorial, ...) that resolve to nothing, and spawn legs
+## that only emitted an event. This rebuild reads the live catalog and
+## routes every action through the authority that owns it.
 extends Control
 class_name AdminCatalog
 
@@ -21,7 +29,6 @@ enum Category {
 var _category_tabs: HBoxContainer
 var _search_input: LineEdit
 var _item_list: ItemList
-var _details_panel: PanelContainer
 var _spawn_button: Button
 var _quantity_spin: SpinBox
 
@@ -30,89 +37,63 @@ var _current_category: Category = Category.ALL
 var _search_filter: String = ""
 var _catalog_entries: Array[Dictionary] = []
 
+
+## Runtime autoload lookup (script-mode-safe; the bare identifiers are not
+## guaranteed outside the autoload tree -- AGENTS.md convention).
+func _svc(node_name: String) -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath(node_name)) if tree and tree.root else null
+
+
 func _ready() -> void:
 	_initialize_catalog()
 	_setup_ui()
 
+
+## Build the catalog from the live data loader. Every entry is a real
+## resource id that a spawn leg can resolve; the receipt pins this.
 func _initialize_catalog() -> void:
-	# Pre-populate catalog with known template IDs
-	# In production, this would load from data files
-	_catalog_entries = [
-		# Enemies (eny_*)
-		{"id": "eny_goblin", "name": "Goblin", "type": "ENEMY", "level": 1},
-		{"id": "eny_goblin_warrior", "name": "Goblin Warrior", "type": "ENEMY", "level": 3},
-		{"id": "eny_goblin_shaman", "name": "Goblin Shaman", "type": "ENEMY", "level": 5},
-		{"id": "eny_orc", "name": "Orc", "type": "ENEMY", "level": 8},
-		{"id": "eny_orc_warlord", "name": "Orc Warlord", "type": "ENEMY", "level": 15},
-		{"id": "eny_dragon_whelp", "name": "Dragon Whelp", "type": "ENEMY", "level": 20},
-		{"id": "eny_dragon", "name": "Dragon", "type": "ENEMY", "level": 30},
-		{"id": "eny_dragon_lord", "name": "Dragon Lord", "type": "ENEMY", "level": 50},
+	_catalog_entries = []
+	var ds := _svc("DataService")
+	if ds == null:
+		return
+	_append_entries(ds, "get_all_enemies", "ENEMY")
+	_append_entries(ds, "get_all_npcs", "NPC")
+	_append_entries(ds, "get_all_items", "ITEM")
+	_append_entries(ds, "get_all_zones", "ZONE")
+	_append_entries(ds, "get_all_quests", "QUEST")
+	_append_entries(ds, "get_all_skills", "SKILL")
 
-		# NPCs (npc_*)
-		{"id": "npc_merchant_generic", "name": "Merchant", "type": "NPC", "level": 1},
-		{"id": "npc_guardsman", "name": "Guard", "type": "NPC", "level": 5},
-		{"id": "npc_quest_giver_generic", "name": "Quest Giver", "type": "NPC", "level": 1},
-		{"id": "npc_tavern_keeper", "name": "Tavern Keeper", "type": "NPC", "level": 1},
-		{"id": "npc_weaponsmith", "name": "Weaponsmith", "type": "NPC", "level": 1},
-		{"id": "npc_armorsmith", "name": "Armorsmith", "type": "NPC", "level": 1},
-		{"id": "npc_trainer_combat", "name": "Combat Trainer", "type": "NPC", "level": 10},
-		{"id": "npc_bank_guard", "name": "Bank Guard", "type": "NPC", "level": 15},
 
-		# Items (itm_*)
-		{"id": "itm_gold_100", "name": "100 Gold", "type": "ITEM", "level": 1},
-		{"id": "itm_gold_1000", "name": "1000 Gold", "type": "ITEM", "level": 1},
-		{"id": "itm_health_potion_small", "name": "Minor Health Potion", "type": "ITEM", "level": 1},
-		{"id": "itm_health_potion_medium", "name": "Health Potion", "type": "ITEM", "level": 5},
-		{"id": "itm_health_potion_large", "name": "Greater Health Potion", "type": "ITEM", "level": 15},
-		{"id": "itm_mana_potion_small", "name": "Minor Mana Potion", "type": "ITEM", "level": 1},
-		{"id": "itm_sword_iron", "name": "Iron Sword", "type": "ITEM", "level": 3},
-		{"id": "itm_sword_steel", "name": "Steel Sword", "type": "ITEM", "level": 10},
-		{"id": "itm_sword_mithril", "name": "Mithril Sword", "type": "ITEM", "level": 25},
-		{"id": "itm_armor_leather", "name": "Leather Armor", "type": "ITEM", "level": 3},
-		{"id": "itm_armor_chain", "name": "Chainmail", "type": "ITEM", "level": 10},
-		{"id": "itm_armor_plate", "name": "Plate Armor", "type": "ITEM", "level": 20},
+func _append_entries(ds: Node, getter: String, type_str: String) -> void:
+	if not ds.has_method(getter):
+		return
+	for res in ds.call(getter):
+		if res == null:
+			continue
+		var entry_id: String = str(res.get("id")) if ("id" in res) else ""
+		if entry_id == "":
+			continue
+		var name: String = str(res.get("display_name")) if ("display_name" in res) else entry_id
+		var lvl: int = int(res.get("level")) if ("level" in res) else 1
+		_catalog_entries.append({"id": entry_id, "name": name, "type": type_str, "level": lvl})
 
-		# Zones (zn_*)
-		{"id": "zn_tutorial", "name": "Tutorial Zone", "type": "ZONE", "level": 1},
-		{"id": "zn_forest_start", "name": "Starting Forest", "type": "ZONE", "level": 1},
-		{"id": "zn_cave_dark", "name": "Dark Cave", "type": "ZONE", "level": 10},
-		{"id": "zn_dungeon_easy", "name": "Easy Dungeon", "type": "ZONE", "level": 15},
-		{"id": "zn_dungeon_hard", "name": "Hard Dungeon", "type": "ZONE", "level": 25},
-		{"id": "zn_arena", "name": "Arena", "type": "ZONE", "level": 20},
-
-		# Quests (qst_*)
-		{"id": "qst_tutorial_01", "name": "Tutorial: First Steps", "type": "QUEST", "level": 1},
-		{"id": "qst_goblin_slayer", "name": "Goblin Slayer", "type": "QUEST", "level": 3},
-		{"id": "qst_delivery_01", "name": "Simple Delivery", "type": "QUEST", "level": 2},
-		{"id": "qst_escort_01", "name": "Escort Mission", "type": "QUEST", "level": 5},
-		{"id": "qst_dungeon_clear", "name": "Clear the Dungeon", "type": "QUEST", "level": 15},
-
-		# Skills (skl_*)
-		{"id": "skl_fireball", "name": "Fireball", "type": "SKILL", "level": 5},
-		{"id": "skl_heal", "name": "Heal", "type": "SKILL", "level": 3},
-		{"id": "skl_shield", "name": "Shield", "type": "SKILL", "level": 5},
-		{"id": "skl_teleport", "name": "Teleport", "type": "SKILL", "level": 20},
-	]
 
 func _setup_ui() -> void:
-	# Main container
 	var vbox := VBoxContainer.new()
 	vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(vbox)
 
-	# Title
 	var title := Label.new()
 	title.text = "Admin Catalog"
 	title.add_theme_font_size_override("font_size", 18)
 	vbox.add_child(title)
 
-	# Search bar
 	_search_input = LineEdit.new()
 	_search_input.placeholder_text = "Search by ID or name..."
 	_search_input.text_submitted.connect(_on_search_changed)
 	vbox.add_child(_search_input)
 
-	# Category tabs
 	_category_tabs = HBoxContainer.new()
 	var categories := ["All", "Enemies", "NPCs", "Items", "Zones", "Quests", "Skills"]
 	for i in range(categories.size()):
@@ -122,14 +103,11 @@ func _setup_ui() -> void:
 		_category_tabs.add_child(btn)
 	vbox.add_child(_category_tabs)
 
-	# Item list (left panel)
 	_item_list = ItemList.new()
 	_item_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_item_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_item_list.item_selected.connect(_on_item_selected)
 	vbox.add_child(_item_list)
 
-	# Bottom panel with spawn controls
 	var bottom_hbox := HBoxContainer.new()
 
 	_quantity_spin = SpinBox.new()
@@ -151,29 +129,26 @@ func _setup_ui() -> void:
 
 	vbox.add_child(bottom_hbox)
 
-	# Initial population
 	_refresh_list()
 
-func _refresh_list() -> void:
-	_item_list.clear()
 
+func _refresh_list() -> void:
+	if _item_list == null:
+		return
+	_item_list.clear()
 	for entry in _catalog_entries:
-		# Apply category filter
 		if _current_category != Category.ALL:
 			var type_filter := _get_category_type(_current_category)
 			if entry.type != type_filter:
 				continue
-
-		# Apply search filter
 		if _search_filter != "":
 			var search := _search_filter.to_lower()
-			var matches_name := entry.name.to_lower().contains(search)
-			var matches_id := entry.id.to_lower().contains(search)
+			var matches_name: bool = str(entry.name).to_lower().contains(search)
+			var matches_id: bool = str(entry.id).to_lower().contains(search)
 			if not matches_name and not matches_id:
 				continue
+		_item_list.add_item("%s [%s]" % [entry.name, entry.id])
 
-		var display := "%s [%s]" % [entry.name, entry.id]
-		_item_list.add_item(display)
 
 func _get_category_type(category: Category) -> String:
 	match category:
@@ -185,104 +160,161 @@ func _get_category_type(category: Category) -> String:
 		Category.SKILLS: return "SKILL"
 	return ""
 
+
 func _on_category_selected(category: int) -> void:
 	_current_category = category as Category
 	_refresh_list()
+
 
 func _on_search_changed(text: String) -> void:
 	_search_filter = text
 	_refresh_list()
 
-func _on_item_selected(index: int) -> void:
-	# Show details or enable spawn
-	pass
 
 func _on_spawn_pressed() -> void:
 	var selected := _item_list.get_selected_items()
 	if selected.is_empty():
 		GameLog.warn("AdminCatalog: No item selected")
 		return
-
 	var item_text := _item_list.get_item_text(selected[0])
-	# Extract ID from "[name] [id]"
 	var id_match := RegEx.new()
 	id_match.compile("\\[([^\\]]+)\\]")
 	var result := id_match.search(item_text)
-	if result:
-		var template_id: String = result.get_string(1)
-		var quantity: int = int(_quantity_spin.value)
+	if result == null:
+		return
+	var template_id: String = result.get_string(1)
+	var quantity: int = int(_quantity_spin.value)
+	if _spawn_by_id(template_id, quantity):
+		GameLog.info("AdminCatalog: Spawned %d x %s" % [quantity, template_id])
+	else:
+		GameLog.error("AdminCatalog: Failed to spawn %s" % template_id)
 
-		# Determine spawn type and call appropriate service
-		var success: bool = _spawn_by_id(template_id, quantity)
 
-		if success:
-			GameLog.info("AdminCatalog: Spawned %d x %s" % [quantity, template_id])
-		else:
-			GameLog.error("AdminCatalog: Failed to spawn %s" % template_id)
-
+## The single dispatch: resolve the id against the live data and route the
+## action to the service that owns it.
 func _spawn_by_id(template_id: String, quantity: int = 1) -> bool:
-	# Validate ID format
-	if not IDRegistry.is_valid_id(template_id):
-		GameLog.error("AdminCatalog: Invalid ID format: %s" % template_id)
+	var ds := _svc("DataService")
+	if ds == null:
 		return false
+	if ds.has_method("get_enemy") and ds.get_enemy(template_id) != null:
+		return _spawn_enemy(template_id, quantity)
+	if ds.has_method("get_npc") and ds.get_npc(template_id) != null:
+		return _spawn_npc(template_id)
+	if ds.has_method("get_item") and ds.get_item(template_id) != null:
+		return _spawn_item(template_id, quantity)
+	if ds.has_method("get_zone") and ds.get_zone(template_id) != null:
+		return _teleport_to_zone(template_id)
+	if ds.has_method("get_quest") and ds.get_quest(template_id) != null:
+		return _give_quest(template_id)
+	if ds.has_method("get_skill") and ds.get_skill(template_id) != null:
+		return _teach_skill(template_id)
+	GameLog.error("AdminCatalog: Unknown catalog id: %s" % template_id)
+	return false
 
-	var id_type := IDRegistry.get_type(template_id)
 
-	match id_type:
-		"ENEMY", "ENTITY":
-			return _spawn_enemy(template_id, quantity)
-		"NPC":
-			return _spawn_npc(template_id)
-		"ITEM":
-			return _spawn_item(template_id, quantity)
-		"ZONE":
-			return _teleport_to_zone(template_id)
-		"QUEST":
-			return _give_quest(template_id)
-		"SKILL":
-			return _teach_skill(template_id)
-		_:
-			GameLog.error("AdminCatalog: Unknown type '%s' for ID %s" % [id_type, template_id])
-			return false
+## The local player body (PlayerManager.local_player), or null.
+func _local_player() -> Node:
+	var pm := _svc("PlayerManager")
+	if pm != null and pm.get("local_player") != null:
+		return pm.local_player
+	return null
 
-	return true
+
+## The zone the local player is standing in, or "".
+func _local_zone_id() -> String:
+	var player := _local_player()
+	var zm := _svc("ZoneManager")
+	if player != null and zm != null and zm.has_method("get_entity_zone_id"):
+		return str(zm.get_entity_zone_id(player))
+	return ""
+
 
 func _spawn_enemy(template_id: String, quantity: int) -> bool:
-	if SpawnService:
-		for i in range(quantity):
-			var spawn_pos := Vector3(randf_range(-10, 10), 0, randf_range(-10, 10))
-			# SpawnService would have a method like spawn_enemy(template_id, position)
-			# For now, emit event
-			EventHub.entity.spawned.emit(template_id, "zn_debug", spawn_pos)
-		return true
-	return false
+	var spawn := _svc("SpawnService")
+	if spawn == null or not spawn.has_method("spawn_enemy_direct"):
+		return false
+	var player := _local_player()
+	var base: Vector3 = player.global_position if player != null else Vector3.ZERO
+	var zone_id := _local_zone_id()
+	var any := false
+	for i in range(max(1, quantity)):
+		var pos := base + Vector3(randf_range(-5, 5), 0, randf_range(-5, 5))
+		if spawn.spawn_enemy_direct(template_id, pos, zone_id) != null:
+			any = true
+	if any:
+		entity_spawned.emit(template_id, true)
+	return any
+
 
 func _spawn_npc(template_id: String) -> bool:
-	if SpawnService:
-		EventHub.entity.spawned.emit(template_id, "zn_debug", Vector3.ZERO)
-		return true
-	return false
+	var spawn := _svc("SpawnService")
+	var ds := _svc("DataService")
+	if spawn == null or ds == null or not spawn.has_method("spawn_npc_entity"):
+		return false
+	var npc_data = ds.get_npc(template_id)
+	if npc_data == null:
+		return false
+	var player := _local_player()
+	var base: Vector3 = player.global_position if player != null else Vector3.ZERO
+	var npc = spawn.spawn_npc_entity(_local_zone_id(), base + Vector3(2, 0, 0), npc_data)
+	if npc != null:
+		entity_spawned.emit(template_id, true)
+	return npc != null
+
 
 func _spawn_item(template_id: String, quantity: int) -> bool:
-	# Would add to player's inventory via InventoryService
-	if InventoryService:
-		EventHub.inventory.item_picked_up.emit("plr_admin", template_id, -1)
-		return true
-	return false
+	var ds := _svc("DataService")
+	var player := _local_player()
+	if ds == null or player == null or not ("inventory_component" in player):
+		return false
+	var comp = player.get("inventory_component")
+	if comp == null or not comp.has_method("add_item"):
+		return false
+	var item = ds.get_item(template_id)
+	if item == null:
+		return false
+	var ok: bool = comp.add_item(item, max(1, quantity))
+	if ok:
+		item_spawned.emit(template_id, true)
+	return ok
+
 
 func _teleport_to_zone(zone_id: String) -> bool:
-	if ZoneManager:
-		EventHub.system.alert_sent.emit("system", "Teleporting to %s" % zone_id, 0, [])
-		return true
-	return false
+	var zm := _svc("ZoneManager")
+	var ds := _svc("DataService")
+	var player := _local_player()
+	if zm == null or ds == null or player == null:
+		return false
+	var zone = ds.get_zone(zone_id)
+	if zone == null:
+		return false
+	return zm.entity_enter_zone(player, zone)
+
 
 func _give_quest(quest_id: String) -> bool:
-	GameLog.info("AdminCatalog: Would give quest %s" % quest_id)
-	return true
+	var qs := _svc("QuestService")
+	var player := _local_player()
+	if qs == null or player == null or not qs.has_method("accept_quest"):
+		return false
+	return qs.accept_quest(str(player.get("entity_id")), quest_id)
 
+
+## Grant a common-tier skill book (the academy's own real item path).
 func _teach_skill(skill_id: String) -> bool:
-	GameLog.info("AdminCatalog: Would teach skill %s" % skill_id)
-	return true
+	var sa := _svc("SkillAcademyService")
+	var player := _local_player()
+	if sa == null or player == null or not sa.has_method("create_book"):
+		return false
+	var book = sa.create_book(skill_id, "common")
+	if book == null:
+		return false
+	if not ("inventory_component" in player):
+		return false
+	var comp = player.get("inventory_component")
+	if comp == null or not comp.has_method("add_item"):
+		return false
+	return comp.add_item(book, 1)
+
 
 ## Get catalog entry by ID
 func get_entry_by_id(id: String) -> Dictionary:
@@ -291,6 +323,7 @@ func get_entry_by_id(id: String) -> Dictionary:
 			return entry
 	return {}
 
+
 ## Get all entries filtered by type
 func get_entries_by_type(type_filter: String) -> Array[Dictionary]:
 	var results: Array[Dictionary] = []
@@ -298,6 +331,7 @@ func get_entries_by_type(type_filter: String) -> Array[Dictionary]:
 		if entry.type == type_filter:
 			results.append(entry)
 	return results
+
 
 ## Add a new entry to the catalog (for runtime registration)
 func register_entry(id: String, name: String, type_str: String, level: int = 1) -> void:

@@ -2,13 +2,18 @@
 ## Provides a customizable command interface for regular players
 ## Completely separate from admin tools - sandboxed to player actions only
 extends Node
-class_name PlayerShell
 # QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
 const QoSService = preload("res://core/autoload/qos_service.gd")
 
 ## Escape BBCode brackets in user-supplied strings.
 static func _esc(text: String) -> String:
 	return text.replace('[', '[lb]')
+
+## Runtime autoload lookup (script-mode-safe; the bare identifier is not
+## guaranteed outside the autoload tree).
+func _pm() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PlayerManager")) if tree and tree.root else null
 
 ## Player command definition
 class PlayerCommand:
@@ -103,7 +108,7 @@ func register_custom_command(player_id: String, name: String, command: String) -
 	# Create a wrapper command
 	var wrapper := PlayerCommand.new(
 		name,
-		func(args, pid): return execute_command(command + (" " + args if args else ""), pid),
+		func(args, pid): return execute(command + (" " + args if args else ""), pid),
 		"[Custom] Player-created command",
 		name,
 		"custom",
@@ -126,12 +131,12 @@ func execute(command_line: String, player_id: String = "") -> CommandResult:
 	# Check for player-defined alias
 	var custom := _get_player_customization(player_id)
 	if custom.aliases.has(cmd_name):
-		var alias_cmd := custom.aliases[cmd_name]
+		var alias_cmd: String = str(custom.aliases[cmd_name])
 		return execute(alias_cmd + (" " + args if args else ""), player_id)
 
 	# Check for custom macro
 	if custom.macros.has(cmd_name):
-		var macro := custom.macros[cmd_name]
+		var macro: String = str(custom.macros[cmd_name])
 		return execute(macro + (" " + args if args else ""), player_id)
 
 	# Parse command
@@ -139,7 +144,7 @@ func execute(command_line: String, player_id: String = "") -> CommandResult:
 		return CommandResult.new(false, "", "No command entered. Type 'help' for commands.")
 
 	# Check if command exists
-	var actual_name := _aliases.get(cmd_name, cmd_name)
+	var actual_name: String = str(_aliases.get(cmd_name, cmd_name))
 	if not _commands.has(actual_name):
 		return CommandResult.new(false, "", "Unknown command: %s. Type 'help' for commands." % cmd_name)
 
@@ -297,10 +302,13 @@ func _cmd_me(args: String, player_id: String) -> CommandResult:
 	var output := "[color=yellow]=== Your Info ===[/color]\n"
 	output += "[color=cyan]ID:[/color] %s\n" % _esc(player_id)
 
-	if PlayerManager and PlayerManager.local_player:
-		var data: Dictionary = PlayerManager.local_player
-		output += "[color=cyan]Name:[/color] %s\n" % _esc(data.get("name", "Unknown"))
-		output += "[color=cyan]Level:[/color] %d\n" % data.get("level", 1)
+	var pm = _pm()
+	if pm != null and pm.local_player != null:
+		var lp = pm.local_player
+		var nm: String = str(lp.get("name")) if ("name" in lp) else "Unknown"
+		var lvl: int = int(lp.get("level")) if ("level" in lp) else 1
+		output += "[color=cyan]Name:[/color] %s\n" % _esc(nm)
+		output += "[color=cyan]Level:[/color] %d\n" % lvl
 
 	# Check permissions
 	if PermissionManager:
@@ -320,20 +328,25 @@ func _cmd_stats(args: String, player_id: String) -> CommandResult:
 	var output := "[color=yellow]=== Your Stats ===[/color]\n"
 
 	# Get QoS stats for player
-	if QoSService:
-		var rates := QoSService.get_player_rates(player_id)
+	var qos = QoSService.singleton()
+	if qos != null and qos.has_method("get_player_rates"):
+		var rates: Dictionary = qos.get_player_rates(player_id)
 		if not rates.is_empty():
 			output += "[color=cyan]Activity:[/color]\n"
 			for action in rates.keys():
 				output += "  %s: %.2f/sec\n" % [action, rates[action]]
 
 	# Get game stats from PlayerManager
-	if PlayerManager and PlayerManager.local_player:
-		var data: Dictionary = PlayerManager.local_player
+	var pm2 = _pm()
+	if pm2 != null and pm2.local_player != null:
+		var lp2 = pm2.local_player
+		var kills: int = int(lp2.get("kills")) if ("kills" in lp2) else 0
+		var deaths: int = int(lp2.get("deaths")) if ("deaths" in lp2) else 0
+		var playtime: int = int(lp2.get("playtime_hours")) if ("playtime_hours" in lp2) else 0
 		output += "\n[color=cyan]Character:[/color]\n"
-		output += "  Kills: %d\n" % data.get("kills", 0)
-		output += "  Deaths: %d\n" % data.get("deaths", 0)
-		output += "  Playtime: %d hours\n" % data.get("playtime_hours", 0)
+		output += "  Kills: %d\n" % kills
+		output += "  Deaths: %d\n" % deaths
+		output += "  Playtime: %d hours\n" % playtime
 
 	return CommandResult.new(true, output, "")
 
@@ -576,7 +589,7 @@ func _cmd_feedback(args: String, player_id: String) -> CommandResult:
 	if args == "":
 		return CommandResult.new(false, "", "Usage: feedback <message>")
 
-	var message: Dictionary = args.strip_edges()
+	var message: String = args.strip_edges()
 
 	# Use PlayerReporter
 	if PlayerReporter:
