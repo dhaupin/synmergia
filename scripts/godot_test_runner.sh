@@ -280,7 +280,6 @@ frame/math/test_penrose
 frame/math/test_pentagrid
 frame/srv/test_cosmic_rng
 frame/srv/test_weather
-probe_penrose_mesh
 probe_sky_crate
 probe_blacksmith_model
 probe_wolf_model

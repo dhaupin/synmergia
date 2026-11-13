@@ -131,24 +131,49 @@ Receipts (all green, zero script errors): `probe_clipmap` ALL PASS,
 `test_globe_gates_guards` PASSED, `probe_prop_density`/`probe_walk_mesh_gap`
 exit 0 with full output.
 
-### A4. `penrose` ground backend + chart-LOD overlay (MEDIUM -- decision)
+### A4. `penrose` ground backend + chart-LOD overlay (MEDIUM -- decision) -- REMOVED
 
-Two Penrose paths remain:
+Two Penrose paths remained:
 - `backend_penrose.gd` (`class_name TerrainBackendPenrose`): an authored
   heightfield backend installed via `terrain_gen.install_terrain_backend`. It
   is NOT referenced by any world (`world_main.tres` declares
   `terrain_backend_id = "sundered"`; the moon/underworld use their own
-  providers). Its only reader is `probe_backend_penrose.gd`, which is NOT in
+  providers). Its only reader was `probe_backend_penrose.gd`, which was NOT in
   the runner DEFAULT_SET. **Zero live consumers.**
 - The chart-LOD overlay (`penrose_chart_adapter.gd` + `penrose_chart_lod.gd` +
   `penrose_mesh_builder.gd`), wired in `globe_world._setup_chart_lod`, gated
-  OFF by default (`chart_overlays_on = false`, L618) -- "redundant decoration
+  OFF by default (`chart_overlays_on = false`) -- "redundant decoration
   beside the Penrose ground backend."
 
-**Decision needed:** keep the Penrose ground backend as a dormant alternate
-authored terrain (then keep `probe_backend_penrose` in the runner so it does
-not rot), or remove it as an unused experiment. If the overlay stays OFF by
-default forever, it is a candidate for removal too.
+**DECISION: REMOVE (2026-11-13).** Both paths are dead-end experiments with no
+live consumer and no declared future in the design docs (`world-building-arch.md`
+sec. 4 lists the Penrose P3 tiling as a *candidate* for region distribution,
+but the shard/region addressing shipped on NSC-9 + the icosahedral face
+patches; `world_main` renders on `backend_sundered`, which has no lattice
+identity at all). The "Penrose identity" the overlay's own comment claimed was
+"carried on the REAL terrain" is not in any shipped backend -- that claim was
+aspirational, not true.
+
+Removed (8 files): `backend_penrose.gd`, `penrose_chart_adapter.gd`,
+`penrose_chart_lod.gd`, `penrose_mesh_builder.gd`, and their four probes
+(`probe_backend_penrose`, `probe_chart_lod`, `probe_chart_lod_scene`,
+`probe_penrose_mesh`) + the `globe_world` chart-LOD glue (`_setup_chart_lod`,
+`_update_chart_lod`, `_project_skirt`, `_skirt_colors`, the gate vars, and the
+physics-tick gate) + the runner entry for `probe_penrose_mesh`.
+
+**KEPT (frame math island, by design).** `core/frame/math/penrose.gd`,
+`pentagrid.gd`, `core/frame/srv/cosmic_rng.gd` + their tests
+(`test_penrose`/`test_pentagrid`/`test_cosmic_rng`) stay: `core/frame/` is the
+pure-math prototype layer (`labs/prd-geometry.md` sec. on math primitives;
+frame rules = no autoload, no GameManager dep), so a math island with tests
+but no game consumer is legitimate there -- not dead code. `cosmic_rng.gd`
+consumes `penrose.gd` (`penrose_unit`/`penrose_randi`/`scope_for_point`), so
+removing `penrose.gd` would break it. `bench_penrose.gd` is already a
+verified-dead candidate in Part B (B1).
+
+Receipts (all green, zero script errors): `probe_clipmap` ALL PASS,
+`probe_globe_world`, `probe_terrain_planet` 28/0, `probe_ground_law_audit`
+ALL PASS, `probe_world_boot_speed` ALL PASS, `probe_world_scoping` 8/0.
 
 ### A5. Hand-built prop builders (LOW -- by design)
 
@@ -195,8 +220,9 @@ grep the runner DEFAULT_SET and `tests/` first (done -- none reference these).
 
 ### B2. Verified dead -- but tied to a DECISION
 
-- `game/scenes/worlds/backend_penrose.gd` (191) + `game/tests/probe_backend_penrose.gd`
-  -- see A4. Delete together, or keep + add the probe to the runner.
+- ~~`game/scenes/worlds/backend_penrose.gd` (191) + `game/tests/probe_backend_penrose.gd`
+  -- see A4.~~ **REMOVED with A4 (2026-11-13)** (plus the chart-LOD trio + their
+  3 probes).
 - `game/debug/*.gd` (9 files, `git ls-files game/debug`) -- dev scans
   (`geo_probe`, `land_scan`, `river_find`, `vista_scan`, ...). refs=0 in
   `game/**`; not in the runner. The repo already has `dev_temp/probes/` +
@@ -271,5 +297,6 @@ ones sit on disk for deleted sources: `probe_meshcache_ram.gd.uid`,
    2026-11-13** -- the sea shell is declaration-driven through `WaterKit`
    (see A2 above); no shell deletion (a whole-sphere sea is structurally a
    shell, not a sheet).
-4. **B2** (decide on `backend_penrose`, `game/debug/`, `dev2`/`dev_temp`).
+4. ~~B2~~ **A4 REMOVED 2026-11-13** (`backend_penrose` + the chart-LOD trio +
+   4 probes). Remaining B2 decision: `game/debug/`, `dev2`/`dev_temp`.
 5. **B4** (comment sweep) -- cosmetic, do last.

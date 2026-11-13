@@ -535,10 +535,14 @@ without flora.
   rebuilt on re-centre. A sea-line guard stops the sheet double-drawing the
   WaterShell ocean (the streamer's sheet had this flaw; the opaque shell hid
   it). The Penrose chart-LOD overlay moved OUT of the streamer branch in
-  `globe_world._setup_streamer` and now wires on the clipmap path too (the
-  gate stays OFF by default -- redundant decoration beside the Penrose ground
+  `globe_world._setup_clipmap` and wired on the clipmap path too (the gate
+  stayed OFF by default -- redundant decoration beside the Penrose ground
   backend). Receipts: `probe_clipmap` G6 (wet sheet builds / dry yields none)
   + G7 (deck quads > 0).
+  **SUPERSEDED (2026-11-13): the chart-LOD overlay + the `backend_penrose`
+  ground backend were REMOVED** (A4 -- no live consumer; see
+  `labs/clipmap-fold-survey.md` A4). The `core/frame/math` Penrose/pentagrid
+  math island stays.
 - **Step 3d (water unification -- WaterKit) -- DONE (2026-11-29).** The
   PHYSICS of water was always shared (`OceanVolume` + `OceanService.tick_swimmer`),
   but the VISIBLE water was hand-rebuilt per site (crater disc, cistern disc,
