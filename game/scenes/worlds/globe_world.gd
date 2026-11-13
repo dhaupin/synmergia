@@ -16,6 +16,13 @@ extends Node3D
 
 ## Named collision bits (round 10): data/physics_layers/ LayerProfile.
 const Layers = preload("res://core/schemas/layer_profile.gd")
+## The shared visible-water builder (labs/prd-clipmap.md 11a): the world sea
+## shell is a WaterKit call reading its `OceanVolume` declaration, the render
+## twin of the swim law (the moon/underworld draw their water the same way).
+const WaterKit = preload("res://core/world/water_kit.gd")
+## The main world's sea declaration: the visible shell and the swim law read
+## ONE `OceanVolume` (data/oceans/ocean_sundered_sea.tres).
+const SEA_VOLUME_ID: String = "ocean_sundered_sea"
 
 ## Runtime autoload lookups (script-mode-safe; the bare identifiers fail
 ## to compile when autoloads are absent -- same law as the player bodies).
@@ -954,30 +961,37 @@ func _spawn_dir() -> Vector3:
 	return Sph.spherical_to_cartesian(SPAWN_LAT_DEG, SPAWN_LON_DEG, 0.0, 1.0)
 
 
-## WATER (terrain arc): one translucent shell at the sea line. Visual
-## only: the ocean floor is the displaced terrain (one ground law; the
-## sea floor IS the ground). The water gate is WATER_ON alone (the
-## planar prototype is gone).
+## WATER (terrain arc): the world sea, drawn from its DECLARATION. The
+## visible shell and the swim law read ONE `OceanVolume`
+## (data/oceans/ocean_sundered_sea.tres): the waterline radius is the seed's
+## sea (OceanService.sea_surface_radius, the same number the physics
+## measures) and the look is the declaration's own surface fields. The shell
+## wraps the whole globe -- a far-field body past the clipmap's drawn reach,
+## so it is a shell, never the per-direction sheet (which draws the rivers
+## and high ponds). Visual only: the ocean floor is the displaced terrain
+## (one ground law; the sea floor IS the ground). The gate is WATER_ON alone.
 func _build_water() -> void:
 	if not WATER_ON:
 		return
 	var Gen = load("res://scenes/worlds/terrain_gen.gd")
 	var sea: float = Gen.sea_level(streamer.world_seed)
-	water_body = MeshInstance3D.new()
-	water_body.name = "WaterShell"
-	var wmesh := SphereMesh.new()
-	wmesh.radius = planet_radius + STREAMER_TILE_LIFT + sea
-	wmesh.height = wmesh.radius * 2.0
-	wmesh.radial_segments = 96
-	wmesh.rings = 48
-	var wmat := StandardMaterial3D.new()
-	wmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	wmat.albedo_color = Color(0.12, 0.35, 0.5, 0.62)
-	wmat.roughness = 0.15
-	wmat.metallic = 0.1
-	wmesh.material = wmat
-	water_body.mesh = wmesh
-	world_root.add_child(water_body)
+	# The declaration is the look's source of truth; resolve it through the
+	# OceanService autoload (script-mode-safe) so a bare/provider-only boot
+	# still paints the sea. A missing service or volume falls back to the
+	# schema defaults, which are today's shipped look.
+	var wk = WaterKit.new()
+	var vol = null
+	var svc = get_node_or_null("/root/OceanService")
+	if svc != null and svc.has_method("get_volume"):
+		vol = svc.get_volume(SEA_VOLUME_ID)
+	var sea_radius: float = planet_radius + STREAMER_TILE_LIFT + sea
+	if vol != null:
+		water_body = wk.build_sea_shell(world_root, sea_radius, vol, {"name": "WaterShell"})
+	else:
+		# No declaration reachable: build the shell from a bare volume so the
+		# sea still paints (schema defaults carry the shipped look).
+		var OceanVolumeScript = load("res://core/schemas/ocean_volume.gd")
+		water_body = wk.build_sea_shell(world_root, sea_radius, OceanVolumeScript.new(), {"name": "WaterShell"})
 
 
 ## Play-day feedback #8: the visible sun on the globe too (the clock

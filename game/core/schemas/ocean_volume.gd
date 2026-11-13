@@ -127,6 +127,16 @@ enum Liquid {
 ## The look (renderer reads; physics ignores).
 @export var ambient_fog_color: Color = Color(0.1, 0.3, 0.45)
 @export var ambient_fog_density: float = 0.02
+## THE SURFACE LOOK (the renderer's own read): the visible water body's
+## albedo, opacity, and finish. The world sea draws as a sphere SHELL at
+## the waterline radius (a whole-sphere body the clipmap's local standing-
+## water sheet cannot represent); these fields are what that shell paints,
+## so the drawn sea and the swim law read ONE declaration (labs/prd-clipmap
+## sec 11a -- "water is data"). Physics never reads them. Defaults are the
+## main world's shipped sea look.
+@export var surface_color: Color = Color(0.12, 0.35, 0.5, 0.62)
+@export var surface_roughness: float = 0.15
+@export var surface_metallic: float = 0.1
 ## AudioService names for the volume (muffled lapping, the deep).
 @export var ambient_sounds: Array[String] = []
 ## Worldbuilding notes (what this water is FOR).

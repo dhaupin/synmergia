@@ -21,6 +21,12 @@
 ## collider. The swim law reads the OceanVolume; a second collision truth here
 ## would be a second law (the cistern/lake law: "no collider on the water").
 ##
+## THE WORLD SEA (the whole-sphere body): a sea that wraps the entire globe is
+## neither a local disc nor a per-direction sheet -- it is a SHELL at the
+## waterline radius, far past the clipmap's drawn reach. `build_sea_shell` is
+## that third builder, so every visible water body (local disc, per-direction
+## sheet, global shell) reads the SAME `OceanVolume` declaration.
+##
 ## Tabs, no class_name (instantiated by path, the InstancePropKit pattern).
 extends RefCounted
 
@@ -97,3 +103,37 @@ func build_from_volume(parent: Node3D, volume, center_xz: Vector3,
 	var radius: float = float(volume.floor_radius)
 	var water_center := Vector3(center_xz.x, float(volume.surface_height), center_xz.z)
 	return build_pool(parent, water_center, Vector3.UP, radius, style)
+
+## Build the WORLD SEA as a sphere SHELL at `sea_radius` (the waterline radius
+## the caller resolved from the seed's sea), painting the declaration's own
+## surface look (`surface_color` / `surface_roughness` / `surface_metallic`).
+## This is the render twin of the radial-waterline swim law: the drawn sea and
+## the swimmable sea read ONE `OceanVolume`, so the shell can never paint a
+## different waterline than the physics measures. The shell wraps the whole
+## globe (a far-field body past the clipmap's drawn reach), so it is a shell,
+## never a per-direction sheet. `style` may override the look (unused keys fall
+## back to the declaration). Returns the MeshInstance3D, or null when the volume
+## or radius is unusable.
+func build_sea_shell(parent: Node3D, sea_radius: float, volume,
+		style: Dictionary = {}) -> MeshInstance3D:
+	if parent == null or volume == null or sea_radius <= 0.0:
+		return null
+	var mi := MeshInstance3D.new()
+	mi.name = str(style.get("name", "SeaShell"))
+	var sph := SphereMesh.new()
+	sph.radius = sea_radius
+	sph.height = sea_radius * 2.0
+	sph.radial_segments = int(style.get("radial_segments", 96))
+	sph.rings = int(style.get("rings", 48))
+	var mat := StandardMaterial3D.new()
+	var col: Color = style.get("albedo", volume.surface_color)
+	if col.a < 1.0:
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = col
+	mat.roughness = float(style.get("roughness", volume.surface_roughness))
+	mat.metallic = float(style.get("metallic", volume.surface_metallic))
+	sph.material = mat
+	mi.mesh = sph
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(mi)
+	return mi

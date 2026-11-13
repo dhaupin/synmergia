@@ -227,11 +227,27 @@ func _run() -> void:
 	ok = _check("clipmap: every drawn ground mesh carries surface 0", \
 		_all_have_surface0(st)) and ok
 
-	# ---- C. The water shell is the sea line -------------------------
+	# ---- C. The water shell is the sea line, read from its declaration --
+	# The visible sea and the swim law read ONE OceanVolume: the shell radius
+	# is the seed's sea (planet + lift + sea) AND its look is the declaration's
+	# own surface fields (the shell is a WaterKit build, not a hand-built mesh).
 	if _globe.water_body != null:
 		var wr: float = (_globe.water_body.mesh as SphereMesh).radius
 		ok = _check("water: shell radius == planet + tile lift + sea", \
 			absf(wr - (R20KM + LIFT + sea)) < 0.5) and ok
+		var decl = null
+		var osvc = root.get_node_or_null("OceanService")
+		if osvc != null and osvc.has_method("get_volume"):
+			decl = osvc.get_volume("ocean_sundered_sea")
+		if decl != null:
+			var wmat: StandardMaterial3D = (_globe.water_body.mesh as SphereMesh).material
+			ok = _check("water: shell paints the declaration's surface look", \
+				wmat != null and wmat.albedo_color.is_equal_approx(decl.surface_color)) and ok
+			# The drawn shell and the swimmable sea share ONE waterline: the
+			# physics radius (OceanService.sea_surface_radius) plus the tile lift.
+			if osvc.has_method("sea_surface_radius"):
+				ok = _check("water: shell radius == the swim law's sea radius (one waterline)", \
+					absf(wr - (osvc.sea_surface_radius() + LIFT)) < 0.5) and ok
 
 	# ---- D. Boulders + collar law ------------------------------------
 	var ok_d := true

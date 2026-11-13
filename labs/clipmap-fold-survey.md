@@ -44,11 +44,12 @@ worlds), `_setup_streamer` -> `_setup_clipmap`, `STREAMER_TILE_LIFT` -> use the
 clipmap's `TILE_LIFT`. Pure rename, no behavior change; a receipt should prove
 `probe_clipmap` + `probe_underworld` + `probe_starter_village` stay green.
 
-### A2. Main-world ocean is hand-built; the other worlds are declaration-driven (HIGH)
+### A2. Main-world ocean is hand-built; the other worlds are declaration-driven (HIGH) -- FOLDED
 
-`globe_world._build_water()` paints a `SphereMesh` at the sea line -- a single
-opaque shell. The moon and underworld instead read an `OceanVolume`
-declaration and draw via the shared `WaterKit` (`core/world/water_kit.gd`):
+`globe_world._build_water()` painted a `SphereMesh` at the sea line -- a single
+opaque shell with a hardcoded material. The moon and underworld instead read an
+`OceanVolume` declaration and draw via the shared `WaterKit`
+(`core/world/water_kit.gd`):
 - `globe_underworld` uses `WaterKit.build_pool` for the cistern + lava lake;
 - `globe_moon` draws the crater inland sea through the clipmap standing-water
   sheet (provider `water_surface`) + `WaterKit`.
@@ -56,16 +57,35 @@ declaration and draw via the shared `WaterKit` (`core/world/water_kit.gd`):
 The main world already HAS the declaration: `data/oceans/ocean_sundered_sea.tres`
 (`waterline_is_radial`, `max_depth 60`, currents, fog) -- read today only by
 `OceanService` for swim physics, NOT by the renderer. So the visible ocean and
-the swim law are two separate laws on the main world (the moon/underworld
+the swim law were two separate laws on the main world (the moon/underworld
 already unified theirs).
 
-**Fold:** have `globe_world` render the Sundered Sea from `ocean_sundered_sea`
-via the same path the moon uses (provider `water_surface` for the clipmap
-sheet, or one `WaterKit.build_from_volume` call), then delete `_build_water`'s
-hand-built shell. Careful: the clipmap's standing-water sheet has a sea-line
-guard against double-drawing a shell (globe_clipmap.gd L763 comment) -- removing
-the shell is exactly the case that guard was written for. Receipt: a wet/dry
-leg on the main world (probe_clipmap G6 already proves the sheet builds).
+**FOLDED (2026-11-04).** The whole-sphere sea is structurally a SHELL, not a
+per-direction sheet: the clipmap's standing-water sheet only draws its ~5 km
+drawn reach, so it can never represent a body that wraps the globe (that reach
+limit is exactly why the sea-line guard at `globe_clipmap.gd` L763 exists --
+the sheet must never try). The honest fold, then, was NOT to delete the shell
+but to make it DECLARATION-DRIVEN:
+- `OceanVolume` gained a surface-look section (`surface_color`,
+  `surface_roughness`, `surface_metallic`) -- renderer-read, physics-ignored,
+  defaults = the shipped shell look;
+- `ocean_sundered_sea.tres` carries that look explicitly (the `.tres` is the
+  source of truth);
+- `WaterKit` gained `build_sea_shell(parent, sea_radius, volume, style)` -- the
+  THIRD geometry class (local disc / per-direction sheet / global shell), so
+  every visible water body reads ONE `OceanVolume`;
+- `globe_world._build_water` now resolves `ocean_sundered_sea` through the
+  `OceanService` autoload (script-mode-safe) and calls `build_sea_shell`; the
+  hand-built `SphereMesh` + hardcoded material are gone. The waterline radius
+  is unchanged (`planet_radius + STREAMER_TILE_LIFT + sea`), which the probe
+  now cross-checks against the swim law's own `OceanService.sea_surface_radius`
+  -- ONE waterline, drawn and swimmable.
+
+Receipt: `probe_terrain_planet` gained two legs (shell paints the declaration's
+surface look; shell radius == the swim law's sea radius). Red-by-name verified:
+forcing a wrong `albedo` override in the builder turns the look leg RED, and
+reverting restores green. The clipmap sheet's sea-line guard is untouched
+(still correct: the shell owns the sea, the sheet owns rivers/high ponds).
 
 ### A3. Streamer-compat shims in `globe_clipmap.gd` (MEDIUM)
 
@@ -219,7 +239,9 @@ ones sit on disk for deleted sources: `probe_meshcache_ram.gd.uid`,
 1. **A1 + A3** (rename `streamer` -> `clipmap` in `globe_world` + the clipmap
    parity shims) -- one mechanical pass, biggest lore win.
 2. **B1** (delete the 16 verified-dead files, ~2,300 lines) -- zero risk.
-3. **A2** (main-world ocean from the `OceanVolume` declaration) -- real
-   unification, needs a wet/dry receipt.
+3. ~~A2 (main-world ocean from the `OceanVolume` declaration)~~ **DONE
+   2026-11-04** -- the sea shell is declaration-driven through `WaterKit`
+   (see A2 above); no shell deletion (a whole-sphere sea is structurally a
+   shell, not a sheet).
 4. **B2** (decide on `backend_penrose`, `game/debug/`, `dev2`/`dev_temp`).
 5. **B4** (comment sweep) -- cosmetic, do last.
