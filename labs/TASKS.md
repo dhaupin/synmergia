@@ -14,7 +14,7 @@ CURRENT state + ACTIVE work only.
 - MEASURED: `road_height_override` cold 81.1 -> 7.3 us (11.1x); `terrain_height` cold 163.7 -> 85.9 us (1.9x); `ground_sample` cold 271 -> 196 us (1.4x); `splat_skin` cold 313.7 -> 226.5 us; clipmap cold build 990 -> 780 ms. CUMULATIVE this session: cold build 2004 -> 780 ms (2.6x), cold sample 389 -> ~290 us.
 - GATES: probe_ground_sample **15 checks ALL PASS** (new road-bound exactness, road-state finite, and the definitive 'probe set == old inline algorithm exactly' legs); probe_roads_flow 14 ALL PASS; probe_clipmap ALL PASS; probe_ground_law_audit ALL PASS; probe_starter_village ALL PASS; probe_world_shape_ground 0 failures; probe_terrain_climate 32 ALL PASS; probe_terrain_backend 11/0; test_terrain_splat_skin 25 green; test_terrain_determinism exit 0; lint 37/0.
 - NOTE: my earlier `_vnoise` memo idea was DROPPED after measuring -- post-6c a fresh sample issues only 17.2 `_vnoise` calls for 16.2 distinct (salt,freq) pairs, so a per-(salt,freq) memo has near-zero yield. Recorded so it is not re-attempted blindly.
-- DOCS: `labs/prd-ground-sample.md` section 6d; this entry; AGENTS.md.
+- DOCS: `labs/prd-ground-sample.md` section 6d; this entry; AGENTS.md; and `labs/prd-clipmap.md` section 8b (the S1-S6 slow-system candidates are now RESOLVED by the ground-law rounds -- recorded so the table is not re-worked).
 - PUSHED: `staging`.
 
 

@@ -1,7 +1,9 @@
 # PRD: The Clipmap Terrain Renderer (replacing the icosa face streamer)
 
 > **Status:** v1 SHIPPED (2026-11-04). Cold boot parallelised
-> (2026-11-04, S6: ~3 s -> ~2 s, bit-identical). The default ground renderer is
+> (2026-11-04, S6: ~3 s -> ~2 s, bit-identical; then the ground-law rounds
+> 6c/6d took the cold build to **~780 ms**, 2.6x, still bit-identical).
+> The default ground renderer is
 > now the clipmap; the streamer is kept as a fallback. The world's
 > *addressing* stays icosahedral (NSC-9, `IcosahedralFaces`, zone/waypoint
 > math -- all of it is good and untouched). The world's *rendering* moved
@@ -245,6 +247,26 @@ local fix -- but the user asked for anything slow to be recorded here.
 | S5 | The memo itself (`SectorCache`) | ~2 µs hit | fine, but the clipmap keys height and color separately, so a vertex costs two lookups. | One combined `(height, skin)` memo entry per quantized direction halves the lookups. |
 | S6 | Cold boot derive | **~2.0 s** (was ~3 s) | the boot `build_all()` derives every ring vertex cold (no memo warm yet). | **SHIPPED**: (a) the vertex skin is resolved ONCE per distinct vertex, not once per emission (the ring quad pass emits each shared vertex up to 6x); (b) `build_all` fans the cap + each ring onto a bounded worker pool (cores-sized) and installs the meshes on the main thread (the streamer's derive/apply split; the law is thread-safe). Bit-identical geometry, 1.5x faster cold. Still ~2 s because the cold ground-sample (~390 us) IS the cost. |
 | S7 | Streamer `_patches` machinery | 3945 lines | seams/skirts/hot-reload exist only because a face swaps wholesale. | Delete once the clipmap is the only path (7, Open items). |
+
+### 8b. Resolutions (2026-11-04)
+
+The ground-law rounds (prd-ground-sample.md sections 6c/6d) resolved the
+S1-S6 candidates below. Recorded here so the table is not re-worked:
+
+| # | status | what closed it |
+|---|---|---|
+| S1 `splat_skin` | **RESOLVED** | `splat_skin_from(GroundSample, ...)` reads the precomputed sample (height, temperature, water surface, crag, road) instead of re-deriving; `splat_skin` is now a thin wrapper. Cold 674 -> ~226 us (most of the rest is the `waterfall_seam_at` scan, itself bounded in 6c). |
+| S2 `climate_biome_id` | **RESOLVED** | folded into the fused `GroundSample` (`biome_id` is a field, computed once per sector); the public entry reads the memo. |
+| S3 `water_table_raw` | **RESOLVED** | memoized on the sector AND its inputs (`climate_moisture`, `_terrain_height_base`) are the cached/memoized forms; a fresh sample now pays 2.14 calls / 1.15 hits (measured), down from the full re-derivation. |
+| S4 `river_channel` | **RESOLVED** | `RiverSpec.bound_ang` + `_river_spec_far()` (a per-spec angular bound; 6c) and the same for `waterfall_seam_at` (`seam_bound_ang`). |
+| S5 combined memo | **PARTIAL** | the fused `GroundSample` is ONE cache entry carrying height + skin, so a vertex no longer keys height and color separately (the S5 goal). The per-field caches remain for the non-fused public entry points. |
+| S6 cold boot derive | **RESOLVED** | S6 parallel build PLUS the 6c/6d law shrinks: cold build 2004 -> ~780 ms (2.6x). The cold sample itself fell 389 -> ~290 us (`ground_sample` ~196 us + splat ~28 us + overhead). |
+| S7 streamer `_patches` | open | decommission the streamer once the clipmap is the only path (section 7). |
+
+**New (6d):** `road_height_override` was the LAST per-vertex scan without
+a bound -- `RoadSpec.probe_pts` (the precomputed node + slerp-third set)
++ `bound_pts`/`bound_ang` (the checkpoint early-out) closed it: cold
+81 -> 7 us. See prd-ground-sample.md section 6d.
 
 **Measured redundancy (instrumented `SectorCache`, partial clipmap
 build): 675,904 `get_value` calls at a 90.6% hit rate.** Nearly all of
