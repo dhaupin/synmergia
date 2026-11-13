@@ -115,10 +115,31 @@ Bloom-containment deeds, and companion/mount bonds, never with
     first consumer and is playable end-to-end; when a true world-
     waypoint wake mechanic lands, its events tick the same contract
     and stack additively.
-  - The remaining 7 types have NO bridge yet -- they are
+  - RECORD_INSIGHT <- SignService.insight_recorded (prd-psy.md
+    sec. 10). Target is the literal "sky_insight". Deferred connect
+    (SignService is a later autoload).
+  - SWIM <- OceanService.water_entered (prd-ocean-depths). Fires
+    once per dry -> wet entry; objectives target the ocean_ volume
+    id verbatim. Deferred connect; `has_signal` keeps it optional.
+  - GLIDE <- ThermalService.glide_distance_reached (prd-thermal).
+    Fires each time cumulative glide crosses a GLIDE_QUEST_STEP
+    (300 m) boundary; the signal's meters are the credited amount.
+    Deferred connect; optional.
+  - **Wired set (7 of 14):** KILL, COLLECT, TALK, EXPLORE,
+    RECORD_INSIGHT, SWIM, GLIDE -- exactly the types the quest data
+    authors today. The other 7 (ESCORT, DEFEND, DELIVER, USE_ITEM,
+    CRAFT, REACH_LEVEL, ACHIEVE_STEP) have NO bridge yet -- they are
     await-callers (update_quest_progress) for the systems that own
     them (InventoryService craft paths for CRAFT, etc.). Wire on
     first use, test like the others.
+  - **Coverage gate:** `game/tests/test_quest_bridge_coverage.gd`
+    asserts that every objective type used in `game/data/quests/*.tres`
+    has a live bridge in QuestService (a reference to the enum member
+    before the display-text switch), so authoring an unwired type
+    fails CI instead of shipping a dead counter. The bridge tests
+    (`test_quest_lore_bridges`, `test_quest_explore_bridge`,
+    `test_quest_swim_bridge`, `test_quest_glide_bridge`) are in
+    DEFAULT_SET alongside it.
 - **Data:** `game/data/quests/*.tres` (QuestData schema: objectives
   array of {id, type, target, count}, rewards array, chain fields
   next_quest_id/previous_quest_id, required_quests, repeatable +
@@ -128,8 +149,10 @@ Bloom-containment deeds, and companion/mount bonds, never with
   consumer).
 - **Tests:** `game/tests/test_quest_lore_bridges.gd` (TALK + COLLECT
   end-to-end, 8 asserts), `test_quest_explore_bridge.gd` (EXPLORE
-  end-to-end, 6 asserts), `test_notif_migration_quest.gd` (10),
-  `test_achievement_flow.gd`, `test_achievements.gd`.
+  end-to-end, 6 asserts), `test_quest_swim_bridge.gd` (SWIM, 9),
+  `test_quest_glide_bridge.gd` (GLIDE, 10), `test_quest_bridge_coverage.gd`
+  (data types subset of wired bridges, 5), `test_notif_migration_quest.gd`
+  (10), `test_achievement_flow.gd`, `test_achievements.gd`.
 - **Known drift:** village elder dialogue fixed to Gloamwood
   (prd-story.md sec. 10). Quest icon paths reference
   `res://icons/quests/` which is mostly empty -- icons are

@@ -8,7 +8,7 @@ CURRENT state + ACTIVE work only.
 
 
 
-## 2026-11-29f -- clipmap-fold survey + removal-candidate audit (staging 6871eb51)
+## 2026-11-29g -- clipmap-fold survey + removal-candidate audit (staging 6871eb51)
 - SESSION GOAL (user): after the clipmap became the sole terrain renderer, survey the codebase for (A) anything else that should fold into the clipmap/provider path and (B) now-deprecated / removal candidates. No full runner (being reworked to parallel); each claim read from the tree.
 - DELIVERABLE: `labs/clipmap-fold-survey.md` -- Part A (fold candidates ranked by value) + Part B (verified-dead removals) + Part C (misc open items) + a recommended order.
 - PART A (fold): A1 `globe_world.gd` still names its clipmap `streamer` (+ `_setup_streamer`, `STREAMER_TILE_LIFT`, ~40 call sites) -- a rename pass; A2 the MAIN world's visible ocean is a hand-built `SphereMesh` shell (`_build_water`) reading `terrain_gen.sea_level`, NOT the `ocean_sundered_sea.tres` declaration the swim law reads -- the moon/underworld already unified theirs via `WaterKit`/the clipmap sheet, so the main world is the last split; A3 the clipmap's "streamer parity" shims (`pending_derive`/`_mesh_pending`/`_prop_pending`/`mesh_lane_stats`) -- rename WITH A1; A4 `backend_penrose` + the Penrose chart-LOD overlay (gate OFF by default) -- a keep-or-remove decision; A5 the authored prop builders are the CORRECT layer, not debt.
@@ -17,6 +17,15 @@ CURRENT state + ACTIVE work only.
 - PART B2 (dead, tied to a decision): `backend_penrose.gd` + its non-runner probe; `game/debug/*.gd` (9); `dev2/*.gd` (9) + `dev_temp/probes/*.gd` (13) = 2,834 lines, refs=0, not in the runner -- but `wilds_probe`/`cistern_probe` are cited receipts, so keep-out-of-CI rather than blind-delete.
 - PART C: only ONE real TODO in non-test game code; `world_map._world_size = 8192` feeds only the planar fallback; `world_playable`/`player_controller` are deleted (comment-only refs). No code changed this round -- survey only.
 - VERIFIED before writing: local == remote == `6871eb51`, tree clean, 0 open PRs (PR #68 already merged at `e6c47848`).
+
+
+## 2026-11-29f -- quest bridge coverage: the dead-counter gate + 4 dormant bridge tests (staging)
+- SESSION GOAL (user): continue synmergia world/lore/.tres/data work from latest `staging` (PR #68 already merged; moon round landed).
+- WHAT I FOUND (drift, same class as the weather round): `prd-quests.md` still read "the remaining 7 types have NO bridge yet" while `quest_service.gd` had long since wired **7 of 14** -- KILL, COLLECT, TALK, EXPLORE, RECORD_INSIGHT, SWIM, GLIDE. The doc undercounted by three (it never listed the RECORD_INSIGHT/SWIM/GLIDE bridges added in prd-psy/prd-ocean-depths/prd-thermal). Worse: the four bridge tests (`test_quest_lore_bridges`, `test_quest_explore_bridge`, `test_quest_swim_bridge`, `test_quest_glide_bridge`) existed and passed but were NOT in `DEFAULT_SET` -- CI never ran them, so a future deletion of any bridge would go unnoticed.
+- SHIPPED (new gate): `game/tests/test_quest_bridge_coverage.gd` (5 asserts). It parses the `ObjectiveType` enum from `quest_data.gd`, scans every `game/data/quests/*.tres` for authored `"type"` values, and requires **data types is a subset of bridged types**. A "bridge" counts only as a QuestService reference to the enum member that sits BEFORE the display-text switch (`match obj_type:`) -- the switch is presentation, not a credit path, so it can't fake a bridge. A floor assert (KILL/COLLECT/TALK/EXPLORE present) makes a moved cut-marker fail loudly instead of passing vacuously; bridged-but-unused types print as `[info]`.
+- SHIPPED (registration + doc): added `test_quest_bridge_coverage` + the four dormant bridge tests to `DEFAULT_SET` (grouped after `test_sky_witness`). Rewrote the `prd-quests.md` bridge section (7 of 14 wired, the other 7 named as await-callers) and its tests list.
+- RECEIPTS: coverage gate 5/0. Red-by-name verified -- planted a phantom DEFEND (type 3) objective into a quest `.tres` -> `[FAIL] objective types used in data with NO bridge: DEFEND`, reverted clean. Full `DEFAULT_SET`: **154 passed / 2 failed** (`probe_planet_rebase_20km`, `probe_riding` -- both pre-existing, reproduced on clean staging). New tests in-run: coverage 5/0, lore 8/0, explore 6/0, swim 9/0, glide 10/0, 0 unresolvable names.
+- NOTE: sandbox reset had wiped the engine; reinstalled Godot 4.7.2 to `~/godot-bin/godot` (matches Dockerfile `GODOT_VERSION`). The runner requires `godot` on PATH (`PATH=$HOME/godot-bin:$PATH`).
 
 
 ## 2026-11-29e -- the moon provider reads its declaration + PR #68 merged (staging)

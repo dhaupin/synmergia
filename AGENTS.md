@@ -1369,3 +1369,33 @@ engine binary is provisioned by `scripts/setup-dev.sh`, not by LFS.
   the sandbox wipes). A `/tmp/synmergia` symlink points at it for
   compatibility. Godot 4.7.2 at `~/godot-bin/godot`; run tests with
   `GODOT_BIN=~/godot-bin/godot scripts/godot_test_runner.sh`.
+
+### Quest objective bridges + CI triggers (learned 2026-11-29)
+
+- **Objective types and their bridges.** `quest_data.gd` `ObjectiveType`
+  has 14 members; `quest_service.gd` bridges **7** of them (KILL, COLLECT,
+  TALK, EXPLORE, RECORD_INSIGHT, SWIM, GLIDE). An authored objective type
+  with no bridge is a **dead counter** the player can never advance.
+  `game/tests/test_quest_bridge_coverage.gd` guards this: it parses the
+  enum, scans `game/data/quests/*.tres` for authored `"type"` values, and
+  requires data types is a subset of bridged types. It counts a "bridge"
+  only as a QuestService reference to the enum member **before** the
+  display-text switch (`match obj_type:`) -- the switch is presentation,
+  so it cannot fake a bridge. Add a bridge by calling
+  `update_quest_progress(player_id, ObjectiveType.X, target, amount)`
+  from a signal handler; then add the type to the data.
+- **The bridge tests must be in `DEFAULT_SET`.** `test_quest_lore_bridges`,
+  `test_quest_explore_bridge`, `test_quest_swim_bridge`,
+  `test_quest_glide_bridge` existed and passed for months but were NOT in
+  the runner's DEFAULT_SET, so CI never ran them. When you add a test,
+  register it in `scripts/godot_test_runner.sh` DEFAULT_SET or it is dead
+  weight.
+- **CI does NOT gate staging.** `.github/workflows/web-ci.yml` and
+  `web-lockfile-guard.yml` both trigger on `pull_request: branches: [main]`
+  only -- a PR into `staging` runs **no** Godot test workflow. Cloudflare
+  Pages may post a preview check (only when web-affecting paths change).
+  So the gate for a staging PR is a manual `DEFAULT_SET` run on the branch,
+  not a green check. Do not wait on Actions for a staging PR.
+- **Known pre-existing failures** on clean staging: `probe_riding` and
+  `probe_planet_rebase_20km` (plus historically `probe_world_lattice`).
+  A full run is ~154 passed / 2 failed; those two are the floor.
