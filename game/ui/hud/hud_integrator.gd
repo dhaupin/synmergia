@@ -3,7 +3,7 @@
 ## Sits alongside HudLayer. Connects:
 ##   - PlayerManager health/mana/exp -> MenuManager status bars
 ##   - TargetingManager target_* -> TargetFrame + BossHealthBar
-##   - EntityService entity_spawned/died -> CombatLog + NamePlate spawn pool
+##   - EntityService entity_spawned/died -> CombatLog + floating nameplate (entities/floating_name.gd)
 ##   - EventHub entity_died, player_died -> CombatLog kill messages
 ##   - ChatService message_received -> ChatUI
 ##   - NotificationService notifications -> SystemCombatLog entries
@@ -122,7 +122,7 @@ func _connect_all() -> void:
 		if not TargetingManager.action_executed.is_connected(_on_action_executed):
 			TargetingManager.action_executed.connect(_on_action_executed)
 
-	# Entity lifecycle -> CombatLog + NamePlate.
+	# Entity lifecycle -> CombatLog + floating nameplate.
 	if EntityService:
 		if EntityService.has_signal("entity_registered") \
 				and not EntityService.entity_registered.is_connected(_on_entity_spawned):

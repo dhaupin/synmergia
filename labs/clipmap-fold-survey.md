@@ -193,7 +193,11 @@ are not mistaken for debt.
 Each was checked for references OUTSIDE its own file (path AND bare symbol).
 "refs=0" means nothing in `game/**/*.gd|*.tscn` mentions it.
 
-### B1. Verified dead -- safe to delete (HIGH confidence)
+### B1. Verified dead -- safe to delete (HIGH confidence) -- REMOVED 2026-11-13
+
+> All 16 files below were re-verified dead against the post-#72 tree (only `.godot`
+> caches + self-references) and `git rm`'d this round. The two stale `NamePlate`
+> comments in `hud_integrator.gd` were repointed to `entities/floating_name.gd`.
 
 | File | Lines | refs | Notes |
 |---|---|---|---|
@@ -292,7 +296,10 @@ ones sit on disk for deleted sources: `probe_meshcache_ram.gd.uid`,
    parity shims)~~ **DONE 2026-11-13** -- A1 (handle/`_setup_clipmap`/`TILE_LIFT`
    + all external callers) AND A3 (parity shims -> `pending_jobs`/`mesh_pending`/
    `prop_pending`/`lane_stats`).
-2. **B1** (delete the 16 verified-dead files, ~2,300 lines) -- zero risk.
+2. ~~**B1** (delete the 16 verified-dead files, ~2,300 lines)~~ **DONE
+   2026-11-13** -- all 16 re-verified dead and `git rm`'d; the two stale
+   `NamePlate` comments repointed. Gates green (naming 59/0, autoload audit 2/0,
+   content-ref 9/0, probe_clipmap ALL PASS, probe_globe_world exit 0).
 3. ~~A2 (main-world ocean from the `OceanVolume` declaration)~~ **DONE
    2026-11-13** -- the sea shell is declaration-driven through `WaterKit`
    (see A2 above); no shell deletion (a whole-sphere sea is structurally a
