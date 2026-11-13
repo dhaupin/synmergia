@@ -143,6 +143,14 @@ func _run() -> void:
 	_check("the crater holds a real swim band (6 m at the mid mark)", \
 		absf(svc.sample_depth(crater_mid, crater) - 6.0) < 0.0001 \
 		and svc.band_at(crater_mid) == B.SUBMERGED)
+	# THE DECLARED-GEOGRAPHY LAW (S16.6): the moon's ground law reads the SAME
+	# OceanVolume the swim law reads -- one truth for the drawn sea and the
+	# swimmable sea. A fresh provider must resolve its geometry from the data.
+	var MProv: GDScript = load("res://scenes/worlds/moon_provider.gd")
+	var mp = MProv.new()
+	_check("the moon provider reads its crater geometry from the declaration", \
+			absf(float(mp.crater_water_radius()) - (1200.0 - 12.0)) < 0.001 \
+			and absf(float(mp.crater_pool_ang()) - float(crater.pool_angular_radius)) < 0.0001)
 
 	# ---- H. The breather (S14.4: gear owns air, the profile owns speed) ---
 	var ds = root.get_node_or_null("DataService")
