@@ -7,6 +7,18 @@ commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
 
+## 2026-11-28d -- content: the NPC parity bugs LAND (Part A of the board) (branch fix/npc-parity, no PR yet)
+- SESSION GOAL: land Part A of the rewritten content board (`labs/subagent-tasks.md`) -- the three grep-verified parity bugs -- before the creative content. All three fixed + gated; docs board updated (Tasks 1-3 -> done).
+- BUG 1 (dead quest hook): `npc_blacksmith_village.tres` carried `{"type": "quest", "ref_id": "quest_intro_core_npcs"}` -- the inline-shape outlier (every sibling uses `quest_ids`), and no offering file exists for that id, so the hook was dead. FIX: `quest_ids: ["quest_intro_core_npcs", "quest_copper_seam"]` (also folded in the smith's own orphaned copper quest).
+- BUG 2 (sideways/backwards NPCs -- the user's report): `globe_world._spawn_town_npc` set `global_position` but never aligned the body, so every village NPC stood world-Y up (perpendicular to the sphere = sideways) with an identity facing (backwards). Enemies get both laws; gates/portals call `_align_radial`; NPCs got neither. FIX: `_align_radial(entity, dir)` (local +Y == surface up) + new `_face_npc(entity, dir, npc_data)` (yaw around local up, default 0 faces the plaza inward; `NPCData.spawn_rotation` is now finally READ as an offset).
+- BUG 3 (quest reachability): 11 of 27 quests were offered by no NPC. After fixing the parsers (below), the truly-orphaned MAIN/SIDE set was 7: `quest_main_teachings`, `quest_arena_trial`, `quest_boar_tusks`, `quest_wings_over_haven` (elder), `quest_gloam_harvest` (herbalist), `quest_pearl_dive` (jeweler), `quest_copper_seam` (blacksmith). Wired each to its authored giver. `quest_main_awakening` (no giver -- the opening state) is now auto-accepted in `_accept_starter_quests`, which unlocks `quest_main_teachings` (its `required_quests`).
+- GATES (fails-first, both verified RED before the fix): `test_data_naming_lint` gains (a) "NPC inline quest includes use quest_ids and resolve" and (b) "Every MAIN/SIDE quest is offered by some NPC" (inline quest_ids + referenced quest-type offerings; auto-accepted quests exempt). `probe_starter_village` gains an ORIENTATION law -- every village NPC's local +Y must equal the radial up (verified: 8 NPCs, dot 1.0; without the align fix the dot was ~0.0 = sideways).
+- PARSER FIX: the lint's quest-id extraction was line-based and missed single-line include dicts; replaced with a `_quest_ids_in()` regex helper that reads BOTH `"quest_ids": [...]` (NPC inline) and `quest_ids = [...]` (offering files).
+- RECEIPTS: `test_data_naming_lint` PASS; `probe_starter_village` PASS; `test_content_ref_integrity` PASS; `test_dialogue_quest_reward` PASS; `test_quest_lore_bridges` PASS. `test_interaction_pipeline` FAILS -- but on `staging` too (stashed-verify confirmed): pre-existing, unrelated.
+- DOCS: board Tasks 1-3 -> done. NEXT: Part B (wire the six empty class skill trees from their own `required_class`/`required_level` tags) then Part C (the creative content).
+- PUSHED: not yet (branch `fix/npc-parity` sits on `chore/content-audit-board`; commit `85f961b`).
+
+
 ## 2026-11-28c -- content audit: the NPC parity breaks + the lore/wiring gap board (staging, no PRs yet)
 - SESSION CONTEXT: user asked for a review of the synmergia content layer (lore, .tres, dialogue, quests) to find gaps we can fill, then: "record all this in /labs/subagent-tasks before we proceed". Docs-only this round; the fixes land next.
 - AUDIT FOUND THREE CONFIRMED PARITY BUGS (code reading, each grep-verified):

@@ -47,7 +47,7 @@ These are confirmed by code reading on 2026-11-28. Each is a data-vs-build or
 code-vs-schema gap, not a design question. All three want their own commit on
 one branch (`fix/npc-parity`) with a gate added.
 
-## Task 1 -- The blacksmith's dead quest hook (NPC include parity) -- status: todo
+## Task 1 -- The blacksmith's dead quest hook (NPC include parity) -- status: done (2026-11-28d)
 
 **The bug:** `game/data/npc/npc_blacksmith_village.tres` carries its quest as
 
@@ -77,7 +77,7 @@ names `quest_ids` (not `ref_id`) with every id resolving to a real
 `data/quests/*.tres`. Verify the gate FAILS on the current smith file before
 fixing it (the same fails-first discipline the skill lint used).
 
-## Task 2 -- The sideways / backwards NPCs (missing radial align) -- status: todo
+## Task 2 -- The sideways / backwards NPCs (missing radial align) -- status: done (2026-11-28d)
 
 **The bug (two halves, one cause):**
 
@@ -113,7 +113,7 @@ epsilon of the radial up at its position, and that a non-default
 `spawn_rotation` produces the expected yaw. This is the check that would have
 caught the bug.
 
-## Task 3 -- Quest reachability + the 11 orphaned quests -- status: todo
+## Task 3 -- Quest reachability + the 11 orphaned quests -- status: done (2026-11-28d)
 
 **The finding:** after accounting for BOTH inline includes and offering files
 (`shoal_freight_quests`, `village_quests`, etc.), **11 of 27 quests are
