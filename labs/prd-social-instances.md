@@ -146,7 +146,7 @@ stranger/none), spectator room book, room-close rescue.
   owns the bookkeeping) so returned seats are never burned against
   capacity. note_instance_activity is the AFK ledger for fight
   code. HordeEventService untouched -- the horde loop sits ON TOP
-  of the door (it keys off zone entry). Gloomwood Depths tres got
+  of the door (it keys off zone entry). Gloamwood Depths tres got
   instance_time_limit 3600 (1 h dwell cap). probe
   probe_dungeon_front_door 19/19 in DEFAULT_SET.
 - [ ] Spectate permissions model; recent-players privacy UI; loot-

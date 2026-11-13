@@ -122,12 +122,12 @@ func _run() -> void:
 	_check("respawn leaves the auditable cleared record (actor = world)",
 		bool(back.get("payload", {}).get("cleared", false)) and str(back.get("actor", "")) == "world")
 
-	# -- F. Timber + stone (the Gloomwood chop + the quarry) ----------
+	# -- F. Timber + stone (the Gloamwood chop + the quarry) ----------
 	# Registering a lumber node: DataService truth only -- the service
 	# refuses unknown items, so these checks double as data-law proof
 	# that res_timber / res_stone actually EXIST in the registry.
 	var tree_nid: String = hs.register_node("hs_gloomwood_pine_1", "zone_forest_meadow", "res_timber", Vector3(6, 0, 2), 2, 30.0)
-	_check("a tree registers as a timber node (chop the Gloomwood)",
+	_check("a tree registers as a timber node (chop the Gloamwood)",
 		tree_nid == "hs_gloomwood_pine_1")
 	var rock_nid: String = hs.register_node("hs_quarry_boulder_1", "zone_forest_meadow", "res_stone", Vector3(7, 0, 4), 1, 30.0)
 	_check("a boulder registers as a stone node (the quarry gives)",

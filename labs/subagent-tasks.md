@@ -273,28 +273,45 @@ include to each NPC file.
 TEACH_SKILL), and `labs/story-dialogue-npcs.md` if it exists (the old Task 1
 output -- reuse any usable voice profiles).
 
-## Task 6 -- Lore-bearing props: signs, the monolith, the chronicle -- status: todo
+## Task 6 -- Lore-bearing props: signs, the monolith, the chronicle -- status: landed (2026-11-28)
 
 **The finding:** only 3 signs exist; the world is full of unlabelled places.
 `labs/prd-story.md` section 9 keeps five mysteries deliberately open -- do not
 canonize answers.
 
-**Produce:**
+**Landed:** `labs/story-chronicle.md`. Premise corrected -- `game/data/signs/`
+is the **Sky Sign** surface (constellation glyphs `WAKE`/`SUNKEN`/`GROVE` that
+assemble the daily vault code), NOT a place-inscription surface; authoring
+institution text there would corrupt the puzzle, so no signs were added. The
+real gap was the lore doc: act/chapter framing for `game/data/acts/*.tres`, the
+monolith's three bronze bands (two fact, one vow-in-the-past-tense), and the
+village origin short. Includes the four-glyph/three-sign reconciliation.
+
+**Produce (as specified):**
 - `labs/story-chronicle.md` (the old Task 3): almanac-style entries for the 3
   acts (`game/data/acts/*.tres` chapters), the capitol monolith's
   wrong-written history, and the village origin short.
 - New `game/data/signs/*.tres` (schema `sign_profile.gd`, prefix `sign_`): one
   per institution and one per road-marker, each a short inscription in the
   Concord voice. Signs are the cheapest lore surface in the game.
+  **Not done -- declined:** the sign surface is the puzzle glyph feed, not an
+  inscription surface (see above). Flagged instead of authored.
 
 **Read first:** `game/core/services/sign_service.gd`, `acts_service.gd`, the
 three existing signs, and `labs/prd-story.md` sections 4-5 (institutions, the
 Bloom).
 
-## Task 7 -- Weather + event lore -- status: todo
+## Task 7 -- Weather + event lore -- status: landed (2026-11-28)
 
 **The finding:** 5 weather events, 7 hordes, 2 content packs exist; the lore
 for them is thin.
+
+**Landed:** `labs/story-weather-events.md` refreshed. Was stale (4 weather / 5
+horde). Corrected to 5/7; added the Bloom Stirs event section and the two Bloom
+horde rows; fixed a real consistency bug (a day's code is **four glyphs** from
+four windows, not "the three signs' order" -- matches the First Vault riddle)
+and the "only the storm pack stirs a horde" claim (the Bloom Stirs stirs the
+cull too, gloam-scoped).
 
 **Produce:** `labs/story-weather-events.md` (the old Task 4) -- for the aurora
 window, the Bloom Stirs event (`weather_bloom_stir`), and each horde config:
@@ -305,23 +322,42 @@ happens" -- that separation is the world's honesty law.
 **Read first:** `game/data/weather_events/*.tres`,
 `weather_event_data.gd`, `game/core/frame/srv/weather.gd`.
 
-## Task 8 -- Landmark naming pass -- status: todo
+## Task 8 -- Landmark naming pass -- status: landed (2026-11-28)
 
 **Produce:** `labs/story-landmark-names.md` (the old Task 5) -- a table of
 names keyed to coordinates-bearing facts already in code: the great range, the
 far coast (capitol), the ford, the harbor, the underworld strata, the moon's
-meridian, the Gloomwood gate. For each: the name, a one-line etymology, and
+meridian, the Gloamwood gate. For each: the name, a one-line etymology, and
 the field in code it would attach to. Name choices only -- no code edits.
+
+**Landed:** `labs/story-landmark-names.md` (143 lines) keyed to real
+coordinates computed from the terrain law (`SPAWN_CENTER` 0.0/0.0,
+`ISLAND_CENTER` 0.0/30.0, `LAKE_CENTER` 15.1/73.1, `STRAIT_CENTER` 49.8/113.2,
+`cove_axis()` capitol 2.8/0.0). Resolved the naming split: **Gloamwood** is
+canonical (owner call). Swept every player-facing "Gloomwood" to "Gloamwood"
+in `game/data/` and the labs canon docs (ids were already `gloam`; display
+strings only), regenerated the web mirror, and recorded the reversal in
+`prd-story.md` sec. 10.
 
 **Read first:** `globe_world.gd`, `globe_underworld.gd`, `globe_moon.gd`,
 `strait_chart.gd`, and the biome list in the terrain probes.
 
-## Task 9 -- Achievement listeners for the waking verbs -- status: todo
+## Task 9 -- Achievement listeners for the waking verbs -- status: landed (2026-11-28)
 
 **The finding:** `labs/prd-quests.md` section 4 says achievements should
 celebrate the world's verbs, not grind counters. `achievement_listeners.gd`
 covers combat/horde/social; the waking verbs (EXPLORE/waypoint wakes, Bloom
 containment, companion/mount bonds) have thin coverage. 32 achievements exist.
+
+**Landed:** the residual dead verb. `SignService.insight_recorded` -- the
+game's namesake "look up and write it down" practice -- reached only
+`QuestService`, never an achievement. Added the deferred insight bridge in
+`achievement_listeners.gd` (mirrors the ride bridge; file uses tabs), 3
+achievements (`achievement_sky_witness_1/_10/_30.tres`, `target_type =
+"insight"`) and 3 titles (`title_skywatcher/_skykeeper/_longwatch.tres`).
+Anti-farm rides the service's own per-window de-dupe. Corpus now 40
+achievements / 28 titles. Receipt: `game/tests/test_sky_witness.gd` (15/0),
+added to the runner `DEFAULT_SET`. Web mirror re-synced.
 
 **Produce:** an audit of `game/data/achievements/*.tres` against
 `achievement_listeners.gd` -- which verbs are celebrated, which are missing --

@@ -3,7 +3,7 @@
 > **Scope rule (from the board):** everything here is `labs/` lore. `game/` is
 > read-only context. Do not edit GDScript, `.tres`, or any schema file from this
 > pass. A person or agent lands the good parts later. Grounded in the actual
-> data this session read: 4 weather-event `.tres`, 5 horde `.tres`, the
+> data this session read: 5 weather-event `.tres`, 7 horde `.tres`, the
 > weather law in `weather.gd`, and the sky-sign lore in `sign_profile.gd`.
 
 ---
@@ -25,12 +25,13 @@ not decoration, it’s the sky writing.
 The band vocabulary the world already uses (from `weather.gd`):
 - `clear`, `cloudy`, `rain`, `storm`, `aurora`
 
-The four authored weather events in `game/data/weather_events/` —
+The five authored weather events in `game/data/weather_events/` —
 `weather_aurora_window.tres`, `weather_fog_mystery.tres`, `weather_kp_gate.tres`,
-`weather_storm_pack.tres` — are not separate weather systems. They are the *named moments* the law
-lets the world hand the traveler. Storms stir hordes (the `storm_wolves` horde is the pack that
-answers a storm); the aurora opens a window the sky “writes”; fog is the treeline watching; and the
-tempest gate is the sky answered back.
+`weather_storm_pack.tres`, `weather_bloom_stir.tres` — are not separate weather systems. They are
+the *named moments* the law lets the world hand the traveler. Storms stir hordes (the `storm_wolves`
+horde is the pack that answers a storm); the Bloom Stirs wakes the Bloom cull in the gloam; the
+aurora opens a window the sky “writes”; fog is the treeline watching; and the tempest gate is the sky
+answered back.
 
 ---
 
@@ -102,7 +103,7 @@ the rumination is lore if you want a campfire voice for it.
 > “The tempest burns green — the gate is open. Answer it.”
 
 **What the weather law actually does:**
-- A `trigger_kind = 2` (Aurora) window with the hardest gate of the four: `aurora_min = 1.0`,
+- A `trigger_kind = 2` (Aurora) window with the hardest gate of the five: `aurora_min = 1.0`,
   cooldown 3600 seconds, `open_window_sec = 900.0`, no stirred horde, and the sky answers *green*
   before it’s answerable. This is the event that says “the sky wrote something worth risking for.”
 - The law is still the aurora band — just the most demanding version of it. The traveler has to arrive
@@ -114,7 +115,32 @@ the rumination is lore if you want a campfire voice for it.
 
 ---
 
-## The five hordes (as authored) — what they are, not what the lore invents
+### 5. The Bloom Stirs — `bloom_stir`
+
+**What the sky announces (from the .tres):**
+> “The sky turns active over the gloam — something the Bloom took is walking out of the trees.”
+
+**What the weather law actually does:**
+- A `trigger_kind = 0` window (storm/rain/tempest — the same trigger kind as `storm_pack`) with
+  `band_names = ["active"]`, `aurora_min = 0.5`, cooldown 480 seconds, `stir_waves = 2`, and
+  **`bloom_cull`** as the stirred horde.
+- Unlike `storm_pack`, it is **zone-scoped**: `zone_ids = ["zone_forest_meadow",
+  "zone_dungeon_forest_depths"]`. The cull only walks out where the Bloom sleeps deepest — the same
+  two zones `prd-story.md` names as the Bloom’s strongest ground. A storm stirs the wolves anywhere;
+  the Bloom stirs the cull only in the gloam.
+- No `open_window_sec` (0.0): this event has no answerable door to arrive at. Its whole output is the
+  stirred horde — the sky is not writing a key here, it is *rattling the trees*.
+- Because the trigger kind overlaps `storm_pack`’s, an “active” band in the gloam is the one weather
+  moment where the wilds’ answer is **Bloom-touched**, not lupine.
+
+**One rumination (campfire, keeper voice):**
+> “A storm calls the wolves and you hear them coming. This one you don’t hear at all — you just notice
+> the treeline has grown eyes, and the eyes are the wrong colour. That’s not weather. That’s the
+> garden remembering it used to have a keeper.”
+
+---
+
+## The seven hordes (as authored) — what they are, not what the lore invents
 
 The hordes already exist in `game/data/hordes/`. Their *data* shape is the truth; the lore below is
 the campfire read of them.
@@ -126,22 +152,29 @@ the campfire read of them.
 | `haven_siege` | Siege of Haven | 3 bandit campaigns escalating toward a troll_elite boss-optional wave; rewards grow 300/400/500 gold, 150/200/250 XP | the village’s weather day — the HordeEventService can drag it in when the sun does what the Concord signs read |
 | `boss_gauntlet` | Gauntlet of the Void | 3 pure boss waves (void_lord x3) with boss names Vault Warden / Void Ascendant / The Unmaker; each wave rewards per boss; no boss = finish after the last wave | the vault’s door practice — three doors, three names, one unpacking a traveler earns |
 | `vault_seal` | Vault Seal | 2 waves (slimes → bandits + slimes); dungeon instance scope; boss = void_lord “Vault Warden”; rewards 3000 gold / 1500 XP | the dungeon’s own answer to the sky — ever warded, never cute, the real test of whether a traveler’s ready for the vault |
+| `bloom_cull` | The Bloom Cull | 3 waves (5 feral_spore_spider → 4 blight_lizard + 2 rust_root_crab → 4 feral_spore_spider + 2 shrike_owl); boss = bloomwrought_warden; open-world (`instance_scope = ""`); rewards 1800 gold / 900 XP | the Bloom Stirs’ answer — the cull the active sky walks out of the gloam, bossed by the warden still on duty |
+| `bloom_descent` | Descent into the Bloom | 3 waves (6 feral_spore_spider → 5 blight_lizard + 3 rust_root_crab → 3 shrike_owl); boss = bloomwrought_warden, then final boss = sporebound_matriarch; `instance_scope = "dungeon"`; rewards 3600 gold / 1900 XP | the dungeon’s descent — the same cull, but it ends where the Bloom’s oldest node keeps making tenders |
 
 **Honest read on the horde file:** the horde data is *wave-by-wave* and *mixed-template*. The
 `storm_wolves` file is 2 waves of 4 wolves → 5 wolves + 3 slimes. The `trollmoot` file is slimes →
 slimes + wolves → wolves + 2 troll_elite with its boss. The `haven_siege` file is three bandit waves
 with an optional final boss wave. The `vault_seal` file is two waves + void_lord boss, dock-scoped.
-The `boss_gauntlet` file is three pure boss waves with no trash. Those are data facts, not lore
-inventions — a campfire voice can say *“three waves of wolves and slime”* only if the data says so, and
-the lore should resist making it prettier than the data allows.
+The `boss_gauntlet` file is three pure boss waves with no trash. The `bloom_cull` and `bloom_descent`
+files are the two Bloom hordes: both are three Bloom-touched waves bossed by the Bloomwrought Warden,
+and only `bloom_descent` carries the Sporebound Matriarch as its final boss. Those are data facts,
+not lore inventions — a campfire voice can say *“three waves of wolves and slime”* only if the data
+says so, and the lore should resist making it prettier than the data allows.
 
 ---
 
 ## The three Concord signs (lore against the sign data)
 
-The sky’s *code* is the three signs’ glyph order, assembled from who saw what when. The traveler’s
-winner is the traveler’s winner, and the vault door answers to *that* order — the law is the order, the
-lore is what the signs feel like. From `game/data/signs/`:
+The sky’s *code* is a day’s glyph order, assembled from who saw what when. There are **three signs**,
+but the law draws **four windows per day** (`sign_service.gd`, `WINDOWS_PER_DAY = 4`), so a day’s code
+is **four glyphs** in window order — not “the three signs’ order.” The traveler’s winner is the
+traveler’s winner, and the vault door answers to *that* order — the law is the order, the lore is what
+the signs feel like. (This is why `mystery_the_first_vault` says “speak the **four words** in the order
+the sky said them.”) From `game/data/signs/`:
 
 - **`sign_the_awakening`** — “The horizon splits along a seam of pale light. The oldest of the Concord’s
   signs: what slept is waking, and the sky remembers it first.” Glyph: `WAKE`. Seen at first light in
@@ -166,14 +199,15 @@ hordes are the *wilds’ answer* (when the storm stirs them). The aurora window 
 answer*. If a future chronicle wants to rhyme these, it should rhyme them honestly:
 
 - The sky writes (aurora gate / sky-code signs).
-- The wilds answer when tugged (storm pack → storm wolves; siege horde when the sun does what the
-  signs read).
+- The wilds answer when tugged (storm pack → storm wolves; the Bloom Stirs → the Bloom cull in the
+  gloam; siege horde when the sun does what the signs read).
 - The Concord keeps score so a traveler can answer the sky back (the daily “Watch the Sky” quest, the
   Daily sky-crate reward — real data, real quest).
 
 **Do not invent** an aurora–horde relationship that the data doesn’t show: the aurora window today
-stirs *nothing*. Only the storm pack stirs a horde. If lore wants an “aurora summons the vault seal,”
-it’s inventing a law the data doesn’t have. Flag it instead.
+stirs *nothing*. Two weather events stir a horde — the storm pack (`storm_wolves`) and the Bloom Stirs
+(`bloom_cull`, gloam-scoped). If lore wants an “aurora summons the vault seal,” it’s inventing a law
+the data doesn’t have. Flag it instead.
 
 ---
 

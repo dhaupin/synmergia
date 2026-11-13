@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "quest_gloamwood_ledger"
 display_name = "The Gloamwood Ledger"
-description = "Fenwick's last unbalanced line is the Gloomwood: the settlers' iron rolls up through the depths in stalker gullets and comes back as ore nobody hauled down. Six stills dig the same den -- clear the ledger line and bring its mythril up honest, from the mouths that swallowed it."
+description = "Fenwick's last unbalanced line is the Gloamwood: the settlers' iron rolls up through the depths in stalker gullets and comes back as ore nobody hauled down. Six stills dig the same den -- clear the ledger line and bring its mythril up honest, from the mouths that swallowed it."
 giver_npc_id = "npc_tidewright_fenwick"
 turn_in_npc_id = "npc_tidewright_fenwick"
 min_level = 48

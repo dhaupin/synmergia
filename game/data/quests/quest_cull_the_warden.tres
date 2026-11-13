@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "quest_cull_the_warden"
 display_name = "The Warden That Never Stood Down"
-description = "The Gloomwood Ledger names a sentinel still walking its patrol around a vault that stopped answering centuries ago, and the Bloom has grafted itself into the joints. Fenwick's last line: put it down honest. It has been on duty long enough."
+description = "The Gloamwood Ledger names a sentinel still walking its patrol around a vault that stopped answering centuries ago, and the Bloom has grafted itself into the joints. Fenwick's last line: put it down honest. It has been on duty long enough."
 quest_type = 1
 difficulty = 4
 giver_npc_id = "npc_tidewright_fenwick"

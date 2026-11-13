@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "sky_witness_10"
+display_name = "Keeper of the Sky"
+description = "Record ten insights -- the almanac is your ledger and the sky is the account"
+achievement_type = 1
+category = 3
+rarity = 1
+target = 10
+target_type = "insight"
+required_achievements = ["sky_witness_1"]
+gold_reward = 150
+xp_reward = 200
+title_reward = "skykeeper"
+icon_path = "res://icons/achievements/explorer.png"
+sort_order = 66

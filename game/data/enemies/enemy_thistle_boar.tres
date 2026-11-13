@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "thistle_boar"
 display_name = "Thistle Boar"
-description = "The Gloomwood's boar wears its armor in living thistle -- the matting grows across the shoulder like a hedgerow. Farmers lose hedges and tempers to these; barbs break tools, not patience."
+description = "The Gloamwood's boar wears its armor in living thistle -- the matting grows across the shoulder like a hedgerow. Farmers lose hedges and tempers to these; barbs break tools, not patience."
 enemy_type = 0
 level = 10
 faction = "hostile"

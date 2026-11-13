@@ -24,6 +24,7 @@ extends SceneTree
 ##   - Achievement title_reward must name an existing title
 ##   - Title unlock_source (achievement/quest) must exist; title ids are bare
 ##   - Acts: act_ prefix, filename == id, chapters present
+##   - Canon spelling: the Bloom woods are "Gloamwood" (no "Gloomwood") in data
 ##
 ## Run: godot --headless --path . --script res://tests/test_data_naming_lint.gd
 
@@ -79,6 +80,28 @@ func _has_prefix(ids: Dictionary, prefix: String, label: String) -> void:
 
 func _file_text(dir_path: String, base: String) -> String:
 	return FileAccess.get_file_as_string("res://%s/%s.tres" % [dir_path, base])
+
+
+## Every ".tres" path under a data subdir (recursive). Used by the canon-term
+## sweep so a dead display name cannot hide in a nested category folder.
+func _tres_paths_under(dir_path: String) -> Array:
+	var out: Array = []
+	var dir := DirAccess.open("res://" + dir_path)
+	if dir == null:
+		return out
+	dir.list_dir_begin()
+	var f := dir.get_next()
+	while f != "":
+		if f.begins_with("."):
+			f = dir.get_next()
+			continue
+		var rel := "%s/%s" % [dir_path, f]
+		if dir.current_is_dir():
+			out.append_array(_tres_paths_under(rel))
+		elif f.ends_with(".tres"):
+			out.append(rel)
+		f = dir.get_next()
+	return out
 
 
 ## Every dialogue id named in a text blob by a `"dialogue_id": "..."` key
@@ -497,6 +520,22 @@ func _run() -> void:
 		_ok("NPC/quest/dialogue copy honors the canon terms (no dead names)")
 	else:
 		_fail("Dead canon terms in copy: %s" % ", ".join(bad_canon))
+
+	# --- Canon spelling: the Bloom woods are "Gloamwood", never "Gloomwood" ---
+	# Owner call 2026-11-28 (labs/story-landmark-names.md, prd-story.md sec. 10):
+	# ids already read "gloam" (enemy_gloamwood_stalker, quest_gloamwood_ledger,
+	# loot_gloam_*, res_gloam_spore); the DISPLAY strings had drifted to
+	# "Gloomwood". Freeze the canon so the split cannot come back. Scans every
+	# .tres in game/data (recursive) -- display text only, ids are already right.
+	var gloom_hits: Array = []
+	for rel in _tres_paths_under("data"):
+		var gtxt := FileAccess.get_file_as_string("res://" + rel)
+		if gtxt.contains("Gloomwood"):
+			gloom_hits.append(rel)
+	if gloom_hits.is_empty():
+		_ok("Bloom woods are 'Gloamwood' everywhere in data (no 'Gloomwood')")
+	else:
+		_fail("'Gloomwood' spelling survives (canon is 'Gloamwood'): %s" % ", ".join(gloom_hits))
 
 	# --- Zone rosters reference real NPC ids ---
 	var bad_rosters: Array = []

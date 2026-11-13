@@ -6,7 +6,7 @@
 > home_zone) so the art and the map agree.
 >
 > **Canon anchors:** `zone_starter_plains`, `zone_forest_meadow`
-> (Gloomwood Meadow), `zone_village_center` (Village of Haven),
+> (Gloamwood Meadow), `zone_village_center` (Village of Haven),
 > `zone_dungeon_forest_depths`; species home zones `dark_highlands`
 > (Akkan) and `nexus_central` (Synthetic).
 
@@ -58,7 +58,7 @@ Labels: "STARTER PLAINS" only. No other text.
 
 ---
 
-## 2. Gloomwood Meadow (corruption at the treeline)
+## 2. Gloamwood Meadow (corruption at the treeline)
 
 The Forest Devourer's zone. Mist, grey wolves near the treeline,
 violet corruption runoff.
@@ -191,10 +191,10 @@ Labels: "NEXUS CENTRAL" only. No other text.
       labels clean (sec. 8.11)
 - [ ] One label per image, spelled right, no extra text
 - [ ] Zone mood matches its data: Starter Plains safe/lonely,
-      Gloomwood ominous/violet-veined, Haven the only warm scene,
+      Gloamwood ominous/violet-veined, Haven the only warm scene,
       Depths descending/teal-guided, Highlands martial/ember,
       Nexus serene/half-awake
 - [ ] No magenta anywhere (none of these zones are corrupted zones;
-      violet only in Gloomwood and Depths as mycelium)
+      violet only in Gloamwood and Depths as mycelium)
 - [ ] Same ink weight and 16:9 framing as the concept set
 - [ ] Drop in Drive, attach favorites for critique

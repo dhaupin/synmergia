@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1")
 id = "zone_dungeon_forest_depths"
-display_name = "Gloomwood Depths"
-description = "The dark heart of Gloomwood Forest. Ancient roots twist through the cavern walls. Looters and cultists have made this dungeon their lair. Difficulty: Normal."
+display_name = "Gloamwood Depths"
+description = "The dark heart of Gloamwood Forest. Ancient roots twist through the cavern walls. Looters and cultists have made this dungeon their lair. Difficulty: Normal."
 pvp_mode = 0
 level_requirement = 10
 max_level = 999

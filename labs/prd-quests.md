@@ -42,7 +42,7 @@ meanings and canon examples:
 
 | Type | In-world meaning | Canon example |
 |------|------------------|---------------|
-| KILL | Cull a Bloom-stirred or dangerous threat | Wolf Hunt (wolves stirred by something under Gloomwood) |
+| KILL | Cull a Bloom-stirred or dangerous threat | Wolf Hunt (wolves stirred by something under Gloamwood) |
 | COLLECT | Recover what the world scattered | Herb Gathering; "Recover Lost Schematics" (HUD canon) |
 | ESCORT | Walk someone home through the quiet | A seed-carrier to Haven |
 | DEFEND | Hold a woken thing while it stabilizes | Defend a just-woken waypoint until its mandala holds gold |
@@ -130,7 +130,7 @@ Bloom-containment deeds, and companion/mount bonds, never with
   end-to-end, 8 asserts), `test_quest_explore_bridge.gd` (EXPLORE
   end-to-end, 6 asserts), `test_notif_migration_quest.gd` (10),
   `test_achievement_flow.gd`, `test_achievements.gd`.
-- **Known drift:** village elder dialogue fixed to Gloomwood
+- **Known drift:** village elder dialogue fixed to Gloamwood
   (prd-story.md sec. 10). Quest icon paths reference
   `res://icons/quests/` which is mostly empty -- icons are
   art-pipeline work (gemini_interiors_ui.md icon family).
@@ -138,7 +138,7 @@ Bloom-containment deeds, and companion/mount bonds, never with
 ## 6. Content queue (story-first build order)
 
 1. **Act 1 spine (playable now):** Awakening -> The Old Roads ->
-   2-3 more main_* beats ending at the Gloomwood gate. Every beat
+   2-3 more main_* beats ending at the Gloamwood gate. Every beat
    uses TALK/EXPLORE/COLLECT only (all three wired and tested).
 2. **Dialogue depth:** village_elder_greeting is the only real tree;
    author per-institution greetings (smith, alchemist, storekeeper)

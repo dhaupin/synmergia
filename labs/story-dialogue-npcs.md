@@ -42,7 +42,7 @@ register: patient, slightly distant, fond of the place more than of people, will
 traveler the ugly part and then let them walk away from it.
 
 **Existing voice sample (village_elder_greeting, node 0):**
-> “Greetings, young one. You stand in the Village of Haven, a sanctuary at the edge of the Gloomwood.
+> “Greetings, young one. You stand in the Village of Haven, a sanctuary at the edge of the Gloamwood.
 > Few travelers find their way here.”
 
 **Voice rules:**
@@ -52,7 +52,7 @@ traveler the ugly part and then let them walk away from it.
 - She never promises safety. She promises witness.
 
 **Five signature phrases (elder):**
-1. “The Gloomwood keeps its own counsel. So do we.”
+1. “The Gloamwood keeps its own counsel. So do we.”
 2. “Storms pass. The fields do not forgive a late planting.”
 3. “You hear that wind? That is the strait clearing its throat again.”
 4. “We do not 설명하기 the old roads. We keep them.”
@@ -72,7 +72,7 @@ the world would plausibly add (not commit-ready data, just the shape of it).
 ### `village_elder_greeting` — Village Elder (zone_village_center)
 
 **Exists:** three nodes — a greeting, “what is this place,” and “work for me” that leads to the
-wolf-hunt pitch. The elder already names the Gloomwood and the mountain ridge and the weekly trade
+wolf-hunt pitch. The elder already names the Gloamwood and the mountain ridge and the weekly trade
 caravans.
 
 **What the world would plausibly add (shape only):**

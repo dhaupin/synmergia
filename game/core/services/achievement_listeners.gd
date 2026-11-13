@@ -28,10 +28,11 @@ var _session_flags: Dictionary = {}
 
 func _ready() -> void:
 	_connect_all()
-	# RideService is added to /root AFTER this autoload, so it is not resolvable
-	# here; connect it once the frame settles (same pattern as QuestService's
-	# glide/swim bridges).
+	# RideService and SignService are added to /root AFTER this autoload, so
+	# they are not resolvable here; connect them once the frame settles (same
+	# pattern as QuestService's glide/swim bridges).
 	call_deferred("_connect_ride_bridge")
+	call_deferred("_connect_insight_bridge")
 	_log("info", "AchievementListeners: Wired achievement event sources")
 
 ## ============================================================================
@@ -227,6 +228,25 @@ func _connect_ride_bridge() -> void:
 	if ride.mount_summoned.is_connected(_on_mount_summoned):
 		return
 	ride.mount_summoned.connect(_on_mount_summoned)
+
+## SignService.insight_recorded(player_id, sign_id, window_index) - THE waking
+## verb the game is named for: the sky-witness practice ("look up and write it
+## down"). record_insight() already de-dupes one insight per player per window
+## and returns "already recorded" without re-emitting, so this path cannot be
+## farmed by repeat gazes -- no extra once-flag is needed here. SignService is a
+## late autoload, hence the deferred connect (mirrors the ride bridge).
+func _on_insight_recorded(player_id: String, _sign_id: String, _window_index: int) -> void:
+	if player_id == "":
+		return
+	AchievementService.track(player_id, "insight", 1)
+
+func _connect_insight_bridge() -> void:
+	var sign_svc := get_node_or_null("/root/SignService")
+	if sign_svc == null or not sign_svc.has_signal("insight_recorded"):
+		return
+	if sign_svc.insight_recorded.is_connected(_on_insight_recorded):
+		return
+	sign_svc.insight_recorded.connect(_on_insight_recorded)
 
 ## AchievementService.achievement_unlocked(player_id, achievement_id)
 ## Re-toast with the display name; hud_services also fires its own toast,

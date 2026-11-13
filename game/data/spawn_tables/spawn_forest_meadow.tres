@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "spawn_forest_meadow"
-display_name = "The Gloomwood treeline"
+display_name = "The Gloamwood treeline"
 zone_id = "zone_forest_meadow"
 activate_radius_m = 0.0
 deactivate_radius_m = 0.0

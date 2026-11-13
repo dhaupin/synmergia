@@ -1895,7 +1895,7 @@ covers most of what we need. We extend it with:
 ```yaml
 zone:
   id: "zone_forest_meadow"
-  display_name: "Gloomwood Meadow"
+  display_name: "Gloamwood Meadow"
   pvp_mode: SAFE | SPECIES_PVP | FACTION_PVP | FREE_PVP | WARZONE
   level_requirement: 1
   max_level: 15
@@ -2083,7 +2083,7 @@ the dungeon template's policy.
 We considered replacing zones with "just chunks and rules",
 but kept zones for one big reason: **gameplay-rule
 authoring is easier with named zones**. Designers think in
-zones ("the Gloomwood Meadow area"), not in chunks
+zones ("the Gloamwood Meadow area"), not in chunks
 ("64,128,256"). Zones are a layer of human-meaningful
 naming on top of the spatial grid.
 

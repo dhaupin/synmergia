@@ -92,7 +92,7 @@ What that means for tone:
   literal: this thing took the wrong path and now it wears the wrong
   color.
 - The strongest Bloom places are where the Convergence slept deepest:
-  the Gloomwood, the forest depths, the old conduit roots. The Bloom is
+  the Gloamwood, the forest depths, the old conduit roots. The Bloom is
   not an invasion; it is inertia with a heartbeat.
 - The Concord does not “defeat” the Bloom in some heroic sense. The
   Concord manages, wards, listens, cuts, mends, and admits it doesn’t

@@ -130,7 +130,7 @@ The Web Portal provides an operational management interface integrated with Synm
 - **Zone Map:** Live player distributions across zones:
   - `zone_village_center` (Haven)
   - `zone_starter_plains` (Meadowhaven)
-  - `zone_forest_meadow` (Gloomwood Meadow)
+  - `zone_forest_meadow` (Gloamwood Meadow)
   - `zone_sundered_sea` (Sundered Sea)
 - **Zone Rules:** Visual status of safe zones, contested zones, and full PvP flags (`FactionManager`).
 

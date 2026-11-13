@@ -94,7 +94,7 @@ engine of the setting's mystery. See sec. 9.
 
 Canon anchors: violet = mycelium/arcane ONLY; magenta = hostility
 key (art bible sec. 3, 8.1, 8.2); the Forest Devourer; Feral
-Spore-Spider, Shrike-Owl, Rust-Root-Crab, Blight-Lizard; Gloomwood's
+Spore-Spider, Shrike-Owl, Rust-Root-Crab, Blight-Lizard; Gloamwood's
 violet runoff.
 
 **The Bloom** is the mycelium network gone masterless. It was the
@@ -110,7 +110,7 @@ What the Bloom wants is the setting's active question. It builds
 nothing and destroys little -- it INCORPORATES. The Forest Devourer
 is not an attack; it is a thesis: roots grew through the hull and
 made the machine part of the garden. The Bloom is at its strongest
-where the Convergence sleeps deepest (Gloomwood, the Forest Depths).
+where the Convergence sleeps deepest (Gloamwood, the Forest Depths).
 
 **Rule for writers:** the Bloom is tragic, not evil. It is a
 caretaker that outlived the thing it cared for. Corrupted agents are
@@ -136,7 +136,7 @@ Warden** (`bloomwrought_warden`, CHAMPION) is a Convergence sentinel
 the Bloom grafted where it stood -- still walking its patrol around a
 vault that stopped answering, never ordered to stand down: a patient
 still on duty. **The Sporebound Matriarch** (`sporebound_matriarch`,
-BOSS, Gloomwood Depths) is the Bloom's oldest node: a vast brood-mother
+BOSS, Gloamwood Depths) is the Bloom's oldest node: a vast brood-mother
 that keeps making tenders for a garden whose gardener never came back.
 It is not a villain. It is a mother with no one left to raise. Both
 are patients, not monsters; the copy must never call them evil.
@@ -164,7 +164,7 @@ admin-only and NOT diegetic; they have no story presence.
 - **Act 1 -- Haven (starter_plains, village_center):** learn the
   tablet; wake your first waypoint; meet the institutions. The
   Horizon Problem is small and personal: wolves, patrols, a lost
-  schematic. Ends when the player wakes the Gloomwood gate and sees
+  schematic. Ends when the player wakes the Gloamwood gate and sees
   the violet on the far side.
 - **Act 2 -- The Bloom (forest_meadow, forest_depths):** the
   corruption arc. Study bloom-touched fauna, trace the runoff,
@@ -222,9 +222,17 @@ a little reverent. NPCs do not say "powered on" -- they say "woke,"
 ## 10. Canon drift log (story-adjacent)
 
 - Village Elder dialogue said "the Darkwood"; zones and renders say
-  **Gloomwood Forest**. Gloomwood wins (zone .tres + all art).
-  **RESOLVED 2026-11-28:** `village_elder_greeting.tres` now reads
-  "the Gloomwood". No "Darkwood" remains in player-facing copy.
+  the Bloom woods. **REVERSED 2026-11-28:** the woods are
+  **Gloamwood** (owner call). Earlier this log had resolved the
+  Darkwood drift to "Gloomwood" off the zone `.tres` + art, but the
+  data ids already used **gloam** (`enemy_gloamwood_stalker`,
+  `quest_gloamwood_ledger`, `loot_gloam_*`, `res_gloam_spore`,
+  `elixir_gloamward`), and "gloam" is the right register. All display
+  strings swept to "Gloamwood" (`zone_forest_meadow`,
+  `zone_dungeon_forest_depths`, `village_elder_greeting`, `res_timber`,
+  `enemy_thistle_boar`, the `spawn_*` tables, and the web lander). No
+  "Gloomwood" or "Darkwood" remains in player-facing copy; ids were
+  already correct. See `labs/story-landmark-names.md`.
 - Zone descriptions predate the art bible (safe/no-mood tone); when
   rewriting zone copy, use gemini_zones.md moods as canon.
 - **"Haven" naming (RESOLVED 2026-11-28).** The starter settlement
