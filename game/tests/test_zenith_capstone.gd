@@ -101,7 +101,23 @@ func _run() -> void:
 	if not as_missing.is_empty():
 		print("    missing armor slots: " + str(as_missing))
 
-	# A. COVERAGE -- every AccessoryType 1..5 (ring/necklace/bracelet/cloak/belt).
+	# A. COVERAGE -- every ArmorType 1..4 (cloth/leather/mail/plate). The
+	# first pass authored plate only, so the 18 classes that cannot wear
+	# plate had no capstone at all (can_use_armor is real). One piece per
+	# material per slot is the law now.
+	var at_seen_mat: Dictionary = {}
+	for a in z_armors:
+		at_seen_mat[int(a.armor_type)] = true
+	var mat_missing: Array = []
+	for at in range(1, 5):
+		if not at_seen_mat.has(at):
+			mat_missing.append(at)
+	_check("every ArmorType (1..4) has a L60 capstone (%d armors)" % z_armors.size(),
+		mat_missing.is_empty())
+	if not mat_missing.is_empty():
+		print("    missing armor types: " + str(mat_missing))
+
+        # A. COVERAGE -- every AccessoryType 1..5 (ring/necklace/bracelet/cloak/belt).
 	var at_seen: Dictionary = {}
 	for c in z_acc:
 		at_seen[int(c.accessory_type)] = true

@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "mossbound_herald"
 boss_template_id = "mossbound_herald"
-display_name = ""
+display_name = "The Mossbound Herald"
 zone_id = "zone_starter_plains"
 position = Vector3(0, 0, 0)
 interval_seconds = 21600.0

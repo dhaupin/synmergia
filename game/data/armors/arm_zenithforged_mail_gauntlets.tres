@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_zenithforged_mail_gauntlets"
+display_name = "Zenithforged Mail Handwraps"
+description = "A zenithforged handwraps, rings drawn thin as wire and quenched in the cold above the weather. The last rung of the Concord's ladder, and nothing is forged past it."
+icon_path = "res://icons/items/armor_iron_mail.png"
+item_category = 1
+rarity = 5
+equip_slot = 5
+armor_type = 3
+stack_size = 1
+sell_price = 13860
+buy_price = 46200
+item_level = 60
+required_level = 60
+stats = {
+"strength": 5,
+"vitality": 14
+}
+armor_value = 74

@@ -371,4 +371,80 @@ func _run() -> void:
 		if not icon_missing.is_empty():
 			print("    icon residue: " + "; ".join(icon_missing.slice(0, 5)))
 
+	# I. THE ACCESSORY + DWELLING FAMILIES (the two the first pass left
+	# out of the catalog, which is how a chair with an empty category and
+	# two phantom dismantle ids survived). Accessories carry a real
+	# accessory_type and stack 1; dwellings are placeable, carry a real
+	# dwelling_category, and every dismantle return resolves.
+	var accbad: Array = []
+	var accdir := DirAccess.open("res://data/accessories")
+	if accdir == null:
+		accbad.append("data/accessories missing")
+	else:
+		accdir.list_dir_begin()
+		var afn := accdir.get_next()
+		while afn != "":
+			if afn.ends_with(".tres"):
+				var ares = load("res://data/accessories/" + afn)
+				if ares == null:
+					accbad.append("load failed: " + afn)
+				else:
+					var aid: String = str(ares.id)
+					if aid != afn.trim_suffix(".tres"):
+						accbad.append("%s filename mismatch" % aid)
+					if not aid.begins_with("acc_"):
+						accbad.append("%s not acc_" % aid)
+					if ares.display_name.is_empty() or ares.description.is_empty():
+						accbad.append("%s unauthored words" % aid)
+					if int(ares.accessory_type) == 0:
+						accbad.append("%s accessory_type NONE" % aid)
+					if int(ares.stack_size) != 1:
+						accbad.append("%s stack %d" % [aid, ares.stack_size])
+					if int(ares.required_level) > int(ares.item_level):
+						accbad.append("%s required_level > item_level" % aid)
+					if int(ares.buy_price) > 0 and int(ares.sell_price) >= int(ares.buy_price):
+						accbad.append("%s purse law" % aid)
+				afn = accdir.get_next()
+	_check("accessory family integrity (identity/words/type/stack/purse)", accbad.is_empty())
+	if not accbad.is_empty():
+		print("    accessory defects: " + "; ".join(accbad.slice(0, 6)))
+
+	var dwelbad: Array = []
+	var dwelcount := 0
+	var dweldir := DirAccess.open("res://data/dwellings")
+	if dweldir == null:
+		dwelbad.append("data/dwellings missing")
+	else:
+		dweldir.list_dir_begin()
+		var dfn2 := dweldir.get_next()
+		while dfn2 != "":
+			if dfn2.ends_with(".tres"):
+				dwelcount += 1
+				var dres = load("res://data/dwellings/" + dfn2)
+				if dres == null:
+					dwelbad.append("load failed: " + dfn2)
+				else:
+					var did: String = str(dres.id)
+					if did != dfn2.trim_suffix(".tres"):
+						dwelbad.append("%s filename mismatch" % did)
+					if not did.begins_with("dwel_"):
+						dwelbad.append("%s not dwel_" % did)
+					if dres.display_name.is_empty() or dres.description.is_empty():
+						dwelbad.append("%s unauthored words" % did)
+					if not bool(dres.is_placeable):
+						dwelbad.append("%s not placeable" % did)
+					if str(dres.dwelling_category).is_empty():
+						dwelbad.append("%s empty dwelling_category" % did)
+					for ret in dres.dismantle_returns:
+						var rid: String = str(ret.get("id", ""))
+						if rid.is_empty() or ds.get_item(rid) == null:
+							dwelbad.append("%s phantom dismantle %s" % [did, rid])
+						if int(ret.get("amount", 0)) <= 0:
+							dwelbad.append("%s dismantle %s zero amount" % [did, rid])
+				dfn2 = dweldir.get_next()
+	_check("dwelling family integrity (%d dwellings: placeable/category/dismantle)" % dwelcount,
+		dwelbad.is_empty())
+	if not dwelbad.is_empty():
+		print("    dwelling defects: " + "; ".join(dwelbad.slice(0, 6)))
+
 	_finish()

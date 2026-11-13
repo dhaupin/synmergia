@@ -16,7 +16,7 @@ cooldown = 0.0
 duration = 0.0
 model_path = ""
 color = Color(0.6, 0.4, 0.2, 1)
-dwelling_category = ""
+dwelling_category = "furniture"
 dwelling_size = Vector3(1, 1, 1)
 is_placeable = true
 placement_zones = ["housing_zone_1", "housing_zone_2"]
@@ -34,7 +34,7 @@ allow_public_view = false
 dyeable = true
 dismantle_returns = [{
 "amount": 3,
-"id": "res_wood",
+"id": "res_timber",
 "type": "resource"
 }]
 event_id = ""

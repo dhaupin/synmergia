@@ -40,8 +40,13 @@ func _init() -> void:
 		if wb == null or wb.boss_template_id != id or wb.zone_id == "":
 			push_error("FAIL: schedule %s malformed" % id)
 			ok = false
+		elif str(wb.display_name).is_empty():
+			# An empty display_name renders blank in the boss bar and the
+			# spawn announce (the schedule aliases the template's name).
+			push_error("FAIL: schedule %s has no display_name" % id)
+			ok = false
 		else:
-			print("PASS: schedule %s -> %s in %s" % [wb.id, wb.boss_template_id, wb.zone_id])
+			print("PASS: schedule %s -> %s (%s) in %s" % [wb.id, wb.boss_template_id, wb.display_name, wb.zone_id])
 	# 5. Zone ids resolve to real zones
 	for z in ["zone_dungeon_forest_depths", "zone_starter_plains"]:
 		var zone = load("res://data/zones/%s.tres" % z)
