@@ -747,6 +747,8 @@ func _run() -> void:
 		_fail("Duplicate skill ids (one silently shadows the other): %s" % ", ".join(skill_dupes))
 
 	var bad_skill_refs: Array = []
+	var empty_kits: Array = []
+	var referenced_owned: Dictionary = {}
 	var cdir2 := DirAccess.open("res://data/classes")
 	if cdir2 != null:
 		cdir2.list_dir_begin()
@@ -760,6 +762,7 @@ func _run() -> void:
 					if ct.begins_with("id = \""):
 						cid2 = ct.trim_prefix("id = \"").trim_suffix("\"")
 						break
+				var kit_refs := 0
 				# Pull the bracketed value of each ref key (single-line or multi-line)
 				# so quoted ids elsewhere (e.g. can_use_armor) never leak in.
 				for key in ["starting_skills", "skill_tree_unlocks"]:
@@ -768,14 +771,69 @@ func _run() -> void:
 						continue
 					for m2 in _skill_ref_regex().search_all(block):
 						var ref := m2.get_string(1)
+						kit_refs += 1
+						referenced_owned[ref] = true
 						if not skill_id_set.has(ref):
 							bad_skill_refs.append("%s -> missing skill %s" % [cid2, ref])
 						elif skill_owner.get(ref, "") not in ["", cid2]:
 							bad_skill_refs.append("%s -> %s (owned by %s)" % [cid2, ref, skill_owner.get(ref, "")])
+				# GM classes are admin-only and never appear on the select
+				# screen, so an empty kit there is by design.
+				if kit_refs == 0 and not cid2.begins_with("gm_"):
+					empty_kits.append(cid2)
 			cf = cdir2.get_next()
 	if bad_skill_refs.is_empty():
 		_ok("Class skill refs all resolve to a skill owned by that class")
 	else:
 		_fail("Dangling/cross-class skill refs: %s" % ", ".join(bad_skill_refs))
+
+	# Six playable classes shipped with EMPTY starting_skills and
+	# skill_tree_unlocks -- they could cast nothing but their basic attack.
+	# A playable class must have a real kit; GM classes are exempt.
+	if empty_kits.is_empty():
+		_ok("Every playable class has a non-empty skill kit")
+	else:
+		_fail("Playable classes with an empty kit: %s" % ", ".join(empty_kits))
+
+	# General skills: the class-agnostic verbs every class starts with.
+	# They are the ONLY skills allowed to carry no required_class (a class
+	# tag would hide them from every other class).
+	var untagged: Array = []
+	var stray_untagged: Array = []
+	var genskill_dir := DirAccess.open("res://data/skills/general")
+	var general_ids: Array = []
+	if genskill_dir != null:
+		genskill_dir.list_dir_begin()
+		var genskill_file := genskill_dir.get_next()
+		while genskill_file != "":
+			if genskill_file.ends_with(".tres"):
+				general_ids.append(genskill_file.trim_suffix(".tres"))
+			genskill_file = genskill_dir.get_next()
+	for sid in skill_id_set.keys():
+		if skill_owner.get(sid, "") == "":
+			untagged.append(sid)
+			if not str(sid).begins_with("general_"):
+				stray_untagged.append(sid)
+	if stray_untagged.is_empty():
+		_ok("Every untagged skill is a general_* shared skill (%d)" % untagged.size())
+	else:
+		_fail("Untagged skills that are not general_* (tag their class): %s" % ", ".join(stray_untagged))
+	if general_ids.is_empty():
+		_fail("No general_* skills authored (every class needs the shared verbs)")
+	else:
+		_ok("General shared skills present (%d): %s" % [general_ids.size(), ", ".join(general_ids)])
+
+	# Orphan budget: a class-OWNED skill that no class kit references is
+	# dead data (authored, tagged, unreachable). Must stay zero.
+	var orphans: Array = []
+	for sid in skill_id_set.keys():
+		if skill_owner.get(sid, "") == "":
+			continue
+		if not referenced_owned.has(sid):
+			orphans.append(sid)
+	if orphans.is_empty():
+		_ok("No class-owned skill is orphaned (all reachable via a class kit)")
+	else:
+		_fail("Class-owned skills referenced by no class: %s" % ", ".join(orphans))
 
 	_finish()

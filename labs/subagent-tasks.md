@@ -157,7 +157,7 @@ check that keeps the 11 from re-orphaning.
 
 # PART B -- CLASS KITS (wire the authored skills)
 
-## Task 4 -- Wire the six empty class skill trees -- status: todo
+## Task 4 -- Wire the six empty class skill trees -- status: done (2026-11-28d)
 
 **The finding:** 169 skills are authored under `game/data/skills/<role>/`.
 Only 74 are referenced by a class. **95 are orphaned**, and six playable
@@ -183,13 +183,20 @@ AND already carry `required_class` + `required_level`, so each tree is
 | `synthetic_tracker` | 9 | 1, 5, 10, 15, 20 |
 | `human_warrior` | 10 | 1, 5, 10, 15 |
 
-**Fix:** for each class, set `starting_skills` (the L1 skills tagged to it;
-where none exist, pick the lowest-tagged skill and note the L1 gap) and build
-`skill_tree_unlocks` from the tagged levels. Follow the SHAPE the wired classes
-already use (`class_akkan_bulwark`: L1 start, then {5:[...], 10:[...],
-15:[...], 20:[...], 25:[...]}). The `*_sig` skills (the cross-faction signature
-line, e.g. `human_bulwark_sig` tagged to `akkan_bulwark`) are the pattern to
-study: a class owns its own line plus one signature per foreign faction.
+**Fix (LANDED):** each class kit was derived from its own skills' tags --
+ADD-only, so authored levels were preserved. Every class-owned skill that no
+kit referenced (38 of them, mostly the `*_sig` signature line) was added at
+its tagged level; the six empty classes got their tagged kit. Each class owns
+its own line plus one signature per faction (3 `*_sig` each, at L10), matching
+the 3-signatures-per-class design the user confirmed. `akkan_attacker` had no
+L1 skill, so its void opener was promoted to L1 (the L1 gap is recorded here).
+`human_warrior` keeps `human_shield_bash` (it IS tagged `human_warrior`, so it
+belongs to the kit) and gains the rest of its tagged line.
+
+**CORRECTION to the original finding:** the `*_sig` cluster was NOT the
+pattern to study -- it was the bulk of the ORPHANS. Every one of the 43
+signature skills was authored, tagged, and referenced by NO class. They are
+now wired (that is the design: 3 signatures per class).
 
 **Watch for:**
 - `akkan_attacker` has no L1 skill (its void line starts at L5). Either

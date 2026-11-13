@@ -639,6 +639,17 @@ func get_all_weather_events() -> Array:
 func get_all_skills() -> Array:
 	return _skills.values()
 
+## Every class-agnostic "general" skill (required_class == ""), id-sorted
+## for a deterministic skillbar. These are the shared verbs every class
+## starts with, ahead of its own kit.
+func get_general_skills() -> Array:
+	var out: Array = []
+	for sk in _skills.values():
+		if str(sk.required_class) == "":
+			out.append(sk)
+	out.sort_custom(func(a, b): return str(a.id) < str(b.id))
+	return out
+
 func get_all_items() -> Array:
 	return _items.values()
 
