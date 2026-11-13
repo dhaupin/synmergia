@@ -172,7 +172,7 @@ func _run() -> void:
 	var world := Node3D.new()
 	world.set_script(GW)
 	world.set("planet_radius", RADIUS)
-	world.set("streamer", _sea_streamer_stub(world_seed))
+	world.set("clipmap", _sea_clipmap_stub(world_seed))
 	world.set("sund_ferry_vessel", barque)
 	world.set("_barque_pier_gateway", "waypoint_strait_moor")
 	world.set("_barque_pans_gateway", "waypoint_strait_seaward")
@@ -198,10 +198,10 @@ func _check_line(cond_label: String, cond: bool) -> void:
 		_fail(cond_label)
 
 
-## A real-streamer-shape stub for the landing law: world_seed from the
-## world data; the walk law returns a SEABED read (a pin at sea must
-## still land the body AT the water line, never under it).
-func _sea_streamer_stub(seed_bytes: PackedByteArray):
+## The clipmap's walk seam, stubbed to a seabed 30 m under the surface: the
+## barque landing law reads clipmap.walk_surface_h + clipmap.world_seed, so
+## the landing must clamp UP to the sea line (never under it).
+func _sea_clipmap_stub(seed_bytes: PackedByteArray):
 	var scr := GDScript.new()
 	scr.source_code = "extends RefCounted\nvar world_seed := PackedByteArray()\nfunc walk_surface_h(d: Vector3) -> float:\n\treturn -30.0\n"
 	scr.reload()

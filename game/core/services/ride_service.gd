@@ -146,6 +146,18 @@ func owns_mount(player_id: String, mount_id: String) -> bool:
 	return _owned[player_id].has(mount_id)
 
 
+## The rider's book, read-only: the ledger owner exposes it so the stable
+## panel never re-derives the store namespace (a second DictStore("default")
+## read of the durable row silently returned nothing). Sorted for stable rows.
+func owned_mount_ids(player_id: String) -> Array:
+	if player_id.is_empty():
+		return []
+	_load_owned(player_id)
+	var ids: Array = _owned.get(player_id, {}).keys()
+	ids.sort()
+	return ids
+
+
 ## Grant a mount into the rider's book. Refuses unknown mounts (data
 ## is the id truth), duplicates (soulbound is the default posture), and
 ## GM-source mounts for non-GM riders (fail-closed: an unknown rider is

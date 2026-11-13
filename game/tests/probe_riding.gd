@@ -151,9 +151,12 @@ func _run() -> void:
 	_check("grant accepts the lancer", rides.grant_mount("pr_r1", "mount_storm_lancer"))
 	_check("grant refuses duplicates (soulbound posture)", not rides.grant_mount("pr_r1", "mount_storm_lancer"))
 	_check("the rider owns the lancer", rides.owns_mount("pr_r1", "mount_storm_lancer"))
-	var store = DS.new()
+	# R48: the ledger rides the RELOAD-DURABLE store ("durable_mounts"), not
+	# the memory-only default -- the wasm heap dies on reload, so ownership
+	# must survive in the durable namespace.
+	var store = DS.new("durable_mounts")
 	var row = store.get_kv("ride_service/mounts/pr_r1", null)
-	_check("ownership persisted through the DictStore (the wake-ledger idiom)", \
+	_check("ownership persisted through the durable DictStore (the R48 wake-ledger idiom)", \
 		row is Dictionary and row.has("mount_storm_lancer"))
 
 	# ---- C. Summon stamps ---------------------------------------------------------

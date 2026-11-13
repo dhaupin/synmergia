@@ -213,15 +213,16 @@ func _active_line(player_id: String) -> String:
 	return "Riding: %s" % str(mount.display_name)
 
 
-## The rider's book, read-only (the wake-ledger idiom's persisted key;
-## keys are mount ids -- a DictStore row is a Dictionary).
+## The rider's book, read-only. Read through the SERVICE that owns the
+## ledger -- the panel must not re-derive the store namespace (the R48
+## durable store is `durable_mounts`, not the default; a direct DictStore
+## read here returned nothing, so the stable showed an empty list and
+## offered mounts the rider already owned).
 func _owned_mount_ids(player_id: String) -> Array:
-	if player_id.is_empty():
+	if player_id.is_empty() or _ride_service == null:
 		return []
-	var store = load("res://adapters/persistence/dict_store.gd").new()
-	var row = store.get_kv("ride_service/mounts/" + player_id, null)
-	if row is Dictionary:
-		return row.keys()
+	if _ride_service.has_method("owned_mount_ids"):
+		return _ride_service.owned_mount_ids(player_id)
 	return []
 
 

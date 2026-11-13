@@ -80,19 +80,25 @@ func _run() -> void:
 	ok = _check("shift: planet center carries the offset (|c|=%.1f)" % center_len, \
 		abs(center_len - sqrt(pow(walk_r, 2) + pow(SHIFT_TELEPORT_M, 2))) < 5.0) and ok
 	ok = _check("shift: still glued after rebase", pD.is_glued(2.0)) and ok
-	# The rebase re-rings the 4 faces; the 3 non-current faces derive on
-	# worker lanes (_kick_mesh_derivation), so drain the async lanes before
-	# reading the live patch count -- the steady-state ring is 4 (the
-	# continent shards use the same drain before their counts).
+	# The rebase re-centres the clipmap: the whole ring ladder (the centre
+	# cap + N_LEVELS annuli) is re-queued and rebuilt incrementally, so drain
+	# the builder before reading state -- the steady-state ladder is intact.
 	var st_d = _globe.get("clipmap")
 	if st_d != null and st_d.has_method("pending_jobs"):
 		var drain := 0
 		while st_d.pending_jobs() > 0 and drain < 900:
 			await root.get_tree().physics_frame
 			drain += 1
+	# The clipmap is ring-addressed (the retired streamer's 4 icosa face
+	# patches are gone): streaming "survives" when one face is current, the
+	# full ring ladder is built, and the drawn mesh still carries triangles.
 	var facesD: Array = _globe.stream_active_faces()
-	ok = _check("shift: streaming survives rebase (got %d patches)" % facesD.size(), \
-		facesD.size() == 4) and ok
+	var ladder_ok: bool = st_d != null \
+		and st_d.patch_count() == st_d.N_LEVELS \
+		and st_d.triangle_count() > 0
+	ok = _check("shift: streaming survives rebase (%d active face, %d/%d rings, %d tris)" % \
+		[facesD.size(), (st_d.patch_count() if st_d != null else 0), (st_d.N_LEVELS if st_d != null else 0), (st_d.triangle_count() if st_d != null else 0)], \
+		facesD.size() == 1 and ladder_ok) and ok
 	# Walk AFTER the shift: locomotion must still work (the original
 	# stall reproduced exactly here pre-fix).
 	pD.begin_loop()
