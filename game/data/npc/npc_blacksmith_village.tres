@@ -23,5 +23,5 @@ includes = [
     {"type": "offering", "ref_id": "vendor_smithy_iron"},
     {"type": "offering", "ref_id": "blacksmith_service"},
     {"type": "dialogue", "dialogue_id": "blacksmith_village_intro"},
-    {"type": "quest", "ref_id": "quest_intro_core_npcs"}
+    {"type": "quest", "quest_ids": ["quest_intro_core_npcs", "quest_copper_seam"]}
 ]

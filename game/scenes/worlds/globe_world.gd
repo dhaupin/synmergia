@@ -1838,6 +1838,28 @@ func _spawn_town_npc(npc_id: String, center: Vector3, bearing_deg: float,
 		entity.get_parent().remove_child(entity)
 		parent_root.add_child(entity)
 	entity.global_position = world_root.global_position + surface
+	# Radial-align the body (local +Y = surface up) then face it. Without
+	# this the NPC kept world-Y up (tilted off the sphere -- the sideways
+	# bug) and an identity facing (the backwards bug). Enemies get both
+	# laws via EnemyAI._entity_up + enemy.gd; gates/portals call
+	# _align_radial. NPCData.spawn_rotation is a yaw around local up:
+	# default 0 faces the plaza (inward), any authored value rotates it.
+	_align_radial(entity, dir)
+	_face_npc(entity, dir, npc_data)
+
+
+## Face a placed NPC: yaw around its own local up. Default (spawn_rotation 0)
+## looks back toward the plaza center -- inward -- so a plaza ring reads as
+## facing the player who walks in. An authored spawn_rotation (radians) is an
+## offset from that inward facing.
+func _face_npc(entity: Node3D, dir: Vector3, npc_data) -> void:
+	var up: Vector3 = dir
+	var to_center: Vector3 = (-dir).slide(up)
+	if to_center.length() < 0.001:
+		return
+	var yaw: float = float(npc_data.get("spawn_rotation")) if "spawn_rotation" in npc_data else 0.0
+	var fwd: Vector3 = to_center.rotated(up, yaw).normalized()
+	entity.global_transform.basis = Basis.looking_at(fwd, up)
 
 
 ## PLANAR-RETIREMENT STEP 2: the globe's wildlife. Places each roster
@@ -1900,6 +1922,11 @@ func _accept_starter_quests() -> void:
 		qs.accept_quest(player_id, "quest_wolves_hunt")
 	if not active.has("quest_watch_the_sky"):
 		qs.accept_quest(player_id, "quest_watch_the_sky")
+	# The main spine's first beat (The Awakening) has no giver NPC -- it
+	# is the opening state, not an offer -- and it gates quest_main_teachings.
+	# Accept it here so the elder's spine offer is reachable.
+	if not active.has("quest_main_awakening"):
+		qs.accept_quest(player_id, "quest_main_awakening")
 
 
 ## The spawn surface for a wildlife entry: the town-NPC walk law

@@ -132,6 +132,7 @@ probe_thermals
 # and blanks are stripped when the block is read.
 DEFAULT_SET="
 test_data_naming_lint
+test_general_skills
 test_item_catalog
 test_zenith_capstone
 test_item_use

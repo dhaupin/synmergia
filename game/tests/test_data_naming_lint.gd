@@ -79,6 +79,22 @@ func _has_prefix(ids: Dictionary, prefix: String, label: String) -> void:
 func _file_text(dir_path: String, base: String) -> String:
 	return FileAccess.get_file_as_string("res://%s/%s.tres" % [dir_path, base])
 
+
+## Every quest id named in a text blob by any `"quest_ids": [...]` key
+## (inline NPC includes and offering files share this shape; entries may
+## sit on one line or wrap). Regex over the whole text, not line-based,
+## so a single-line include dict is parsed too.
+func _quest_ids_in(text: String) -> Array:
+	var out: Array = []
+	var re := RegEx.new()
+	re.compile("quest_ids\\\"?\\s*[:=]\\s*\\[([^\\]]*)\\]")
+	for m in re.search_all(text):
+		for part in m.get_string(1).split(","):
+			var v := part.strip_edges().trim_prefix("\"").trim_suffix("\"")
+			if v != "":
+				out.append(v)
+	return out
+
 func _load_display_names(dir_path: String) -> Dictionary:
 	var out: Dictionary = {}
 	var dir := DirAccess.open("res://" + dir_path)
@@ -292,6 +308,69 @@ func _run() -> void:
 		_ok("Offering quest_ids all resolve")
 	else:
 		_fail("Phantom offering quest refs: %s" % ", ".join(bad_offering_refs))
+
+	# --- NPC inline quest includes: shape + refs ---
+	# The inline quest include shape is {"type": "quest", "quest_ids": [...]}.
+	# A ref-based "quest" entry ({"type": "quest", "ref_id": ...}) is wrong:
+	# the loader never reads a ref_id on a quest include, so the hook is dead
+	# (npc_blacksmith_village shipped one). Every named quest id must resolve.
+	var bad_quest_includes: Array = []
+	for base in npc_ids:
+		var ntxt := _file_text("data/npc", base)
+		if not ntxt.contains("\"type\": \"quest\""):
+			continue
+		var qids := _quest_ids_in(ntxt)
+		if qids.is_empty():
+			bad_quest_includes.append("%s (quest include has no quest_ids)" % str(npc_ids[base]))
+			continue
+		for qv in qids:
+			if not quest_ids.values().has(qv):
+				bad_quest_includes.append("%s -> %s" % [str(npc_ids[base]), qv])
+	if bad_quest_includes.is_empty():
+		_ok("NPC inline quest includes use quest_ids and resolve")
+	else:
+		_fail("Bad NPC quest includes: %s" % ", ".join(bad_quest_includes))
+
+	# --- Quest reachability: every MAIN/SIDE quest is offered by some NPC ---
+	# A quest no NPC offers can never be accepted -- the includes graph (inline
+	# quest_ids + referenced quest-type offerings) is the real offer surface;
+	# QuestData.giver_npc_id is decorative (read nowhere). Auto-accepted quests
+	# are exempt (globe_world._accept_starter_quests).
+	var auto_accepted := {"quest_main_awakening": true, "quest_watch_the_sky": true}
+	var offered := {}
+	for base in npc_ids:
+		var ntxt2 := _file_text("data/npc", base)
+		for qv in _quest_ids_in(ntxt2):
+			offered[qv] = true
+		var rparts := ntxt2.split("\"ref_id\": \"")
+		for i in range(1, rparts.size()):
+			var rid2 := rparts[i].split("\"")[0]
+			var opath := "res://data/npc_offerings/%s.tres" % rid2
+			if not FileAccess.file_exists(opath):
+				continue
+			var otxt := FileAccess.get_file_as_string(opath)
+			if not otxt.contains("type = \"quest\""):
+				continue
+			for qv in _quest_ids_in(otxt):
+				offered[qv] = true
+	var unreachable: Array = []
+	for base in quest_ids:
+		var qid := str(quest_ids[base])
+		if auto_accepted.has(qid):
+			continue
+		var qtxt := _file_text("data/quests", base)
+		var qtype := -1
+		for line in qtxt.split("\n"):
+			var t3 := line.strip_edges()
+			if t3.begins_with("quest_type = "):
+				qtype = int(t3.trim_prefix("quest_type = "))
+				break
+		if (qtype == 0 or qtype == 1) and not offered.has(qid):
+			unreachable.append(qid)
+	if unreachable.is_empty():
+		_ok("Every MAIN/SIDE quest is offered by some NPC")
+	else:
+		_fail("Unreachable MAIN/SIDE quests: %s" % ", ".join(unreachable))
 
 	var bad_dialogue_refs: Array = []
 	for base in dialogue_ids:
@@ -668,6 +747,8 @@ func _run() -> void:
 		_fail("Duplicate skill ids (one silently shadows the other): %s" % ", ".join(skill_dupes))
 
 	var bad_skill_refs: Array = []
+	var empty_kits: Array = []
+	var referenced_owned: Dictionary = {}
 	var cdir2 := DirAccess.open("res://data/classes")
 	if cdir2 != null:
 		cdir2.list_dir_begin()
@@ -681,6 +762,7 @@ func _run() -> void:
 					if ct.begins_with("id = \""):
 						cid2 = ct.trim_prefix("id = \"").trim_suffix("\"")
 						break
+				var kit_refs := 0
 				# Pull the bracketed value of each ref key (single-line or multi-line)
 				# so quoted ids elsewhere (e.g. can_use_armor) never leak in.
 				for key in ["starting_skills", "skill_tree_unlocks"]:
@@ -689,14 +771,69 @@ func _run() -> void:
 						continue
 					for m2 in _skill_ref_regex().search_all(block):
 						var ref := m2.get_string(1)
+						kit_refs += 1
+						referenced_owned[ref] = true
 						if not skill_id_set.has(ref):
 							bad_skill_refs.append("%s -> missing skill %s" % [cid2, ref])
 						elif skill_owner.get(ref, "") not in ["", cid2]:
 							bad_skill_refs.append("%s -> %s (owned by %s)" % [cid2, ref, skill_owner.get(ref, "")])
+				# GM classes are admin-only and never appear on the select
+				# screen, so an empty kit there is by design.
+				if kit_refs == 0 and not cid2.begins_with("gm_"):
+					empty_kits.append(cid2)
 			cf = cdir2.get_next()
 	if bad_skill_refs.is_empty():
 		_ok("Class skill refs all resolve to a skill owned by that class")
 	else:
 		_fail("Dangling/cross-class skill refs: %s" % ", ".join(bad_skill_refs))
+
+	# Six playable classes shipped with EMPTY starting_skills and
+	# skill_tree_unlocks -- they could cast nothing but their basic attack.
+	# A playable class must have a real kit; GM classes are exempt.
+	if empty_kits.is_empty():
+		_ok("Every playable class has a non-empty skill kit")
+	else:
+		_fail("Playable classes with an empty kit: %s" % ", ".join(empty_kits))
+
+	# General skills: the class-agnostic verbs every class starts with.
+	# They are the ONLY skills allowed to carry no required_class (a class
+	# tag would hide them from every other class).
+	var untagged: Array = []
+	var stray_untagged: Array = []
+	var genskill_dir := DirAccess.open("res://data/skills/general")
+	var general_ids: Array = []
+	if genskill_dir != null:
+		genskill_dir.list_dir_begin()
+		var genskill_file := genskill_dir.get_next()
+		while genskill_file != "":
+			if genskill_file.ends_with(".tres"):
+				general_ids.append(genskill_file.trim_suffix(".tres"))
+			genskill_file = genskill_dir.get_next()
+	for sid in skill_id_set.keys():
+		if skill_owner.get(sid, "") == "":
+			untagged.append(sid)
+			if not str(sid).begins_with("general_"):
+				stray_untagged.append(sid)
+	if stray_untagged.is_empty():
+		_ok("Every untagged skill is a general_* shared skill (%d)" % untagged.size())
+	else:
+		_fail("Untagged skills that are not general_* (tag their class): %s" % ", ".join(stray_untagged))
+	if general_ids.is_empty():
+		_fail("No general_* skills authored (every class needs the shared verbs)")
+	else:
+		_ok("General shared skills present (%d): %s" % [general_ids.size(), ", ".join(general_ids)])
+
+	# Orphan budget: a class-OWNED skill that no class kit references is
+	# dead data (authored, tagged, unreachable). Must stay zero.
+	var orphans: Array = []
+	for sid in skill_id_set.keys():
+		if skill_owner.get(sid, "") == "":
+			continue
+		if not referenced_owned.has(sid):
+			orphans.append(sid)
+	if orphans.is_empty():
+		_ok("No class-owned skill is orphaned (all reachable via a class kit)")
+	else:
+		_fail("Class-owned skills referenced by no class: %s" % ", ".join(orphans))
 
 	_finish()

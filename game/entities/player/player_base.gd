@@ -478,6 +478,12 @@ func _setup_starting_skills() -> void:
 	# Keep can_cast's class gate consistent with the skillbar source.
 	if class_data != null and "id" in class_data and str(class_data.id) != "":
 		character_class = str(class_data.id)
+	# General skills first: the class-agnostic verbs (Bind, Recover) every
+	# walker of the Concord owns, ahead of the class kit. They load even when
+	# a class has no starting_skills of its own.
+	if is_instance_valid(_ds()) and _ds().has_method("get_general_skills"):
+		for gschema in _ds().get_general_skills():
+			skillbar.append(Skill.from_schema(gschema))
 	if class_data == null or not ("starting_skills" in class_data) \
 			or class_data.starting_skills.is_empty():
 		return

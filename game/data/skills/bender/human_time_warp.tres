@@ -16,6 +16,8 @@ animation_duration = 0.3
 range = 0.0
 aoe_radius = 8.0
 effects = [{"type": "buff", "effect_id": "buff_time_warp_haste", "duration": 6.0}, {"type": "slow", "effect_id": "debuff_time_warp_slow", "duration": 3.0, "value": 20}]
+required_level = 1
+required_class = "human_temporalist"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
