@@ -11,8 +11,8 @@ description = "Synthetic energy conduit. Redistributes power throughout the part
 resource_type = 1
 base_stats = {"strength": 5, "agility": 8, "vitality": 10, "intelligence": 14, "wisdom": 10, "endurance": 7}
 stat_growth = {"strength": 1, "agility": 2, "vitality": 2, "intelligence": 3, "wisdom": 1, "endurance": 1}
-"focal_stat_1": "wisdom",
-"focal_stat_2": "endurance",
+focal_stat_1 = "wisdom"
+focal_stat_2 = "endurance"
 base_resource = 120
 resource_per_level = 14
 resource_regen_per_second = 5.0

@@ -19,8 +19,6 @@ base_stats = {
 "wisdom": 6
 }
 stat_growth = {
-"focal_stat_1": "strength",
-"focal_stat_2": "agility",
 "strength": 2,
 "agility": 1,
 "intelligence": 1,
@@ -28,6 +26,8 @@ stat_growth = {
 "endurance": 1,
 "wisdom": 1
 }
+focal_stat_1 = "strength"
+focal_stat_2 = "agility"
 base_resource = 100
 resource_per_level = 10
 resource_regen_per_second = 5.0

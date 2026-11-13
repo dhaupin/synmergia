@@ -82,6 +82,91 @@ func _file_text(dir_path: String, base: String) -> String:
 	return FileAccess.get_file_as_string("res://%s/%s.tres" % [dir_path, base])
 
 
+## The body of a .tres after the [resource] header (empty if none).
+func _resource_body(txt: String) -> String:
+	var i := txt.find("[resource]")
+	if i < 0:
+		return ""
+	return txt.substr(i + "[resource]".length())
+
+
+## 0-based line index of the [resource] header (-1 if absent).
+func _resource_line(txt: String) -> int:
+	var i := txt.find("[resource]")
+	if i < 0:
+		return -1
+	return txt.substr(0, i).count("\n")
+
+
+## A depth-0 `"key": value` line -- a dict-pair that Godot silently drops when it
+## sits outside any dict/array literal.
+func _stray_pair_re() -> RegEx:
+	var re := RegEx.new()
+	re.compile("^\"[A-Za-z_][A-Za-z0-9_]*\"\\s*:")
+	return re
+
+
+## The schema script a .tres names, as a res-relative path (no "res://"), so it
+## lines up with _gd_paths_under keys.
+func _schema_path_re() -> RegEx:
+	var re := RegEx.new()
+	re.compile("path=\"res://(core/schemas/[A-Za-z0-9_/]*\\.gd)\"")
+	return re
+
+
+## A depth-0 `key =` assignment in a .tres body.
+func _top_key_re() -> RegEx:
+	var re := RegEx.new()
+	re.compile("^([A-Za-z_][A-Za-z0-9_]*)\\s*=")
+	return re
+
+
+## A property declaration in a schema script: `@export... var <name>` or a plain
+## top-level `var <name>`. Matched at column 0 so indented locals are skipped.
+## Plain vars count too -- Godot loads any declared property from a .tres
+## (ContainerSchema's container_type/expansion_tier are plain vars and do load).
+func _declared_field_re() -> RegEx:
+	var re := RegEx.new()
+	re.compile("^(?:@export\\w*(?:\\([^)]*\\))?\\s+var|var)\\s+([A-Za-z_][A-Za-z0-9_]*)")
+	return re
+
+
+## DFS colouring for the achievement chain cycle check. 0=unseen, 1=on-stack,
+## 2=done. A back-edge to an on-stack node is a cycle.
+func _ach_cycle_dfs(aid: String, req_map: Dictionary, colour: Dictionary, bad: Array) -> void:
+	colour[aid] = 1
+	for rid in req_map.get(aid, []):
+		if not req_map.has(rid):
+			continue
+		var c := int(colour.get(rid, 0))
+		if c == 1:
+			bad.append("cycle through %s -> %s" % [aid, rid])
+		elif c == 0:
+			_ach_cycle_dfs(rid, req_map, colour, bad)
+	colour[aid] = 2
+
+
+## Every ".gd" path under a directory (recursive), for the schema scan.
+func _gd_paths_under(dir_path: String) -> Array:
+	var out: Array = []
+	var dir := DirAccess.open("res://" + dir_path)
+	if dir == null:
+		return out
+	dir.list_dir_begin()
+	var f := dir.get_next()
+	while f != "":
+		if f.begins_with("."):
+			f = dir.get_next()
+			continue
+		var rel := "%s/%s" % [dir_path, f]
+		if dir.current_is_dir():
+			out.append_array(_gd_paths_under(rel))
+		elif f.ends_with(".gd"):
+			out.append(rel)
+		f = dir.get_next()
+	return out
+
+
 ## Every ".tres" path under a data subdir (recursive). Used by the canon-term
 ## sweep so a dead display name cannot hide in a nested category folder.
 func _tres_paths_under(dir_path: String) -> Array:
@@ -1061,6 +1146,48 @@ func _run() -> void:
 	else:
 		_fail("Achievement title rewards naming no title: %s" % ", ".join(bad_ach_titles))
 
+	# --- Achievement chains: required_achievements must resolve and be acyclic ---
+	# AchievementService._requirements_met gates a def on its required_achievements
+	# (each must be unlocked first). Nothing validated them: a typo names a
+	# prereq that can never unlock, and a cycle deadlocks every def in it --
+	# both silently lock the achievement forever, the same two-sided-contract
+	# failure as the title bug. This is the chain gate for the achievement graph.
+	var ach_id_set: Array = ach_ids.values()
+	var bad_reqs: Array = []
+	var req_map: Dictionary = {}
+	for ab in ach_ids:
+		var areqs: Array = []
+		var atxt2 := _file_text("data/achievements", ab)
+		var rline := ""
+		for line in atxt2.split("\n"):
+			var lt := line.strip_edges()
+			if lt.begins_with("required_achievements = ["):
+				rline = lt
+				break
+		if rline != "":
+			var inner := rline.trim_prefix("required_achievements = [").trim_suffix("]")
+			for piece in inner.split(","):
+				var rid := piece.strip_edges().trim_prefix("\"").trim_suffix("\"")
+				if rid != "":
+					areqs.append(rid)
+		req_map[str(ach_ids[ab])] = areqs
+		for rid in areqs:
+			if not ach_id_set.has(rid):
+				bad_reqs.append("%s requires unknown %s" % [str(ach_ids[ab]), rid])
+			elif rid == str(ach_ids[ab]):
+				bad_reqs.append("%s requires itself" % str(ach_ids[ab]))
+	# Cycle detection (DFS colouring) over the resolvable edges.
+	var colour: Dictionary = {}
+	for aid in req_map:
+		colour[aid] = 0
+	for aid in req_map:
+		if int(colour[aid]) == 0:
+			_ach_cycle_dfs(aid, req_map, colour, bad_reqs)
+	if bad_reqs.is_empty():
+		_ok("Achievements: required_achievements all resolve and are acyclic")
+	else:
+		_fail("Bad achievement chains: %s" % ", ".join(bad_reqs))
+
 	# --- Titles: filename == id, bare ids, and every achievement/quest
 	# unlock_source names a real target ---
 	# A title whose unlock_source names no achievement is unreachable: the only
@@ -1241,5 +1368,72 @@ func _run() -> void:
 		_ok("Dialogue action hooks (quest/shop/skill) all resolve")
 	else:
 		_fail("Unresolvable dialogue action hooks: %s" % ", ".join(bad_dialogue_actions))
+
+	# --- Stray dict-pair lines: a `"key": value,` outside any dict/array literal ---
+	# Godot does NOT read `"key": value,` as a property assignment: it is a parse
+	# error that silently DROPS the line (the resource still loads, the field
+	# keeps its default). Eighteen class .tres carried their focal_stat_1/2 this
+	# way -- some as stray top-level lines, some stuffed INSIDE the stat_growth
+	# dict -- so every class's focal stats loaded empty and calculate_stat's
+	# +1-per-level focal bonus silently never applied. Field-level sibling of the
+	# phantom-field class (a declared field the data never really sets).
+	var stray_pairs: Array = []
+	for sp in _tres_paths_under("data"):
+		var stxt := FileAccess.get_file_as_string("res://" + sp)
+		var sbody := _resource_body(stxt)
+		if sbody == "":
+			continue
+		var sbase := _resource_line(stxt)
+		var sdepth := 0
+		var slnum := 0
+		for sline in sbody.split("\n"):
+			slnum += 1
+			var ss := sline.strip_edges()
+			if sdepth == 0 and _stray_pair_re().search(ss) != null:
+				stray_pairs.append("%s:%d %s" % [sp, sbase + slnum, ss])
+			sdepth += ss.count("{") + ss.count("[") - ss.count("}") - ss.count("]")
+	if stray_pairs.is_empty():
+		_ok("No stray dict-pair lines in any .tres (a depth-0 key/value pair is a silent drop)")
+	else:
+		_fail("Stray dict-pair lines (fields silently dropped on load): %s" % ", ".join(stray_pairs))
+
+	# --- Phantom fields: a top-level key no schema declares ---
+	# Godot drops undeclared properties on load. A key with no @export in its
+	# resource's own schema script is dead weight at best, a silently ignored
+	# authoring mistake at worst (the NPC trio npc_type/shop_title/services was
+	# exactly this class; K3 removed them, this freezes the result). The schema
+	# is resolved from the [ext_resource] script path the .tres names -- the
+	# authoritative link -- NOT the script_class label, which five shipped
+	# resources carry stale (CharacterClassSchema, ContainerTypes, ...). Nested
+	# dict keys (loot entry fields, stat names) are NOT checked -- depth-0 only.
+	var schema_fields: Dictionary = {}
+	for sch in _gd_paths_under("core/schemas"):
+		var sflds: Array = []
+		for sfline in FileAccess.get_file_as_string("res://" + sch).split("\n"):
+			var em := _declared_field_re().search(sfline)
+			if em != null:
+				sflds.append(em.get_string(1))
+		schema_fields[sch] = sflds
+	var phantoms: Array = []
+	for pp in _tres_paths_under("data"):
+		var ptxt := FileAccess.get_file_as_string("res://" + pp)
+		var sm := _schema_path_re().search(ptxt)
+		if sm == null:
+			continue
+		var spath := sm.get_string(1)
+		if not schema_fields.has(spath):
+			continue
+		var pdepth := 0
+		for pline in _resource_body(ptxt).split("\n"):
+			var ps := pline.strip_edges()
+			if pdepth == 0:
+				var km := _top_key_re().search(ps)
+				if km != null and km.get_string(1) != "script" and not schema_fields[spath].has(km.get_string(1)):
+					phantoms.append("%s: %s" % [pp, km.get_string(1)])
+			pdepth += ps.count("{") + ps.count("[") - ps.count("}") - ps.count("]")
+	if phantoms.is_empty():
+		_ok("No phantom fields (every depth-0 .tres key is a declared property)")
+	else:
+		_fail("Phantom fields (undeclared, dropped on load): %s" % ", ".join(phantoms))
 
 	_finish()

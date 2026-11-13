@@ -132,6 +132,7 @@ probe_thermals
 # and blanks are stripped when the block is read.
 DEFAULT_SET="
 test_data_naming_lint
+test_class_focal_stats
 test_achievements
 test_achievement_flow
 test_achievement_trigger_coverage
