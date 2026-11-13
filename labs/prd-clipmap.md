@@ -498,26 +498,20 @@ without flora.
 - **Step 3 (underworld/moon) -- DONE.** `UnderworldProvider` +
   `MoonProvider` back the clipmap + prop layer; `BiomeBand.family` is the
   real dispatch (receipt `probe_conjured_ground`).
-- **Step 3b (instances) -- OPEN (the "prop everywhere" leg).** Instanced
-  zones (arena/coliseum/sandpit/dungeon) do NOT boot a globe at all:
-  `arena_instance.gd` builds a sealed flat room (a `PlaneMesh` floor +
-  `BoxShape3D` slab) in its own local frame -- there is no clipmap, no
-  provider, no prop layer. Two honest options, and the choice is a DESIGN
-  call:
-    1. **Provider-backed instance room.** Give the arena a `GroundProvider`
-       (its `zone_data` seed + the mode env palette) and stream the prop
-       layer over the room. But the arena frame is LOCAL (metres around
-       origin), while `PropLayer`/`PropChunk` address a GLOBE (unit dirs,
-       `radius_m`). A local room would need the chunk layer to accept a
-       planar adapter (a `LocalFrameProvider` + a flat chunk key), which is
-       new machinery, not a wiring change.
-    2. **Instance prop kit.** A room-scoped, seed-derived prop scatter over
-       the flat floor (the same `SeedChain` law, no globe addressing) --
-       cover rocks already exist this way; generalize them into a per-mode
-       prop kit.
-  RECOMMENDATION: option 2 first (cheap, matches the sealed-room reality),
-  option 1 only if instances ever become open terrain. Recorded so the
-  choice is explicit, not accidental.
+- **Step 3b (instances) -- DONE (option 2).** Instanced rooms do NOT boot a
+  globe: `arena_instance.gd` builds a sealed flat room (a `PlaneMesh` floor +
+  `BoxShape3D` slab) in its own local frame, so `PropLayer`'s globe-addressed
+  chunks cannot ride it. Shipped the local-frame sibling instead:
+  `core/world/instance_prop_kit.gd` -- a deterministic, seed-derived
+  (`SeedChain`), mode-aware scatter of NON-COLLIDING decoration (tufts /
+  bushes / stones) over the flat floor. It reads a room as a slice of its
+  biome, keeps the bout center + every team spawn + the solid cover clear,
+  and never touches the wall -- the fight is unchanged. The arena calls it
+  at the end of `_build_room` (receipts `probe_instance_props` +
+  `probe_arena_instance`). The provider-backed option (1) stays reserved for
+  if instances ever become open terrain. Dungeons share the sealed-room
+  shape (no dedicated room scene today); when one lands, it calls the same
+  kit.
 - **Step 4 (retarget probes) + Step 5 (delete streamer) -- OPEN.** The
   streamer still owns nothing the clipmap lacks now (the deep beds were the
   last gap), so the deletion is unblocked once the 14 streamer-internal
