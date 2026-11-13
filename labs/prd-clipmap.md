@@ -1,6 +1,15 @@
 # PRD: The Clipmap Terrain Renderer (replacing the icosa face streamer)
 
-> **Status:** v1 SHIPPED (2026-11-04). Cold boot parallelised
+> **Status:** v1 SHIPPED (2026-11-04) -- the clipmap is the default
+> renderer. **v2 DESIGNED (2026-11-04): the prop layer + multi-world
+> terrain (sections 9-13).** The clipmap draws the ground mesh and
+> NOTHING else -- no trees, rocks, grass, or detail props (section 9.1),
+> because every prop law still lives in the legacy streamer. This round
+> designs the fix: a renderer-agnostic, **chunk-addressed** prop layer
+> (9.2-9.6), a **per-world ground provider** so the underworld and the
+> moon get real terrain (10), the streamer's retirement order (11), the
+> scale law for an online MMO (12), and the build plan (13). Cold boot
+> parallelised
 > (2026-11-04, S6: ~3 s -> ~2 s, bit-identical; then the ground-law rounds
 > 6c/6d took the cold build to **~780 ms**, 2.6x, still bit-identical).
 > The default ground renderer is
@@ -283,4 +292,243 @@ water table, biome, skin, road) and memoized together, with every public
 function becoming a field read. That is a real refactor of `terrain_gen`,
 so it is scoped in **`prd-ground-sample.md`** (design + a staged,
 bit-identical plan) -- not done here.
+
+## 9. The prop layer (v2 -- the world is bare without it)
+
+### 9.1 The gap (measured)
+
+The clipmap is the DEFAULT renderer (`synmergia/world/terrain_render`,
+default `"clipmap"`; the world boots at 20 km so the scale gate never
+fires). It draws the ground MESH and nothing else. **Every prop law
+still lives in the legacy streamer** (`globe_terrain_streamer.gd`):
+trees + species variants + vines (`_spawn_trees` / `_apply_tree_sites`),
+rocks + scree collars (`_spawn_rocks`), climbable boulders
+(`_spawn_boulders`), the nine detail kinds (`_spawn_detail_props`:
+ore, cattail, bush, tuft, flower, mushroom, mycelium, shell, wrack),
+and the grass field (`_spawn_grass_field`). The clipmap's `_prop_pending()`
+is a stub returning `0`.
+
+Measured on the live globe (a full tree walk of `world_root`):
+- **default (clipmap):** `{}` -- zero `Tree`/`Rock`/`Grass`/`Mushroom`
+  nodes anywhere. The starter plains read as bare colored terrain.
+- **streamer (pinned):** 229 trees, 49 rocks, 6 boulders, 2 grass fields,
+  2120 detail instances.
+
+The streamer was never ported because its prop laws are FACE-addressed
+(20 icosa triangles, 4 live) and the clipmap is RING-addressed (polar
+rings re-centred on the player). Porting the laws one-for-one into the
+clipmap would be wrong twice over: the ring lattice moves under the
+player (props would re-derive and pop on every re-centre), and the laws
+would be trapped in the clipmap, unavailable to the underworld, the
+moon, or any future renderer.
+
+### 9.2 The design: a chunk-addressed `PropLayer` (renderer-agnostic)
+
+Props become a THIRD system, independent of both renderers, addressed by
+a stable **prop chunk** -- a quantized direction cell. A chunk is a PURE
+FUNCTION of `(world_seed, chunk_key)`:
+
+```
+chunk_key  = a TERRAIN face (0..19, `IcosahedralFaces.face_for_direction`)
+             + a barycentric subdivision cell at PROP_CHUNK_DEPTH -- the
+             SAME addressing the streamer's site law already uses, so a
+             chunk key is a stable integer with no float seam cracks.
+             (NB the codebase's namespace note: `SpatialFragmenter`'s
+             "vertex" field is the 0..11 icosa VERTEX, not the 0..19
+             terrain face -- pick the right one; do not mix them.)
+chunk_data = SeedChain.derive_seed([world_seed], "props/<ruleset>/<chunk_key>")
+           -> the ordered prop instance list (kind, dir, scale, yaw, species...)
+```
+
+A chunk's content re-derives byte-identically on every machine and every
+boot (the same content-hash discipline the terrain already uses). This
+buys, for free, the four properties the prop system needs:
+
+- **Independently derivable** -- no shared state, so a chunk derives on a
+  worker thread (the clipmap's own S6 worker-pool law).
+- **Cacheable** -- an LRU on `chunk_key` (the `SectorCache` pattern);
+  overlapping re-derives hit at ~2 us.
+- **Streamable** -- load chunks within `PROP_RADIUS` of the viewer,
+  unload beyond `PROP_RADIUS + hysteresis`. Player-independent identity:
+  two players near the same chunk share the derived content.
+- **Renderer-agnostic** -- the clipmap, the streamer, the underworld, and
+  the moon all consume the SAME layer; a renderer swap no longer touches
+  props at all.
+
+### 9.3 Why chunk-addressed (not face- or ring-addressed)
+
+| addressing | owner today | why it is wrong for props |
+|---|---|---|
+| icosa FACE | streamer | coarse (20 faces, 4 live); props rebuild wholesale per face; LOD flips pop the whole face's scatter; tied to the icosa grid, awkward for polar rings. |
+| polar RING | clipmap | rings RE-CENTRE on the player, so a prop's address changes as the player walks -- props would pop and re-derive on every re-centre. Fatal. |
+| **CHUNK** | (new) | stable, player-independent, matches how an MMO streams content around many viewers at once; a chunk is the natural unit for caching, budgeted build, and (later) server authority. |
+
+### 9.4 The density + LOD law (ported, data-driven)
+
+- **Density per biome** -- port the `_DETAIL_BUDGETS` table, the tree
+  count ladder (the band-scaled `rng.randi_range` asks), and the species
+  gate (`TerrainGen.tree_species_at`). Density is DATA (per-band tables),
+  not code, so the underworld/moon declare their own.
+- **Distance LOD** -- near chunks: real `Node3D` props with colliders +
+  harvest registration (the interactive band); far chunks: batched
+  `MultiMesh` (trunks + canopies + tufts, the streamer's `BatchedTrunks`
+  pattern); beyond `PROP_RADIUS`: not derived at all.
+- **Budgeted build** -- the same L3 law the clipmap uses: a per-frame
+  prop budget, near chunks first, chunked against an absolute deadline so
+  no frame stalls.
+- **The decorative salt** -- preserve the FIELD-2 split: decorative bands
+  (canopies, grass) mix a session salt so nature recombines between days;
+  anchored culture (harvest nodes, quest anchors) derives from the world
+  seed alone so depletion/respawn ownership survives.
+
+### 9.5 The prop taxonomy (the port surface)
+
+One `PropLayer` with a per-kind builder registry (the `BiomeBand.Family`
+enum becomes the real dispatch key -- see 10.3). Ports, keeping the
+existing SHARED mesh registry (`_shared_prop_cyl` / `_shared_prop_sphere`,
+the quantized-key dedup):
+
+| family | kinds | collider | harvest |
+|---|---|---|---|
+| TREE | trunk + species canopy + vine hangs | trunk yes | no (vines pure paint) |
+| ROCK | rock + scree collar | yes | no |
+| BOULDER | climbable squat ellipsoid + rim collar | yes | no |
+| DETAIL | ore, cattail, bush, tuft, flower, mushroom, mycelium, shell, wrack | ore yes | ore/kelp/pearl yes |
+| GRASS | MultiMesh blade field | no | no |
+
+### 9.6 Colliders, harvest, persistence
+
+- Near props carry `PropCollider` (trunk bodies block + join the
+  climbable group; canopies stay intangible).
+- Harvest nodes register through `HarvestService.register_node` with
+  STABLE ids: `hs_<chunk_key>_<idx>` (the streamer's `hs_<face>_<idx>`
+  discipline, chunk-keyed instead of face-keyed) so a chunk reload
+  re-claims the SAME node identity -- depletion/respawn ownership survives
+  a re-stream.
+- Prop IDENTITY is seed-derived (stable); harvest DEPLETION is
+  service-side (already). No prop state enters the world save.
+
+## 10. Multi-world terrain: the ground-provider seam (v2)
+
+### 10.1 The coupling to break
+
+`globe_clipmap.gd` hardcodes the main world's ground law: `preload(.../
+terrain_gen.gd)` at line 38, `TerrainGen.terrain_height`, `TerrainGen.
+SPAWN_CENTER`, `TerrainGen.rock_top_height`. The underworld
+(`globe_underworld.gd`) and the moon (`globe_moon.gd`) do not use
+`TerrainGen` at all -- each builds a bare `SphereMesh` + `SphereShape3D`
+(a flat ball): no heightfield, no biomes, no water, no props. They are
+globes with no terrain.
+
+### 10.2 The design: a `GroundProvider` interface
+
+Extract a small interface every world's ground law implements, and have
+the clipmap take a PROVIDER in `configure()` instead of preloading
+`TerrainGen`:
+
+```
+GroundProvider:
+  ground_sample(dir)        -> {height, biome_id, biome_weights, ...}
+  walk_height(dir)          -> float   # height + walk-over caps
+  rock_top_height(dir, ...) -> float
+  sea_level()               -> float
+  water_surface(dir)        -> float   # -1e9 = none
+  spawn_center()            -> Vector3
+  biome_density(biome_id)   -> int     # the prop ask table
+```
+
+`TerrainGen` becomes the provider for `world_id = "main"` (its public
+statics already ARE this interface -- the extraction is mostly a thin
+adapter). The clipmap, the prop layer, the walk law, and the water law
+all read the provider, so the SAME clipmap renders any globe.
+
+### 10.3 The underworld + moon get real terrain
+
+Both are 2 km / 1.2 km globes. They already have the pieces to become
+real worlds:
+
+- **The underworld already has a band system.** `BiomeBand`
+  (`data/biomes/`, `world_id`-filtered) declares five bands with count,
+  radii, palette, and a `Family` enum -- but `globe_underworld.gd`
+  hardcodes five builders by band id and **never reads `.family`**. The
+  provider's `biome_density` + the prop layer's family dispatch make
+  `BiomeBand` the real data law it was written to be.
+- **The moon declares a crater pool** (`data/oceans/
+  ocean_lunar_crater.tres`, "The Builder's Pool") that `globe_moon.gd`
+  never builds -- a data-vs-build gap the provider's `water_surface`
+  closes.
+- **Authored geography must move out of `TerrainGen`.** `SPAWN_CENTER`,
+  `LAKE_CENTER`, `ISLAND_CENTER`, `SUN_PANS_*`, and the polar caps are
+  main-world constants. Each globe's authored geography belongs in its
+  `WorldData` (or its provider), so the moon's crater and the
+  underworld's lava lake/cistern are declared per world, not inherited.
+
+### 10.4 What stays main-world-only
+
+The `terrain_backend_id` seam (`backend_sundered.gd` composes over
+`TerrainGen._natural_raw`) stays as-is -- it is a MAIN-world authored
+override. Other worlds get their own provider, not a backend over
+`TerrainGen`.
+
+## 11. The streamer's retirement order
+
+Retiring the streamer FIRST would delete all flora (it holds the only
+prop system) and strand 14 streamer-internal probes. The safe order:
+
+1. **Extract** the prop laws into `PropLayer` (renderer-agnostic).
+2. **Wire the clipmap** to consume `PropLayer` -- parity receipts.
+3. **Migrate the underworld/moon** onto the provider + prop layer.
+4. **Retarget the 14 streamer-internal probes** to the shared surface
+   (`probe_prop_density`, `probe_biodiversity_v7`, the continent/flow
+   probes) so they test the new layer, not the dead internals.
+5. **Delete** `globe_terrain_streamer.gd` (3945 lines: skirts, seams,
+   hot-reload graft -- all existence-proof of the face-swap model the
+   clipmap retired).
+
+Each step is independently shippable and gated; no step leaves the world
+without flora.
+
+## 12. The scale law (what an online MMO needs)
+
+The chunk is not just a rendering convenience -- it is the unit the whole
+online pipeline wants:
+
+- **Determinism as the network law.** A chunk is a pure function of the
+  seed, so the SERVER and every CLIENT derive identical props without
+  shipping prop data. Authority over harvest/interaction rides the
+  existing service path (HarvestService ids); the world ships only the
+  seed.
+- **Streaming around MANY viewers.** Unlike the streamer's single-viewer
+  face LOD, chunks stream around every player independently; the LRU
+  serves overlapping viewers from one derive.
+- **Cost is bounded by radius, not by world size.** Derive + build cost
+  scales with `PROP_RADIUS`/chunk, constant regardless of how large the
+  planet is -- the property the clipmap already has for the mesh.
+- **Batching is the draw-call law.** The mass of props is `MultiMesh`
+  (one draw per kind per chunk); real nodes only for the interactive
+  near band. `visibility_range` (Godot's built-in) can fade the far
+  batches without a per-frame CPU pass.
+- **The seed cache is shared with the ground.** Props read the same
+  `GroundSample` / sector cache the mesh does, so a chunk's prop derive
+  and its ground derive share memoized samples.
+
+## 13. Build plan (parallelisable across the existing lanes)
+
+The work splits cleanly along the existing subagent-lane pattern
+(`labs/lanes/`), with the parent owning the shared interfaces:
+
+| lane | scope | touches |
+|---|---|---|
+| **PARENT** | `GroundProvider` interface + `PropLayer` skeleton + `PropChunk` addressing + the density/LOD law. The shared seam everything else consumes. | `globe_clipmap.gd`, new `prop_layer.gd`, `terrain_gen.gd` (adapter) |
+| **LANE A** | Port the prop taxonomy (trees/species/vines, rocks/scree, boulders) from the streamer into `PropLayer` builders + the shared mesh registry. | new prop builder files |
+| **LANE B** | Port the detail kinds + grass field + harvest registration (stable chunk-keyed ids). | new prop builder files, `harvest_service.gd` |
+| **LANE C** | `UnderworldProvider` + wire `BiomeBand.family` dispatch + the lava lake/cistern as declared geography. | `globe_underworld.gd`, `biome_band.gd` |
+| **LANE D** | `MoonProvider` + build the declared crater pool + the moon's own biome bands. | `globe_moon.gd`, `world_moon.tres`, new `data/biomes/moon_*` |
+| **PARENT** (last) | Retarget the 14 streamer-internal probes; delete the streamer. | `game/tests/`, delete `globe_terrain_streamer.gd` |
+
+Gates at every step: `probe_clipmap` ALL PASS; a NEW `probe_prop_layer`
+(family counts, determinism, chunk-keyed harvest ids, LOD parity);
+`probe_ground_law_audit` ALL PASS; the underworld/moon receipts
+(`probe_underworld`, `wilds_probe`) green on the provider path; zero
+SCRIPT ERROR; lint + naming clean.
 
