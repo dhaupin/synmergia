@@ -1,7 +1,7 @@
 # Scope: The `GroundSample` refactor (fusing the ground law)
 
-> **Status:** SCOPED (2026-11-04). Not started. This is the design + plan
-> for the structural fix behind S1-S4 in `prd-clipmap.md` section 8.
+> **Status:** SCOPED (2026-11-04). Stages 0-2 SHIPPED. This is the design +
+> plan for the structural fix behind S1-S4 in `prd-clipmap.md` section 8.
 > Related: `prd-clipmap.md` (the renderer + the slow-systems table),
 > `prd-terrain.md` (the ground law), `prd-world.md` (the planet).
 
@@ -172,6 +172,52 @@ bit-identical, STOP and reassess -- the determinism pins are the law.
   substantially (report before/after); the clipmap cold build is
   re-measured and does not regress.
 - Naming lint + autoload audit green.
+
+## 6a. Measured result (Stages 0-2, 2026-11-04)
+
+Cold cost is unchanged (the fusion does not reduce cold derivation --
+it is the same laws once). The win is the WARM path, which is 90.4% of
+all ground-law calls in a clipmap build:
+
+| call | OLD warm | NEW warm | speedup |
+|---|---|---|---|
+| `splat_skin` | 30.6 us | 11.3 us | 2.7x |
+| `vertex_color` | 76.1 us | 14.4 us | 5.3x |
+| `climate_biome_weights` | 81.8 us | 5.9 us | 13.9x |
+
+(The OLD numbers are the pre-refactor `terrain_gen` at `9e1f2f26`,
+measured side-by-side; NEW is the fused path.) The win comes from one
+`ground_sample` memo probe per call replacing the old fan-out of ~6-12
+individual memo probes (each a key build + mutex + LRU probe).
+
+**Honest caveat:** the raw `SectorCache.get_value` COUNT barely moved
+(675,904 -> 666,579) because most of those lookups are the COLD
+first-visit derivation of the shared sub-primitives, not warm
+re-derives. The win is per-warm-call latency, not lookup count. A
+further reduction would need the Stage-3 cache collapse (which removes
+the redundant parallel caches, not the cold derivations).
+
+## 6b. Stages
+
+- **Stage 0 SHIPPED** -- `probe_ground_sample.gd`, the bit-identical
+  safety net (EXACT equality across 246 dirs).
+- **Stage 1 SHIPPED** -- `GroundSample` + `_build_ground_sample()` +
+  `ground_sample()`, memoized in `_ground_cache`.
+- **Stage 2 SHIPPED** -- the derived laws (`climate_biome_id`,
+  `climate_biome_weights`, `skin_classes`, `vertex_color`,
+  `splat_skin`) read the fused sample; the pure helpers
+  (`_biome_weights_from`, `_skin_from`) let the builder use them without
+  recursion. All bit-identical (probe + every gate green).
+- **Stage 3 (NEXT)** -- collapse the per-field caches into
+  `_ground_cache` (one `clear()` on backend install). The primitives
+  (`terrain_height`, `climate_temperature`, `water_table_raw`,
+  `hydro_water_surface`, `_crag_noise`) keep their own memos, because
+  they are the shared cold-derivation layer that the fused sample and
+  the raw renderer/waterfall paths both read -- the parallel caches to
+  collapse are the ones that now only hold redundant derived values.
+- **Stage 4 (NEXT)** -- the clipmap drops its private `_memo_h` /
+  `_memo_col` and asks `ground_sample` once per vertex.
+- **Stage 5 (NEXT)** -- the S4 `river_channel` bounding early-out.
 
 ## 7. Open questions (for the owner)
 

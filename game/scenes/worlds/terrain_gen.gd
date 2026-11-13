@@ -1272,8 +1272,10 @@ static func climate_swamp_wetness(d: Vector3, world_seed: PackedByteArray, heigh
 
 ## Convenience: the discrete biome at one direction (the plain path).
 static func climate_biome_id(d: Vector3, world_seed: PackedByteArray) -> int:
-	d = d.normalized()
-	return climate_biome_at(d, world_seed, terrain_height(d, world_seed), hydro_water_surface(d, world_seed))
+	# GROUND-SAMPLE FUSION (stage 2): the biome id is a field on the fused
+	# sample (the builder calls climate_biome_at with the same pre-read
+	# height + surface), so this is bit-identical to the old recompute.
+	return ground_sample(d.normalized(), world_seed).biome_id
 
 
 ## THE GATED WATER SURFACE: where standing water actually IS. The raw
@@ -1404,20 +1406,24 @@ static func _crag_noise(d: Vector3, world_seed: PackedByteArray) -> Vector4:
 
 static func vertex_color(d: Vector3, world_seed: PackedByteArray, lift: float, steep: float) -> Color:
 	d = d.normalized()
+	var gs: GroundSample = ground_sample(d, world_seed)
+	# GROUND-SAMPLE FUSION (stage 2): one fused read replaces the
+	# individual biome/temperature/surface/height/road/crag calls.
+	# Bit-identical: the same laws, read once and reused.
 	var base_c = _blend_cache.get_value(d, world_seed)
 	var base: Color
 	if base_c is Color:
 		base = base_c
 	else:
 		var c0: Color = Color(0, 0, 0)
-		var weights: Dictionary = climate_biome_weights(d, world_seed)
+		var weights: Dictionary = gs.biome_weights
 		for id in weights:
 			var bc: Color = biome_color(int(id), world_seed, d)
 			var w: float = float(weights[id])
 			c0 = Color(c0.r + bc.r * w, c0.g + bc.g * w, c0.b + bc.b * w)
 		base = c0
 		_blend_cache.set_value(d, world_seed, base)  # bounds evict, never clear
-	var sea: float = sea_level(world_seed)
+	var sea: float = gs.sea
 	var c: Color = base
 	# THE CRAG NOISE BUNDLE (the perf-budget catch): the four per-color
 	# terrain noises are pure per (direction, seed), so they share ONE
@@ -1426,11 +1432,11 @@ static func vertex_color(d: Vector3, world_seed: PackedByteArray, lift: float, s
 	# patch build); cached, the budget pin holds. Values:
 	# x = macro tone noise, y = crag streak, z = strata wobble,
 	# w = fracture chatter.
-	var cn: Vector4 = _crag_noise(d, world_seed)
+	var cn: Vector4 = gs.crag
 	# THE BAND READ (one per vertex): the corner's biome drives the
 	# crag streaks AND the grass expression below -- one cached read
 	# instead of two passes through the climate law.
-	var id_check: int = climate_biome_id(d, world_seed)
+	var id_check: int = gs.biome_id
 	# Slope physics: steep ground reads rock (bands: shallow slopes keep
 	# their biome; cliffs gray out).
 	c = c.lerp(Color(0.46, 0.42, 0.38), clampf(steep * 0.75, 0.0, 1.0))
@@ -1453,7 +1459,7 @@ static func vertex_color(d: Vector3, world_seed: PackedByteArray, lift: float, s
 		c = c.darkened(fracture * 0.30)
 	# Snowline via temperature: below the freeze band, snow takes over
 	# (spawn apron excepted -- the boot stays dry-green).
-	var t: float = climate_temperature(d, world_seed)
+	var t: float = gs.temperature
 	if t < SNOWLINE_T + 0.04:
 		var ang_spawn: float = d.normalized().angle_to(SPAWN_CENTER)
 		if ang_spawn > SPAWN_APRON_OUTER_ANG:
@@ -1468,8 +1474,8 @@ static func vertex_color(d: Vector3, world_seed: PackedByteArray, lift: float, s
 	# pond edges - not just the sea ring) reads moist-darkened, fade
 	# proportional. Sits AFTER the memoized blend (per-corner physics
 	# stay out of the cache).
-	var surf: float = hydro_water_surface(d, world_seed)
-	var under_g: float = surf - terrain_height(d, world_seed)
+	var surf: float = gs.water_surface
+	var under_g: float = surf - gs.height
 	if under_g > 0.0 and under_g < 1.5:
 		c = c.darkened((1.0 - under_g / 1.5) * 0.5)
 	# THE SHORE FOAM + WAVE LINE (the owner's polish order): the last
@@ -1504,7 +1510,7 @@ static func vertex_color(d: Vector3, world_seed: PackedByteArray, lift: float, s
 	# THE ROAD LAW TINT (v1): the cartway paints its material - the
 	# dirt trail reads packed earth, the bridge deck reads plank wood.
 	# Per-corner physics again: the road state cache answers both.
-	var road_state: Vector3 = road_state_at(d, world_seed)
+	var road_state: Vector3 = gs.road_state
 	if road_state.x > 0.0 and d.angle_to(SPAWN_CENTER) >= SPAWN_APRON_OUTER_ANG:
 		var road_c: Color = Color(0.50, 0.38, 0.26).lerp(Color(0.58, 0.42, 0.30), road_state.y)
 		c = c.lerp(road_c, road_state.x * 0.85)
@@ -1549,15 +1555,14 @@ static func vertex_color(d: Vector3, world_seed: PackedByteArray, lift: float, s
 const SPLAT_SKIN := true
 
 static func skin_classes(d: Vector3, world_seed: PackedByteArray) -> Color:
-	# THE CLASS MEMO (the blend-cache law verbatim): the texture-class
-	# read is pure per quantized direction + seed, so it memoizes the
-	# same probability the color law rides -- uncached, the full-detail
-	# budget loses its headroom (the perf probe caught it first run).
-	d = d.normalized()
-	var cached = _skin_cache.get_value(d, world_seed)
-	if cached is Color:
-		return cached
-	var weights: Dictionary = climate_biome_weights(d, world_seed)
+	# GROUND-SAMPLE FUSION (stage 2): the class weights ride the fused
+	# sample's biome_weights (bit-identical: the same weights law).
+	var s: GroundSample = ground_sample(d.normalized(), world_seed)
+	return _skin_from(s.biome_weights)
+
+
+## The PURE class split (the fused builder's own entry; reads no laws).
+static func _skin_from(weights: Dictionary) -> Color:
 	var w_grass: float = 0.0
 	var w_dirt: float = 0.0
 	var w_rock: float = 0.0
@@ -1582,18 +1587,20 @@ static func skin_classes(d: Vector3, world_seed: PackedByteArray) -> Color:
 			_:
 				w_dirt += w
 	var out := Color(clampf(w_grass, 0.0, 1.0), clampf(w_dirt, 0.0, 1.0), clampf(w_rock, 0.0, 1.0), clampf(w_sand, 0.0, 1.0))
-	_skin_cache.set_value(d, world_seed, out)  # bounds evict, never clear
 	return out
 
 
 static func splat_skin(d: Vector3, world_seed: PackedByteArray, lift: float, steep: float) -> Dictionary:
 	d = d.normalized()
-	var cls := skin_classes(d, world_seed)
+	var gs: GroundSample = ground_sample(d, world_seed)
+	# GROUND-SAMPLE FUSION (stage 2): one fused read replaces the
+	# skin/temperature/crag/surface/height/road calls. Bit-identical.
+	var cls: Color = gs.skin
 	var w_grass: float = cls.r
 	var w_dirt: float = cls.g
 	var w_rock: float = cls.b
 	var w_sand: float = cls.a
-	var sea: float = sea_level(world_seed)
+	var sea: float = gs.sea
 	# THE SLOPE PHYSICS: the same rock lerp factor vertex_color rides.
 	var f_rock: float = clampf(steep * 0.75, 0.0, 1.0)
 	w_grass *= 1.0 - f_rock
@@ -1602,17 +1609,17 @@ static func splat_skin(d: Vector3, world_seed: PackedByteArray, lift: float, ste
 	w_rock = w_rock + (1.0 - w_rock) * f_rock
 	var aux: Vector2 = Vector2(0.0, 1.0)
 	# THE SNOWLINE (same law: temperature, spawn apron dry-green).
-	var t: float = climate_temperature(d, world_seed)
+	var t: float = gs.temperature
 	if t < SNOWLINE_T + 0.04:
 		var ang_spawn: float = d.normalized().angle_to(SPAWN_CENTER)
 		if ang_spawn > SPAWN_APRON_OUTER_ANG:
 			aux.x = clampf((SNOWLINE_T + 0.04 - t) / 0.08, 0.0, 1.0) * 0.85
 	# THE DIMMING STACK (post-blend leg), folded into aux.y:
-	var cn: Vector4 = _crag_noise(d, world_seed)
+	var cn: Vector4 = gs.crag
 	if lift < sea - 0.2:
 		aux.y *= 0.55  # the under-shell wet dim (darkest leg)
-	var surf: float = hydro_water_surface(d, world_seed)
-	var under_g: float = surf - terrain_height(d, world_seed)
+	var surf: float = gs.water_surface
+	var under_g: float = surf - gs.height
 	if under_g > 0.0 and under_g < 1.5:
 		aux.y *= 1.0 - (1.0 - under_g / 1.5) * 0.5  # the wet ring
 	# THE SHORE FOAM + WATERFALL SEAM: both pale-white washes ride the
@@ -1626,7 +1633,7 @@ static func splat_skin(d: Vector3, world_seed: PackedByteArray, lift: float, ste
 	if seam > 0.01:
 		aux.x = clampf(aux.x + seam * (0.55 + 0.4 * smoothstep(0.4, 0.8, cn.w)), 0.0, 1.0)
 	# THE ROAD LAW TINT: the cartway reads packed earth (dirt skin).
-	var road_state: Vector3 = road_state_at(d, world_seed)
+	var road_state: Vector3 = gs.road_state
 	if road_state.x > 0.0 and d.angle_to(SPAWN_CENTER) >= SPAWN_APRON_OUTER_ANG:
 		var f_road: float = road_state.x * 0.85
 		w_grass *= 1.0 - f_road
@@ -1648,16 +1655,16 @@ static func splat_skin(d: Vector3, world_seed: PackedByteArray, lift: float, ste
 ## vertex_color below. The WEIGHTS law: primary biome carries the
 ## bulk; adjacent bands carry a pinch -- colors blend across band edges.
 static func climate_biome_weights(d: Vector3, world_seed: PackedByteArray) -> Dictionary:
-	d = d.normalized()
-	var id: int = climate_biome_id(d, world_seed)
-	var sea: float = sea_level(world_seed)
+	# GROUND-SAMPLE FUSION (stage 2): read the fused sample, then the pure
+	# weight ladder (bit-identical -- the sample carries the same id/t/m/h).
+	var s: GroundSample = ground_sample(d.normalized(), world_seed)
+	return _biome_weights_from(s.biome_id, s.temperature, s.moisture, s.height, s.sea)
+
+
+## The PURE weight ladder (the fused builder's own entry; reads no laws).
+static func _biome_weights_from(id: int, t: float, m: float, h: float, sea: float) -> Dictionary:
 	var weights: Dictionary = {id: 1.0}
-	# Neighbors: a two-field soft ladder by temperature and moisture.
-	var t: float = climate_temperature(d, world_seed)
-	var m: float = climate_moisture(d, world_seed)
 	var pinch: float = 0.12
-	var h: float = terrain_height(d, world_seed)
-	var surface: float = hydro_water_surface(d, world_seed)
 	if id == BiomeId.GRASSLAND:
 		if m > SWAMP_T - 0.08:
 			weights[BiomeId.SWAMP] = pinch
@@ -2714,8 +2721,8 @@ static func _build_ground_sample(dir: Vector3, world_seed: PackedByteArray) -> G
 	s.temperature = climate_temperature(d, world_seed)
 	s.moisture = climate_moisture(d, world_seed)
 	s.biome_id = climate_biome_at(d, world_seed, s.height, s.water_surface)
-	s.biome_weights = climate_biome_weights(d, world_seed)
-	s.skin = skin_classes(d, world_seed)
+	s.biome_weights = _biome_weights_from(s.biome_id, s.temperature, s.moisture, s.height, s.sea)
+	s.skin = _skin_from(s.biome_weights)
 	s.crag = _crag_noise(d, world_seed)
 	s.river_channel = river_channel(d, world_seed)
 	s.road_state = road_state_at(d, world_seed)

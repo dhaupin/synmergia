@@ -89,5 +89,23 @@ func _initialize() -> void:
 	# it is finite (the memo poison-guard contract).
 	_check("crag finite", is_finite(a.crag.x) and is_finite(a.crag.w))
 
+	# The colour/skin lanes (vertex_color + splat_skin) read the fused
+	# sample; assert they stay PURE and consistent with the sample fields
+	# they now ride (lift = the sample height, so the reads agree).
+	var vc_mismatch := 0
+	var sk_mismatch := 0
+	for d in dirs:
+		var s: Gen.GroundSample = Gen.ground_sample(d, seed_b)
+		var c1: Color = Gen.vertex_color(d, seed_b, s.height, 0.3)
+		var c2: Color = Gen.vertex_color(d, seed_b, s.height, 0.3)
+		if c1 != c2:
+			vc_mismatch += 1
+		var sp1: Dictionary = Gen.splat_skin(d, seed_b, s.height, 0.3)
+		var sp2: Dictionary = Gen.splat_skin(d, seed_b, s.height, 0.3)
+		if sp1 != sp2:
+			sk_mismatch += 1
+	_check("vertex_color pure across %d dirs" % dirs.size(), vc_mismatch == 0)
+	_check("splat_skin pure across %d dirs" % dirs.size(), sk_mismatch == 0)
+
 	print("probe_ground_sample: %s (%d checks)" % ["ALL PASS" if _okay else "FAILS", _checks])
 	quit(0 if _okay else 1)

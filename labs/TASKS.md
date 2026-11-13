@@ -7,6 +7,18 @@ commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
 
+## 2026-11-04ce -- world: GroundSample refactor STAGES 0-2 SHIPPED (staging, no PRs)
+- SESSION CONTEXT: continued on `staging`. "continue building" -- the scoped GroundSample refactor (the real fix behind S1-S4).
+- STAGE 0 SHIPPED (`tests/probe_ground_sample.gd`): the bit-identical safety net -- asserts `TerrainGen.ground_sample(dir, seed)` == the individual public laws EXACTLY (not epsilon) across 246 dirs (spiral + the authored anchors), plus purity + memo identity + vertex_color/splat_skin purity. Lands FIRST and stays green through every stage.
+- STAGE 1 SHIPPED (`terrain_gen.gd`): the `GroundSample` inner class (the RiverSpec/RoadSpec pattern -- NO class_name, NO autoload) + `_build_ground_sample()` + `ground_sample()` memoized together in `_ground_cache` (declared + cleared on backend install/uninstall). Stage 1 computes the struct by calling the existing sub-laws, so it is trivially bit-identical; the `primary` flag lets the cache hold both fused samples and (stage 2) raw samples without a self-referential builder recursion.
+- STAGE 2 SHIPPED (`terrain_gen.gd`): the derived laws now read the fused sample -- `climate_biome_id` -> `.biome_id`; `climate_biome_weights` -> `_biome_weights_from(id, t, m, h, sea)`; `skin_classes` -> `_skin_from(weights)`; `vertex_color` + `splat_skin` read `gs.biome_weights`/`.sea`/`.crag`/`.biome_id`/`.temperature`/`.water_surface`/`.height`/`.road_state` from ONE `ground_sample(d, seed)` call. The PURE helpers (`_biome_weights_from`, `_skin_from`) are the builder's own entry points -- they read NO laws, so the builder never recurses. Bit-identical (probe + every gate green).
+- MEASURED (side-by-side vs the pre-refactor `terrain_gen` at `9e1f2f26`): COLD unchanged (the fusion is the same laws once); WARM (90.4% of calls) `splat_skin` 30.6 -> 11.3 us (2.7x), `vertex_color` 76.1 -> 14.4 us (5.3x), `climate_biome_weights` 81.8 -> 5.9 us (13.9x). The win is ONE memo probe per call replacing the old fan-out of ~6-12. HONEST CAVEAT: the raw `SectorCache.get_value` COUNT barely moved (675,904 -> 666,579) -- most lookups are COLD first-visit derivations of shared sub-primitives, not warm re-derives; the win is per-warm-call latency.
+- CAUGHT: a leftover `_skin_cache.set_value(d, world_seed, out)` line in the extracted `_skin_from` (which has no `d`/`world_seed` params) -> parse error; removed.
+- GATES: probe_ground_sample ALL PASS (8 checks); probe_ground_law_audit ALL PASS; probe_clipmap ALL PASS; test_terrain_determinism exit 0; probe_starter_village ALL PASS; probe_terrain_planet 44 checks; probe_terrain_climate 32 checks; test_terrain_splat_skin 25 green; probe_roads_flow exit 0; probe_terrain_backend 11/0; probe_world_shape_ground 0 failures; naming lint 30/0; zero SCRIPT ERROR.
+- REMAINING (documented in `labs/prd-ground-sample.md` 6b): Stage 3 (collapse redundant caches), Stage 4 (clipmap drops `_memo_h`/`_memo_col`), Stage 5 (S4 river bounding early-out). The primitives keep their own memos (shared cold-derivation layer).
+- PUSHED: `staging`.
+
+
 ## 2026-11-04cd -- world: H4 retired + the GroundSample refactor SCOPED + Stage 0 probe (staging, no PRs)
 - SESSION CONTEXT: continued on `staging`. User: retire lane H4 (superseded by the clipmap), scope the GroundSample refactor (the real fix behind S1-S4), then keep building.
 - LANE H4 RETIRED: the floating-structure fix lane is superseded by the clipmap (which closed the band-pop). Its worktree was clean at `40f00d06` with zero unharvested commits; deleted the conversation (`lane_spawn.sh rm`) and pruned the worktree. Only lane M's ref (`openhands/16387124...`, harvested) remains.
