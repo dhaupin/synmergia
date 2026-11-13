@@ -1373,9 +1373,9 @@ engine binary is provisioned by `scripts/setup-dev.sh`, not by LFS.
 ### Quest objective bridges + CI triggers (learned 2026-11-29)
 
 - **Objective types and their bridges.** `quest_data.gd` `ObjectiveType`
-  has 14 members; `quest_service.gd` bridges **7** of them (KILL, COLLECT,
-  TALK, EXPLORE, RECORD_INSIGHT, SWIM, GLIDE). An authored objective type
-  with no bridge is a **dead counter** the player can never advance.
+  has 14 members; `quest_service.gd` bridges **8** of them (KILL, COLLECT,
+  TALK, EXPLORE, RECORD_INSIGHT, SWIM, GLIDE, CRAFT). An authored objective
+  type with no bridge is a **dead counter** the player can never advance.
   `game/tests/test_quest_bridge_coverage.gd` guards this: it parses the
   enum, scans `game/data/quests/*.tres` for authored `"type"` values, and
   requires data types is a subset of bridged types. It counts a "bridge"
@@ -1384,6 +1384,13 @@ engine binary is provisioned by `scripts/setup-dev.sh`, not by LFS.
   so it cannot fake a bridge. Add a bridge by calling
   `update_quest_progress(player_id, ObjectiveType.X, target, amount)`
   from a signal handler; then add the type to the data.
+  - Bridge targets are ONE id style, verbatim: TALK -> `npc_` id,
+    EXPLORE -> `zone_` id, SWIM -> `ocean_` id, CRAFT -> `recipe_` id.
+    No display-name fallback candidates.
+  - Deferred connects (the signal owner is a LATER autoload than
+    QuestService): insight (SignService), swim (OceanService), glide
+    (ThermalService), craft (CraftingService). `has_signal` keeps each
+    optional for old pack contexts.
 - **The bridge tests must be in `DEFAULT_SET`.** `test_quest_lore_bridges`,
   `test_quest_explore_bridge`, `test_quest_swim_bridge`,
   `test_quest_glide_bridge` existed and passed for months but were NOT in
@@ -1399,3 +1406,13 @@ engine binary is provisioned by `scripts/setup-dev.sh`, not by LFS.
 - **Known pre-existing failures** on clean staging: `probe_riding` and
   `probe_planet_rebase_20km` (plus historically `probe_world_lattice`).
   A full run is ~154 passed / 2 failed; those two are the floor.
+- **Achievement triggers are the same dead-counter class.**
+  `AchievementService.track/unlock_event` are keyed by a string
+  `target_type` declared in `game/data/achievements/*.tres` and fed only
+  by code. `game/tests/test_achievement_trigger_coverage.gd` asserts every
+  authored `target_type` is fed by a real call site under `res://` (tests
+  excluded). Producers are found by a paren-balanced scan -- a nested
+  call like `track(pid, "glide_distance", int(float(x)))` must still be
+  seen, so never match on "the last literal in the args". Fed-but-
+  unauthored categories (raw stat names `distance`/`time`/`max_altitude`,
+  the follow/waypoint convenience verbs) print as `[info]`, not failures.
