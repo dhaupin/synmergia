@@ -11,8 +11,8 @@ description = "Synthetic chronomancy unit. Manipulates system clocks and process
 resource_type = 1
 base_stats = {"strength": 6, "agility": 10, "vitality": 8, "intelligence": 14, "wisdom": 6, "endurance": 6}
 stat_growth = {"strength": 1, "agility": 2, "vitality": 1, "intelligence": 3, "wisdom": 1, "endurance": 1}
-"focal_stat_1": "wisdom",
-"focal_stat_2": "endurance",
+focal_stat_1 = "wisdom"
+focal_stat_2 = "endurance"
 base_resource = 120
 resource_per_level = 14
 resource_regen_per_second = 5.0

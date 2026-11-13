@@ -11,8 +11,8 @@ description = "Human time weaver. Manipulates the flow of time itself - slowing 
 resource_type = 1
 base_stats = {"strength": 5, "agility": 8, "vitality": 8, "intelligence": 14, "wisdom": 12, "endurance": 7}
 stat_growth = {"strength": 1, "agility": 1, "vitality": 1, "intelligence": 3, "wisdom": 2, "endurance": 1}
-"focal_stat_1": "wisdom",
-"focal_stat_2": "endurance",
+focal_stat_1 = "wisdom"
+focal_stat_2 = "endurance"
 base_resource = 130
 resource_per_level = 15
 resource_regen_per_second = 5.5

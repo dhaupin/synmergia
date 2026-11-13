@@ -11,8 +11,8 @@ description = "Human divine healer. Channels sacred light to mend wounds and pro
 resource_type = 1
 base_stats = {"strength": 6, "agility": 5, "vitality": 10, "intelligence": 10, "wisdom": 14, "endurance": 10}
 stat_growth = {"strength": 1, "agility": 1, "vitality": 2, "intelligence": 2, "wisdom": 3, "endurance": 2}
-"focal_stat_1": "wisdom",
-"focal_stat_2": "endurance",
+focal_stat_1 = "wisdom"
+focal_stat_2 = "endurance"
 base_resource = 140
 resource_per_level = 16
 resource_regen_per_second = 6.0
