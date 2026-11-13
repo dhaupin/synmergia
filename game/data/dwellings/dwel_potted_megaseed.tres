@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "dwel_potted_megaseed"
+display_name = "Potted Megaseed"
+description = "A megaseed sprout in a gear-cog planter, curling a slow green shoot toward the light. Decoration with a grower's patience."
+icon_path = "res://icons/dwellings/potted_megaseed.png"
+item_category = 7
+rarity = 0
+equip_slot = 0
+stack_size = 1
+sell_price = 60
+buy_price = 1200
+required_level = 0
+dwelling_category = "decoration"
+dwelling_size = Vector3(1, 1, 1)
+is_placeable = true
+placement_zones = ["housing_zone_1", "housing_zone_2"]
+is_interactable = true
+interaction_type = "tend"
+interaction_radius = 0.8
+provides_function = ""
+function_capacity = 0
+tax_modifier = 0.0
+maintenance_cost = 1.0
+decay_time_days = 0.0
+allow_guild_access = true
+allow_friends_access = true
+allow_public_view = true
+dyeable = false
+dismantle_returns = [{
+"amount": 2,
+"id": "res_hemp_cord",
+"type": "resource"
+}, {
+"amount": 1,
+"id": "res_gloam_spore",
+"type": "resource"
+}]

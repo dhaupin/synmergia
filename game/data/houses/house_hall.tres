@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="HouseData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/house_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "house_hall"
+display_name = "Hall"
+description = "A two-story home built against the flank of a half-buried machine hull, timber rooms clinging to overgrown alloy. A stable bay beneath, a bell tower with a gold finial above, laundry line and herb racks along the wall."
+tier = 2
+cost = 1500000
+footprint = Vector3(8, 0.25, 7)
+wall_height = 4.5
+door_width = 1.6
+roof_pitch = 0.45
+icon_path = "res://icons/houses/house_hall.png"
+model_path = ""
+wall_color = Color(0.48, 0.34, 0.2, 1)
+roof_color = Color(0.3, 0.18, 0.13, 1)
+features = ["stable_bay", "bell_tower", "gold_finial", "herb_racks"]

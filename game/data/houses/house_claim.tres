@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="HouseData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/house_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "house_claim"
+display_name = "Claim"
+description = "A timber-frame salvage-canvas tent roped to a fresh plot. A bedroll, a lantern hook, and a teal wake-clasp on the doorpost: the world has recorded your claim."
+tier = 0
+cost = 250000
+footprint = Vector3(4, 0.15, 4)
+wall_height = 2.0
+door_width = 1.2
+roof_pitch = 0.65
+icon_path = "res://icons/houses/house_claim.png"
+model_path = ""
+wall_color = Color(0.62, 0.55, 0.4, 1)
+roof_color = Color(0.5, 0.44, 0.32, 1)
+features = ["wake_clasp", "bedroll"]

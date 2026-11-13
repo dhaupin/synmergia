@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="HouseData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/house_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "house_cottage"
+display_name = "Cottage"
+description = "A one-room timber cottage with a moss sedum roof, a smoking stone chimney, and a door-side Aether-Conduit post lit teal -- the house terminal and address stone."
+tier = 1
+cost = 750000
+footprint = Vector3(6, 0.2, 6)
+wall_height = 3.0
+door_width = 1.4
+roof_pitch = 0.5
+icon_path = "res://icons/houses/house_cottage.png"
+model_path = ""
+wall_color = Color(0.55, 0.38, 0.22, 1)
+roof_color = Color(0.35, 0.2, 0.14, 1)
+features = ["chimney", "sedum_roof", "conduit_post"]

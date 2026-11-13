@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "dwel_bookshelf"
+display_name = "Salvage Bookshelf"
+description = "Shelves of mixed salvage board holding a codex's worth of loose leaves. Interact to read your collected lore at home."
+icon_path = "res://icons/dwellings/bookshelf_salvage.png"
+item_category = 7
+rarity = 1
+equip_slot = 0
+stack_size = 1
+sell_price = 300
+buy_price = 6000
+required_level = 0
+dwelling_category = "storage"
+dwelling_size = Vector3(2, 3, 1)
+is_placeable = true
+placement_zones = ["housing_zone_1", "housing_zone_2"]
+is_interactable = true
+interaction_type = "read"
+interaction_radius = 1.0
+provides_function = "lore_library"
+function_capacity = 0
+tax_modifier = 0.02
+maintenance_cost = 3.0
+decay_time_days = 0.0
+allow_guild_access = true
+allow_friends_access = true
+allow_public_view = true
+dyeable = true
+dismantle_returns = [{
+"amount": 6,
+"id": "res_timber",
+"type": "resource"
+}]
