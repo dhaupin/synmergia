@@ -11,5 +11,6 @@ achievement_type = 0
 category = 1
 rarity = 0
 target_type = "party"
+title_reward = "social_butterfly"
 icon_path = "res://icons/achievements/social.png"
 sort_order = 20

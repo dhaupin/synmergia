@@ -12,5 +12,6 @@ category = 3
 rarity = 0
 target = 10
 target_type = "zone"
+title_reward = "explorer"
 icon_path = "res://icons/achievements/explorer.png"
 sort_order = 40

@@ -135,6 +135,7 @@ test_data_naming_lint
 test_achievements
 test_achievement_flow
 test_achievement_trigger_coverage
+test_title_grant_parity
 test_waking_verbs
 test_sky_witness
 test_quest_bridge_coverage

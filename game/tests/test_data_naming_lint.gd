@@ -1105,6 +1105,45 @@ func _run() -> void:
 		_ok("Titles: every achievement/quest unlock_source resolves")
 	else:
 		_fail("Titles with unresolvable unlock_source: %s" % ", ".join(bad_title_sources))
+
+	# --- Title grant parity: an ACHIEVEMENT-method title's unlock_source
+	# achievement must actually grant it ---
+	# unlock_source is documentation-only (TitleService never reads it); the
+	# ONLY generic grant path is AchievementService._grant_rewards routing
+	# def.title_reward through TitleService.unlock. A title declaring
+	# unlock_method = 0 + a real achievement source, where that achievement
+	# carries no (or a different) title_reward, is unreachable forever -- the
+	# same silent-null class as an unresolved title_reward, mirrored. Five
+	# shipped this way (collector, explorer, slayer, social_butterfly,
+	# trader). Other methods (purchase/level/playtime/GM/quest) are granted
+	# outside the data and carry no unlock_source to cross-check.
+	var ach_base_by_id: Dictionary = {}
+	for ab2 in ach_ids:
+		ach_base_by_id[str(ach_ids[ab2])] = ab2
+	var bad_title_grants: Array = []
+	for tb in title_ids_all:
+		var tid3 := str(title_ids_all[tb])
+		var gmethod := -1
+		var gsource := ""
+		for line in _file_text("data/titles", tb).split("\n"):
+			var gt := line.strip_edges()
+			if gt.begins_with("unlock_method = "):
+				gmethod = int(gt.trim_prefix("unlock_method = "))
+			elif gt.begins_with("unlock_source = \"") and gt != "unlock_source = \"":
+				gsource = gt.trim_prefix("unlock_source = \"").trim_suffix("\"")
+		if gmethod != 0 or gsource == "" or not ach_base_by_id.has(gsource):
+			continue
+		var src_grant := ""
+		for line in _file_text("data/achievements", str(ach_base_by_id[gsource])).split("\n"):
+			var st := line.strip_edges()
+			if st.begins_with("title_reward = \""):
+				src_grant = st.trim_prefix("title_reward = \"").trim_suffix("\"")
+		if src_grant != tid3:
+			bad_title_grants.append("%s source %s grants '%s'" % [tid3, gsource, src_grant])
+	if bad_title_grants.is_empty():
+		_ok("Titles: every ACHIEVEMENT-method title is granted by its source achievement")
+	else:
+		_fail("Titles never granted by their source achievement: %s" % ", ".join(bad_title_grants))
 	# --- Every offering NPC has a voice (no silent statue with a menu) ---
 	# An NPC that offers something (vendor / service / bank / quest / dialogue
 	# ref) but carries no dialogue include is a statue: the action menu shows

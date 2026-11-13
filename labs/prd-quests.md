@@ -91,6 +91,20 @@ horde_mvp, explorer) -- extend with wake-counts (Waymaker tiers),
 Bloom-containment deeds, and companion/mount bonds, never with
 "collect 10,000 herbs."
 
+**Title grant law.** A `TitleData.unlock_source` is DOCUMENTATION
+ONLY -- `TitleService._do_unlock` grants by id alone and never reads
+it. The one generic grant path is `AchievementService._grant_rewards`
+routing a def's `title_reward` through `TitleService.unlock`, so a
+title declaring `unlock_method = 0` (ACHIEVEMENT) + a source
+achievement is reachable ONLY when that achievement carries the
+matching `title_reward`. An achievement that names a title that does
+not exist is caught by the naming lint; the mirror case -- a title
+whose source achievement never grants it -- is caught by the same
+lint's grant-parity leg plus `game/tests/test_title_grant_parity.gd`
+(the live `AchievementService.unlock -> _grant_rewards -> TitleService.unlock`
+path). `guild_founder` (method QUEST, source `found_guild`) is a
+reserved door with no grant path yet -- leave it, do not delete.
+
 ## 5. Engineering map (what exists, what is wired)
 
 - **Engine:** QuestService (autoload) -- accept/abandon/complete,
@@ -156,7 +170,9 @@ Bloom-containment deeds, and companion/mount bonds, never with
   end-to-end, 6 asserts), `test_quest_swim_bridge.gd` (SWIM, 9),
   `test_quest_glide_bridge.gd` (GLIDE, 10), `test_quest_bridge_coverage.gd`
   (data types subset of wired bridges, 5), `test_notif_migration_quest.gd`
-  (10), `test_achievement_flow.gd`, `test_achievements.gd`.
+  (10), `test_achievement_flow.gd`, `test_achievements.gd`,
+  `test_title_grant_parity.gd` (title granted by its source
+  achievement, 7).
 - **Known drift:** village elder dialogue fixed to Gloamwood
   (prd-story.md sec. 10). Quest icon paths reference
   `res://icons/quests/` which is mostly empty -- icons are

@@ -12,5 +12,6 @@ category = 2
 rarity = 0
 target = 50
 target_type = "item"
+title_reward = "collector"
 icon_path = "res://icons/achievements/collector.png"
 sort_order = 31
