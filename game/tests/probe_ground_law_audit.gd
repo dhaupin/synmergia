@@ -4,7 +4,7 @@
 ## the grass; walking a bit I clip out and levitate; houses/mobs levitate;
 ## further out I climb an invisible hill the grass doesn't follow."
 ##
-## The clipmap is the SOLE renderer now. The old reader scanned the streamer's
+## The clipmap is the SOLE renderer now. The old reader scanned the clipmap's
 ## per-face icosa patches; the clipmap draws a player-centred ring ladder, so
 ## the audit reads THE CLIPMAP'S DRAWN GROUND MESHES (cap + rings): the walk
 ## law (the radial snap the body rides) and the drawn mesh's own radial height
@@ -31,7 +31,7 @@ func _quit() -> void:
 	# DRAIN BEFORE QUIT (the shutdown-fence law): a worker thread still
 	# deriving when the process quits tears down mid-derive and can corrupt
 	# the exit code. Wait for the lane to empty (bounded).
-	var st = _globe.get("streamer") if _globe != null else null
+	var st = _globe.get("clipmap") if _globe != null else null
 	if st != null:
 		var deadline: int = Time.get_ticks_msec() + 30000
 		while st.pending_derive() > 0 and Time.get_ticks_msec() < deadline:
@@ -107,9 +107,9 @@ func _initialize() -> void:
 	root.add_child(globe)
 	for i in range(8):
 		await process_frame
-	var st = globe.get("streamer")
+	var st = globe.get("clipmap")
 	if st == null:
-		print("FAIL: no streamer on the boot")
+		print("FAIL: no clipmap on the boot")
 		quit(1)
 		return
 	var R: float = float(globe.get("planet_radius"))

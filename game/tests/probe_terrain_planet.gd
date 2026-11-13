@@ -38,7 +38,7 @@ func _check(label: String, cond: bool) -> bool:
 ## The clipmap builds incrementally through its job queue; a level census
 ## needs a steady world, so drain the derive lane with an honest deadline.
 func _drain_derives(deadline_ms: int) -> void:
-	var st = _globe.streamer
+	var st = _globe.clipmap
 	var deadline: int = Time.get_ticks_msec() + deadline_ms
 	while st.pending_derive() > 0 and Time.get_ticks_msec() < deadline:
 		await root.get_tree().physics_frame
@@ -117,7 +117,7 @@ func _run() -> void:
 		return
 	for i in range(6):
 		await root.get_tree().physics_frame
-	var st = _globe.get("streamer")
+	var st = _globe.get("clipmap")
 
 	var surface_gap: float = _globe.player_surface_error()
 	ok = _check("walk: spawned on the terrain walk surface (err %.2f m)" % surface_gap, \

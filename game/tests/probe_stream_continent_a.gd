@@ -38,7 +38,7 @@ func _run() -> void:
 	root.add_child(globe_big)
 	await root.get_tree().process_frame
 	await root.get_tree().physics_frame
-	var st_big = globe_big.get("streamer")
+	var st_big = globe_big.get("clipmap")
 	var F = load(FacesScript)
 	var Gen = load("res://scenes/worlds/terrain_gen.gd")
 	var seed_big: PackedByteArray = st_big.world_seed
@@ -57,7 +57,7 @@ func _run() -> void:
 	ok = _check("clipmap walk faces %d..%d: analysis == streamed ground law" % [FACE_LO, FACE_HI], tie_ok) and ok
 
 	# THE FLORA SURVIVES THE STREAM: the PropLayer's built chunks carry no
-	# freed refs after the sweep (the streamer's "no corpses" audit, now on
+	# freed refs after the sweep (the clipmap's "no corpses" audit, now on
 	# the clipmap's prop layer).
 	var pl = st_big.prop_layer()
 	var live_rocks := 0
@@ -78,7 +78,7 @@ func _run() -> void:
 
 	# GROUND SURFACE: every drawn ground mesh carries a real surface (the
 	# clipmap has no skirts -- constant SEG cells stitch the rings -- so the
-	# streamer's "surface 0 + skirt 1" pin becomes "surface 0 present").
+	# clipmap's "surface 0 + skirt 1" pin becomes "surface 0 present").
 	var surfaces_ok := true
 	var meshes: Array = st_big.ground_meshes()
 	for mi in meshes:

@@ -15,7 +15,7 @@ const GLOBE_SCENE := "res://scenes/worlds/globe_world.tscn"
 const RADIUS_SETTING: String = "synmergia/world/planet_radius"
 const PLANET_RADIUS_100: float = 100.0
 ## Walk surface above the base shell when streaming (mirrors the
-## scene's STREAMER_TILE_LIFT / streamer.TILE_LIFT).
+## scene's TILE_LIFT / clipmap.TILE_LIFT).
 const TILE_LIFT: float = 0.52
 ## Walk target and wall-clock frame caps (headless ticks ~60 Hz).
 const WALK_TARGET_M: float = 30.0

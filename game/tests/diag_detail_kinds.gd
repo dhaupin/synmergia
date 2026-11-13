@@ -67,16 +67,16 @@ func _run() -> void:
 	root.add_child(_globe)
 	for _i in range(10):
 		await process_frame
-	var streamer = _globe.get("streamer")
+	var clipmap = _globe.get("clipmap")
 	var waited := 0
-	while streamer.pending_derive() > 0 and waited < 300:
+	while clipmap.pending_derive() > 0 and waited < 300:
 		await root.get_tree().physics_frame
 		waited += 1
 	for _i in range(20):
 		await root.get_tree().physics_frame
 	print("DIAG drained after=", waited, " tmsec=", Time.get_ticks_msec())
 
-	var pl = streamer.prop_layer()
+	var pl = clipmap.prop_layer()
 	var provider = pl.provider if pl != null else null
 	var pc: Vector3 = _globe.get("planet_center")
 	var r: float = _globe.get("planet_radius")

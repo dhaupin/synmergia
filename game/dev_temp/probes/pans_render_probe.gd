@@ -32,9 +32,9 @@ func _run() -> void:
 	root.add_child(_globe)
 	for _i in range(10):
 		await process_frame
-	var streamer = _globe.get("streamer")
-	if streamer == null:
-		print("PANS-MISS no streamer on the boot")
+	var clipmap = _globe.get("clipmap")
+	if clipmap == null:
+		print("PANS-MISS no clipmap on the boot")
 		quit(1)
 		return
 	# The globe's own process loop aims the clipmap at the spawn player;
@@ -44,17 +44,17 @@ func _run() -> void:
 	var pans: Vector3 = TerrainGen.sun_pans_dir()
 	print("PANS face_for_position says: ", FaceCheck.face_for_position(pans * RADIUS, RADIUS))
 	for _f in range(300):
-		streamer.update(pans * RADIUS)
+		clipmap.update(pans * RADIUS)
 		await root.get_tree().physics_frame
-		var pl = streamer.prop_layer()
+		var pl = clipmap.prop_layer()
 		if pl.pending_build() == 0 and pl.built_count() > 0:
 			break
 	for _f in range(20):
-		streamer.update(pans * RADIUS)
+		clipmap.update(pans * RADIUS)
 		await root.get_tree().physics_frame
-	var last_ret: Dictionary = streamer.update(pans * RADIUS)
+	var last_ret: Dictionary = clipmap.update(pans * RADIUS)
 	print("PANS last_update_ret face=", last_ret.get("face"), " loaded=", str(last_ret.get("loaded")), " active=", str(last_ret.get("active")))
-	var pl = streamer.prop_layer()
+	var pl = clipmap.prop_layer()
 	var pc: Vector3 = _globe.get("planet_center")
 	# Census the built chunks whose center lies on the pans face.
 	var counts := {}

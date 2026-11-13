@@ -46,7 +46,7 @@ func _initialize() -> void:
 	root.add_child(globe)
 	for i in range(6):
 		await process_frame
-	var st = globe.get("streamer")
+	var st = globe.get("clipmap")
 	var R: float = float(globe.get("planet_radius"))
 	var Gen = preload("res://scenes/worlds/terrain_gen.gd")
 	var Sph = load("res://core/frame/math/spherical.gd")

@@ -101,12 +101,12 @@ func _run() -> void:
 	root.add_child(_globe)
 	for _i in range(10):
 		await process_frame
-	var streamer = _globe.get("streamer")
-	if streamer == null:
-		print("SALT-MISS no streamer on the boot")
+	var clipmap = _globe.get("clipmap")
+	if clipmap == null:
+		print("SALT-MISS no clipmap on the boot")
 		quit(1)
 		return
-	var pl = streamer.prop_layer()
+	var pl = clipmap.prop_layer()
 	var live_salt: int = int(pl._decor_salt)
 	print("SALT live salt=%d (>0 = the day salt rides the boot)" % live_salt)
 	if live_salt <= 0:

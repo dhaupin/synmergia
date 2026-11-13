@@ -6,7 +6,7 @@
 ##      look is measurable),
 ##   2) THE SPECIES LAW: one drift cell maps to one palette index
 ##      (the patch reads as a single wildflower kind),
-##   3) THE LIVE BLOOM: the booted streamer's detail chain carries
+##   3) THE LIVE BLOOM: the booted clipmap's detail chain carries
 ##      MORE flowers on a drift face than the v5 sprinkle rate gave
 ##      (the fields actually render), still under the node cap.
 ## Run headless: godot --headless --path . --script res://dev_temp/probes/wildflower_drift_probe.gd
@@ -69,10 +69,10 @@ func _run() -> void:
 	root.add_child(globe)
 	for _i in range(10):
 		await process_frame
-	var streamer = globe.get("streamer")
+	var clipmap = globe.get("clipmap")
 	for _i in range(40):
 		await root.get_tree().physics_frame
-	var pl = streamer.prop_layer()
+	var pl = clipmap.prop_layer()
 	var flowers: int = 0
 	var flowering_chunks: int = 0
 	var built: int = 0

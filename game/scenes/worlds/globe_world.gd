@@ -49,7 +49,7 @@ const PLANET_RADIUS_SETTING: String = "synmergia/world/planet_radius"
 ## the walk surface sits this far above the base shell. (Constant
 ## mirrored rather than preloaded to keep the scene's load order
 ## simple.)
-const STREAMER_TILE_LIFT: float = 0.52
+const TILE_LIFT: float = 0.52
 ## S8: shells larger than this cannot resolve a 1 m body contact
 ## (the S8 stall threshold note lives in _build_shell/_surface_lift).
 ## S8 surface pad geometry: curved disc, outer ring radius in meters
@@ -121,7 +121,7 @@ var water_body: MeshInstance3D = null
 
 ## The active ground renderer (GlobeClipmap); untyped -- preload-by-path
 ## pattern. Exposes update/build_all/ground_meshes/pending_derive etc.
-var streamer
+var clipmap
 
 var player  # GlobeWorldPlayer; untyped on purpose - set_script + dynamic
 # dispatch keeps this scene free of parse-time class_name dependencies.
@@ -252,11 +252,11 @@ func _ready() -> void:
 	_build_sky_moon()
 	_build_sky_signs()
 	_bt("sky")
-	# Streamer FIRST: the player spawn height rides the terrain law
+	# Clipmap FIRST: the player spawn height rides the terrain law
 	# (walk surface at the spawn direction), so the ground must exist
 	# before the boot lands on it.
-	_setup_streamer()
-	_bt("streamer")
+	_setup_clipmap()
+	_bt("clipmap")
 	_build_water()
 	_bt("water")
 	# THE PLAYABLE-FIRST BOOT (the loading-speed round law): the
@@ -264,7 +264,7 @@ func _ready() -> void:
 	# returns, and the POI/NPC builds cost seconds per attach on wasm
 	# -- every synchronous stretch froze the spinner AND the frame
 	# loop, which is the whole 3-minute hang. So the boot core stops
-	# at PLAYABLE (spawn-ground streamer + player + planet wiring +
+	# at PLAYABLE (spawn-ground clipmap + player + planet wiring +
 	# HUD), and the ensuite builds ride the frame-by-frame boot waves
 	# below, after the overlay is already down.
 	_build_player()
@@ -382,8 +382,8 @@ func _boot_waves() -> void:
 ## THE AUTHORED TERRAFORM (data-driven, backend-seam-first): the
 ## world's WorldData declares `terrain_backend_id` -- which authored
 ## heightfield legally reshapes THIS world's raw land. Empty = the
-## natural analytic law (no declaration, no install). THE STREAMER
-## MUST SEE IT: install BEFORE _setup_streamer() reads its first
+## natural analytic law (no declaration, no install). THE CLIPMAP
+## MUST SEE IT: install BEFORE _setup_clipmap() reads its first
 ## height, so patch 0 renders the authored world, not a two-frame
 ## flash of the natural one. The id resolves through the BACKEND
 ## REGISTRY (terrain backends class_name map); an unknown id is a
@@ -502,22 +502,22 @@ func _setup_touch_hud() -> void:
 		_gl.info("GlobeWorld: touch HUD wired to orbit_camera")
 
 
-## THE STREAMER FENCE (issue #19): when the world leaves the tree --
-## scene swap, probe exit, teardown -- stop the streamer AND reap it:
+## THE CLIPMAP FENCE (issue #19): when the world leaves the tree --
+## scene swap, probe exit, teardown -- stop the clipmap AND reap it:
 ## the fence's sync part is a FAST quick lap (finished threads only,
 ## never a wait on a busy worker); the non-blocking frame drain runs
-## ON THE ORPHANED STREAMER OBJECT after this returns, so _exit_tree
+## ON THE ORPHANED CLIPMAP OBJECT after this returns, so _exit_tree
 ## is instant and the derives finish through the next frames' applies.
 ## The unjoined threads were the source of the teardown stderr spam
 ## ("Nonexistent function", "get_ticks_msec on null", "Thread
 ## destroyed without wait_to_finish"). Guarded so a fence-less (or
-## mock) streamer stays silent.
+## mock) clipmap stays silent.
 func _exit_tree() -> void:
-	var streamer = get("streamer")
-	if streamer != null and streamer.has_method("async_shutdown"):
-		streamer.async_shutdown()
+	var clipmap = get("clipmap")
+	if clipmap != null and clipmap.has_method("async_shutdown"):
+		clipmap.async_shutdown()
 
-func _setup_streamer() -> void:
+func _setup_clipmap() -> void:
 	if not stream_terrain:
 		return
 	# THE RENDERER SWITCH (clipmap round): the clipmap is the SOLE terrain
@@ -531,34 +531,34 @@ func _setup_streamer() -> void:
 		if log5:
 			log5.warn("GlobeWorld: terrain_render '%s' is retired; using clipmap." % terrain_render)
 		terrain_render = "clipmap"
-	streamer = load("res://scenes/worlds/globe_clipmap.gd").new()
-	streamer.configure(planet_radius, 7.0, world_root)
-	streamer.terrain_on = true
-	streamer.update(_spawn_dir() * planet_radius)
-	streamer.build_all()
+	clipmap = load("res://scenes/worlds/globe_clipmap.gd").new()
+	clipmap.configure(planet_radius, 7.0, world_root)
+	clipmap.terrain_on = true
+	clipmap.update(_spawn_dir() * planet_radius)
+	clipmap.build_all()
 	# CHART-LOD OVERLAY (renderer-agnostic): the penrose-lattice climb is a
 	# SEPARATE overlay root under world_root, so it rides EITHER renderer. The
 	# clipmap is the sole path now, so wire it here rather than inside the
-	# streamer branch (the gate stays OFF by default: the overlays are
+	# clipmap branch (the gate stays OFF by default: the overlays are
 	# redundant decoration beside the Penrose ground backend).
 	_setup_chart_lod()
 	# SPAWN MESH GATE (round 10): the boot must be able to SEE its own
 	# ground. The first update is synchronous, so an unloaded spawn face
-	# means the streamer is broken -- fail LOUD here instead of booting
+	# means the clipmap is broken -- fail LOUD here instead of booting
 	# over a bare water shell (the round-5/9 "spawned on the ocean"
 	# reports were render-side; this gate splits loader failure from
 	# renderer failure with one log line).
 	var log4 = get_node_or_null("/root/GameLog")
-	if streamer.is_loaded(streamer.current_face):
+	if clipmap.is_loaded(clipmap.current_face):
 		if log4:
-			log4.info("GlobeWorld: spawn face %d mesh-ready at boot (%d faces, %d tris) [%s]" % [streamer.current_face, streamer.active_faces().size(), streamer.triangle_count(), terrain_render])
+			log4.info("GlobeWorld: spawn face %d mesh-ready at boot (%d faces, %d tris) [%s]" % [clipmap.current_face, clipmap.active_faces().size(), clipmap.triangle_count(), terrain_render])
 	else:
 		if log4:
-			log4.error("GlobeWorld: spawn face %d did NOT load at boot -- the world will render as bare shell/water. %s load path is broken." % [streamer.current_face, terrain_render])
+			log4.error("GlobeWorld: spawn face %d did NOT load at boot -- the world will render as bare shell/water. %s load path is broken." % [clipmap.current_face, terrain_render])
 
 
 ## CHART-LOD GLUE setup: the adapter + the overlay root under
-## world_root. Kept SEPARATE from the terrain streamer's heightfield
+## world_root. Kept SEPARATE from the terrain clipmap's heightfield
 ## patches: the chart overlays are the penrose lattice climbing
 ## beside it, occasionally denser but never competing with the
 ## heightfield's own seam laws (same takeaway as the prd's
@@ -573,31 +573,31 @@ func _setup_chart_lod() -> void:
 
 
 ## The player's radial snap rides the WALK SURFACE (displaced terrain
-## + seeded rock caps) via the streamer's single ground law. Callable
+## + seeded rock caps) via the clipmap's single ground law. Callable
 ## receives the player's WORLD position; directions are derived
 ## relative to planet_center (floating origin: the world origin is
 ## NOT the planet center after the first shift). Installed by
-## _build_player (the streamer is built first; the player second).
+## _build_player (the clipmap is built first; the player second).
 func _install_walk_provider() -> void:
-	if streamer == null or player == null:
+	if clipmap == null or player == null:
 		return
 	player.snap_height_provider = func(wpos: Vector3) -> float:
 		var dir: Vector3 = (wpos - planet_center).normalized()
-		return streamer.walk_surface_h(dir)
+		return clipmap.walk_surface_h(dir)
 
 
 ## Terrain-only read at a world position (the player's mobility law
 ## samples this seam so walk-over rock caps never read as hills).
 func terrain_h_at(wpos: Vector3) -> float:
-	if streamer == null:
+	if clipmap == null:
 		return 0.0
-	return streamer.terrain_h((wpos - planet_center).normalized())
+	return clipmap.terrain_h((wpos - planet_center).normalized())
 
 
 ## The ford law's flag seam (globe_player.terrain_on_local resolves
 ## this up the parent chain): one truthful answer, no re-derivation.
 func terrain_on_flag() -> bool:
-	return streamer != null and streamer.terrain_on
+	return clipmap != null and clipmap.terrain_on
 
 
 ## CHART-LOD GLUE tick (2 Hz alongside the truth line): feed the
@@ -722,12 +722,12 @@ func _physics_process(delta: float) -> void:
 	# ground at its CURRENT position (this scene node processes before
 	# its player child).
 	_update_surface_pad()
-	if streamer:
+	if clipmap:
 		# Planet-relative position: patches are parented planet-relative
 		# under world_root, so face addressing uses the direction from
 		# the planet CENTER, never the world origin (invariant across
 		# floating-origin shifts).
-		streamer.update(player.global_position - planet_center)
+		clipmap.update(player.global_position - planet_center)
 		_tick_zone_spawns(delta)
 		if chart_overlays_on:
 			_update_chart_lod(delta)
@@ -774,7 +774,7 @@ func _build_shell() -> void:
 	mesh.material = mat
 	mesh_inst.mesh = mesh
 	# THE SHELL-VISUAL LAW (ground-law audit round): the flat green base
-	# sphere would read as a second ground under the streamer's patches,
+	# sphere would read as a second ground under the clipmap's patches,
 	# so its DRAW is never shown (node + collider bookkeeping untouched).
 	# The planar prototype that used it as the ground is gone.
 	mesh_inst.name = "ShellVisual"
@@ -853,7 +853,7 @@ func _pad_faces() -> PackedVector3Array:
 func _terrain_pad_faces(dir: Vector3, basis: Basis) -> PackedVector3Array:
 	var faces: PackedVector3Array = PackedVector3Array()
 	var cols: int = maxi(PAD_SEGMENTS, 8)
-	var h_center: float = streamer.walk_surface_h(dir) if streamer != null else 0.0
+	var h_center: float = clipmap.walk_surface_h(dir) if clipmap != null else 0.0
 	var center_v := Vector3(0.0, h_center, 0.0)
 	var rings: Array = []
 	for r in range(1, PAD_RINGS + 1):
@@ -867,7 +867,7 @@ func _terrain_pad_faces(dir: Vector3, basis: Basis) -> PackedVector3Array:
 			# The pad's world position is dir * planet_radius; offset in the
 			# pad's own plane, then renormalize to a direction for the law.
 			var wdir: Vector3 = (dir * planet_radius + basis * Vector3(lx, 0.0, lz)).normalized()
-			var h: float = streamer.walk_surface_h(wdir) if streamer != null else 0.0
+			var h: float = clipmap.walk_surface_h(wdir) if clipmap != null else 0.0
 			ring.append(Vector3(lx, h - sag, lz))
 		rings.append(ring)
 	# Fan from the centre vertex to the first ring (the centre is a single
@@ -922,13 +922,13 @@ func _update_surface_pad() -> void:
 	# broadphase) on every physics frame while standing still.
 	var rebuild: bool = _pad_built_dir == Vector3.ZERO \
 			or dir.angle_to(_pad_built_dir) * planet_radius > 3.0
-	if streamer != null and _pad_shape != null and rebuild:
+	if clipmap != null and _pad_shape != null and rebuild:
 		_pad_built_dir = dir
 		# The origin sits at planet_radius + TILE_LIFT + terrain_h(dir), so
 		# subtract that terrain term to express each vertex relative to it;
 		# the remaining local +Y is the walk-surface lift over the terrain
 		# (plus any walk-over cap), keeping collision flush with the ground.
-		var terrain_center: float = streamer.terrain_h(dir)
+		var terrain_center: float = clipmap.terrain_h(dir)
 		var faces: PackedVector3Array = _terrain_pad_faces(dir, basis)
 		var i := 0
 		while i < faces.size():
@@ -943,16 +943,16 @@ func _update_surface_pad() -> void:
 ## player must keep shell contact (probe_globe_world asserts radial
 ## rest). At planet scale the re-anchored pad carries the collision
 ## at planet_radius + TILE_LIFT + TERRAIN: the walk surface is the
-## displaced terrain under the player (the streamer's ground law --
+## displaced terrain under the player (the clipmap's ground law --
 ## the same law the snap provider rides), so hills lift the pad and
 ## the sea floor drops it.
 func _surface_lift() -> float:
-	if streamer == null:
-		return STREAMER_TILE_LIFT
+	if clipmap == null:
+		return TILE_LIFT
 	var dir: Vector3 = _spawn_dir()
 	if player != null:
 		dir = (player.global_position - planet_center).normalized()
-	return STREAMER_TILE_LIFT + streamer.terrain_h(dir)
+	return TILE_LIFT + clipmap.terrain_h(dir)
 
 
 ## The spawn direction (unit) -- the scene's lat/lon convention.
@@ -974,7 +974,7 @@ func _build_water() -> void:
 	if not WATER_ON:
 		return
 	var Gen = load("res://scenes/worlds/terrain_gen.gd")
-	var sea: float = Gen.sea_level(streamer.world_seed)
+	var sea: float = Gen.sea_level(clipmap.world_seed)
 	# The declaration is the look's source of truth; resolve it through the
 	# OceanService autoload (script-mode-safe) so a bare/provider-only boot
 	# still paints the sea. A missing service or volume falls back to the
@@ -984,7 +984,7 @@ func _build_water() -> void:
 	var svc = get_node_or_null("/root/OceanService")
 	if svc != null and svc.has_method("get_volume"):
 		vol = svc.get_volume(SEA_VOLUME_ID)
-	var sea_radius: float = planet_radius + STREAMER_TILE_LIFT + sea
+	var sea_radius: float = planet_radius + TILE_LIFT + sea
 	if vol != null:
 		water_body = wk.build_sea_shell(world_root, sea_radius, vol, {"name": "WaterShell"})
 	else:
@@ -1065,8 +1065,8 @@ func _build_sky_signs() -> void:
 ## by the walk surface) via VillageProps.build_concord.
 func _build_concord_loop() -> void:
 	var VP: GDScript = load("res://entities/village_props.gd")
-	VP.build_concord(world_root, planet_radius, STREAMER_TILE_LIFT, \
-		Callable(streamer, "walk_surface_h"))
+	VP.build_concord(world_root, planet_radius, TILE_LIFT, \
+		Callable(clipmap, "walk_surface_h"))
 	var gl := _glog()
 	if gl:
 		gl.info("GlobeWorld: the Concord loop is live (Ancient Door + Concord Stone on the spawn plaza)")
@@ -1109,8 +1109,8 @@ func _globe_meter_surface(center: Vector3, bearing_deg: float, reach_m: float) -
 	var rad: float = deg_to_rad(bearing_deg)
 	var dir: Vector3 = (center + east * (reach_rad * cos(rad)) \
 		+ north * (reach_rad * sin(rad))).normalized()
-	return dir * (planet_radius + STREAMER_TILE_LIFT \
-		+ float(streamer.walk_surface_h(dir)) + 0.4)
+	return dir * (planet_radius + TILE_LIFT \
+		+ float(clipmap.walk_surface_h(dir)) + 0.4)
 
 
 ## Radial-align a prop to the planet surface at `dir` (the village_props
@@ -1365,8 +1365,8 @@ func _build_arena_gateway() -> void:
 	# the plaza at planet scale -- 9 m of terrain above the bare
 	# shell), lifted a body-height so the walking player crosses it.
 	var gw_dir: Vector3 = Vector3(14.0, 0.0, 0.0).normalized()
-	var gw_r: float = planet_radius + STREAMER_TILE_LIFT \
-		+ (streamer.walk_surface_h(gw_dir) if streamer else 0.0) + 1.0
+	var gw_r: float = planet_radius + TILE_LIFT \
+		+ (clipmap.walk_surface_h(gw_dir) if clipmap else 0.0) + 1.0
 	gateway.position = gw_dir * gw_r
 	world_root.add_child(gateway)
 	arena_gateway = gateway
@@ -1382,16 +1382,16 @@ var arena_gateway: Node3D = null
 ## the gateway rides, colliders via the one-law prop belt.
 func _build_starter_village() -> void:
 	var SV: GDScript = load("res://entities/starter_village.gd")
-	starter_village = SV.build(world_root, planet_radius, STREAMER_TILE_LIFT, \
-		Callable(streamer, "walk_surface_h"))
+	starter_village = SV.build(world_root, planet_radius, TILE_LIFT, \
+		Callable(clipmap, "walk_surface_h"))
 	# THE GAME-FUNCTION PROPS (turn 15, the owner's law): the ankh
 	# shrine, moon gate, and bout queue stones ride the same walk-law
 	# frame under the village's own root (the props' dir-bearing
 	# block sits 120..-150 deg around the plaza, so they clear the
 	# authored structures' bearings).
 	var VP: GDScript = load("res://entities/village_props.gd")
-	VP.build_village(starter_village, planet_radius, STREAMER_TILE_LIFT, \
-		Callable(streamer, "walk_surface_h"))
+	VP.build_village(starter_village, planet_radius, TILE_LIFT, \
+		Callable(clipmap, "walk_surface_h"))
 
 
 ## THE CAPITOL MONOLITH (the ledger's coast build): the authored
@@ -1400,14 +1400,14 @@ func _build_starter_village() -> void:
 ## the village carries.
 func _build_capitol_monolith() -> void:
 	var CM: GDScript = load("res://entities/capitol_monolith.gd")
-	capitol_monolith = CM.build(world_root, planet_radius, STREAMER_TILE_LIFT, \
-		Callable(streamer, "walk_surface_h"))
+	capitol_monolith = CM.build(world_root, planet_radius, TILE_LIFT, \
+		Callable(clipmap, "walk_surface_h"))
 	# THE CAPITOL PROPS (same turn-15 law): ankh, moon gate, bout
 	# stones -- the plaza beats ride the plaza flat in the strand's
 	# own tangent frame so the city plaza carries them too.
 	var VP2: GDScript = load("res://entities/village_props.gd")
-	VP2.build_capitol(capitol_monolith, planet_radius, STREAMER_TILE_LIFT, \
-		Callable(streamer, "walk_surface_h"))
+	VP2.build_capitol(capitol_monolith, planet_radius, TILE_LIFT, \
+		Callable(clipmap, "walk_surface_h"))
 
 
 var starter_village: Node3D = null
@@ -1429,8 +1429,8 @@ const HARBOR_LIGHTS = preload("res://entities/harbor_lights.gd")
 ## this is the ART the pin points at.
 func _build_pans_monolith() -> void:
 	var PM: GDScript = load("res://entities/pans_monolith.gd")
-	pans_monolith = PM.build(world_root, planet_radius, STREAMER_TILE_LIFT, \
-		Callable(streamer, "walk_surface_h"))
+	pans_monolith = PM.build(world_root, planet_radius, TILE_LIFT, \
+		Callable(clipmap, "walk_surface_h"))
 
 
 ## THE PANS RUNNER (S14.5's boat): the vessel physically rides the
@@ -1444,9 +1444,9 @@ func _build_pans_ferry() -> void:
 	var FS = get_node_or_null("/root/FerryService")
 	var FV: GDScript = load("res://entities/ferry_vessel.gd")
 	var Gen = load("res://scenes/worlds/terrain_gen.gd")
-	var sea: float = Gen.sea_level(streamer.world_seed) if streamer else 0.0
-	pans_ferry_vessel = FV.build(world_root, planet_radius, STREAMER_TILE_LIFT, \
-		Callable(streamer, "walk_surface_h"), sea)
+	var sea: float = Gen.sea_level(clipmap.world_seed) if clipmap else 0.0
+	pans_ferry_vessel = FV.build(world_root, planet_radius, TILE_LIFT, \
+		Callable(clipmap, "walk_surface_h"), sea)
 	var logb = get_node_or_null("/root/GameLog")
 	if FS == null:
 		if logb:
@@ -1474,10 +1474,10 @@ func _build_pans_ferry() -> void:
 	# holds -- lit dusk to dawn, dark to the sun.
 	var lane: Array = FERRY_VESSEL_LAW.lane_dirs()
 	var HLB = load("res://entities/harbor_lights.gd")
-	pier_beacon = HLB.build_pier_beacon(world_root, planet_radius, STREAMER_TILE_LIFT, \
-		Callable(streamer, "walk_surface_h"), lane[0], sea)
-	moor_guide = HLB.build_moor_guide(world_root, planet_radius, STREAMER_TILE_LIFT, \
-		Callable(streamer, "walk_surface_h"), lane[1], sea)
+	pier_beacon = HLB.build_pier_beacon(world_root, planet_radius, TILE_LIFT, \
+		Callable(clipmap, "walk_surface_h"), lane[0], sea)
+	moor_guide = HLB.build_moor_guide(world_root, planet_radius, TILE_LIFT, \
+		Callable(clipmap, "walk_surface_h"), lane[1], sea)
 	var tick := Timer.new()
 	tick.wait_time = 1.0
 	tick.autostart = true
@@ -1512,7 +1512,7 @@ func _build_sundered_barque() -> void:
 	var FS = get_node_or_null("/root/FerryService")
 	var FV: GDScript = load("res://entities/ferry_vessel.gd")
 	var Gen = load("res://scenes/worlds/terrain_gen.gd")
-	var sea: float = Gen.sea_level(streamer.world_seed) if streamer else 0.0
+	var sea: float = Gen.sea_level(clipmap.world_seed) if clipmap else 0.0
 	var DS = get_node_or_null("/root/DataService")
 	var moor: Vector3 = Vector3.ZERO
 	var seaward: Vector3 = Vector3.ZERO
@@ -1537,8 +1537,8 @@ func _build_sundered_barque() -> void:
 			logb.warn("GlobeWorld: the Sundered barque stays tied up (gateway data or ferry data absent)")
 		return
 	sund_ferry_vessel = FV.build_barque(world_root, moor, seaward,
-		planet_radius, STREAMER_TILE_LIFT,
-		Callable(streamer, "walk_surface_h"), sea)
+		planet_radius, TILE_LIFT,
+		Callable(clipmap, "walk_surface_h"), sea)
 	# THE HARBOR BUOYS (S14.7.4): the two pins get their floating marks
 	# the runner's landings already have lights for -- drum + mast + amber
 	# lamp ON the sea line, one flank step off each berth. They ride the
@@ -1547,7 +1547,7 @@ func _build_sundered_barque() -> void:
 	var HLB = load("res://entities/harbor_lights.gd")
 	if HLB != null and HLB.has_method("build_strait_buoys"):
 		var buoys: Array = HLB.call("build_strait_buoys", world_root,
-			planet_radius, STREAMER_TILE_LIFT, moor, seaward, sea)
+			planet_radius, TILE_LIFT, moor, seaward, sea)
 		if buoys.size() == 2:
 			_barque_buoy_moor = buoys[0]
 			_barque_buoy_seaward = buoys[1]
@@ -1717,7 +1717,7 @@ func _execute_wake_warp(player_id: String, vehicle_id: String, gateway_id: Strin
 
 ## The landing spot (WORLD-ROOT-LOCAL) for a wake-warp gateway: the
 ## vessel law's own lane dirs keep both ends one derivation; walk
-## height comes from the streamer's single ground law.
+## height comes from the clipmap's single ground law.
 func _wake_landing(gateway_id: String) -> Vector3:
 	var lane: Array = FERRY_VESSEL_LAW.lane_dirs()
 	var dir: Vector3
@@ -1730,7 +1730,7 @@ func _wake_landing(gateway_id: String) -> Vector3:
 		stand_extra = 0.6 + 0.95    # the moor bank + body center
 	else:
 		return Vector3.INF
-	var walk: float = float(streamer.walk_surface_h(dir.normalized())) if streamer else 0.0
+	var walk: float = float(clipmap.walk_surface_h(dir.normalized())) if clipmap else 0.0
 	return dir.normalized() * (planet_radius + walk + stand_extra)
 
 
@@ -1753,9 +1753,9 @@ func _barque_wake_landing(gateway_id: String) -> Vector3:
 		dir = lane_b.normalized()
 	else:
 		return Vector3.INF
-	var walk: float = float(streamer.walk_surface_h(dir)) if streamer else 0.0
+	var walk: float = float(clipmap.walk_surface_h(dir)) if clipmap else 0.0
 	var Gen = load("res://scenes/worlds/terrain_gen.gd")
-	var sea: float = Gen.sea_level(streamer.world_seed) if streamer else 0.0
+	var sea: float = Gen.sea_level(clipmap.world_seed) if clipmap else 0.0
 	# the moor-bank law's stand (bank + body center) + the sea clamp
 	return dir * (planet_radius + maxf(walk, sea) + 0.6 + 0.95)
 
@@ -1848,8 +1848,8 @@ func _spawn_town_npc(npc_id: String, center: Vector3, bearing_deg: float,
 	var rad: float = deg_to_rad(bearing_deg)
 	var dir: Vector3 = (center + east * (eff_reach * cos(rad)) \
 		+ north * (eff_reach * sin(rad))).normalized()
-	var surface: Vector3 = dir * (planet_radius + STREAMER_TILE_LIFT \
-		+ float(streamer.walk_surface_h(dir)) + 0.4)
+	var surface: Vector3 = dir * (planet_radius + TILE_LIFT \
+		+ float(clipmap.walk_surface_h(dir)) + 0.4)
 	var zone_id: String = str(npc_data.get("zone_id")) if "zone_id" in npc_data else ""
 	var entity = SS.spawn_npc_entity(zone_id, surface, npc_data)
 	if entity == null:
@@ -1893,8 +1893,8 @@ func _face_npc(entity: Node3D, dir: Vector3, npc_data) -> void:
 ## scene owns placement; the town-NPC path does the same).
 func _build_globe_enemies() -> void:
 	var DS = get_node_or_null("/root/DataService")
-	if DS == null or streamer == null:
-		_log_backend("warn", "GlobeWorld: wildlife idle (DataService/streamer absent)")
+	if DS == null or clipmap == null:
+		_log_backend("warn", "GlobeWorld: wildlife idle (DataService/clipmap absent)")
 		return
 	var es = get_node_or_null("/root/EntityService")
 	var tm = get_node_or_null("/root/TargetingManager")
@@ -2078,7 +2078,7 @@ func _accept_starter_quests() -> void:
 
 
 ## The spawn surface for a wildlife entry: the town-NPC walk law
-## (bearing + reach on the spawn tangent frame, riding the streamer's
+## (bearing + reach on the spawn tangent frame, riding the clipmap's
 ## walk surface). Reach is padded for a bench radius exactly like
 ## _spawn_town_npc so the planet keeps the authored layout.
 func _globe_enemy_surface(center: Vector3, bearing_deg: float, reach: float) -> Vector3:
@@ -2091,8 +2091,8 @@ func _globe_enemy_surface(center: Vector3, bearing_deg: float, reach: float) -> 
 	var rad: float = deg_to_rad(bearing_deg)
 	var dir: Vector3 = (center + east * (eff_reach * cos(rad)) \
 		+ north * (eff_reach * sin(rad))).normalized()
-	var surface: Vector3 = dir * (planet_radius + STREAMER_TILE_LIFT \
-		+ float(streamer.walk_surface_h(dir)) + 0.4)
+	var surface: Vector3 = dir * (planet_radius + TILE_LIFT \
+		+ float(clipmap.walk_surface_h(dir)) + 0.4)
 	return surface
 
 
@@ -2282,8 +2282,8 @@ func _build_player() -> void:
 	# The spawn POSITION does ride the terrain (born on the surface;
 	# the frame-1 snap would otherwise teleport it up from inside the
 	# hill).
-	var static_lift: float = STREAMER_TILE_LIFT
-	var spawn_terrain: float = streamer.terrain_h(_spawn_dir()) if streamer else 0.0
+	var static_lift: float = TILE_LIFT
+	var spawn_terrain: float = clipmap.terrain_h(_spawn_dir()) if clipmap else 0.0
 	# SEA GUARD (play-test round 6, item 4): the spawn plaza flattens to
 	# SPAWN_HEIGHT (9 m) and the sea line tops out at SEA_LEVEL_MIN +
 	# SEA_LEVEL_SPAN (7 m), so the boot can never legally land in water.
@@ -2291,7 +2291,7 @@ func _build_player() -> void:
 	# must fail LOUD (log + lifted boot) instead of quietly drowning the
 	# player ("I spawned on the ocean, green above me").
 	var Gen4Spawn = load("res://scenes/worlds/terrain_gen.gd")
-	var sea_at_spawn: float = Gen4Spawn.sea_level(streamer.world_seed) if streamer else 0.0
+	var sea_at_spawn: float = Gen4Spawn.sea_level(clipmap.world_seed) if clipmap else 0.0
 	if spawn_terrain < sea_at_spawn:
 		if get_node_or_null("/root/GameLog"):
 			get_node_or_null("/root/GameLog").error(
@@ -2320,7 +2320,7 @@ func _build_player() -> void:
 	# like an underwater boot.
 	if get_node_or_null("/root/GameLog"):
 		get_node_or_null("/root/GameLog").info(
-			"GlobeWorld: boot at lat %.1f lon %.1f, walk surface %.1f m (sea line %.1f m)" % [SPAWN_LAT_DEG, SPAWN_LON_DEG, spawn_terrain, (load("res://scenes/worlds/terrain_gen.gd").sea_level(streamer.world_seed) if streamer else 0.0)])
+			"GlobeWorld: boot at lat %.1f lon %.1f, walk surface %.1f m (sea line %.1f m)" % [SPAWN_LAT_DEG, SPAWN_LON_DEG, spawn_terrain, (load("res://scenes/worlds/terrain_gen.gd").sea_level(clipmap.world_seed) if clipmap else 0.0)])
 	player.planet_radius = planet_radius
 	player.ground_offset = static_lift
 	add_child(player)
@@ -2418,7 +2418,7 @@ func _notify_world_entry() -> void:
 ## (no sea exists there), and probes mount no HUD. Silent no-op when
 ## either is missing.
 func _build_spawn_truth() -> void:
-	if streamer == null or hud == null:
+	if clipmap == null or hud == null:
 		return
 	var label := Label.new()
 	label.name = "SpawnTruthLabel"
@@ -2451,19 +2451,19 @@ func _build_spawn_truth() -> void:
 ## story -- "dry at 9.0 m" over a rendered ocean is now visible AS a
 ## render bug on the screenshot itself (the sim-vs-render split).
 func _update_spawn_truth() -> void:
-	if _truth_label == null or player == null or streamer == null:
+	if _truth_label == null or player == null or clipmap == null:
 		return
 	var Sph = load("res://core/frame/math/spherical.gd")
 	var dir: Vector3 = (player.global_position - planet_center).normalized()
 	var ll: Vector2 = Sph.cartesian_to_spherical(dir * planet_radius, planet_radius)
 	var Gen4 = load("res://scenes/worlds/terrain_gen.gd")
-	var ground: float = streamer.terrain_h(dir)
-	var sea: float = Gen4.sea_level(streamer.world_seed)
+	var ground: float = clipmap.terrain_h(dir)
+	var sea: float = Gen4.sea_level(clipmap.world_seed)
 	var wet: bool = ground < sea
-	var faces: int = streamer.active_faces().size()
+	var faces: int = clipmap.active_faces().size()
 	var stream_tag: String = "mesh:OFF"
 	if faces > 0:
-		stream_tag = "mesh:f%d x%d/%d" % [streamer.current_face, faces, streamer.triangle_count()]
+		stream_tag = "mesh:f%d x%d/%d" % [clipmap.current_face, faces, clipmap.triangle_count()]
 	# ALT: the PLAYER BODY's actual altitude above the base shell. The
 	# ground/sea readings are the terrain LAW; ALT is the body. Round-12
 	# web question: law said dry but pixels showed ocean -- if ALT ~ 10
@@ -2472,7 +2472,7 @@ func _update_spawn_truth() -> void:
 	var alt_m: float = -1.0
 	if player != null and is_instance_valid(player):
 		alt_m = (player.global_position - planet_center).length() - planet_radius
-	var vis: int = streamer.visible_patch_count()
+	var vis: int = clipmap.visible_patch_count()
 	# Mesh tag FIRST: the right end of this line sits under the minimap
 	# on phone/portrait layouts, and the round-10 pack-freshness question
 	# ("did the client run the UV-fix pack?") is exactly the tag that got
@@ -2524,12 +2524,12 @@ func player_displacement() -> float:
 
 ## Streamer observability (probe): face ids currently streaming.
 func stream_active_faces() -> Array:
-	return streamer.active_faces() if streamer else []
+	return clipmap.active_faces() if clipmap else []
 
 
 ## Streamer observability (probe): live triangle count.
 func stream_triangle_count() -> int:
-	return streamer.triangle_count() if streamer else 0
+	return clipmap.triangle_count() if clipmap else 0
 
 
 func _loop_start_position() -> Vector3:

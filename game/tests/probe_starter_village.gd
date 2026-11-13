@@ -105,7 +105,7 @@ func _run() -> void:
 	# AND before quit -- a probe that exits with a derive still in flight
 	# makes the engine tear down around a live worker thread (the stray
 	# "nonexistent function" / null-Time errors at shutdown).
-	var st_probe = globe.get("streamer")
+	var st_probe = globe.get("clipmap")
 	var drain_deadline: int = Time.get_ticks_msec() + 60000
 	while st_probe != null and st_probe._mesh_pending() > 0 and Time.get_ticks_msec() < drain_deadline:
 		await process_frame
@@ -178,7 +178,7 @@ func _run() -> void:
 				body3d.is_in_group("climbable"))
 		# Position law: |pos| == planet_radius + lift + walk height.
 		var pl: float = globe.get("planet_radius")
-		var walker: Callable = Callable(globe.get("streamer"), "walk_surface_h")
+		var walker: Callable = Callable(globe.get("clipmap"), "walk_surface_h")
 		var dir_s: Vector3 = child.position.normalized()
 		var expected_r: float = pl + 0.52 + float(walker.call(dir_s))
 		_check("%s rides the walk law's lift (r %.2f ~ %.2f)" % [child.name, child.position.length(), expected_r],
@@ -194,7 +194,7 @@ func _run() -> void:
 	if capitol != null:
 		_check("the monolith carries the one-law PropBody", capitol.get_node_or_null("PropBody") != null)
 		var pl2: float = globe.get("planet_radius")
-		var walker2: Callable = Callable(globe.get("streamer"), "walk_surface_h")
+		var walker2: Callable = Callable(globe.get("clipmap"), "walk_surface_h")
 		var TGenCap = load("res://scenes/worlds/terrain_gen.gd")
 		var cap_dir: Vector3 = TGenCap.capitol_plaza_dir()
 		var expected_r2: float = pl2 + 0.52 + float(walker2.call(cap_dir))

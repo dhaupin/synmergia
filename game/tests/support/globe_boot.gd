@@ -40,10 +40,10 @@ static func boot(tree: SceneTree, radius: float = 100.0) -> Node:
 static func drain(globe: Node, tree: SceneTree) -> void:
 	if globe == null or not is_instance_valid(globe):
 		return
-	var streamer = globe.get("streamer")
+	var clipmap = globe.get("clipmap")
 	var deadline: int = Time.get_ticks_msec() + BOOT_TIMEOUT_MS
-	while streamer != null and streamer.has_method("_mesh_pending") \
-			and streamer._mesh_pending() > 0 and Time.get_ticks_msec() < deadline:
+	while clipmap != null and clipmap.has_method("_mesh_pending") \
+			and clipmap._mesh_pending() > 0 and Time.get_ticks_msec() < deadline:
 		await tree.process_frame
 	await tree.process_frame
 

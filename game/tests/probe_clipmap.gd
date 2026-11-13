@@ -60,9 +60,9 @@ func _initialize() -> void:
 	root.add_child(_globe)
 	for i in range(8):
 		await process_frame
-	var st = _globe.get("streamer")
+	var st = _globe.get("clipmap")
 	if st == null:
-		_check("streamer/clipmap present", false)
+		_check("clipmap/clipmap present", false)
 		await _quit()
 		return
 	var Gen = preload("res://scenes/worlds/terrain_gen.gd")
@@ -92,7 +92,7 @@ func _initialize() -> void:
 	_check("G1 drawn-vs-law < 1 m in the fine rings (worst %.2f)" % worst, worst < 1.0)
 
 	# G1b: beyond the fine rings the LOD is coarser; assert it stays within
-	# the ~6 m bound the streamer's own ground-law audit uses (no cliff).
+	# the ~6 m bound the clipmap's own ground-law audit uses (no cliff).
 	var far_delta: float = 0.0
 	for reach in [400.0, 1000.0, 2500.0]:
 		var df: Vector3 = (Gen.SPAWN_CENTER + plaza_east * (reach / R)).normalized()
@@ -174,7 +174,7 @@ func _initialize() -> void:
 		await process_frame
 	_check("G5 budgeted tick < 40 ms incl. re-centre (worst %d ms)" % worst_ms, worst_ms < 40)
 
-	# G6: the standing-water sheet law (the streamer's surface 2) is owned
+	# G6: the standing-water sheet law (the clipmap's surface 2) is owned
 	# by the clipmap now. Assert a KNOWN-wet tile produces a non-null water
 	# surface (the pure helper -- no second concurrent cold build, which
 	# contends the terrain-law worker mutexes).
@@ -200,7 +200,7 @@ func _initialize() -> void:
 		var res2: Array = st._water_arrays_for([dry_dir, dry_dir, dry_dir], [hd, hd, hd])
 		_check("G6 dry ground yields NO water sheet", res2[0] == null)
 
-	# G7: the raised road deck (the streamer's surface 3) draws on the
+	# G7: the raised road deck (the clipmap's surface 3) draws on the
 	# clipmap at spawn (the main world authors a cartway through the plaza).
 	var dq: int = st.deck_quad_count()
 	_check("G7 raised road deck draws (quads %d > 0)" % dq, dq > 0)

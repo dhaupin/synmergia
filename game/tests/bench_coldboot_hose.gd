@@ -16,7 +16,7 @@ extends SceneTree
 ##    leg still pays on this host (grass/props/water still derive
 ##    on the main thread, and apply passes still run there).
 ##
-## Honesty mode: NOTHING is skipped. The streamer law is left to its
+## Honesty mode: NOTHING is skipped. The clipmap law is left to its
 ## natural behavior; neither mesh work nor prop work is hand-waved.
 ## This host is 2-core: async can only re-schedule, not parallelize,
 ## so the honest EXPECTATION on sync-vs-async total wall time here
@@ -38,7 +38,7 @@ const WATCH_MAX_MS := 30000
 const WATCH_DECIDE_INTERVAL_MS := 500
 
 var globe = null
-var streamer = null
+var clipmap = null
 
 func _init() -> void:
 	call_deferred("_run")
@@ -56,7 +56,7 @@ func _run() -> void:
 		quit(1)
 		return
 
-	# Baseline: after the boot loop, streamer naturally starts the
+	# Baseline: after the boot loop, clipmap naturally starts the
 	# cold face build. I start the clock the FIRST frame AFTER the
 	# scene tree has registered the globe so nothing pre-paid is
 	# counted.
@@ -86,9 +86,9 @@ func _run() -> void:
 			peak_frame_ms = frame_ms
 
 		if now - t_start > 1000:
-			var pc: int = streamer.patch_count()
-			var pend_m: int = streamer.pending_derive()
-			var pend_p: int = streamer._prop_pending()
+			var pc: int = clipmap.patch_count()
+			var pend_m: int = clipmap.pending_derive()
+			var pend_p: int = clipmap._prop_pending()
 			if pc == prev_patch_count and pc > 0 and pend_m == 0 and pend_p == 0:
 				if stable_since_msec == 0:
 					stable_since_msec = now
@@ -101,13 +101,13 @@ func _run() -> void:
 
 	var wall_ms := Time.get_ticks_msec() - t_start
 	var avg_frame_ms := frame_ms_total / maxf(1.0, float(frame_count))
-	var lane: Dictionary = streamer.mesh_lane_stats() if streamer.has_method("mesh_lane_stats") else {}
+	var lane: Dictionary = clipmap.mesh_lane_stats() if clipmap.has_method("mesh_lane_stats") else {}
 
 	print("HOSE__MODE=%s PANELS=" % mode)
 	print("  wall_ms=", wall_ms, " settled=", settled)
-	print("  patch_count=", streamer.patch_count())
+	print("  patch_count=", clipmap.patch_count())
 	print("  frame_n=", frame_count, " peak_frame_ms=", peak_frame_ms, " avg_frame_ms=", avg_frame_ms)
-	print("  pending_mesh=", streamer.pending_derive(), " pending_props=", streamer._prop_pending())
+	print("  pending_mesh=", clipmap.pending_derive(), " pending_props=", clipmap._prop_pending())
 	print("  lane_stats=", lane)
 
 	# Bounded drain before quit: with workers still in flight Godot
@@ -116,12 +116,12 @@ func _run() -> void:
 	# printing nothing on failure but staying honest via a flag.
 	var drained := true
 	var drain_deadline := Time.get_ticks_msec() + 40000
-	while streamer.pending_derive() > 0:
+	while clipmap.pending_derive() > 0:
 		await process_frame
 		if Time.get_ticks_msec() > drain_deadline:
 			drained = false
 			break
-	print("  drained=", drained, " lane_stats_after_drain=", (streamer.mesh_lane_stats() if streamer.has_method("mesh_lane_stats") else {}))
+	print("  drained=", drained, " lane_stats_after_drain=", (clipmap.mesh_lane_stats() if clipmap.has_method("mesh_lane_stats") else {}))
 
 	_teardown()
 	quit(0)
@@ -134,11 +134,11 @@ func _boot_globe() -> bool:
 		return false
 	globe = packed.instantiate()
 	root.add_child(globe)
-	# The scene's `streamer` var only resolves after the ready pass;
+	# The scene's `clipmap` var only resolves after the ready pass;
 	# leave it untyped so whatever the property holds passes through.
 	await process_frame
-	streamer = globe.get("streamer")
-	if streamer == null:
+	clipmap = globe.get("clipmap")
+	if clipmap == null:
 		return false
 	await physics_frame
 	return is_instance_valid(globe)

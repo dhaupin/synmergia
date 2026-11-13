@@ -383,10 +383,10 @@ func _initialize() -> void:
 	print("[OK] dawn re-seal + reopen (door_opened stays a daily event)")
 	if is_instance_valid(_globe):
 		# Drain the async mesh lane before freeing (the globe probe law): a
-		# queued streamer callback would otherwise fire on a freed instance.
-		var _streamer = _globe.get("streamer")
+		# queued clipmap callback would otherwise fire on a freed instance.
+		var _clipmap = _globe.get("clipmap")
 		var _drain_deadline: int = Time.get_ticks_msec() + 60000
-		while _streamer != null and _streamer._mesh_pending() > 0 and Time.get_ticks_msec() < _drain_deadline:
+		while _clipmap != null and _clipmap._mesh_pending() > 0 and Time.get_ticks_msec() < _drain_deadline:
 			await process_frame
 		await process_frame
 		_globe.free()

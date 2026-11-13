@@ -16,7 +16,7 @@ extends SceneTree
 #      the raw backend field there, and stands water law intact.
 #   6. Determinism: two identical installs re-answer identically; the
 #      cache is invalidated on uninstall/reinstall (no stale sectors).
-#   7. The streamer walk law follows: GlobeWorld's walk_surface_h at a
+#   7. The clipmap walk law follows: GlobeWorld's walk_surface_h at a
 #      sample equals the analytic terrain law read THROUGH the seam.
 
 const Gen = preload("res://scenes/worlds/terrain_gen.gd")
@@ -183,14 +183,14 @@ func _run() -> void:
 			and absf(again_again - expect_again) < 0.001)
 	Gen.uninstall_terrain_backend()
 
-	# --- 7. The streamer walk law follows the seam. ---
+	# --- 7. The clipmap walk law follows the seam. ---
 	Gen.install_terrain_backend(_dome_backend())
 	var packed: PackedScene = load(GLOBE_SCENE)
 	var globe: Node3D = packed.instantiate()
 	root.add_child(globe)
 	await root.get_tree().process_frame
 	await root.get_tree().physics_frame
-	var st = globe.get("streamer")
+	var st = globe.get("clipmap")
 	var probe_dir: Vector3 = Vector3(0.7, 0.3, 0.65).normalized()
 	st.update(probe_dir * 20000.0)
 	await root.get_tree().physics_frame
@@ -200,7 +200,7 @@ func _run() -> void:
 	# walk = terrain + optional small rock cap (0..ROCK_EMBED+ROCK_R).
 	# Honest band: walk >= law, and walk - law <= one cap height.
 	var capable_ok: bool = walk >= law - 0.05 and walk - law <= Gen.ROCK_EMBED + Gen.ROCK_RADIUS * 2.2 + 0.05
-	_check("streamer walk law reads THROUGH the seam (no cracks)", capable_ok)
+	_check("clipmap walk law reads THROUGH the seam (no cracks)", capable_ok)
 	Gen.uninstall_terrain_backend()
 	globe.queue_free()
 	await root.get_tree().process_frame

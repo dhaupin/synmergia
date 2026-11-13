@@ -44,7 +44,7 @@ func _run() -> void:
 	root.add_child(globe)
 	await process_frame
 	await process_frame
-	_check(globe.streamer != null, "streamer booted")
+	_check(globe.clipmap != null, "clipmap booted")
 	_check(globe.chart_lod != null, "chart LOD adapter booted")
 	_check(globe.chart_lod_root != null and globe.chart_lod_root.get_parent() == globe.world_root, "ChartLodRoot under world_root")
 

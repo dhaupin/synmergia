@@ -8,7 +8,7 @@ func _run() -> void:
 	root.add_child(globe)
 	await process_frame
 	await process_frame
-	var st = globe.get("streamer")
+	var st = globe.get("clipmap")
 	var F = load("res://core/frame/math/icosahedral_faces.gd")
 	for tgt in [19, 2]:
 		var t0: int = Time.get_ticks_usec()

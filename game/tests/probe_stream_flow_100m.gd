@@ -8,11 +8,11 @@
 ##   -> writes /tmp/play/stream_stage{1,2}.png
 ##
 ## The clipmap is the SOLE renderer now. Its laws differ from the retired
-## icosa streamer's, so this probe pins the CLIPMAP's laws at the 100 m
+## icosa clipmap's, so this probe pins the CLIPMAP's laws at the 100 m
 ## scale: a full ring ladder builds (cap + 5 rings), the triangle count is
 ## constant (geometric rings), the walk law the drawn world serves is the
 ## analytic law, and the world re-centres as the player walks (the L1
-## hysteresis law). The streamer's per-face want-set / skirt / discrete-LOD
+## hysteresis law). The clipmap's per-face want-set / skirt / discrete-LOD
 ## laws are GONE (constant SEG cells stitch the rings, no skirts); their
 ## replacements are pinned by probe_clipmap G1-G5 at planet scale.
 extends SceneTree
@@ -29,7 +29,7 @@ func _init() -> void:
 
 func _run() -> void:
 	# PROTOTYPE-SCALE CONTRACT: the clipmap renders every scale (the old
-	# sub-1000 m streamer fallback is gone). Pin the prototype radius.
+	# sub-1000 m clipmap fallback is gone). Pin the prototype radius.
 	ProjectSettings.set_setting("synmergia/world/planet_radius", 100.0)
 	var ok := true
 	var packed: PackedScene = load(GLOBE_SCENE)
@@ -48,9 +48,9 @@ func _run() -> void:
 	await root.get_tree().physics_frame
 	await root.get_tree().physics_frame
 
-	var streamer = _globe.get("streamer")
-	if streamer == null:
-		push_error("FAIL: streamer missing (stream_terrain off?)")
+	var clipmap = _globe.get("clipmap")
+	if clipmap == null:
+		push_error("FAIL: clipmap missing (stream_terrain off?)")
 		quit(1)
 		return
 
@@ -58,10 +58,10 @@ func _run() -> void:
 	var F0 = load(FacesScript)
 	var spawn_face: int = F0.face_for_direction(_globe.player.global_position)
 	await _settle()
-	ok = _check("spawn face %d active" % spawn_face, streamer.is_loaded(spawn_face)) and ok
+	ok = _check("spawn face %d active" % spawn_face, clipmap.is_loaded(spawn_face)) and ok
 	var tris: int = _globe.stream_triangle_count()
 	ok = _check("patch geometry present (%d tris)" % tris, tris > 500) and ok
-	ok = _check("clipmap built the full ring ladder (5 rings)", streamer.patch_count() >= 5) and ok
+	ok = _check("clipmap built the full ring ladder (5 rings)", clipmap.patch_count() >= 5) and ok
 	_shoot("stream_stage1")
 
 	# --- Invariant 2: the world re-centres as the player walks, and the
@@ -79,9 +79,9 @@ func _run() -> void:
 	await root.get_tree().physics_frame
 	await root.get_tree().physics_frame
 
-	var start_face: int = streamer.current_face
+	var start_face: int = clipmap.current_face
 	ok = _check("relocated to face %d (got %d)" % [target_face, start_face], start_face == target_face) and ok
-	var center_before: Vector3 = streamer._center_dir
+	var center_before: Vector3 = clipmap._center_dir
 
 	# Walk a bit: the body stays glued and the drawn mesh stays CONSTANT
 	# (the geometric-ring law).
@@ -102,27 +102,27 @@ func _run() -> void:
 	player.velocity = Vector3.ZERO
 	for i in range(8):
 		await root.get_tree().physics_frame
-	ok = _check("the lattice re-centres past the hysteresis ring", streamer._center_dir != center_before) and ok
+	ok = _check("the lattice re-centres past the hysteresis ring", clipmap._center_dir != center_before) and ok
 
 	# TERRAIN LOD (the clipmap's law): the drawn ground under the player IS
 	# the analytic law (the walk surface the player rides). At the 100 m
 	# scale the innermost cell is sub-metre, so the drawn-vs-law delta is
 	# tight -- the whole point of the clipmap.
 	var d_spawn: Vector3 = (player.global_position - _globe.planet_center).normalized()
-	var walk_h: float = streamer.walk_surface_h(d_spawn)
+	var walk_h: float = clipmap.walk_surface_h(d_spawn)
 	var Gen = load("res://scenes/worlds/terrain_gen.gd")
-	var law_h: float = Gen.terrain_height(d_spawn, streamer.world_seed)
+	var law_h: float = Gen.terrain_height(d_spawn, clipmap.world_seed)
 	ok = _check("walk law == terrain law at the body (walk %.2f law %.2f)" % [walk_h, law_h], \
 		absf(walk_h - law_h) < 6.0) and ok
-	ok = _check("current face is loaded", streamer.is_loaded(streamer.current_face)) and ok
+	ok = _check("current face is loaded", clipmap.is_loaded(clipmap.current_face)) and ok
 	_shoot("stream_stage2")
 
 	# --- Invariant 3: the world stays alive as the player sweeps around.
 	var sweep_ok := true
 	for f in range(F1.face_count()):
 		var center: Vector3 = F1.face_center(f) * 101.0
-		streamer.update(center)
-		if streamer.current_face != f or not streamer.is_loaded(f):
+		clipmap.update(center)
+		if clipmap.current_face != f or not clipmap.is_loaded(f):
 			sweep_ok = false
 			break
 	ok = _check("every icosa face loads under the clipmap sweep", sweep_ok) and ok
@@ -139,7 +139,7 @@ func _run() -> void:
 ## so a steady world is a SETTLE law. Waits on the derive lane + a few
 ## frames for the deferred applies to run.
 func _settle(seconds: float = 30.0) -> void:
-	var st = _globe.get("streamer")
+	var st = _globe.get("clipmap")
 	var waited: float = 0.0
 	while st != null and st.pending_derive() > 0 and waited < seconds:
 		await root.get_tree().physics_frame
@@ -152,7 +152,7 @@ func _settle(seconds: float = 30.0) -> void:
 ## face's full ring ladder. Bounded at 60 s (the headless VM's cold build
 ## is multi-second).
 func _settle_player(seconds: float = 60.0) -> bool:
-	var st = _globe.get("streamer")
+	var st = _globe.get("clipmap")
 	var waited: float = 0.0
 	while waited < seconds:
 		await root.get_tree().physics_frame

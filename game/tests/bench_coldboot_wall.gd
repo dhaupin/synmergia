@@ -35,7 +35,7 @@ func _run() -> void:
 	root.add_child(globe)
 	await process_frame
 	var wall: int = Time.get_ticks_msec() - t0
-	var st = globe.get("streamer")
+	var st = globe.get("clipmap")
 	var faces_boot: int = st.patch_count()
 	var drained := 0
 	var t1: int = Time.get_ticks_msec()
@@ -47,7 +47,7 @@ func _run() -> void:
 	# the teardown, so no cross-globe corpse work fires at exit.
 	var faces_steady: int = st.patch_count()
 	await process_frame
-	# The A/B METRIC that isolates the mesh law: the streamer's own
+	# The A/B METRIC that isolates the mesh law: the clipmap's own
 	# wall time -- SYNC law = 4 cold builds inside update(); ASYNC law
 	# = 1 cold build (the neighbors were on the workers). The boot's
 	# ~60 s of fixed non-mesh cost (villages/HUD/GLBs and the 2-core

@@ -33,7 +33,7 @@ func _initialize() -> void:
 	var packed: PackedScene = load(GLOBE_SCENE)
 	var globe = packed.instantiate()
 	# THE READY-WALL: add_child runs _ready synchronously -- everything
-	# the streamer, water, player, HUD and (on an old boot) every
+	# the clipmap, water, player, HUD and (on an old boot) every
 	# POI/NPC build burns lands inside this one wall.
 	root.add_child(globe)
 	var ready_ms := Time.get_ticks_msec() - t0
@@ -60,8 +60,8 @@ func _initialize() -> void:
 	# THE CLIPMAP BOOT (the clipmap round): the sole renderer builds its
 	# full ring ladder synchronously at boot (build_all), so the ready
 	# wall already holds a drawn world -- there is no async promote leg
-	# to wait on (the retired streamer's boot-clamp promote is gone).
-	var st = globe.get("streamer")
+	# to wait on (the retired clipmap's boot-clamp promote is gone).
+	var st = globe.get("clipmap")
 	if st == null:
 		print("CLIPMAP: not probed (no terrain renderer)")
 	else:

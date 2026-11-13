@@ -36,12 +36,12 @@ func _run() -> void:
 		await process_frame
 	for _i in range(90):
 		await root.get_tree().physics_frame
-	var streamer = _globe.get("streamer")
+	var clipmap = _globe.get("clipmap")
 	var waited := 0
-	while streamer.pending_derive() > 0 and waited < 600:
+	while clipmap.pending_derive() > 0 and waited < 600:
 		await root.get_tree().physics_frame
 		waited += 1
-	var pl = streamer.prop_layer()
+	var pl = clipmap.prop_layer()
 	var n_chunks := 0
 	var trees := 0
 	var species_variants := 0

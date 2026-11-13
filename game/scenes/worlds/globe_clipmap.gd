@@ -44,7 +44,7 @@ signal face_changed(old_face: int, new_face: int)
 signal patch_loaded(face: int)
 signal patch_unloaded(face: int)
 
-## Mirrors the streamer's TILE_LIFT (globe_world.STREAMER_TILE_LIFT): the
+## Mirrors globe_world.TILE_LIFT: the
 ## draw sits this far above the base shell so it never hides inside it.
 const TILE_LIFT: float = 0.52
 

@@ -18,31 +18,37 @@ The clipmap + `GroundProvider` + `PropLayer` trio is the render law. These
 still build geometry by hand or read the retired streamer's shape. Ranked by
 value.
 
-### A1. `globe_world` shell + water + pad still speak "streamer" (HIGH)
+### A1. `globe_world` shell + water + pad still speak "streamer" (HIGH) -- FOLDED
 
-`game/scenes/worlds/globe_world.gd` is the last big consumer of streamer-shaped
+`game/scenes/worlds/globe_world.gd` was the last big consumer of streamer-shaped
 names even though the object it holds is a `GlobeClipmap`:
 
-- `var streamer` (L117) -- the clipmap instance is stored under the OLD name;
+- `var streamer` -- the clipmap instance was stored under the OLD name;
   ~40 call sites (`streamer.update`, `streamer.terrain_h`, `streamer.world_seed`,
   `streamer.walk_surface_h`, ...). The clipmap exposes every one of these as a
-  parity shim (see A3), so a rename is mechanical but wide.
-- `_setup_streamer()` (L513) -- actually builds the clipmap. Name is a lie.
-- `STREAMER_TILE_LIFT` (L45, used L944/948/969/1054/1098/1354/... ) -- the
-  clipmap already declares its own `TILE_LIFT = 0.52` (globe_clipmap.gd L49);
-  `globe_moon` / `globe_underworld` both name theirs `TILE_LIFT`. Only
-  `globe_world` keeps the `STREAMER_` prefix.
-- `_build_water()` (L961) -- reads `terrain_gen.sea_level(streamer.world_seed)`
-  + `STREAMER_TILE_LIFT` to place a `SphereMesh` "WaterShell". This is the
-  main world's visible ocean, hand-built, NOT the clipmap's standing-water
-  sheet and NOT `WaterKit`. See A2.
-- `_exit_tree()` (L509) calls `streamer.async_shutdown()`; the clipmap keeps
-  an `async_shutdown` for teardown -- fine, just the name.
+  parity shim (see A3), so the rename was mechanical but wide.
+- `_setup_streamer()` -- actually built the clipmap. Name was a lie.
+- `STREAMER_TILE_LIFT` -- the clipmap already declares its own `TILE_LIFT = 0.52`
+  (globe_clipmap.gd L49); `globe_moon` / `globe_underworld` both name theirs
+  `TILE_LIFT`. Only `globe_world` kept the `STREAMER_` prefix.
+- `_build_water()` -- see A2 (now declaration-driven).
+- `_exit_tree()` called `streamer.async_shutdown()`; the clipmap keeps an
+  `async_shutdown` for teardown -- fine, just the name.
 
-**Fold:** rename `streamer` -> `clipmap` (or `_clipmap`, matching the sibling
-worlds), `_setup_streamer` -> `_setup_clipmap`, `STREAMER_TILE_LIFT` -> use the
-clipmap's `TILE_LIFT`. Pure rename, no behavior change; a receipt should prove
-`probe_clipmap` + `probe_underworld` + `probe_starter_village` stay green.
+**FOLDED (2026-11-04).** The handle is `clipmap` (public, because ~32
+probes/tests read it via `get("clipmap")`; the sibling worlds keep their
+private `_clipmap` -- a deliberate divergence, the handle is the scene's
+public API), `_setup_streamer` -> `_setup_clipmap`, `STREAMER_TILE_LIFT` ->
+`TILE_LIFT`. The ~39 external `get("streamer")` / `.streamer` call sites were
+renamed too, plus local `streamer` vars in the touched probes. Historical
+"the legacy icosa streamer was retired" comments were kept (they name a real
+retired thing); only live-code references changed.
+
+Receipts (all green, no script errors): `probe_clipmap` ALL PASS,
+`probe_terrain_planet` 28/0, `probe_globe_world` / `probe_underworld` 44 /
+`probe_starter_village` / `probe_world_boot_speed` / `probe_ground_law_audit` /
+`probe_stream_flow_100m` / `probe_ancient_loop` exit 0,
+`test_globe_wildlife` 23/0, naming lint 49/0.
 
 ### A2. Main-world ocean is hand-built; the other worlds are declaration-driven (HIGH) -- FOLDED
 
@@ -236,8 +242,10 @@ ones sit on disk for deleted sources: `probe_meshcache_ram.gd.uid`,
 
 ## Recommended order
 
-1. **A1 + A3** (rename `streamer` -> `clipmap` in `globe_world` + the clipmap
-   parity shims) -- one mechanical pass, biggest lore win.
+1. ~~A1 + A3 (rename `streamer` -> `clipmap` in `globe_world` + the clipmap
+   parity shims)~~ **A1 DONE 2026-11-04** -- handle/`_setup_clipmap`/`TILE_LIFT`
+   renamed (+ all external callers). **A3 still open** (the clipmap's
+   streamer-parity shims; do it as its own pass now).
 2. **B1** (delete the 16 verified-dead files, ~2,300 lines) -- zero risk.
 3. ~~A2 (main-world ocean from the `OceanVolume` declaration)~~ **DONE
    2026-11-04** -- the sea shell is declaration-driven through `WaterKit`

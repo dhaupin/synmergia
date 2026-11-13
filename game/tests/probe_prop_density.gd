@@ -60,17 +60,17 @@ func _run() -> void:
 	# The flora derives on worker threads; the census waits for the pending
 	# derive jobs to drain (bounded) before counting.
 	var waited := 0
-	while _globe.get("streamer").pending_derive() > 0 and waited < 1200:
+	while _globe.get("clipmap").pending_derive() > 0 and waited < 1200:
 		await root.get_tree().physics_frame
 		waited += 1
 	print("PENDING_DRAINED_after=", waited + 90, " frames, tmsec=", Time.get_ticks_msec() - t0)
 
-	var streamer = _globe.get("streamer")
+	var clipmap = _globe.get("clipmap")
 	var player = _globe.get("player")
 	var planet_center: Vector3 = _globe.get("planet_center")
 	var radius_pl: float = _globe.get("planet_radius")
 	var pdir: Vector3 = (player.global_position - planet_center).normalized()
-	var pl = streamer.prop_layer()
+	var pl = clipmap.prop_layer()
 
 	var band_counts: Dictionary = {}
 	for b in BANDS:

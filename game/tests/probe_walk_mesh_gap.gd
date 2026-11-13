@@ -33,11 +33,11 @@ func _run() -> void:
 	for _i in range(60):
 		await root.get_tree().physics_frame
 
-	var streamer = _globe.get("streamer")
+	var clipmap = _globe.get("clipmap")
 	# The clipmap builds off-thread; wait (bounded) for the derive lane
 	# before reading meshes.
 	var drainage := 0
-	while streamer.pending_derive() > 0 and drainage < 1800:
+	while clipmap.pending_derive() > 0 and drainage < 1800:
 		await root.get_tree().physics_frame
 		drainage += 1
 	var player = _globe.get("player")
@@ -50,7 +50,7 @@ func _run() -> void:
 
 	var n_shown := 0
 	var worst := 0.0
-	for mi in streamer.ground_meshes():
+	for mi in clipmap.ground_meshes():
 		if mi == null or mi.mesh == null:
 			continue
 		var xf: Transform3D = mi.global_transform
@@ -75,7 +75,7 @@ func _run() -> void:
 				if ang > NEAR_ANG:
 					continue
 				var drawn_h: float = (wp - planet_center).length() - radius_pl
-				var law_h: float = streamer.walk_surface_h(dir)
+				var law_h: float = clipmap.walk_surface_h(dir)
 				var gap: float = drawn_h - law_h
 				worst = maxf(worst, absf(gap))
 				if n_shown < 24:

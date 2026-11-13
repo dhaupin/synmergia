@@ -43,7 +43,7 @@ func _run() -> void:
 	root.add_child(globe)
 	await process_frame
 	await process_frame
-	var st = globe.get("streamer")
+	var st = globe.get("clipmap")
 	var pl: float = float(globe.get("planet_radius"))
 	var ladder: int = st.ground_meshes().size()
 

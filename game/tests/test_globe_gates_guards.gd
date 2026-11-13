@@ -84,9 +84,9 @@ func _leg_boot() -> void:
 	while not globe.has_meta("boot_waves_done_ms") and Time.get_ticks_msec() < deadline:
 		await process_frame
 	_check(globe.has_meta("boot_waves_done_ms"), "the boot waves finish (the world dresses)")
-	var streamer = globe.get("streamer")
+	var clipmap = globe.get("clipmap")
 	var drain_deadline: int = Time.get_ticks_msec() + 60000
-	while streamer != null and streamer._mesh_pending() > 0 and Time.get_ticks_msec() < drain_deadline:
+	while clipmap != null and clipmap._mesh_pending() > 0 and Time.get_ticks_msec() < drain_deadline:
 		await process_frame
 	await process_frame
 

@@ -15,8 +15,8 @@ const RADIUS_SETTING: String = "synmergia/world/planet_radius"
 const RADIUS := 20000.0
 const TARGET_M := 1200.0
 const STEP_M := 8.0
-## The drawn ground is the walk law lifted by the streamer tile lift
-## (globe_world.STREAMER_TILE_LIFT); the pad rides that same lift, so the
+## The drawn ground is the walk law lifted by the clipmap tile lift
+## (globe_world.TILE_LIFT); the pad rides that same lift, so the
 ## probe compares collision against walk_law + lift.
 const TILE_LIFT := 0.52
 ## Collision may only differ from the drawn ground by the pad grid's linear
@@ -43,7 +43,7 @@ func _run() -> void:
 	for _i in range(60):
 		await root.get_tree().physics_frame
 
-	var streamer = _globe.get("streamer")
+	var clipmap = _globe.get("clipmap")
 	var player: CharacterBody3D = _globe.get("player")
 	var pad: StaticBody3D = _globe.get("surface_pad")
 	var space := _globe.get_world_3d().direct_space_state
@@ -64,9 +64,9 @@ func _run() -> void:
 		center = _globe.get("planet_center")
 		s += STEP_M
 		var pd: Vector3 = (player.global_position - center).normalized()
-		var e_c := _collide_err(space, center, pd, streamer, pad, player)
+		var e_c := _collide_err(space, center, pd, clipmap, pad, player)
 		var pd_ahead: Vector3 = pd.rotated(axis, AHEAD_M / RADIUS)
-		var e_a := _collide_err(space, center, pd_ahead, streamer, pad, player)
+		var e_a := _collide_err(space, center, pd_ahead, clipmap, pad, player)
 		if e_c == -1.0 or e_a == -1.0:
 			misses += 1
 		if e_c >= 0.0:
@@ -95,7 +95,7 @@ func _run() -> void:
 ## for the SURFACE PAD only, or -1.0 when the ray misses. Rocks and props
 ## legitimately sit above the walk law (walk-over caps), so a hit on any
 ## collider that is not the pad is reported as -2.0 and ignored.
-func _collide_err(space: PhysicsDirectSpaceState3D, center: Vector3, dir: Vector3, streamer, pad: StaticBody3D, player: CharacterBody3D) -> float:
+func _collide_err(space: PhysicsDirectSpaceState3D, center: Vector3, dir: Vector3, clipmap, pad: StaticBody3D, player: CharacterBody3D) -> float:
 	var from: Vector3 = center + dir * (RADIUS + 120.0)
 	var to: Vector3 = center + dir * (RADIUS - 60.0)
 	var q := PhysicsRayQueryParameters3D.create(from, to)
@@ -107,5 +107,5 @@ func _collide_err(space: PhysicsDirectSpaceState3D, center: Vector3, dir: Vector
 	if hit["collider"] != pad:
 		return -2.0
 	var got: float = (hit["position"] as Vector3).distance_to(center) - RADIUS
-	var want: float = streamer.walk_surface_h(dir) + TILE_LIFT
+	var want: float = clipmap.walk_surface_h(dir) + TILE_LIFT
 	return absf(got - want)
