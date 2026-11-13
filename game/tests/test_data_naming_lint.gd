@@ -21,7 +21,8 @@ extends SceneTree
 ##   - offering quest_ids must exist
 ##   - dialogue npc_id must exist
 ##   - zone roster npc ids must exist
-##   - Achievement title_reward must exist
+##   - Achievement title_reward must name an existing title
+##   - Title unlock_source (achievement/quest) must exist; title ids are bare
 ##   - Acts: act_ prefix, filename == id, chapters present
 ##
 ## Run: godot --headless --path . --script res://tests/test_data_naming_lint.gd
@@ -836,5 +837,78 @@ func _run() -> void:
 		_ok("No class-owned skill is orphaned (all reachable via a class kit)")
 	else:
 		_fail("Class-owned skills referenced by no class: %s" % ", ".join(orphans))
+
+	# --- Achievement rewards: title_reward must name a real title ---
+	# AchievementService._do_unlock routes title_reward through
+	# TitleService.unlock, which WARNS and returns false on an unknown id --
+	# the player completes the achievement and silently receives no title.
+	# Seven defs shipped exactly this way (streaker, bloodthirsty,
+	# juggernaut, unkillable, wind_rider, Hordebreaker, MVP); the header
+	# promised this check but no code implemented it.
+	var ach_ids := _load_ids("data/achievements")
+	var title_ids_all := _load_ids("data/titles")
+	var bad_ach_titles: Array = []
+	var ach_title_refs: Dictionary = {}
+	for ab in ach_ids:
+		var atxt := _file_text("data/achievements", ab)
+		var areward := ""
+		for line in atxt.split("\n"):
+			var lt := line.strip_edges()
+			if lt.begins_with("title_reward = \"") and lt != "title_reward = \"\"":
+				areward = lt.trim_prefix("title_reward = \"").trim_suffix("\"")
+		if areward == "":
+			continue
+		ach_title_refs[areward] = str(ach_ids[ab])
+		if not title_ids_all.values().has(areward):
+			bad_ach_titles.append("%s title_reward -> missing title %s" % [str(ach_ids[ab]), areward])
+	if bad_ach_titles.is_empty():
+		_ok("Achievements: all %d title_reward refs resolve" % ach_title_refs.size())
+	else:
+		_fail("Achievement title rewards naming no title: %s" % ", ".join(bad_ach_titles))
+
+	# --- Titles: filename == id, bare ids, and every achievement/quest
+	# unlock_source names a real target ---
+	# A title whose unlock_source names no achievement is unreachable: the only
+	# generic grant path (AchievementService rewards) can never fire it. Quest
+	# (method 1) titles name a quest or a mystery; other methods are granted by
+	# routes outside the data (PvP, events, GM, purchase) and carry no source.
+	var bad_title_style: Array = []
+	var bad_title_sources: Array = []
+	for tb in title_ids_all:
+		var tid2 := str(title_ids_all[tb])
+		# Enemy convention: the FILE keeps the prefix, the id stays bare
+		# (title_slayer.tres carries id "slayer").
+		if tb != "title_" + tid2:
+			bad_title_style.append("%s (filename mismatch: %s.tres)" % [tid2, tb])
+		if tid2.begins_with("title_"):
+			bad_title_style.append("%s (bare id expected, no 'title_' prefix)" % tid2)
+		var ttxt := _file_text("data/titles", tb)
+		var tmethod := -1
+		var tsource := ""
+		for line in ttxt.split("\n"):
+			var tt := line.strip_edges()
+			if tt.begins_with("unlock_method = "):
+				tmethod = int(tt.trim_prefix("unlock_method = "))
+			elif tt.begins_with("unlock_source = \"") and tt != "unlock_source = \"\"":
+				tsource = tt.trim_prefix("unlock_source = \"").trim_suffix("\"")
+		if tsource == "":
+			continue
+		var src_ok := true
+		if tmethod == 0:
+			src_ok = ach_ids.values().has(tsource)
+		elif tmethod == 1:
+			src_ok = _load_ids("data/quests").values().has(tsource) \
+				or tsource.begins_with("mystery_") \
+				or tsource.begins_with("found_")
+		if not src_ok:
+			bad_title_sources.append("%s source -> %s" % [tid2, tsource])
+	if bad_title_style.is_empty():
+		_ok("Titles: all %d ids are bare, filename == id" % title_ids_all.size())
+	else:
+		_fail("Title style violations: %s" % ", ".join(bad_title_style))
+	if bad_title_sources.is_empty():
+		_ok("Titles: every achievement/quest unlock_source resolves")
+	else:
+		_fail("Titles with unresolvable unlock_source: %s" % ", ".join(bad_title_sources))
 
 	_finish()

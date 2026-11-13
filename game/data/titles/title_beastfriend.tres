@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TitleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/title_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "beastfriend"
+display_name = "Beast Friend"
+description = "Bond with three different mounts"
+prefix_form = "The Beast Friend"
+suffix_form = "the beast's friend"
+category = 3
+rarity = 1
+unlock_method = 0
+unlock_source = "mount_bonded"
+is_account_title = false
+sort_order = 80

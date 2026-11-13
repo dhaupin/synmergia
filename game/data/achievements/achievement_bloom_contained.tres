@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "bloom_contained"
+display_name = "Bloom Contained"
+description = "Contain a Bloom horde"
+achievement_type = 1
+category = 0
+rarity = 2
+target = 1
+target_type = "bloom"
+gold_reward = 300
+xp_reward = 250
+title_reward = "bloomwarden"
+icon_path = "res://icons/achievements/horde_breaker.png"
+sort_order = 72

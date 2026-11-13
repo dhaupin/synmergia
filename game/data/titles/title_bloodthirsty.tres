@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TitleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/title_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "bloodthirsty"
+display_name = "Bloodthirsty"
+description = "Kill 10 enemies without dying"
+prefix_form = "The Bloodthirsty"
+suffix_form = "the bloodthirsty"
+category = 0
+rarity = 2
+unlock_method = 0
+unlock_source = "kill_streak_10"
+is_account_title = false
+sort_order = 22

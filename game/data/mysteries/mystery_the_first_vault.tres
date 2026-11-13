@@ -12,5 +12,5 @@ gate_chapter_index = 1
 answer_kind = 0
 answer_day = 1
 hint = "The Concord's almanac re-derives any past day's code. Which day did the vault open? Act I remembers."
-reward_title_id = "title_vault_reader"
+reward_title_id = "vault_reader"
 reward_xp = 75

@@ -77,7 +77,7 @@ func _test_mysteries_data() -> bool:
 	if _ds.get_item and false:
 		pass
 	var titles := _load_title_ids()
-	if not titles.has("title_vault_reader") or not titles.has("title_wardens_word"):
+	if not titles.has("vault_reader") or not titles.has("wardens_word"):
 		push_error("FAIL: reward titles missing from data/titles")
 		return false
 	# The expected answer is derivable and shaped like a 4-glyph code.
@@ -151,7 +151,7 @@ func _test_sky_code_solve() -> bool:
 		push_error("FAIL: expected 1 solve toast, got %d" % toasts.size())
 		return false
 	var ts = root.get_node_or_null("TitleService")
-	if ts == null or not ts.is_unlocked("m_player", "title_vault_reader"):
+	if ts == null or not ts.is_unlocked("m_player", "vault_reader"):
 		push_error("FAIL: reward title not unlocked")
 		return false
 	var again: Dictionary = _acts.attempt_mystery("mystery_the_first_vault", "m_player", code)
@@ -191,7 +191,7 @@ func _test_tally_mystery() -> bool:
 		push_error("FAIL: correct tally (%d) rejected: %s" % [signs, str(right)])
 		return false
 	var ts = root.get_node_or_null("TitleService")
-	if ts == null or not ts.is_unlocked("t_player", "title_wardens_word"):
+	if ts == null or not ts.is_unlocked("t_player", "wardens_word"):
 		push_error("FAIL: warden title not unlocked")
 		return false
 	print("[OK] tally mystery: catalog-derived answer accepted, title paid")

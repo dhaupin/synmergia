@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = "title_vault_reader"
+id = "vault_reader"
 display_name = "Vault-Reader"
 description = "Read the First Vault's answer out of the sky's own record. The Chronicle remembers who paid attention."
 prefix_form = "The Vault-Reader"

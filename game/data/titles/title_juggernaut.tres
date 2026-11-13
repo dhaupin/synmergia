@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TitleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/title_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "juggernaut"
+display_name = "Juggernaut"
+description = "Kill 25 enemies without dying"
+prefix_form = "The Juggernaut"
+suffix_form = "the juggernaut"
+category = 0
+rarity = 3
+unlock_method = 0
+unlock_source = "kill_streak_25"
+is_account_title = false
+sort_order = 23

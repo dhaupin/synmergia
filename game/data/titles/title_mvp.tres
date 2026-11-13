@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TitleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/title_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mvp"
+display_name = "MVP"
+description = "Deal the most damage in a horde completion"
+prefix_form = "The MVP"
+suffix_form = "the MVP"
+category = 0
+rarity = 3
+unlock_method = 0
+unlock_source = "horde_mvp_first"
+is_account_title = false
+sort_order = 71

@@ -251,23 +251,37 @@ include to each NPC file.
 TEACH_SKILL), and `labs/story-dialogue-npcs.md` if it exists (the old Task 1
 output -- reuse any usable voice profiles).
 
-## Task 6 -- Lore-bearing props: signs, the monolith, the chronicle -- status: todo
+## Task 6 -- Lore-bearing props: signs, the monolith, the chronicle -- status: todo (premise CORRECTED 2026-11-29)
 
-**The finding:** only 3 signs exist; the world is full of unlabelled places.
-`labs/prd-story.md` section 9 keeps five mysteries deliberately open -- do not
-canonize answers.
+**The finding (CORRECTED):** the original premise said "only 3 signs exist; the
+world is full of unlabelled places" and asked for roadside inscriptions. That is
+WRONG on the mechanism: `game/core/schemas/sign_profile.gd` is a **celestial Sky
+Sign** (the Skyward Concord's daily omen, `labs/prd-psy.md`) -- the sign is
+picked by a pure hash of `(day, window)` in `SignService.sign_for_window`, its
+glyph is revealed by tribal consensus, and `get_ancient_code(day)` derives the
+vault code from the rotation. There is NO roadside-inscription surface in the
+engine; a "sign" is a sky omen, not a painted board. Adding signs is still safe
+(it only shifts the deterministic rotation; `tests/test_sign_service.gd` pins
+the three existing ids, and `test_mysteries.gd` counts `_svc._signs.size()`
+dynamically, so neither breaks on a grow).
 
-**Produce:**
-- `labs/story-chronicle.md` (the old Task 3): almanac-style entries for the 3
-  acts (`game/data/acts/*.tres` chapters), the capitol monolith's
-  wrong-written history, and the village origin short.
-- New `game/data/signs/*.tres` (schema `sign_profile.gd`, prefix `sign_`): one
-  per institution and one per road-marker, each a short inscription in the
-  Concord voice. Signs are the cheapest lore surface in the game.
+**Produce (revised):**
+- `labs/story-chronicle.md`: almanac entries for the 3 acts
+  (`game/data/acts/*.tres` chapters), the capitol monolith's wrong-written
+  history (the `capitol_monolith` / `pans_monolith` families in
+  `scenes/worlds/globe_world.gd`), and the village origin short. Keep the five
+  `labs/prd-story.md` section 9 mysteries deliberately open.
+- New `game/data/signs/*.tres` (schema `sign_profile.gd`, prefix `sign_`): Sky
+  Signs in the Concord voice -- each a glyph + omen text the rotation can land
+  on, NOT a roadside inscription. One per institution + a few road-marker
+  omens.
+- OPTIONAL (real engine gap, not lore): there is no world-space inscription
+  prop. If roadside lore is actually wanted, that is a NEW feature (a prop
+  type + reader), not a data fill -- track separately.
 
 **Read first:** `game/core/services/sign_service.gd`, `acts_service.gd`, the
-three existing signs, and `labs/prd-story.md` sections 4-5 (institutions, the
-Bloom).
+three existing signs, `labs/prd-psy.md` (Sky Signs), and `labs/prd-story.md`
+sections 4-5 (institutions, the Bloom).
 
 ## Task 7 -- Weather + event lore -- status: todo
 
@@ -294,17 +308,39 @@ the field in code it would attach to. Name choices only -- no code edits.
 **Read first:** `globe_world.gd`, `globe_underworld.gd`, `globe_moon.gd`,
 `strait_chart.gd`, and the biome list in the terrain probes.
 
-## Task 9 -- Achievement listeners for the waking verbs -- status: todo
+## Task 9 -- Achievement listeners for the waking verbs -- status: landed 2026-11-29
 
 **The finding:** `labs/prd-quests.md` section 4 says achievements should
 celebrate the world's verbs, not grind counters. `achievement_listeners.gd`
 covers combat/horde/social; the waking verbs (EXPLORE/waypoint wakes, Bloom
 containment, companion/mount bonds) have thin coverage. 32 achievements exist.
 
-**Produce:** an audit of `game/data/achievements/*.tres` against
-`achievement_listeners.gd` -- which verbs are celebrated, which are missing --
-then author 4-8 new achievements for the wake-counts ("Waymaker" tiers), the
-Bloom-containment deeds, and the bond lines. Schema: `achievement_data.gd`.
+**AUDIT (done):** the verbs were thinly covered because the SIGNALS were never
+wired, and two of the three named verbs have no signal at all:
+- waypoint wakes: `WaypointService.waypoint_reached(player_id, waypoint_id)`
+  fires but NOTHING consumed it. Real, wireable.
+- Bloom containment: no "containment" signal exists; the honest hook is a
+  completed `bloom*` horde (`HordeEventService.horde_completed` /
+  `_track_horde_achievements`). Wireable as a deed.
+- mount bonds: `RideService.mount_summoned(player_id, mount_id)` fires but
+  nothing consumed it. Real, wireable (count DISTINCT mounts, not summons).
+- (Not wireable today: the "companion" bond line -- FollowService emits no
+  bond signal. Left out rather than faked.)
+
+**LANDED (`feat/achievement-title-integrity`):**
+- `achievement_listeners.gd`: `waypoint_reached` -> `wake` (once per waypoint
+  per session), `mount_summoned` -> `mount_bond` (once per DISTINCT mount per
+  session, via a deferred bridge since RideService is a later autoload).
+- `horde_event_service.gd`: a completed `bloom*` horde credits `bloom`; its
+  AchievementService resolution was ALSO fixed to the main-loop route (an
+  absolute `/root/...` path silently no-oped in `--script`/headless, so horde
+  achievements never landed outside the running game -- a latent bug).
+- 5 new achievements (`achievement_data.gd`): `waymaker_1` / `waymaker_10` /
+  `waymaker_50` (chained wake-count tiers), `bloom_contained`, `mount_bonded`.
+- 4 new titles: `waymaker`, `roadkeeper`, `bloomwarden`, `beastfriend`.
+- RECEIPT: `game/tests/test_waking_verbs.gd` (12 legs) -- all three verbs reach
+  AchievementService; both anti-farm guards verified red by name. Added to the
+  runner DEFAULT_SET.
 
 ---
 

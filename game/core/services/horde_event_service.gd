@@ -821,11 +821,14 @@ func _merge_wave_rewards(h: Dictionary, wave: int) -> void:
 			h["reward_xp"] = int(h["reward_xp"]) + wxp
 
 ## Completion-side achievement credit: every participant gets "horde"
-## tracked once; MVP (largest weight) also gets "horde_mvp". Persistence
-## and unlock logic live in AchievementService; this only feeds events.
-## AchievementService has no class_name -- resolve through the tree.
+## tracked once; MVP (largest weight) also gets "horde_mvp". Bloom hordes
+## also credit "bloom" (containment). Persistence and unlock logic live in
+## AchievementService; this only feeds events.
+## AchievementService has no class_name -- resolve via the main loop, the same
+## route AchievementService._service uses: an absolute "/root/..." path is
+## rejected in --script/headless contexts and would silently no-op.
 func _track_horde_achievements(horde_id: String, h: Dictionary, rewards: Dictionary) -> void:
-	var ach := get_node_or_null("/root/AchievementService")
+	var ach := _achievement_service()
 	if ach == null:
 		return
 	if rewards.is_empty():
@@ -839,14 +842,28 @@ func _track_horde_achievements(horde_id: String, h: Dictionary, rewards: Diction
 		if w > mvp_w:
 			mvp_w = w
 			mvp = str(pid)
+	# Bloom hordes are containment deeds as well as hordes (prd-quests.md
+	# section 4: "extend with ... Bloom-containment deeds").
+	var is_bloom := horde_id.begins_with("bloom")
 	for pid in rewards:
 		ach.track(str(pid), "horde", 1)
+		if is_bloom:
+			ach.track(str(pid), "bloom", 1)
 	if mvp != "" and rewards.has(mvp):
 		ach.track(mvp, "horde_mvp", 1)
 
 ## ---------------------------------------------------------------------------
 ## Helpers
 ## ---------------------------------------------------------------------------
+
+func _achievement_service() -> Node:
+	var ml: MainLoop = Engine.get_main_loop()
+	if ml == null or not ml is SceneTree:
+		return null
+	var r: Window = (ml as SceneTree).root
+	if r == null:
+		return null
+	return r.get_node_or_null("AchievementService")
 
 ## Living horde mobs: tracked ids resolved through EntityService (a mob
 ## killed by guards/despawns still unregisters, so the count stays

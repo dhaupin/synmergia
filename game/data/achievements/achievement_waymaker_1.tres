@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "waymaker_1"
+display_name = "Waymaker"
+description = "Walk a road to its waking -- reach a waypoint"
+achievement_type = 1
+category = 3
+rarity = 1
+target = 1
+target_type = "wake"
+gold_reward = 50
+xp_reward = 60
+title_reward = "waymaker"
+icon_path = "res://icons/achievements/explorer.png"
+sort_order = 60
