@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="DialogueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "banker_village_intro"
+npc_id = "npc_banker_village"
+display_name = "Village Bank"
+nodes = [
+    {
+        "speaker": "Village Banker",
+        "text": "Coin or keepsakes? The vault holds both. Adventurers lose more to the sea than they ever lose to thieves, so I keep what you would rather not carry.",
+        "choices": [
+            {"text": "What is the difference?", "next_node": 1},
+            {"text": "Where does the coin go?", "next_node": 2},
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Village Banker",
+        "text": "Coin is weight. Keepsakes are memory. The vault does not care which is which -- it only cares that it can hand the same thing back, unchanged, whenever you ask. That is the promise, and it is the only one I make.",
+        "choices": [
+            {"text": "Open the vault.", "next_node": 3, "action_type": 7, "action_data": {}},
+            {"text": "Back.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Village Banker",
+        "text": "Into the Concord's ledger, same as the capital's vault -- the village keeps a branch of the same book. The rate does not change because the roof is smaller.",
+        "choices": [
+            {"text": "Open the vault.", "next_node": 3, "action_type": 7, "action_data": {}},
+            {"text": "Back.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Village Banker",
+        "text": "The vault keeps its word. In or out, name it.",
+        "choices": [
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    }
+]

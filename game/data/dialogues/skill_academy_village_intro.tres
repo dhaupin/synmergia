@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="DialogueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "skill_academy_village_intro"
+npc_id = "npc_skill_academy_village"
+display_name = "Warden Trainer"
+nodes = [
+    {
+        "speaker": "Warden Trainer",
+        "text": "Feet square, blade steady. What shall we drill? The academy's reach is long -- the basics are taught wherever a student stands, and you are standing in my yard.",
+        "choices": [
+            {"text": "You taught campaigns?", "next_node": 1},
+            {"text": "What can I learn here?", "next_node": 2},
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Warden Trainer",
+        "text": "A few. I came back with the stance and left the rest in the mud. What I teach is the part that keeps you upright when the plan is already gone -- square feet, steady blade, breathe before you swing.",
+        "choices": [
+            {"text": "Back.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Warden Trainer",
+        "text": "The same books the strand sells, at the same prices -- the reach is long, the ledger is one. Bring your skill points and your patience; I will not sell you a shortcut I never found.",
+        "choices": [
+            {"text": "Back.", "next_node": 0}
+        ]
+    }
+]

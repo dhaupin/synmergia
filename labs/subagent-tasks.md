@@ -32,7 +32,7 @@ material**. Reuse them, do not re-write from scratch:
 
 | draft | state | reuse for |
 |---|---|---|
-| `labs/story-dialogue-npcs.md` (268 lines) | voice profiles for the 9 then-authored NPCs, with lines tagged to real node ids and trigger conditions | **Task 5** -- extend to the 8 mute NPCs; the profiles for the already-voiced NPCs are done |
+| `labs/story-dialogue-npcs.md` (268 lines) | voice profiles for the 9 then-authored NPCs, with lines tagged to real node ids and trigger conditions | **Task 5** -- done (2026-11-28e): the 8 mute NPCs now speak; the profiles for the already-voiced NPCs are done |
 | `labs/story-voice-concord.md` (218 lines) | the Concord-as-reading-culture voice bible; the Bloom as maintenance failure | **Tasks 5, 6, 7** -- the tone authority alongside `story-dialogue-creative-voice.md` |
 | `labs/story-weather-events.md` (184 lines) | weather law + lore for the 4 then-authored events | **Task 7** -- add `weather_bloom_stir` (the 5th event) and refresh the count |
 
@@ -215,10 +215,38 @@ fail on growth of) the count of authored skills referenced by no class.
 
 # PART C -- CREATIVE CONTENT (the fun stuff)
 
-## Task 5 -- Institution dialogue: give the 8 mute NPCs a voice -- status: todo
+## Task 5 -- Institution dialogue: give the 8 mute NPCs a voice -- status: done (2026-11-28e)
 
-**The finding:** 8 NPCs have no dialogue include at all, so they are silent
-statues with a menu:
+**Fix (LANDED):** eight new trees authored, one per institution, and the
+`{"type": "dialogue", "dialogue_id": ...}` include wired into each NPC file.
+Every one of the world's 20 NPCs now speaks (was 12). The trees:
+
+| dialogue_id | npc | hook |
+|---|---|---|
+| `armory_capital_intro` | `npc_armory_capital` | OPEN_SHOP `armory` |
+| `banker_capital_intro` | `npc_banker_capital` | OPEN_VAULT |
+| `banker_village_intro` | `npc_banker_village` | OPEN_VAULT |
+| `black_market_fixer_intro` | `npc_black_market_fixer` | OPEN_SHOP `black_market_ledger` |
+| `herbalist_capital_intro` | `npc_herbalist_capital` | OPEN_SHOP `potions` |
+| `herbalist_village_intro` | `npc_herbalist_village` | GIVE_QUEST `quest_gloam_harvest` + OPEN_SHOP `potions` |
+| `skill_academy_capital_intro` | `npc_skill_academy_capital` | (voice only; academy opens from the menu) |
+| `skill_academy_village_intro` | `npc_skill_academy_village` | (voice only; academy opens from the menu) |
+
+Each tree is 3-4 nodes with a farewell branch, in the Concord register
+(attentive before theatrical, honest before helpful; the Bloom is tragic,
+never evil). `npc_herbalist_village` -- the worst case, two Bloom quests and
+no voice -- now introduces `quest_gloam_harvest` by name and sends the player
+to the treeline.
+
+**Deviation from the brief, recorded:** the brief asked for "at least one real
+quest hook (GIVE_QUEST)" per tree. Only `npc_herbalist_village` has a quest to
+give -- Task 3 already closed the orphan-quest gap, so no other institution
+owns a quest. Those trees hook their own institution action instead
+(OPEN_SHOP / OPEN_VAULT). Inventing quests to satisfy the letter of the brief
+would have re-opened the reachability problem Task 3 closed.
+
+**The finding (as written):** 8 NPCs had no dialogue include at all, so they
+were silent statues with a menu:
 
 ```
 npc_armory_capital        npc_banker_capital      npc_banker_village
@@ -250,6 +278,18 @@ include to each NPC file.
 (the `DialogActionType` enum -- GIVE_QUEST, OPEN_VAULT, OPEN_SHOP,
 TEACH_SKILL), and `labs/story-dialogue-npcs.md` if it exists (the old Task 1
 output -- reuse any usable voice profiles).
+
+**Gate (LANDED):** `test_data_naming_lint.gd` gained four assertions, so a
+silent statue can never come back:
+- every offering NPC carries a dialogue include (the mute-statue gate);
+- dialogue node links resolve within their tree;
+- every tree has a farewell (-1) branch;
+- GIVE_QUEST / OPEN_SHOP / TEACH_SKILL action hooks name a real
+  quest / offering / skill (the dead-hook class).
+
+Both negative controls were run by hand: deleting an NPC's dialogue include
+fails the mute gate by name, and a phantom `quest_id` fails the hook gate by
+name.
 
 ## Task 6 -- Lore-bearing props: signs, the monolith, the chronicle -- status: todo
 

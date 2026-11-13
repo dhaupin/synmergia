@@ -837,4 +837,102 @@ func _run() -> void:
 	else:
 		_fail("Class-owned skills referenced by no class: %s" % ", ".join(orphans))
 
+	# --- Every offering NPC has a voice (no silent statue with a menu) ---
+	# An NPC that offers something (vendor / service / bank / quest / dialogue
+	# ref) but carries no dialogue include is a statue: the action menu shows
+	# Talk with nothing behind it. Every offering NPC must author a dialogue_id.
+	var mute_offerers: Array = []
+	for base in npc_ids:
+		var ntxt3 := _file_text("data/npc", base)
+		if not ntxt3.contains("includes = ["):
+			continue
+		var has_offer := ntxt3.contains("\"type\": \"offering\"") \
+			or ntxt3.contains("\"type\": \"vendor\"") \
+			or ntxt3.contains("\"type\": \"service\"") \
+			or ntxt3.contains("\"type\": \"bank\"") \
+			or ntxt3.contains("\"type\": \"quest\"")
+		if has_offer and not ntxt3.contains("\"type\": \"dialogue\""):
+			mute_offerers.append(str(npc_ids[base]))
+	if mute_offerers.is_empty():
+		_ok("Every offering NPC has a dialogue include (no mute statues)")
+	else:
+		_fail("Offering NPCs with no dialogue include: %s" % ", ".join(mute_offerers))
+
+	# --- Dialogue integrity: node links resolve, a farewell branch exists,
+	# and every action hook names a real resource ---
+	# The action enum numbers are frozen in dialogue_data.gd: GIVE_QUEST=1,
+	# OPEN_SHOP=6, OPEN_VAULT=7, TEACH_SKILL=14. A hook that names a phantom
+	# quest/shop/skill reports success and grants nothing -- the dead-hook bug
+	# class the blacksmith's quest include shipped with.
+	var offering_keys := {}
+	var offdir := DirAccess.open("res://data/npc_offerings")
+	if offdir != null:
+		offdir.list_dir_begin()
+		var ofk := offdir.get_next()
+		while ofk != "":
+			if ofk.ends_with(".tres"):
+				offering_keys[ofk.trim_suffix(".tres")] = true
+			ofk = offdir.get_next()
+	var bad_dialogue_links: Array = []
+	var no_farewell: Array = []
+	var bad_dialogue_actions: Array = []
+	var dlg_node_re := RegEx.new()
+	dlg_node_re.compile("next_node\\\"?\\s*[:=]\\s*(-?\\d+)")
+	var dlg_act_re := RegEx.new()
+	dlg_act_re.compile("action_type\\\"?\\s*[:=]\\s*(\\d+)")
+	var dlg_quest_re := RegEx.new()
+	dlg_quest_re.compile("quest_id\\\"?\\s*[:=]\\s*\\\"([^\\\"]+)\\\"")
+	var dlg_shop_re := RegEx.new()
+	dlg_shop_re.compile("shop_id\\\"?\\s*[:=]\\s*\\\"([^\\\"]+)\\\"")
+	var dlg_skill_re := RegEx.new()
+	dlg_skill_re.compile("skill_id\\\"?\\s*[:=]\\s*\\\"([^\\\"]+)\\\"")
+	for base in dialogue_ids:
+		var dtxt2 := _file_text("data/dialogues", base)
+		var did := str(dialogue_ids[base])
+		# Count top-level nodes by their "speaker" keys (one per node dict).
+		var node_count := dtxt2.count("\"speaker\":")
+		var links: Array = []
+		for m in dlg_node_re.search_all(dtxt2):
+			links.append(int(m.get_string(1)))
+		var has_terminal := false
+		for nxt in links:
+			if nxt == -1:
+				has_terminal = true
+			elif nxt < 0 or nxt >= node_count:
+				bad_dialogue_links.append("%s -> node %d (of %d)" % [did, nxt, node_count])
+		if not has_terminal:
+			no_farewell.append(did)
+		# Action hooks: pair each action_type with the ids on the same line.
+		for line in dtxt2.split("\n"):
+			if not line.contains("action_type"):
+				continue
+			var am := dlg_act_re.search(line)
+			if am == null:
+				continue
+			var atype := int(am.get_string(1))
+			if atype == 1:
+				var qm := dlg_quest_re.search(line)
+				if qm == null or not quest_ids.values().has(qm.get_string(1)):
+					bad_dialogue_actions.append("%s GIVE_QUEST -> %s" % [did, qm.get_string(1) if qm != null else "(no quest_id)"])
+			elif atype == 6:
+				var sm := dlg_shop_re.search(line)
+				if sm == null or not offering_keys.has(sm.get_string(1)):
+					bad_dialogue_actions.append("%s OPEN_SHOP -> %s" % [did, sm.get_string(1) if sm != null else "(no shop_id)"])
+			elif atype == 14:
+				var km := dlg_skill_re.search(line)
+				if km == null or not skill_id_set.has(km.get_string(1)):
+					bad_dialogue_actions.append("%s TEACH_SKILL -> %s" % [did, km.get_string(1) if km != null else "(no skill_id)"])
+	if bad_dialogue_links.is_empty():
+		_ok("Dialogue node links all resolve within their tree")
+	else:
+		_fail("Dangling dialogue node links: %s" % ", ".join(bad_dialogue_links))
+	if no_farewell.is_empty():
+		_ok("Every dialogue tree has a farewell (-1) branch")
+	else:
+		_fail("Dialogue trees with no farewell branch: %s" % ", ".join(no_farewell))
+	if bad_dialogue_actions.is_empty():
+		_ok("Dialogue action hooks (quest/shop/skill) all resolve")
+	else:
+		_fail("Unresolvable dialogue action hooks: %s" % ", ".join(bad_dialogue_actions))
+
 	_finish()
