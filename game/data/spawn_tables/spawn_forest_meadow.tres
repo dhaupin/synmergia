@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="SpawnTableData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/spawn_table_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "spawn_forest_meadow"
+display_name = "The Gloomwood treeline"
+zone_id = "zone_forest_meadow"
+activate_radius_m = 0.0
+deactivate_radius_m = 0.0
+entries = [{
+"template_id": "thistle_boar",
+"bearing_deg": 120.0,
+"reach_rad": 0.350,
+"count": 3,
+"level": 0,
+"radius_m": 10.0
+}, {
+"template_id": "thistle_boar",
+"bearing_deg": 170.0,
+"reach_rad": 0.360,
+"count": 3,
+"level": 0,
+"radius_m": 10.0
+}, {
+"template_id": "gloam_whisp_moth",
+"bearing_deg": 140.0,
+"reach_rad": 0.400,
+"count": 4,
+"level": 0,
+"radius_m": 12.0
+}, {
+"template_id": "gloam_whisp_moth",
+"bearing_deg": 190.0,
+"reach_rad": 0.410,
+"count": 4,
+"level": 0,
+"radius_m": 12.0
+}]

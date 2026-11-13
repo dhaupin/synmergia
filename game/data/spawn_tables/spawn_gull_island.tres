@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="SpawnTableData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/spawn_table_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "spawn_gull_island"
+display_name = "Gull Island plateau"
+zone_id = "zone_gull_island"
+activate_radius_m = 0.0
+deactivate_radius_m = 0.0
+entries = [{
+"template_id": "coast_pecker",
+"bearing_deg": 40.0,
+"reach_rad": 0.012,
+"count": 3,
+"level": 0,
+"radius_m": 9.0
+}, {
+"template_id": "coast_pecker",
+"bearing_deg": 300.0,
+"reach_rad": 0.014,
+"count": 3,
+"level": 0,
+"radius_m": 9.0
+}, {
+"template_id": "gull_nestmaw",
+"bearing_deg": 170.0,
+"reach_rad": 0.016,
+"count": 1,
+"level": 0,
+"radius_m": 6.0
+}]

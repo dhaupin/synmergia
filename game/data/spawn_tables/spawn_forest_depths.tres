@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="SpawnTableData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/spawn_table_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "spawn_forest_depths"
+display_name = "Gloomwood Depths shelf"
+zone_id = "zone_dungeon_forest_depths"
+activate_radius_m = 0.0
+deactivate_radius_m = 0.0
+entries = [{
+"template_id": "gloam_polyp",
+"bearing_deg": 130.0,
+"reach_rad": 0.420,
+"count": 3,
+"level": 0,
+"radius_m": 10.0
+}, {
+"template_id": "depths_thornhide",
+"bearing_deg": 175.0,
+"reach_rad": 0.430,
+"count": 2,
+"level": 0,
+"radius_m": 9.0
+}, {
+"template_id": "gloamwood_stalker",
+"bearing_deg": 155.0,
+"reach_rad": 0.445,
+"count": 2,
+"level": 0,
+"radius_m": 10.0
+}, {
+"template_id": "ledgewarden_construct",
+"bearing_deg": 200.0,
+"reach_rad": 0.450,
+"count": 1,
+"level": 0,
+"radius_m": 6.0
+}]

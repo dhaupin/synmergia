@@ -297,6 +297,13 @@ const SUN_PANS_ANG: float = 0.028   # ~560 m island radius at the planet scale
 static func sun_pans_dir() -> Vector3:
 	return preload("res://core/frame/math/icosahedral_faces.gd").face_center(12).normalized()
 
+## THE STRAIT CENTRE DIRECTION: the Sundered channel's site anchor. The
+## content-side anchor for the strait (the barque run, the sea tables).
+## Reads the same constant the terrain backend shapes the channel with,
+## so content and terrain can never disagree about where the strait is.
+static func strait_center_dir() -> Vector3:
+	return preload("res://scenes/worlds/backend_sundered.gd").STRAIT_CENTER.normalized()
+
 ## The pans' climate factor (0..1): 1 on the pan core, smoothstep
 ## falloff to the beach rim.
 static func sun_pans_factor(d: Vector3) -> float:

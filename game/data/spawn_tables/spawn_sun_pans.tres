@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="SpawnTableData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/spawn_table_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "spawn_sun_pans"
+display_name = "The Sun Pans atoll"
+zone_id = "zone_sun_pans"
+activate_radius_m = 0.0
+deactivate_radius_m = 0.0
+entries = [{
+"template_id": "salt_wretch",
+"bearing_deg": 20.0,
+"reach_rad": 0.006,
+"count": 3,
+"level": 0,
+"radius_m": 8.0
+}, {
+"template_id": "salt_wretch",
+"bearing_deg": 200.0,
+"reach_rad": 0.008,
+"count": 3,
+"level": 0,
+"radius_m": 8.0
+}, {
+"template_id": "mirage_hound",
+"bearing_deg": 110.0,
+"reach_rad": 0.010,
+"count": 2,
+"level": 0,
+"radius_m": 10.0
+}, {
+"template_id": "mirage_hound",
+"bearing_deg": 290.0,
+"reach_rad": 0.011,
+"count": 2,
+"level": 0,
+"radius_m": 10.0
+}]
