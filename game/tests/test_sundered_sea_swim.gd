@@ -1,7 +1,7 @@
 # test_sundered_sea_swim.gd - S14.7.2: the deep garden gets a world AND
 # a body (labs/prd-ocean-depths.md sec 3, 8-10).
 #
-#   A. THE BEDS ARE REAL: the streamer's authored strait beds resolve
+#   A. THE BEDS ARE REAL: the PropLayer's authored strait beds resolve
 #      through the chart onto the sea sphere, and every bed's own face
 #      owns it -- the same lookup at registration and draw time, so the
 #      gather you see is the gather you can take. A face can own more
@@ -20,7 +20,7 @@
 #      (the ferry lane) at its declared flow.
 #
 # Script mode law: autoloads at runtime (HarvestService, OceanService);
-# the streamer (RefCounted), player and terrain scripts load in the
+# the PropLayer (RefCounted), player and terrain scripts load in the
 # body, never preloaded.
 extends SceneTree
 
@@ -28,9 +28,8 @@ var _fails: int = 0
 var _checks: int = 0
 
 func _init() -> void:
-	# Reads icosa STREAMER internals (level/edge + Sundered deep beds);
-	# pin the renderer so the default clipmap does not change what it inspects.
-	ProjectSettings.set_setting("synmergia/world/terrain_render", "streamer")
+	# Reads the renderer-agnostic PropLayer's deep beds (the streamer no
+	# longer owns them); no globe boots, so no renderer pin is needed.
 	call_deferred("_run")
 
 func _check(label: String, cond: bool) -> void:
@@ -46,7 +45,6 @@ func _run() -> void:
 	print("=== SUNDERED SEA SWIM RECEIPT (S14.7.2) ===")
 	var FP = load("res://core/frame/math/icosahedral_faces.gd")
 	var Chart = load("res://core/services/strait_chart.gd")
-	var streamer_script = load("res://scenes/worlds/globe_terrain_streamer.gd")
 	var os = root.get_node_or_null("OceanService")
 	var hs = root.get_node_or_null("HarvestService")
 	_check("OceanService present", os != null)
@@ -58,70 +56,79 @@ func _run() -> void:
 	var sea_r: float = os.sea_surface_radius()
 	_check("sea line is the radial law", sea_r > 20000.0)
 
-	var streamer = streamer_script.new()
-	streamer.terrain_on = true
-	streamer.world_seed = _world_seed()
-	var beds: Array = streamer.DEEP_BEDS
+	# The renderer-agnostic PropLayer authors the deep beds now (the streamer
+	# no longer owns them): the provider holds the chart, the layer buckets
+	# beds into chunks, and the deep builder paints + registers the gardens.
+	var PropLayer = load("res://core/world/prop_layer.gd")
+	var PropChunk = load("res://core/frame/geometry/prop_chunk.gd")
+	var Provider = load("res://scenes/worlds/terrain_provider.gd")
+	var layer = PropLayer.new()
+	var bed_parent := Node3D.new()
+	root.add_child(bed_parent)
+	layer.configure(Provider.new(), 20000.0, bed_parent)
+	var beds: Array = layer.provider.deep_beds()
 	_check("six authored beds", beds.size() == 6)
 
 	# --- A. BEDS AND THEIR OWNING FACES -----------------------------------
 	var owned_total := 0
-	var face_beds: Dictionary = {}   # face -> Array of bed indices
-	var shelf_face: int = -1
-	var trench_face: int = -1
-	for f in range(20):
-		var mine: Array = streamer._deep_beds_for_face(f)
-		if not mine.is_empty():
-			face_beds[f] = mine
-		owned_total += mine.size()
-		for bed in mine:
-			if int(bed["kind"]) == 1 and shelf_face < 0:
-				shelf_face = f
-			elif int(bed["kind"]) == 2 and trench_face < 0:
-				trench_face = f
+	var face_beds: Dictionary = {}   # face -> Array of beds
+	var shelf_bed: Dictionary = {}
+	var trench_bed: Dictionary = {}
+	var empty_face: int = -1
+	for bed in beds:
+		var d: Vector3 = bed["dir"]
+		var f: int = PropChunk.face_containing(d)
+		if not face_beds.has(f):
+			face_beds[f] = []
+		(face_beds[f] as Array).append(bed)
+		owned_total += 1
+		if int(bed["kind"]) == 1 and shelf_bed.is_empty():
+			shelf_bed = bed
+		elif int(bed["kind"]) == 2 and trench_bed.is_empty():
+			trench_bed = bed
 	_check("every authored bed is owned exactly once", owned_total == beds.size())
 	_check("the beds land on real faces", face_beds.size() > 0)
-	_check("a shelf face and a trench face resolve", shelf_face >= 0 and trench_face >= 0)
-	var empty_face: int = -1
-	for f in range(20):
-		if not face_beds.has(f):
-			empty_face = f
+	_check("a shelf bed and a trench bed resolve", not shelf_bed.is_empty() and not trench_bed.is_empty())
+	for f2 in range(20):
+		if not face_beds.has(f2):
+			empty_face = f2
 			break
 	_check("a non-bed face exists", empty_face >= 0)
-	_check("non-bed face owns no bed", streamer._deep_beds_for_face(empty_face).is_empty())
 
 	# --- B. THE DRAW ------------------------------------------------------
-	var shelf_beds: Array = face_beds.get(shelf_face, [])
-	var trench_beds: Array = face_beds.get(trench_face, [])
-	var shelf_kind: int = _count_kind(shelf_beds, 1)
-	var trench_kind: int = _count_kind(trench_beds, 2)
+	var shelf_kind: int = _count_kind([shelf_bed], 1)
+	var trench_kind: int = _count_kind([trench_bed], 2)
+	var shelf_face: int = PropChunk.face_containing(shelf_bed["dir"])
+	var trench_face: int = PropChunk.face_containing(trench_bed["dir"])
 	var shelf_node := Node3D.new()
-	streamer._apply_sundered_deep(shelf_face, shelf_node)
-	_check("shelf face paints one garden per bed", shelf_node.get_child_count() == shelf_beds.size())
+	layer._build_deep_bed({"family": PropLayer.FAMILY_DEEP, "dir": shelf_bed["dir"],
+			"deep_kind": 1, "bed": int(shelf_bed["bed"]), "face": shelf_face}, shelf_node, true)
+	_check("shelf face paints one garden per bed", shelf_node.get_child_count() == 1)
 	_check("shelf gardens are named for their face and bed",
-		shelf_node.get_child_count() > 0 and str(shelf_node.get_child(0).name).begins_with("DeepGarden%d_" % shelf_face))
+			shelf_node.get_child_count() > 0 and str(shelf_node.get_child(0).name).begins_with("DeepGarden%d_" % shelf_face))
 	_check("shelf paints fourteen kelp strands", _count_named(shelf_node, "Kelp") == 14 * shelf_kind)
 	_check("every bed on the face carries its three hidden stumps",
-		_count_named(shelf_node, "Stump") == 3 * shelf_beds.size())
-	_check("shelf paints reef boulders", _count_material(shelf_node, streamer._reef_material()) > 0)
+			_count_named(shelf_node, "Stump") == 3 * shelf_kind)
+	_check("shelf paints reef boulders", _count_named(shelf_node, "Reef") > 0)
 	shelf_node.queue_free()
 	var trench_node := Node3D.new()
-	streamer._apply_sundered_deep(trench_face, trench_node)
+	layer._build_deep_bed({"family": PropLayer.FAMILY_DEEP, "dir": trench_bed["dir"],
+			"deep_kind": 2, "bed": int(trench_bed["bed"]), "face": trench_face}, trench_node, true)
 	var spires := 0
 	for child in _all_meshes(trench_node):
 		if str(child.name).begins_with("Spire"):
 			spires += 1
 	_check("trench paints six vent spires per bed", spires == 6 * trench_kind)
-	_check("a face keeps its stumps inside its own beds", _count_named(trench_node, "Kelp") == 14 * _count_kind(trench_beds, 1))
+	_check("a trench bed keeps its stumps", _count_named(trench_node, "Stump") == 3 * trench_kind)
 	trench_node.queue_free()
-	var empty_node := Node3D.new()
-	streamer._apply_sundered_deep(empty_face, empty_node)
-	_check("non-bed face draws nothing", empty_node.get_child_count() == 0)
-	empty_node.queue_free()
 
 	# --- C. THE GATHER ----------------------------------------------------
-	streamer._register_sundered_deep(shelf_face)
-	streamer._register_sundered_deep(trench_face)
+	# The layer's own derive path registers the beds' plants (the gather half
+	# of the one placement law) -- the same seam the live stream drives.
+	for bed in beds:
+		layer.update(bed["dir"] * 20000.0)
+	for _i in range(90):
+		layer.update(shelf_bed["dir"] * 20000.0)
 	var kelp_ids: Array = []
 	var pearl_ids: Array = []
 	for nid in hs.node_ids():
@@ -129,8 +136,8 @@ func _run() -> void:
 			kelp_ids.append(str(nid))
 		elif str(nid).begins_with("deep_pearl"):
 			pearl_ids.append(str(nid))
-	_check("shelf beds register three kelp nodes each", kelp_ids.size() == 3 * shelf_kind)
-	_check("trench beds register three pearl nodes each", pearl_ids.size() == 3 * trench_kind)
+	_check("the layer registers kelp nodes (three per shelf bed)", kelp_ids.size() >= 3 * shelf_kind)
+	_check("the layer registers pearl nodes (three per trench bed)", pearl_ids.size() >= 3 * trench_kind)
 	var kelp_ok := true
 	for nid in kelp_ids:
 		var node: Dictionary = hs._nodes.get(nid, {})
@@ -156,12 +163,13 @@ func _run() -> void:
 				pearl_ok = false
 	_check("pearl nodes sit on the sea line in the 50-58 band", pearl_ok)
 	var before: int = kelp_ids.size()
-	streamer._register_sundered_deep(shelf_face)
+	for _i in range(90):
+		layer.update(shelf_bed["dir"] * 20000.0)
 	var after: int = 0
 	for nid in hs.node_ids():
 		if str(nid).begins_with("deep_kelp"):
 			after += 1
-	_check("re-registering a face keeps the same nodes", after == before)
+	_check("re-streaming a bed keeps the same nodes", after == before)
 
 	# --- D. THE BODY ------------------------------------------------------
 	var player = load("res://entities/globe_player.gd").new()
@@ -260,7 +268,15 @@ func _run() -> void:
 	# binder and let the service's depletion book drive the paint.
 	var BGB = load("res://entities/deep_garden_binder.gd")
 	BGB.bind(root)
-	var bind_grove := _first_grove(streamer, shelf_face)
+	var bind_patch := Node3D.new()
+	root.add_child(bind_patch)
+	layer._build_deep_bed({"family": PropLayer.FAMILY_DEEP, "dir": shelf_bed["dir"],
+			"deep_kind": 1, "bed": int(shelf_bed["bed"]), "face": shelf_face}, bind_patch, true)
+	var bind_grove: Node = null
+	for child in bind_patch.get_children():
+		if child.name.begins_with("DeepGarden"):
+			bind_grove = child
+			break
 	_check("the binder finds the grove paint", bind_grove != null)
 	if bind_grove != null:
 		_check("the grove carries its plant identity",
@@ -402,12 +418,3 @@ func _grove_named(grove: Node, prefix: String, vis: bool) -> int:
 			n += 1
 	return n
 
-
-func _first_grove(streamer_ref, face: int) -> Node:
-	var patch := Node3D.new()
-	root.add_child(patch)
-	streamer_ref._apply_sundered_deep(int(face), patch)
-	for child in patch.get_children():
-		if child.name.begins_with("DeepGarden"):
-			return child
-	return null

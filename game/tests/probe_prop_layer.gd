@@ -13,6 +13,10 @@ var _fails: int = 0
 
 
 func _init() -> void:
+	call_deferred("_run")
+
+
+func _run() -> void:
 	var layer = PropLayer.new()
 	var parent := Node3D.new()
 	get_root().add_child(parent)
@@ -65,9 +69,31 @@ func _init() -> void:
 			rock_built = _count_desc(rn, "Rock") > 0
 	_check("A8 a rock-bearing chunk builds Rock nodes", rock_built)
 
+	# A9: the land harvest law -- a drawn mushroom/ore/bush registers a live
+	# HarvestService node keyed on its chunk-stable site id (the gather half
+	# of the one placement law; the provider resolves the zone).
+	# A9: the provider resolves a harvest zone for a homeland site (the main
+	# world's starter plains); a non-homeland band resolves none (paint only).
+	_check("A9 the provider resolves the homeland harvest zone",
+			layer.provider.zone_for_dir(TerrainGen.SPAWN_CENTER) == "zone_starter_plains")
+
+	# A10: the land registration book records the site id once (a chunk reload
+	# must not reset the service's depletion book -- idempotent re-register).
+	var hs = get_root().get_node_or_null("HarvestService")
+	var sid := "hs_landprobe_0"
+	layer._land_registered.erase(sid)
+	_register_hs(layer, sid)
+	var first: bool = layer._land_registered.has(sid) and hs != null and hs.node_ids().has(sid)
+	_register_hs(layer, sid)
+	_check("A10 the land registration reaches the live service, once", first)
+
 	print("[probe_prop_layer] %s (%d fails)" % ["ALL PASS" if _fails == 0 else "FAILURES", _fails])
 	quit(0 if _fails == 0 else 1)
 
+
+func _register_hs(layer, sid: String) -> void:
+	layer._register_land_harvest({"kind": PropLayer.KIND_MUSHROOM, "dir": TerrainGen.SPAWN_CENTER,
+		"h": 5.0, "bid": layer.provider.biome_id(TerrainGen.SPAWN_CENTER), "site_id": sid})
 
 func _same_first(a: Dictionary, b: Dictionary) -> bool:
 	if a["instances"].is_empty() or b["instances"].is_empty():

@@ -88,3 +88,10 @@ func detail_density(_biome_id: int) -> float:
 ## provider read so the prop layer -- not the renderer -- owns the garden).
 func deep_beds() -> Array:
 	return []
+
+
+## The zone id a prop site's direction belongs to (the harvest registration's
+## zone law). Default = "" so a world that does not resolve zones registers no
+## land harvestables (its flora is paint only).
+func zone_for_dir(_dir: Vector3) -> String:
+	return ""

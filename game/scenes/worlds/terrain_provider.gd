@@ -119,6 +119,21 @@ func seed_bytes() -> PackedByteArray:
 	return _seed
 
 
+## The land-harvest zone for a prop site: the main world's homeland biome
+## cluster is the starter plains (the streamer's hardcoded zone), everything
+## else is paint only (the sea/atoll/deep-root keep their own gather laws).
+func zone_for_dir(dir: Vector3) -> String:
+	var bid: int = TerrainGen.climate_biome_id(dir, _seed)
+	match bid:
+		TerrainGen.BiomeId.GRASSLAND, TerrainGen.BiomeId.SAVANNA, \
+		TerrainGen.BiomeId.STEPPE, TerrainGen.BiomeId.FOREST, \
+		TerrainGen.BiomeId.JUNGLE, TerrainGen.BiomeId.TAIGA, \
+		TerrainGen.BiomeId.SWAMP, TerrainGen.BiomeId.RIVER, \
+		TerrainGen.BiomeId.ALPINE_MEADOW:
+			return "zone_starter_plains"
+	return ""
+
+
 ## The Sundered Sea's authored beds (the streamer's DEEP_BEDS): chart
 ## coordinates -> a world direction, owned by the world's own face. Kept
 ## here so the prop layer grows the gardens; the renderer no longer owns

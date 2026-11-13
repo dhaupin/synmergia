@@ -56,6 +56,7 @@ func _init() -> void:
 	_check("C3 shelf paints fourteen kelp strands", _count(grove, "Kelp") == 14)
 	_check("C4 shelf paints reef boulders", _count(grove, "Reef") == 4)
 	_check("C5 every strand carries its plant meta", _all_have_plant_meta(grove, "Kelp"))
+	_check("C5b every plant is painted (no starved harvest node)", _all_plants_painted(grove))
 	_check("C6 the garden hides three stumps", _count(grove, "Stump") == 3 and _all_stumps_hidden(grove))
 
 	# D: the deep builder paints the trench garden.
@@ -117,6 +118,21 @@ func _all_have_plant_meta(grove, prefix: String) -> bool:
 			if not c.has_meta("plant_k"):
 				return false
 	return any
+
+
+func _all_plants_painted(grove) -> bool:
+	if grove == null:
+		return false
+	var seen: Array = [false, false, false]
+	for c in grove.get_children():
+		if not (c as MeshInstance3D) or not c.has_meta("plant_k"):
+			continue
+		if str(c.name).begins_with("Stump"):
+			continue
+		var k: int = int(c.get_meta("plant_k"))
+		if k >= 0 and k < seen.size():
+			seen[k] = true
+	return seen[0] and seen[1] and seen[2]
 
 
 func _all_stumps_hidden(grove) -> bool:

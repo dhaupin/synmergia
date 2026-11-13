@@ -36,12 +36,14 @@ func _init() -> void:
 	var sea_d: Dictionary = _gen().splat_skin((-spawn).normalized(), seed_b, -40.0, 0.0)
 	_ok = _check("splat_skin: the ocean bed reads sand", sea_d["splat"].a > 0.99)
 	_ok = _check("splat_skin: under-shell faces dim (the wet law leg)", sea_d["aux"].y < 0.6)
-	# THE STREAMER consults (text pins).
-	var src := FileAccess.open("res://scenes/worlds/globe_terrain_streamer.gd", FileAccess.READ).get_as_text()
-	_ok = _check("streamer: the skin lane reads TerrainGen.SPLAT_SKIN", src.contains("TerrainGen.SPLAT_SKIN"))
-	_ok = _check("streamer: UV2 carries the aux channel", src.contains("st.set_uv2(aux)"))
-	_ok = _check("streamer: the patch mounts the splat shader material", src.contains("_skin_mat.shader = _skin_shader"))
-	_ok = _check("streamer: the legacy lane stays byte-identical", src.contains("TerrainGen.vertex_color(d_abs, world_seed, h_here, slope_seed)"))
+	# THE CLIPMAP consults (text pins) -- the skin lane is the renderer's, the
+	# splat derivation the provider's (the streamer's twin, retired).
+	var src := FileAccess.open("res://scenes/worlds/globe_clipmap.gd", FileAccess.READ).get_as_text()
+	_ok = _check("clipmap: the skin lane reads the provider surface sample", src.contains("provider.surface_sample(dir)"))
+	_ok = _check("clipmap: UV2 carries the aux channel", src.contains('st.set_uv2(v["aux"])'))
+	_ok = _check("clipmap: the ring/cap mounts the splat shader material", src.contains("_skin_mat.shader = _skin_shader"))
+	var prov_src := FileAccess.open("res://scenes/worlds/terrain_provider.gd", FileAccess.READ).get_as_text()
+	_ok = _check("provider: the skin lane derives through TerrainGen.splat_skin_from", prov_src.contains("TerrainGen.splat_skin_from"))
 	# THE FIVE SKINS exist and the shader samples all five.
 	var tex_dir := "res://assets/textures/terrain/"
 	for t in ["grass", "dirt", "rock", "sand", "snow"]:

@@ -512,10 +512,20 @@ without flora.
   if instances ever become open terrain. Dungeons share the sealed-room
   shape (no dedicated room scene today); when one lands, it calls the same
   kit.
-- **Step 4 (retarget probes) + Step 5 (delete streamer) -- OPEN.** The
-  streamer still owns nothing the clipmap lacks now (the deep beds were the
-  last gap), so the deletion is unblocked once the 14 streamer-internal
-  probes are retargeted.
+- **Step 4 (retarget probes) -- IN PROGRESS.** The streamer owns nothing the
+  clipmap lacks now (the deep beds + the land harvest registration were the
+  last two gaps): `PropLayer` registers the drawn mushrooms / ore / bushes as
+  live `HarvestService` nodes (chunk-stable `hs_<key>_<n>` ids, zone resolved
+  by `GroundProvider.zone_for_dir`; receipt `probe_prop_layer` A9/A10), and
+  every registered deep plant is guaranteed at least one painted strand (the
+  per-plant coverage law; receipt `probe_deep_garden` C5b). The swim +
+  splat-skin receipts already read the clipmap; the remaining streamer-internal
+  reads live in `probe_terrain_planet`, `probe_prop_density`,
+  `probe_biodiversity_v7`, `probe_stream_flow_100m`, `probe_walk_mesh_gap`,
+  `diag_detail_kinds` (they pin `terrain_render = "streamer"` and read
+  `_patch_lvl` / `_patches` / `_level_for_edge` etc.). Retarget those, then
+  delete the streamer.
+- **Step 5 (delete streamer) -- OPEN** (unblocked once Step 4 is done).
 
 ## 12. The scale law (what an online MMO needs)
 

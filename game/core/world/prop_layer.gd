@@ -107,6 +107,10 @@ var _deep_faces_done: Dictionary = {}
 # service's depletion book -- register once per bed, ever).
 var _deep_registered: Dictionary = {}
 
+# Land harvestables (mushrooms / ore / bushes) already registered this
+# session, keyed by node id -- a chunk reload must not re-register.
+var _land_registered: Dictionary = {}
+
 
 func configure(p_provider, p_radius: float, p_parent: Node3D, p_depth: int = PropChunk.DEFAULT_DEPTH) -> void:
 	provider = p_provider
@@ -297,7 +301,12 @@ func _derive_details(key: int, count: int, out: Dictionary) -> void:
 					"scale": rng.randf_range(0.7, 1.6), "yaw": rng.randf_range(0.0, TAU)})
 			placed += 1
 			continue
-		var rec: Dictionary = {"family": FAMILY_DETAIL, "kind": kind, "dir": dir, "h": h, "bid": bid}
+		# The stable per-site id (chunk-keyed): the paint and the harvest
+		# registration derive it from the SAME cell, so the drawn prop is the
+		# gatherable node (the one placement law, both halves).
+		var site_id: String = "hs_%d_%d" % [key, placed]
+		var rec: Dictionary = {"family": FAMILY_DETAIL, "kind": kind, "dir": dir, "h": h,
+				"bid": bid, "site_id": site_id}
 		match kind:
 			KIND_FLOWER:
 				rec["stem_h"] = rng.randf_range(0.20, 0.38)
@@ -481,6 +490,7 @@ func _build_instance(inst: Dictionary, node: Node3D, near: bool) -> void:
 
 ## Detail prop build: tufts go to the batch (below); the rest are small nodes.
 func _build_detail(inst: Dictionary, node: Node3D) -> void:
+	_register_land_harvest(inst)
 	match int(inst.get("kind", -1)):
 		KIND_FLOWER:
 			_build_flower(inst, node)
@@ -935,6 +945,11 @@ func _build_deep_bed(inst: Dictionary, node: Node3D, near: bool) -> void:
 	grove.set_meta("harvest_ids", plant_ids)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = (acc + 31337 + bed_idx * 101) % 9007199254740991
+	# THE PER-PLANT COVERAGE LAW: every registered plant must paint at least one
+	# strand, else a live harvest node would show nothing to gather. Strands are
+	# labelled plant_k in order, each first claimed by the nearest still-unpainted
+	# plant; once all three are covered the rest fall back to plain nearest.
+	var covered: Array = [false, false, false]
 	if kind == 1:
 		# THE KELP SHELF: strands tall enough to read from the surface.
 		for k in range(14):
@@ -948,7 +963,7 @@ func _build_deep_bed(inst: Dictionary, node: Node3D, near: bool) -> void:
 			stalk.material_override = _kelp_material()
 			stalk.position = d_k * (sea_r - DEEP_KELP_M + h * 0.5)
 			stalk.basis = Basis(east, d_k, north).rotated(d_k, rng.randf_range(0.0, TAU))
-			stalk.set_meta("plant_k", _nearest_plant(plant_dirs, d_k))
+			stalk.set_meta("plant_k", _claim_plant(plant_dirs, d_k, covered))
 			grove.add_child(stalk)
 		for k in range(4):
 			var bd: Vector3 = (dir + east * rng.randf_range(-0.004, 0.004)
@@ -970,7 +985,7 @@ func _build_deep_bed(inst: Dictionary, node: Node3D, near: bool) -> void:
 			spire.mesh = _shared_cyl(0.35, 1.1, sh)
 			spire.material_override = _reef_material()
 			spire.position = sd * (root_r + sh * 0.5)
-			spire.set_meta("plant_k", _nearest_plant(plant_dirs, sd))
+			spire.set_meta("plant_k", _claim_plant(plant_dirs, sd, covered))
 			grove.add_child(spire)
 		for k in range(2):
 			var pd: Vector3 = (dir + east * rng.randf_range(-0.002, 0.002)
@@ -1018,6 +1033,50 @@ func _register_deep_bed(zone_id: String, kind: int, plant_ids: Array,
 			d_k * (sea_r - depth_k), 1, respawn, band.x, band.y)
 
 
+## Register a land detail's harvestable node (the gather half of the one
+## placement law, for the drawn mushrooms / ore / bushes). The zone comes
+## from the provider (the main world's homeland -> the starter plains);
+## a world with no zone law registers nothing (its flora is paint only).
+## Main thread only (service registration is a side effect).
+func _register_land_harvest(inst: Dictionary) -> void:
+	var kind: int = int(inst.get("kind", -1))
+	var item_id: String = ""
+	var respawn: float = 60.0
+	match kind:
+		KIND_MUSHROOM:
+			item_id = "res_mooncap"
+			respawn = 240.0
+		KIND_ORE:
+			item_id = "res_iron_ore"
+			respawn = 90.0
+		KIND_BUSH:
+			item_id = _bush_item(int(inst.get("bid", -1)))
+			respawn = 45.0
+		_:
+			return
+	var dir: Vector3 = inst["dir"]
+	var zone_id: String = provider.zone_for_dir(dir) if provider.has_method("zone_for_dir") else ""
+	if zone_id.is_empty():
+		return
+	var svc = _harvest_service()
+	if svc == null or not svc.has_method("register_node"):
+		return
+	var site_id: String = str(inst.get("site_id", ""))
+	if site_id.is_empty() or _land_registered.has(site_id):
+		return
+	_land_registered[site_id] = true
+	svc.register_node(site_id, zone_id, item_id,
+		dir * (radius_m + float(inst.get("h", 0.0))), 1, respawn)
+
+
+## The bush's yield: the alpine meadow's herb, else iron ore (the streamer's
+## own bush law -- the biome the site stands in decides).
+func _bush_item(bid: int) -> String:
+	if bid == TerrainGen.BiomeId.ALPINE_MEADOW:
+		return "res_moonpetal"
+	return "res_iron_ore"
+
+
 ## The plant a strand stands on (nearest of the bed's three), so per-plant
 ## depletion shears the paint honestly.
 func _nearest_plant(plant_dirs: Array, d: Vector3) -> int:
@@ -1028,10 +1087,32 @@ func _nearest_plant(plant_dirs: Array, d: Vector3) -> int:
 	return owner
 
 
+## Assign a strand to the nearest plant, but guarantee every plant is painted
+## at least once: an unpainted plant outranks a painted one so no registered
+## harvest node is left with nothing to gather. `covered` is mutated in place.
+func _claim_plant(plant_dirs: Array, d: Vector3, covered: Array) -> int:
+	var owner: int = -1
+	var best: float = INF
+	for pk in range(plant_dirs.size()):
+		if bool(covered[pk]):
+			continue
+		var a: float = (plant_dirs[pk] as Vector3).angle_to(d)
+		if a < best:
+			best = a
+			owner = pk
+	if owner < 0:
+		return _nearest_plant(plant_dirs, d)
+	covered[owner] = true
+	return owner
+
+
 ## The stable per-face accumulator the bed seeds read (world-seed only, no
-## day salt -- anchored culture must survive a re-stream).
+## day salt -- anchored culture must survive a re-stream). Reads the SAME
+## face seed bytes the streamer's authored beds derived from, so the garden
+## paint (strand placement + its plant_k shearing) is byte-identical to the
+## pre-port look.
 func _face_acc(face: int) -> int:
-	var bytes: PackedByteArray = SeedChain.derive_seed([world_seed], "props/deepface/%d" % face)
+	var bytes: PackedByteArray = TerrainGen.face_seed_bytes(world_seed, face)
 	var acc: int = 0
 	for b in bytes:
 		acc = (acc * 131 + b) % 9007199254740991
