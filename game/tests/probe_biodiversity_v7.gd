@@ -75,8 +75,11 @@ func _run() -> void:
 								if not is_equal_approx(sm.height, sm.radius * 1.8):
 									species_variants += 1
 					for child in prop.get_children():
+						# A vine hang is a THIN tapered cylinder (top_radius
+						# ~0.035); the trunk is a fat one (~0.14). Height alone
+						# cannot tell them apart (hang_len 1.3-2.1).
 						if child is MeshInstance3D and child.mesh is CylinderMesh \
-								and child.mesh.height < 1.0:
+								and child.mesh.top_radius < 0.1:
 							vines += 1
 				elif base == "Scree":
 					scree += 1

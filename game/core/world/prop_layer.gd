@@ -260,6 +260,18 @@ func _derive_trees(key: int, count: int, out: Dictionary) -> void:
 		if h < sea - 0.6:
 			continue
 		var sp: int = provider.species_at(dir)
+		# THE VINE LAW (v7): wood-creeper threads hang from the wet bands'
+		# canopies -- JUNGLE dense (2..4), FOREST sparse (0..2), SWAMP mossy
+		# (1..3). Pure paint (no collider, no harvest); a dead snag bears none.
+		var vine_n: int = 0
+		if sp != TerrainGen.TreeSpecies.DEAD_SNAG:
+			match bid:
+				TerrainGen.BiomeId.JUNGLE:
+					vine_n = 2 + (rng.randi() % 3)
+				TerrainGen.BiomeId.FOREST:
+					vine_n = rng.randi() % 3
+				TerrainGen.BiomeId.SWAMP:
+					vine_n = 1 + (rng.randi() % 3)
 		out["instances"].append({
 			"family": FAMILY_TREE, "dir": dir, "h": h, "species": sp,
 			"trunk_h": rng.randf_range(1.8, 3.2),
@@ -267,6 +279,7 @@ func _derive_trees(key: int, count: int, out: Dictionary) -> void:
 			"gval": 0.3 + 0.14 * rng.randf(),
 			"tint_r": 0.18 + 0.06 * rng.randf(),
 			"yaw": rng.randf_range(0.0, TAU),
+			"vine_n": vine_n,
 		})
 		placed += 1
 
@@ -412,6 +425,8 @@ func _bucket_face_content(face: int) -> void:
 		return
 	_rocks_faces_done[face] = true
 	var sea: float = provider.sea_level()
+	var face_acc: int = _face_acc(face)
+	var rock_i: int = 0
 	for s in provider.rock_specs(face):
 		var d: Vector3 = s.dir
 		var h: float = provider.ground_height(d)
@@ -420,8 +435,12 @@ func _bucket_face_content(face: int) -> void:
 		var k: int = PropChunk.chunk_for_dir(d, chunk_depth)
 		if not _rocks_by_chunk.has(k):
 			_rocks_by_chunk[k] = []
-		_rocks_by_chunk[k].append({"family": FAMILY_ROCK, "dir": d, "h": h,
-				"scale": s.scale, "yaw": s.yaw, "face": face})
+		var rec: Dictionary = {"family": FAMILY_ROCK, "dir": d, "h": h,
+				"scale": s.scale, "yaw": s.yaw, "face": face}
+		_scree_for(rec, face_acc, rock_i, d, h, float(s.scale))
+		_rocks_by_chunk[k].append(rec)
+		rock_i += 1
+	var boulder_i: int = 0
 	for b in provider.boulder_specs(face):
 		var d2: Vector3 = b.dir
 		var h2: float = provider.ground_height(d2)
@@ -430,8 +449,52 @@ func _bucket_face_content(face: int) -> void:
 		var k2: int = PropChunk.chunk_for_dir(d2, chunk_depth)
 		if not _boulders_by_chunk.has(k2):
 			_boulders_by_chunk[k2] = []
-		_boulders_by_chunk[k2].append({"family": FAMILY_BOULDER, "dir": d2, "h": h2,
-				"radius": b.radius, "yaw": b.yaw, "face": face})
+		var rec2: Dictionary = {"family": FAMILY_BOULDER, "dir": d2, "h": h2,
+				"radius": b.radius, "yaw": b.yaw, "face": face}
+		_collar_for(rec2, face_acc, boulder_i, d2, float(b.radius))
+		_boulders_by_chunk[k2].append(rec2)
+		boulder_i += 1
+
+
+## The scree collar (v7): in the rocky bands (alpine/tundra/badlands) each
+## rock drops a seeded 2..4-rubble collar on its rim. Pure paint -- no
+## walk-cap change (the rubble sits below the cap the rock already raises).
+## Computed once per rock at bucket time (deterministic from the face seed).
+func _scree_for(rec: Dictionary, face_acc: int, rock_i: int, dir: Vector3, h: float, scale: float) -> void:
+	var bid: int = provider.biome_id(dir)
+	if bid != TerrainGen.BiomeId.ALPINE and bid != TerrainGen.BiomeId.TUNDRA \
+			and bid != TerrainGen.BiomeId.BADLANDS:
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = (face_acc * 131 + rock_i * 7 + 3) % 9007199254740991
+	var rock_r: float = radius_m + h + TerrainGen.ROCK_EMBED
+	var n: int = rng.randi_range(2, 4)
+	var out: Array = []
+	for _k in range(n):
+		var hint: Vector3 = Vector3(0, 1, 0) if absf(dir.dot(Vector3(0, 1, 0))) < 0.9 else Vector3(1, 0, 0)
+		var axis: Vector3 = dir.cross(hint).normalized()
+		var sdir: Vector3 = dir.rotated(axis, \
+				(TerrainGen.ROCK_RADIUS * scale * (1.25 + 0.4 * rng.randf())) / maxf(rock_r, 1.0) \
+				+ rng.randf_range(0.0, 0.03)).normalized()
+		out.append({"dir": sdir, "r": TerrainGen.ROCK_RADIUS * rng.randf_range(0.22, 0.45)})
+	rec["scree"] = out
+
+
+## The boulder rim collar (v7): 1-2 small rocks decorate a boulder's base.
+## Decorative only -- the walk-over caps already cover the ring.
+func _collar_for(rec: Dictionary, face_acc: int, boulder_i: int, dir: Vector3, radius: float) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = (face_acc * 257 + boulder_i * 13 + 5) % 9007199254740991
+	var boulder_r: float = radius_m + radius * 0.28
+	var n: int = rng.randi_range(1, 2)
+	var out: Array = []
+	for _k in range(n):
+		var hint: Vector3 = Vector3(0, 1, 0) if absf(dir.dot(Vector3(0, 1, 0))) < 0.9 else Vector3(1, 0, 0)
+		var axis: Vector3 = dir.cross(hint).normalized()
+		var rdir: Vector3 = dir.rotated(axis, \
+				(radius * 0.95) / maxf(boulder_r, 1.0) + rng.randf_range(0.0, 0.02)).normalized()
+		out.append({"dir": rdir})
+	rec["collar"] = out
 
 
 ## Bucket the world's authored deep beds (provider.deep_beds()) into
@@ -757,6 +820,18 @@ func _build_rock(inst: Dictionary, node: Node3D) -> void:
 	rmi.position = dir * (radius_m + float(inst["h"]) + TerrainGen.ROCK_EMBED)
 	rmi.rotation.y = float(inst["yaw"])
 	node.add_child(rmi)
+	# The scree collar (v7): rubble on the rock's rim, two tints darker.
+	for rubble in inst.get("scree", []):
+		var sdir: Vector3 = rubble["dir"]
+		var srmi := MeshInstance3D.new()
+		srmi.name = "Scree%d" % node.get_child_count()
+		srmi.mesh = _shared_sphere(float(rubble["r"]), 2.0)
+		var srmat := StandardMaterial3D.new()
+		srmat.albedo_color = _rock_color(sdir).darkened(0.25)
+		srmat.roughness = 1.0
+		srmi.material_override = srmat
+		srmi.position = sdir * (radius_m + float(inst["h"]) + TerrainGen.ROCK_EMBED * 0.4)
+		node.add_child(srmi)
 
 
 ## A boulder: a squat climbable ellipsoid, collider-carried (blocks/climb).
@@ -780,6 +855,15 @@ func _build_boulder(inst: Dictionary, node: Node3D) -> void:
 	bmi.basis = Basis(east, up, north)
 	node.add_child(bmi)
 	PropCollider.attach(bmi)
+	# The rim collar (v7): 1-2 small decorative rocks at the base.
+	for rim in inst.get("collar", []):
+		var rdir: Vector3 = rim["dir"]
+		var crmi := MeshInstance3D.new()
+		crmi.name = "Collar%d" % node.get_child_count()
+		crmi.mesh = _shared_sphere(TerrainGen.ROCK_RADIUS, 2.0)
+		crmi.material_override = bmat
+		crmi.position = rdir * (radius_m + float(inst["h"]) + TerrainGen.ROCK_EMBED)
+		node.add_child(crmi)
 
 
 ## A tree: trunk cylinder + species canopy sphere, radial placement.
@@ -845,6 +929,20 @@ func _build_tree(inst: Dictionary, node: Node3D, near: bool) -> void:
 		canopy.material_override = cmat
 		canopy.position = Vector3(0, trunk_h + crown * canopy_h_mult * 0.35, 0)
 		tree.add_child(canopy)
+		# The vine hangs (v7): thin tapered threads chained down the canopy rim.
+		var vine_n: int = int(inst.get("vine_n", 0))
+		var canopy_rim: float = trunk_h + crown * canopy_h_mult * 0.35
+		for kv in range(vine_n):
+			var hang_len: float = crown * 0.9 + 0.3
+			var hang := MeshInstance3D.new()
+			hang.mesh = _shared_cyl(0.035, 0.012, hang_len)
+			var hang_mat := StandardMaterial3D.new()
+			hang_mat.albedo_color = Color(0.24, 0.40, 0.20)
+			hang_mat.roughness = 1.0
+			hang.material_override = hang_mat
+			var vang: float = TAU * float(kv) / float(vine_n) + 0.4
+			hang.position = Vector3(cos(vang) * crown * canopy_w_mult * 0.55, canopy_rim - hang_len * 0.5, sin(vang) * crown * canopy_w_mult * 0.55)
+			tree.add_child(hang)
 	tree.position = dir * (radius_m + float(inst["h"]))
 	tree.basis = basis
 	node.add_child(tree)
