@@ -34,6 +34,7 @@ FAMILY_COLORS = {
     "buffs": (120, 210, 130),
     "currency": (230, 200, 80),
     "dwellings": (170, 130, 90),
+    "houses": (176, 138, 96),
     "enemies": (170, 60, 160),
     "events": (150, 110, 230),
     "factions": (110, 130, 240),
@@ -162,6 +163,7 @@ SHAPE_LADDER = (
     (("quest", "writ", "seal", "collect", "hunter", "blood", "boss", "wolf",
       "wreck", "arena", "awaken", "herb", "explor"), trophy),
     (("mount", "gullwing", "pacer", "runner", "storm"), arch),
+    (("house", "claim", "cottage", "hall"), arch),
     (("forge", "anvil", "workbench", "fireplace", "cauldron"), square),
 )
 

@@ -344,6 +344,7 @@ func _run() -> void:
 	_has_prefix(faction_ids, "faction_", "Factions")
 	_has_prefix(_load_ids("data/gates"), "gate_", "Ward gates")
 	_has_prefix(_load_ids("data/spawn_tables"), "spawn_", "Spawn tables")
+	_has_prefix(_load_ids("data/houses"), "house_", "House tiers")
 
 	# --- Style: enemy ids stay bare (files carry the enemy_ prefix) ---
 	var bad_enemies: Array = []
@@ -873,7 +874,7 @@ func _run() -> void:
 
 	# --- Model/scene path integrity across ALL data files ---
 	var bad_model_paths: Array = []
-	for data_dir in ["data/npc", "data/enemies", "data/species", "data/mounts", "data/vehicles", "data/dwellings", "data/gateways", "data/classes"]:
+	for data_dir in ["data/npc", "data/enemies", "data/species", "data/mounts", "data/vehicles", "data/dwellings", "data/houses", "data/gateways", "data/classes"]:
 		var mdir := DirAccess.open("res://" + data_dir)
 		if mdir == null:
 			continue

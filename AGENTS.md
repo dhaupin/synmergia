@@ -933,6 +933,17 @@ Run it after adding or renaming any data ids.
 - `enemy_type`: NORMAL, ELITE, BOSS, WORLD_BOSS
 - `level`, `health`, `attack_power`, `defense`
 
+### HouseData (`data/houses/`)
+Plot STRUCTURE tiers a player raises with `/buildhouse [tier]`. Three
+tiers (`house_claim` / `house_cottage` / `house_hall`) matching the canon
+sheet (`labs/prompts/gemini_housing.md` sec. 1). Fields: `tier`, `cost`,
+`footprint`, `wall_height`, `door_width`, `roof_pitch`, `wall_color`,
+`roof_color`, `features[]`. Loaded by `DataService.load_houses()` (pure
+`_houses` registry, never merged into `_items`) and read by
+`DwellingService.build_house` via `get_house`. NOT hardcoded: a new tier
+ships as a `.tres`. `HOUSE_COST` in `DwellingService` is only the
+fallback when DataService has no such tier.
+
 ### Item
 - `soulbound`, `bind_on_pickup`, `bind_on_equip`
 - `unique`, `stack_size`, `rarity`

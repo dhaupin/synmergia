@@ -13,8 +13,10 @@
 ## guild-owned hall could later re-stamp access.scope = GUILD and the
 ## same guard/ankh rules follow automatically.
 ##
-## Commands: /buyplot, /placeguard, /placeankh, /plotinfo (wired in
-## ChatService; this service exposes handle_dwelling_command).
+## Commands: /buyplot, /placeguard, /placeankh, /plotinfo, /buildhouse
+## (wired in ChatService; this service exposes handle_dwelling_command).
+## House TIERS (/buildhouse [tier]) are data: data/houses/*.tres read
+## through DataService.get_house, so a new tier ships as a .tres.
 extends Node
 
 const GuardDataScript = preload("res://core/schemas/guard_data.gd")
@@ -36,7 +38,11 @@ signal object_placed(player_id: String, plot_id: String, object_type: String, ob
 signal object_removed(player_id: String, plot_id: String, object_type: String, object_id: String)
 signal house_built(player_id: String, plot_id: String, house_id: String)
 
-const HOUSE_COST := 750000  # the actual house: walls, door, roof, and a roof to sleep under
+const HOUSE_COST := 750000  # fallback cost when DataService has no house tiers
+## The default house tier (/buildhouse with no arg): the cottage, the
+## middle rung. Tiers live in data/houses/ and are read through
+## DataService.get_house.
+const DEFAULT_HOUSE_ID := "house_cottage"
 
 const DEFAULT_PLOT_PRICE := 50000
 const HOUSE_GUARD_COST := 250000   # The 250k-gold dream, as requested.
@@ -498,7 +504,7 @@ func handle_dwelling_command(sender_id: String, command: String, args: Array) ->
 		"dismissguard":
 			return _cmd_dismiss_guard(sender_id, player, pos)
 		"buildhouse":
-			return _cmd_build_house(sender_id, player, pos)
+			return _cmd_build_house(sender_id, player, pos, args)
 		"placestation":
 			return _cmd_place_station(sender_id, player, pos, args)
 		"removestation":
@@ -617,11 +623,13 @@ func _cmd_dismiss_guard(sender_id: String, player, pos: Vector3) -> bool:
 ## THE HOUSE ITSELF: a 3D structure you can walk into.
 ## ------------------------------------------------------------------
 
-## Build a wooden house on the plot: floor, four walls with a doorway
-## gap (front), and a gabled roof, all with StaticBody collision so the
-## player physically enters and exists inside. The plot's house_id is
-## stamped; one house per plot.
-func build_house(player, plot_id: String) -> Dictionary:
+## Build a structure on the plot: floor, four walls with a doorway gap
+## (front), and a gabled roof, all with StaticBody collision so the player
+## physically enters and exists inside. Geometry, cost and colors come
+## from the HouseData tier (data/houses/); the plot's house_id is stamped;
+## one house per plot. house_id defaults to the cottage tier, and falls
+## back to the built-in cost/geometry when DataService is absent (tests).
+func build_house(player, plot_id: String, house_id: String = DEFAULT_HOUSE_ID) -> Dictionary:
 	if player == null or not ("entity_id" in player):
 		return {"ok": false, "reason": "invalid_player"}
 	var pid := str(player.entity_id)
@@ -632,50 +640,79 @@ func build_house(player, plot_id: String) -> Dictionary:
 		return {"ok": false, "reason": "not_owner"}
 	if str(plot.get("house_id", "")) != "":
 		return {"ok": false, "reason": "already_built"}
-	if not _spend_gold(player, HOUSE_COST):
+	var house_data = _resolve_house_data(house_id)
+	var cost: int = int(house_data.cost) if house_data != null else HOUSE_COST
+	if not _spend_gold(player, cost):
 		return {"ok": false, "reason": "insufficient_gold"}
 
-	var house := _build_house_node(str(plot["id"]), plot["center"])
+	var house := _build_house_node(str(plot["id"]), plot["center"], house_data)
 	if not _spawn_at(house, plot):
 		house.queue_free()
 		return {"ok": false, "reason": "spawn_failed"}
 	plot["house_id"] = house.name
+	plot["house_tier"] = house_id
 	house_built.emit(pid, plot_id, house.name)
-	GameLog.info("DwellingService: %s built a house on plot %s (%d gold)" % [pid, plot_id, HOUSE_COST])
-	return {"ok": true, "house_id": house.name}
+	GameLog.info("DwellingService: %s built %s on plot %s (%d gold)" % [pid, house_id, plot_id, cost])
+	return {"ok": true, "house_id": house.name, "tier": house_id}
 
 
-## Construct the structure node. Geometry: a 6x6m footprint, 3m walls,
-## doorway gap (1.4m wide) centered on the +Z wall, gabled roof. Every
-## piece is a StaticBody3D + CollisionShape3D + MeshInstance3D so the
-## player can walk in but not through walls.
-func _build_house_node(house_id: String, center: Vector3) -> StaticBody3D:
+## The HouseData for a tier id, or null when DataService has no such house
+## (script-mode tests, or an unknown id). Callers fall back to the built-in
+## cottage constants so a plot can always be raised.
+func _resolve_house_data(house_id: String):
+	var ds = _svc("DataService")
+	if ds == null or not ds.has_method("get_house"):
+		return null
+	return ds.get_house(house_id)
+
+
+## Construct the structure node from a HouseData tier (or the built-in
+## cottage defaults when data is null). Geometry is parameterized by the
+## tier's footprint / wall_height / door_width / roof_pitch; the cottage
+## tier reproduces the original hand-tuned 6x6x3 numbers exactly.
+func _build_house_node(house_id: String, center: Vector3, data = null) -> StaticBody3D:
 	var house := StaticBody3D.new()
 	house.name = "house_%s" % house_id
 
+	var w: float = float(data.footprint.x) if data != null else 6.0
+	var d: float = float(data.footprint.z) if data != null else 6.0
+	var floor_t: float = float(data.footprint.y) if data != null else 0.2
+	var wall_h: float = float(data.wall_height) if data != null else 3.0
+	var door_w: float = float(data.door_width) if data != null else 1.4
+	var pitch: float = float(data.roof_pitch) if data != null else 0.5
+	var wall_col: Color = data.wall_color if data != null else Color(0.55, 0.38, 0.22)
+	var roof_col: Color = data.roof_color if data != null else Color(0.35, 0.2, 0.14)
+
 	var wood := StandardMaterial3D.new()
-	wood.albedo_color = Color(0.55, 0.38, 0.22)  # plank brown
-	var darker := StandardMaterial3D.new()
-	darker.albedo_color = Color(0.42, 0.28, 0.16)  # beam brown
+	wood.albedo_color = wall_col
+
+	var t: float = 0.2  # wall thickness
+	var half_w := w / 2.0
+	var half_d := d / 2.0
+	var wall_mid_y := floor_t + wall_h / 2.0
+	var front_piece_w := (w - door_w) / 2.0
+	var door_top := floor_t + 2.0
+	var lintel_top := floor_t + wall_h - t
+	var lintel_h := lintel_top - door_top
 
 	var parts: Array = [
 		# [size, center-y from ground, material]
-		[Vector3(6.0, 0.2, 6.0), 0.1, wood],    # floor
-		[Vector3(6.0, 3.0, 0.2), 1.7, wood],    # back wall (-Z)
-		[Vector3(0.2, 3.0, 6.0), 1.7, wood],    # left wall (-X)
-		[Vector3(0.2, 3.0, 6.0), 1.7, wood],    # right wall (+X)
-		[Vector3(2.3, 3.0, 0.2), 1.7, wood],    # front wall left of door
-		[Vector3(2.3, 3.0, 0.2), 1.7, wood],    # front wall right of door
-		[Vector3(1.4, 0.8, 0.2), 2.6, wood],    # door lintel (above the 2.2m gap)
+		[Vector3(w, floor_t, d), floor_t / 2.0, wood],           # floor
+		[Vector3(w, wall_h, t), wall_mid_y, wood],               # back wall (-Z)
+		[Vector3(t, wall_h, d), wall_mid_y, wood],               # left wall (-X)
+		[Vector3(t, wall_h, d), wall_mid_y, wood],               # right wall (+X)
+		[Vector3(front_piece_w, wall_h, t), wall_mid_y, wood],   # front left of door
+		[Vector3(front_piece_w, wall_h, t), wall_mid_y, wood],   # front right of door
+		[Vector3(door_w, lintel_h, t), door_top + lintel_h / 2.0, wood],  # door lintel
 	]
 	var offsets: Array = [
 		Vector3(0, 0, 0),
-		Vector3(0, 0, -2.9),
-		Vector3(-2.9, 0, 0),
-		Vector3(2.9, 0, 0),
-		Vector3(-1.85, 0, 2.9),
-		Vector3(1.85, 0, 2.9),
-		Vector3(0, 0, 2.9),
+		Vector3(0, 0, -(half_d - t / 2.0)),
+		Vector3(-(half_w - t / 2.0), 0, 0),
+		Vector3(half_w - t / 2.0, 0, 0),
+		Vector3(-(door_w / 2.0 + front_piece_w / 2.0), 0, half_d - t / 2.0),
+		Vector3(door_w / 2.0 + front_piece_w / 2.0, 0, half_d - t / 2.0),
+		Vector3(0, 0, half_d - t / 2.0),
 	]
 	for i in parts.size():
 		var size: Vector3 = parts[i][0]
@@ -699,41 +736,48 @@ func _build_house_node(house_id: String, center: Vector3) -> StaticBody3D:
 	# Gabled roof: two slabs meeting at a ridge, no collision interior
 	# issues since the player is below them.
 	var roof_mat := StandardMaterial3D.new()
-	roof_mat.albedo_color = Color(0.35, 0.2, 0.14)  # shingle brown
+	roof_mat.albedo_color = roof_col
+	var slab_w := half_w * 1.2
+	var slab_d := d + 0.6
 	for side in [-1.0, 1.0]:
 		var slab := StaticBody3D.new()
 		slab.name = "roof_%s" % ("neg" if side < 0 else "pos")
 		var rshape := CollisionShape3D.new()
 		var rbox := BoxShape3D.new()
-		rbox.size = Vector3(3.6, 0.15, 6.6)
+		rbox.size = Vector3(slab_w, 0.15, slab_d)
 		rshape.shape = rbox
 		slab.add_child(rshape)
 		var rmesh := MeshInstance3D.new()
 		var rmesh_box := BoxMesh.new()
-		rmesh_box.size = Vector3(3.6, 0.15, 6.6)
+		rmesh_box.size = Vector3(slab_w, 0.15, slab_d)
 		rmesh_box.material = roof_mat
 		rmesh.mesh = rmesh_box
 		slab.add_child(rmesh)
-		slab.rotation = Vector3(0, 0, side * 0.5)  # ~30 degrees pitch
-		slab.position = Vector3(side * 1.55, 3.85, 0)
+		slab.rotation = Vector3(0, 0, side * pitch)
+		slab.position = Vector3(side * half_w * 0.51667, floor_t + wall_h + 0.65, 0)
 		house.add_child(slab)
 	return house
 
 
-func _cmd_build_house(sender_id: String, player, pos: Vector3) -> bool:
+func _cmd_build_house(sender_id: String, player, pos: Vector3, args: Array = []) -> bool:
 	var plot := get_nearest_plot(pos, "owned")
 	if plot.is_empty() or str(plot["owner_id"]) != sender_id:
 		_notify(sender_id, "You must stand on your own plot to build.")
 		return true
-	var result := build_house(player, str(plot["id"]))
+	var tier := str(args[0]).strip_edges() if not args.is_empty() else DEFAULT_HOUSE_ID
+	var result := build_house(player, str(plot["id"]), tier)
 	if result["ok"]:
-		_notify(sender_id, "House built! Your home stands at last.")
+		var hd = _resolve_house_data(tier)
+		var label: String = str(hd.display_name) if hd != null else tier
+		_notify(sender_id, "%s raised! Your home stands at last." % label)
 	else:
 		var why := str(result["reason"])
 		if why == "already_built":
 			_notify(sender_id, "You already have a house here.")
 		elif why == "insufficient_gold":
-			_notify(sender_id, "Not enough gold (%d needed)." % HOUSE_COST)
+			var hd2 = _resolve_house_data(tier)
+			var cost: int = int(hd2.cost) if hd2 != null else HOUSE_COST
+			_notify(sender_id, "Not enough gold (%d needed)." % cost)
 		else:
 			_notify(sender_id, "Build failed: %s." % why)
 	return true

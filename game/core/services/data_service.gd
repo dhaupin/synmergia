@@ -53,6 +53,8 @@ var _acts: Dictionary = {}
 var _mysteries: Dictionary = {}
 var _events: Dictionary = {}
 var _dwellings: Dictionary = {}
+## id -> HouseData (data/houses/, the plot STRUCTURE tiers).
+var _houses: Dictionary = {}
 ## id -> WardGateData (data/gates/, the hard gate registry).
 var _gates: Dictionary = {}
 var _npcs: Dictionary = {}
@@ -87,6 +89,7 @@ func load_all_data() -> void:
 	load_zones()
 	load_events()
 	load_dwellings()
+	load_houses()
 	load_npcs()
 	load_status_effects()
 	load_quests()
@@ -227,6 +230,13 @@ func load_dwellings() -> void:
 			_items.merge({str(id): dw})
 			dwelling_items += 1
 	GameLog.info("DataService: Loaded %d dwellings (%d purse-carried items)" % [_dwellings.size(), dwelling_items])
+
+## Load house STRUCTURE tiers from data/houses/ (the plot buildings
+## DwellingService.build_house raises). Unlike dwellings these are pure
+## HouseData resources, never merged into _items.
+func load_houses() -> void:
+	_houses = _scan_directory(_data_path + "houses", "house")
+	GameLog.info("DataService: Loaded %d house tiers" % _houses.size())
 
 ## Load NPCs from data/npc/
 func load_npcs() -> void:
@@ -590,6 +600,15 @@ func get_dwelling(id: String) -> Resource:
 		return _dwellings.get(id)
 	GameLog.warn("DataService: Dwelling not found: " + id)
 	return null
+
+func get_house(id: String) -> Resource:
+	if _houses.has(id):
+		return _houses.get(id)
+	GameLog.warn("DataService: House not found: " + id)
+	return null
+
+func get_all_houses() -> Array:
+	return _houses.values()
 
 func get_npc(id: String) -> NPCData:
 	if _npcs.has(id):
