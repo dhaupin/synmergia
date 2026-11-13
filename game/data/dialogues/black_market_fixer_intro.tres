@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="DialogueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "black_market_fixer_intro"
+npc_id = "npc_black_market_fixer"
+display_name = "Underdeck Stall"
+nodes = [
+    {
+        "speaker": "Underdeck Fixer",
+        "text": "You found this stall. Nobody showed you -- that is how I know you were looking. Scrap in, scrip out. What I cannot trace, I do not touch; what nobody mints, the deep ledger signs for itself.",
+        "choices": [
+            {"text": "What do you sell?", "next_node": 1},
+            {"text": "Why keep a stall down here?", "next_node": 2},
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Underdeck Fixer",
+        "text": "Rings, cloaks, a coin or two the Concord never stamped. Prices are underdeck prices -- no paper, no name, no question the ledger cannot answer. Look all you like, but do not ask me where it came from.",
+        "choices": [
+            {"text": "Show me the stall.", "next_node": 3, "action_type": 6, "action_data": {"shop_id": "black_market_ledger"}},
+            {"text": "Back.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Underdeck Fixer",
+        "text": "Up top, every trade leaves a mark. Down here the marks wash out with the tide. I keep the stall because the underdeck keeps its own hours, and someone has to mind the till once the honest hours close.",
+        "choices": [
+            {"text": "Show me the stall.", "next_node": 3, "action_type": 6, "action_data": {"shop_id": "black_market_ledger"}},
+            {"text": "Back.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Underdeck Fixer",
+        "text": "Ledger is open. Take what you can afford and pay what it says.",
+        "choices": [
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    }
+]

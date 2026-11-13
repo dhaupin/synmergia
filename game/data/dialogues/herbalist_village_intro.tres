@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="DialogueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "herbalist_village_intro"
+npc_id = "npc_herbalist_village"
+display_name = "Village Herbalist"
+nodes = [
+    {
+        "speaker": "Herbalist",
+        "text": "Welcome -- I have remedies for what ails you, and questions for what I cannot fix. You have the look of someone who walks the treeline. Good. I pay for what the gloam leaves behind.",
+        "choices": [
+            {"text": "What do you need from the gloam?", "next_node": 1},
+            {"text": "Show me the shelf.", "next_node": 2, "action_type": 6, "action_data": {"shop_id": "potions"}},
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Herbalist",
+        "text": "Spores, mostly. The gloam spore is what the Bloom sheds when it is not watching -- six of them, and I can start reading the corruption instead of only fearing it. Mind your breathing; a cough now is a season later.",
+        "choices": [
+            {"text": "I will gather them.", "next_node": 3, "action_type": 1, "action_data": {"quest_id": "quest_gloam_harvest"}},
+            {"text": "Not today.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Herbalist",
+        "text": "The shelf is open. Potions and supplies -- the same I send up to the strand.",
+        "choices": [
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Herbalist",
+        "text": "Good. Bring them here and I will make it worth the walk. Do not go past the first ridge -- that is the Bloom's country, not ours.",
+        "choices": [
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    }
+]

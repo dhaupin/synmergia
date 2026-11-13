@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="DialogueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "banker_capital_intro"
+npc_id = "npc_banker_capital"
+display_name = "Concord Bank"
+nodes = [
+    {
+        "speaker": "Concord Banker",
+        "text": "The vault honors every posted rate. Deposits screened, withdrawals sealed -- the Concord does not bless a coin, it only writes down that it was there.",
+        "choices": [
+            {"text": "What sits below the plaza?", "next_node": 1},
+            {"text": "Is my coin safe?", "next_node": 2},
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Concord Banker",
+        "text": "Bullion, deeds, and the sealed rate book. The plaza floor is honest stone; what sits under it is weightier. You will not see it and you do not need to -- the ledger is what you are trusting, not the door.",
+        "choices": [
+            {"text": "Open the vault.", "next_node": 3, "action_type": 7, "action_data": {}},
+            {"text": "Back.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Concord Banker",
+        "text": "Safer than a pocket, and less kind about it. The Concord keeps attention, not verdicts -- a deposit is a record, and records do not flatter. If the rate is posted, the rate is kept.",
+        "choices": [
+            {"text": "Open the vault.", "next_node": 3, "action_type": 7, "action_data": {}},
+            {"text": "Back.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Concord Banker",
+        "text": "The door is open. What you put in, the ledger holds; what you take out, it notes. That is the whole of it.",
+        "choices": [
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    }
+]

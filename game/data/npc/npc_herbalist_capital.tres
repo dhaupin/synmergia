@@ -14,4 +14,7 @@ farewell = "Stay bilious away."
 location_type = 0
 spawn_offset = Vector3(12, 0, 3)
 zone_id = "zone_nexus_central"
-includes = [{"type": "offering", "ref_id": "potions"}]
+includes = [
+  {"type": "dialogue", "dialogue_id": "herbalist_capital_intro"},
+  {"type": "offering", "ref_id": "potions"}
+]
