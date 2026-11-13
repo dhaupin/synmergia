@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1")
 id = "zone_village_center"
-display_name = "Easthollow Village"
-description = "A small human settlement at the crossroads of the eastern plains. Traders, crafters, and adventurers gather here. Safe from PvP. Home to the village blacksmith and merchant."
+display_name = "Haven"
+description = "A village built inside the colossal fallen machine limb, its metal overgrown with moss and windowed with new wooden shutters. The one warm place on the starter continent: amber window-light, the fire pit, laundry lines, smoke. Two Aether-Conduits stand lit in the square, teal tracery still climbing the great limb overhead. Home to the village blacksmith and merchant, and safe from PvP."
 pvp_mode = 0
 level_requirement = 1
 max_level = 999

@@ -44,7 +44,7 @@ const TIMELINE: Beat[] = [
     kicker: 'Now',
     title: 'The Waking',
     body: [
-      'You arrive at the end of all this. Villages like Easthollow stack timber against the hull of something fallen and call it a wall. The first waypoint stones are flickering teal again, the color of a thing that can wake rather than a thing that is awake.',
+      'You arrive at the end of all this. Villages like Haven stack timber against the hull of something fallen and call it a wall. The first waypoint stones are flickering teal again, the color of a thing that can wake rather than a thing that is awake.',
       'Explorers carry tablets — hand-woken fragments of the old world that answer a touch. And the whole of the game narrows to one verb: find the dormant thing, and wake it.',
     ],
   },

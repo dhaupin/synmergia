@@ -19,7 +19,7 @@ nodes = [
     },
     {
         "speaker": "Village Elder",
-        "text": "We are a small community, but we have weathered many storms. The Darkwood Forest lies to the north, and the Shattered Mountains to the east. Trade caravans pass through weekly.",
+        "text": "We are a small community, but we have weathered many storms. The Gloomwood lies to the north, and the mountain ridge to the east. Trade caravans pass through weekly.",
         "choices": []
     },
     {

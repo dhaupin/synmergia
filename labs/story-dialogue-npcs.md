@@ -72,7 +72,7 @@ the world would plausibly add (not commit-ready data, just the shape of it).
 ### `village_elder_greeting` — Village Elder (zone_village_center)
 
 **Exists:** three nodes — a greeting, “what is this place,” and “work for me” that leads to the
-wolf-hunt pitch. The elder already names the Darkwood and Shattered Mountains and the weekly trade
+wolf-hunt pitch. The elder already names the Gloomwood and the mountain ridge and the weekly trade
 caravans.
 
 **What the world would plausibly add (shape only):**
