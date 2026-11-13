@@ -150,6 +150,20 @@ const GLOBE_ENEMY_BATCH: Array = [
 ]
 var _globe_spawns: Array[GlobeSpawn] = []
 
+## THE ZONE SPAWN RUNG (the world's own placement rung): a proximity
+## roster built from data/spawn_tables/*.tres. The ZoneSpawner decides
+## which authored entries are live for the tracked players; this scene
+## does the node work (build/free bodies, keep the respawn records).
+## Anchors: most tables ride the spawn frame; a far landmass (the pans,
+## the island) passes its own world dir so its bearing/reach is honest.
+const ZoneSpawnerRef = preload("res://core/world/zone_spawner.gd")
+var _zone_spawner = null
+## key -> Array of the live bodies for one spawn entry.
+var _zone_bodies: Dictionary = {}
+## Throttle: the roster reconciles a few times a second, not every tick.
+var _zone_spawn_accum: float = 0.0
+const ZONE_SPAWN_TICK_S: float = 0.5
+
 ## PLANAR-RETIREMENT STEP 3: the town watch. Each entry is
 ## (GuardData id in data/guards/, bearing_deg, reach_m). Guards are
 ## created from their GuardData (the planar scene's authored guards),
@@ -292,6 +306,7 @@ const CONTENT_MANIFEST: Array = [
 	"garden_binder",
 	"town_npcs",
 	"wildlife",
+	"zone_spawns",
 	"transit_gates",
 	"town_watch",
 	"dungeon_portal",
@@ -330,6 +345,7 @@ func _boot_waves() -> void:
 	builder.add_family("garden_binder", _install_garden_binder)
 	builder.add_family("town_npcs", _build_town_npcs)
 	builder.add_family("wildlife", _build_globe_enemies)
+	builder.add_family("zone_spawns", _load_zone_spawn_tables)
 	builder.add_family("transit_gates", _build_globe_gates)
 	builder.add_family("town_watch", _build_globe_guards)
 	builder.add_family("dungeon_portal", _build_globe_portal)
@@ -714,6 +730,7 @@ func _physics_process(delta: float) -> void:
 		# the planet CENTER, never the world origin (invariant across
 		# floating-origin shifts).
 		streamer.update(player.global_position - planet_center)
+		_tick_zone_spawns(delta)
 		if chart_overlays_on:
 			_update_chart_lod(delta)
 		else:
@@ -1903,6 +1920,132 @@ func _build_globe_enemies() -> void:
 		% _globe_spawns.size())
 
 
+## THE ZONE SPAWN RUNG: load the authored spawn tables and register
+## each at its honest anchor. Most zones ride the spawn tangent frame;
+## the far landmasses (the Sun Pans atoll, Gull Island) ride their own
+## world dir so their bearing/reach frames are true to that place. The
+## bridge/sea tables (the Sundered channel) ride the strait centre.
+func _load_zone_spawn_tables() -> void:
+	var DS = get_node_or_null("/root/DataService")
+	if DS == null or not DS.has_method("get_all_spawn_tables"):
+		_log_backend("warn", "GlobeWorld: zone spawn rung idle (DataService absent)")
+		return
+	_zone_spawner = ZoneSpawnerRef.new()
+	_zone_spawner.configure(TerrainGenRef.SPAWN_CENTER, planet_radius)
+	# Anchor map: a table id -> the world dir its bearing/reach frame
+	# rides. Anything unlisted rides the spawn frame (the homeland).
+	var anchors: Dictionary = {
+		"spawn_sun_pans": TerrainGenRef.sun_pans_dir(),
+		"spawn_gull_island": TerrainGenRef.ISLAND_CENTER.normalized(),
+		"spawn_sundered_sea": TerrainGenRef.strait_center_dir(),
+	}
+	var placed: int = 0
+	for table in DS.get_all_spawn_tables():
+		if table == null:
+			continue
+		var tid: String = str(table.id)
+		var anchor: Vector3 = anchors.get(tid, Vector3.ZERO)
+		_zone_spawner.add_table(table, anchor)
+		placed += 1
+	_log_backend("info", "GlobeWorld: zone spawn rung loaded (%d tables)" % placed)
+
+
+## THE ZONE SPAWN TICK: reconcile the proximity roster against the
+## tracked players' directions and materialise/retire bodies. Runs on a
+## throttle (a few times a second), never per frame -- the roster is
+## interest, not simulation.
+func _tick_zone_spawns(delta: float) -> void:
+	if _zone_spawner == null:
+		return
+	_zone_spawn_accum += delta
+	if _zone_spawn_accum < ZONE_SPAWN_TICK_S:
+		return
+	_zone_spawn_accum = 0.0
+	var dirs := _tracked_player_dirs()
+	if dirs.is_empty():
+		return
+	var DS = get_node_or_null("/root/DataService")
+	var es = get_node_or_null("/root/EntityService")
+	var tm = get_node_or_null("/root/TargetingManager")
+	var plan: Dictionary = _zone_spawner.reconcile(dirs)
+	for key in plan.get("retire", []):
+		_retire_zone_bodies(str(key))
+	for rec in plan.get("spawn", []):
+		_materialize_zone_entry(rec, DS, es, tm)
+
+
+## The directions of every player the scene tracks (the local player plus
+## any remote bodies under the world root). MMO interest reads them all:
+## a region lives because someone is in it.
+func _tracked_player_dirs() -> Array:
+	var out: Array = []
+	if player != null and is_instance_valid(player):
+		var pdir: Vector3 = player.global_position - planet_center
+		if pdir.length_squared() > 0.000001:
+			out.append(pdir.normalized())
+	var es = get_node_or_null("/root/EntityService")
+	if es != null and es.has_method("get_all_players"):
+		for p in es.get_all_players():
+			if p == player or p == null or not is_instance_valid(p):
+				continue
+			var d: Vector3 = p.global_position - planet_center
+			if d.length_squared() > 0.000001:
+				out.append(d.normalized())
+	return out
+
+
+## Build the bodies for one live spawn entry: `count` enemies scattered
+## deterministically around the point (server + every client agree on the
+## positions), each tracked for respawn exactly like the boot roster.
+func _materialize_zone_entry(rec: Dictionary, DS, es, tm) -> void:
+	var key: String = str(rec.get("key", ""))
+	if key.is_empty() or _zone_bodies.has(key):
+		return
+	var template_id: String = str(rec.get("template_id", ""))
+	var point: Vector3 = rec.get("position", Vector3.ZERO)
+	var count: int = maxi(1, int(rec.get("count", 1)))
+	var radius_m: float = float(rec.get("radius_m", 6.0))
+	var lvl: int = int(rec.get("level", 0))
+	var bodies: Array = []
+	for i in range(count):
+		var pos: Vector3 = _zone_spawner.body_position(point, key, i, count, radius_m)
+		var enemy = _spawn_globe_enemy(template_id, pos, DS, es, tm, lvl)
+		if enemy == null:
+			continue
+		var record := GlobeSpawn.new()
+		record.template_id = template_id
+		record.display_name = str(enemy.display_name)
+		record.level = int(enemy.level)
+		record.spawn_position = pos
+		if enemy.enemy_data != null and "respawn_time" in enemy.enemy_data:
+			record.respawn_time = float(enemy.enemy_data.respawn_time)
+		record.entity_id = str(enemy.entity_id)
+		_globe_spawns.append(record)
+		bodies.append(enemy)
+	if not bodies.is_empty():
+		_zone_bodies[key] = bodies
+
+
+## Retire a live entry: free its bodies and drop the respawn records so a
+## retire never resurrects into an unloaded region.
+func _retire_zone_bodies(key: String) -> void:
+	var bodies: Array = _zone_bodies.get(key, [])
+	var ids := {}
+	for b in bodies:
+		if b != null and is_instance_valid(b):
+			if "entity_id" in b:
+				ids[str(b.entity_id)] = true
+			b.queue_free()
+	_zone_bodies.erase(key)
+	_zone_spawner.forget(key)
+	if not ids.is_empty():
+		var kept: Array[GlobeSpawn] = []
+		for record in _globe_spawns:
+			if not ids.has(record.entity_id):
+				kept.append(record)
+		_globe_spawns = kept
+
+
 ## Auto-accept the Wolf Hunt quest and the Watch-the-sky daily for the
 ## local player (planar-retirement Step 2, ported from world_playable):
 ## the kill + insight objective bridges need live quests to credit. The
@@ -1951,7 +2094,7 @@ func _globe_enemy_surface(center: Vector3, bearing_deg: float, reach: float) -> 
 ## Build one wildlife enemy from its EnemyData template (the same
 ## configuration spawn_enemy_direct applies, minus the SpawnService
 ## registration so the scene owns the node + the respawn record).
-func _spawn_globe_enemy(template_id: String, surface: Vector3, DS, es, tm):
+func _spawn_globe_enemy(template_id: String, surface: Vector3, DS, es, tm, level_override: int = 0):
 	var template = DS.get_enemy(template_id) if DS.has_method("get_enemy") else null
 	if template == null:
 		_log_backend("warn", "GlobeWorld: enemy template '%s' missing; the beat stays empty" % template_id)
@@ -1970,7 +2113,7 @@ func _spawn_globe_enemy(template_id: String, surface: Vector3, DS, es, tm):
 	enemy.entity_type = Entity.EntityType.ENEMY
 	enemy.relation = Entity.Relation.HOSTILE
 	enemy.faction_id = template.faction
-	enemy.level = template.level
+	enemy.level = level_override if level_override > 0 else template.level
 	# Species modifiers shift stats, so apply before copying them.
 	if "species_id" in template and str(template.species_id) != "" and DS.has_method("get_species"):
 		var species = DS.get_species(str(template.species_id))

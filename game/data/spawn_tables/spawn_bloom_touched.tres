@@ -1,0 +1,47 @@
+[gd_resource type="Resource" script_class="SpawnTableData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/spawn_table_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "spawn_bloom_touched"
+display_name = "Bloom-touched Gloomwood"
+zone_id = "zone_forest_meadow"
+activate_radius_m = 0.0
+deactivate_radius_m = 0.0
+entries = [{
+"template_id": "feral_spore_spider",
+"bearing_deg": 130.0,
+"reach_rad": 0.420,
+"count": 3,
+"level": 0,
+"radius_m": 10.0
+}, {
+"template_id": "feral_spore_spider",
+"bearing_deg": 185.0,
+"reach_rad": 0.430,
+"count": 3,
+"level": 0,
+"radius_m": 10.0
+}, {
+"template_id": "blight_lizard",
+"bearing_deg": 150.0,
+"reach_rad": 0.440,
+"count": 2,
+"level": 0,
+"radius_m": 8.0
+}, {
+"template_id": "rust_root_crab",
+"bearing_deg": 200.0,
+"reach_rad": 0.435,
+"count": 2,
+"level": 0,
+"radius_m": 8.0
+}, {
+"template_id": "shrike_owl",
+"bearing_deg": 165.0,
+"reach_rad": 0.450,
+"count": 2,
+"level": 0,
+"radius_m": 12.0
+}]

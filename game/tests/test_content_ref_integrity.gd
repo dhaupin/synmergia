@@ -134,5 +134,41 @@ func _run() -> void:
 	if not e_bad.is_empty():
 		print("    phantom enemy loot refs: " + str(e_bad))
 
+	# Spawn tables (the zone spawn rung): every entry's template_id must
+	# resolve to a real enemy, and every zone_id must name a real zone.
+	# A phantom here is a spawn point that silently places nothing.
+	var st_bad_enemy: Array = []
+	var st_bad_zone: Array = []
+	var st_count: int = 0
+	var sdir := DirAccess.open("res://data/spawn_tables")
+	if sdir != null:
+		sdir.list_dir_begin()
+		var sf := sdir.get_next()
+		while sf != "":
+			if sf.ends_with(".tres"):
+				st_count += 1
+				var st = load("res://data/spawn_tables/" + sf)
+				if st == null:
+					st_bad_enemy.append(sf + " (load failed)")
+				else:
+					var zid: String = str(st.get("zone_id"))
+					if not zid.is_empty() and ds.get_zone(zid) == null:
+						st_bad_zone.append("%s -> %s" % [sf, zid])
+					for e in st.get("entries"):
+						if not (e is Dictionary):
+							continue
+						var etid: String = str(e.get("template_id", ""))
+						if etid.is_empty():
+							st_bad_enemy.append("%s: entry with empty template_id" % sf)
+						elif ds.get_enemy(etid) == null:
+							st_bad_enemy.append("%s: %s" % [sf, etid])
+				sf = sdir.get_next()
+	_check("every spawn-table entry template_id resolves (%d tables)" % st_count, st_bad_enemy.is_empty())
+	if not st_bad_enemy.is_empty():
+		print("    phantom spawn enemies: " + str(st_bad_enemy))
+	_check("every spawn-table zone_id resolves", st_bad_zone.is_empty())
+	if not st_bad_zone.is_empty():
+		print("    phantom spawn zones: " + str(st_bad_zone))
+
 	print("--- CONTENT REF INTEGRITY: %d passed, %d failed ---" % [_checks - _fails, _fails])
 	quit(0 if _fails == 0 else 1)

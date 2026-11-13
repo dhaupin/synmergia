@@ -134,6 +134,43 @@ Two movement truths, both first-class:
   events (data/hordes/) are the open-world exception and are
   deliberately broadcast, not instanced.
 
+### 2d. The zone spawn rung: proximity interest, not world simulation
+
+The open world is an MMORPG and the default renderer is a
+player-centred polar clipmap: fine ground exists only a few km around
+each player, coarse shell beyond. Placement must therefore be
+**proximity-streamed** -- an enemy exists because a player is near it,
+not because the server simulates the whole continent.
+
+The rung (shipped):
+
+- `SpawnTableData` (`core/schemas/spawn_table_data.gd`): a zone's
+  authored roster. Entries are `{template_id, bearing_deg, reach_rad,
+  count, level, radius_m}` -- bearing/reach on a **site anchor**, so a
+  table is honest about WHERE on the sphere it places (the spawn frame,
+  or a far landmass's own dir).
+- `data/spawn_tables/*.tres` (7): starter_plains, forest_meadow,
+  bloom_touched, forest_depths, sun_pans, gull_island, sundered_sea.
+  Every `template_id` resolves to a real enemy (content-ref gate);
+  `zone_id` names a real zone.
+- `ZoneSpawner` (`core/world/zone_spawner.gd`): the pure interest core.
+  `reconcile(player_dirs)` returns the set to spawn/retire for the
+  tracked players. An entry is live if ANY tracked player is within its
+  activation ring (900 m) and retires only past the hysteresis ring
+  (1200 m) -- no thrash at the boundary. Deterministic: `body_position`
+  scatters a multi-body point from a seed derived from the entry key, so
+  the server and every client derive IDENTICAL positions.
+- Globe wiring (`scenes/worlds/globe_world.gd`): the rung loads as a
+  boot-wave family (`zone_spawns`) and reconciles on a 0.5 s throttle in
+  `_physics_process` -- never per frame. It reuses the existing
+  `GlobeSpawn` respawn law, so a streamed body respawns exactly like a
+  boot-roster one, and retire drops the records so an unloaded region
+  never resurrects.
+
+The near-village Regulars (wolves, a boar, a training dummy) still place
+at boot so the plaza is never empty while the streamer warms; everything
+past that is authored data, streamed by interest.
+
 ## 3. Procgen pipeline: how the world gets built
 
 Mostly procedural, hand-authored where it earns it. **The ground

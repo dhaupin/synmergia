@@ -64,6 +64,7 @@ var _recipes: Dictionary = {}
 var _titles: Dictionary = {}
 var _hordes: Dictionary = {}
 var _weather_events: Dictionary = {}
+var _spawn_tables: Dictionary = {}
 
 
 var _data_path: String = "res://data/"
@@ -94,6 +95,7 @@ func load_all_data() -> void:
 	load_gateways()
 	load_hordes()
 	load_weather_events()
+	load_spawn_tables()
 	load_currencies()
 	load_mounts()
 	load_vehicles()
@@ -372,6 +374,14 @@ func load_weather_events() -> void:
 	_weather_events = _scan_directory(_data_path + "weather_events", "weather")
 	GameLog.info("DataService: Loaded %d weather event configs" % _weather_events.size())
 
+## Load zone spawn tables from data/spawn_tables/ (the zone spawn rung:
+## the authored enemy ladder's in-world placement). Keyed on the
+## resource's id field, callers may pass the file-stem form
+## (spawn_<id>), same normalization as get_horde.
+func load_spawn_tables() -> void:
+	_spawn_tables = _scan_directory(_data_path + "spawn_tables", "spawn")
+	GameLog.info("DataService: Loaded %d spawn tables" % _spawn_tables.size())
+
 ## Get methods. Returns SkillSchema (the .tres class); the return type
 ## must be SkillSchema -- the global class_name Skill (combat) shadowed
 ## the intended annotation here, which made every actual load a
@@ -634,6 +644,18 @@ func get_weather_event(id: String):
 
 func get_all_weather_events() -> Array:
 	return _weather_events.values()
+
+func get_spawn_table(id: String):
+	var sid := id.strip_edges().trim_prefix("spawn_")
+	if _spawn_tables.has(sid):
+		return _spawn_tables.get(sid)
+	if _spawn_tables.has("spawn_" + sid):
+		return _spawn_tables.get("spawn_" + sid)
+	GameLog.warn("DataService: Spawn table not found: " + id)
+	return null
+
+func get_all_spawn_tables() -> Array:
+	return _spawn_tables.values()
 
 ## Get all of a type
 func get_all_skills() -> Array:

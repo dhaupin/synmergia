@@ -157,6 +157,7 @@ test_globe_player_players_group
 test_globe_concord_loop
 test_character_select_zone
 test_globe_wildlife
+test_spawn_tables
 test_globe_gates_guards
 test_globe_input_parity
 test_minimap_vendor_marker

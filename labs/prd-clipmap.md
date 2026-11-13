@@ -239,6 +239,14 @@ streamer).
   inside the frame budget (L3), and its rows are already chunked against
   the deadline (probe_clipmap G5 pins < 40 ms; it is now ~5 ms).
 
+- **The zone spawn rung reads the clipmap's promise, not its internals.**
+  Placement (prd-world.md sec. 2d) streams enemies by proximity on a
+  throttled `reconcile`, reading only the shared `walk_surface_h`/
+  `terrain_height` law -- so it is honest under either renderer and never
+  assumes the fine ground extends past the player-centred rings. Spawn
+  positions are deterministic (key-seeded scatter), so server and clients
+  agree without sharing the clipmap's per-client LOD state.
+
 ## 8. Slow systems found this round (fix candidates)
 
 The clipmap work measured the ground law directly and turned up several
