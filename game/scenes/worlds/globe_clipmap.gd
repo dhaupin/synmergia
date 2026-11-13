@@ -36,6 +36,8 @@ extends RefCounted
 
 const FacePatches = preload("res://core/frame/math/icosahedral_faces.gd")
 const TerrainGen = preload("res://scenes/worlds/terrain_gen.gd")
+const PropLayer = preload("res://core/world/prop_layer.gd")
+const TerrainProvider = preload("res://scenes/worlds/terrain_provider.gd")
 
 signal face_changed(old_face: int, new_face: int)
 signal patch_loaded(face: int)
@@ -87,6 +89,7 @@ var _last_player_dir: Vector3 = Vector3.ZERO
 ## Incremental build jobs, near-first: each {kind, level, cursor, st, grid}.
 var _jobs: Array = []
 var _building: bool = false
+var _prop_layer = null            # PropLayer: the chunk-addressed flora
 ## Parallel cold-build book (build_all): per-job derived vertex arrays
 ## cross the mutex from the workers; the meshes are installed on the
 ## main thread (the streamer's derive/apply split, same law).
@@ -116,6 +119,12 @@ func configure(p_radius: float, _p_target_edge: float, p_parent: Node3D) -> void
 		_ring_meshes.append(null)
 		_ring_tris.append(0)
 		_ring_built.append(false)
+	# THE PROP LAYER (labs/prd-clipmap.md 9): the ground MESH and the flora
+	# are two systems. The clipmap draws the ground; this chunk-addressed
+	# layer streams the trees/rocks/detail around the player, shared with
+	# every renderer and every world through a GroundProvider.
+	_prop_layer = PropLayer.new()
+	_prop_layer.configure(TerrainProvider.new(), p_radius, _root)
 
 
 func terrain_on_flag() -> bool:
@@ -140,6 +149,10 @@ func update(player_pos: Vector3) -> Dictionary:
 		_queue_all()
 
 	var built: Array = _advance_build(BUDGET_MS)
+
+	# The flora streams on the SAME player position, independent of the mesh.
+	if _prop_layer != null and terrain_on:
+		_prop_layer.update(player_pos)
 
 	if old_face != current_face:
 		face_changed.emit(old_face, current_face)
@@ -344,7 +357,16 @@ func _mesh_pending() -> int:
 
 
 func _prop_pending() -> int:
-	return 0
+	if _prop_layer == null:
+		return 0
+	return _prop_layer.pending_build()
+
+
+## The built flora node count (probe/census surface).
+func prop_count() -> int:
+	if _prop_layer == null:
+		return 0
+	return _prop_layer.built_count()
 
 
 func mesh_lane_stats() -> Dictionary:
