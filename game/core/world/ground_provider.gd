@@ -59,6 +59,19 @@ func spawn_dir() -> Vector3:
 	return Vector3(0, 1, 0)
 
 
+## The per-face fixed rock specs (labs/prd-clipmap.md 9.6): an array of
+## {dir, scale, yaw}. Default = none, so a world that scatters no per-face
+## stones never inherits another world's.
+func rock_specs(_face: int) -> Array:
+	return []
+
+
+## The per-face fixed boulder specs: an array of {dir, radius, yaw}.
+## Default = none.
+func boulder_specs(_face: int) -> Array:
+	return []
+
+
 ## The prop density for a biome, in props per square kilometre (trees).
 func tree_density(_biome_id: int) -> float:
 	return 0.0

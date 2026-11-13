@@ -99,6 +99,14 @@ func spawn_dir() -> Vector3:
 	return TerrainGen.SPAWN_CENTER
 
 
+func rock_specs(face: int) -> Array:
+	return TerrainGen.rock_specs(_seed, face)
+
+
+func boulder_specs(face: int) -> Array:
+	return TerrainGen.boulder_specs(_seed, face)
+
+
 func tree_density(bid: int) -> float:
 	return float(TREE_DENSITY_KM2.get(bid, 0.0))
 

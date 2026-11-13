@@ -32,6 +32,15 @@ const GLOW_TIDE_PERIOD_DAYS: float = 1.0
 
 const WorldRegistryScript = preload("res://core/frame/srv/world_registry.gd")
 const ResourceScan = preload("res://core/frame/srv/resource_scan.gd")
+const ClipmapScript = preload("res://scenes/worlds/globe_clipmap.gd")
+const UnderworldProviderScript = preload("res://scenes/worlds/underworld_provider.gd")
+const SurfacePadScript = preload("res://core/world/surface_pad.gd")
+
+## The draw lift (mirrors globe_clipmap.TILE_LIFT).
+## The Deep Root's authored geometry rides the BASE shell (camp/cistern/
+## wilds are placed at planet_radius), so the clipmap draws with NO lift and
+## the walk line == the authored line == planet_radius + ground_height.
+const TILE_LIFT: float = 0.0
 
 var world_root: Node3D
 var planet_center: Vector3 = Vector3.ZERO
@@ -45,6 +54,9 @@ var _sky_mat: ShaderMaterial = null
 var _strata_light: DirectionalLight3D = null
 var _npc_spawns: Array = []
 var _visitors: Dictionary = {}
+var _provider = null            # UnderworldProvider: the ground law
+var _clipmap = null             # GlobeClipmap: the drawn terrain
+var _pad = null                 # SurfacePad: the terrain-conforming collider
 
 
 func _ready() -> void:
@@ -61,7 +73,9 @@ func _ready() -> void:
 	add_child(world_root)
 	add_to_group("globe_moons")
 	planet_center = world_root.position
+	_provider = UnderworldProviderScript.new()
 	_build_shell()
+	_build_terrain()
 	_build_interior_sky()
 	_build_deep_light()
 	_build_camp()
@@ -94,7 +108,9 @@ func receive_visitor(body: Node) -> void:
 		body.set("planet_radius", planet_radius)
 	# Land at the camp head (world_root local coords; the camp is the
 	# arrival hall of the Deep Root).
-	body.global_position = world_root.global_position + CAMP_HEAD_POS + Vector3(0, PLAYER_SKIN + 0.4, 0)
+	var land_dir: Vector3 = CAMP_HEAD_POS.normalized()
+	var land_h: float = float(_provider.walk_height(land_dir)) if _provider != null else 0.0
+	body.global_position = world_root.global_position + CAMP_HEAD_POS + Vector3(0, TILE_LIFT + land_h + PLAYER_SKIN + 0.4, 0)
 	if "velocity" in body:
 		body.set("velocity", Vector3.ZERO)
 	_credit_arrival(body)
@@ -113,6 +129,8 @@ func release_visitor(body: Node) -> void:
 			ocean.forget_swimmer(pid)
 	if _visitors.is_empty():
 		GameLog.info("GlobeUnderworld: last visitor gone -- the Deep Root folds back into derivation")
+		if _clipmap != null and _clipmap.has_method("async_shutdown"):
+			_clipmap.async_shutdown()
 		queue_free()
 
 
@@ -137,10 +155,14 @@ func _build_shell() -> void:
 	shell.physics_material_override = PhysicsMaterial.new()
 	shell.physics_material_override.friction = 1.0
 	shell.physics_material_override.bounce = 0.0
+	# The drawn ground is the clipmap now; the base sphere is a hidden
+	# backstop (the terrain-conforming pad is physics truth, the globe_world
+	# law). A visible shell would read as a second ground under the terrain.
 	var col := CollisionShape3D.new()
 	var sphere := SphereShape3D.new()
 	sphere.radius = planet_radius
 	col.shape = sphere
+	col.disabled = true
 	shell.add_child(col)
 	var mi := MeshInstance3D.new()
 	var mesh := SphereMesh.new()
@@ -153,8 +175,22 @@ func _build_shell() -> void:
 	mat.roughness = 1.0
 	mesh.material = mat
 	mi.mesh = mesh
+	mi.name = "ShellVisual"
+	mi.visible = false
 	shell.add_child(mi)
 	world_root.add_child(shell)
+
+
+## THE TERRAIN (labs/prd-clipmap.md 10): the same clipmap renderer the main
+## world uses now draws the Deep Root, backed by UnderworldProvider -- real
+## heightfield, the band biomes, and a terrain-conforming collider.
+func _build_terrain() -> void:
+	_clipmap = ClipmapScript.new()
+	_clipmap.configure(planet_radius, 7.0, world_root, _provider, TILE_LIFT)
+	_clipmap.terrain_on = true
+	_clipmap.build_all()
+	_pad = SurfacePadScript.new()
+	_pad.build(world_root, _provider, planet_radius, TILE_LIFT)
 
 
 ## THE INTERIOR SKY (S15.1, the underworld's one new primitive): an
@@ -215,6 +251,16 @@ func _process(_delta: float) -> void:
 	## (QuestService's swim bridge reads it for the Warden's quest).
 	## Positions are world_root-local (the volume data's planet truth).
 	if not _visitors.is_empty():
+		# THE TERRAIN STREAMS (labs/prd-clipmap.md 10): the clipmap recenters
+		# on each visitor and the pad keeps collision flush under them.
+		for pid_t in _visitors:
+			var body_t = _visitors[pid_t]
+			if body_t == null or not is_instance_valid(body_t):
+				continue
+			if _clipmap != null:
+				_clipmap.update(body_t.global_position - world_root.global_position)
+			if _pad != null:
+				_pad.update(body_t.global_position, world_root.global_position)
 		var ocean = get_node_or_null("/root/OceanService")
 		var thermo = get_node_or_null("/root/ThermalService")
 		if ocean != null:

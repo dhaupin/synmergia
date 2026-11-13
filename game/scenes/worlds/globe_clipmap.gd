@@ -86,6 +86,11 @@ var _ring_built: Array = []       # int level -> bool (has a live mesh)
 ## law through this seam, so the SAME renderer draws any globe. Default is the
 ## main world (TerrainProvider); a world passes its own into configure().
 var provider = null
+## The draw lift above the provider's ground (the tile-lift): the drawn mesh
+## sits this far above the walk line to avoid z-fighting. A world whose
+## authored geometry already rides the base shell passes 0 (so the draw and
+## the structures share one walk line).
+var draw_lift: float = TILE_LIFT
 
 ## Lattice state: the snapped centre direction (L1).
 var _center_dir: Vector3 = Vector3.ZERO
@@ -114,10 +119,11 @@ var _skin_mat: ShaderMaterial = null
 
 ## `p_provider` (optional): the world's GroundProvider. Omitted -> the main
 ## world's TerrainProvider (so existing callers keep working unchanged).
-func configure(p_radius: float, _p_target_edge: float, p_parent: Node3D, p_provider = null) -> void:
+func configure(p_radius: float, _p_target_edge: float, p_parent: Node3D, p_provider = null, p_draw_lift: float = TILE_LIFT) -> void:
 	radius = p_radius
 	parent = p_parent
 	provider = p_provider if p_provider != null else TerrainProvider.new()
+	draw_lift = p_draw_lift
 	world_seed = provider.seed_bytes() if provider.has_method("seed_bytes") else TerrainGen.world_seed_bytes()
 	_root = Node3D.new()
 	_root.name = "ClipmapRoot"
@@ -638,6 +644,6 @@ func _add_vert(st: SurfaceTool, v: Dictionary) -> void:
 ## ONCE per distinct vertex; the quad pass reuses the result.
 func _vertex_of(dir: Vector3) -> Dictionary:
 	if not terrain_on:
-		return {"p": dir * (radius + TILE_LIFT), "d": dir, "splat": Color(0.42, 0.55, 0.30), "aux": Vector2(0.0, 1.0)}
+		return {"p": dir * (radius + draw_lift), "d": dir, "splat": Color(0.42, 0.55, 0.30), "aux": Vector2(0.0, 1.0)}
 	var ss: Dictionary = provider.surface_sample(dir)
-	return {"p": dir * (radius + TILE_LIFT + float(ss["height"])), "d": dir, "splat": ss["splat"], "aux": ss["aux"]}
+	return {"p": dir * (radius + draw_lift + float(ss["height"])), "d": dir, "splat": ss["splat"], "aux": ss["aux"]}

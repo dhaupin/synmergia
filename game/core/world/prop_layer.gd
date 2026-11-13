@@ -93,6 +93,11 @@ func configure(p_provider, p_radius: float, p_parent: Node3D, p_depth: int = Pro
 	_root = Node3D.new()
 	_root.name = "PropLayerRoot"
 	p_parent.add_child(_root)
+	# The streaming radius scales with the globe: a 2 km world's 1600 m load
+	# radius would cover most of the sphere, so clamp to a fraction of the
+	# radius (the main world keeps its tuned 1600 m).
+	_load_radius = minf(1600.0, maxf(radius_m * 0.35, 120.0))
+	_unload_radius = _load_radius * 1.2
 	world_seed = provider.seed_bytes() if provider.has_method("seed_bytes") else TerrainGen.world_seed_bytes()
 	# The decorative salt: a day-granular session salt so canopies/grass
 	# recombine between sessions while anchored culture stays seed-stable.
@@ -300,6 +305,12 @@ func _derive_details(key: int, count: int, out: Dictionary) -> void:
 
 ## The detail kind for a biome (mirrors the streamer's tier ladder).
 func _detail_kind(bid: int, rng: RandomNumberGenerator) -> int:
+	# A world may own the biome->kind law (BiomeBand family dispatch); the
+	# provider returns -2 to defer to this built-in main-world ladder.
+	if provider != null and provider.has_method("detail_kind"):
+		var owned: int = provider.detail_kind(bid, rng)
+		if owned != -2:
+			return owned
 	match bid:
 		TerrainGen.BiomeId.SHORE:
 			var r: float = rng.randf()
@@ -360,7 +371,7 @@ func _bucket_face_content(face: int) -> void:
 		return
 	_rocks_faces_done[face] = true
 	var sea: float = provider.sea_level()
-	for s in TerrainGen.rock_specs(world_seed, face):
+	for s in provider.rock_specs(face):
 		var d: Vector3 = s.dir
 		var h: float = provider.ground_height(d)
 		if h < sea - 0.6:
@@ -370,7 +381,7 @@ func _bucket_face_content(face: int) -> void:
 			_rocks_by_chunk[k] = []
 		_rocks_by_chunk[k].append({"family": FAMILY_ROCK, "dir": d, "h": h,
 				"scale": s.scale, "yaw": s.yaw, "face": face})
-	for b in TerrainGen.boulder_specs(world_seed, face):
+	for b in provider.boulder_specs(face):
 		var d2: Vector3 = b.dir
 		var h2: float = provider.ground_height(d2)
 		if h2 < sea - 0.6:
