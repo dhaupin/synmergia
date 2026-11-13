@@ -1432,13 +1432,18 @@ engine binary is provisioned by `scripts/setup-dev.sh`, not by LFS.
   (the `_first_unmet_prereq` reader). The lint checks both resolve AND
   symmetry -- a one-sided link is drift. (Fixed `quest_main_teachings`,
   which lacked its back-edge to the Awakening.)
-- **Dead schema fields are the norm, not a bug.** `MountData.source` /
-  `source_ref` and most per-category fields (NPC `npc_type`/`shop_title`,
-  `guard.description`) have no reader -- the K3 baseline deliberately
-  closed 43 such phantom fields. Do NOT "wire up" a field just because
-  data authors it; confirm a real consumer exists first.
+- **Confirm a reader before you "wire up" a field.** Most per-category
+  schema fields are unread: `MountData.source_ref` has ZERO readers, and
+  `MountData.source` is consulted ONLY for the GM door (`source == GM` in
+  `ride_service.gd` + `sigil_sink_service.gd`) -- so every other value
+  (DROP/QUEST/EVENT/VENDOR/FACTION) is documentation, not an acquisition
+  gate. The K3 baseline deliberately closed 43 phantom fields (see
+  `labs/data-authoring-baseline.md` "Closed phantoms"). Do NOT add a
+  reader just because data authors a field -- confirm intent first; and do
+  NOT delete a field just because nothing reads it -- it may be a reserved
+  door for content not yet built.
 - **The sigil sink catalog is the live mount surface** (`sigil_sink_service
-  .gd SINKS`); `MountData.source` is the dead one. The catalog prices five
-  mounts the data marks `DROP` even though its own comment says "only
-  VENDOR is sold here" -- a known inconsistency left for a deliberate call
-  (re-source the mounts, or relax the comment), not a drive-by edit.
+  .gd SINKS`). It prices five mounts the data marks `DROP`
+  (lancer/wyrm/reef_glider/plains_runner) even though its own comment says
+  "only VENDOR is sold here" -- a known inconsistency left for a deliberate
+  call (re-source the mounts, or relax the comment), not a drive-by edit.
