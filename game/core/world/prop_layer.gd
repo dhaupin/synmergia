@@ -33,6 +33,17 @@ const FAMILY_ROCK: int = 1
 const FAMILY_BOULDER: int = 2
 const FAMILY_DETAIL: int = 3
 
+## Detail-prop kinds (the dense near-field layer).
+const KIND_TUFT: int = 0
+const KIND_FLOWER: int = 1
+const KIND_MUSHROOM: int = 2
+const KIND_MYCELIUM: int = 3
+const KIND_SHELL: int = 4
+const KIND_WRACK: int = 5
+const KIND_CATTAIL: int = 6
+const KIND_BUSH: int = 7
+const KIND_ORE: int = 8
+
 ## Per-frame build budget (ms) -- the clipmap's own L3 law.
 const BUILD_BUDGET_MS: int = 3
 
@@ -143,6 +154,8 @@ func _build_chunk(key: int, viewer_dir: Vector3) -> void:
 	var near: bool = center.angle_to(viewer_dir) * radius_m <= NEAR_RADIUS_M
 	for inst in data.get("instances", []):
 		_build_instance(inst, node, near)
+	if not data.get("tufts", []).is_empty():
+		_build_tuft_batch(data["tufts"], node)
 	_built[key] = node
 	_built_order.append(key)
 
@@ -161,7 +174,7 @@ func _derive_chunk(key: int) -> Dictionary:
 	var cached = _cache.get(key)
 	if cached != null:
 		return cached
-	var out: Dictionary = {"key": key, "instances": []}
+	var out: Dictionary = {"key": key, "instances": [], "tufts": []}
 	var center: Vector3 = PropChunk.chunk_center_dir(key, chunk_depth)
 	var area_km2: float = PropChunk.chunk_area_km2(radius_m, chunk_depth)
 	var bid: int = provider.biome_id(center)
@@ -179,6 +192,12 @@ func _derive_chunk(key: int) -> Dictionary:
 	var tree_n: int = _stochastic_count(tree_density * area_km2, _chunk_rng(key, "tcount"))
 	if tree_n > 0:
 		_derive_trees(key, tree_n, out)
+	# Detail props (the dense near-field layer: tufts, flowers, mushrooms,
+	# mycelium, shells, wrack, cattail, bush, ore).
+	var detail_density: float = provider.detail_density(bid)
+	var detail_n: int = _stochastic_count(detail_density * area_km2, _chunk_rng(key, "dcount"))
+	if detail_n > 0:
+		_derive_details(key, detail_n, out)
 	# Cache (LRU).
 	_cache[key] = out
 	_cache_order.append(key)
@@ -214,6 +233,123 @@ func _derive_trees(key: int, count: int, out: Dictionary) -> void:
 			"yaw": rng.randf_range(0.0, TAU),
 		})
 		placed += 1
+
+
+## Detail props: a biome-weighted kind per site, placed on the ground.
+## The kind law mirrors the streamer's tiers (tufts fill the meadow; the
+## wet bands grow mushrooms + mycelium; the dry bands split brush vs ore;
+## the shore splits shells vs kelp wrack; the marsh grows cattail; shrub
+## bands grow bushes).
+func _derive_details(key: int, count: int, out: Dictionary) -> void:
+	var rng: RandomNumberGenerator = _chunk_rng(key, "detail")
+	var sea: float = provider.sea_level()
+	var placed: int = 0
+	var attempts: int = 0
+	while placed < count and attempts < count * 3:
+		attempts += 1
+		var u: float = rng.randf()
+		var v: float = rng.randf()
+		var dir: Vector3 = PropChunk.cell_point(key, u, v, chunk_depth)
+		var bid: int = provider.biome_id(dir)
+		if provider.detail_density(bid) <= 0.0:
+			continue
+		var h: float = provider.ground_height(dir)
+		if h < sea - 0.6:
+			continue
+		var kind: int = _detail_kind(bid, rng)
+		if kind < 0:
+			continue
+		if kind == KIND_TUFT:
+			# The tuft field is one MultiMesh per chunk (the batch law).
+			out["tufts"].append({"dir": dir, "h": h,
+					"scale": rng.randf_range(0.7, 1.6), "yaw": rng.randf_range(0.0, TAU)})
+			placed += 1
+			continue
+		var rec: Dictionary = {"family": FAMILY_DETAIL, "kind": kind, "dir": dir, "h": h, "bid": bid}
+		match kind:
+			KIND_FLOWER:
+				rec["stem_h"] = rng.randf_range(0.20, 0.38)
+				rec["r_h"] = rng.randf_range(0.055, 0.105)
+				rec["pal"] = rng.randi() % 5
+			KIND_MUSHROOM:
+				rec["cap_r"] = rng.randf_range(0.10, 0.30)
+				rec["stem_h"] = rng.randf_range(0.18, 0.55)
+				rec["pal"] = rng.randi() % 4
+			KIND_MYCELIUM:
+				rec["patch_r"] = rng.randf_range(0.5, 1.3)
+				rec["hue"] = rng.randf()
+			KIND_SHELL:
+				rec["r_s"] = rng.randf_range(0.05, 0.12)
+			KIND_WRACK:
+				rec["r_w"] = rng.randf_range(0.25, 0.55)
+				rec["tint"] = rng.randf()
+			KIND_CATTAIL:
+				rec["h_stalk"] = rng.randf_range(0.9, 1.4)
+			KIND_BUSH:
+				rec["r_b"] = rng.randf_range(0.4, 0.9)
+				rec["tint_r"] = 0.22 + 0.1 * rng.randf()
+				rec["tint_g"] = 0.42 + 0.1 * rng.randf()
+			KIND_ORE:
+				rec["r_o"] = rng.randf_range(0.35, 0.7)
+			_:
+				rec["scale"] = rng.randf_range(0.7, 1.6)
+				rec["yaw"] = rng.randf_range(0.0, TAU)
+		out["instances"].append(rec)
+		placed += 1
+
+
+## The detail kind for a biome (mirrors the streamer's tier ladder).
+func _detail_kind(bid: int, rng: RandomNumberGenerator) -> int:
+	match bid:
+		TerrainGen.BiomeId.SHORE:
+			var r: float = rng.randf()
+			if r < 0.60:
+				return KIND_SHELL
+			if r < 0.77:
+				return KIND_WRACK
+			return -1  # bare sand
+		TerrainGen.BiomeId.SWAMP:
+			var fs: float = rng.randf()
+			if fs < 0.14:
+				return KIND_MUSHROOM
+			if fs < 0.22:
+				return KIND_MYCELIUM
+			if fs < 0.35:
+				return KIND_CATTAIL
+			if fs < 0.55:
+				return KIND_BUSH
+			return KIND_TUFT
+		TerrainGen.BiomeId.FOREST, TerrainGen.BiomeId.JUNGLE, TerrainGen.BiomeId.TAIGA:
+			var ff: float = rng.randf()
+			if ff < 0.14:
+				return KIND_MUSHROOM
+			if ff < 0.22:
+				return KIND_MYCELIUM
+			if ff < 0.35:
+				return KIND_BUSH
+			if ff < 0.45:
+				return KIND_FLOWER
+			return KIND_TUFT
+		TerrainGen.BiomeId.DESERT, TerrainGen.BiomeId.BADLANDS, \
+		TerrainGen.BiomeId.TUNDRA, TerrainGen.BiomeId.STEPPE, TerrainGen.BiomeId.ALPINE:
+			if rng.randf() < 0.55:
+				return KIND_TUFT
+			return KIND_ORE
+		TerrainGen.BiomeId.GRASSLAND:
+			var fg: float = rng.randf()
+			if fg < 0.10:
+				return KIND_FLOWER
+			if fg > 0.82:
+				return KIND_BUSH
+			return KIND_TUFT
+		TerrainGen.BiomeId.SAVANNA, TerrainGen.BiomeId.ALPINE_MEADOW:
+			var fv: float = rng.randf()
+			if fv < 0.06:
+				return KIND_FLOWER
+			if fv > 0.86:
+				return KIND_BUSH
+			return KIND_TUFT
+	return -1
 
 
 ## Bucket a face's fixed rock/boulder specs into their chunks (once per
@@ -278,6 +414,239 @@ func _build_instance(inst: Dictionary, node: Node3D, near: bool) -> void:
 			_build_rock(inst, node)
 		FAMILY_BOULDER:
 			_build_boulder(inst, node)
+		FAMILY_DETAIL:
+			_build_detail(inst, node)
+
+
+## Detail prop build: tufts go to the batch (below); the rest are small nodes.
+func _build_detail(inst: Dictionary, node: Node3D) -> void:
+	match int(inst.get("kind", -1)):
+		KIND_FLOWER:
+			_build_flower(inst, node)
+		KIND_MUSHROOM:
+			_build_mushroom(inst, node)
+		KIND_MYCELIUM:
+			_build_mycelium(inst, node)
+		KIND_SHELL:
+			_build_shell(inst, node)
+		KIND_WRACK:
+			_build_wrack(inst, node)
+		KIND_CATTAIL:
+			_build_cattail(inst, node)
+		KIND_BUSH:
+			_build_bush(inst, node)
+		KIND_ORE:
+			_build_ore(inst, node)
+
+
+## The tuft field: one MultiMesh per chunk (a node per blade would flood
+## the tree; the streamer paints the field the same way).
+func _build_tuft_batch(tufts: Array, node: Node3D) -> void:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = _shared_tuft_mesh()
+	mm.instance_count = tufts.size()
+	for i in range(tufts.size()):
+		var t: Dictionary = tufts[i]
+		var dir: Vector3 = t["dir"]
+		var up: Vector3 = dir
+		var hint := Vector3(0, 1, 0)
+		if absf(up.dot(hint)) > 0.999:
+			hint = Vector3(1, 0, 0)
+		var east: Vector3 = (hint - up * hint.dot(up)).normalized()
+		var b := Basis(east, up, east.cross(up)).rotated(up, float(t["yaw"])).scaled(Vector3.ONE * float(t["scale"]))
+		mm.set_instance_transform(i, Transform3D(b, dir * (radius_m + float(t["h"]))))
+	var mmi := MultiMeshInstance3D.new()
+	mmi.name = "Tufts"
+	mmi.multimesh = mm
+	mmi.material_override = _tuft_material()
+	node.add_child(mmi)
+
+
+## A tuft: a thin tapered cone (a blade clump), pivoted at the ground.
+func _shared_tuft_mesh() -> Mesh:
+	var key: String = "tuft"
+	if _mesh_registry.has(key):
+		return _mesh_registry[key]
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = 0.02
+	mesh.bottom_radius = 0.09
+	mesh.height = 0.35
+	mesh.radial_segments = 5
+	mesh.rings = 1
+	mesh.cap_top = false
+	_mesh_registry[key] = mesh
+	return mesh
+
+
+func _tuft_material() -> StandardMaterial3D:
+	var key: String = "tuft_mat"
+	if _mesh_registry.has(key):
+		return _mesh_registry[key]
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.30, 0.44, 0.20)
+	mat.roughness = 1.0
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_mesh_registry[key] = mat
+	return mat
+
+
+func _build_flower(inst: Dictionary, node: Node3D) -> void:
+	var dir: Vector3 = inst["dir"]
+	var base: Vector3 = dir * (radius_m + float(inst["h"]))
+	var g := Node3D.new()
+	g.name = "Flower%d" % node.get_child_count()
+	g.position = base
+	var stem_h: float = float(inst["stem_h"])
+	var stem := MeshInstance3D.new()
+	stem.mesh = _shared_cyl(0.022, 0.022, stem_h)
+	stem.position = Vector3(0.0, stem_h * 0.5, 0.0)
+	var smat := StandardMaterial3D.new()
+	smat.albedo_color = Color(0.25, 0.40, 0.18)
+	stem.material_override = smat
+	g.add_child(stem)
+	var head := MeshInstance3D.new()
+	head.mesh = _shared_sphere(float(inst["r_h"]), 1.3)
+	head.position = Vector3(0.0, stem_h, 0.0)
+	var hmat := StandardMaterial3D.new()
+	hmat.albedo_color = _bloom_palette()[int(inst["pal"]) % _bloom_palette().size()]
+	head.material_override = hmat
+	g.add_child(head)
+	node.add_child(g)
+
+
+func _bloom_palette() -> Array:
+	return [Color(0.95, 0.85, 0.35), Color(0.90, 0.45, 0.60), Color(0.75, 0.55, 0.90),
+			Color(0.95, 0.60, 0.30), Color(0.92, 0.92, 0.88)]
+
+
+func _build_mushroom(inst: Dictionary, node: Node3D) -> void:
+	var dir: Vector3 = inst["dir"]
+	var base: Vector3 = dir * (radius_m + float(inst["h"]))
+	var g := Node3D.new()
+	g.name = "Mushroom%d" % node.get_child_count()
+	g.position = base
+	var stem_h: float = float(inst["stem_h"])
+	var stem := MeshInstance3D.new()
+	stem.mesh = _shared_cyl(0.04, 0.04, stem_h)
+	stem.position = Vector3(0.0, stem_h * 0.5, 0.0)
+	var smat := StandardMaterial3D.new()
+	smat.albedo_color = Color(0.85, 0.82, 0.72)
+	stem.material_override = smat
+	g.add_child(stem)
+	var cap := MeshInstance3D.new()
+	cap.mesh = _shared_sphere(float(inst["cap_r"]), 1.5)
+	cap.position = Vector3(0.0, stem_h + float(inst["cap_r"]) * 0.2, 0.0)
+	cap.scale = Vector3(1.0, 0.6, 1.0)
+	var cmat := StandardMaterial3D.new()
+	cmat.albedo_color = [Color(0.75, 0.30, 0.25), Color(0.55, 0.35, 0.70),
+			Color(0.85, 0.70, 0.30), Color(0.35, 0.55, 0.45)][int(inst["pal"]) % 4]
+	cap.material_override = cmat
+	g.add_child(cap)
+	node.add_child(g)
+
+
+func _build_mycelium(inst: Dictionary, node: Node3D) -> void:
+	var dir: Vector3 = inst["dir"]
+	var mi := MeshInstance3D.new()
+	mi.name = "Mycelium%d" % node.get_child_count()
+	var r: float = float(inst["patch_r"])
+	var disc := CylinderMesh.new()
+	disc.top_radius = r
+	disc.bottom_radius = r
+	disc.height = 0.03
+	disc.radial_segments = 10
+	mi.mesh = disc
+	var mat := StandardMaterial3D.new()
+	var hue: float = float(inst["hue"])
+	mat.albedo_color = Color(0.35 + 0.2 * hue, 0.30, 0.55 + 0.2 * (1.0 - hue))
+	mat.emission_enabled = true
+	mat.emission = Color(0.30, 0.45, 0.75)
+	mat.emission_energy_multiplier = 1.2
+	mi.material_override = mat
+	mi.position = dir * (radius_m + float(inst["h"]) + 0.03)
+	node.add_child(mi)
+
+
+func _build_shell(inst: Dictionary, node: Node3D) -> void:
+	var dir: Vector3 = inst["dir"]
+	var r: float = float(inst["r_s"])
+	var mi := MeshInstance3D.new()
+	mi.name = "Shell%d" % node.get_child_count()
+	mi.mesh = _shared_sphere(r, 1.4)
+	mi.scale = Vector3(1.0, 0.5, 1.0)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.92, 0.90, 0.84)
+	mi.material_override = mat
+	mi.position = dir * (radius_m + float(inst["h"]) + r * 0.35)
+	node.add_child(mi)
+
+
+func _build_wrack(inst: Dictionary, node: Node3D) -> void:
+	var dir: Vector3 = inst["dir"]
+	var r: float = float(inst["r_w"])
+	var mi := MeshInstance3D.new()
+	mi.name = "Wrack%d" % node.get_child_count()
+	mi.mesh = _shared_sphere(r, 1.5)
+	mi.scale = Vector3(1.0, 0.7, 1.0)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.42, 0.32, 0.18).lerp(Color(0.30, 0.24, 0.14), float(inst["tint"]))
+	mi.material_override = mat
+	mi.position = dir * (radius_m + float(inst["h"]) + r * 0.25)
+	node.add_child(mi)
+
+
+func _build_cattail(inst: Dictionary, node: Node3D) -> void:
+	var dir: Vector3 = inst["dir"]
+	var base: Vector3 = dir * (radius_m + float(inst["h"]) + 0.05)
+	var g := Node3D.new()
+	g.name = "Cattail%d" % node.get_child_count()
+	g.position = base
+	var h: float = float(inst["h_stalk"])
+	var stalk := MeshInstance3D.new()
+	stalk.mesh = _shared_cyl(0.02, 0.02, h)
+	stalk.position = Vector3(0.0, h * 0.5, 0.0)
+	var smat := StandardMaterial3D.new()
+	smat.albedo_color = Color(0.35, 0.45, 0.25)
+	stalk.material_override = smat
+	g.add_child(stalk)
+	var head := MeshInstance3D.new()
+	head.mesh = _shared_cyl(0.05, 0.05, 0.22)
+	head.position = Vector3(0.0, h - 0.1, 0.0)
+	var hmat := StandardMaterial3D.new()
+	hmat.albedo_color = Color(0.42, 0.30, 0.16)
+	head.material_override = hmat
+	g.add_child(head)
+	node.add_child(g)
+
+
+func _build_bush(inst: Dictionary, node: Node3D) -> void:
+	var dir: Vector3 = inst["dir"]
+	var r: float = float(inst["r_b"])
+	var mi := MeshInstance3D.new()
+	mi.name = "Bush%d" % node.get_child_count()
+	mi.mesh = _shared_sphere(r, 1.4)
+	mi.scale = Vector3(1.0, 0.8, 1.0)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(float(inst["tint_r"]), float(inst["tint_g"]), 0.22)
+	mi.material_override = mat
+	mi.position = dir * (radius_m + float(inst["h"]) + r * 0.25)
+	node.add_child(mi)
+
+
+func _build_ore(inst: Dictionary, node: Node3D) -> void:
+	var dir: Vector3 = inst["dir"]
+	var r: float = float(inst["r_o"])
+	var mi := MeshInstance3D.new()
+	mi.name = "Ore%d" % node.get_child_count()
+	mi.mesh = _shared_sphere(r, 1.2)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.28, 0.26, 0.30)
+	mat.metallic = 0.7
+	mat.roughness = 0.4
+	mi.material_override = mat
+	mi.position = dir * (radius_m + float(inst["h"]) + r * 0.2)
+	node.add_child(mi)
 
 
 ## The rock's biome color law (ported from the streamer: alpine/tundra gray,

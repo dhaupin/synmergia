@@ -30,8 +30,9 @@ func _init() -> void:
 	var spawn_density: float = layer.provider.tree_density(layer.provider.biome_id(TerrainGen.SPAWN_CENTER))
 	_check("A2 spawn biome grows trees (density > 0)", spawn_density > 0.0)
 
-	# A3: streaming builds chunks around the viewer.
-	layer.update(TerrainGen.SPAWN_CENTER * 20000.0)
+	# A3: streaming builds chunks around the viewer (several budgeted ticks).
+	for _i in range(40):
+		layer.update(TerrainGen.SPAWN_CENTER * 20000.0)
 	var built: int = layer.built_count()
 	_check("A3 streaming builds chunks near the viewer", built > 0)
 
