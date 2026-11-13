@@ -1,0 +1,46 @@
+[gd_resource type="Resource" script_class="HordeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/horde_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "bloom_cull"
+display_name = "The Bloom Cull"
+waves = [{
+"spawns": [{
+"template_id": "feral_spore_spider",
+"count": 5
+}],
+"reward_gold": -1,
+"reward_xp": -1
+}, {
+"spawns": [{
+"template_id": "blight_lizard",
+"count": 4
+}, {
+"template_id": "rust_root_crab",
+"count": 2
+}],
+"reward_gold": -1,
+"reward_xp": -1
+}, {
+"spawns": [{
+"template_id": "feral_spore_spider",
+"count": 4
+}, {
+"template_id": "shrike_owl",
+"count": 2
+}],
+"boss_template_id": "bloomwrought_warden",
+"boss_name": "Bloomwrought Warden",
+"reward_gold": 900,
+"reward_xp": 450
+}]
+boss_template_id = ""
+boss_name = ""
+bosses_alert = true
+reward_gold = 1800
+reward_xp = 900
+scale_levels = true
+inter_wave_delay = 6.0
+instance_scope = ""

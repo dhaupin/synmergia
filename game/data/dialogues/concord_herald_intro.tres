@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="DialogueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "concord_herald_intro"
+npc_id = "npc_concord_herald"
+display_name = "Concord Herald"
+nodes = [
+    {
+        "speaker": "Concord Herald",
+        "text": "You stand at the pillar. Sigils in, deeds out - that is the whole of the trade here. The Concord does not bury a coin, and it does not bless one either. It writes down what it saw.",
+        "choices": [
+            {"text": "What is this pillar, exactly?", "next_node": 1},
+            {"text": "What does the Concord keep?", "next_node": 2},
+            {"text": "Just looking. Farewell.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Concord Herald",
+        "text": "A ledger that happens to be made of stone. Steed deeds and degree stakes are sealed at this pillar - proof you did the thing, not a promise that you will. The sigils the webhook armor delivers go out from here. Never bartered. Never buried.",
+        "choices": [
+            {"text": "So you only record. You do not judge.", "next_node": 2},
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Concord Herald",
+        "text": "The Concord keeps attention, not verdicts. A clean sheet is a record too - we file those the same as the rest. If you want meaning, wait for the lock to come back. If you want a record, do the work and I will write it down.",
+        "choices": [
+            {"text": "Then I will bring you something worth writing.", "next_node": 3},
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Concord Herald",
+        "text": "The pillar keeps its own ledger. Come back when you have a deed to seal - not a story about one. May your deed ride true.",
+        "choices": []
+    }
+]

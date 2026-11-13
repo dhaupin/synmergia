@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/enemy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "bloomwrought_warden"
+display_name = "Bloomwrought Warden"
+description = "A Convergence sentinel the Bloom grafted where it stood. It still walks its old patrol around a vault that has not answered in centuries, roots grown through the joints, a violet mantle where the back-plate split, magenta burning in the visor-slit. It has not been ordered to stop. Nobody is left to order it. It is a patient, and it is still on duty."
+enemy_type = 2
+level = 46
+faction = "hostile"
+health = 5200
+mana = 300
+stamina = 220
+strength = 74
+agility = 46
+intelligence = 40
+vitality = 92
+attack_power = 138
+spell_power = 52
+armor = 72
+resistance = 44
+attack_range = 3.2
+attack_speed = 1.0
+move_speed = 4.0
+aggro_range = 16.0
+chase_range = 36.0
+wander_range = 12.0
+see_stealth = true
+is_aggressive = true
+is_passive = false
+is_elite = false
+is_boss = false
+is_social = true
+loot_table_id = "loot_bloom_corruption"
+secondary_loot_table_id = "loot_elite_ore"
+gold_min = 480
+gold_max = 780
+xp_reward = 5200
+skills = []
+movement_profile_id = ""
+hitbox_profile_id = "hitbox_humanoid"
+model_path = ""
+icon_path = ""
+scale = 1.6
+animation_set = "humanoid"
+respawn_time = 900.0
+despawn_time = 0.0
+difficulty_modifier = 2.6
