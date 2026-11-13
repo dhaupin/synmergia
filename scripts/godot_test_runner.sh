@@ -269,8 +269,6 @@ probe_conjured_ground
 probe_prop_layer
 probe_prop_port_laws
 probe_world_scoping
-probe_water_mounts
-probe_terrain_backend
 probe_round2_ui
 probe_character_panel
 probe_playtest_r12
