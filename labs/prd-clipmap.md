@@ -504,6 +504,21 @@ Each step is independently shippable and gated; no step leaves the world
 without flora.
 
 ### 11a. Progress (2026-11-04)
+- **Step 3e (density + the grass carpet) -- DONE (2026-11-13).** The prop
+  port shipped the FAMILIES but not the VOLUME: the scatter read sparse. Density
+  is the one art knob and it is DATA (per biome, in the provider), so this round
+  tuned it and added the missing family. `TREE_DENSITY_KM2` ~2.5x,
+  `DETAIL_DENSITY_KM2` ~3x. NEW family: the GRASS CARPET -- a per-biome
+  `GRASS_DENSITY_KM2` + a `grass_density(bid)` seam on `GroundProvider` (default
+  0 = bare); `PropLayer._derive_grass` derives a dense blade field and
+  `_build_grass_batch` paints it as ONE MultiMesh per chunk (the retired
+  streamer's tuft law), session-salted (decorative, not anchored culture),
+  bounded by `GRASS_PER_CHUNK_CAP`. The underworld glow meadow opts in; the moon
+  stays pristine regolith. NEW prop kinds: `KIND_CACTUS` (dry bands) + `KIND_FERN`
+  (wood bands). Instances: `InstancePropKit` ~2x + a flower kind. The
+  spawn-plains census went trees 49 -> 76, detail 311 -> 869, grass 0 -> 13,627
+  over the same 110 chunks. Receipts: `probe_prop_layer` (A11 grass carpet + A12
+  kind ladder), `probe_prop_density`, `probe_instance_props`, `probe_perf_budget`.
 
 - **Step 1 (extract) -- DONE.** `PropLayer` owns trees/rocks/boulders/details
   and now the DEEP family too: the Sundered Sea's kelp shelf + pearl trench
