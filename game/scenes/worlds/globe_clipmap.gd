@@ -87,6 +87,13 @@ var _last_player_dir: Vector3 = Vector3.ZERO
 ## Incremental build jobs, near-first: each {kind, level, cursor, st, grid}.
 var _jobs: Array = []
 var _building: bool = false
+## Parallel cold-build book (build_all): per-job derived vertex arrays
+## cross the mutex from the workers; the meshes are installed on the
+## main thread (the streamer's derive/apply split, same law).
+var _build_mutex := Mutex.new()
+var _build_results: Dictionary = {}
+var _build_next: int = 0
+var _build_jobs: Array = []
 
 ## The per-quantized-direction ground sample (L2): ONE fused cache now
 ## serves both the height and the colour -- TerrainGen owns the memo, so
@@ -147,10 +154,140 @@ func build_all() -> int:
 	if _center_dir == Vector3.ZERO:
 		var seed_dir: Vector3 = _last_player_dir if _last_player_dir != Vector3.ZERO else TerrainGen.SPAWN_CENTER
 		_center_dir = _snap_dir(seed_dir)
-	_queue_all()
-	while _jobs.size() > 0:
-		_advance_build(1000000.0)
+	_jobs.clear()
+	# S6 (labs/prd-clipmap.md): the cap + each ring is an INDEPENDENT
+	# derive, so the cold build fans them onto workers and installs the
+	# meshes on the main thread. The terrain law is thread-safe (the
+	# sector caches are mutex-guarded; the streamer already derives
+	# off-thread), so this is the same derive/apply split, not a new law.
+	var jobs: Array = [{"kind": "cap", "level": 0}]
+	for lvl in range(N_LEVELS):
+		jobs.append({"kind": "ring", "level": lvl})
+	var derived: Array = _derive_jobs(jobs)
+	for i in range(jobs.size()):
+		_install_mesh(str(jobs[i]["kind"]), int(jobs[i]["level"]), derived[i])
 	return Time.get_ticks_msec() - t0
+
+
+## The parallel-build gate: the streamer's mesh-lane setting
+## (synmergia/world/async_mesh, default on) so the boot-wall bench can
+## A/B both laws in one build; a single-core host stays serial.
+func _parallel_build_ok() -> bool:
+	var gate: bool = true
+	if ProjectSettings.has_setting("synmergia/world/async_mesh"):
+		gate = bool(ProjectSettings.get_setting("synmergia/world/async_mesh"))
+	return gate and OS.get_processor_count() > 1
+
+
+## Derive every job's vertex arrays, in order. Parallel when the gate
+## allows (one worker per job), else serial. Pure derives only -- no
+## shared clipmap state is touched off the main thread.
+## The worker count for the cold build: one per core, capped at the
+## job count. Oversubscribing (one thread PER job) contends the terrain
+## law's coarse per-cache mutexes and LOSES wall time -- measured, a
+## bounded pool is the win.
+func _build_workers() -> int:
+	return clampi(OS.get_processor_count(), 1, 16)
+
+
+func _derive_jobs(jobs: Array) -> Array:
+	var out: Array = []
+	out.resize(jobs.size())
+	if _parallel_build_ok() and jobs.size() > 1:
+		_build_mutex.lock()
+		_build_results.clear()
+		_build_next = 0
+		_build_jobs = jobs
+		_build_mutex.unlock()
+		var workers: int = mini(_build_workers(), jobs.size())
+		var threads: Array = []
+		for w in range(workers):
+			var t := Thread.new()
+			threads.append(t)
+			t.start(Callable(self, "_derive_worker"), Thread.PRIORITY_LOW)
+		for t in threads:
+			t.wait_to_finish()
+		_build_mutex.lock()
+		for i in range(jobs.size()):
+			out[i] = _build_results.get(i)
+		_build_results.clear()
+		_build_jobs = []
+		_build_mutex.unlock()
+		return out
+	for i in range(jobs.size()):
+		out[i] = _derive_job_arrays(str(jobs[i]["kind"]), int(jobs[i]["level"]))
+	return out
+
+
+## One pool worker: pull the next job index, derive it, store the arrays.
+## The counter + result book live behind _build_mutex.
+func _derive_worker() -> void:
+	while true:
+		_build_mutex.lock()
+		var idx: int = _build_next
+		_build_next += 1
+		var job: Dictionary = _build_jobs[idx] if idx < _build_jobs.size() else {}
+		_build_mutex.unlock()
+		if job.is_empty():
+			return
+		var arr: Array = _derive_job_arrays(str(job["kind"]), int(job["level"]))
+		_build_mutex.lock()
+		_build_results[idx] = arr
+		_build_mutex.unlock()
+
+
+## The full geometry of ONE job (cap or ring), derived with a local
+## SurfaceTool so it can run on a worker. The incremental tick path
+## builds the same geometry row-by-row instead (the time budget).
+func _derive_job_arrays(kind: String, level: int) -> Array:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	if kind == "cap":
+		var r0: float = radius * INNER_R_FRAC
+		var center: Dictionary = _vertex_of(_center_dir)
+		var rim: Array = []
+		for k in range(SEG):
+			rim.append(_vertex_of(_ring_dir(TAU * float(k) / float(SEG), r0)))
+		for ci in range(SEG):
+			var cj: int = (ci + 1) % SEG
+			_add_vert(st, center)
+			_add_vert(st, rim[ci])
+			_add_vert(st, rim[cj])
+	else:
+		var upper: Array = _ring_row(level, 0)
+		for ri in range(1, RSUB + 1):
+			var lower: Array = _ring_row(level, ri)
+			for ci in range(SEG):
+				_emit_quad(st, upper, lower, ci)
+			upper = lower
+	return st.commit_to_arrays()
+
+
+## Install a derived job's arrays as a mesh on the MAIN thread (the
+## MeshInstance3D + material live in the scene tree). Shared by the
+## parallel build and the incremental commit.
+func _install_mesh(kind: String, level: int, arrays: Array) -> void:
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	if kind == "cap":
+		if _cap_mesh == null:
+			_cap_mesh = MeshInstance3D.new()
+			_cap_mesh.name = "ClipmapCap"
+			_root.add_child(_cap_mesh)
+		_cap_mesh.mesh = mesh
+		_cap_mesh.set_surface_override_material(0, _skin_material())
+		return
+	var mi: MeshInstance3D = _ring_meshes[level]
+	if mi == null:
+		mi = MeshInstance3D.new()
+		mi.name = "ClipmapRing%d" % level
+		_root.add_child(mi)
+		_ring_meshes[level] = mi
+	mi.mesh = mesh
+	mi.set_surface_override_material(0, _skin_material())
+	_ring_tris[level] = RSUB * SEG * 2
+	_ring_built[level] = true
+	patch_loaded.emit(level)
 
 
 ## -- public reads (streamer parity) ------------------------------------
@@ -254,9 +391,14 @@ func _snap_dir(pdir: Vector3) -> Vector3:
 ## Queue every ring dirty, near-first (the centre cap first).
 func _queue_all() -> void:
 	_jobs.clear()
-	_jobs.append({"kind": "cap", "level": 0, "ri": 0, "ci": 0, "st": null, "grid": null})
+	_jobs.append(_new_job("cap", 0))
 	for lvl in range(N_LEVELS):
-		_jobs.append({"kind": "ring", "level": lvl, "ri": 0, "ci": 0, "st": null, "grid": null})
+		_jobs.append(_new_job("ring", lvl))
+
+
+func _new_job(kind: String, level: int) -> Dictionary:
+	return {"kind": kind, "level": level, "ri": 0, "ci": 0, "qci": 0, "phase": "row",
+		"st": null, "grid": [], "row": [], "center": null, "rim": []}
 
 
 ## Advance the incremental builder until `budget_ms` elapse or the queue
@@ -264,13 +406,17 @@ func _queue_all() -> void:
 ## checks, so a cold frame stays bounded.
 func _advance_build(budget_ms: float) -> Array:
 	var done: Array = []
-	var start: int = Time.get_ticks_msec()
+	# L3: the budget is honored INSIDE a row too -- a cold ring row is
+	# 128 derives (~50 ms), so the row/rim loops check this deadline per
+	# cell and resume next tick. Without it a re-centre tick spiked to a
+	# whole row (probe_clipmap G5).
+	var deadline: int = Time.get_ticks_msec() + int(maxf(1.0, budget_ms))
 	while _jobs.size() > 0:
 		var job: Dictionary = _jobs[0]
-		_step_job(job, done)
+		_step_job(job, done, deadline)
 		if int(job["ri"]) >= _job_rows(job) and int(job["ci"]) == 0:
 			_jobs.pop_front()
-		if float(Time.get_ticks_msec() - start) >= budget_ms:
+		if Time.get_ticks_msec() >= deadline:
 			break
 	return done
 
@@ -284,15 +430,18 @@ func _job_rows(job: Dictionary) -> int:
 ## One unit of job progress: the cap advances one angular cell per call;
 ## a ring advances one grid row per call (its verts are emitted when the
 ## row above arrives).
-func _step_job(job: Dictionary, done: Array) -> void:
+func _step_job(job: Dictionary, done: Array, deadline: int) -> void:
 	if job["kind"] == "cap":
-		_step_cap(job, done)
+		_step_cap(job, done, deadline)
 	else:
-		_step_ring(job, done)
+		_step_ring(job, done, deadline)
 
 
-func _step_cap(job: Dictionary, done: Array) -> void:
-	var r0: float = radius * INNER_R_FRAC
+## The cap: centre vertex, then the rim ring, then the fan cells -- each
+## phase chunked against `deadline` (L3: the 4 ms budget is honored INSIDE
+## a row; a cold 128-derive phase must not land whole). `phase` tracks
+## where we are so a mid-phase return resumes correctly.
+func _step_cap(job: Dictionary, done: Array, deadline: int) -> void:
 	var st_v = job["st"]
 	var st: SurfaceTool
 	if st_v == null:
@@ -301,25 +450,44 @@ func _step_cap(job: Dictionary, done: Array) -> void:
 		job["st"] = st
 	else:
 		st = st_v
+	var phase: String = str(job["phase"])
+	if job["center"] == null:
+		job["center"] = _vertex_of(_center_dir)
+		job["phase"] = "rim"
+		phase = "rim"
+	if phase == "rim":
+		var r0: float = radius * INNER_R_FRAC
+		var rim: Array = job["rim"]
+		var k: int = rim.size()
+		while k < SEG:
+			rim.append(_vertex_of(_ring_dir(TAU * float(k) / float(SEG), r0)))
+			k += 1
+			if k < SEG and Time.get_ticks_msec() >= deadline:
+				job["rim"] = rim
+				return
+		job["phase"] = "cells"
+		phase = "cells"
 	var ci: int = int(job["ci"])
-	var center_dir: Vector3 = _center_dir
-	var center_p: Vector3 = center_dir * (radius + TILE_LIFT + _memo_height(center_dir))
-	var cj: int = (ci + 1) % SEG
-	var da: Vector3 = _ring_dir(TAU * float(ci) / float(SEG), r0)
-	var db: Vector3 = _ring_dir(TAU * float(cj) / float(SEG), r0)
-	var pa: Vector3 = da * (radius + TILE_LIFT + _memo_height(da))
-	var pb: Vector3 = db * (radius + TILE_LIFT + _memo_height(db))
-	_add_vert(st, center_p, center_dir)
-	_add_vert(st, pa, da)
-	_add_vert(st, pb, db)
-	job["ci"] = ci + 1
-	if int(job["ci"]) >= SEG:
-		job["ri"] = 1
-		job["ci"] = 0
-		_commit_cap(st, done)
+	var center: Dictionary = job["center"]
+	var rim: Array = job["rim"]
+	while ci < SEG:
+		var cj: int = (ci + 1) % SEG
+		_add_vert(st, center)
+		_add_vert(st, rim[ci])
+		_add_vert(st, rim[cj])
+		ci += 1
+		if ci < SEG and Time.get_ticks_msec() >= deadline:
+			job["ci"] = ci
+			return
+	job["ri"] = 1
+	job["ci"] = 0
+	_commit_cap(st, done)
 
 
-func _step_ring(job: Dictionary, done: Array) -> void:
+## A ring: build each grid row, then emit the quads joining it to the row
+## above. Both loops are chunked against `deadline`; `phase` (row|quads)
+## keeps a mid-row / mid-quad return resumable.
+func _step_ring(job: Dictionary, done: Array, deadline: int) -> void:
 	var level: int = int(job["level"])
 	var st_v = job["st"]
 	var st: SurfaceTool
@@ -329,82 +497,82 @@ func _step_ring(job: Dictionary, done: Array) -> void:
 		job["st"] = st
 	else:
 		st = st_v
-	var grid_v = job["grid"]
-	var grid: Array
-	if grid_v == null:
-		grid = []
-		job["grid"] = grid
-	else:
-		grid = grid_v
+	var grid: Array = job["grid"]
 	var ri: int = int(job["ri"])
-	# Emit row ri's vertices (needed by the quad pass for rows ri-1..ri).
-	grid.append(_ring_row(level, ri))
-	# Quads between row ri-1 and row ri.
+	var phase: String = str(job["phase"])
+	if phase == "row":
+		var row: Array = job["row"]
+		var c: int = row.size()
+		while c < SEG:
+			row.append(_vertex_of(_ring_dir(TAU * float(c) / float(SEG), _row_radius(level, ri))))
+			c += 1
+			if c < SEG and Time.get_ticks_msec() >= deadline:
+				job["row"] = row
+				return
+		grid.append(row)
+		job["row"] = []
+		job["phase"] = "quads"
+		phase = "quads"
 	if ri >= 1:
 		var upper: Array = grid[ri - 1]
 		var lower: Array = grid[ri]
-		for ci in range(SEG):
-			var cj: int = (ci + 1) % SEG
-			var a: Dictionary = upper[ci]
-			var b: Dictionary = upper[cj]
-			var c: Dictionary = lower[cj]
-			var d: Dictionary = lower[ci]
-			_add_vert(st, a["p"], a["d"])
-			_add_vert(st, b["p"], b["d"])
-			_add_vert(st, c["p"], c["d"])
-			_add_vert(st, a["p"], a["d"])
-			_add_vert(st, c["p"], c["d"])
-			_add_vert(st, d["p"], d["d"])
+		var ci: int = int(job["qci"])
+		while ci < SEG:
+			_emit_quad(st, upper, lower, ci)
+			ci += 1
+			if ci < SEG and Time.get_ticks_msec() >= deadline:
+				job["qci"] = ci
+				return
 		grid[ri - 1] = null  # row consumed (keep memory flat)
 	job["ri"] = ri + 1
+	job["qci"] = 0
+	job["phase"] = "row"
 	if int(job["ri"]) >= RSUB + 1:
 		job["ri"] = RSUB + 1
 		job["ci"] = 0
 		_commit_ring(level, st, done)
 
 
-func _ring_row(level: int, ri: int) -> Array:
+func _row_radius(level: int, ri: int) -> float:
 	var r0: float = radius * INNER_R_FRAC
 	var r_in: float = r0 * pow(2.0, float(level))
 	var r_out: float = r_in * 2.0
-	var rr: float = r_in + (r_out - r_in) * float(ri) / float(RSUB)
+	return r_in + (r_out - r_in) * float(ri) / float(RSUB)
+
+
+func _ring_row(level: int, ri: int) -> Array:
+	var rr: float = _row_radius(level, ri)
 	var row: Array = []
 	for ci in range(SEG):
-		var dir: Vector3 = _ring_dir(TAU * float(ci) / float(SEG), rr)
-		var h: float = _memo_height(dir)
-		row.append({"p": dir * (radius + TILE_LIFT + h), "d": dir})
+		row.append(_vertex_of(_ring_dir(TAU * float(ci) / float(SEG), rr)))
 	return row
 
 
+## The one quad emitter (ring rows ri-1/ri, angular cell ci), shared by
+## the incremental tick path and the parallel cold build so the two can
+## never drift.
+func _emit_quad(st: SurfaceTool, upper: Array, lower: Array, ci: int) -> void:
+	var cj: int = (ci + 1) % SEG
+	var a: Dictionary = upper[ci]
+	var b: Dictionary = upper[cj]
+	var c: Dictionary = lower[cj]
+	var d: Dictionary = lower[ci]
+	_add_vert(st, a)
+	_add_vert(st, b)
+	_add_vert(st, c)
+	_add_vert(st, a)
+	_add_vert(st, c)
+	_add_vert(st, d)
+
+
 func _commit_cap(st: SurfaceTool, done: Array) -> void:
-	var arrays: Array = st.commit_to_arrays()
-	var mesh := ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	if _cap_mesh == null:
-		_cap_mesh = MeshInstance3D.new()
-		_cap_mesh.name = "ClipmapCap"
-		_root.add_child(_cap_mesh)
-	_cap_mesh.mesh = mesh
-	_cap_mesh.set_surface_override_material(0, _skin_material())
+	_install_mesh("cap", 0, st.commit_to_arrays())
 	done.append("cap")
 
 
 func _commit_ring(level: int, st: SurfaceTool, done: Array) -> void:
-	var arrays: Array = st.commit_to_arrays()
-	var mesh := ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	var mi: MeshInstance3D = _ring_meshes[level]
-	if mi == null:
-		mi = MeshInstance3D.new()
-		mi.name = "ClipmapRing%d" % level
-		_root.add_child(mi)
-		_ring_meshes[level] = mi
-	mi.mesh = mesh
-	mi.set_surface_override_material(0, _skin_material())
-	_ring_tris[level] = RSUB * SEG * 2
-	_ring_built[level] = true
+	_install_mesh("ring", level, st.commit_to_arrays())
 	done.append(level)
-	patch_loaded.emit(level)
 
 
 ## The planet-relative direction for angular cell `ang` at radius `rr`,
@@ -419,25 +587,26 @@ func _ring_dir(ang: float, rr: float) -> Vector3:
 	return (up * radius + east * (cos(ang) * rr) + north * (sin(ang) * rr)).normalized()
 
 
-func _add_vert(st: SurfaceTool, p: Vector3, dir: Vector3) -> void:
-	st.set_normal(dir)
-	var skin: Dictionary = _memo_color(dir)
-	st.set_color(skin["splat"])
-	st.set_uv2(skin["aux"])
+## Emit a prebuilt vertex (pos + skin already resolved by _vertex_of).
+## The ring quad pass emits each shared vertex up to 6x, so resolving the
+## full ground sample + splat ONCE per distinct vertex (not per emission)
+## is the S8 slow-system win: the splat is the priciest limb and it is
+## identical across a vertex's emissions.
+func _add_vert(st: SurfaceTool, v: Dictionary) -> void:
+	var p: Vector3 = v["p"]
+	st.set_normal(v["d"])
+	st.set_color(v["splat"])
+	st.set_uv2(v["aux"])
 	st.set_uv(Vector2(fposmod(p.x * 0.0015, 1.0), fposmod(p.z * 0.0015, 1.0)))
 	st.add_vertex(p)
 
 
 ## One fused ground_sample per vertex (TerrainGen memoizes it), feeding
-## both the height and the colour -- no parallel clipmap caches.
-func _memo_height(dir: Vector3) -> float:
+## both the height and the colour -- no parallel clipmap caches. Called
+## ONCE per distinct vertex; the quad pass reuses the result.
+func _vertex_of(dir: Vector3) -> Dictionary:
 	if not terrain_on:
-		return 0.0
-	return TerrainGen.ground_sample(dir, world_seed).height
-
-
-func _memo_color(dir: Vector3) -> Dictionary:
-	if not terrain_on:
-		return {"splat": Color(0.42, 0.55, 0.30), "aux": Vector2(0.0, 1.0)}
+		return {"p": dir * (radius + TILE_LIFT), "d": dir, "splat": Color(0.42, 0.55, 0.30), "aux": Vector2(0.0, 1.0)}
 	var gs = TerrainGen.ground_sample(dir, world_seed)
-	return TerrainGen.splat_skin_from(gs, world_seed, gs.height, 0.2)
+	var skin: Dictionary = TerrainGen.splat_skin_from(gs, world_seed, gs.height, 0.2)
+	return {"p": dir * (radius + TILE_LIFT + gs.height), "d": dir, "splat": skin["splat"], "aux": skin["aux"]}

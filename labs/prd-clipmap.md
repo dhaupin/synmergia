@@ -1,6 +1,7 @@
 # PRD: The Clipmap Terrain Renderer (replacing the icosa face streamer)
 
-> **Status:** v1 SHIPPED (2026-11-04). The default ground renderer is
+> **Status:** v1 SHIPPED (2026-11-04). Cold boot parallelised
+> (2026-11-04, S6: ~3 s -> ~2 s, bit-identical). The default ground renderer is
 > now the clipmap; the streamer is kept as a fallback. The world's
 > *addressing* stays icosahedral (NSC-9, `IcosahedralFaces`, zone/waypoint
 > math -- all of it is good and untouched). The world's *rendering* moved
@@ -217,9 +218,15 @@ streamer).
   from-space view (currently one static sample).
 - Decommissioning the streamer + its skirt/hot-reload machinery once the
   clipmap is the only path (a later cleanup round).
-- The **ground-law cold cost** (section 8) is the real ceiling: at 920 µs
-  per fresh vertex the clipmap's cold build is ~3 s. Caching + hysteresis
-  hide it, but shrinking the law itself would help every consumer.
+- The **ground-law cold cost** (section 8) is the real ceiling: at ~390 µs
+  per fresh fused sample the clipmap's cold build is ~2 s even after the
+  S6 parallel build. Caching + hysteresis hide it, but shrinking the law
+  itself (prd-ground-sample.md) would help every consumer.
+- The **cold build is parallel now** (S6): `build_all` derives the cap +
+  rings on a bounded worker pool and installs meshes on the main thread.
+  The incremental `update()` tick stays SERIAL on purpose -- it must run
+  inside the frame budget (L3), and its rows are already chunked against
+  the deadline (probe_clipmap G5 pins < 40 ms; it is now ~5 ms).
 
 ## 8. Slow systems found this round (fix candidates)
 
@@ -236,7 +243,7 @@ local fix -- but the user asked for anything slow to be recorded here.
 | S3 | `TerrainGen.water_table_raw` | **167 µs** cold | runs `_vnoise` twice + `climate_moisture` + `_terrain_height_base`; the moist/height inputs are re-derived by callers. | Memoize on the sector (already does) but ALSO expose a batch form so a mesh pass gets the whole row in one call (fewer per-call overheads). |
 | S4 | `TerrainGen.river_channel` | **111 µs** cold | IS sector-cached (`_channel_cache`), so only the first call per sector pays; the cost is the inner loop -- every river spec × every segment × 3 slerp samples, no bounding early-out. | Add a coarse bounding test (skip specs whose nearest endpoint is > the river's angular radius away) before the segment loop. |
 | S5 | The memo itself (`SectorCache`) | ~2 µs hit | fine, but the clipmap keys height and color separately, so a vertex costs two lookups. | One combined `(height, skin)` memo entry per quantized direction halves the lookups. |
-| S6 | Cold boot derive | ~3 s | the boot `build_all()` derives every ring vertex cold (no memo warm yet). | Warm the memo during the loading screen (a cheap pre-pass over the spawn sectors), or accept the 3 s behind a fade. |
+| S6 | Cold boot derive | **~2.0 s** (was ~3 s) | the boot `build_all()` derives every ring vertex cold (no memo warm yet). | **SHIPPED**: (a) the vertex skin is resolved ONCE per distinct vertex, not once per emission (the ring quad pass emits each shared vertex up to 6x); (b) `build_all` fans the cap + each ring onto a bounded worker pool (cores-sized) and installs the meshes on the main thread (the streamer's derive/apply split; the law is thread-safe). Bit-identical geometry, 1.5x faster cold. Still ~2 s because the cold ground-sample (~390 us) IS the cost. |
 | S7 | Streamer `_patches` machinery | 3945 lines | seams/skirts/hot-reload exist only because a face swaps wholesale. | Delete once the clipmap is the only path (7, Open items). |
 
 **Measured redundancy (instrumented `SectorCache`, partial clipmap

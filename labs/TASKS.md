@@ -7,6 +7,18 @@ commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
 
+## 2026-11-04cf -- world: S6 clipmap cold boot PARALLELISED + L3 honored within a row (staging, no PRs)
+- SESSION CONTEXT: prior session nuked; resumed on `staging`. Goal: S6 (the ~3 s clipmap cold boot, the last headline item behind the clipmap round).
+- BASELINE: `bench_clipmap_coldboot` BUILD_ALL_MS=3117, VERTEX_COUNT=31104, TRIS=10240, SAMPLE_COLD_US=440, WARM=2.6. `diag_law_limbs`: cold `ground_sample` (fused) ~390 us is the dominant limb -- the clipmap issues ~5.4k distinct cold derives at boot, so ~2 s IS the law's cost; the design question is only how to spread it.
+- S6 SHIPPED (`globe_clipmap.gd`): (a) `_ring_row` now builds the FULL vertex dict (pos + skin) ONCE and `_add_vert` takes the prebuilt dict -- the ring quad pass emits each shared vertex up to 6x, so the old path recomputed the splat skin per emission (the S8 catch, now closed for the cold path too); (b) `build_all` fans the cap + each ring onto a **bounded worker pool** (cores-sized, `synmergia/world/async_mesh` gate) and installs the meshes on the MAIN thread (the streamer's derive/apply split; the terrain law is thread-safe -- sector caches are mutex-guarded, the streamer already derives off-thread). The incremental `update()` tick stays SERIAL (it must live inside the frame budget).
+- MEASURED A/B (`ASYNC_MESH=off|on`, one boot per process): 2905 -> 1940 ms cold (~1.5x), GEO_HASH identical (bit-identical geometry). `diag_thread_scale` shows the law scales ~2.2x on 4 cores; one-thread-PER-job oversubscribed and LOST (6 threads on 4 cores, per-job 2000 ms) -- the bounded pool is the win.
+- L3 FIX (drive-by, real): probe_clipmap G5 had regressed to 39-46 ms because a whole ring ROW (128 cold derives ~50 ms) was ATOMIC inside `_step_ring`/`_step_cap` -- the 4 ms budget was only checked BETWEEN rows. Both step functions are now chunked against an absolute `deadline` (per-cell, with a `phase` cursor so a mid-row/mid-rim return resumes), so L3 is honored INSIDE a row. G5 39 -> **5 ms** (was flaky at 40).
+- GATES: probe_clipmap ALL PASS (G1 0.52 / G1b 0.52 / G2 10240 / G3 / G4 28.00 / G5 5 ms); probe_ground_law_audit ALL PASS; test_terrain_determinism exit 0; test_terrain_splat_skin 25 green; probe_terrain_climate 32 ALL PASS; probe_globe_world ALL PASS (scale gate -> streamer); probe_terrain_backend 11/0; lint 37/0; naming 30/0; zero SCRIPT ERROR.
+- DOCS: `prd-clipmap.md` S6 row + section 7 updated (parallel cold build shipped; incremental tick stays serial + chunked); `probe_clipmap` + `probe_ground_law_audit` added to the runner DEFAULT_SET.
+- REMAINING: the residual ~2 s is the cold fused-sample cost itself -- prd-ground-sample.md (shrinking the law) is the only lever left; hysteresis + the incremental tick already hide it in play.
+- PUSHED: `staging`.
+
+
 ## 2026-11-04ce -- world: GroundSample refactor STAGES 0-2 SHIPPED (staging, no PRs)
 - SESSION CONTEXT: continued on `staging`. "continue building" -- the scoped GroundSample refactor (the real fix behind S1-S4).
 - STAGE 0 SHIPPED (`tests/probe_ground_sample.gd`): the bit-identical safety net -- asserts `TerrainGen.ground_sample(dir, seed)` == the individual public laws EXACTLY (not epsilon) across 246 dirs (spiral + the authored anchors), plus purity + memo identity + vertex_color/splat_skin purity. Lands FIRST and stays green through every stage.
