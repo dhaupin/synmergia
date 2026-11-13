@@ -139,6 +139,31 @@ func _run() -> void:
 	_check("structure names match the authored layout", names_ok)
 	_check("the village carries the 8 authored structure+prop nodes", prop_names == 8)
 	_check("the village roster spawns the NPC entities (>= 5 of 6)", npc_entities >= 5)
+	# ORIENTATION LAW (the sideways/backwards bug): every village NPC body
+	# must stand on the surface -- its local +Y within a small epsilon of the
+	# radial up at its position -- not world-Y up (which tilts it off the
+	# sphere on the globe). _spawn_town_npc radial-aligns the body.
+	var up_ok := true
+	var up_checked := 0
+	var pc: Vector3 = globe.get("planet_center")
+	for child in village.get_children():
+		if str(child.name) in expected:
+			continue
+		var body := child as Node3D
+		if body == null:
+			continue
+		var rel: Vector3 = body.global_position - pc
+		if rel.length() < 0.001:
+			continue
+		var radial: Vector3 = rel.normalized()
+		var local_up: Vector3 = body.global_transform.basis.y.normalized()
+		up_checked += 1
+		if local_up.dot(radial) < 0.999:
+			up_ok = false
+			printerr("FAIL: NPC %s local up %s != radial %s (dot %.3f)" \
+				% [str(child.name), local_up, radial, local_up.dot(radial)])
+	_check("village NPCs stand radial (local +Y == surface up, %d checked)" % up_checked,
+		up_checked > 0 and up_ok)
 	# PropBody pins apply ONLY to the authored structures (props ride
 	# their OWN interaction bodies; NPCs are entities).
 	for child in village.get_children():

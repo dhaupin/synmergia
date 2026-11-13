@@ -16,5 +16,5 @@ spawn_offset = Vector3(-6, 0, -4)
 zone_id = "zone_village_center"
 includes = [
   {"type": "dialogue", "dialogue_id": "village_elder_greeting"},
-  {"type": "quest", "quest_ids": ["quest_wolves_hunt", "quest_herb_gathering"]}
+  {"type": "quest", "quest_ids": ["quest_wolves_hunt", "quest_herb_gathering", "quest_main_teachings", "quest_arena_trial", "quest_boar_tusks", "quest_wings_over_haven"]}
 ]

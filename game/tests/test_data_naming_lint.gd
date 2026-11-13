@@ -79,6 +79,22 @@ func _has_prefix(ids: Dictionary, prefix: String, label: String) -> void:
 func _file_text(dir_path: String, base: String) -> String:
 	return FileAccess.get_file_as_string("res://%s/%s.tres" % [dir_path, base])
 
+
+## Every quest id named in a text blob by any `"quest_ids": [...]` key
+## (inline NPC includes and offering files share this shape; entries may
+## sit on one line or wrap). Regex over the whole text, not line-based,
+## so a single-line include dict is parsed too.
+func _quest_ids_in(text: String) -> Array:
+	var out: Array = []
+	var re := RegEx.new()
+	re.compile("quest_ids\\\"?\\s*[:=]\\s*\\[([^\\]]*)\\]")
+	for m in re.search_all(text):
+		for part in m.get_string(1).split(","):
+			var v := part.strip_edges().trim_prefix("\"").trim_suffix("\"")
+			if v != "":
+				out.append(v)
+	return out
+
 func _load_display_names(dir_path: String) -> Dictionary:
 	var out: Dictionary = {}
 	var dir := DirAccess.open("res://" + dir_path)
@@ -292,6 +308,69 @@ func _run() -> void:
 		_ok("Offering quest_ids all resolve")
 	else:
 		_fail("Phantom offering quest refs: %s" % ", ".join(bad_offering_refs))
+
+	# --- NPC inline quest includes: shape + refs ---
+	# The inline quest include shape is {"type": "quest", "quest_ids": [...]}.
+	# A ref-based "quest" entry ({"type": "quest", "ref_id": ...}) is wrong:
+	# the loader never reads a ref_id on a quest include, so the hook is dead
+	# (npc_blacksmith_village shipped one). Every named quest id must resolve.
+	var bad_quest_includes: Array = []
+	for base in npc_ids:
+		var ntxt := _file_text("data/npc", base)
+		if not ntxt.contains("\"type\": \"quest\""):
+			continue
+		var qids := _quest_ids_in(ntxt)
+		if qids.is_empty():
+			bad_quest_includes.append("%s (quest include has no quest_ids)" % str(npc_ids[base]))
+			continue
+		for qv in qids:
+			if not quest_ids.values().has(qv):
+				bad_quest_includes.append("%s -> %s" % [str(npc_ids[base]), qv])
+	if bad_quest_includes.is_empty():
+		_ok("NPC inline quest includes use quest_ids and resolve")
+	else:
+		_fail("Bad NPC quest includes: %s" % ", ".join(bad_quest_includes))
+
+	# --- Quest reachability: every MAIN/SIDE quest is offered by some NPC ---
+	# A quest no NPC offers can never be accepted -- the includes graph (inline
+	# quest_ids + referenced quest-type offerings) is the real offer surface;
+	# QuestData.giver_npc_id is decorative (read nowhere). Auto-accepted quests
+	# are exempt (globe_world._accept_starter_quests).
+	var auto_accepted := {"quest_main_awakening": true, "quest_watch_the_sky": true}
+	var offered := {}
+	for base in npc_ids:
+		var ntxt2 := _file_text("data/npc", base)
+		for qv in _quest_ids_in(ntxt2):
+			offered[qv] = true
+		var rparts := ntxt2.split("\"ref_id\": \"")
+		for i in range(1, rparts.size()):
+			var rid2 := rparts[i].split("\"")[0]
+			var opath := "res://data/npc_offerings/%s.tres" % rid2
+			if not FileAccess.file_exists(opath):
+				continue
+			var otxt := FileAccess.get_file_as_string(opath)
+			if not otxt.contains("type = \"quest\""):
+				continue
+			for qv in _quest_ids_in(otxt):
+				offered[qv] = true
+	var unreachable: Array = []
+	for base in quest_ids:
+		var qid := str(quest_ids[base])
+		if auto_accepted.has(qid):
+			continue
+		var qtxt := _file_text("data/quests", base)
+		var qtype := -1
+		for line in qtxt.split("\n"):
+			var t3 := line.strip_edges()
+			if t3.begins_with("quest_type = "):
+				qtype = int(t3.trim_prefix("quest_type = "))
+				break
+		if (qtype == 0 or qtype == 1) and not offered.has(qid):
+			unreachable.append(qid)
+	if unreachable.is_empty():
+		_ok("Every MAIN/SIDE quest is offered by some NPC")
+	else:
+		_fail("Unreachable MAIN/SIDE quests: %s" % ", ".join(unreachable))
 
 	var bad_dialogue_refs: Array = []
 	for base in dialogue_ids:
