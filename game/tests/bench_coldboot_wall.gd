@@ -7,7 +7,7 @@
 ## Reports, per leg:
 ##   BOOT_WALL_MS   - the main-thread block between add_child and the
 ##     first process frame back (globe boot is synchronous inside).
-##   STEADY_FRAMES/MS - the drain to pending_derive()==0 (both async
+##   STEADY_FRAMES/MS - the drain to pending_jobs()==0 (both async
 ##     lanes); SYNC law = 0 derive jobs by construction.
 ##   FACES/TRIS     - the world census, constant across lanes (the
 ##     determinism tie: same bytes, different lane).
@@ -39,7 +39,7 @@ func _run() -> void:
 	var faces_boot: int = st.patch_count()
 	var drained := 0
 	var t1: int = Time.get_ticks_msec()
-	while st.pending_derive() > 0 and drained < DRAIN_CAP:
+	while st.pending_jobs() > 0 and drained < DRAIN_CAP:
 		await root.get_tree().physics_frame
 		drained += 1
 	var steady_ms: int = Time.get_ticks_msec() - t1
@@ -65,7 +65,7 @@ func _run() -> void:
 	# content class as the boot face). The REAL number is one
 	# ASYNC_MESH=on call on such hardware.
 	if lanes_on:
-		var ls: Dictionary = st.mesh_lane_stats()
+		var ls: Dictionary = st.lane_stats()
 		var t_face: float = float(ls.max_ms)
 		var neighbor_ms: float = maxf(0.0, float(ls.ms) - t_face)
 		var jobs: int = int(ls.jobs)

@@ -35,7 +35,7 @@ names even though the object it holds is a `GlobeClipmap`:
 - `_exit_tree()` called `streamer.async_shutdown()`; the clipmap keeps an
   `async_shutdown` for teardown -- fine, just the name.
 
-**FOLDED (2026-11-04).** The handle is `clipmap` (public, because ~32
+**FOLDED (2026-11-13).** The handle is `clipmap` (public, because ~32
 probes/tests read it via `get("clipmap")`; the sibling worlds keep their
 private `_clipmap` -- a deliberate divergence, the handle is the scene's
 public API), `_setup_streamer` -> `_setup_clipmap`, `STREAMER_TILE_LIFT` ->
@@ -66,7 +66,7 @@ The main world already HAS the declaration: `data/oceans/ocean_sundered_sea.tres
 the swim law were two separate laws on the main world (the moon/underworld
 already unified theirs).
 
-**FOLDED (2026-11-04).** The whole-sphere sea is structurally a SHELL, not a
+**FOLDED (2026-11-13).** The whole-sphere sea is structurally a SHELL, not a
 per-direction sheet: the clipmap's standing-water sheet only draws its ~5 km
 drawn reach, so it can never represent a body that wraps the globe (that reach
 limit is exactly why the sea-line guard at `globe_clipmap.gd` L763 exists --
@@ -93,23 +93,43 @@ forcing a wrong `albedo` override in the builder turns the look leg RED, and
 reverting restores green. The clipmap sheet's sea-line guard is untouched
 (still correct: the shell owns the sea, the sheet owns rivers/high ponds).
 
-### A3. Streamer-compat shims in `globe_clipmap.gd` (MEDIUM)
+### A3. Streamer-compat shims in `globe_clipmap.gd` (MEDIUM) -- FOLDED
 
-`globe_clipmap.gd` keeps a block of "streamer parity" methods so old callers
+`globe_clipmap.gd` kept a block of "streamer parity" methods so old callers
 and probes did not break: `pending_derive()`, `_mesh_pending()`,
 `_prop_pending()`, `mesh_lane_stats()`, `is_loaded()`, `active_faces()`,
 `triangle_count()`, `visible_patch_count()`, `world_seed`, `current_face`
-(L363-405 "public reads (streamer parity)"). These are honest API, but their
-NAMES are streamer lore.
+("public reads (streamer parity)"). These are honest API, but their NAMES
+were streamer lore.
 
-Real consumers today: `globe_world` (legit -- A1), and three probes/tests --
+Real consumers: `globe_world` (legit -- A1), and several probes/tests --
 `bench_coldboot_hose` (drains `pending_derive`/`_prop_pending`/`mesh_lane_stats`),
 `probe_prop_density` (`pending_derive`), `probe_walk_mesh_gap` (`pending_derive`),
-`probe_starter_village` (`_mesh_pending`).
+`probe_starter_village` (`_mesh_pending`), plus `probe_clipmap`,
+`probe_terrain_planet`, `probe_stream_flow_100m`, `probe_ground_law_audit`,
+`probe_planet_rebase_20km`, `diag_detail_kinds`, `probe_biodiversity_v7`,
+`test_globe_*`, `bench_coldboot_wall`, `support/globe_boot`.
 
-**Fold:** once A1 renames the caller, rename these to clipmap-native terms
-(`pending_jobs()`, `prop_pending()`, `lane_stats()`) and update the 4 probes.
-Low value on its own -- do it WITH A1 so the churn is one pass.
+**FOLDED (2026-11-13).** Renamed to clipmap-native terms (pure rename, no
+behavior change):
+- `pending_derive()` -> `pending_jobs()`
+- `_mesh_pending()` -> `mesh_pending()` (dropped the pseudo-private `_` --
+  it is a real drain seam, not an internal)
+- `_prop_pending()` -> `prop_pending()`
+- `mesh_lane_stats()` -> `lane_stats()`
+
+All ~20 consumer files updated. `is_loaded`/`active_faces`/`triangle_count`/
+`visible_patch_count`/`world_seed`/`current_face` are clipmap-native already
+(they describe the drawn terrain, not the retired streamer) and stay. The
+"public reads (streamer parity)" header + the shim comments were rewritten to
+describe the seams on their own terms.
+
+Receipts (all green, zero script errors): `probe_clipmap` ALL PASS,
+`probe_terrain_planet` 28/0, `probe_starter_village` ALL PASS,
+`probe_ground_law_audit` ALL PASS, `probe_world_boot_speed` ALL PASS,
+`test_globe_wildlife`/`test_globe_concord_loop`/`test_world_content_builder`/
+`test_globe_gates_guards` PASSED, `probe_prop_density`/`probe_walk_mesh_gap`
+exit 0 with full output.
 
 ### A4. `penrose` ground backend + chart-LOD overlay (MEDIUM -- decision)
 
@@ -243,12 +263,12 @@ ones sit on disk for deleted sources: `probe_meshcache_ram.gd.uid`,
 ## Recommended order
 
 1. ~~A1 + A3 (rename `streamer` -> `clipmap` in `globe_world` + the clipmap
-   parity shims)~~ **A1 DONE 2026-11-04** -- handle/`_setup_clipmap`/`TILE_LIFT`
-   renamed (+ all external callers). **A3 still open** (the clipmap's
-   streamer-parity shims; do it as its own pass now).
+   parity shims)~~ **DONE 2026-11-13** -- A1 (handle/`_setup_clipmap`/`TILE_LIFT`
+   + all external callers) AND A3 (parity shims -> `pending_jobs`/`mesh_pending`/
+   `prop_pending`/`lane_stats`).
 2. **B1** (delete the 16 verified-dead files, ~2,300 lines) -- zero risk.
 3. ~~A2 (main-world ocean from the `OceanVolume` declaration)~~ **DONE
-   2026-11-04** -- the sea shell is declaration-driven through `WaterKit`
+   2026-11-13** -- the sea shell is declaration-driven through `WaterKit`
    (see A2 above); no shell deletion (a whole-sphere sea is structurally a
    shell, not a sheet).
 4. **B2** (decide on `backend_penrose`, `game/debug/`, `dev2`/`dev_temp`).

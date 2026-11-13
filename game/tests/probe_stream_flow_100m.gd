@@ -141,7 +141,7 @@ func _run() -> void:
 func _settle(seconds: float = 30.0) -> void:
 	var st = _globe.get("clipmap")
 	var waited: float = 0.0
-	while st != null and st.pending_derive() > 0 and waited < seconds:
+	while st != null and st.pending_jobs() > 0 and waited < seconds:
 		await root.get_tree().physics_frame
 		waited += 1.0 / 60.0
 	for _i in range(4):
@@ -157,7 +157,7 @@ func _settle_player(seconds: float = 60.0) -> bool:
 	while waited < seconds:
 		await root.get_tree().physics_frame
 		waited += 1.0 / 60.0
-		if st.pending_derive() > 0:
+		if st.pending_jobs() > 0:
 			continue
 		if st.is_loaded(st.current_face):
 			return true

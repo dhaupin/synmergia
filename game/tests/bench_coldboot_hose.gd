@@ -87,8 +87,8 @@ func _run() -> void:
 
 		if now - t_start > 1000:
 			var pc: int = clipmap.patch_count()
-			var pend_m: int = clipmap.pending_derive()
-			var pend_p: int = clipmap._prop_pending()
+			var pend_m: int = clipmap.pending_jobs()
+			var pend_p: int = clipmap.prop_pending()
 			if pc == prev_patch_count and pc > 0 and pend_m == 0 and pend_p == 0:
 				if stable_since_msec == 0:
 					stable_since_msec = now
@@ -101,13 +101,13 @@ func _run() -> void:
 
 	var wall_ms := Time.get_ticks_msec() - t_start
 	var avg_frame_ms := frame_ms_total / maxf(1.0, float(frame_count))
-	var lane: Dictionary = clipmap.mesh_lane_stats() if clipmap.has_method("mesh_lane_stats") else {}
+	var lane: Dictionary = clipmap.lane_stats() if clipmap.has_method("lane_stats") else {}
 
 	print("HOSE__MODE=%s PANELS=" % mode)
 	print("  wall_ms=", wall_ms, " settled=", settled)
 	print("  patch_count=", clipmap.patch_count())
 	print("  frame_n=", frame_count, " peak_frame_ms=", peak_frame_ms, " avg_frame_ms=", avg_frame_ms)
-	print("  pending_mesh=", clipmap.pending_derive(), " pending_props=", clipmap._prop_pending())
+	print("  pending_mesh=", clipmap.pending_jobs(), " pending_props=", clipmap.prop_pending())
 	print("  lane_stats=", lane)
 
 	# Bounded drain before quit: with workers still in flight Godot
@@ -116,12 +116,12 @@ func _run() -> void:
 	# printing nothing on failure but staying honest via a flag.
 	var drained := true
 	var drain_deadline := Time.get_ticks_msec() + 40000
-	while clipmap.pending_derive() > 0:
+	while clipmap.pending_jobs() > 0:
 		await process_frame
 		if Time.get_ticks_msec() > drain_deadline:
 			drained = false
 			break
-	print("  drained=", drained, " lane_stats_after_drain=", (clipmap.mesh_lane_stats() if clipmap.has_method("mesh_lane_stats") else {}))
+	print("  drained=", drained, " lane_stats_after_drain=", (clipmap.lane_stats() if clipmap.has_method("lane_stats") else {}))
 
 	_teardown()
 	quit(0)

@@ -42,8 +42,8 @@ static func drain(globe: Node, tree: SceneTree) -> void:
 		return
 	var clipmap = globe.get("clipmap")
 	var deadline: int = Time.get_ticks_msec() + BOOT_TIMEOUT_MS
-	while clipmap != null and clipmap.has_method("_mesh_pending") \
-			and clipmap._mesh_pending() > 0 and Time.get_ticks_msec() < deadline:
+	while clipmap != null and clipmap.has_method("mesh_pending") \
+			and clipmap.mesh_pending() > 0 and Time.get_ticks_msec() < deadline:
 		await tree.process_frame
 	await tree.process_frame
 

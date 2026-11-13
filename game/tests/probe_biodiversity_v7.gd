@@ -38,7 +38,7 @@ func _run() -> void:
 		await root.get_tree().physics_frame
 	var clipmap = _globe.get("clipmap")
 	var waited := 0
-	while clipmap.pending_derive() > 0 and waited < 600:
+	while clipmap.pending_jobs() > 0 and waited < 600:
 		await root.get_tree().physics_frame
 		waited += 1
 	var pl = clipmap.prop_layer()

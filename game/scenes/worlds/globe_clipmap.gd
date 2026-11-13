@@ -360,7 +360,7 @@ func _install_mesh(kind: String, level: int, arrays: Array, water_arrays: Array 
 	patch_loaded.emit(level)
 
 
-## -- public reads (streamer parity) ------------------------------------
+## -- public reads (the drawn terrain's seams) --------------------------
 
 ## The WALK LAW: unchanged (law + small-rock caps). Physics + props ride
 ## this, never the mesh.
@@ -399,18 +399,17 @@ func visible_patch_count() -> int:
 	return patch_count()
 
 
-func pending_derive() -> int:
+func pending_jobs() -> int:
 	return _jobs.size()
 
 
-## Streamer-compat shims: probes/tests drain by waiting for the streamer's
-## async mesh lanes. The clipmap builds incrementally through _jobs, so the
-## same drain-wait reads the job queue.
-func _mesh_pending() -> int:
+## Drain-wait seam: probes/tests wait for the async build queue to empty
+## by polling this (the clipmap builds incrementally through _jobs).
+func mesh_pending() -> int:
 	return _jobs.size()
 
 
-func _prop_pending() -> int:
+func prop_pending() -> int:
 	if _prop_layer == null:
 		return 0
 	return _prop_layer.pending_build()
@@ -451,7 +450,8 @@ func _all_ground_meshes() -> Array:
 	return out
 
 
-func mesh_lane_stats() -> Dictionary:
+## Async build-lane census (probe/bench surface).
+func lane_stats() -> Dictionary:
 	return {"pending": _jobs.size(), "lanes": 0}
 
 

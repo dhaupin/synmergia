@@ -107,7 +107,7 @@ func _run() -> void:
 	# "nonexistent function" / null-Time errors at shutdown).
 	var st_probe = globe.get("clipmap")
 	var drain_deadline: int = Time.get_ticks_msec() + 60000
-	while st_probe != null and st_probe._mesh_pending() > 0 and Time.get_ticks_msec() < drain_deadline:
+	while st_probe != null and st_probe.mesh_pending() > 0 and Time.get_ticks_msec() < drain_deadline:
 		await process_frame
 	await process_frame
 

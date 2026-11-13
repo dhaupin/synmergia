@@ -111,7 +111,7 @@ func _initialize() -> void:
 		var moved: Vector3 = (Gen.SPAWN_CENTER * R + Vector3(0, 0, 1) * float(step) * 500.0).normalized()
 		st.update(moved * R)
 		var guard: int = 0
-		while st.pending_derive() > 0 and guard < 4000:
+		while st.pending_jobs() > 0 and guard < 4000:
 			st.update(moved * R)
 			guard += 1
 		tri_samples.append(st.triangle_count())

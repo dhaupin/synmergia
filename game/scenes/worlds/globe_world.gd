@@ -120,7 +120,7 @@ const WATER_ON: bool = true
 var water_body: MeshInstance3D = null
 
 ## The active ground renderer (GlobeClipmap); untyped -- preload-by-path
-## pattern. Exposes update/build_all/ground_meshes/pending_derive etc.
+## pattern. Exposes update/build_all/ground_meshes/pending_jobs etc.
 var clipmap
 
 var player  # GlobeWorldPlayer; untyped on purpose - set_script + dynamic

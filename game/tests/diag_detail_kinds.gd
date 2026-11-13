@@ -69,7 +69,7 @@ func _run() -> void:
 		await process_frame
 	var clipmap = _globe.get("clipmap")
 	var waited := 0
-	while clipmap.pending_derive() > 0 and waited < 300:
+	while clipmap.pending_jobs() > 0 and waited < 300:
 		await root.get_tree().physics_frame
 		waited += 1
 	for _i in range(20):

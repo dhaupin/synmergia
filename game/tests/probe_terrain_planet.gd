@@ -40,7 +40,7 @@ func _check(label: String, cond: bool) -> bool:
 func _drain_derives(deadline_ms: int) -> void:
 	var st = _globe.clipmap
 	var deadline: int = Time.get_ticks_msec() + deadline_ms
-	while st.pending_derive() > 0 and Time.get_ticks_msec() < deadline:
+	while st.pending_jobs() > 0 and Time.get_ticks_msec() < deadline:
 		await root.get_tree().physics_frame
 
 

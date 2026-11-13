@@ -60,7 +60,7 @@ func _run() -> void:
 	# The flora derives on worker threads; the census waits for the pending
 	# derive jobs to drain (bounded) before counting.
 	var waited := 0
-	while _globe.get("clipmap").pending_derive() > 0 and waited < 1200:
+	while _globe.get("clipmap").pending_jobs() > 0 and waited < 1200:
 		await root.get_tree().physics_frame
 		waited += 1
 	print("PENDING_DRAINED_after=", waited + 90, " frames, tmsec=", Time.get_ticks_msec() - t0)

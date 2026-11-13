@@ -85,9 +85,9 @@ func _run() -> void:
 	# reading the live patch count -- the steady-state ring is 4 (the
 	# continent shards use the same drain before their counts).
 	var st_d = _globe.get("clipmap")
-	if st_d != null and st_d.has_method("pending_derive"):
+	if st_d != null and st_d.has_method("pending_jobs"):
 		var drain := 0
-		while st_d.pending_derive() > 0 and drain < 900:
+		while st_d.pending_jobs() > 0 and drain < 900:
 			await root.get_tree().physics_frame
 			drain += 1
 	var facesD: Array = _globe.stream_active_faces()

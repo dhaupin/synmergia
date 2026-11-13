@@ -181,8 +181,8 @@ other gates use.
 | `is_loaded(face)` / `current_face` | the icosa face under the player (for the boot gate + truth line) |
 | `active_faces()` | the icosa face the clipmap is centred on |
 | `triangle_count()` / `patch_count()` / `visible_patch_count()` | clipmap tri/ring census |
-| `pending_derive()` / `_mesh_pending()` / `_prop_pending()` | the build queue depth (streamer-compat drain shims) |
-| `mesh_lane_stats()` | `{pending, lanes}` (streamer-compat) |
+| `pending_jobs()` / `mesh_pending()` / `prop_pending()` | the build queue depth (drain seams) |
+| `lane_stats()` | `{pending, lanes}` (build-lane census) |
 | `async_shutdown()` | clears the build queue (no worker lanes) |
 | `face_changed`, `patch_loaded`, `patch_unloaded` | emitted on ring build / face change |
 
@@ -194,13 +194,13 @@ changes what is DRAWN.
 
 `globe_world.terrain_render` (`"clipmap"`, read from
 `synmergia/world/terrain_render`) selects the renderer in
-`_setup_streamer`. The clipmap is the SOLE terrain path: any other
+`_setup_clipmap`. The clipmap is the SOLE terrain path: any other
 value logs a warn and falls back to `"clipmap"`. The legacy
 `globe_terrain_streamer.gd` was deleted once every probe read the
 shared surface (section 11a).
 
 Probes read only the shared surface (`update`, `build_all`,
-`triangle_count`, `active_faces`, `ground_meshes`, `pending_derive`,
+`triangle_count`, `active_faces`, `ground_meshes`, `pending_jobs`,
 `prop_layer`) against the clipmap.
 
 ## 6. Acceptance gates
@@ -320,7 +320,7 @@ trees + species variants + vines (`_spawn_trees` / `_apply_tree_sites`),
 rocks + scree collars (`_spawn_rocks`), climbable boulders
 (`_spawn_boulders`), the nine detail kinds (`_spawn_detail_props`:
 ore, cattail, bush, tuft, flower, mushroom, mycelium, shell, wrack),
-and the grass field (`_spawn_grass_field`). The clipmap's `_prop_pending()`
+and the grass field (`_spawn_grass_field`). The clipmap's `prop_pending()`
 is a stub returning `0`.
 
 Measured on the live globe (a full tree walk of `world_root`):

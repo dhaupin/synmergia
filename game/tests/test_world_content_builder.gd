@@ -131,7 +131,7 @@ func _leg_globe_manifest() -> void:
 	# the same teardown crash the gates receipt guards against).
 	var clipmap = globe.get("clipmap")
 	var drain_deadline: int = Time.get_ticks_msec() + 60000
-	while clipmap != null and clipmap._mesh_pending() > 0 and Time.get_ticks_msec() < drain_deadline:
+	while clipmap != null and clipmap.mesh_pending() > 0 and Time.get_ticks_msec() < drain_deadline:
 		await process_frame
 	var declared: Array = globe.CONTENT_MANIFEST
 	_check(declared.size() > 0, "the globe declares a content manifest (%d families)" % declared.size())

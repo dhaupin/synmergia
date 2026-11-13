@@ -34,7 +34,7 @@ func _quit() -> void:
 	var st = _globe.get("clipmap") if _globe != null else null
 	if st != null:
 		var deadline: int = Time.get_ticks_msec() + 30000
-		while st.pending_derive() > 0 and Time.get_ticks_msec() < deadline:
+		while st.pending_jobs() > 0 and Time.get_ticks_msec() < deadline:
 			await process_frame
 	print("probe_ground_law_audit: %s" % ("ALL PASS" if _okay else "FAILS"))
 	quit(0 if _okay else 1)
