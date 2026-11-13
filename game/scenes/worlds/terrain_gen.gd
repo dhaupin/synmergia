@@ -1932,6 +1932,17 @@ static func waterfall_seam_at(d: Vector3, world_seed: PackedByteArray) -> float:
 	return minf(best, 1.0)
 
 
+## STAGE-5: the per-spec bounding test (exact reject). True when d
+## is farther than the spec's bound from EVERY path point, so no
+## capsule of this spec can contain d.
+static func _river_spec_far(d_n: Vector3, spec) -> bool:
+	var b: float = spec.bound_ang
+	for p in spec.path:
+		if d_n.angle_to(p) <= b:
+			return false
+	return true
+
+
 static func river_channel(d: Vector3, world_seed: PackedByteArray) -> float:
 	d = d.normalized()
 	# Seed-tagged in the shared key law: different world seeds never
@@ -1944,6 +1955,10 @@ static func river_channel(d: Vector3, world_seed: PackedByteArray) -> float:
 	var d_n: Vector3 = d
 	var sea: float = sea_level(world_seed)
 	for spec in river_specs_cached(world_seed):
+		# STAGE-5 BOUND: reject the whole spec when d is farther than
+		# its capsules can reach from EVERY path point.
+		if _river_spec_far(d_n, spec):
+			continue
 		# PHY: the river's terminating BASE height decides the estuary:
 		# sea-terminating poly = widen-to-mouth, otherwise constant.
 		var end_h: float = _terrain_height_base(spec.path[spec.path.size() - 1], world_seed)
@@ -2093,6 +2108,13 @@ static func terrain_height(dir: Vector3, world_seed: PackedByteArray) -> float:
 class RiverSpec:
 	var spring: Vector3
 	var path: PackedVector3Array  # unit dirs, spring -> sea/lake
+	## STAGE-5 BOUND (labs/prd-ground-sample.md): the largest angular
+	## radius any point on this river's capsules can reach (the max
+	## per-vertex radius + the slerp midpoints' arc bulge). A query
+	## farther than bound_ang from EVERY path point is off the river
+	## and the per-spec scan is skipped (an EXACT early-out: any hit
+	## implies a path point within bound_ang, so the reject is safe).
+	var bound_ang: float = 0.0
 	## THE DROP TRACKING (the waterfall seam law): per segment's base
 	## height fall (meters, positive downhill). Zero = a gentle reach;
 	## a DROP (>= WATERFALL_MIN_DROP) marks a waterfall seam.
@@ -2149,6 +2171,14 @@ static func river_springs(world_seed: PackedByteArray) -> Array:
 		for si in range(nn - 1):
 			spec.drops[si] = _terrain_height_base(spec.path[si], world_seed) \
 				- _terrain_height_base(spec.path[si + 1], world_seed)
+		# STAGE-5 BOUND: the widest per-vertex radius over the path
+		# (estuary mouth = the max), padded by the slerp midpoint bulge
+		# + a hair for float error. Conservative (over-, never under-).
+		var max_rad: float = Hydro.RIVER_RADIUS_ANG
+		for bi in range(nn):
+			var bt: float = float(bi) / maxf(float(nn - 1), 1.0)
+			max_rad = maxf(max_rad, Hydro.RIVER_RADIUS_ANG * (1.0 + Hydro.ESTUARY_WIDEN * bt * bt))
+		spec.bound_ang = max_rad + 0.02 * max_rad + 1e-4
 		out.append(spec)
 	return out
 
@@ -2291,6 +2321,9 @@ static func river_flow_at(d: Vector3, world_seed: PackedByteArray) -> Vector3:
 	var best: float = 0.0
 	var flow: Vector3 = Vector3.ZERO
 	for spec in river_specs_cached(world_seed):
+		# STAGE-5 BOUND: same reject as river_channel.
+		if _river_spec_far(d, spec):
+			continue
 		var n: int = spec.path.size()
 		for i in range(n - 1):
 			var p0: Vector3 = spec.path[i]

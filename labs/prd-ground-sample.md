@@ -224,7 +224,15 @@ the redundant parallel caches, not the cold derivations).
   `splat_skin_from(sample, ...)`. Measured: clipmap-build lookups
   666,579 -> 651,390 and hit rate 90.4% -> 91.7% (the fused cache
   replaces two parallel clipmap caches).
-- **Stage 5 (NEXT)** -- the S4 `river_channel` bounding early-out.
+- **Stage 5 SHIPPED** -- the S4 `river_channel` bounding early-out.
+  `RiverSpec` grew `bound_ang` (the widest per-vertex radius over the
+  path -- the estuary mouth -- padded by the slerp midpoint bulge + a
+  float hair), computed once at spec build. Both river scans
+  (`river_channel`, `river_flow_at`) reject a whole spec with
+  `_river_spec_far(d, spec)` (farther than `bound_ang` from EVERY path
+  point). The reject is EXACT: any hit implies a path point within
+  `bound_ang`. Measured: `river_channel` COLD 146.1 -> 38.9 us (3.8x);
+  the probe grew a "reject never covers a hit" leg (10 checks).
 
 ## 7. Open questions (for the owner)
 

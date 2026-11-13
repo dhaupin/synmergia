@@ -118,5 +118,28 @@ func _initialize() -> void:
 			del_mismatch += 1
 	_check("splat_skin == splat_skin_from across %d dirs" % dirs.size(), del_mismatch == 0)
 
+	# Stage 5: the river bounding early-out must be EXACT -- when it
+	# rejects a spec (far from every path point by bound_ang), the widest
+	# per-vertex radius of that spec can never reach the query. A reject
+	# that fired while the query sat within the spec's widest radius would
+	# be a silent missed river.
+	var bound_bad := 0
+	var specs: Array = Gen.river_specs_cached(seed_b)
+	var probes: Array = dirs.duplicate()
+	for spec in specs:
+		probes.append(spec.spring.normalized())
+		probes.append(spec.path[spec.path.size() - 1])
+	var widest: float = Gen.Hydro.RIVER_RADIUS_ANG * (1.0 + Gen.Hydro.ESTUARY_WIDEN)
+	for d in probes:
+		var dn: Vector3 = d.normalized()
+		for spec in specs:
+			if Gen._river_spec_far(dn, spec):
+				var nearest := 999.0
+				for p in spec.path:
+					nearest = minf(nearest, dn.angle_to(p))
+				if nearest <= widest:
+					bound_bad += 1
+	_check("river bound exact (reject never covers a hit)", bound_bad == 0)
+
 	print("probe_ground_sample: %s (%d checks)" % ["ALL PASS" if _okay else "FAILS", _checks])
 	quit(0 if _okay else 1)
