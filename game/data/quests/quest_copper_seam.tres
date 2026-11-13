@@ -13,7 +13,10 @@ giver_npc_id = "npc_blacksmith_village"
 turn_in_npc_id = "npc_blacksmith_village"
 min_level = 1
 max_level = 100
-objectives = [{"id": "collect_copper", "type": 1, "target": "Copper Ore", "count": 8}]
+objectives = [
+	{"id": "collect_copper", "type": 1, "target": "Copper Ore", "count": 8},
+	{"id": "smelt_the_seam", "type": 8, "target": "recipe_copper_ingot", "count": 1},
+]
 rewards = [{"type": "gold", "id": "", "quantity": 80}, {"type": "experience", "id": "", "quantity": 120}]
 gold_reward = 80
 xp_reward = 120

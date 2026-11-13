@@ -68,6 +68,7 @@ func _ready() -> void:
 	call_deferred("_connect_insight_bridge")
 	call_deferred("_connect_swim_bridge")
 	call_deferred("_connect_glide_bridge")
+	call_deferred("_connect_craft_bridge")
 	call_deferred("_maybe_reset_dailies")
 	var reset_timer := Timer.new()
 	reset_timer.wait_time = 60.0
@@ -128,6 +129,27 @@ func _on_glide_distance_reached(player_id: String, meters: float) -> void:
 
 func _on_insight_recorded(player_id: String, _sign_id: String, _window_index: int) -> void:
 	update_quest_progress(player_id, QuestData.ObjectiveType.RECORD_INSIGHT, "sky_insight", 1)
+
+
+## The craft credit bridge (the forge, prd-crafting): CRAFT objectives
+## credit CraftingService.craft_completed. Target is the recipe id
+## verbatim ("recipe_"-prefixed) -- one id style, one credit path. One
+## successful craft is ONE credit (the craft is the action; quest authors
+## set count to the number of crafts), matching the SWIM/GLIDE per-event
+## convention. CraftingService is a LATER autoload, so the connect is
+## deferred like the insight/swim/glide bridges; has_signal keeps it
+## optional for old pack contexts.
+func _connect_craft_bridge() -> void:
+	var crafting = get_node_or_null("/root/CraftingService")
+	if crafting != null and crafting.has_signal("craft_completed") \
+			and not crafting.craft_completed.is_connected(_on_craft_completed_for_quest):
+		crafting.craft_completed.connect(_on_craft_completed_for_quest)
+
+
+func _on_craft_completed_for_quest(player_id: String, recipe_id: String, _item_id: String, _quantity: int) -> void:
+	if str(player_id).is_empty() or str(recipe_id).is_empty():
+		return
+	update_quest_progress(str(player_id), QuestData.ObjectiveType.CRAFT, str(recipe_id), 1)
 
 
 ## REWARDED daily quests re-accept at the day boundary (the missing

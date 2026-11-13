@@ -125,21 +125,25 @@ Bloom-containment deeds, and companion/mount bonds, never with
     Fires each time cumulative glide crosses a GLIDE_QUEST_STEP
     (300 m) boundary; the signal's meters are the credited amount.
     Deferred connect; optional.
-  - **Wired set (7 of 14):** KILL, COLLECT, TALK, EXPLORE,
-    RECORD_INSIGHT, SWIM, GLIDE -- exactly the types the quest data
-    authors today. The other 7 (ESCORT, DEFEND, DELIVER, USE_ITEM,
-    CRAFT, REACH_LEVEL, ACHIEVE_STEP) have NO bridge yet -- they are
-    await-callers (update_quest_progress) for the systems that own
-    them (InventoryService craft paths for CRAFT, etc.). Wire on
-    first use, test like the others.
+  - CRAFT <- CraftingService.craft_completed. Fires once per
+    SUCCESSFUL craft with the recipe id; objectives target the
+    "recipe_"-prefixed id verbatim. Deferred connect; optional.
+    The Copper Seam (the smith's quest) uses it: collect 8 ore,
+    then smelt the ingot -- the payoff its description promised.
+  - **Wired set (8 of 14):** KILL, COLLECT, TALK, EXPLORE,
+    RECORD_INSIGHT, SWIM, GLIDE, CRAFT. The other 6 (ESCORT,
+    DEFEND, DELIVER, USE_ITEM, REACH_LEVEL, ACHIEVE_STEP) have NO
+    bridge yet -- they are await-callers (update_quest_progress)
+    for the systems that own them (InventoryService.use_item for
+    USE_ITEM, etc.). Wire on first use, test like the others.
   - **Coverage gate:** `game/tests/test_quest_bridge_coverage.gd`
     asserts that every objective type used in `game/data/quests/*.tres`
     has a live bridge in QuestService (a reference to the enum member
     before the display-text switch), so authoring an unwired type
     fails CI instead of shipping a dead counter. The bridge tests
     (`test_quest_lore_bridges`, `test_quest_explore_bridge`,
-    `test_quest_swim_bridge`, `test_quest_glide_bridge`) are in
-    DEFAULT_SET alongside it.
+    `test_quest_swim_bridge`, `test_quest_glide_bridge`,
+    `test_quest_craft_bridge`) are in DEFAULT_SET alongside it.
 - **Data:** `game/data/quests/*.tres` (QuestData schema: objectives
   array of {id, type, target, count}, rewards array, chain fields
   next_quest_id/previous_quest_id, required_quests, repeatable +
