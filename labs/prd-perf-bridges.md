@@ -33,8 +33,8 @@ anything with a small per-call payload (the round-trip dominates).
 
 | # | Facet | Shape | Status |
 |---|-------|-------|--------|
-| 1 | Terrain heightfield presolve (Julia batch + frame validation) | (b) offline/batch | IN PROGRESS |
-| 2 | Wire the presolve tier to a real consumer | (b) offline | TODO |
+| 1 | Terrain heightfield presolve (Julia batch + frame validation) | (b) offline/batch | DONE |
+| 2 | Wire the presolve tier to a real consumer | (b) offline | DONE |
 | 3 | Prop-layer chunk bucketing offline | (b) offline | TODO |
 | 4 | Wire the redis shard bus into dev | transport | TODO |
 
@@ -98,7 +98,7 @@ deployments (mailboxes that survive process boundaries).
 | Facet | Baseline | Julia | Speedup | Parity |
 |-------|----------|-------|---------|--------|
 | 1 terrain | 520,895 us (20k raw heights) | 8,807 us | **59.1x** | max err 1.2e-5 m |
-| 2 presolve | _pending_ | _pending_ | _pending_ | _pending_ |
+| 2 presolve | 1,345 us (3 worlds x 365 days) | 35 us | **38.4x** | seeds exact; orbit/fav <= float32 eps |
 | 3 props | _pending_ | _pending_ | _pending_ | _pending_ |
 | 4 redis | _pending_ | _pending_ | _pending_ | _pending_ |
 
@@ -118,3 +118,35 @@ Parity: the two height VECTORS agree to **max err 1.2e-5 m** across the
 anchor set (GDScript Vector3 is float32; Julia is float64), and the
 batch sums agree to 0.08 m over 20,000 points. Same discipline as
 `test_julia_parity.gd`.
+
+### Facet 2 -- measured 2026-11-04
+
+Workload: the S16.1 lattice (`main`, `moon`, `underworld`) evaluated
+forward over a 365-sky-day year -- `orbit_position` +
+`window_favorability(moon)` per world per day (1095 evals), the shape
+`presolve.jl` exists to crush.
+
+- GDScript (`WorldRegistry`): **1,345 us**
+- Julia (`worldmath.jl`): **35 us** -> **38.4x**
+
+Parity: seeds match EXACTLY (byte math); orbit/favorability match to
+float32 precision (frame `Vector3` is float32, Julia float64); the two
+accumulators agree to 7e-6 over the year. Same discipline as
+`test_julia_parity.gd`.
+
+**Consumer (closes the "designed, zero consumers" gap).** The batch
+driver is `srv/julia-bridge/world_batch.jl` (the JSON-free sibling of
+`presolve.jl`; the pre-solve math is stdlib-only, so the batch runs
+even where the JSON/HTTP pkgimages cannot build -- see the note below).
+It emits `WORLD`/`EPOCH`/`END` text records, and
+`game/tests/test_julia_presolve.gd` re-derives a sample of them against
+`WorldRegistry` and asserts equality, exactly as
+`test_julia_terrain.gd` does for terrain.
+
+**Environment note (2026-11-04).** This container's Julia install
+(1.11.1) segfaults when compiling a pkgimage for ANY registered package
+(`using JSON`, `using HTTP`, even `Pkg.add`); stdlib-only modules
+(`worldmath.jl`, `terrainmath.jl`) run fine. The `--compiled-modules=no`
+flag is the workaround. `world_batch.jl`/`terrain_batch.jl` are
+deliberately dependency-free so the offline tier does not depend on the
+broken pkgimage path.
