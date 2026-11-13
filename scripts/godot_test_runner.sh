@@ -178,6 +178,9 @@ test_content_ref_integrity
 test_world_content_builder
 test_globe_autosave_guard
 test_blessed_mark
+test_gm_indicator
+test_fairness_service
+test_admin_catalog
 test_mysteries
 test_audio_service
 test_ambience_driver

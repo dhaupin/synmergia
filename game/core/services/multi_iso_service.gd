@@ -66,7 +66,7 @@ func register_entity(
 		"game_class": game_class,
 		"birth_year": birth_year,
 	}
-	await _post("/register", body)
+	await _http_post("/register", body)
 
 ## Unregister an entity (removes from all axes).
 ## Currently a no-op on the Julia side; entity remains until orchestrator reset.
@@ -77,17 +77,17 @@ func unregister_entity(_entity_id: String) -> void:
 
 ## Query all entities at a given icosahedral vertex.
 func query_spatial(vertex: int) -> Array:
-	var result := await _get("/spatial/%d" % vertex)
+	var result := await _http_get("/spatial/%d" % vertex)
 	return result.get("entity_ids", [])
 
 ## Query all entities in a given faction.
 func query_faction(faction_id: int) -> Array:
-	var result := await _get("/faction/%d" % faction_id)
+	var result := await _http_get("/faction/%d" % faction_id)
 	return result.get("entity_ids", [])
 
 ## Query all entities in a given social group.
 func query_social(group: int) -> Array:
-	var result := await _get("/social/%d" % group)
+	var result := await _http_get("/social/%d" % group)
 	return result.get("entity_ids", [])
 
 ## Multi-axis intersection: entities that match ALL specified criteria.
@@ -104,18 +104,18 @@ func query_intersect(
 		body["faction_id"] = faction_id
 	if social_group >= 0:
 		body["social_group"] = social_group
-	var result := await _post("/intersect", body)
+	var result := await _http_post("/intersect", body)
 	return result.get("entity_ids", [])
 
 ## Get orchestrator statistics.
 func get_stats() -> Dictionary:
 	if _last_stats.is_empty():
-		_last_stats = await _get("/stats")
+		_last_stats = await _http_get("/stats")
 	return _last_stats
 
 ## Check if the Julia server is healthy.
 func is_healthy() -> bool:
-	var result: Dictionary = await _get("/health")
+	var result: Dictionary = await _http_get("/health")
 	return result.get("status") == "ok"
 
 ## -------------------------------------------------------------------------
@@ -125,7 +125,7 @@ func is_healthy() -> bool:
 func _get_server_url() -> String:
 	return local_server_url if use_localhost else julia_server_url
 
-func _get(endpoint: String) -> Dictionary:
+func _http_get(endpoint: String) -> Dictionary:
 	var server := _get_server_url()
 	var url := server + endpoint
 	var headers := PackedStringArray(["Accept: application/json"])
@@ -135,7 +135,7 @@ func _get(endpoint: String) -> Dictionary:
 		return {}
 	return await _wait_for_response()
 
-func _post(endpoint: String, body: Dictionary) -> Dictionary:
+func _http_post(endpoint: String, body: Dictionary) -> Dictionary:
 	var server := _get_server_url()
 	var url := server + endpoint
 	var json := JSON.stringify(body)
