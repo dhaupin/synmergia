@@ -1,8 +1,9 @@
 # PRD: The Clipmap Terrain Renderer (replacing the icosa face streamer)
 
-> **Status:** v1 (2026-11-04). DECIDED + IN BUILD. The world's
+> **Status:** v1 SHIPPED (2026-11-04). The default ground renderer is
+> now the clipmap; the streamer is kept as a fallback. The world's
 > *addressing* stays icosahedral (NSC-9, `IcosahedralFaces`, zone/waypoint
-> math -- all of it is good and untouched). The world's *rendering* moves
+> math -- all of it is good and untouched). The world's *rendering* moved
 > from the icosa face-patch LOD streamer
 > (`globe_terrain_streamer.gd`, 3945 lines: 4 live faces, skirts, async
 > derive lanes, hot-reload graft) to a **player-centred polar clipmap**
@@ -10,6 +11,11 @@
 > (`TerrainGen.terrain_height` + `splat_skin`); only the mesh that draws
 > it changes. Where this doc and the code disagree, the code's constants
 > win and this doc is the intent behind them.
+>
+> **Shipped:** `globe_clipmap.gd` + `probe_clipmap.gd` (6 gates green);
+> `globe_world.terrain_render` default `clipmap`, scale-gated to
+> planet scale (>= 1000 m). The floating-structure band-pop is closed.
+> The streamer stays as a sub-planet / fallback path.
 >
 > Related: `prd-terrain.md` (the ground law itself), `prd-world.md` (the
 > planet's topology), `prd-spherical-mvp.md` (the spherical execution
