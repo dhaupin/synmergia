@@ -24,7 +24,7 @@ enum PvPZoneMode {
 
 # Entry restrictions (empty = all allowed)
 @export var allowed_factions: Array[String] = []  # Empty = all allowed
-@export var blocked_sactions: Array[String] = []   # Explicitly blocked factions
+@export var blocked_factions: Array[String] = []   # Explicitly blocked factions
 @export var blocked_species: Array[String] = []   # Species that cannot enter
 
 # Respawn settings
@@ -120,7 +120,7 @@ func can_enter(entity) -> bool:
 		if faction_id == "" or not allowed_factions.has(faction_id):
 			return false
 
-	if faction_id != "" and blocked_sactions.has(faction_id):
+	if faction_id != "" and blocked_factions.has(faction_id):
 		return false
 
 	# Species check

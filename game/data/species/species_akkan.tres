@@ -18,10 +18,10 @@ stat_modifiers = {
 "vitality": 3,
 "wisdom": 0
 }
-home_zone = "dark_highlands"
+home_zone = "zone_dark_highlands"
 home_faction = "faction_akkan"
 allied_species = []
-hostile_species = ["human", "elf", "dwarf"]
+hostile_species = ["human"]
 health_modifier = 1.1
 mana_modifier = 0.9
 stamina_modifier = 1.0

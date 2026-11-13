@@ -14,12 +14,11 @@ peaceful_until_level = 0
 species_id = "akkan"
 relations = {
 "faction_human": 2,
-"elf_faction": 2,
-"dwarf_faction": 2,
+"faction_synthetic": 0,
 "faction_neutral": 1
 }
 shop_discount = 0.0
 quest_rewards_bonus = 0.0
 is_joinable = true
 is_default = true
-controlled_zones = ["dark_highlands"]
+controlled_zones = ["zone_dark_highlands"]

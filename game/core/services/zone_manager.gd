@@ -1175,7 +1175,7 @@ func _load_zones() -> void:
 				zone_data.level_requirement = data.get("level_requirement", 1)
 				zone_data.max_level = data.get("max_level", 999)
 				zone_data.allowed_factions = data.get("allowed_factions", [])
-				zone_data.blocked_sactions = data.get("blocked_sactions", [])
+				zone_data.blocked_factions = data.get("blocked_factions", [])
 				zone_data.blocked_species = data.get("blocked_species", [])
 				zone_data.respawn_at_bind = data.get("respawn_at_bind", true)
 				zone_data.respawn_timer = data.get("respawn_timer", 10.0)
@@ -1204,7 +1204,7 @@ func _persist_zone(zone_id: String) -> void:
 		"level_requirement": zone_data.level_requirement,
 		"max_level": zone_data.max_level,
 		"allowed_factions": zone_data.allowed_factions,
-		"blocked_sactions": zone_data.blocked_sactions,
+		"blocked_factions": zone_data.blocked_factions,
 		"blocked_species": zone_data.blocked_species,
 		"respawn_at_bind": zone_data.respawn_at_bind,
 		"respawn_timer": zone_data.respawn_timer,
@@ -1264,7 +1264,7 @@ func _serialize_zone_data(zone_data: ZoneData) -> Dictionary:
 		"level_requirement": zone_data.level_requirement,
 		"max_level": zone_data.max_level,
 		"allowed_factions": zone_data.allowed_factions,
-		"blocked_sactions": zone_data.blocked_sactions,
+		"blocked_factions": zone_data.blocked_factions,
 		"blocked_species": zone_data.blocked_species,
 		"respawn_at_bind": zone_data.respawn_at_bind,
 		"respawn_timer": zone_data.respawn_timer,
@@ -1287,7 +1287,7 @@ func _deserialize_zone_data(data: Dictionary) -> ZoneData:
 	zone_data.level_requirement = data.get("level_requirement", 1)
 	zone_data.max_level = data.get("max_level", 999)
 	zone_data.allowed_factions = data.get("allowed_factions", [])
-	zone_data.blocked_sactions = data.get("blocked_sactions", [])
+	zone_data.blocked_factions = data.get("blocked_factions", [])
 	zone_data.blocked_species = data.get("blocked_species", [])
 	zone_data.respawn_at_bind = data.get("respawn_at_bind", true)
 	zone_data.respawn_timer = data.get("respawn_timer", 10.0)

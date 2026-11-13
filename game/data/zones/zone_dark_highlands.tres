@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="ZoneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/zone_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "zone_dark_highlands"
+display_name = "Dark Highlands"
+description = "The Akkan homeland: a cold, wind-scoured upland of black rock and cairn-marked roads, ember-lit clan holds cut into the cliffs. The old blood keep the Convergence's forgotten gates here, and they do not suffer strangers. Different species may fight in the open (the Horde has long warred with the plains)."
+pvp_mode = 1
+level_requirement = 1
+max_level = 999
+allowed_factions = []
+blocked_factions = []
+blocked_species = []
+respawn_at_bind = true
+respawn_timer = 8.0
+bounds = null
+zone_center = Vector3(0, 0, 0)
+zone_radius = 400.0
+ambient_light_color = Color(0.35, 0.33, 0.42, 1)
+ambient_light_energy = 0.8
+environment_path = ""
+has_weather = true
+weather_type = "fog"
+spawn_points = [Vector3(0, 0, 0), Vector3(60, 0, 40), Vector3(-40, 0, 60)]
+bind_point = Vector3(0, 0, 0)
+npcs = []
+loot_multiplier = 1.0
+xp_multiplier = 1.15
+world_id = "main"
+is_instanced = false
+instance_capacity = 0
