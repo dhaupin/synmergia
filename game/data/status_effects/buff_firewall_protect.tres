@@ -10,4 +10,5 @@ description = "Protected by firewall barrier."
 category = 0
 effect_type = 0
 duration = 8.0
+shield_amount = 100
 show_in_buff_bar = true

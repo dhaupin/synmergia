@@ -10,4 +10,5 @@ description = "Weapon attacks deal bonus spell damage."
 category = 0
 effect_type = 0
 duration = 30.0
+stat_modifiers = {"strength": 10}
 show_in_buff_bar = true

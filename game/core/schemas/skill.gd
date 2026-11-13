@@ -3,6 +3,7 @@
 ## The runtime Skill class lives in core/combat/skill.gd
 extends Resource
 class_name SkillSchema
+const StatusEffectFactory = preload("res://core/combat/status_effect_factory.gd")
 
 enum SkillType {
 	MELEE,
@@ -228,11 +229,23 @@ func _apply_effects(caster, target, ground_pos: Vector3, result: Dictionary) -> 
 				if success:
 					result["targets_hit"].append(target)
 			"buff":
-				# Apply buff from effect data
-				pass
+				_apply_status_effect(caster, target, effect, true)
 			"debuff":
-				# Apply debuff to target
-				pass
+				_apply_status_effect(caster, target, effect, false)
+
+## Resolve an authored buff/debuff entry through StatusEffectFactory (the
+## data -> runtime join) and apply it: a buff on the caster or ally target,
+## a debuff on the target. Unknown effect_id is a quiet no-op.
+func _apply_status_effect(caster, target, effect: Dictionary, is_buff: bool) -> void:
+	var fx = StatusEffectFactory.from_id(str(effect.get("effect_id", "")), float(effect.get("duration", 0.0)))
+	if fx == null:
+		return
+	var body = caster
+	if not is_buff or (target != null and target.has_method("apply_status_effect")):
+		body = target
+	if body != null and body.has_method("apply_status_effect"):
+		fx.source = caster
+		body.apply_status_effect(fx)
 
 ## Apply revive effect
 func _apply_revive(caster, target, effect: Dictionary, result: Dictionary) -> bool:

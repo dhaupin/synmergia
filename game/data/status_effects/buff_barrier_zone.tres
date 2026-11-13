@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/status_effect_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "buff_barrier_zone"
+display_name = "Barrier Zone"
+description = "An impenetrable barrier zone absorbs incoming damage."
+category = 0
+effect_type = 0
+duration = 8.0
+max_stacks = 1
+can_refresh = true
+shield_amount = 180
+show_in_buff_bar = true

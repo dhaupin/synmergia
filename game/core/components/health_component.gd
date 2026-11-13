@@ -102,6 +102,22 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 	if _is_dead:
 		return 0
 
+	# Status-effect payloads on the owner body (the player is not an Entity, so
+	# Entity.take_damage's reads never see it): invincibility negates the hit,
+	# active shield pools soak what remains before it reaches health.
+	var owner_body = get_parent()
+	if owner_body != null and "status_effects" in owner_body:
+		for effect in owner_body.status_effects:
+			if "is_invincible" in effect and effect.is_invincible:
+				return 0
+		for effect in owner_body.status_effects:
+			if amount <= 0:
+				break
+			if effect.has_method("absorb_damage"):
+				amount = effect.absorb_damage(amount)
+		if amount <= 0:
+			return 0
+
 	# Check for interrupt (before applying damage). Owner may be any
 	# combatant (Enemy, the player body); components are optional.
 	var entity: Node3D = get_parent()
@@ -112,6 +128,9 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 	var mitigated: int = 0
 	if entity != null and "inventory_component" in entity and entity.inventory_component != null:
 		mitigated = entity.inventory_component.get_equipment_armor()
+	# Status-effect defense multiplier (defense-buff deltas on a 1.0 base).
+	if entity != null and "stats" in entity:
+		mitigated = int(float(mitigated) * float(entity.stats.get("defense_multiplier", 1.0)))
 	var actual_damage: int = max(1, amount - mitigated)
 
 	current_health = max(0, current_health - actual_damage)

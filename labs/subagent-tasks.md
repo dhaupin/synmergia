@@ -377,7 +377,7 @@ Bloom-containment deeds, and the bond lines. Schema: `achievement_data.gd`.
 
 # PART D -- WIRING BUGS (found by the 2026-11-28 refresh)
 
-## Task 10 -- Skill buffs/debuffs are authored but never applied -- status: todo
+## Task 10 -- Skill buffs/debuffs are authored but never applied -- status: landed
 
 **The bug (two halves, one cause).** Skill `.tres` files carry buff/debuff
 effects in the `effects` array, e.g. `human_battle_cry.tres`:
@@ -420,6 +420,26 @@ on the current corpus (29 ids) before fixing.
 
 **Scope check:** 54 buff + 59 debuff effect entries ride on this. Until it
 lands, every "Battle Cry" in the game is a no-op.
+
+**Resolution (landed).** Chose the data route. `game/core/combat/status_effect_factory.gd`
+is the join: `from_id(effect_id, duration)` -> `DataService.get_status_effect` ->
+`StatusEffectData` -> runtime `StatusEffect` (stat mods, HoT/DoT, speed, CC flags,
+shield, immunity, stealth). `Skill.from_schema` now keeps `buff`/`debuff` entries in
+a new `status_effects` array; `Skill.execute` (self/ally buff, enemy debuff) and
+`CombatSystem._apply_skill_effects` (landed hits) both apply them, deferring on the
+hitbox family exactly like DoT/CC. The schema path (`SkillSchema._apply_effects`)
+shares the same helper. Payload teeth added where the fields were write-only:
+Entity/HealthComponent `take_damage` reads shield pools + invincibility + the defense
+multiplier; `Skill.calculate_damage` reads the damage multiplier; globe_player reads
+the movement multiplier and a `can_move` gate; `Skill.can_cast` reads `can_cast`.
+`StatusEffect._apply_stat_modifiers` was duck-typed off `is Entity` so the player
+(not an Entity) silently dropped every stat buff -- fixed to a `stats`-dict guard.
+
+Authored **29** missing `data/status_effects/*.tres` (27 skill-refs + `debuff_time_warp_slow`,
+`debuff_hack`) and gave **45** referenced-but-inert shells real payloads. The gate
+(`test_data_naming_lint`) now resolves all **114** skill buff/debuff `effect_ids`
+(fails-first verified: it caught the 27+2 before the fix). New
+`test_status_effect_tres.gd` (26 assertions) drives the live path; full runner green.
 
 ---
 

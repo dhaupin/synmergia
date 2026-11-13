@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/status_effect_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "buff_layered"
+display_name = "Shield Redundancy"
+description = "Layered shields stack up to massive absorption."
+category = 0
+effect_type = 0
+duration = 20.0
+max_stacks = 5
+can_refresh = true
+shield_amount = 100
+stack_behavior = "add"
+show_in_buff_bar = true

@@ -14,6 +14,10 @@ func _hub_emit(sig_name: String, args: Array) -> void:
 
 const StatusEffect = preload("res://core/entities/status_effect.gd")
 const SkillSchema = preload("res://core/schemas/skill.gd")
+# The data -> runtime status-effect join (a skill's effect_id names a
+# data/status_effects/*.tres). Preloaded, not a class_name reference, so
+# script-mode tests resolve it without the global registry.
+const StatusEffectFactory = preload("res://core/combat/status_effect_factory.gd")
 # CombatMath runs the MWo-style hit table (miss/dodge/parry/block/crit)
 # inside calculate_damage; no cycle -- combat_math no longer preloads
 # this file.
@@ -91,6 +95,12 @@ enum TargetType {
 @export var crowd_control_type: String = ""  # stun, root, slow, etc.
 @export var crowd_control_duration: float = 0.0
 @export var crowd_control_strength: float = 1.0
+
+# Authored status effects (the schema's buff/debuff entries, kept whole so
+# they resolve through StatusEffectFactory at cast time instead of being
+# flattened to nothing). Each entry: {"type": "buff"/"debuff",
+# "effect_id": "buff_haste", "duration": 10.0}.
+@export var status_effects: Array[Dictionary] = []
 
 # Defensive
 @export var grants_shield: int = 0
@@ -198,6 +208,11 @@ static func from_schema(s: SkillSchema) -> Skill:
 			"stun", "root", "slow":
 				sk.crowd_control_type = str(effect.get("type", ""))
 				sk.crowd_control_duration = float(effect.get("duration", 0.0))
+			"buff", "debuff":
+				# Keep the authored entry whole; it resolves through
+				# StatusEffectFactory at cast time (effect_id ->
+				# data/status_effects/*.tres).
+				sk.status_effects.append(effect.duplicate())
 	return sk
 
 func _init() -> void:
@@ -208,6 +223,13 @@ func can_cast(caster: Node) -> bool:
 	# Check cooldown
 	if remaining_cooldown > 0:
 		return false
+
+	# Crowd control: a stunned/silenced caster cannot cast (status effects
+	# carry can_cast == false). Duck-typed on the body's status_effects.
+	if "status_effects" in caster:
+		for effect in caster.status_effects:
+			if effect.has_method("allows_casting") and not effect.allows_casting():
+				return false
 
 	# Check resources
 	if "current_mana" in caster and caster.current_mana < mana_cost:
@@ -326,6 +348,13 @@ func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO, def
 	if crowd_control_type != "" and not defer_target_effects:
 		applyCrowdControl(caster, target, ground_position)
 
+	# Apply authored buff/debuff status effects. Buffs land on the caster
+	# (self) or the ally target; debuffs land on the enemy target. On a
+	# hitbox cast the sweep owns them (landed hits only) -- same defer law
+	# as DoT/CC, so a self-buff still applies at cast (target == null).
+	if not status_effects.is_empty() and (not defer_target_effects or target == null):
+		applyStatusEffects(caster, target)
+
 	# Apply other effects
 	if grants_shield > 0:
 		applyShield(caster)
@@ -378,6 +407,12 @@ func calculate_damage(caster, target) -> int:
 	elif damage_type == "magical":
 		base_damage += caster.get_spell_power()
 
+	# Status-effect damage multiplier (buff/debuff deltas on a 1.0 base,
+	# e.g. Battle Cry). Duck-typed: bare Entities and the player body both
+	# carry the stats block.
+	if "stats" in caster:
+		base_damage = int(float(base_damage) * float(caster.stats.get("damage_multiplier", 1.0)))
+
 	# The MWo-style single-roll combat table: miss -> dodge -> parry ->
 	# block -> crit -> hit in one randf(). Defensive chances come from
 	# the TARGET's stats; duck-typed so bare-Entity and the player body
@@ -422,6 +457,26 @@ func applyCrowdControl(caster, target, _ground_position: Vector3) -> void:
 			target.apply_status_effect(create_root_effect(caster))
 		"slow":
 			target.apply_status_effect(create_slow_effect(caster))
+
+## Resolve each authored buff/debuff entry through StatusEffectFactory and
+## apply it on the right body: a buff on the caster (self) or an ally
+## target, a debuff on the enemy target. An unknown effect_id degrades to a
+## quiet no-op (the lint gate is what keeps refs honest, not a cast crash).
+func applyStatusEffects(caster, target) -> void:
+	for entry in status_effects:
+		var kind := str(entry.get("type", ""))
+		var fx := StatusEffectFactory.from_id(str(entry.get("effect_id", "")), float(entry.get("duration", 0.0)))
+		if fx == null:
+			continue
+		if kind == "buff":
+			var body = target if (target != null and target.has_method("apply_status_effect")) else caster
+			if body != null and body.has_method("apply_status_effect"):
+				fx.source = caster
+				body.apply_status_effect(fx)
+		elif kind == "debuff":
+			if target != null and target.has_method("apply_status_effect"):
+				fx.source = caster
+				target.apply_status_effect(fx)
 
 func applyShield(caster) -> void:
 	# Create shield buff

@@ -10,4 +10,5 @@ description = "Rune energy transferred. Mana restored."
 category = 0
 effect_type = 0
 duration = 0.0
+stat_modifiers = {"intelligence": 10}
 show_in_buff_bar = true

@@ -10,4 +10,6 @@ description = "Time moves slowly around this unit."
 category = 1
 effect_type = 4
 duration = 6.0
+speed_type = "slow"
+speed_percent = -20.0
 show_in_buff_bar = true

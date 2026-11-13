@@ -10,4 +10,5 @@ description = "Immune to all damage."
 category = 0
 effect_type = 0
 duration = 3.0
+immune_all = true
 show_in_buff_bar = true

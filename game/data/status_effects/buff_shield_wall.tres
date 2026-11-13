@@ -10,4 +10,5 @@ description = "All damage taken is dramatically reduced."
 category = 0
 effect_type = 0
 duration = 6.0
+shield_amount = 220
 show_in_buff_bar = true

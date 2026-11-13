@@ -231,6 +231,16 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 	if is_dead:
 		return 0
 
+	# Invincibility (Last Bastion/Divine Shield) negates the hit entirely; an
+	# active shield pool (shield_amount) then soaks what remains before it
+	# reaches health. Both are status-effect payloads -- without these reads
+	# the data's shield/immune fields are inert.
+	if _is_invincible():
+		return 0
+	amount = _absorb_with_shields(amount)
+	if amount <= 0:
+		return 0
+
 	var damage := _calculate_damage_received(amount, damage_type)
 	current_health = max(0, current_health - damage)
 	health_changed.emit(current_health, max_health)
@@ -242,6 +252,24 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 		die(source)
 
 	return damage
+
+## True when any active status effect carries is_invincible.
+func _is_invincible() -> bool:
+	for effect in status_effects:
+		if "is_invincible" in effect and effect.is_invincible:
+			return true
+	return false
+
+## Run `amount` through every active shield pool; returns the leftover that
+## still lands on health. Shields deplete front-to-back.
+func _absorb_with_shields(amount: int) -> int:
+	var remaining := amount
+	for effect in status_effects:
+		if remaining <= 0:
+			break
+		if effect.has_method("absorb_damage"):
+			remaining = effect.absorb_damage(remaining)
+	return remaining
 
 func heal(amount: int) -> void:
 	if is_dead:
@@ -272,6 +300,8 @@ func _calculate_damage_received(amount: int, damage_type: String = "physical") -
 		defense = float(get_magic_resistance())
 	else:
 		defense = float(get_defense())
+	# Status-effect defense multiplier (defense-buff deltas on a 1.0 base).
+	defense *= float(stats.get("defense_multiplier", 1.0))
 	if defense <= 0.0:
 		return amount
 	var reduction: float = defense / (defense + 100.0)

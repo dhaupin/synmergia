@@ -10,4 +10,6 @@ description = "Processing frequency reduced. All actions slowed."
 category = 1
 effect_type = 4
 duration = 8.0
+speed_type = "slow"
+speed_percent = -15.0
 show_in_buff_bar = true

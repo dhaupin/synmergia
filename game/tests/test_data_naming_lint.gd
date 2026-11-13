@@ -1090,6 +1090,44 @@ func _run() -> void:
 	else:
 		_fail("Duplicate skill ids (one silently shadows the other): %s" % ", ".join(skill_dupes))
 
+	# --- Skill buff/debuff effect_ids must resolve to a status effect ---
+	# A skill's {"type": "buff"/"debuff", "effect_id": X} resolves X through
+	# StatusEffectFactory -> data/status_effects/*.tres at cast time. A
+	# dangling X is a silent no-op (the cast succeeds, the buff never lands)
+	# -- 27 shipped this way. No other check sees it.
+	var status_effect_ids := _load_ids("data/status_effects")
+	var bad_effect_refs: Array = []
+	var effect_ref_count := 0
+	if sdir2 != null:
+		sdir2.list_dir_begin()
+		var esub := sdir2.get_next()
+		while esub != "":
+			var sub2 := esub
+			esub = sdir2.get_next()
+			if sub2 == "" or sub2.begins_with("."):
+				continue
+			var edir := DirAccess.open("res://data/skills/%s" % sub2)
+			if edir == null:
+				continue
+			edir.list_dir_begin()
+			var ef := edir.get_next()
+			while ef != "":
+				if ef.ends_with(".tres"):
+					var etxt := FileAccess.get_file_as_string("res://data/skills/%s/%s" % [sub2, ef])
+					var parts := etxt.split("\"effect_id\": \"")
+					for pi in range(1, parts.size()):
+						var eid := parts[pi].split("\"")[0]
+						if eid == "":
+							continue
+						effect_ref_count += 1
+						if not status_effect_ids.values().has(eid):
+							bad_effect_refs.append("%s -> %s" % [ef.trim_suffix(".tres"), eid])
+				ef = edir.get_next()
+	if bad_effect_refs.is_empty():
+		_ok("Skills: all %d buff/debuff effect_ids resolve to a status effect" % effect_ref_count)
+	else:
+		_fail("Phantom skill effect_id refs (silent no-op buffs): %s" % ", ".join(bad_effect_refs))
+
 	var bad_skill_refs: Array = []
 	var empty_kits: Array = []
 	var referenced_owned: Dictionary = {}

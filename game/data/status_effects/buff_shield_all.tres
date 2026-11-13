@@ -10,4 +10,5 @@ description = "Energy barriers absorbing incoming damage."
 category = 0
 effect_type = 0
 duration = 8.0
+shield_amount = 120
 show_in_buff_bar = true

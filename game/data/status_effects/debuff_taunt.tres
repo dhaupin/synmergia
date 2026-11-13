@@ -10,4 +10,5 @@ description = "Forced to attack the source of the taunt."
 category = 1
 effect_type = 4
 duration = 4.0
+stat_modifiers = {"agility": -10}
 show_in_buff_bar = true

@@ -10,4 +10,6 @@ description = "Receiving passive healing and damage reduction."
 category = 0
 effect_type = 0
 duration = 15.0
+heal_per_tick = 20
+tick_interval = 1.0
 show_in_buff_bar = true

@@ -10,4 +10,6 @@ description = "Processing cycles erratic. Movement and actions slowed."
 category = 1
 effect_type = 4
 duration = 5.0
+speed_type = "slow"
+speed_percent = -20.0
 show_in_buff_bar = true

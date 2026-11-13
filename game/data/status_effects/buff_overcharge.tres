@@ -10,4 +10,5 @@ description = "Attack and cast speed dramatically increased."
 category = 0
 effect_type = 0
 duration = 10.0
+stat_modifiers = {"strength": 10}
 show_in_buff_bar = true

@@ -10,4 +10,6 @@ description = "Attack speed increased. Nearby enemies take damage."
 category = 0
 effect_type = 0
 duration = 15.0
+speed_type = "haste"
+speed_percent = 15.0
 show_in_buff_bar = true

@@ -10,4 +10,6 @@ description = "Processing cycles accelerated. Attack and cast speed increased."
 category = 0
 effect_type = 0
 duration = 10.0
+speed_type = "haste"
+speed_percent = 20.0
 show_in_buff_bar = true

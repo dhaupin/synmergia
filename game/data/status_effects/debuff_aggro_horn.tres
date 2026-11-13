@@ -10,4 +10,5 @@ description = "This unit is the target of an aggro horn. Maximum threat on them.
 category = 1
 effect_type = 4
 duration = 5.0
+stat_modifiers = {"agility": -8}
 show_in_buff_bar = true

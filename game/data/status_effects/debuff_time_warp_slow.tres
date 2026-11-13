@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/status_effect_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "debuff_time_warp_slow"
+display_name = "Time Warp"
+description = "The enemy's next swing is slowed."
+category = 1
+effect_type = 4
+duration = 5.0
+max_stacks = 1
+can_refresh = true
+control_type = 3
+speed_type = "slow"
+speed_percent = -25.0
+show_in_buff_bar = true

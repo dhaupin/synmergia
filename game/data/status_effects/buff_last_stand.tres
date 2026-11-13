@@ -10,4 +10,5 @@ description = "Immune to death. Maximum threat generated."
 category = 0
 effect_type = 0
 duration = 5.0
+stat_modifiers = {"vitality": 25}
 show_in_buff_bar = true

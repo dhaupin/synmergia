@@ -10,4 +10,5 @@ description = "Mana has been restored by energy transfer."
 category = 0
 effect_type = 0
 duration = 0.0
+stat_modifiers = {"intelligence": 12}
 show_in_buff_bar = true

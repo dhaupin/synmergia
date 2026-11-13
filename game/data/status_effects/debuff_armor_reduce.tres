@@ -10,4 +10,5 @@ description = "Armor has been reduced by the shield strike."
 category = 1
 effect_type = 4
 duration = 5.0
+stat_modifiers = {"vitality": -15}
 show_in_buff_bar = true
