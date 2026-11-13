@@ -44,6 +44,20 @@ const KIND_CATTAIL: int = 6
 const KIND_BUSH: int = 7
 const KIND_ORE: int = 8
 
+## The DEEP family (the Sundered Sea's kelp/pearl gardens): a per-bed
+## cluster, not a scattered point. Owned by the world's provider
+## (`deep_beds()`), grown here so the RENDERER no longer owns the garden.
+const FAMILY_DEEP: int = 4
+## Deep-bed tuning (ported from the streamer's DEEP_* constants): the
+## shelf's kelp band + the trench's pearl band, their anchor depths, and
+## respawn windows.
+const DEEP_KELP_M: float = 38.0
+const DEEP_KELP_BAND: Vector2 = Vector2(30.0, 45.0)
+const DEEP_PEARL_M: float = 54.0
+const DEEP_PEARL_BAND: Vector2 = Vector2(50.0, 58.0)
+const DEEP_KELP_RESPAWN: float = 420.0
+const DEEP_PEARL_RESPAWN: float = 900.0
+
 ## Per-frame build budget (ms) -- the clipmap's own L3 law.
 const BUILD_BUDGET_MS: int = 3
 
@@ -84,6 +98,14 @@ var _mesh_registry: Dictionary = {}
 var _rocks_by_chunk: Dictionary = {}
 var _boulders_by_chunk: Dictionary = {}
 var _rocks_faces_done: Dictionary = {}
+
+# Deep beds are per-face authored content (provider.deep_beds()), bucketed
+# into chunks the same way rocks/boulders are.
+var _deep_by_chunk: Dictionary = {}
+var _deep_faces_done: Dictionary = {}
+# Beds already registered this session (a chunk reload must NOT reset the
+# service's depletion book -- register once per bed, ever).
+var _deep_registered: Dictionary = {}
 
 
 func configure(p_provider, p_radius: float, p_parent: Node3D, p_depth: int = PropChunk.DEFAULT_DEPTH) -> void:
@@ -190,6 +212,11 @@ func _derive_chunk(key: int) -> Dictionary:
 		out["instances"].append(r)
 	for b in _boulders_by_chunk.get(key, []):
 		out["instances"].append(b)
+	# Deep-water beds (the Sundered Sea's kelp/pearl gardens): per-face
+	# authored content, bucketed into this chunk.
+	_bucket_deep_content(PropChunk.face_of(key))
+	for bed in _deep_by_chunk.get(key, []):
+		out["instances"].append(bed)
 	# Trees. Count = density * area with UNBIASED stochastic rounding, so a
 	# small chunk still gets a tree some of the time and the average matches
 	# the density (a plain round() would zero every chunk below 0.5 expected).
@@ -393,6 +420,27 @@ func _bucket_face_content(face: int) -> void:
 				"radius": b.radius, "yaw": b.yaw, "face": face})
 
 
+## Bucket the world's authored deep beds (provider.deep_beds()) into
+## chunks: each bed is a per-bed cluster that rides the chunk containing
+## its direction. Computed once per face.
+func _bucket_deep_content(face: int) -> void:
+	if _deep_faces_done.has(face):
+		return
+	_deep_faces_done[face] = true
+	if provider == null or not provider.has_method("deep_beds"):
+		return
+	for bed in provider.deep_beds():
+		var d: Vector3 = bed["dir"]
+		if PropChunk.face_containing(d) != face:
+			continue
+		var k: int = PropChunk.chunk_for_dir(d, chunk_depth)
+		if not _deep_by_chunk.has(k):
+			_deep_by_chunk[k] = []
+		_deep_by_chunk[k].append({"family": FAMILY_DEEP, "dir": d,
+				"deep_kind": int(bed["kind"]), "bed": int(bed["bed"]),
+				"face": face})
+
+
 ## Unbiased stochastic rounding of a non-negative expected count: returns
 ## floor(x) + 1 with probability frac(x). Average == x.
 func _stochastic_count(x: float, rng: RandomNumberGenerator) -> int:
@@ -427,6 +475,8 @@ func _build_instance(inst: Dictionary, node: Node3D, near: bool) -> void:
 			_build_boulder(inst, node)
 		FAMILY_DETAIL:
 			_build_detail(inst, node)
+		FAMILY_DEEP:
+			_build_deep_bed(inst, node, near)
 
 
 ## Detail prop build: tufts go to the batch (below); the rest are small nodes.
@@ -836,3 +886,186 @@ func derive_fresh(key: int) -> Dictionary:
 	var out: Dictionary = _derive_chunk(key)
 	_cache = saved
 	return out
+
+
+## A deep-water bed (the Sundered Sea's kelp shelf / pearl trench): a
+## per-bed CLUSTER -- kelp strands + reef boulders on the shelf, vent
+## spires + drowned stones in the trench -- plus three hidden stumps the
+## deep_garden_binder flips per the harvest book. The garden rides a
+## 'deep_garden' node carrying the plant ids, so the binder joins paint to
+## the service's own depletion truth (the S14.7.3 law, now chunk-addressed).
+func _build_deep_bed(inst: Dictionary, node: Node3D, near: bool) -> void:
+	var dir: Vector3 = inst["dir"]
+	var kind: int = int(inst["deep_kind"])
+	var face: int = int(inst["face"])
+	var bed_idx: int = int(inst["bed"])
+	var zone_id: String = str(inst.get("zone_id", "zone_sundered_sea"))
+	var up: Vector3 = dir
+	var hint := Vector3(0, 1, 0)
+	if absf(up.dot(hint)) > 0.999:
+		hint = Vector3(1, 0, 0)
+	var east: Vector3 = (hint - up * hint.dot(up)).normalized()
+	var north: Vector3 = up.cross(east)
+	var sea_r: float = radius_m + provider.sea_level()
+	var root_r: float = sea_r - (DEEP_KELP_M if kind == 1 else DEEP_PEARL_M)
+	var band: Vector2 = DEEP_KELP_BAND if kind == 1 else DEEP_PEARL_BAND
+	var depth_m: float = DEEP_KELP_M if kind == 1 else DEEP_PEARL_M
+	var acc: int = _face_acc(face)
+	# THE PER-PLANT TRUTH (the register call's jitter replayed seed-for-seed):
+	# the paint learns which strand stands on which registered plant, so
+	# per-plant depletion can shear the paint honestly.
+	var plants := RandomNumberGenerator.new()
+	plants.seed = (acc + 9091 + bed_idx * 101) % 9007199254740991
+	var plant_dirs: Array = []
+	var plant_depths: Array = []
+	for k in range(3):
+		var jx: float = plants.randf_range(-0.0016, 0.0016)
+		var jy: float = plants.randf_range(-0.0016, 0.0016)
+		plant_dirs.append((dir + east * jx + north * jy).normalized())
+		plant_depths.append(clampf(depth_m + plants.randf_range(-3.0, 3.0), band.x + 1.0, band.y - 1.0))
+	var prefix := "deep_kelp" if kind == 1 else "deep_pearl"
+	var plant_ids: Array = []
+	for k in range(3):
+		plant_ids.append("%s_%d_%d_%d" % [prefix, face, bed_idx, k])
+	_register_deep_bed(zone_id, kind, plant_ids, plant_dirs, plant_depths, sea_r)
+	var grove := Node3D.new()
+	grove.name = "DeepGarden%d_%d" % [face, bed_idx]
+	grove.add_to_group("deep_garden")
+	grove.set_meta("deep_kind", kind)
+	grove.set_meta("harvest_ids", plant_ids)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = (acc + 31337 + bed_idx * 101) % 9007199254740991
+	if kind == 1:
+		# THE KELP SHELF: strands tall enough to read from the surface.
+		for k in range(14):
+			var spread: float = rng.randf_range(0.0008, 0.0075)
+			var d_k: Vector3 = (dir + east * rng.randf_range(-spread, spread)
+				+ north * rng.randf_range(-spread, spread)).normalized()
+			var h: float = rng.randf_range(7.0, 14.0)
+			var stalk := MeshInstance3D.new()
+			stalk.name = "Kelp%d" % k
+			stalk.mesh = _shared_cyl(0.09, 0.17, h)
+			stalk.material_override = _kelp_material()
+			stalk.position = d_k * (sea_r - DEEP_KELP_M + h * 0.5)
+			stalk.basis = Basis(east, d_k, north).rotated(d_k, rng.randf_range(0.0, TAU))
+			stalk.set_meta("plant_k", _nearest_plant(plant_dirs, d_k))
+			grove.add_child(stalk)
+		for k in range(4):
+			var bd: Vector3 = (dir + east * rng.randf_range(-0.004, 0.004)
+				+ north * rng.randf_range(-0.004, 0.004)).normalized()
+			var boulder := MeshInstance3D.new()
+			boulder.name = "Reef%d" % k
+			boulder.mesh = _shared_cyl(1.2, 2.4, rng.randf_range(1.4, 2.8))
+			boulder.material_override = _reef_material()
+			boulder.position = bd * (sea_r - DEEP_KELP_M - 3.0)
+			grove.add_child(boulder)
+	else:
+		# THE TRENCH: pale vent spires + drowned stones.
+		for k in range(6):
+			var sd: Vector3 = (dir + east * rng.randf_range(-0.003, 0.003)
+				+ north * rng.randf_range(-0.003, 0.003)).normalized()
+			var sh: float = rng.randf_range(5.0, 11.0)
+			var spire := MeshInstance3D.new()
+			spire.name = "Spire%d" % k
+			spire.mesh = _shared_cyl(0.35, 1.1, sh)
+			spire.material_override = _reef_material()
+			spire.position = sd * (root_r + sh * 0.5)
+			spire.set_meta("plant_k", _nearest_plant(plant_dirs, sd))
+			grove.add_child(spire)
+		for k in range(2):
+			var pd: Vector3 = (dir + east * rng.randf_range(-0.002, 0.002)
+				+ north * rng.randf_range(-0.002, 0.002)).normalized()
+			var stone := MeshInstance3D.new()
+			stone.name = "TrenchStone%d" % k
+			stone.mesh = _shared_cyl(1.0, 1.8, rng.randf_range(1.0, 1.8))
+			stone.material_override = _reef_material()
+			stone.position = pd * (root_r - 1.5)
+			grove.add_child(stone)
+	# THE STUMPS: hidden at build; the deep_garden_binder flips them off the
+	# service's own depletion book (never a second book here).
+	var stump_mat: Material = _kelp_material() if kind == 1 else _reef_material()
+	var stump_dims: Vector3 = Vector3(0.10, 0.16, 0.55) if kind == 1 else Vector3(0.35, 0.6, 0.6)
+	for k in range(3):
+		var stump := MeshInstance3D.new()
+		stump.name = "Stump%d" % k
+		stump.mesh = _shared_cyl(stump_dims.x, stump_dims.y, stump_dims.z)
+		stump.material_override = stump_mat
+		stump.position = plant_dirs[k] * (root_r + stump_dims.z * 0.5)
+		stump.set_meta("plant_k", k)
+		stump.visible = false
+		grove.add_child(stump)
+	node.add_child(grove)
+
+
+## Register a bed's three plants as live HarvestService nodes (the gather
+## half of the one placement law). Main thread only (service registration
+## is a side effect, never worker work).
+func _register_deep_bed(zone_id: String, kind: int, plant_ids: Array,
+		plant_dirs: Array, plant_depths: Array, sea_r: float) -> void:
+	var svc = _harvest_service()
+	if svc == null or not svc.has_method("register_node"):
+		return
+	if _deep_registered.has(plant_ids[0]):
+		return
+	_deep_registered[plant_ids[0]] = true
+	var item_id := "res_kelp_fiber" if kind == 1 else "res_abyss_pearl"
+	var band: Vector2 = DEEP_KELP_BAND if kind == 1 else DEEP_PEARL_BAND
+	var respawn: float = DEEP_KELP_RESPAWN if kind == 1 else DEEP_PEARL_RESPAWN
+	for k in range(plant_ids.size()):
+		var d_k: Vector3 = plant_dirs[k]
+		var depth_k: float = float(plant_depths[k])
+		svc.register_node(str(plant_ids[k]), zone_id, item_id,
+			d_k * (sea_r - depth_k), 1, respawn, band.x, band.y)
+
+
+## The plant a strand stands on (nearest of the bed's three), so per-plant
+## depletion shears the paint honestly.
+func _nearest_plant(plant_dirs: Array, d: Vector3) -> int:
+	var owner: int = 0
+	for pk in range(plant_dirs.size()):
+		if (plant_dirs[pk] as Vector3).angle_to(d) < (plant_dirs[owner] as Vector3).angle_to(d):
+			owner = pk
+	return owner
+
+
+## The stable per-face accumulator the bed seeds read (world-seed only, no
+## day salt -- anchored culture must survive a re-stream).
+func _face_acc(face: int) -> int:
+	var bytes: PackedByteArray = SeedChain.derive_seed([world_seed], "props/deepface/%d" % face)
+	var acc: int = 0
+	for b in bytes:
+		acc = (acc * 131 + b) % 9007199254740991
+	return acc
+
+
+## The HarvestService (absent in bare hosts; registration is then skipped).
+func _harvest_service():
+	var tree = Engine.get_main_loop()
+	if tree == null or not (tree is SceneTree):
+		return null
+	return (tree as SceneTree).root.get_node_or_null(NodePath("HarvestService"))
+
+
+## The shelf's green-black kelp (one cached material).
+var _kelp_mat_res: StandardMaterial3D = null
+var _reef_mat_res: StandardMaterial3D = null
+
+func _kelp_material() -> StandardMaterial3D:
+	if _kelp_mat_res != null:
+		return _kelp_mat_res
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.10, 0.32, 0.24)
+	m.roughness = 1.0
+	_kelp_mat_res = m
+	return m
+
+
+## The reef's wet stone (one cached material).
+func _reef_material() -> StandardMaterial3D:
+	if _reef_mat_res != null:
+		return _reef_mat_res
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.24, 0.27, 0.27)
+	m.roughness = 1.0
+	_reef_mat_res = m
+	return m

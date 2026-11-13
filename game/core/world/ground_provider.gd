@@ -80,3 +80,11 @@ func tree_density(_biome_id: int) -> float:
 ## The prop density for a biome, in props per square kilometre (detail kinds).
 func detail_density(_biome_id: int) -> float:
 	return 0.0
+
+
+## The authored deep-water beds (the Sundered Sea's kelp/pearl gardens): an
+## array of {dir: Vector3, kind: int, bed: int}. Default = none, so only the
+## world that authored beds grows them (the streamer's DEEP_BEDS, now a
+## provider read so the prop layer -- not the renderer -- owns the garden).
+func deep_beds() -> Array:
+	return []

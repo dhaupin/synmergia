@@ -117,3 +117,25 @@ func detail_density(bid: int) -> float:
 
 func seed_bytes() -> PackedByteArray:
 	return _seed
+
+
+## The Sundered Sea's authored beds (the streamer's DEEP_BEDS): chart
+## coordinates -> a world direction, owned by the world's own face. Kept
+## here so the prop layer grows the gardens; the renderer no longer owns
+## them.
+const DEEP_BED_CHART: Array = [
+	[0.40, -0.07, 1], [0.45, 0.00, 1], [0.50, 0.07, 1],
+	[0.58, -0.04, 2], [0.64, 0.00, 2], [0.70, 0.04, 2],
+]
+
+
+func deep_beds() -> Array:
+	var chart = load("res://core/services/strait_chart.gd")
+	if chart == null:
+		return []
+	var out: Array = []
+	for i in range(DEEP_BED_CHART.size()):
+		var bed: Array = DEEP_BED_CHART[i]
+		var d: Vector3 = chart.dir_from_chart(float(bed[0]), float(bed[1]))
+		out.append({"dir": d, "kind": int(bed[2]), "bed": i})
+	return out
