@@ -218,6 +218,27 @@ func _ready() -> void:
 	if basic_attack == null:
 		basic_attack = _create_basic_attack()
 	_ensure_effect_stack(true)
+	_setup_gm_indicator()
+
+# --- GM star (the GMIndicator feature, wired 2026-11-13) ------------------
+## A GM body wears a floating gold star above it -- the 3D twin of the
+## "[GM]" chat tag / gold nameplate. Attached ONLY when the body's class
+## is a GM class (role 0), so ordinary players never see it. The class
+## check is duck-typed through CharacterData.is_gm_class, so it works for
+## any class id and never crashes when the schema/DataService is absent
+## (bare PlayerBase probes).
+func _setup_gm_indicator() -> void:
+	if get_node_or_null("GMIndicator") != null:
+		return
+	var cd_script = load("res://core/schemas/character_data.gd")
+	if cd_script == null:
+		return
+	if not cd_script.is_gm_class(character_class):
+		return
+	var ind := Node3D.new()
+	ind.name = "GMIndicator"
+	ind.set_script(load("res://entities/player/components/gm_indicator.gd"))
+	add_child(ind)
 
 # --- Health surface -------------------------------------------------------
 ## Receive damage from any combatant (enemies route here through
