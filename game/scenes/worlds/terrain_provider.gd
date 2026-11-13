@@ -87,6 +87,18 @@ func water_surface(dir: Vector3) -> float:
 	return TerrainGen.hydro_water_surface(dir, _seed)
 
 
+## The fused draw sample (one call per clipmap vertex): the ground_sample
+## memo + the splat skin, exactly what the clipmap used to inline.
+func surface_sample(dir: Vector3) -> Dictionary:
+	var gs = TerrainGen.ground_sample(dir, _seed)
+	var skin: Dictionary = TerrainGen.splat_skin_from(gs, _seed, gs.height, 0.2)
+	return {"height": gs.height, "splat": skin["splat"], "aux": skin["aux"]}
+
+
+func spawn_dir() -> Vector3:
+	return TerrainGen.SPAWN_CENTER
+
+
 func tree_density(bid: int) -> float:
 	return float(TREE_DENSITY_KM2.get(bid, 0.0))
 

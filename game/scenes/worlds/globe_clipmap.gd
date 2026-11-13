@@ -82,6 +82,10 @@ var _cap_mesh: MeshInstance3D = null
 var _ring_meshes: Array = []      # int level -> MeshInstance3D
 var _ring_tris: Array = []        # int level -> tri count
 var _ring_built: Array = []       # int level -> bool (has a live mesh)
+## The ground provider (labs/prd-clipmap.md 10): the clipmap reads ALL ground
+## law through this seam, so the SAME renderer draws any globe. Default is the
+## main world (TerrainProvider); a world passes its own into configure().
+var provider = null
 
 ## Lattice state: the snapped centre direction (L1).
 var _center_dir: Vector3 = Vector3.ZERO
@@ -108,10 +112,13 @@ const _skin_shader = preload("res://assets/shaders/terrain_splat.gdshader")
 var _skin_mat: ShaderMaterial = null
 
 
-func configure(p_radius: float, _p_target_edge: float, p_parent: Node3D) -> void:
+## `p_provider` (optional): the world's GroundProvider. Omitted -> the main
+## world's TerrainProvider (so existing callers keep working unchanged).
+func configure(p_radius: float, _p_target_edge: float, p_parent: Node3D, p_provider = null) -> void:
 	radius = p_radius
 	parent = p_parent
-	world_seed = TerrainGen.world_seed_bytes()
+	provider = p_provider if p_provider != null else TerrainProvider.new()
+	world_seed = provider.seed_bytes() if provider.has_method("seed_bytes") else TerrainGen.world_seed_bytes()
 	_root = Node3D.new()
 	_root.name = "ClipmapRoot"
 	parent.add_child(_root)
@@ -124,7 +131,7 @@ func configure(p_radius: float, _p_target_edge: float, p_parent: Node3D) -> void
 	# layer streams the trees/rocks/detail around the player, shared with
 	# every renderer and every world through a GroundProvider.
 	_prop_layer = PropLayer.new()
-	_prop_layer.configure(TerrainProvider.new(), p_radius, _root)
+	_prop_layer.configure(provider, p_radius, _root)
 
 
 func terrain_on_flag() -> bool:
@@ -134,7 +141,7 @@ func terrain_on_flag() -> bool:
 ## Snap/re-centre + budgeted build tick. Returns the streamer-shaped dict.
 func update(player_pos: Vector3) -> Dictionary:
 	var t0: int = Time.get_ticks_msec()
-	var pdir: Vector3 = player_pos.normalized() if player_pos.length() > 0.001 else TerrainGen.SPAWN_CENTER
+	var pdir: Vector3 = player_pos.normalized() if player_pos.length() > 0.001 else _spawn_dir()
 	_last_player_dir = pdir
 
 	var old_face: int = current_face
@@ -165,7 +172,7 @@ func update(player_pos: Vector3) -> Dictionary:
 func build_all() -> int:
 	var t0: int = Time.get_ticks_msec()
 	if _center_dir == Vector3.ZERO:
-		var seed_dir: Vector3 = _last_player_dir if _last_player_dir != Vector3.ZERO else TerrainGen.SPAWN_CENTER
+		var seed_dir: Vector3 = _last_player_dir if _last_player_dir != Vector3.ZERO else _spawn_dir()
 		_center_dir = _snap_dir(seed_dir)
 	_jobs.clear()
 	# S6 (labs/prd-clipmap.md): the cap + each ring is an INDEPENDENT
@@ -308,14 +315,11 @@ func _install_mesh(kind: String, level: int, arrays: Array) -> void:
 ## The WALK LAW: unchanged (law + small-rock caps). Physics + props ride
 ## this, never the mesh.
 func walk_surface_h(dir: Vector3) -> float:
-	var d: Vector3 = dir.normalized()
-	var base: float = TerrainGen.terrain_height(d, world_seed) if terrain_on else 0.0
-	var face: int = FacePatches.face_for_direction(d)
-	return base + TerrainGen.rock_top_height(d, world_seed, face, radius)
+	return provider.walk_height(dir.normalized()) if terrain_on else 0.0
 
 
 func terrain_h(dir: Vector3) -> float:
-	return TerrainGen.terrain_height(dir.normalized(), world_seed) if terrain_on else 0.0
+	return provider.ground_height(dir.normalized()) if terrain_on else 0.0
 
 
 func is_loaded(_face: int) -> bool:
@@ -394,11 +398,17 @@ func _skin_material() -> ShaderMaterial:
 	return _skin_mat
 
 
+## The world's authored spawn direction (renderer boot fallback), read
+## through the provider so a world declares its own seat.
+func _spawn_dir() -> Vector3:
+	return provider.spawn_dir()
+
+
 ## Snap the centre direction to a global arc lattice (L1). Tangential
 ## offsets are measured against a FIXED world frame (spawn east/north), so
 ## the lattice is global -- a player-relative lattice would slide.
 func _snap_dir(pdir: Vector3) -> Vector3:
-	var ref: Vector3 = TerrainGen.SPAWN_CENTER
+	var ref: Vector3 = _spawn_dir()
 	var ref_east: Vector3 = Vector3(0, 1, 0).cross(ref)
 	if ref_east.length() < 0.001:
 		ref_east = Vector3(0, 0, 1).cross(ref)
@@ -629,6 +639,5 @@ func _add_vert(st: SurfaceTool, v: Dictionary) -> void:
 func _vertex_of(dir: Vector3) -> Dictionary:
 	if not terrain_on:
 		return {"p": dir * (radius + TILE_LIFT), "d": dir, "splat": Color(0.42, 0.55, 0.30), "aux": Vector2(0.0, 1.0)}
-	var gs = TerrainGen.ground_sample(dir, world_seed)
-	var skin: Dictionary = TerrainGen.splat_skin_from(gs, world_seed, gs.height, 0.2)
-	return {"p": dir * (radius + TILE_LIFT + gs.height), "d": dir, "splat": skin["splat"], "aux": skin["aux"]}
+	var ss: Dictionary = provider.surface_sample(dir)
+	return {"p": dir * (radius + TILE_LIFT + float(ss["height"])), "d": dir, "splat": ss["splat"], "aux": ss["aux"]}

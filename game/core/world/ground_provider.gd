@@ -44,6 +44,21 @@ func water_surface(dir: Vector3) -> float:
 	return sea_level()
 
 
+## The vertex surface sample the renderer draws: a fused read returning the
+## draw height + splat colour + aux, so a renderer makes ONE provider call
+## per vertex (the ground_sample pattern). The default is a flat, unskinned
+## shell so a provider that has no colour law still draws.
+func surface_sample(dir: Vector3) -> Dictionary:
+	return {"height": ground_height(dir), "splat": Color(0.42, 0.55, 0.30), "aux": Vector2(0.0, 1.0)}
+
+
+## The world's authored spawn/seat direction (the renderer's boot fallback
+## when it has no player position yet). Default = the north pole; a world
+## with a camp declares its own.
+func spawn_dir() -> Vector3:
+	return Vector3(0, 1, 0)
+
+
 ## The prop density for a biome, in props per square kilometre (trees).
 func tree_density(_biome_id: int) -> float:
 	return 0.0
