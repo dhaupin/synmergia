@@ -25,7 +25,7 @@ min_level = 0
 max_level = 0
 rewards = [{
 "amount": 10,
-"id": "token_event_xp",
+"id": "item_event_xp_token",
 "type": "item"
 }]
 event_quests = []

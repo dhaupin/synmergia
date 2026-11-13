@@ -70,8 +70,11 @@ func calculate_drop_chance(player_level: int) -> float:
 	var bonus := mini((player_level - level) * bonus_drop_per_level, max_bonus_drop)
 	return mini(base_drop_chance + bonus, 1.0)
 
-## Roll for drops
-func roll_drop(rng: RandomNumberGenerator = null) -> Dictionary:
+## Roll for drops. `drop_multiplier` is the global event drop bonus
+## (data/events drop_rate_multiplier, 1.0 by default): it scales the base
+## drop chance AND each per-entry drop rate, each clamped to 1.0 so a
+## 2x weekend can never exceed certainty. Guaranteed entries ignore it.
+func roll_drop(rng: RandomNumberGenerator = null, drop_multiplier: float = 1.0) -> Dictionary:
 	if rng == null:
 		rng = RandomNumberGenerator.new()
 		rng.randomize()
@@ -83,7 +86,8 @@ func roll_drop(rng: RandomNumberGenerator = null) -> Dictionary:
 		"got_any": false
 	}
 
-	if rng.randf() <= base_drop_chance:
+	var chance := minf(base_drop_chance * drop_multiplier, 1.0)
+	if rng.randf() <= chance:
 		result.rolled = true
 
 		for d in entries:
@@ -95,13 +99,13 @@ func roll_drop(rng: RandomNumberGenerator = null) -> Dictionary:
 		var n := mini(entries.size(), rng.randi_range(min_items_dropped, max_items_dropped))
 		for i in range(n):
 			var d: Dictionary = entries[rng.randi() % entries.size()]
-			if rng.randf() <= d.get("drop_rate", 1.0):
+			if rng.randf() <= minf(float(d.get("drop_rate", 1.0)) * drop_multiplier, 1.0):
 				var qty := rng.randi_range(d.get("min_quantity", 1), d.get("max_quantity", 1))
 				result.items.append({"item_id": d.get("item_id", ""), "quantity": qty})
 				result.got_any = true
 
 	for d in currency_drops:
-		if d.get("is_guaranteed", false) or rng.randf() <= d.get("drop_rate", 1.0):
+		if d.get("is_guaranteed", false) or rng.randf() <= minf(float(d.get("drop_rate", 1.0)) * drop_multiplier, 1.0):
 			var amount := rng.randi_range(d.get("min_amount", 0), d.get("max_amount", 0))
 			var cid: String = d.get("currency_id", "gold")
 			# Gold has one canonical result key. Data may spell it either

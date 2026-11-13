@@ -6,6 +6,7 @@ const LootTable = preload("res://core/schemas/loot_table.gd")
 const HealthComponent = preload("res://core/components/health_component.gd")
 const AggroComponent = preload("res://core/components/aggro_component.gd")
 const KillRewards = preload("res://core/services/kill_rewards.gd")
+const EventService = preload("res://core/services/event_service.gd")
 const EnemyData = preload("res://core/schemas/enemy_data.gd")
 const FloatingName = preload("res://entities/floating_name.gd")
 
@@ -517,7 +518,10 @@ func _roll_and_drop_loot() -> void:
 		GameLog.warn("Enemy: loot table not found for id '%s' (dropping base loot only)" % table_id)
 		return
 
-	var result := table.roll_drop()
+	# Global event drop bonus (data/events drop_rate_multiplier). Scales the
+	# table's base chance + per-entry rates; 1.0 with no open event.
+	var drop_mult := EventService.drop_multiplier(int(level) if "level" in self else 0)
+	var result := table.roll_drop(null, drop_mult)
 	for item in result.items:
 		GameLog.info("  loot: %s x%d" % [item.get("item_id", ""), item.get("quantity", 1)])
 

@@ -29,6 +29,7 @@ const GREY_LEVEL_SPREAD: int = 8
 ## Guard schema for the WatchTrigger enum (preload is parse-safe:
 ## guard_data.gd has no autoload references).
 const GuardDataScript = preload("res://core/schemas/guard_data.gd")
+const EventService = preload("res://core/services/event_service.gd")
 
 ## Entry point: resolve credit, grant rewards, broadcast the event.
 ## Emits only when a valid credit holder was resolved -- a creditless
@@ -123,6 +124,21 @@ static func award_kill_detailed(entity, killer) -> Dictionary:
 	xp = int(float(xp) * scale)
 	gold = int(float(gold) * scale)
 	result["scaling"] = scale
+
+	# Global event modifiers (data/events). An XP-boost / gold-boost weekend
+	# is a flat world-wide bonus, so it applies AFTER the per-kill level
+	# curve and products over every open event (1.0 with no events). This is
+	# the first consumer of the EventData catalog -- get_event() and the
+	# multiplier getters had zero callers before.
+	var entity_level := int(entity.level) if "level" in entity else 0
+	var ev_xp := EventService.xp_multiplier(entity_level)
+	var ev_gold := EventService.gold_multiplier(entity_level)
+	if ev_xp != 1.0:
+		xp = int(float(xp) * ev_xp)
+	if ev_gold != 1.0:
+		gold = int(float(gold) * ev_gold)
+	result["event_xp_multiplier"] = ev_xp
+	result["event_gold_multiplier"] = ev_gold
 	if xp < 0:
 		xp = 0
 	if gold < 0:
