@@ -36,6 +36,9 @@ func _bary(p, d: Vector3) -> PackedFloat32Array:
 	return out
 
 func _initialize() -> void:
+	# This probe reads the icosa STREAMER internals; pin the renderer
+	# so the default (clipmap) does not change what it inspects.
+	ProjectSettings.set_setting("synmergia/world/terrain_render", "streamer")
 	await process_frame
 	var packed: PackedScene = load(GLOBE_SCENE)
 	var globe = packed.instantiate()

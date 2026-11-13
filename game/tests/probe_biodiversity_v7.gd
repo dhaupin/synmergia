@@ -13,6 +13,9 @@ const RADIUS := 20000.0
 var _globe: Node3D
 
 func _init() -> void:
+	# This probe reads the icosa STREAMER internals; pin the renderer
+	# so the default (clipmap) does not change what it inspects.
+	ProjectSettings.set_setting("synmergia/world/terrain_render", "streamer")
 	call_deferred("_run")
 
 func _strip_digits(n: String) -> String:

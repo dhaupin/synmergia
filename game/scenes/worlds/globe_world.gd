@@ -94,9 +94,22 @@ var planet_center: Vector3 = Vector3.ZERO
 ## stall threshold (~2 km walks free, ~5 km degraded).
 const SHIFT_RADIUS: float = 1500.0
 
-## S5: when true the ground visual is STREAMED face patches (the
-## sphere StaticBody stays the physics truth either way).
+## S5: when true the ground visual is STREAMED (the sphere StaticBody
+## stays the physics truth either way).
 var stream_terrain: bool = true
+
+## THE RENDERER SWITCH (clipmap round): "clipmap" (default) draws the
+## ground as a player-centred polar clipmap; "streamer" is the legacy
+## icosa face-patch streamer (kept as fallback until the clipmap's probe
+## set is green). Both draw the SAME ground law; only the mesh differs.
+const TERRAIN_RENDER_SETTING: String = "synmergia/world/terrain_render"
+var terrain_render: String = "clipmap"
+
+## The clipmap's ring ladder is tuned for the canon 20 km planet; below this
+## radius the prototype bench sphere would re-centre every step, so the
+## renderer falls back to the streamer (same line as the world's other
+## planet-scale gates).
+const PLANET_RENDER_MIN_R: float = 1000.0
 
 ## WATER (terrain arc): at planet scale the scene paints a water shell
 ## at the terrain sea line (TerrainGen.sea_level). The shell is visual
@@ -105,7 +118,9 @@ var stream_terrain: bool = true
 const WATER_ON: bool = true
 var water_body: MeshInstance3D = null
 
-var streamer  # GlobeTerrainStreamer; untyped - preload-by-path pattern
+## The active ground renderer (GlobeClipmap or GlobeTerrainStreamer);
+## untyped - preload-by-path pattern. Both expose the same surface.
+var streamer
 
 var player  # GlobeWorldPlayer; untyped on purpose - set_script + dynamic
 # dispatch keeps this scene free of parse-time class_name dependencies.
@@ -488,14 +503,31 @@ func _exit_tree() -> void:
 func _setup_streamer() -> void:
 	if not stream_terrain:
 		return
-	streamer = load("res://scenes/worlds/globe_terrain_streamer.gd").new()
-	streamer.configure(planet_radius, 7.0, world_root)
-	# Terrain arc: the heightfield joins the tiles at planet scale. The
-	# planar prototype mode is GONE (the cache-lane/planar cull round):
-	# every globe is a terrain globe.
-	streamer.terrain_on = true
-	streamer.update(_spawn_dir() * planet_radius)
-	_setup_chart_lod()
+	# THE RENDERER SWITCH (clipmap round): clipmap (default) or the legacy
+	# streamer. Both draw the SAME ground law through the same public surface.
+	terrain_render = str(ProjectSettings.get_setting(TERRAIN_RENDER_SETTING, terrain_render))
+	# SCALE GATE: the clipmap's ring ladder (inner radius, hysteresis, cell
+	# sizes) is tuned for the canon 20 km planet. Below planet scale the
+	# prototype bench sphere (R=100) would re-centre every step, so it falls
+	# back to the streamer -- the same 1000 m line the world's other
+	# planet-scale gates use.
+	if terrain_render == "clipmap" and planet_radius < PLANET_RENDER_MIN_R:
+		terrain_render = "streamer"
+	if terrain_render == "clipmap":
+		streamer = load("res://scenes/worlds/globe_clipmap.gd").new()
+		streamer.configure(planet_radius, 7.0, world_root)
+		streamer.terrain_on = true
+		streamer.update(_spawn_dir() * planet_radius)
+		streamer.build_all()
+	else:
+		streamer = load("res://scenes/worlds/globe_terrain_streamer.gd").new()
+		streamer.configure(planet_radius, 7.0, world_root)
+		# Terrain arc: the heightfield joins the tiles at planet scale. The
+		# planar prototype mode is GONE (the cache-lane/planar cull round):
+		# every globe is a terrain globe.
+		streamer.terrain_on = true
+		streamer.update(_spawn_dir() * planet_radius)
+		_setup_chart_lod()
 	# SPAWN MESH GATE (round 10): the boot must be able to SEE its own
 	# ground. The first update is synchronous, so an unloaded spawn face
 	# means the streamer is broken -- fail LOUD here instead of booting
@@ -505,10 +537,10 @@ func _setup_streamer() -> void:
 	var log4 = get_node_or_null("/root/GameLog")
 	if streamer.is_loaded(streamer.current_face):
 		if log4:
-			log4.info("GlobeWorld: spawn face %d mesh-ready at boot (%d faces, %d tris)" % [streamer.current_face, streamer.active_faces().size(), streamer.triangle_count()])
+			log4.info("GlobeWorld: spawn face %d mesh-ready at boot (%d faces, %d tris) [%s]" % [streamer.current_face, streamer.active_faces().size(), streamer.triangle_count(), terrain_render])
 	else:
 		if log4:
-			log4.error("GlobeWorld: spawn face %d did NOT load at boot -- the world will render as bare shell/water. Streamer load path is broken." % streamer.current_face)
+			log4.error("GlobeWorld: spawn face %d did NOT load at boot -- the world will render as bare shell/water. %s load path is broken." % [streamer.current_face, terrain_render])
 
 
 ## CHART-LOD GLUE setup: the adapter + the overlay root under

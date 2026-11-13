@@ -28,6 +28,9 @@ var _fails: int = 0
 var _checks: int = 0
 
 func _init() -> void:
+	# Reads icosa STREAMER internals (level/edge + Sundered deep beds);
+	# pin the renderer so the default clipmap does not change what it inspects.
+	ProjectSettings.set_setting("synmergia/world/terrain_render", "streamer")
 	call_deferred("_run")
 
 func _check(label: String, cond: bool) -> void:

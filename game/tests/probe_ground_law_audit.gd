@@ -269,6 +269,9 @@ func _ensure_patch(st, face: int, lvl: int) -> bool:
 	return mi_f != null and mi_f.is_inside_tree() and int(st._patch_lvl.get(face, -1)) == lvl
 
 func _initialize() -> void:
+	# This probe reads the icosa STREAMER internals; pin the renderer
+	# so the default (clipmap) does not change what it inspects.
+	ProjectSettings.set_setting("synmergia/world/terrain_render", "streamer")
 	await process_frame
 	var packed: PackedScene = load(GLOBE_SCENE)
 	var globe = packed.instantiate()

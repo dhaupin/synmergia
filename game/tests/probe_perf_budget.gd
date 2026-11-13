@@ -62,6 +62,9 @@ func _check(label: String, cond: bool) -> bool:
 
 
 func _init() -> void:
+	# This probe reads the icosa STREAMER internals; pin the renderer
+	# so the default (clipmap) does not change what it inspects.
+	ProjectSettings.set_setting("synmergia/world/terrain_render", "streamer")
 	call_deferred("_run")
 
 
