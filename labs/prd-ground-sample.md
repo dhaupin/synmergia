@@ -241,6 +241,66 @@ the redundant parallel caches, not the cold derivations).
   `bound_ang`. Measured: `river_channel` COLD 146.1 -> 38.9 us (3.8x);
   the probe grew a "reject never covers a hit" leg (10 checks).
 
+## 6c. Shrinking the law (the residual ~2 s), 2026-11-04
+
+Stages 0-5 fused the law and cut the WARM path; the COLD path was
+unchanged (the same laws, derived once). The residual cold build (~2 s
+after S6's parallelisation) was therefore still the law's own cost --
+this round attacked the REDUNDANT derivations inside one fused sample.
+
+**Instrumented finding.** A single `ground_sample` issued **35.8
+`_vnoise` calls but only 20 distinct `(salt, freq)` pairs** -- i.e. ~16
+redundant noise derivations per vertex. The repeat offenders were all
+PURE, UNCACHED functions re-entered several times within one sample:
+
+| function | calls / sample | note |
+|---|---|---|
+| `_land_mass` | ~5x | same terrain salt, re-derived by the land law, moisture field, and biome law |
+| `_hydro_gates` | 2.38x | read by the surface law and the lake carve |
+| `climate_moisture_field` | ~2.3x | read by the moisture law and the table law |
+| `terrain_height(d)` in `waterfall_seam_at` | 32x | INVARIANT across the spec scan (reads d, not the spec) -- re-derived per waterfall segment |
+
+**Fixes (all bit-identical -- `GEO_HASH` unchanged in serial AND
+parallel builds, `probe_ground_sample` EXACT equality):**
+
+- `_land_mass_seeded(d, seed)` -- memoized `_land_mass` wrapper, new
+  `_land_cache`. The raw `_land_mass(d, salt)` stays uncached for probes.
+- `_hydro_gates_cached(d, seed)` -- memoized `_hydro_gates`, new
+  `_gates_cache`.
+- `climate_moisture_field_cached(d, seed)` -- memoized field, new
+  `_moist_field_cache`.
+- `waterfall_seam_at`: the invariant `terrain_height(d)` hoisted out of
+  the spec/segment loop (32 reads -> 1).
+- `RiverSpec.seam_bound_ang` + `_river_spec_far_seam(d, spec)`: the S4
+  bound for the waterfall scan (a mask reaches half_spread + one segment
+  arc from an endpoint; farther than that from EVERY path point = no
+  seam). EXACT early-out, pinned by a new probe leg.
+- The three new caches added to the backend install/uninstall clear lists.
+
+**Measured (fresh sector = cold miss):**
+
+| metric | before | after |
+|---|---|---|
+| clipmap cold build (`build_all`) | 2004 ms | **947 ms** (2.1x) |
+| `waterfall_seam_at` cold | 391 us | 187 us (2.1x) |
+| `splat_skin_from` warm | 230 us | 25 us (9.2x) |
+| vertex cold (sample + splat) | 530 us | 303 us (1.7x) |
+| `ground_sample` cold | 389 us | ~360 us |
+
+The `splat_skin_from` warm collapse is the waterfall hoist: it is the
+per-vertex tail and it was paying 32 `terrain_height` reads on a warm
+sample (a warm `ground_sample` does not memoize the seam's own internal
+reads). The remaining cold cost is the genuinely-distinct derivation
+set (the 20 distinct noise pairs + the biome/skin stack).
+
+**Gates:** `probe_ground_sample` 12 checks ALL PASS (EXACT equality +
+the new seam-bound exactness + seam-range legs); `probe_clipmap` ALL
+PASS; `probe_ground_law_audit` ALL PASS; `probe_terrain_planet` exit 0;
+`probe_starter_village` ALL PASS; `probe_sundered_backend` 17/0;
+`probe_world_shape_ground` 0 failures; `probe_terrain_climate` 32 ALL
+PASS; `test_terrain_determinism` exit 0; `GEO_HASH` identical serial vs
+parallel (thread-safe + bit-identical).
+
 ## 7. Open questions (for the owner)
 
 1. **How far to fuse?** Full (all eight fields) vs a smaller

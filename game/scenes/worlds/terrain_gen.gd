@@ -67,6 +67,17 @@ static var _carved_cache = SECTOR_CACHE.new()
 ## re-deriving; Stage 3 collapses the per-field caches into this one.
 static var _ground_cache = SECTOR_CACHE.new()
 
+## SHRINK-THE-LAW MEMOS (labs/prd-ground-sample.md 6c): the fused
+## sample re-enters these PURE shape/noise laws several times per
+## vertex (measured: _land_mass 5x, _hydro_gates 2.4x,
+## climate_moisture_field 2.3x -- 35.8 _vnoise calls per sample for
+## only 20 distinct (salt,freq) pairs). Memoizing them by the sector
+## key law is bit-identical (a pure function of (dir, seed)) and cuts
+## the redundant cold derivation.
+static var _land_cache = SECTOR_CACHE.new()
+static var _gates_cache = SECTOR_CACHE.new()
+static var _moist_field_cache = SECTOR_CACHE.new()
+
 ## Bump to invalidate all derived content deliberately. v2: the
 ## heightfield + boulders join the world (all rocks/trees re-derive).
 ## v3: climate + hydrology join (biome ids/weights re-derive; the
@@ -512,6 +523,19 @@ static func _vnoise(d: Vector3, salt: int, freq: float) -> float:
 	return lerpf(lerpf(x00, x10, u.y), lerpf(x01, x11, u.y), u.z)
 
 
+## Memoized _land_mass for the fused-sample path (same computation,
+## cached by the sector key law). _land_mass itself stays uncached so
+## probes/debug callers see the raw law.
+static func _land_mass_seeded(d: Vector3, world_seed: PackedByteArray) -> float:
+	var dn: Vector3 = d.normalized()
+	var cached = _land_cache.get_value(dn, world_seed)
+	if cached != null:
+		return float(cached)
+	var out: float = _land_mass(dn, _seed_salt(world_seed, "terrain"))
+	_land_cache.set_value(dn, world_seed, out)
+	return out
+
+
 ## Land mass in [0, 1]: latitude band gate (the polar caps are sea --
 ## the Concord maps show white at the top of the world, ice later) x
 ## seeded continental noise, with the STARTING CONTINENT guaranteed
@@ -696,6 +720,9 @@ static func install_terrain_backend(backend: Callable) -> void:
 	_waterfall_cache.clear()   # the seam masks ride the specs
 	_crag_cache.clear()        # the color noises ride the seed law
 	_ground_cache.clear()      # the fused sample rides the ground law
+	_land_cache.clear()        # land mass rides the ground law
+	_gates_cache.clear()       # hydro gates ride the ground law
+	_moist_field_cache.clear() # moisture field rides the ground law
 
 
 static func uninstall_terrain_backend() -> void:
@@ -711,6 +738,9 @@ static func uninstall_terrain_backend() -> void:
 	_river_spec_cache.clear()
 	_crag_cache.clear()
 	_ground_cache.clear()
+	_land_cache.clear()
+	_gates_cache.clear()
+	_moist_field_cache.clear()
 
 
 static func terrain_backend_installed() -> bool:
@@ -770,7 +800,7 @@ static func _terrain_height_base_nowrap(dir: Vector3, world_seed: PackedByteArra
 static func _natural_raw(d: Vector3, world_seed: PackedByteArray) -> float:
 	var sea: float = sea_level(world_seed)
 	var salt: int = _seed_salt(world_seed, "terrain")
-	var land: float = _land_mass(d, salt)
+	var land: float = _land_mass_seeded(d, world_seed)
 	var ocean_floor: float = sea - (OCEAN_DEPTH_MIN + OCEAN_DEPTH_SPAN * _vnoise(d, salt + 7, 6.0))
 	var land_h: float = -3.0 + land * 17.0
 	var inland: float = smoothstep(0.18, 0.5, land)
@@ -1140,9 +1170,20 @@ static func climate_moisture(d: Vector3, world_seed: PackedByteArray) -> float:
 	# channel law reads only the carved specs (no moisture reads). The
 	# RAW field stays exposed for probes (the boost is an exact,
 	# checkable delta on top of it).
-	var m_raw: float = clampf(climate_moisture_field(d, world_seed), 0.0, 1.0)
+	var m_raw: float = clampf(climate_moisture_field_cached(d, world_seed), 0.0, 1.0)
 	var c: float = river_channel(d, world_seed)
 	return clampf(m_raw + Hydro.RIVER_MOIST_BOOST * c, 0.0, 1.0)
+
+
+## Memoized moisture field for the fused-sample path (pure of (dir, seed)).
+static func climate_moisture_field_cached(d: Vector3, world_seed: PackedByteArray) -> float:
+	var dn: Vector3 = d.normalized()
+	var cached = _moist_field_cache.get_value(dn, world_seed)
+	if cached != null:
+		return float(cached)
+	var out: float = climate_moisture_field(dn, world_seed)
+	_moist_field_cache.set_value(dn, world_seed, out)
+	return out
 
 
 ## The moisture FIELD law (the raw, ripple-free body the ripple law
@@ -1157,7 +1198,7 @@ static func climate_moisture_field(d: Vector3, world_seed: PackedByteArray) -> f
 	# resolve DESERT at the core, the fade rings out through the dry
 	# ladder to the wetter coast.
 	m -= SUN_PANS_DRY * sun_pans_factor(d)
-	var land: float = _land_mass(d, _seed_salt(world_seed, "terrain"))
+	var land: float = _land_mass_seeded(d, world_seed)
 	if land <= OCEAN_LAND_LINE:
 		return clampf(m * 0.4 + 0.5, 0.0, 1.0)  # sea air is moist
 	return clampf(m + land * 0.1, 0.0, 1.0)
@@ -1183,7 +1224,7 @@ static func erosion_field(d: Vector3, world_seed: PackedByteArray) -> float:
 static func climate_biome_at(d: Vector3, world_seed: PackedByteArray, height: float, surface: float) -> int:
 	var t: float = climate_temperature(d, world_seed)
 	var m: float = climate_moisture(d, world_seed)
-	var land: float = _land_mass(d, _seed_salt(world_seed, "terrain"))
+	var land: float = _land_mass_seeded(d, world_seed)
 	# THE ROAD BRIDGE: a deck crossing reads as LAND (the deck stands
 	# above the water line and the road tint paints it - no water band
 	# under a solid cartway). Sector-cached, one read per direction.
@@ -1293,7 +1334,7 @@ static func hydro_water_surface(d: Vector3, world_seed: PackedByteArray) -> floa
 	var cached = _water_surface_cache.get_value(d, world_seed)
 	if cached != null:
 		return float(cached)
-	var gates: Vector2 = _hydro_gates(d, world_seed)
+	var gates: Vector2 = _hydro_gates_cached(d, world_seed)
 	var out: float = -1e9
 	# THE DRY LAW (the rewiring): the surface SINKS into the ground by
 	# max(suppress, 1 - gate) - the old guard read suppress BACKWARDS
@@ -1770,6 +1811,17 @@ static func water_table_raw(d: Vector3, world_seed: PackedByteArray) -> float:
 
 
 
+## Memoized _hydro_gates for the fused-sample path (pure of (dir, seed)).
+static func _hydro_gates_cached(d: Vector3, world_seed: PackedByteArray) -> Vector2:
+	var dn: Vector3 = d.normalized()
+	var cached = _gates_cache.get_value(dn, world_seed)
+	if cached is Vector2:
+		return cached
+	var out: Vector2 = _hydro_gates(dn, world_seed)
+	_gates_cache.set_value(dn, world_seed, out)
+	return out
+
+
 ## THE HYDRO GATES (the ONE definition both the carve law and the
 ## water-surface law read): (gate, suppress). Gate = the basin
 ## DISTRICT band (a bump over the coarse cell: basins are discrete
@@ -1898,9 +1950,15 @@ static func waterfall_seam_at(d: Vector3, world_seed: PackedByteArray) -> float:
 		return float(cached)
 	var best: float = 0.0
 	var sea: float = sea_level(world_seed)
+	# The surface height is INVARIANT across the spec scan (it reads d,
+	# not the spec) -- hoisted so 32 waterfall segments pay ONE read.
+	var lift: float = terrain_height(d, world_seed)
 	for spec in river_specs_cached(world_seed):
 		var n: int = spec.path.size()
 		if n < 2:
+			continue
+		# STAGE-5 SEAM BOUND: skip a spec whose seam mask cannot reach d.
+		if _river_spec_far_seam(d, spec):
 			continue
 		for si in range(n - 1):
 			var drop: float = float(spec.drops[si])
@@ -1922,7 +1980,6 @@ static func waterfall_seam_at(d: Vector3, world_seed: PackedByteArray) -> float:
 			var half_spread: float = (Hydro.RIVER_RADIUS_ANG if Hydro.RIVER_RADIUS_ANG > 0.0 else 0.004) * WATERFALL_SEAM_WIDTH_K
 			var horiz: float = clampf(1.0 - (absf(along - seg_len * 0.5) / maxf(reach_ang, 1e-5)), 0.0, 1.0) \
 					* clampf(1.0 - perp / maxf(half_spread, 1e-5), 0.0, 1.0)
-			var lift: float = terrain_height(d, world_seed)
 			var band: float = smoothstep(bottom_h - 1.0, bottom_h + 1.0, lift) \
 					* (1.0 - smoothstep(top_h - 0.5, top_h + 0.3, lift))
 			var mask: float = clampf(horiz * band, 0.0, 1.0) * smoothstep(WATERFALL_MIN_DROP, WATERFALL_MIN_DROP + 3.0, drop)
@@ -1934,6 +1991,19 @@ static func waterfall_seam_at(d: Vector3, world_seed: PackedByteArray) -> float:
 ## STAGE-5: the per-spec bounding test (exact reject). True when d
 ## is farther than the spec's bound from EVERY path point, so no
 ## capsule of this spec can contain d.
+## The waterfall-seam analogue of _river_spec_far: the seam mask's
+## reach is half_spread + one segment arc from an endpoint, so a
+## query farther than seam_bound_ang from EVERY path point sees no
+## seam -- an EXACT early-out (any mask hit implies an endpoint
+## within seam_bound_ang).
+static func _river_spec_far_seam(d_n: Vector3, spec) -> bool:
+	var b: float = spec.seam_bound_ang
+	for p in spec.path:
+		if d_n.angle_to(p) <= b:
+			return false
+	return true
+
+
 static func _river_spec_far(d_n: Vector3, spec) -> bool:
 	var b: float = spec.bound_ang
 	for p in spec.path:
@@ -2082,7 +2152,7 @@ static func _terrain_height_carved_uncached(d: Vector3, world_seed: PackedByteAr
 ## exact under ANY seed (W5), banks/probe channels unaffected.
 static func hydro_lake_carve(d: Vector3, world_seed: PackedByteArray, h: float) -> float:
 	d = d.normalized()
-	var gates: Vector2 = _hydro_gates(d, world_seed)
+	var gates: Vector2 = _hydro_gates_cached(d, world_seed)
 	if gates.x <= 0.0:
 		return h
 	var table: float = water_table_raw(d, world_seed)
@@ -2114,6 +2184,11 @@ class RiverSpec:
 	## and the per-spec scan is skipped (an EXACT early-out: any hit
 	## implies a path point within bound_ang, so the reject is safe).
 	var bound_ang: float = 0.0
+	## THE SEAM BOUND (same early-out for waterfall_seam_at): a
+	## waterfall mask needs d within (half_spread + one segment arc)
+	## of a path ENDPOINT, so a query farther than that from EVERY
+	## path point sees no seam -- the per-spec scan is skipped.
+	var seam_bound_ang: float = 0.0
 	## THE DROP TRACKING (the waterfall seam law): per segment's base
 	## height fall (meters, positive downhill). Zero = a gentle reach;
 	## a DROP (>= WATERFALL_MIN_DROP) marks a waterfall seam.
@@ -2145,7 +2220,7 @@ static func river_springs(world_seed: PackedByteArray) -> Array:
 		# same seed, same redraws on every machine. At most 8 redraws,
 		# then this spring dies as before.
 		var sea: float = sea_level(world_seed)
-		var land: float = _land_mass(d, _seed_salt(world_seed, "terrain"))
+		var land: float = _land_mass_seeded(d, world_seed)
 		var h: float = _terrain_height_base(d, world_seed)
 		for _try in range(8):
 			if land >= 0.3 and h > sea:
@@ -2177,6 +2252,11 @@ static func river_springs(world_seed: PackedByteArray) -> Array:
 		for bi in range(nn):
 			var bt: float = float(bi) / maxf(float(nn - 1), 1.0)
 			max_rad = maxf(max_rad, Hydro.RIVER_RADIUS_ANG * (1.0 + Hydro.ESTUARY_WIDEN * bt * bt))
+		var max_seg: float = 0.0
+		for mi in range(nn - 1):
+			max_seg = maxf(max_seg, spec.path[mi].angle_to(spec.path[mi + 1]))
+		var half_spread: float = (Hydro.RIVER_RADIUS_ANG if Hydro.RIVER_RADIUS_ANG > 0.0 else 0.004) * WATERFALL_SEAM_WIDTH_K
+		spec.seam_bound_ang = half_spread + 2.0 * max_seg + 1e-3
 		spec.bound_ang = max_rad + 0.02 * max_rad + 1e-4
 		out.append(spec)
 	return out

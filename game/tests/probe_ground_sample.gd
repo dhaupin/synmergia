@@ -140,6 +140,36 @@ func _initialize() -> void:
 				if nearest <= widest:
 					bound_bad += 1
 	_check("river bound exact (reject never covers a hit)", bound_bad == 0)
+	# The waterfall seam bound (the same early-out for waterfall_seam_at)
+	# must be EXACT: when _river_spec_far_seam rejects a spec, no seam
+	# mask on that spec can reach the query. A reject that fired while the
+	# query sat inside a segment's reach (half_spread + one arc) would be
+	# a silently dropped waterfall.
+	var seam_bad := 0
+	var half_spread: float = Gen.Hydro.RIVER_RADIUS_ANG * Gen.WATERFALL_SEAM_WIDTH_K
+	for d in probes:
+		var dn: Vector3 = d.normalized()
+		for spec in specs:
+			if Gen._river_spec_far_seam(dn, spec):
+				var nearest := 999.0
+				for p in spec.path:
+					nearest = minf(nearest, dn.angle_to(p))
+				var nn: int = spec.path.size()
+				for si in range(nn - 1):
+					var arc: float = spec.path[si].angle_to(spec.path[si + 1])
+					if nearest <= half_spread + arc:
+						seam_bad += 1
+						break
+	_check("waterfall seam bound exact (reject never covers a hit)", seam_bad == 0)
+
+	# The seam value must stay finite and in range across the battery.
+	var seam_mismatch := 0
+	for d in dirs:
+		var direct: float = Gen.waterfall_seam_at(d, seed_b)
+		if not is_finite(direct) or direct < 0.0 or direct > 1.0:
+			seam_mismatch += 1
+	_check("waterfall seam finite in [0,1] across %d dirs" % dirs.size(), seam_mismatch == 0)
+
 
 	print("probe_ground_sample: %s (%d checks)" % ["ALL PASS" if _okay else "FAILS", _checks])
 	quit(0 if _okay else 1)

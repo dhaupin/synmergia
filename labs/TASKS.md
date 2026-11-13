@@ -7,6 +7,17 @@ commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
 
+## 2026-11-04cg -- world: shrink the cold ground law (residual ~2 s -> 947 ms) (staging, no PRs)
+- SESSION CONTEXT: prior session nuked; resumed on `staging`. User ask (2): work the residual ~2 s cold law -- per `prd-ground-sample.md`, the only remaining lever (hysteresis + the incremental tick already hide it in play).
+- FINDING (instrumented): ONE fused `ground_sample` issued **35.8 `_vnoise` calls but only 20 distinct `(salt,freq)` pairs** -- ~16 redundant noise derivations per vertex. Repeat offenders were PURE + UNCACHED: `_land_mass` ~5x/sample (same terrain salt), `_hydro_gates` 2.38x, `climate_moisture_field` ~2.3x. Separately, `waterfall_seam_at` (the per-vertex splat tail) re-derived the loop-INVARIANT `terrain_height(d)` 32x (once per waterfall segment) and lacked the S4 spec bound `river_channel` already had.
+- SHIPPED (`terrain_gen.gd`, all BIT-IDENTICAL -- GEO_HASH 835956491 unchanged in serial AND parallel builds): `_land_mass_seeded()` + `_land_cache`; `_hydro_gates_cached()` + `_gates_cache`; `climate_moisture_field_cached()` + `_moist_field_cache`; the raw functions stay uncached for probes/debug. `waterfall_seam_at`: the invariant `terrain_height(d)` HOISTED out of the spec/segment loop (32 reads -> 1). `RiverSpec.seam_bound_ang` + `_river_spec_far_seam(d, spec)`: the waterfall-scan S4 early-out (mask reach = half_spread + one segment arc from an endpoint; EXACT reject). The 3 new caches added to the backend install/uninstall clear lists.
+- MEASURED: clipmap cold build (`build_all`) **2004 -> 947 ms (2.1x)**; `waterfall_seam_at` cold 391 -> 187 us (2.1x); `splat_skin_from` warm 230 -> 25 us (9.2x, the waterfall hoist); vertex cold (sample+splat) 530 -> 303 us; `ground_sample` cold 389 -> ~360 us. (Serial build 1627 ms, same GEO_HASH.)
+- GATES: probe_ground_sample **12 checks ALL PASS** (EXACT equality + new seam-bound exactness + seam-range legs); probe_clipmap ALL PASS; probe_ground_law_audit ALL PASS; probe_terrain_planet exit 0; probe_starter_village ALL PASS; probe_sundered_backend 17/0; probe_world_shape_ground 0 failures; probe_terrain_climate 32 ALL PASS; test_terrain_determinism exit 0.
+- DOCS: `labs/prd-ground-sample.md` section 6c (the measured shrink); this entry.
+- REQUEST (1) VERIFIED DONE: the stale 'runner being reworked' phrasing is purged from synmergia source (AGENTS.md line ~198 now carries an explicit anti-note: it is LIVE and already parallel). gamestruct's only remaining mention is a historical CHANGELOG.md:76 entry (accurate history, not an instruction); vant is hands-off.
+- PUSHED: `staging`.
+
+
 ## 2026-11-04cf -- world: S6 clipmap cold boot PARALLELISED + L3 honored within a row (staging, no PRs)
 - SESSION CONTEXT: prior session nuked; resumed on `staging`. Goal: S6 (the ~3 s clipmap cold boot, the last headline item behind the clipmap round).
 - BASELINE: `bench_clipmap_coldboot` BUILD_ALL_MS=3117, VERTEX_COUNT=31104, TRIS=10240, SAMPLE_COLD_US=440, WARM=2.6. `diag_law_limbs`: cold `ground_sample` (fused) ~390 us is the dominant limb -- the clipmap issues ~5.4k distinct cold derives at boot, so ~2 s IS the law's cost; the design question is only how to spread it.
