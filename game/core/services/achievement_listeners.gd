@@ -13,6 +13,9 @@
 ##   - GuildService.player_joined_guild(guild_id, player_id, rank)  -> guild
 ##   - TradeService.trade_completed(trade_id, trades)               -> trade
 ##   - ChatService.message_received(sender_id, channel, msg, tgts)  -> chat
+##   - WaypointService.waypoint_reached(player_id, waypoint_id)     -> wake (woken roads)
+##   - RideService.mount_summoned(player_id, mount_id)              -> mount_bond (deferred:
+##     RideService sits AFTER this autoload, so its node does not exist yet at _ready)
 ## AchievementService stays pure; this file owns every signal signature.
 extends Node
 
@@ -25,6 +28,10 @@ var _session_flags: Dictionary = {}
 
 func _ready() -> void:
 	_connect_all()
+	# RideService is added to /root AFTER this autoload, so it is not resolvable
+	# here; connect it once the frame settles (same pattern as QuestService's
+	# glide/swim bridges).
+	call_deferred("_connect_ride_bridge")
 	_log("info", "AchievementListeners: Wired achievement event sources")
 
 ## ============================================================================
@@ -76,6 +83,11 @@ func _connect_all() -> void:
 	var chat := get_node_or_null("/root/ChatService")
 	if chat != null and chat.has_signal("message_received"):
 		chat.message_received.connect(_on_chat_message)
+
+	# Woken roads: WaypointService precedes this autoload, so direct connect is safe.
+	var waypoint := get_node_or_null("/root/WaypointService")
+	if waypoint != null and waypoint.has_signal("waypoint_reached"):
+		waypoint.waypoint_reached.connect(_on_waypoint_reached)
 
 ## ============================================================================
 ## HANDLERS
@@ -187,6 +199,34 @@ func _on_chat_message(sender_id: String, _channel, _message: String, _targets: A
 	if sender_id == "" or sender_id == "SYSTEM":
 		return
 	AchievementService.track(sender_id, "chat", 1)
+
+## WaypointService.waypoint_reached(player_id, waypoint_id) - the waking verb.
+## A reached waypoint is a road walked to its end; credit once per waypoint per
+## session so parking on a beacon cannot farm the counter.
+func _on_waypoint_reached(player_id: String, waypoint_id: String) -> void:
+	if player_id == "":
+		return
+	if _session_flag(player_id, "wake:%s" % waypoint_id):
+		return
+	AchievementService.track(player_id, "wake", 1)
+
+## RideService.mount_summoned(player_id, mount_id) - a mount bond deepens per
+## DISTINCT mount, not per summon: summon/dismount spam must not farm it.
+## (RideService is a late autoload, hence the deferred connect.)
+func _on_mount_summoned(player_id: String, mount_id: String) -> void:
+	if player_id == "" or mount_id == "":
+		return
+	if _session_flag(player_id, "mount_bond:%s" % mount_id):
+		return
+	AchievementService.track(player_id, "mount_bond", 1)
+
+func _connect_ride_bridge() -> void:
+	var ride := get_node_or_null("/root/RideService")
+	if ride == null or not ride.has_signal("mount_summoned"):
+		return
+	if ride.mount_summoned.is_connected(_on_mount_summoned):
+		return
+	ride.mount_summoned.connect(_on_mount_summoned)
 
 ## AchievementService.achievement_unlocked(player_id, achievement_id)
 ## Re-toast with the display name; hud_services also fires its own toast,

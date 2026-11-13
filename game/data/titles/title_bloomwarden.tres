@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TitleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/title_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "bloomwarden"
+display_name = "Bloomwarden"
+description = "Contain a Bloom horde"
+prefix_form = "The Bloomwarden"
+suffix_form = "the Bloomwarden"
+category = 3
+rarity = 2
+unlock_method = 0
+unlock_source = "bloom_contained"
+is_account_title = false
+sort_order = 72

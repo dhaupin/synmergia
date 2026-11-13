@@ -12,5 +12,5 @@ gate_chapter_index = 2
 answer_kind = 1
 answer_day = -1
 hint = "Not the sky's rotation -- the ledger itself. How many signs does the almanac know?"
-reward_title_id = "title_wardens_word"
+reward_title_id = "wardens_word"
 reward_xp = 60

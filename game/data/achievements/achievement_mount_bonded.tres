@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mount_bonded"
+display_name = "Beast Friend"
+description = "Bond with three different mounts"
+achievement_type = 1
+category = 3
+rarity = 1
+target = 3
+target_type = "mount_bond"
+gold_reward = 120
+xp_reward = 150
+title_reward = "beastfriend"
+icon_path = "res://icons/achievements/explorer.png"
+sort_order = 80

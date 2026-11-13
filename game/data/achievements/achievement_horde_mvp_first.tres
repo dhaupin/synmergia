@@ -15,6 +15,6 @@ target_type = "horde_mvp"
 required_achievements = []
 gold_reward = 250
 xp_reward = 250
-title_reward = "MVP"
+title_reward = "mvp"
 icon_path = "res://icons/achievements/horde_mvp.png"
 sort_order = 71

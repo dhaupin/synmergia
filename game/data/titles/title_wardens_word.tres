@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = "title_wardens_word"
+id = "wardens_word"
 display_name = "The Warden's Word"
 description = "Counted the Concord's ledger without being asked. The wardens kept lists; now one of their words is yours."
 prefix_form = "The Warden's Word"

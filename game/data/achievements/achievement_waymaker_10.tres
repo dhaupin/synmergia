@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "waymaker_10"
+display_name = "Roadwarden"
+description = "Wake ten roads"
+achievement_type = 1
+category = 3
+rarity = 2
+target = 10
+target_type = "wake"
+required_achievements = ["waymaker_1"]
+gold_reward = 150
+xp_reward = 180
+title_reward = ""
+icon_path = "res://icons/achievements/explorer.png"
+sort_order = 61

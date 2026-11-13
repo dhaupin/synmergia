@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "waymaker_50"
+display_name = "Roadkeeper"
+description = "Wake fifty roads"
+achievement_type = 1
+category = 3
+rarity = 3
+target = 50
+target_type = "wake"
+required_achievements = ["waymaker_10"]
+gold_reward = 600
+xp_reward = 700
+title_reward = "roadkeeper"
+icon_path = "res://icons/achievements/explorer.png"
+sort_order = 62
