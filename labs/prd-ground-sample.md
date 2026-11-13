@@ -215,8 +215,15 @@ the redundant parallel caches, not the cold derivations).
   they are the shared cold-derivation layer that the fused sample and
   the raw renderer/waterfall paths both read -- the parallel caches to
   collapse are the ones that now only hold redundant derived values.
-- **Stage 4 (NEXT)** -- the clipmap drops its private `_memo_h` /
-  `_memo_col` and asks `ground_sample` once per vertex.
+- **Stage 4 SHIPPED** -- the clipmap dropped its private `_memo_h` /
+  `_memo_col` (and the now-dead `SectorCache` preload + `MEMO_MAX`);
+  `_memo_height` reads `TerrainGen.ground_sample(dir).height` and
+  `_memo_color` reads `TerrainGen.splat_skin_from(gs, seed, gs.height,
+  0.2)`. One `ground_sample` per vertex serves BOTH the height and the
+  colour. The public `splat_skin` is now a thin wrapper over the pure
+  `splat_skin_from(sample, ...)`. Measured: clipmap-build lookups
+  666,579 -> 651,390 and hit rate 90.4% -> 91.7% (the fused cache
+  replaces two parallel clipmap caches).
 - **Stage 5 (NEXT)** -- the S4 `river_channel` bounding early-out.
 
 ## 7. Open questions (for the owner)

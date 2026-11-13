@@ -1591,10 +1591,15 @@ static func _skin_from(weights: Dictionary) -> Color:
 
 
 static func splat_skin(d: Vector3, world_seed: PackedByteArray, lift: float, steep: float) -> Dictionary:
-	d = d.normalized()
-	var gs: GroundSample = ground_sample(d, world_seed)
-	# GROUND-SAMPLE FUSION (stage 2): one fused read replaces the
-	# skin/temperature/crag/surface/height/road calls. Bit-identical.
+	return splat_skin_from(ground_sample(d.normalized(), world_seed), world_seed, lift, steep)
+
+
+## The PURE splat law (the fused builder's own entry): reads only the
+## sample's fields + world_seed (the waterfall seam) -- no laws, no memo.
+## The clipmap reads this from its fused sample so one ground_sample per
+## vertex serves BOTH the height and the colour.
+static func splat_skin_from(gs: GroundSample, world_seed: PackedByteArray, lift: float, steep: float) -> Dictionary:
+	var d: Vector3 = gs.dir
 	var cls: Color = gs.skin
 	var w_grass: float = cls.r
 	var w_dirt: float = cls.g

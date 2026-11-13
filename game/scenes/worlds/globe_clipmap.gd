@@ -36,7 +36,6 @@ extends RefCounted
 
 const FacePatches = preload("res://core/frame/math/icosahedral_faces.gd")
 const TerrainGen = preload("res://scenes/worlds/terrain_gen.gd")
-const SectorCache = preload("res://core/frame/kv/sector_cache.gd")
 
 signal face_changed(old_face: int, new_face: int)
 signal patch_loaded(face: int)
@@ -68,9 +67,6 @@ const BUDGET_MS: float = 4.0
 ## snap moves the tessellation by a fraction of the innermost cell.
 const CENTER_SNAP_M: float = 4.0
 
-## Per-vertex memo bound (L2).
-const MEMO_MAX: int = 262144
-
 var radius: float = 20000.0
 var world_seed: PackedByteArray = PackedByteArray()
 var terrain_on: bool = true
@@ -92,9 +88,11 @@ var _last_player_dir: Vector3 = Vector3.ZERO
 var _jobs: Array = []
 var _building: bool = false
 
-## The per-quantized-direction memo (L2).
-var _memo_h = SectorCache.new(MEMO_MAX)
-var _memo_col = SectorCache.new(MEMO_MAX)
+## The per-quantized-direction ground sample (L2): ONE fused cache now
+## serves both the height and the colour -- TerrainGen owns the memo, so
+## the clipmap drops its old parallel _memo_h/_memo_col (Stage 4 of
+## labs/prd-ground-sample.md). One ground_sample per vertex feeds both
+## _memo_height and _memo_color.
 
 const _skin_shader = preload("res://assets/shaders/terrain_splat.gdshader")
 var _skin_mat: ShaderMaterial = null
@@ -423,31 +421,23 @@ func _ring_dir(ang: float, rr: float) -> Vector3:
 
 func _add_vert(st: SurfaceTool, p: Vector3, dir: Vector3) -> void:
 	st.set_normal(dir)
-	var h: float = _memo_height(dir)
-	var skin: Dictionary = _memo_color(dir, h)
+	var skin: Dictionary = _memo_color(dir)
 	st.set_color(skin["splat"])
 	st.set_uv2(skin["aux"])
 	st.set_uv(Vector2(fposmod(p.x * 0.0015, 1.0), fposmod(p.z * 0.0015, 1.0)))
 	st.add_vertex(p)
 
 
+## One fused ground_sample per vertex (TerrainGen memoizes it), feeding
+## both the height and the colour -- no parallel clipmap caches.
 func _memo_height(dir: Vector3) -> float:
-	var cached = _memo_h.get_value(dir, world_seed)
-	if cached != null:
-		return float(cached)
-	var h: float = TerrainGen.terrain_height(dir, world_seed) if terrain_on else 0.0
-	_memo_h.set_value(dir, world_seed, h)
-	return h
+	if not terrain_on:
+		return 0.0
+	return TerrainGen.ground_sample(dir, world_seed).height
 
 
-func _memo_color(dir: Vector3, h: float) -> Dictionary:
-	var cached = _memo_col.get_value(dir, world_seed)
-	if cached != null:
-		return cached
-	var d: Dictionary
-	if terrain_on:
-		d = TerrainGen.splat_skin(dir, world_seed, h, 0.2)
-	else:
-		d = {"splat": Color(0.42, 0.55, 0.30), "aux": Vector2(0.0, 1.0)}
-	_memo_col.set_value(dir, world_seed, d)
-	return d
+func _memo_color(dir: Vector3) -> Dictionary:
+	if not terrain_on:
+		return {"splat": Color(0.42, 0.55, 0.30), "aux": Vector2(0.0, 1.0)}
+	var gs = TerrainGen.ground_sample(dir, world_seed)
+	return TerrainGen.splat_skin_from(gs, world_seed, gs.height, 0.2)

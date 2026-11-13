@@ -107,5 +107,16 @@ func _initialize() -> void:
 	_check("vertex_color pure across %d dirs" % dirs.size(), vc_mismatch == 0)
 	_check("splat_skin pure across %d dirs" % dirs.size(), sk_mismatch == 0)
 
+	# Stage 4: the public splat_skin delegates to the pure splat_skin_from
+	# (the clipmap reads the latter from its fused sample). Pin equality.
+	var del_mismatch := 0
+	for d in dirs:
+		var s: Gen.GroundSample = Gen.ground_sample(d, seed_b)
+		var pub: Dictionary = Gen.splat_skin(d, seed_b, s.height, 0.3)
+		var pur: Dictionary = Gen.splat_skin_from(s, seed_b, s.height, 0.3)
+		if pub != pur:
+			del_mismatch += 1
+	_check("splat_skin == splat_skin_from across %d dirs" % dirs.size(), del_mismatch == 0)
+
 	print("probe_ground_sample: %s (%d checks)" % ["ALL PASS" if _okay else "FAILS", _checks])
 	quit(0 if _okay else 1)
