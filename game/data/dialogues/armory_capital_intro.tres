@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="DialogueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "armory_capital_intro"
+npc_id = "npc_armory_capital"
+display_name = "Royal Armorer"
+nodes = [
+    {
+        "speaker": "Royal Armorer",
+        "text": "Fine arms and armor, straight from the forge -- and the forge has been cold a long time, so everything on this rack is older than you and better kept.",
+        "choices": [
+            {"text": "Show me the rack.", "next_node": 1, "action_type": 6, "action_data": {"shop_id": "armory"}},
+            {"text": "Who repairs this?", "next_node": 2},
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Royal Armorer",
+        "text": "Take your time. Every piece was woken, not made new -- mended until it held again.",
+        "choices": [
+            {"text": "Back.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Royal Armorer",
+        "text": "I do. The Concord's rate book sets the price; my hands set the edge.",
+        "choices": [
+            {"text": "Show me the rack.", "next_node": 1, "action_type": 6, "action_data": {"shop_id": "armory"}},
+            {"text": "Back.", "next_node": 0}
+        ]
+    }
+]

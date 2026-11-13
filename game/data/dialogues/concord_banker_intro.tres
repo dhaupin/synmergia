@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="DialogueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "concord_banker_intro"
+npc_id = "npc_banker_capital"
+display_name = "Concord Banker"
+nodes = [
+    {
+        "speaker": "Concord Banker",
+        "text": "The Concord vault honors every posted rate. Deposits screened, withdrawals sealed, bullion stored below the plaza where no storm reaches it.",
+        "choices": [
+            {"text": "Open the vault.", "next_node": 1, "action_type": 7, "action_data": {}},
+            {"text": "Below the plaza?", "next_node": 2},
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Concord Banker",
+        "text": "Step up. The ledger does not care who you are, only what you posted.",
+        "choices": [
+            {"text": "Back.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Concord Banker",
+        "text": "The old machine dug deep before it slept. We did not build the vault -- we only keep the door.",
+        "choices": [
+            {"text": "Open the vault.", "next_node": 1, "action_type": 7, "action_data": {}},
+            {"text": "Back.", "next_node": 0}
+        ]
+    }
+]

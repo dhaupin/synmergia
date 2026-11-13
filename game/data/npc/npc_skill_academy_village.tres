@@ -14,4 +14,7 @@ farewell = "Return when your stance falters."
 location_type = 2
 spawn_offset = Vector3(2, 0, 4)
 zone_id = "zone_village_center"
-includes = [{"type": "offering", "ref_id": "skill_academy"}]
+includes = [
+  {"type": "dialogue", "dialogue_id": "warden_trainer_intro"},
+  {"type": "offering", "ref_id": "skill_academy"}
+]

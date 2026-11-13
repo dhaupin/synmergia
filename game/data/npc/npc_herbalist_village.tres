@@ -20,6 +20,7 @@ sell_categories = ["CONSUMABLE"]
 spawn_offset = Vector3(4, 0, 5)
 zone_id = "zone_village_center"
 includes = [
+  {"type": "dialogue", "dialogue_id": "village_herbalist_intro"},
   {"type": "offering", "ref_id": "potions"},
   {"type": "quest", "quest_ids": ["quest_study_the_bloom", "quest_the_runoff_line", "quest_gloam_harvest"]}
 ]

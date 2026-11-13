@@ -19,4 +19,7 @@ bulk_discount_percent = 0.0
 bulk_discount_threshold = 0
 spawn_offset = Vector3(8, 0, -6)
 zone_id = "zone_nexus_central"
-includes = [{"type": "offering", "ref_id": "skill_academy"}]
+includes = [
+  {"type": "dialogue", "dialogue_id": "master_trainer_intro"},
+  {"type": "offering", "ref_id": "skill_academy"}
+]

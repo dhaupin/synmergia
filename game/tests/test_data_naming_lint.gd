@@ -80,6 +80,17 @@ func _file_text(dir_path: String, base: String) -> String:
 	return FileAccess.get_file_as_string("res://%s/%s.tres" % [dir_path, base])
 
 
+## Every dialogue id named in a text blob by a `"dialogue_id": "..."` key
+## (inline NPC includes). Mirrors _quest_ids_in for the dialogue surface.
+func _dialogue_ids_in(text: String) -> Array:
+	var out: Array = []
+	var re := RegEx.new()
+	re.compile("\\\"dialogue_id\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"")
+	for m in re.search_all(text):
+		out.append(m.get_string(1))
+	return out
+
+
 ## Every quest id named in a text blob by any `"quest_ids": [...]` key
 ## (inline NPC includes and offering files share this shape; entries may
 ## sit on one line or wrap). Regex over the whole text, not line-based,
@@ -386,6 +397,105 @@ func _run() -> void:
 		_ok("Dialogue npc_id refs all resolve")
 	else:
 		_fail("Phantom dialogue npc refs: %s" % ", ".join(bad_dialogue_refs))
+
+	# --- Dialogue include parity: an NPC's dialogue tree must name THAT NPC ---
+	# The capital instances reused the village trees, so npc_elder_capital's
+	# tree carried npc_id "npc_village_elder". DialogueService now emits the
+	# live npc_id, but the AUTHORING contract still matters: a tree written
+	# for one NPC offered by another is either a copy-paste or a mismatch,
+	# and TALK quest credit (keyed on the NPCData id) silently mis-fires.
+	var dialogue_npc: Dictionary = {}
+	for base in dialogue_ids:
+		var dnp := ""
+		for line in _file_text("data/dialogues", base).split("\n"):
+			var tl := line.strip_edges()
+			if tl.begins_with("npc_id = \""):
+				dnp = tl.trim_prefix("npc_id = \"").trim_suffix("\"")
+				break
+		dialogue_npc[str(dialogue_ids[base])] = dnp
+	var dialogue_id_set := {}
+	for base in dialogue_ids:
+		dialogue_id_set[str(dialogue_ids[base])] = true
+	var bad_dialogue_includes: Array = []
+	for base in npc_ids:
+		var ntxt := _file_text("data/npc", base)
+		var owner := str(npc_ids[base])
+		for inc_did in _dialogue_ids_in(ntxt):
+			if not dialogue_id_set.has(inc_did):
+				bad_dialogue_includes.append("%s -> %s (no such tree)" % [owner, inc_did])
+				continue
+			var tree_npc := str(dialogue_npc.get(inc_did, ""))
+			if tree_npc != "" and tree_npc != owner:
+				bad_dialogue_includes.append("%s -> %s (tree npc_id=%s)" % [owner, inc_did, tree_npc])
+	if bad_dialogue_includes.is_empty():
+		_ok("Every NPC dialogue include resolves and names its own NPC")
+	else:
+		_fail("Dialogue include parity: %s" % ", ".join(bad_dialogue_includes))
+
+	# --- Orphan dialogue budget: an authored tree no NPC offers is dead ---
+	# The mute-NPC pass authored eight trees; this keeps a future tree from
+	# shipping unreferenced (the mirror of the orphan-quest reachability law).
+	var referenced_dialogues := {}
+	for base in npc_ids:
+		for inc_did in _dialogue_ids_in(_file_text("data/npc", base)):
+			referenced_dialogues[inc_did] = true
+	for base in _load_ids("data/npc_offerings"):
+		for inc_did in _dialogue_ids_in(_file_text("data/npc_offerings", base)):
+			referenced_dialogues[inc_did] = true
+	var orphan_dialogues: Array = []
+	for base in dialogue_ids:
+		var did := str(dialogue_ids[base])
+		if not referenced_dialogues.has(did):
+			orphan_dialogues.append(did)
+	if orphan_dialogues.is_empty():
+		_ok("No orphan dialogue trees (every tree is offered by some NPC)")
+	else:
+		_fail("Orphan dialogue trees (no NPC offers them): %s" % ", ".join(orphan_dialogues))
+
+	# --- Chain reachability: a quest's next_quest_id must be offerable ---
+	# The reachability pass above checks MAIN/SIDE offers; this one catches a
+	# CHAIN whose sequel is authored but offered by nobody (quest_tideline_kelp
+	# was the live case: the jeweler offered quest_pearl_dive but not its
+	# authored next_quest_id, so the chain dead-ended).
+	var bad_chains: Array = []
+	for base in quest_ids:
+		var qtxt2 := _file_text("data/quests", base)
+		for line in qtxt2.split("\n"):
+			var t4 := line.strip_edges()
+			if t4.begins_with("next_quest_id = \""):
+				var nxt := t4.trim_prefix("next_quest_id = \"").trim_suffix("\"")
+				if nxt != "" and not offered.has(nxt) and not auto_accepted.has(nxt):
+					bad_chains.append("%s -> %s" % [str(quest_ids[base]), nxt])
+	if bad_chains.is_empty():
+		_ok("Every quest chain target is offered by some NPC")
+	else:
+		_fail("Chain targets offered by nobody: %s" % ", ".join(bad_chains))
+
+	# --- Canon terms: the capital descriptions drifted to "Federation" ---
+	# Canon (labs/prd-story.md sec. 4-5) is the CONCORD; "Federation" survived
+	# only in a terrain_gen comment quoting a 2026-10-14 note. Player-facing
+	# .tres copy must not carry the dead term.
+	var canon_banned := ["Federation"]
+	var bad_canon: Array = []
+	for base in npc_ids:
+		var ctxt := _file_text("data/npc", base)
+		for term in canon_banned:
+			if ctxt.contains(term):
+				bad_canon.append("%s says '%s'" % [str(npc_ids[base]), term])
+	for base in quest_ids:
+		var ctxt2 := _file_text("data/quests", base)
+		for term in canon_banned:
+			if ctxt2.contains(term):
+				bad_canon.append("%s says '%s'" % [str(quest_ids[base]), term])
+	for base in dialogue_ids:
+		var ctxt3 := _file_text("data/dialogues", base)
+		for term in canon_banned:
+			if ctxt3.contains(term):
+				bad_canon.append("%s says '%s'" % [base, term])
+	if bad_canon.is_empty():
+		_ok("NPC/quest/dialogue copy honors the canon terms (no dead names)")
+	else:
+		_fail("Dead canon terms in copy: %s" % ", ".join(bad_canon))
 
 	# --- Zone rosters reference real NPC ids ---
 	var bad_rosters: Array = []

@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="DialogueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "strand_keeper_greeting"
+npc_id = "npc_elder_capital"
+display_name = "Strand Keeper Greeting"
+nodes = [
+    {
+        "speaker": "Strand Keeper",
+        "text": "The baywalk keeps its own hours. I keep the ledger of who came in on the tide and who went out on it. You are the second today.",
+        "choices": [
+            {"text": "What is this place?", "next_node": 1},
+            {"text": "What does the Concord keep here?", "next_node": 2},
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Strand Keeper",
+        "text": "Nexus Central. The old machine's ribs stand over us and the crafters work beneath them -- timber against hull, conduit under plaza. Nobody here calls it a ruin. It is a workshop that outlived its owner.",
+        "choices": [
+            {"text": "And the Concord?", "next_node": 2},
+            {"text": "Back.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Strand Keeper",
+        "text": "The Concord does not rule. It records -- deeds, degrees, the rate book, sealed at the pillar and never buried. The Herald keeps the stone; I keep the street honest around it.",
+        "choices": [
+            {"text": "Farewell.", "next_node": -1},
+            {"text": "Back.", "next_node": 0}
+        ]
+    }
+]

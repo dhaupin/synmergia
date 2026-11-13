@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="DialogueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "strand_merchant_intro"
+npc_id = "npc_merchant_capital"
+display_name = "Strand Merchant"
+nodes = [
+    {
+        "speaker": "Strand Merchant",
+        "text": "The cove carries everything, and I carry the cove. What the village store stocks, I stock at city rates -- better crates, same goods.",
+        "choices": [
+            {"text": "Show me the stock.", "next_node": 1, "action_type": 6, "action_data": {"shop_id": "general_store"}},
+            {"text": "What do you buy?", "next_node": 2},
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Strand Merchant",
+        "text": "Browse. The craft shelf is mine too, if you came for a bench. Mind the pier on your way out, it is slick.",
+        "choices": []
+    },
+    {
+        "speaker": "Strand Merchant",
+        "text": "Anything honest and haulable -- scrap, salvage, the odd thing the tide left you. I price by the crate, not the story.",
+        "choices": [
+            {"text": "Farewell.", "next_node": -1},
+            {"text": "Back.", "next_node": 0}
+        ]
+    }
+]

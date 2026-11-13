@@ -215,7 +215,7 @@ fail on growth of) the count of authored skills referenced by no class.
 
 # PART C -- CREATIVE CONTENT (the fun stuff)
 
-## Task 5 -- Institution dialogue: give the 8 mute NPCs a voice -- status: todo
+## Task 5 -- Institution dialogue: give the 8 mute NPCs a voice -- status: landed (2026-11-28g)
 
 **The finding:** 8 NPCs have no dialogue include at all, so they are silent
 statues with a menu:

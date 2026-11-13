@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="DialogueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "underdeck_fixer_intro"
+npc_id = "npc_black_market_fixer"
+display_name = "Underdeck Fixer"
+nodes = [
+    {
+        "speaker": "Underdeck Fixer",
+        "text": "You found this stall. Nobody showed you. That is the first thing I like about you.",
+        "choices": [
+            {"text": "What do you sell?", "next_node": 1},
+            {"text": "Who are you?", "next_node": 2},
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Underdeck Fixer",
+        "text": "Scrap in, scrip out. And for the sigils nobody mints, the deep ledger signs for itself. Look if you like.",
+        "choices": [
+            {"text": "Show me the stock.", "next_node": 3, "action_type": 6, "action_data": {"shop_id": "black_market_ledger"}},
+            {"text": "Back.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Underdeck Fixer",
+        "text": "A person who keeps the underdeck's quietest accounts. The Concord records what it sees; I record what it would rather not.",
+        "choices": [
+            {"text": "Back.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Underdeck Fixer",
+        "text": "No refunds, no names, no questions. That is the whole ledger.",
+        "choices": [
+            {"text": "Back.", "next_node": 0}
+        ]
+    }
+]

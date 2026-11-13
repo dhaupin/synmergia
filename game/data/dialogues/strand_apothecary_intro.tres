@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="DialogueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "strand_apothecary_intro"
+npc_id = "npc_herbalist_capital"
+display_name = "Strand Apothecary"
+nodes = [
+    {
+        "speaker": "Strand Apothecary",
+        "text": "Sea air needs different teas than the village draughts. Same shelf, kept in sea-glass so the salt does not get in.",
+        "choices": [
+            {"text": "What do you sell?", "next_node": 1},
+            {"text": "Why the sea-glass?", "next_node": 2},
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Strand Apothecary",
+        "text": "The same remedies the village herbalist makes, cut for the damp. Browse.",
+        "choices": [
+            {"text": "Show me the shelf.", "next_node": 3, "action_type": 6, "action_data": {"shop_id": "potions"}},
+            {"text": "Back.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Strand Apothecary",
+        "text": "Because the cove eats cork. Glass, wax, and a shelf out of the spray -- that is the whole trick.",
+        "choices": [
+            {"text": "Back.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Strand Apothecary",
+        "text": "Mind the ones with the violet seal. Those are for the runoff, not for you.",
+        "choices": [
+            {"text": "Back.", "next_node": 0}
+        ]
+    }
+]

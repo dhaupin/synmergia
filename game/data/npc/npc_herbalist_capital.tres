@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "npc_herbalist_capital"
 display_name = "Strand Apothecary"
-description = "The Federation's herb counter on the baywalk. The same draughts the village sells, kept in sea-glass jars."
+description = "The Concord's herb counter on the baywalk. The same draughts the village sells, kept in sea-glass jars."
 level = 1
 faction = "friendly"
 greeting = "Sea air needs different teas. Browse the shelf."
@@ -14,4 +14,7 @@ farewell = "Stay bilious away."
 location_type = 0
 spawn_offset = Vector3(12, 0, 3)
 zone_id = "zone_nexus_central"
-includes = [{"type": "offering", "ref_id": "potions"}]
+includes = [
+  {"type": "dialogue", "dialogue_id": "strand_apothecary_intro"},
+  {"type": "offering", "ref_id": "potions"}
+]

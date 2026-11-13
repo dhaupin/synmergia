@@ -19,4 +19,7 @@ buy_categories = ["WEAPON", "ARMOR"]
 sell_categories = ["WEAPON", "ARMOR"]
 spawn_offset = Vector3(-6, 0, -4)
 zone_id = "zone_nexus_central"
-includes = [{"type": "offering", "ref_id": "armory"}]
+includes = [
+  {"type": "dialogue", "dialogue_id": "armory_capital_intro"},
+  {"type": "offering", "ref_id": "armory"}
+]
