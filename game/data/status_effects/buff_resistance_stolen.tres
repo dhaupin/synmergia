@@ -10,4 +10,5 @@ description = "Stolen resistance increases your defense."
 category = 0
 effect_type = 0
 duration = 8.0
+stat_modifiers = {"wisdom": 10}
 show_in_buff_bar = true

@@ -218,25 +218,28 @@ func _handle_stacking() -> void:
 			_apply_combat_modifiers(true)
 
 func _apply_stat_modifiers(adding: bool) -> void:
-	if not target or not is_instance_of(target, EntityScript):
+	# Duck-typed on a `stats` Dictionary, not `is Entity`: the player body
+	# (PlayerBase -> CharacterBody3D) carries the same stats block but is not
+	# an Entity, so an Entity-only guard silently dropped every stat
+	# buff/debuff on the player. Only touch keys the body actually tracks
+	# (the player block omits endurance).
+	if not target or not "stats" in target:
 		return
 
 	var sign: int = 1 if adding else -1
 	var mult: int = current_stacks if adding else 1
-	var entity = target as EntityScript
-
-	if strength_mod != 0:
-		entity.stats.strength += sign * strength_mod * mult
-	if agility_mod != 0:
-		entity.stats.agility += sign * agility_mod * mult
-	if intelligence_mod != 0:
-		entity.stats.intelligence += sign * intelligence_mod * mult
-	if vitality_mod != 0:
-		entity.stats.vitality += sign * vitality_mod * mult
-	if endurance_mod != 0:
-		entity.stats.endurance += sign * endurance_mod * mult
-	if wisdom_mod != 0:
-		entity.stats.wisdom += sign * wisdom_mod * mult
+	var block: Dictionary = target.stats
+	var mods := {
+		"strength": strength_mod,
+		"agility": agility_mod,
+		"intelligence": intelligence_mod,
+		"vitality": vitality_mod,
+		"endurance": endurance_mod,
+		"wisdom": wisdom_mod,
+	}
+	for key in mods:
+		if int(mods[key]) != 0 and block.has(key):
+			block[key] = int(block[key]) + sign * int(mods[key]) * mult
 
 func _apply_combat_modifiers(adding: bool) -> void:
 	if not target or not "stats" in target:
@@ -348,6 +351,20 @@ func absorb_damage(amount: int) -> int:
 
 func is_expired() -> bool:
 	return remaining_duration <= 0 and duration > 0
+
+## Movement gate: false when the effect carries can_move == false
+## (stun/root/snare). Callers duck-type this on the body's status_effects.
+func allows_movement() -> bool:
+	return can_move
+
+## Cast gate: false when the effect carries can_cast == false
+## (stun/silence/fear).
+func allows_casting() -> bool:
+	return can_cast
+
+## Attack gate: false when the effect carries can_attack == false.
+func allows_attacking() -> bool:
+	return can_attack
 
 func get_stacks() -> int:
 	return current_stacks

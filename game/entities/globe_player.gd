@@ -819,6 +819,11 @@ func _physics_process(delta: float) -> void:
 	if wish.length() > 1.0:
 		wish = wish.normalized()
 
+	# Crowd control: a stunned/rooted body cannot drive input (status effects
+	# carry can_move == false). Velocity still integrates so gravity applies.
+	if not _can_move():
+		wish = Vector3.ZERO
+
 	var horizontal: Vector3 = velocity - up * velocity.dot(up)
 
 	# -- TERRAIN MOBILITY LAW (crouch / slide / sprint / slope) ----------
@@ -909,6 +914,10 @@ func _physics_process(delta: float) -> void:
 			mult *= SLOPE_WALK_MULT
 
 	var speed: float = walk_speed * mult
+	# Status-effect movement multiplier (slow/root/haste from the .tres
+	# status-effect data). 1.0 base; effects add a delta, so a -30% slow is
+	# stats.movement_speed_multiplier == 0.7.
+	speed *= float(stats.get("movement_speed_multiplier", 1.0))
 
 	# -- RIVER FORD LAW (walkable shallow water) -------------------------
 	# Depth of the carved water over the carved terrain at THIS body's
@@ -1649,6 +1658,14 @@ func _on_player_input(action: String, pressed: bool) -> void:
 			if pressed:
 				var slot := int(action.replace("ability_", "")) - 1
 				use_skill(slot)
+
+## Crowd-control movement gate: false when any active status effect carries
+## can_move == false (stun/root/snare from the .tres status-effect data).
+func _can_move() -> bool:
+	for effect in status_effects:
+		if effect.has_method("allows_movement") and not effect.allows_movement():
+			return false
+	return true
 
 ## Basic attack (left-click / touch ATK / gamepad). The planar body's state
 ## machine polls Input.is_action_just_pressed("attack"); the globe body has no

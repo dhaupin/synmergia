@@ -10,4 +10,5 @@ description = "Health and mana regeneration are suppressed."
 category = 1
 effect_type = 4
 duration = 10.0
+stat_modifiers = {"vitality": -10}
 show_in_buff_bar = true

@@ -10,4 +10,5 @@ description = "Damage and movement speed reduced by a curse."
 category = 1
 effect_type = 4
 duration = 6.0
+stat_modifiers = {"strength": -12}
 show_in_buff_bar = true

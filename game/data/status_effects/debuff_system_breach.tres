@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/status_effect_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "debuff_system_breach"
+display_name = "System Breach"
+description = "Defenses reduced."
+category = 1
+effect_type = 0
+duration = 10.0
+max_stacks = 1
+can_refresh = true
+stat_modifiers = {"vitality": -18}
+show_in_buff_bar = true

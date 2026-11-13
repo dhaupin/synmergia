@@ -10,4 +10,7 @@ description = "An ancestral spirit defends you, absorbing damage and healing."
 category = 0
 effect_type = 0
 duration = 20.0
+shield_amount = 120
+heal_per_tick = 15
+tick_interval = 1.0
 show_in_buff_bar = true

@@ -10,4 +10,5 @@ description = "Threat has been reset - enemies have lost interest."
 category = 0
 effect_type = 0
 duration = 3.0
+stat_modifiers = {"agility": 8}
 show_in_buff_bar = true

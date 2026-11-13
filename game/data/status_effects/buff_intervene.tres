@@ -10,4 +10,5 @@ description = "A portion of damage is being absorbed for you."
 category = 0
 effect_type = 0
 duration = 5.0
+stat_modifiers = {"vitality": 20}
 show_in_buff_bar = true

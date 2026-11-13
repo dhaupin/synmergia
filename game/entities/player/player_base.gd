@@ -65,7 +65,11 @@ var stats: Dictionary = {
 	"agility": 10,
 	"intelligence": 10,
 	"vitality": 10,
+	"endurance": 10,
 	"wisdom": 10,
+	"damage_multiplier": 1.0,
+	"defense_multiplier": 1.0,
+	"movement_speed_multiplier": 1.0,
 }
 
 # --- Health + mana --------------------------------------------------------

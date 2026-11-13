@@ -10,4 +10,5 @@ description = "Defenses hardened against hostile code."
 category = 0
 effect_type = 0
 duration = 9.0
+shield_amount = 140
 show_in_buff_bar = true

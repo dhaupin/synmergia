@@ -10,4 +10,5 @@ description = "Target has been revealed and marked for the party."
 category = 1
 effect_type = 4
 duration = 8.0
+stat_modifiers = {"vitality": -10}
 show_in_buff_bar = true

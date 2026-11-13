@@ -10,4 +10,5 @@ description = "Massively reduced damage taken."
 category = 0
 effect_type = 0
 duration = 6.0
+immune_all = true
 show_in_buff_bar = true

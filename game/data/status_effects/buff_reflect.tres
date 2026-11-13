@@ -10,4 +10,5 @@ description = "A portion of melee damage is reflected to attackers."
 category = 0
 effect_type = 0
 duration = 8.0
+stat_modifiers = {"vitality": 10}
 show_in_buff_bar = true

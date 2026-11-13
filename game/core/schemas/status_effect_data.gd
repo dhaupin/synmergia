@@ -95,6 +95,9 @@ enum StealthType {
 @export var dot_type: String = "physical"    # physical, magical, true
 @export var can_cleanse: bool = true         # Can be removed by cleanse
 
+# Shield (damage absorbed before health; consumed by StatusEffect.absorb_damage)
+@export var shield_amount: int = 0           # Absorb this much damage while active
+
 # Immunity Settings (for IMMUNITY type)
 @export var immune_stun: bool = false
 @export var immune_slow: bool = false

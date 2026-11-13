@@ -10,4 +10,5 @@ description = "Damage reduced and receiving periodic healing."
 category = 0
 effect_type = 0
 duration = 12.0
+shield_amount = 130
 show_in_buff_bar = true

@@ -10,4 +10,5 @@ description = "Threat generation dramatically increased."
 category = 0
 effect_type = 0
 duration = 5.0
+stat_modifiers = {"vitality": 15}
 show_in_buff_bar = true

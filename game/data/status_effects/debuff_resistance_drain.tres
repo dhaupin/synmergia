@@ -10,4 +10,5 @@ description = "Magical resistance is being drained."
 category = 1
 effect_type = 4
 duration = 8.0
+stat_modifiers = {"wisdom": -20}
 show_in_buff_bar = true

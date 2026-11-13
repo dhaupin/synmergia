@@ -256,6 +256,11 @@ func _apply_skill_effects(skill: Skill, caster, target) -> void:
 	if skill.crowd_control_type != "":
 		skill.applyCrowdControl(caster, target, Vector3.ZERO)
 
+	# Apply authored buff/debuff status effects on the landed hit (the
+	# hitbox family defers them here so a miss lands nothing).
+	if not skill.status_effects.is_empty():
+		skill.applyStatusEffects(caster, target)
+
 	# Apply movement effects (caster-side)
 	if skill.teleport_distance > 0:
 		_apply_teleport(caster, target, skill)

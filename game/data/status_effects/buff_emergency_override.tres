@@ -10,4 +10,5 @@ description = "Massive damage reduction from emergency systems."
 category = 0
 effect_type = 0
 duration = 5.0
+stat_modifiers = {"vitality": 18}
 show_in_buff_bar = true

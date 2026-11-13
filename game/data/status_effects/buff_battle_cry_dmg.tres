@@ -10,4 +10,5 @@ description = "Attack power increased from battle cry."
 category = 0
 effect_type = 0
 duration = 4.0
+stat_modifiers = {"strength": 12}
 show_in_buff_bar = true

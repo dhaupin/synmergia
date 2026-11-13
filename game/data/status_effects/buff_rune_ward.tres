@@ -10,4 +10,5 @@ description = "Protective rune absorbs damage and reflects some back."
 category = 0
 effect_type = 0
 duration = 10.0
+stat_modifiers = {"wisdom": 12}
 show_in_buff_bar = true
