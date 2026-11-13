@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="DialogueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "village_banker_intro"
+npc_id = "npc_banker_village"
+display_name = "Village Banker"
+nodes = [
+    {
+        "speaker": "Village Banker",
+        "text": "Coin or keepsakes? The vault holds both. The keep's walls are older than the Concord's ledger, and they keep their word the same way.",
+        "choices": [
+            {"text": "Open the vault.", "next_node": 1, "action_type": 7, "action_data": {}},
+            {"text": "What do you keep?", "next_node": 2},
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Village Banker",
+        "text": "Deposits screened, withdrawals sealed. Step up.",
+        "choices": [
+            {"text": "Back.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Village Banker",
+        "text": "Coin, and the things adventurers lose to the sea. A kept thing is a thing the tide cannot take twice.",
+        "choices": [
+            {"text": "Open the vault.", "next_node": 1, "action_type": 7, "action_data": {}},
+            {"text": "Back.", "next_node": 0}
+        ]
+    }
+]

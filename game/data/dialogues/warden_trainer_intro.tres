@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="DialogueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "warden_trainer_intro"
+npc_id = "npc_skill_academy_village"
+display_name = "Warden Trainer"
+nodes = [
+    {
+        "speaker": "Warden Trainer",
+        "text": "Feet square, blade steady. The Academy's reach is long -- the basics are taught wherever a student stands, and I have stood here long enough.",
+        "choices": [
+            {"text": "What can you teach?", "next_node": 1},
+            {"text": "I want to train.", "next_node": 2},
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Warden Trainer",
+        "text": "The old arts, the ones the machines knew before the Silence -- re-taught to hands that can hold them. Open the lesson tray when you are ready.",
+        "choices": [
+            {"text": "Back.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Warden Trainer",
+        "text": "Then square up. A skill is a promise about how you fight; I will not make it for you.",
+        "choices": [
+            {"text": "Back.", "next_node": 0}
+        ]
+    }
+]

@@ -15,6 +15,6 @@ location_type = 2
 spawn_offset = Vector3(2, 0, 4)
 zone_id = "zone_village_center"
 includes = [
-  {"type": "dialogue", "dialogue_id": "skill_academy_village_intro"},
+  {"type": "dialogue", "dialogue_id": "warden_trainer_intro"},
   {"type": "offering", "ref_id": "skill_academy"}
 ]

@@ -20,7 +20,7 @@ sell_categories = ["ACCESSORY", "MISC"]
 spawn_offset = Vector3(3, 0, -2)
 zone_id = "zone_nexus_central"
 includes = [
-  {"type": "dialogue", "dialogue_id": "black_market_fixer_intro"},
+  {"type": "dialogue", "dialogue_id": "underdeck_fixer_intro"},
   {"type": "offering", "ref_id": "black_market_ledger"},
   {"type": "offering", "ref_id": "black_market_premium"}
 ]

@@ -32,7 +32,7 @@ material**. Reuse them, do not re-write from scratch:
 
 | draft | state | reuse for |
 |---|---|---|
-| `labs/story-dialogue-npcs.md` (268 lines) | voice profiles for the 9 then-authored NPCs, with lines tagged to real node ids and trigger conditions | **Task 5** -- done (2026-11-28e): the 8 mute NPCs now speak; the profiles for the already-voiced NPCs are done |
+| `labs/story-dialogue-npcs.md` (268 lines) | voice profiles for the 9 then-authored NPCs, with lines tagged to real node ids and trigger conditions | **Task 5** -- done (2026-11-28g): the 8 mute NPCs now speak (PR #67); the profiles for the already-voiced NPCs are done |
 | `labs/story-voice-concord.md` (218 lines) | the Concord-as-reading-culture voice bible; the Bloom as maintenance failure | **Tasks 5, 6, 7** -- the tone authority alongside `story-dialogue-creative-voice.md` |
 | `labs/story-weather-events.md` (184 lines) | weather law + lore for the 4 then-authored events | **Task 7** -- add `weather_bloom_stir` (the 5th event) and refresh the count |
 
@@ -215,7 +215,7 @@ fail on growth of) the count of authored skills referenced by no class.
 
 # PART C -- CREATIVE CONTENT (the fun stuff)
 
-## Task 5 -- Institution dialogue: give the 8 mute NPCs a voice -- status: done (2026-11-28e)
+## Task 5 -- Institution dialogue: give the 8 mute NPCs a voice -- status: landed (2026-11-28g, PR #67)
 
 **Fix (LANDED):** eight new trees authored, one per institution, and the
 `{"type": "dialogue", "dialogue_id": ...}` include wired into each NPC file.
@@ -224,29 +224,23 @@ Every one of the world's 20 NPCs now speaks (was 12). The trees:
 | dialogue_id | npc | hook |
 |---|---|---|
 | `armory_capital_intro` | `npc_armory_capital` | OPEN_SHOP `armory` |
-| `banker_capital_intro` | `npc_banker_capital` | OPEN_VAULT |
-| `banker_village_intro` | `npc_banker_village` | OPEN_VAULT |
-| `black_market_fixer_intro` | `npc_black_market_fixer` | OPEN_SHOP `black_market_ledger` |
-| `herbalist_capital_intro` | `npc_herbalist_capital` | OPEN_SHOP `potions` |
-| `herbalist_village_intro` | `npc_herbalist_village` | GIVE_QUEST `quest_gloam_harvest` + OPEN_SHOP `potions` |
-| `skill_academy_capital_intro` | `npc_skill_academy_capital` | (voice only; academy opens from the menu) |
-| `skill_academy_village_intro` | `npc_skill_academy_village` | (voice only; academy opens from the menu) |
+| `concord_banker_intro` | `npc_banker_capital` | OPEN_VAULT |
+| `village_banker_intro` | `npc_banker_village` | OPEN_VAULT |
+| `underdeck_fixer_intro` | `npc_black_market_fixer` | OPEN_SHOP `black_market_ledger` |
+| `strand_apothecary_intro` | `npc_herbalist_capital` | OPEN_SHOP `potions` |
+| `village_herbalist_intro` | `npc_herbalist_village` | GIVE_QUEST `quest_gloam_harvest` + OPEN_SHOP `potions` |
+| `master_trainer_intro` | `npc_skill_academy_capital` | (voice only; academy opens from the menu) |
+| `warden_trainer_intro` | `npc_skill_academy_village` | (voice only; academy opens from the menu) |
 
-Each tree is 3-4 nodes with a farewell branch, in the Concord register
-(attentive before theatrical, honest before helpful; the Bloom is tragic,
-never evil). `npc_herbalist_village` -- the worst case, two Bloom quests and
-no voice -- now introduces `quest_gloam_harvest` by name and sends the player
-to the treeline.
+Three capital instances that had REUSED the village trees (naming the wrong
+NPC) got their own: `strand_keeper_greeting` (`npc_elder_capital`),
+`concord_smithy_intro` (`npc_blacksmith_capital`), `strand_merchant_intro`
+(`npc_merchant_capital`). The `DialogService` attribution bug behind that
+parity issue is fixed (the live npc_id is now carried by `dialogue_ended`,
+`test_dialogue_npc_attribution.gd`).
 
-**Deviation from the brief, recorded:** the brief asked for "at least one real
-quest hook (GIVE_QUEST)" per tree. Only `npc_herbalist_village` has a quest to
-give -- Task 3 already closed the orphan-quest gap, so no other institution
-owns a quest. Those trees hook their own institution action instead
-(OPEN_SHOP / OPEN_VAULT). Inventing quests to satisfy the letter of the brief
-would have re-opened the reachability problem Task 3 closed.
-
-**The finding (as written):** 8 NPCs had no dialogue include at all, so they
-were silent statues with a menu:
+**The finding:** 8 NPCs have no dialogue include at all, so they are silent
+statues with a menu:
 
 ```
 npc_armory_capital        npc_banker_capital      npc_banker_village
@@ -279,49 +273,23 @@ include to each NPC file.
 TEACH_SKILL), and `labs/story-dialogue-npcs.md` if it exists (the old Task 1
 output -- reuse any usable voice profiles).
 
-**Gate (LANDED):** `test_data_naming_lint.gd` gained four assertions, so a
-silent statue can never come back:
-- every offering NPC carries a dialogue include (the mute-statue gate);
-- dialogue node links resolve within their tree;
-- every tree has a farewell (-1) branch;
-- GIVE_QUEST / OPEN_SHOP / TEACH_SKILL action hooks name a real
-  quest / offering / skill (the dead-hook class).
+## Task 6 -- Lore-bearing props: signs, the monolith, the chronicle -- status: todo
 
-Both negative controls were run by hand: deleting an NPC's dialogue include
-fails the mute gate by name, and a phantom `quest_id` fails the hook gate by
-name.
+**The finding:** only 3 signs exist; the world is full of unlabelled places.
+`labs/prd-story.md` section 9 keeps five mysteries deliberately open -- do not
+canonize answers.
 
-## Task 6 -- Lore-bearing props: signs, the monolith, the chronicle -- status: todo (premise CORRECTED 2026-11-29)
-
-**The finding (CORRECTED):** the original premise said "only 3 signs exist; the
-world is full of unlabelled places" and asked for roadside inscriptions. That is
-WRONG on the mechanism: `game/core/schemas/sign_profile.gd` is a **celestial Sky
-Sign** (the Skyward Concord's daily omen, `labs/prd-psy.md`) -- the sign is
-picked by a pure hash of `(day, window)` in `SignService.sign_for_window`, its
-glyph is revealed by tribal consensus, and `get_ancient_code(day)` derives the
-vault code from the rotation. There is NO roadside-inscription surface in the
-engine; a "sign" is a sky omen, not a painted board. Adding signs is still safe
-(it only shifts the deterministic rotation; `tests/test_sign_service.gd` pins
-the three existing ids, and `test_mysteries.gd` counts `_svc._signs.size()`
-dynamically, so neither breaks on a grow).
-
-**Produce (revised):**
-- `labs/story-chronicle.md`: almanac entries for the 3 acts
-  (`game/data/acts/*.tres` chapters), the capitol monolith's wrong-written
-  history (the `capitol_monolith` / `pans_monolith` families in
-  `scenes/worlds/globe_world.gd`), and the village origin short. Keep the five
-  `labs/prd-story.md` section 9 mysteries deliberately open.
-- New `game/data/signs/*.tres` (schema `sign_profile.gd`, prefix `sign_`): Sky
-  Signs in the Concord voice -- each a glyph + omen text the rotation can land
-  on, NOT a roadside inscription. One per institution + a few road-marker
-  omens.
-- OPTIONAL (real engine gap, not lore): there is no world-space inscription
-  prop. If roadside lore is actually wanted, that is a NEW feature (a prop
-  type + reader), not a data fill -- track separately.
+**Produce:**
+- `labs/story-chronicle.md` (the old Task 3): almanac-style entries for the 3
+  acts (`game/data/acts/*.tres` chapters), the capitol monolith's
+  wrong-written history, and the village origin short.
+- New `game/data/signs/*.tres` (schema `sign_profile.gd`, prefix `sign_`): one
+  per institution and one per road-marker, each a short inscription in the
+  Concord voice. Signs are the cheapest lore surface in the game.
 
 **Read first:** `game/core/services/sign_service.gd`, `acts_service.gd`, the
-three existing signs, `labs/prd-psy.md` (Sky Signs), and `labs/prd-story.md`
-sections 4-5 (institutions, the Bloom).
+three existing signs, and `labs/prd-story.md` sections 4-5 (institutions, the
+Bloom).
 
 ## Task 7 -- Weather + event lore -- status: todo
 
@@ -348,39 +316,17 @@ the field in code it would attach to. Name choices only -- no code edits.
 **Read first:** `globe_world.gd`, `globe_underworld.gd`, `globe_moon.gd`,
 `strait_chart.gd`, and the biome list in the terrain probes.
 
-## Task 9 -- Achievement listeners for the waking verbs -- status: landed 2026-11-29
+## Task 9 -- Achievement listeners for the waking verbs -- status: todo
 
 **The finding:** `labs/prd-quests.md` section 4 says achievements should
 celebrate the world's verbs, not grind counters. `achievement_listeners.gd`
 covers combat/horde/social; the waking verbs (EXPLORE/waypoint wakes, Bloom
 containment, companion/mount bonds) have thin coverage. 32 achievements exist.
 
-**AUDIT (done):** the verbs were thinly covered because the SIGNALS were never
-wired, and two of the three named verbs have no signal at all:
-- waypoint wakes: `WaypointService.waypoint_reached(player_id, waypoint_id)`
-  fires but NOTHING consumed it. Real, wireable.
-- Bloom containment: no "containment" signal exists; the honest hook is a
-  completed `bloom*` horde (`HordeEventService.horde_completed` /
-  `_track_horde_achievements`). Wireable as a deed.
-- mount bonds: `RideService.mount_summoned(player_id, mount_id)` fires but
-  nothing consumed it. Real, wireable (count DISTINCT mounts, not summons).
-- (Not wireable today: the "companion" bond line -- FollowService emits no
-  bond signal. Left out rather than faked.)
-
-**LANDED (`feat/achievement-title-integrity`):**
-- `achievement_listeners.gd`: `waypoint_reached` -> `wake` (once per waypoint
-  per session), `mount_summoned` -> `mount_bond` (once per DISTINCT mount per
-  session, via a deferred bridge since RideService is a later autoload).
-- `horde_event_service.gd`: a completed `bloom*` horde credits `bloom`; its
-  AchievementService resolution was ALSO fixed to the main-loop route (an
-  absolute `/root/...` path silently no-oped in `--script`/headless, so horde
-  achievements never landed outside the running game -- a latent bug).
-- 5 new achievements (`achievement_data.gd`): `waymaker_1` / `waymaker_10` /
-  `waymaker_50` (chained wake-count tiers), `bloom_contained`, `mount_bonded`.
-- 4 new titles: `waymaker`, `roadkeeper`, `bloomwarden`, `beastfriend`.
-- RECEIPT: `game/tests/test_waking_verbs.gd` (12 legs) -- all three verbs reach
-  AchievementService; both anti-farm guards verified red by name. Added to the
-  runner DEFAULT_SET.
+**Produce:** an audit of `game/data/achievements/*.tres` against
+`achievement_listeners.gd` -- which verbs are celebrated, which are missing --
+then author 4-8 new achievements for the wake-counts ("Waymaker" tiers), the
+Bloom-containment deeds, and the bond lines. Schema: `achievement_data.gd`.
 
 ---
 

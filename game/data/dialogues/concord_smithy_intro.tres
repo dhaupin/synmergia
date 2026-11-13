@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="DialogueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "concord_smithy_intro"
+npc_id = "npc_blacksmith_capital"
+display_name = "Concord Smithy"
+nodes = [
+    {
+        "speaker": "Concord Smithy",
+        "text": "City rates, city work. Same repair law as the village smith, better leather on the bellows. Bring me what is worn.",
+        "choices": [
+            {"text": "What do you repair?", "next_node": 1},
+            {"text": "Show me the forge.", "next_node": 2, "action_type": 6, "action_data": {"shop_id": "blacksmith_service"}},
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Concord Smithy",
+        "text": "Blades, plate, the lot. The rate book is the Concord's, so the price does not change with the customer. Only the work does.",
+        "choices": [
+            {"text": "Show me the forge.", "next_node": 2, "action_type": 6, "action_data": {"shop_id": "blacksmith_service"}},
+            {"text": "Back.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Concord Smithy",
+        "text": "The bench is open. Mind the sparks -- everything here was mended once already.",
+        "choices": [
+            {"text": "Back.", "next_node": 0}
+        ]
+    }
+]

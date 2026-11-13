@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "npc_blacksmith_capital"
 display_name = "Concord Smithy"
-description = "The Federation's forge at the strand. Same repair law, better leather -- the city smith runs the Concord rate book."
+description = "The Concord's forge at the strand. Same repair law, better leather -- the city smith runs the Concord rate book."
 level = 1
 faction = "friendly"
 greeting = "City rates, city work. Bring the worn gear."
@@ -20,5 +20,5 @@ spawn_offset = Vector3(9, 0, 1)
 zone_id = "zone_nexus_central"
 includes = [
     {"type": "offering", "ref_id": "blacksmith_service"},
-    {"type": "dialogue", "dialogue_id": "blacksmith_village_intro"}
+    {"type": "dialogue", "dialogue_id": "concord_smithy_intro"}
 ]

@@ -1,5 +1,5 @@
 {
-  "lastSyncedAt": "2026-11-13T04:36:35.531Z",
+  "lastSyncedAt": "2026-11-13T10:59:59.912Z",
   "counts": {
     "classes": 39,
     "weapons": 82,
@@ -7,14 +7,14 @@
     "consumables": 13,
     "enemies": 31,
     "zones": 12,
-    "skills": 169,
+    "skills": 171,
     "quests": 27,
     "buffs": 0,
     "factions": 4,
-    "achievements": 32,
-    "titles": 14,
+    "achievements": 37,
+    "titles": 25,
     "species": 3,
-    "dialogues": 9,
+    "dialogues": 20,
     "currencies": 5,
     "mounts": 11,
     "vehicles": 4,
@@ -75,8 +75,10 @@
       "attack_power_per_level": 2,
       "base_spell_power": 5,
       "spell_power_per_level": 1,
-      "starting_skills": [],
-      "skill_tree_unlocks": {},
+      "starting_skills": [
+        "akkan_void_slash"
+      ],
+      "skill_tree_unlocks": "{10: [\"akkan_attacker_sig\", \"human_attacker_sig\", \"synthetic_attacker_sig\"]}",
       "respec_cost_gold": 500,
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
@@ -126,7 +128,7 @@
       "starting_skills": [
         "akkan_battle_cry"
       ],
-      "skill_tree_unlocks": "{5: [\"akkan_pummel\", \"akkan_taunt\"], 10: [\"akkan_reflect\"], 15: [\"akkan_bulwark_strike\"], 20: [\"akkan_earthwall\"], 25: [\"akkan_immortal_form\"]}",
+      "skill_tree_unlocks": "{5: [\"akkan_pummel\", \"akkan_taunt\"], 10: [\"akkan_reflect\", \"human_bulwark_sig\", \"synthetic_bulwark_sig\"], 15: [\"akkan_bulwark_strike\"], 20: [\"akkan_earthwall\"], 25: [\"akkan_immortal_form\"]}",
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": false,
       "can_use_staves": false,
@@ -175,7 +177,7 @@
       "starting_skills": [
         "akkan_rune_strike"
       ],
-      "skill_tree_unlocks": "{5: [\"akkan_rune_ward\"], 10: [\"akkan_rune_chain\"], 15: [\"akkan_exploding_rune\"], 20: [\"akkan_rune_transfer\"], 25: [\"akkan_rune_tremor\"]}",
+      "skill_tree_unlocks": "{5: [\"akkan_rune_void_bolt\", \"akkan_rune_ward\"], 10: [\"akkan_rune_chain\", \"akkan_rune_human_sig\", \"akkan_rune_sig\", \"akkan_rune_sigil\", \"akkan_rune_synthetic_sig\", \"akkan_void_burst\", \"akkan_void_curse\", \"akkan_void_shield\"], 15: [\"akkan_exploding_rune\", \"akkan_void_flay\"], 20: [\"akkan_rune_transfer\"], 25: [\"akkan_rune_tremor\"]}",
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": false,
       "can_use_staves": true,
@@ -224,7 +226,7 @@
       "starting_skills": [
         "akkan_void_bolt"
       ],
-      "skill_tree_unlocks": "{5: [\"akkan_resistance_drain\", \"akkan_regen_mitigate\"], 10: [\"akkan_spatial_push\"], 15: [\"akkan_revive_ally\"], 20: [\"akkan_void_aura\"], 25: [\"akkan_gravity_well\"]}",
+      "skill_tree_unlocks": "{5: [\"akkan_regen_mitigate\", \"akkan_resistance_drain\"], 10: [\"akkan_spatial_push\", \"human_seer_sig\", \"synthetic_seer_sig\"], 15: [\"akkan_revive_ally\"], 20: [\"akkan_void_aura\"], 25: [\"akkan_gravity_well\"]}",
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
       "can_use_staves": false,
@@ -273,7 +275,7 @@
       "starting_skills": [
         "akkan_spirit_bolt"
       ],
-      "skill_tree_unlocks": "{5: [\"akkan_earthshield_totem\"], 10: [\"akkan_hex\"], 15: [\"akkan_chain_heal\"], 20: [\"akkan_storm_aura\"], 25: [\"akkan_ancestral_guardian\"]}",
+      "skill_tree_unlocks": "{5: [\"akkan_earthshield_totem\"], 10: [\"akkan_healing_totem\", \"akkan_hex\", \"human_shaman_sig\", \"synthetic_shaman_sig\"], 15: [\"akkan_chain_heal\"], 20: [\"akkan_storm_aura\"], 25: [\"akkan_ancestral_guardian\"]}",
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
       "can_use_staves": false,
@@ -322,8 +324,10 @@
       "attack_power_per_level": 2,
       "base_spell_power": 5,
       "spell_power_per_level": 1,
-      "starting_skills": [],
-      "skill_tree_unlocks": {},
+      "starting_skills": [
+        "akkan_pounce"
+      ],
+      "skill_tree_unlocks": "{5: [\"akkan_ambush\"], 10: [\"akkan_sorcerer_sig\", \"akkan_stalker_sig\", \"akkan_stealth_deep\", \"akkan_stealth_vanish\", \"akkan_trap_roots\"], 15: [\"akkan_aimed_shot\"], 20: [\"akkan_stealth_light\"]}",
       "respec_cost_gold": 500,
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
@@ -517,7 +521,7 @@
       "starting_skills": [
         "human_holy_light"
       ],
-      "skill_tree_unlocks": "{5: [\"human_sanctuary_aura\"], 10: [\"human_smite\"], 15: [\"human_blinding_light\"], 20: [\"human_divine_shield\"], 25: [\"human_resurrection\"]}",
+      "skill_tree_unlocks": "{5: [\"human_sanctuary_aura\"], 10: [\"akkan_cleric_sig\", \"human_prayer_of_mending\", \"human_smite\", \"synthetic_cleric_sig\"], 15: [\"human_blinding_light\"], 20: [\"human_divine_shield\"], 25: [\"human_resurrection\"]}",
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": false,
       "can_use_staves": true,
@@ -566,7 +570,7 @@
       "starting_skills": [
         "human_shield_toss"
       ],
-      "skill_tree_unlocks": "{5: [\"human_shield_bash_guardian\", \"human_taunt\"], 10: [\"human_shield_wall\"], 15: [\"human_charge_guardian\"], 20: [\"human_intervene\"], 25: [\"human_last_stand\"]}",
+      "skill_tree_unlocks": "{5: [\"human_shield_bash_guardian\", \"human_taunt\"], 10: [\"akkan_guardian_sig\", \"human_shield_wall\", \"synthetic_guardian_sig\"], 15: [\"human_charge_guardian\"], 20: [\"human_intervene\"], 25: [\"human_last_stand\"]}",
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": false,
       "can_use_staves": false,
@@ -615,8 +619,10 @@
       "attack_power_per_level": 2,
       "base_spell_power": 5,
       "spell_power_per_level": 1,
-      "starting_skills": [],
-      "skill_tree_unlocks": {},
+      "starting_skills": [
+        "human_ambush"
+      ],
+      "skill_tree_unlocks": "{5: [\"human_trap_roots\"], 10: [\"akkan_marksman_sig\", \"human_aimed_shot\", \"human_eagle_eye\", \"human_marksman_sig\", \"synthetic_marksman_sig\"], 15: [\"human_stealth_light\"], 20: [\"human_multi_shot\"]}",
       "respec_cost_gold": 500,
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
@@ -666,8 +672,10 @@
       "attack_power_per_level": 2,
       "base_spell_power": 5,
       "spell_power_per_level": 1,
-      "starting_skills": [],
-      "skill_tree_unlocks": {},
+      "starting_skills": [
+        "human_arcane_bolt"
+      ],
+      "skill_tree_unlocks": "{10: [\"akkan_sorcerer_human_sig\", \"human_arcane_aura\", \"human_arcane_barrier\", \"human_arcane_explosion\", \"human_arcane_slow\", \"human_sorcerer_human_sig\", \"synthetic_sorcerer_human_sig\"], 15: [\"human_enchant_weapon\"]}",
       "respec_cost_gold": 500,
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
@@ -717,7 +725,7 @@
       "starting_skills": [
         "human_time_warp"
       ],
-      "skill_tree_unlocks": "{5: [\"human_slow_field\", \"human_haste_ally\"], 10: [\"human_time_anchor\"], 15: [\"human_revive_ally\"], 20: [\"human_temporal_aura\"], 25: [\"human_time_stop\"]}",
+      "skill_tree_unlocks": "{5: [\"human_haste_ally\", \"human_mana_shield\", \"human_slow_field\"], 10: [\"akkan_temporalist_sig\", \"human_time_anchor\", \"synthetic_temporalist_sig\"], 15: [\"human_revive_ally\"], 20: [\"human_mana_surge\", \"human_temporal_aura\"], 25: [\"human_time_stop\"]}",
       "can_use_melee_weapons": false,
       "can_use_ranged_weapons": true,
       "can_use_staves": true,
@@ -767,10 +775,10 @@
       "base_spell_power": 5,
       "spell_power_per_level": 1,
       "starting_skills": [
-        "human_strike",
-        "human_shield_bash"
+        "human_shield_bash",
+        "human_strike"
       ],
-      "skill_tree_unlocks": {},
+      "skill_tree_unlocks": "{5: [\"human_charge\"], 10: [\"akkan_warrior_sig\", \"human_battle_cry\", \"human_defensive_stance\", \"human_rend\", \"human_warrior_sig\", \"synthetic_warrior_sig\"], 15: [\"human_shatter\"]}",
       "respec_cost_gold": 500,
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
@@ -820,7 +828,7 @@
       "starting_skills": [
         "synthetic_energy_transfer"
       ],
-      "skill_tree_unlocks": "{5: [\"synthetic_shield_all\"], 10: [\"synthetic_drain_pulse\"], 15: [\"synthetic_overcharge_ally\"], 20: [\"synthetic_barrier_field\"], 25: [\"synthetic_redistribute\"]}",
+      "skill_tree_unlocks": "{5: [\"synthetic_shield_all\"], 10: [\"akkan_conduit_sig\", \"human_conduit_sig\", \"synthetic_drain_pulse\", \"synthetic_system_crash\"], 15: [\"synthetic_overcharge_ally\"], 20: [\"synthetic_barrier_field\"], 25: [\"synthetic_redistribute\"]}",
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
       "can_use_staves": false,
@@ -872,7 +880,7 @@
         "synthetic_energy_strike_exploiter",
         "synthetic_overclock_exploiter"
       ],
-      "skill_tree_unlocks": "{\n5: [\"synthetic_hack_pulse_exploiter\"],\n10: [\"synthetic_plasma_cutter_exploiter\"],\n15: [\"synthetic_nanite_swarm_exploiter\"],\n20: [\"synthetic_system_crash_exploiter\"]\n}",
+      "skill_tree_unlocks": "{5: [\"synthetic_hack_pulse_exploiter\"], 10: [\"akkan_exploiter_sig\", \"human_exploiter_sig\", \"synthetic_exploiter_sig\", \"synthetic_packet_flood\", \"synthetic_plasma_cutter_exploiter\"], 15: [\"synthetic_nanite_swarm_exploiter\"], 20: [\"synthetic_system_crash_exploiter\"]}",
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
       "can_use_staves": false,
@@ -924,7 +932,7 @@
       "starting_skills": [
         "synthetic_clock_surge"
       ],
-      "skill_tree_unlocks": "{5: [\"synthetic_tick_slow\", \"synthetic_overclock_ally\"], 10: [\"synthetic_warp_point\"], 15: [\"synthetic_revive_ally\"], 20: [\"synthetic_sync_aura\"], 25: [\"synthetic_full_stall\"]}",
+      "skill_tree_unlocks": "{5: [\"synthetic_overclock_ally\", \"synthetic_tick_slow\"], 10: [\"akkan_overclocker_sig\", \"human_overclocker_sig\", \"synthetic_warp_point\"], 15: [\"synthetic_revive_ally\"], 20: [\"synthetic_redirect\", \"synthetic_sync_aura\"], 25: [\"synthetic_full_stall\"]}",
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
       "can_use_staves": false,
@@ -973,8 +981,10 @@
       "attack_power_per_level": 2,
       "base_spell_power": 5,
       "spell_power_per_level": 1,
-      "starting_skills": [],
-      "skill_tree_unlocks": {},
+      "starting_skills": [
+        "synthetic_system_bolt"
+      ],
+      "skill_tree_unlocks": "{5: [\"synthetic_system_spam\"], 10: [\"akkan_sorcerer_synthetic_sig\", \"human_sorcerer_synthetic_sig\", \"synthetic_psion_synthetic_sig\", \"synthetic_system_amplify\", \"synthetic_system_nuke\", \"synthetic_system_override\"], 15: [\"synthetic_psionic_shield\"]}",
       "respec_cost_gold": 500,
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
@@ -1024,8 +1034,10 @@
       "attack_power_per_level": 2,
       "base_spell_power": 5,
       "spell_power_per_level": 1,
-      "starting_skills": [],
-      "skill_tree_unlocks": {},
+      "starting_skills": [
+        "synthetic_ping_scan"
+      ],
+      "skill_tree_unlocks": "{5: [\"synthetic_backdoor\", \"synthetic_stealth_light\"], 10: [\"akkan_tracker_sig\", \"human_tracker_sig\", \"synthetic_stealth_deep\", \"synthetic_stealth_vanish\"], 15: [\"synthetic_aimed_shot\"], 20: [\"synthetic_multi_shot\"]}",
       "respec_cost_gold": 500,
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
@@ -1075,7 +1087,7 @@
       "starting_skills": [
         "synthetic_threat_matrix"
       ],
-      "skill_tree_unlocks": "{5: [\"synthetic_system_lockdown\", \"synthetic_warden_taunt\"], 10: [\"synthetic_damage_shunt\"], 15: [\"synthetic_fortify\"], 20: [\"synthetic_deaggro_pulse\"], 25: [\"synthetic_emergency_override\"]}",
+      "skill_tree_unlocks": "{5: [\"synthetic_system_lockdown\", \"synthetic_system_shield\", \"synthetic_warden_taunt\"], 10: [\"akkan_warden_sig\", \"human_warden_sig\", \"synthetic_damage_shunt\"], 15: [\"synthetic_fortify\"], 20: [\"synthetic_deaggro_pulse\"], 25: [\"synthetic_emergency_override\"]}",
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
       "can_use_staves": false,
@@ -1124,8 +1136,10 @@
       "attack_power_per_level": 2,
       "base_spell_power": 5,
       "spell_power_per_level": 1,
-      "starting_skills": [],
-      "skill_tree_unlocks": {},
+      "starting_skills": [
+        "akkan_void_slash"
+      ],
+      "skill_tree_unlocks": "{10: [\"akkan_attacker_sig\", \"human_attacker_sig\", \"synthetic_attacker_sig\"]}",
       "respec_cost_gold": 500,
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
@@ -1176,7 +1190,7 @@
       "starting_skills": [
         "akkan_battle_cry"
       ],
-      "skill_tree_unlocks": "{5: [\"akkan_pummel\", \"akkan_taunt\"], 10: [\"akkan_reflect\"], 15: [\"akkan_bulwark_strike\"], 20: [\"akkan_earthwall\"], 25: [\"akkan_immortal_form\"]}",
+      "skill_tree_unlocks": "{5: [\"akkan_pummel\", \"akkan_taunt\"], 10: [\"akkan_reflect\", \"human_bulwark_sig\", \"synthetic_bulwark_sig\"], 15: [\"akkan_bulwark_strike\"], 20: [\"akkan_earthwall\"], 25: [\"akkan_immortal_form\"]}",
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": false,
       "can_use_staves": false,
@@ -1226,7 +1240,7 @@
       "starting_skills": [
         "akkan_rune_strike"
       ],
-      "skill_tree_unlocks": "{5: [\"akkan_rune_ward\"], 10: [\"akkan_rune_chain\"], 15: [\"akkan_exploding_rune\"], 20: [\"akkan_rune_transfer\"], 25: [\"akkan_rune_tremor\"]}",
+      "skill_tree_unlocks": "{5: [\"akkan_rune_void_bolt\", \"akkan_rune_ward\"], 10: [\"akkan_rune_chain\", \"akkan_rune_human_sig\", \"akkan_rune_sig\", \"akkan_rune_sigil\", \"akkan_rune_synthetic_sig\", \"akkan_void_burst\", \"akkan_void_curse\", \"akkan_void_shield\"], 15: [\"akkan_exploding_rune\", \"akkan_void_flay\"], 20: [\"akkan_rune_transfer\"], 25: [\"akkan_rune_tremor\"]}",
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": false,
       "can_use_staves": true,
@@ -1276,7 +1290,7 @@
       "starting_skills": [
         "akkan_void_bolt"
       ],
-      "skill_tree_unlocks": "{5: [\"akkan_resistance_drain\", \"akkan_regen_mitigate\"], 10: [\"akkan_spatial_push\"], 15: [\"akkan_revive_ally\"], 20: [\"akkan_void_aura\"], 25: [\"akkan_gravity_well\"]}",
+      "skill_tree_unlocks": "{5: [\"akkan_regen_mitigate\", \"akkan_resistance_drain\"], 10: [\"akkan_spatial_push\", \"human_seer_sig\", \"synthetic_seer_sig\"], 15: [\"akkan_revive_ally\"], 20: [\"akkan_void_aura\"], 25: [\"akkan_gravity_well\"]}",
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
       "can_use_staves": false,
@@ -1326,7 +1340,7 @@
       "starting_skills": [
         "akkan_spirit_bolt"
       ],
-      "skill_tree_unlocks": "{5: [\"akkan_earthshield_totem\"], 10: [\"akkan_hex\"], 15: [\"akkan_chain_heal\"], 20: [\"akkan_storm_aura\"], 25: [\"akkan_ancestral_guardian\"]}",
+      "skill_tree_unlocks": "{5: [\"akkan_earthshield_totem\"], 10: [\"akkan_healing_totem\", \"akkan_hex\", \"human_shaman_sig\", \"synthetic_shaman_sig\"], 15: [\"akkan_chain_heal\"], 20: [\"akkan_storm_aura\"], 25: [\"akkan_ancestral_guardian\"]}",
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
       "can_use_staves": false,
@@ -1376,8 +1390,10 @@
       "attack_power_per_level": 2,
       "base_spell_power": 5,
       "spell_power_per_level": 1,
-      "starting_skills": [],
-      "skill_tree_unlocks": {},
+      "starting_skills": [
+        "akkan_pounce"
+      ],
+      "skill_tree_unlocks": "{5: [\"akkan_ambush\"], 10: [\"akkan_sorcerer_sig\", \"akkan_stalker_sig\", \"akkan_stealth_deep\", \"akkan_stealth_vanish\", \"akkan_trap_roots\"], 15: [\"akkan_aimed_shot\"], 20: [\"akkan_stealth_light\"]}",
       "respec_cost_gold": 500,
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
@@ -1428,7 +1444,7 @@
       "starting_skills": [
         "human_holy_light"
       ],
-      "skill_tree_unlocks": "{5: [\"human_sanctuary_aura\"], 10: [\"human_smite\"], 15: [\"human_blinding_light\"], 20: [\"human_divine_shield\"], 25: [\"human_resurrection\"]}",
+      "skill_tree_unlocks": "{5: [\"human_sanctuary_aura\"], 10: [\"akkan_cleric_sig\", \"human_prayer_of_mending\", \"human_smite\", \"synthetic_cleric_sig\"], 15: [\"human_blinding_light\"], 20: [\"human_divine_shield\"], 25: [\"human_resurrection\"]}",
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": false,
       "can_use_staves": true,
@@ -1478,7 +1494,7 @@
       "starting_skills": [
         "human_shield_toss"
       ],
-      "skill_tree_unlocks": "{5: [\"human_shield_bash_guardian\", \"human_taunt\"], 10: [\"human_shield_wall\"], 15: [\"human_charge_guardian\"], 20: [\"human_intervene\"], 25: [\"human_last_stand\"]}",
+      "skill_tree_unlocks": "{5: [\"human_shield_bash_guardian\", \"human_taunt\"], 10: [\"akkan_guardian_sig\", \"human_shield_wall\", \"synthetic_guardian_sig\"], 15: [\"human_charge_guardian\"], 20: [\"human_intervene\"], 25: [\"human_last_stand\"]}",
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": false,
       "can_use_staves": false,
@@ -1528,8 +1544,10 @@
       "attack_power_per_level": 2,
       "base_spell_power": 5,
       "spell_power_per_level": 1,
-      "starting_skills": [],
-      "skill_tree_unlocks": {},
+      "starting_skills": [
+        "human_ambush"
+      ],
+      "skill_tree_unlocks": "{5: [\"human_trap_roots\"], 10: [\"akkan_marksman_sig\", \"human_aimed_shot\", \"human_eagle_eye\", \"human_marksman_sig\", \"synthetic_marksman_sig\"], 15: [\"human_stealth_light\"], 20: [\"human_multi_shot\"]}",
       "respec_cost_gold": 500,
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
@@ -1580,8 +1598,10 @@
       "attack_power_per_level": 2,
       "base_spell_power": 5,
       "spell_power_per_level": 1,
-      "starting_skills": [],
-      "skill_tree_unlocks": {},
+      "starting_skills": [
+        "human_arcane_bolt"
+      ],
+      "skill_tree_unlocks": "{10: [\"akkan_sorcerer_human_sig\", \"human_arcane_aura\", \"human_arcane_barrier\", \"human_arcane_explosion\", \"human_arcane_slow\", \"human_sorcerer_human_sig\", \"synthetic_sorcerer_human_sig\"], 15: [\"human_enchant_weapon\"]}",
       "respec_cost_gold": 500,
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
@@ -1632,7 +1652,7 @@
       "starting_skills": [
         "human_time_warp"
       ],
-      "skill_tree_unlocks": "{5: [\"human_slow_field\", \"human_haste_ally\"], 10: [\"human_time_anchor\"], 15: [\"human_revive_ally\"], 20: [\"human_temporal_aura\"], 25: [\"human_time_stop\"]}",
+      "skill_tree_unlocks": "{5: [\"human_haste_ally\", \"human_mana_shield\", \"human_slow_field\"], 10: [\"akkan_temporalist_sig\", \"human_time_anchor\", \"synthetic_temporalist_sig\"], 15: [\"human_revive_ally\"], 20: [\"human_mana_surge\", \"human_temporal_aura\"], 25: [\"human_time_stop\"]}",
       "can_use_melee_weapons": false,
       "can_use_ranged_weapons": true,
       "can_use_staves": true,
@@ -1683,10 +1703,10 @@
       "base_spell_power": 5,
       "spell_power_per_level": 1,
       "starting_skills": [
-        "human_strike",
-        "human_shield_bash"
+        "human_shield_bash",
+        "human_strike"
       ],
-      "skill_tree_unlocks": {},
+      "skill_tree_unlocks": "{5: [\"human_charge\"], 10: [\"akkan_warrior_sig\", \"human_battle_cry\", \"human_defensive_stance\", \"human_rend\", \"human_warrior_sig\", \"synthetic_warrior_sig\"], 15: [\"human_shatter\"]}",
       "respec_cost_gold": 500,
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
@@ -1737,7 +1757,7 @@
       "starting_skills": [
         "synthetic_energy_transfer"
       ],
-      "skill_tree_unlocks": "{5: [\"synthetic_shield_all\"], 10: [\"synthetic_drain_pulse\"], 15: [\"synthetic_overcharge_ally\"], 20: [\"synthetic_barrier_field\"], 25: [\"synthetic_redistribute\"]}",
+      "skill_tree_unlocks": "{5: [\"synthetic_shield_all\"], 10: [\"akkan_conduit_sig\", \"human_conduit_sig\", \"synthetic_drain_pulse\", \"synthetic_system_crash\"], 15: [\"synthetic_overcharge_ally\"], 20: [\"synthetic_barrier_field\"], 25: [\"synthetic_redistribute\"]}",
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
       "can_use_staves": false,
@@ -1790,7 +1810,7 @@
         "synthetic_energy_strike_exploiter",
         "synthetic_overclock_exploiter"
       ],
-      "skill_tree_unlocks": "{\n5: [\"synthetic_hack_pulse_exploiter\"],\n10: [\"synthetic_plasma_cutter_exploiter\"],\n15: [\"synthetic_nanite_swarm_exploiter\"],\n20: [\"synthetic_system_crash_exploiter\"]\n}",
+      "skill_tree_unlocks": "{5: [\"synthetic_hack_pulse_exploiter\"], 10: [\"akkan_exploiter_sig\", \"human_exploiter_sig\", \"synthetic_exploiter_sig\", \"synthetic_packet_flood\", \"synthetic_plasma_cutter_exploiter\"], 15: [\"synthetic_nanite_swarm_exploiter\"], 20: [\"synthetic_system_crash_exploiter\"]}",
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
       "can_use_staves": false,
@@ -1843,7 +1863,7 @@
       "starting_skills": [
         "synthetic_clock_surge"
       ],
-      "skill_tree_unlocks": "{5: [\"synthetic_tick_slow\", \"synthetic_overclock_ally\"], 10: [\"synthetic_warp_point\"], 15: [\"synthetic_revive_ally\"], 20: [\"synthetic_sync_aura\"], 25: [\"synthetic_full_stall\"]}",
+      "skill_tree_unlocks": "{5: [\"synthetic_overclock_ally\", \"synthetic_tick_slow\"], 10: [\"akkan_overclocker_sig\", \"human_overclocker_sig\", \"synthetic_warp_point\"], 15: [\"synthetic_revive_ally\"], 20: [\"synthetic_redirect\", \"synthetic_sync_aura\"], 25: [\"synthetic_full_stall\"]}",
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
       "can_use_staves": false,
@@ -1893,8 +1913,10 @@
       "attack_power_per_level": 2,
       "base_spell_power": 5,
       "spell_power_per_level": 1,
-      "starting_skills": [],
-      "skill_tree_unlocks": {},
+      "starting_skills": [
+        "synthetic_system_bolt"
+      ],
+      "skill_tree_unlocks": "{5: [\"synthetic_system_spam\"], 10: [\"akkan_sorcerer_synthetic_sig\", \"human_sorcerer_synthetic_sig\", \"synthetic_psion_synthetic_sig\", \"synthetic_system_amplify\", \"synthetic_system_nuke\", \"synthetic_system_override\"], 15: [\"synthetic_psionic_shield\"]}",
       "respec_cost_gold": 500,
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
@@ -1945,8 +1967,10 @@
       "attack_power_per_level": 2,
       "base_spell_power": 5,
       "spell_power_per_level": 1,
-      "starting_skills": [],
-      "skill_tree_unlocks": {},
+      "starting_skills": [
+        "synthetic_ping_scan"
+      ],
+      "skill_tree_unlocks": "{5: [\"synthetic_backdoor\", \"synthetic_stealth_light\"], 10: [\"akkan_tracker_sig\", \"human_tracker_sig\", \"synthetic_stealth_deep\", \"synthetic_stealth_vanish\"], 15: [\"synthetic_aimed_shot\"], 20: [\"synthetic_multi_shot\"]}",
       "respec_cost_gold": 500,
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
@@ -1997,7 +2021,7 @@
       "starting_skills": [
         "synthetic_threat_matrix"
       ],
-      "skill_tree_unlocks": "{5: [\"synthetic_system_lockdown\", \"synthetic_warden_taunt\"], 10: [\"synthetic_damage_shunt\"], 15: [\"synthetic_fortify\"], 20: [\"synthetic_deaggro_pulse\"], 25: [\"synthetic_emergency_override\"]}",
+      "skill_tree_unlocks": "{5: [\"synthetic_system_lockdown\", \"synthetic_system_shield\", \"synthetic_warden_taunt\"], 10: [\"akkan_warden_sig\", \"human_warden_sig\", \"synthetic_damage_shunt\"], 15: [\"synthetic_fortify\"], 20: [\"synthetic_deaggro_pulse\"], 25: [\"synthetic_emergency_override\"]}",
       "can_use_melee_weapons": true,
       "can_use_ranged_weapons": true,
       "can_use_staves": false,
@@ -8573,7 +8597,7 @@
           "value": 28
         }
       ],
-      "required_level": 5,
+      "required_level": 1,
       "required_class": "akkan_attacker",
       "upgrade_tiers": "[\n{\n\"level\": 1, \"books_required\": 4, \"tier\": \"common\",\n\"delta\": {\"damage_mult\": 1.10, \"cooldown_mult\": 0.95, \"duration_mult\": 1.05, \"aoe_mult\": 1.03, \"cast_time_mult\": 1.05, \"cost_mult\": 0.97},\n\"unlocks\": [],\n},\n{\n\"level\": 2, \"books_required\": 4, \"tier\": \"rare\",\n\"delta\": {\"damage_mult\": 1.22, \"cooldown_mult\": 0.90, \"duration_mult\": 1.10, \"aoe_mult\": 1.06, \"cast_time_mult\": 1.10, \"cost_mult\": 0.94},\n\"unlocks\": [],\n},\n{\n\"level\": 3, \"books_required\": 4, \"tier\": \"epic\",\n\"delta\": {\"damage_mult\": 1.36, \"cooldown_mult\": 0.85, \"duration_mult\": 1.15, \"aoe_mult\": 1.09, \"cast_time_mult\": 1.15, \"cost_mult\": 0.91},\n\"unlocks\": [],\n},\n{\n\"level\": 4, \"books_required\": 4, \"tier\": \"legendary\",\n\"delta\": {\"damage_mult\": 1.50, \"cooldown_mult\": 0.80, \"duration_mult\": 1.20, \"aoe_mult\": 1.12, \"cast_time_mult\": 1.20, \"cost_mult\": 0.88},\n\"unlocks\": [],\n},\n{\n\"level\": 5, \"books_required\": 4, \"tier\": \"mythic\",\n\"delta\": {\"damage_mult\": 1.64, \"cooldown_mult\": 0.75, \"duration_mult\": 1.25, \"aoe_mult\": 1.15, \"cast_time_mult\": 1.25, \"cost_mult\": 0.85},\n\"unlocks\": [],\n},\n]",
       "_sourceFile": "game/data/skills/akkan_attacker/akkan_void_slash.tres",
@@ -9204,6 +9228,8 @@
           "value": 20
         }
       ],
+      "required_level": 1,
+      "required_class": "human_temporalist",
       "upgrade_tiers": "[\n{\n\"level\": 1, \"books_required\": 4, \"tier\": \"common\",\n\"delta\": {\"cooldown_mult\": 0.95, \"cast_time_mult\": 1.05, \"cost_mult\": 0.97, \"range_mult\": 1.05},\n\"unlocks\": [],\n},\n{\n\"level\": 2, \"books_required\": 4, \"tier\": \"rare\",\n\"delta\": {\"cooldown_mult\": 0.9, \"cast_time_mult\": 1.1, \"cost_mult\": 0.94, \"range_mult\": 1.1},\n\"unlocks\": [],\n},\n{\n\"level\": 3, \"books_required\": 4, \"tier\": \"epic\",\n\"delta\": {\"cooldown_mult\": 0.85, \"cast_time_mult\": 1.15, \"cost_mult\": 0.91, \"range_mult\": 1.15},\n\"unlocks\": [],\n},\n]",
       "_sourceFile": "game/data/skills/bender/human_time_warp.tres",
       "_scriptClass": "SkillSchema"
@@ -9490,6 +9516,60 @@
       "required_class": "synthetic_overclocker",
       "upgrade_tiers": "[\n{\n\"level\": 1, \"books_required\": 4, \"tier\": \"common\",\n\"delta\": {\"effect_duration_mult\": 1.05, \"cooldown_mult\": 0.95, \"effect_strength_mult\": 1.05, \"max_targets_mult\": 1.0, \"cast_time_mult\": 1.05, \"cost_mult\": 0.97},\n\"unlocks\": [],\n},\n{\n\"level\": 2, \"books_required\": 4, \"tier\": \"rare\",\n\"delta\": {\"effect_duration_mult\": 1.1, \"cooldown_mult\": 0.9, \"effect_strength_mult\": 1.1, \"max_targets_mult\": 1.0, \"cast_time_mult\": 1.1, \"cost_mult\": 0.94},\n\"unlocks\": [],\n},\n{\n\"level\": 3, \"books_required\": 4, \"tier\": \"epic\",\n\"delta\": {\"effect_duration_mult\": 1.15, \"cooldown_mult\": 0.85, \"effect_strength_mult\": 1.15, \"max_targets_mult\": 1.0, \"cast_time_mult\": 1.15, \"cost_mult\": 0.91},\n\"unlocks\": [{\"type\": \"max_targets_mult\", \"value\": 1}],\n},\n{\n\"level\": 4, \"books_required\": 4, \"tier\": \"legendary\",\n\"delta\": {\"effect_duration_mult\": 1.2, \"cooldown_mult\": 0.8, \"effect_strength_mult\": 1.2, \"max_targets_mult\": 1.0, \"cast_time_mult\": 1.2, \"cost_mult\": 0.88},\n\"unlocks\": [],\n},\n{\n\"level\": 5, \"books_required\": 4, \"tier\": \"mythic\",\n\"delta\": {\"effect_duration_mult\": 1.25, \"cooldown_mult\": 0.75, \"effect_strength_mult\": 1.25, \"max_targets_mult\": 1.0, \"cast_time_mult\": 1.25, \"cost_mult\": 0.85},\n\"unlocks\": [{\"type\": \"effect_duration_mult\", \"value\": 1.1}],\n},\n]",
       "_sourceFile": "game/data/skills/bender/synthetic_warp_point.tres",
+      "_scriptClass": "SkillSchema"
+    },
+    "general_bind": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "general_bind",
+      "display_name": "Bind",
+      "description": "A general hold: you pin a foe in place with a line of will. Every walker of the Concord learns it before any school claims them.",
+      "icon_path": "",
+      "skill_type": 1,
+      "target_type": 0,
+      "mana_cost": 15,
+      "cooldown": 20,
+      "cast_time": 0,
+      "animation_duration": 0.4,
+      "range": 15,
+      "aoe_radius": 0,
+      "effects": [
+        {
+          "type": "root",
+          "duration": 2.5
+        }
+      ],
+      "required_level": 1,
+      "required_class": "",
+      "_sourceFile": "game/data/skills/general/general_bind.tres",
+      "_scriptClass": "SkillSchema"
+    },
+    "general_recover": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "general_recover",
+      "display_name": "Recover",
+      "description": "A general mend: breathe, steady, and knit the worst of the damage. A common skill taught to every class.",
+      "icon_path": "",
+      "skill_type": 2,
+      "target_type": 2,
+      "mana_cost": 20,
+      "cooldown": 30,
+      "cast_time": 0.5,
+      "animation_duration": 0.4,
+      "range": 0,
+      "aoe_radius": 0,
+      "effects": [
+        {
+          "type": "heal",
+          "value": 35
+        }
+      ],
+      "required_level": 1,
+      "required_class": "",
+      "_sourceFile": "game/data/skills/general/general_recover.tres",
       "_scriptClass": "SkillSchema"
     },
     "akkan_ancestral_guardian": {
@@ -11079,7 +11159,7 @@
           "value": 22
         }
       ],
-      "required_level": 5,
+      "required_level": 1,
       "required_class": "human_sorcerer",
       "upgrade_tiers": "[\n{\n\"level\": 1, \"books_required\": 4, \"tier\": \"common\",\n\"delta\": {\"damage_mult\": 1.08, \"cooldown_mult\": 0.95, \"duration_mult\": 1.05, \"aoe_mult\": 1.03, \"cast_time_mult\": 1.05, \"cost_mult\": 0.97},\n\"unlocks\": [],\n},\n{\n\"level\": 2, \"books_required\": 4, \"tier\": \"rare\",\n\"delta\": {\"damage_mult\": 1.18, \"cooldown_mult\": 0.90, \"duration_mult\": 1.10, \"aoe_mult\": 1.06, \"cast_time_mult\": 1.10, \"cost_mult\": 0.94},\n\"unlocks\": [],\n},\n{\n\"level\": 3, \"books_required\": 4, \"tier\": \"epic\",\n\"delta\": {\"damage_mult\": 1.30, \"cooldown_mult\": 0.85, \"duration_mult\": 1.15, \"aoe_mult\": 1.09, \"cast_time_mult\": 1.15, \"cost_mult\": 0.91},\n\"unlocks\": [{\"type\": \"aoe_mult\", \"value\": 1.05}],\n},\n{\n\"level\": 4, \"books_required\": 4, \"tier\": \"legendary\",\n\"delta\": {\"damage_mult\": 1.42, \"cooldown_mult\": 0.80, \"duration_mult\": 1.20, \"aoe_mult\": 1.12, \"cast_time_mult\": 1.20, \"cost_mult\": 0.88},\n\"unlocks\": [],\n},\n{\n\"level\": 5, \"books_required\": 4, \"tier\": \"mythic\",\n\"delta\": {\"damage_mult\": 1.54, \"cooldown_mult\": 0.75, \"duration_mult\": 1.25, \"aoe_mult\": 1.15, \"cast_time_mult\": 1.25, \"cost_mult\": 0.85},\n\"unlocks\": [{\"type\": \"aoe_mult\", \"value\": 1.10}],\n},\n]",
       "_sourceFile": "game/data/skills/mage/human_arcane_bolt.tres",
@@ -11357,7 +11437,7 @@
           "value": 23
         }
       ],
-      "required_level": 5,
+      "required_level": 1,
       "required_class": "synthetic_psion",
       "upgrade_tiers": "[\n{\n\"level\": 1, \"books_required\": 4, \"tier\": \"common\",\n\"delta\": {\"damage_mult\": 1.08, \"cooldown_mult\": 0.95, \"duration_mult\": 1.05, \"aoe_mult\": 1.03, \"cast_time_mult\": 1.05, \"cost_mult\": 0.97},\n\"unlocks\": [],\n},\n{\n\"level\": 2, \"books_required\": 4, \"tier\": \"rare\",\n\"delta\": {\"damage_mult\": 1.18, \"cooldown_mult\": 0.90, \"duration_mult\": 1.10, \"aoe_mult\": 1.06, \"cast_time_mult\": 1.10, \"cost_mult\": 0.94},\n\"unlocks\": [],\n},\n{\n\"level\": 3, \"books_required\": 4, \"tier\": \"epic\",\n\"delta\": {\"damage_mult\": 1.30, \"cooldown_mult\": 0.85, \"duration_mult\": 1.15, \"aoe_mult\": 1.09, \"cast_time_mult\": 1.15, \"cost_mult\": 0.91},\n\"unlocks\": [{\"type\": \"aoe_mult\", \"value\": 1.05}],\n},\n{\n\"level\": 4, \"books_required\": 4, \"tier\": \"legendary\",\n\"delta\": {\"damage_mult\": 1.42, \"cooldown_mult\": 0.80, \"duration_mult\": 1.20, \"aoe_mult\": 1.12, \"cast_time_mult\": 1.20, \"cost_mult\": 0.88},\n\"unlocks\": [],\n},\n{\n\"level\": 5, \"books_required\": 4, \"tier\": \"mythic\",\n\"delta\": {\"damage_mult\": 1.54, \"cooldown_mult\": 0.75, \"duration_mult\": 1.25, \"aoe_mult\": 1.15, \"cast_time_mult\": 1.25, \"cost_mult\": 0.85},\n\"unlocks\": [{\"type\": \"aoe_mult\", \"value\": 1.10}],\n},\n]",
       "_sourceFile": "game/data/skills/mage/synthetic_system_bolt.tres",
@@ -14760,6 +14840,26 @@
     }
   },
   "achievements": {
+    "bloom_contained": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "bloom_contained",
+      "display_name": "Bloom Contained",
+      "description": "Contain a Bloom horde",
+      "achievement_type": 1,
+      "category": 0,
+      "rarity": 2,
+      "target": 1,
+      "target_type": "bloom",
+      "gold_reward": 300,
+      "xp_reward": 250,
+      "title_reward": "bloomwarden",
+      "icon_path": "res://icons/achievements/horde_breaker.png",
+      "sort_order": 72,
+      "_sourceFile": "game/data/achievements/achievement_bloom_contained.tres",
+      "_scriptClass": "AchievementData"
+    },
     "collector_50": {
       "script": {
         "_extResource": "1"
@@ -14949,7 +15049,7 @@
       "required_achievements": [],
       "gold_reward": 500,
       "xp_reward": 500,
-      "title_reward": "Hordebreaker",
+      "title_reward": "hordebreaker",
       "icon_path": "res://icons/achievements/horde_breaker.png",
       "sort_order": 70,
       "_sourceFile": "game/data/achievements/achievement_horde_breaker_5.tres",
@@ -14970,7 +15070,7 @@
       "required_achievements": [],
       "gold_reward": 250,
       "xp_reward": 250,
-      "title_reward": "MVP",
+      "title_reward": "mvp",
       "icon_path": "res://icons/achievements/horde_mvp.png",
       "sort_order": 71,
       "_sourceFile": "game/data/achievements/achievement_horde_mvp_first.tres",
@@ -15087,6 +15187,26 @@
       "icon_path": "res://icons/achievements/kill_streak_50.png",
       "sort_order": 24,
       "_sourceFile": "game/data/achievements/achievement_kill_streak_50.tres",
+      "_scriptClass": "AchievementData"
+    },
+    "mount_bonded": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "mount_bonded",
+      "display_name": "Beast Friend",
+      "description": "Bond with three different mounts",
+      "achievement_type": 1,
+      "category": 3,
+      "rarity": 1,
+      "target": 3,
+      "target_type": "mount_bond",
+      "gold_reward": 120,
+      "xp_reward": 150,
+      "title_reward": "beastfriend",
+      "icon_path": "res://icons/achievements/explorer.png",
+      "sort_order": 80,
+      "_sourceFile": "game/data/achievements/achievement_mount_bonded.tres",
       "_scriptClass": "AchievementData"
     },
     "ob_explorer": {
@@ -15398,6 +15518,72 @@
       "_sourceFile": "game/data/achievements/achievement_trial_by_fire.tres",
       "_scriptClass": "AchievementData"
     },
+    "waymaker_1": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "waymaker_1",
+      "display_name": "Waymaker",
+      "description": "Walk a road to its waking -- reach a waypoint",
+      "achievement_type": 1,
+      "category": 3,
+      "rarity": 1,
+      "target": 1,
+      "target_type": "wake",
+      "gold_reward": 50,
+      "xp_reward": 60,
+      "title_reward": "waymaker",
+      "icon_path": "res://icons/achievements/explorer.png",
+      "sort_order": 60,
+      "_sourceFile": "game/data/achievements/achievement_waymaker_1.tres",
+      "_scriptClass": "AchievementData"
+    },
+    "waymaker_10": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "waymaker_10",
+      "display_name": "Roadwarden",
+      "description": "Wake ten roads",
+      "achievement_type": 1,
+      "category": 3,
+      "rarity": 2,
+      "target": 10,
+      "target_type": "wake",
+      "required_achievements": [
+        "waymaker_1"
+      ],
+      "gold_reward": 150,
+      "xp_reward": 180,
+      "title_reward": "",
+      "icon_path": "res://icons/achievements/explorer.png",
+      "sort_order": 61,
+      "_sourceFile": "game/data/achievements/achievement_waymaker_10.tres",
+      "_scriptClass": "AchievementData"
+    },
+    "waymaker_50": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "waymaker_50",
+      "display_name": "Roadkeeper",
+      "description": "Wake fifty roads",
+      "achievement_type": 1,
+      "category": 3,
+      "rarity": 3,
+      "target": 50,
+      "target_type": "wake",
+      "required_achievements": [
+        "waymaker_10"
+      ],
+      "gold_reward": 600,
+      "xp_reward": 700,
+      "title_reward": "roadkeeper",
+      "icon_path": "res://icons/achievements/explorer.png",
+      "sort_order": 62,
+      "_sourceFile": "game/data/achievements/achievement_waymaker_50.tres",
+      "_scriptClass": "AchievementData"
+    },
     "wind_rider_60": {
       "script": {
         "_extResource": "1"
@@ -15420,6 +15606,60 @@
     }
   },
   "titles": {
+    "beastfriend": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "beastfriend",
+      "display_name": "Beast Friend",
+      "description": "Bond with three different mounts",
+      "prefix_form": "The Beast Friend",
+      "suffix_form": "the beast's friend",
+      "category": 3,
+      "rarity": 1,
+      "unlock_method": 0,
+      "unlock_source": "mount_bonded",
+      "is_account_title": false,
+      "sort_order": 80,
+      "_sourceFile": "game/data/titles/title_beastfriend.tres",
+      "_scriptClass": "TitleData"
+    },
+    "bloodthirsty": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "bloodthirsty",
+      "display_name": "Bloodthirsty",
+      "description": "Kill 10 enemies without dying",
+      "prefix_form": "The Bloodthirsty",
+      "suffix_form": "the bloodthirsty",
+      "category": 0,
+      "rarity": 2,
+      "unlock_method": 0,
+      "unlock_source": "kill_streak_10",
+      "is_account_title": false,
+      "sort_order": 22,
+      "_sourceFile": "game/data/titles/title_bloodthirsty.tres",
+      "_scriptClass": "TitleData"
+    },
+    "bloomwarden": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "bloomwarden",
+      "display_name": "Bloomwarden",
+      "description": "Contain a Bloom horde",
+      "prefix_form": "The Bloomwarden",
+      "suffix_form": "the Bloomwarden",
+      "category": 3,
+      "rarity": 2,
+      "unlock_method": 0,
+      "unlock_source": "bloom_contained",
+      "is_account_title": false,
+      "sort_order": 72,
+      "_sourceFile": "game/data/titles/title_bloomwarden.tres",
+      "_scriptClass": "TitleData"
+    },
     "collector": {
       "script": {
         "_extResource": "1"
@@ -15510,6 +15750,42 @@
       "_sourceFile": "game/data/titles/title_guild_founder.tres",
       "_scriptClass": "TitleData"
     },
+    "hordebreaker": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "hordebreaker",
+      "display_name": "Hordebreaker",
+      "description": "Help defeat 5 hordes",
+      "prefix_form": "The Hordebreaker",
+      "suffix_form": "the hordebreaker",
+      "category": 0,
+      "rarity": 2,
+      "unlock_method": 0,
+      "unlock_source": "horde_breaker_5",
+      "is_account_title": false,
+      "sort_order": 70,
+      "_sourceFile": "game/data/titles/title_hordebreaker.tres",
+      "_scriptClass": "TitleData"
+    },
+    "juggernaut": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "juggernaut",
+      "display_name": "Juggernaut",
+      "description": "Kill 25 enemies without dying",
+      "prefix_form": "The Juggernaut",
+      "suffix_form": "the juggernaut",
+      "category": 0,
+      "rarity": 3,
+      "unlock_method": 0,
+      "unlock_source": "kill_streak_25",
+      "is_account_title": false,
+      "sort_order": 23,
+      "_sourceFile": "game/data/titles/title_juggernaut.tres",
+      "_scriptClass": "TitleData"
+    },
     "last_light": {
       "script": {
         "_extResource": "1"
@@ -15528,6 +15804,24 @@
       "_sourceFile": "game/data/titles/title_last_light.tres",
       "_scriptClass": "TitleData"
     },
+    "mvp": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "mvp",
+      "display_name": "MVP",
+      "description": "Deal the most damage in a horde completion",
+      "prefix_form": "The MVP",
+      "suffix_form": "the MVP",
+      "category": 0,
+      "rarity": 3,
+      "unlock_method": 0,
+      "unlock_source": "horde_mvp_first",
+      "is_account_title": false,
+      "sort_order": 71,
+      "_sourceFile": "game/data/titles/title_mvp.tres",
+      "_scriptClass": "TitleData"
+    },
     "pillarsworn": {
       "script": {
         "_extResource": "1"
@@ -15544,6 +15838,24 @@
       "is_account_title": false,
       "sort_order": 110,
       "_sourceFile": "game/data/titles/title_pillarsworn.tres",
+      "_scriptClass": "TitleData"
+    },
+    "roadkeeper": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "roadkeeper",
+      "display_name": "Roadkeeper",
+      "description": "Wake fifty roads",
+      "prefix_form": "The Roadkeeper",
+      "suffix_form": "the Roadkeeper",
+      "category": 3,
+      "rarity": 3,
+      "unlock_method": 0,
+      "unlock_source": "waymaker_50",
+      "is_account_title": false,
+      "sort_order": 62,
+      "_sourceFile": "game/data/titles/title_roadkeeper.tres",
       "_scriptClass": "TitleData"
     },
     "slayer": {
@@ -15582,6 +15894,24 @@
       "_sourceFile": "game/data/titles/title_social_butterfly.tres",
       "_scriptClass": "TitleData"
     },
+    "streaker": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "streaker",
+      "display_name": "Streaker",
+      "description": "Kill 5 enemies without dying",
+      "prefix_form": "The Streaker",
+      "suffix_form": "the streaker",
+      "category": 0,
+      "rarity": 1,
+      "unlock_method": 0,
+      "unlock_source": "kill_streak_5",
+      "is_account_title": false,
+      "sort_order": 21,
+      "_sourceFile": "game/data/titles/title_streaker.tres",
+      "_scriptClass": "TitleData"
+    },
     "trader": {
       "script": {
         "_extResource": "1"
@@ -15600,11 +15930,29 @@
       "_sourceFile": "game/data/titles/title_trader.tres",
       "_scriptClass": "TitleData"
     },
-    "title_vault_reader": {
+    "unkillable": {
       "script": {
         "_extResource": "1"
       },
-      "id": "title_vault_reader",
+      "id": "unkillable",
+      "display_name": "Unkillable",
+      "description": "Kill 50 enemies without dying",
+      "prefix_form": "The Unkillable",
+      "suffix_form": "the unkillable",
+      "category": 0,
+      "rarity": 4,
+      "unlock_method": 0,
+      "unlock_source": "kill_streak_50",
+      "is_account_title": false,
+      "sort_order": 24,
+      "_sourceFile": "game/data/titles/title_unkillable.tres",
+      "_scriptClass": "TitleData"
+    },
+    "vault_reader": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "vault_reader",
       "display_name": "Vault-Reader",
       "description": "Read the First Vault's answer out of the sky's own record. The Chronicle remembers who paid attention.",
       "prefix_form": "The Vault-Reader",
@@ -15653,11 +16001,11 @@
       "_sourceFile": "game/data/titles/title_veteran_account.tres",
       "_scriptClass": "TitleData"
     },
-    "title_wardens_word": {
+    "wardens_word": {
       "script": {
         "_extResource": "1"
       },
-      "id": "title_wardens_word",
+      "id": "wardens_word",
       "display_name": "The Warden's Word",
       "description": "Counted the Concord's ledger without being asked. The wardens kept lists; now one of their words is yours.",
       "prefix_form": "The Warden's Word",
@@ -15668,6 +16016,42 @@
       "unlock_source": "mystery_the_watcher_tally",
       "icon_path": "",
       "_sourceFile": "game/data/titles/title_wardens_word.tres",
+      "_scriptClass": "TitleData"
+    },
+    "waymaker": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "waymaker",
+      "display_name": "Waymaker",
+      "description": "Wake a road",
+      "prefix_form": "The Waymaker",
+      "suffix_form": "the Waymaker",
+      "category": 3,
+      "rarity": 1,
+      "unlock_method": 0,
+      "unlock_source": "waymaker_1",
+      "is_account_title": false,
+      "sort_order": 60,
+      "_sourceFile": "game/data/titles/title_waymaker.tres",
+      "_scriptClass": "TitleData"
+    },
+    "wind_rider": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wind_rider",
+      "display_name": "Wind Rider",
+      "description": "Spend 60 seconds airborne on a glider",
+      "prefix_form": "The Wind Rider",
+      "suffix_form": "the wind rider",
+      "category": 0,
+      "rarity": 0,
+      "unlock_method": 0,
+      "unlock_source": "wind_rider_60",
+      "is_account_title": false,
+      "sort_order": 42,
+      "_sourceFile": "game/data/titles/title_wind_rider.tres",
       "_scriptClass": "TitleData"
     }
   },
@@ -15973,6 +16357,17 @@
     }
   },
   "dialogues": {
+    "armory_capital_intro": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "armory_capital_intro",
+      "npc_id": "npc_armory_capital",
+      "display_name": "Royal Armorer",
+      "nodes": "[\n{\n\"speaker\": \"Royal Armorer\",\n\"text\": \"Fine arms and armor, straight from the forge -- and the forge has been cold a long time, so everything on this rack is older than you and better kept.\",\n\"choices\": [\n{\"text\": \"Show me the rack.\", \"next_node\": 1, \"action_type\": 6, \"action_data\": {\"shop_id\": \"armory\"}},\n{\"text\": \"Who repairs this?\", \"next_node\": 2},\n{\"text\": \"Farewell.\", \"next_node\": -1}\n]",
+      "_sourceFile": "game/data/dialogues/armory_capital_intro.tres",
+      "_scriptClass": "DialogueData"
+    },
     "blacksmith_village_intro": {
       "script": {
         "_extResource": "1"
@@ -15984,6 +16379,17 @@
       "_sourceFile": "game/data/dialogues/blacksmith_village_intro.tres",
       "_scriptClass": "DialogueData"
     },
+    "concord_banker_intro": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "concord_banker_intro",
+      "npc_id": "npc_banker_capital",
+      "display_name": "Concord Banker",
+      "nodes": "[\n{\n\"speaker\": \"Concord Banker\",\n\"text\": \"The Concord vault honors every posted rate. Deposits screened, withdrawals sealed, bullion stored below the plaza where no storm reaches it.\",\n\"choices\": [\n{\"text\": \"Open the vault.\", \"next_node\": 1, \"action_type\": 7, \"action_data\": {}},\n{\"text\": \"Below the plaza?\", \"next_node\": 2},\n{\"text\": \"Farewell.\", \"next_node\": -1}\n]",
+      "_sourceFile": "game/data/dialogues/concord_banker_intro.tres",
+      "_scriptClass": "DialogueData"
+    },
     "concord_herald_intro": {
       "script": {
         "_extResource": "1"
@@ -15993,6 +16399,17 @@
       "display_name": "Concord Herald",
       "nodes": "[\n{\n\"speaker\": \"Concord Herald\",\n\"text\": \"You stand at the pillar. Sigils in, deeds out - that is the whole of the trade here. The Concord does not bury a coin, and it does not bless one either. It writes down what it saw.\",\n\"choices\": [\n{\"text\": \"What is this pillar, exactly?\", \"next_node\": 1},\n{\"text\": \"What does the Concord keep?\", \"next_node\": 2},\n{\"text\": \"Just looking. Farewell.\", \"next_node\": -1}\n]",
       "_sourceFile": "game/data/dialogues/concord_herald_intro.tres",
+      "_scriptClass": "DialogueData"
+    },
+    "concord_smithy_intro": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "concord_smithy_intro",
+      "npc_id": "npc_blacksmith_capital",
+      "display_name": "Concord Smithy",
+      "nodes": "[\n{\n\"speaker\": \"Concord Smithy\",\n\"text\": \"City rates, city work. Same repair law as the village smith, better leather on the bellows. Bring me what is worn.\",\n\"choices\": [\n{\"text\": \"What do you repair?\", \"next_node\": 1},\n{\"text\": \"Show me the forge.\", \"next_node\": 2, \"action_type\": 6, \"action_data\": {\"shop_id\": \"blacksmith_service\"}},\n{\"text\": \"Farewell.\", \"next_node\": -1}\n]",
+      "_sourceFile": "game/data/dialogues/concord_smithy_intro.tres",
       "_scriptClass": "DialogueData"
     },
     "deep_warden_greeting": {
@@ -16017,6 +16434,17 @@
       "_sourceFile": "game/data/dialogues/jeweler_haven_intro.tres",
       "_scriptClass": "DialogueData"
     },
+    "master_trainer_intro": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "master_trainer_intro",
+      "npc_id": "npc_skill_academy_capital",
+      "display_name": "Master Trainer",
+      "nodes": "[\n{\n\"speaker\": \"Master Trainer\",\n\"text\": \"Greetings, warrior. You have the stance of someone who has already been hit and learned from it. Good. That is the only prerequisite I trust.\",\n\"choices\": [\n{\"text\": \"What do you teach?\", \"next_node\": 1},\n{\"text\": \"I want a signature ability.\", \"next_node\": 2},\n{\"text\": \"Farewell.\", \"next_node\": -1}\n]",
+      "_sourceFile": "game/data/dialogues/master_trainer_intro.tres",
+      "_scriptClass": "DialogueData"
+    },
     "merchant_greeting": {
       "script": {
         "_extResource": "1"
@@ -16026,6 +16454,39 @@
       "display_name": "Merchant Greeting",
       "nodes": "[\n{\n\"speaker\": \"Merchant\",\n\"text\": \"Welcome to my shop! I carry only the finest goods - weapons, armor, potions. Take a look around.\",\n\"choices\": [\n{\"text\": \"Show me your wares.\", \"next_node\": 1},\n{\"text\": \"Just passing through. Farewell.\", \"next_node\": -1}\n]",
       "_sourceFile": "game/data/dialogues/merchant_greeting.tres",
+      "_scriptClass": "DialogueData"
+    },
+    "strand_apothecary_intro": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "strand_apothecary_intro",
+      "npc_id": "npc_herbalist_capital",
+      "display_name": "Strand Apothecary",
+      "nodes": "[\n{\n\"speaker\": \"Strand Apothecary\",\n\"text\": \"Sea air needs different teas than the village draughts. Same shelf, kept in sea-glass so the salt does not get in.\",\n\"choices\": [\n{\"text\": \"What do you sell?\", \"next_node\": 1},\n{\"text\": \"Why the sea-glass?\", \"next_node\": 2},\n{\"text\": \"Farewell.\", \"next_node\": -1}\n]",
+      "_sourceFile": "game/data/dialogues/strand_apothecary_intro.tres",
+      "_scriptClass": "DialogueData"
+    },
+    "strand_keeper_greeting": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "strand_keeper_greeting",
+      "npc_id": "npc_elder_capital",
+      "display_name": "Strand Keeper Greeting",
+      "nodes": "[\n{\n\"speaker\": \"Strand Keeper\",\n\"text\": \"The baywalk keeps its own hours. I keep the ledger of who came in on the tide and who went out on it. You are the second today.\",\n\"choices\": [\n{\"text\": \"What is this place?\", \"next_node\": 1},\n{\"text\": \"What does the Concord keep here?\", \"next_node\": 2},\n{\"text\": \"Farewell.\", \"next_node\": -1}\n]",
+      "_sourceFile": "game/data/dialogues/strand_keeper_greeting.tres",
+      "_scriptClass": "DialogueData"
+    },
+    "strand_merchant_intro": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "strand_merchant_intro",
+      "npc_id": "npc_merchant_capital",
+      "display_name": "Strand Merchant",
+      "nodes": "[\n{\n\"speaker\": \"Strand Merchant\",\n\"text\": \"The cove carries everything, and I carry the cove. What the village store stocks, I stock at city rates -- better crates, same goods.\",\n\"choices\": [\n{\"text\": \"Show me the stock.\", \"next_node\": 1, \"action_type\": 6, \"action_data\": {\"shop_id\": \"general_store\"}},\n{\"text\": \"What do you buy?\", \"next_node\": 2},\n{\"text\": \"Farewell.\", \"next_node\": -1}\n]",
+      "_sourceFile": "game/data/dialogues/strand_merchant_intro.tres",
       "_scriptClass": "DialogueData"
     },
     "sundered_ferry_talk": {
@@ -16061,6 +16522,28 @@
       "_sourceFile": "game/data/dialogues/tidewright_fenwick_intro.tres",
       "_scriptClass": "DialogueData"
     },
+    "underdeck_fixer_intro": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "underdeck_fixer_intro",
+      "npc_id": "npc_black_market_fixer",
+      "display_name": "Underdeck Fixer",
+      "nodes": "[\n{\n\"speaker\": \"Underdeck Fixer\",\n\"text\": \"You found this stall. Nobody showed you. That is the first thing I like about you.\",\n\"choices\": [\n{\"text\": \"What do you sell?\", \"next_node\": 1},\n{\"text\": \"Who are you?\", \"next_node\": 2},\n{\"text\": \"Farewell.\", \"next_node\": -1}\n]",
+      "_sourceFile": "game/data/dialogues/underdeck_fixer_intro.tres",
+      "_scriptClass": "DialogueData"
+    },
+    "village_banker_intro": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "village_banker_intro",
+      "npc_id": "npc_banker_village",
+      "display_name": "Village Banker",
+      "nodes": "[\n{\n\"speaker\": \"Village Banker\",\n\"text\": \"Coin or keepsakes? The vault holds both. The keep's walls are older than the Concord's ledger, and they keep their word the same way.\",\n\"choices\": [\n{\"text\": \"Open the vault.\", \"next_node\": 1, \"action_type\": 7, \"action_data\": {}},\n{\"text\": \"What do you keep?\", \"next_node\": 2},\n{\"text\": \"Farewell.\", \"next_node\": -1}\n]",
+      "_sourceFile": "game/data/dialogues/village_banker_intro.tres",
+      "_scriptClass": "DialogueData"
+    },
     "village_elder_greeting": {
       "script": {
         "_extResource": "1"
@@ -16070,6 +16553,28 @@
       "display_name": "Village Elder Greeting",
       "nodes": "[\n{\n\"speaker\": \"Village Elder\",\n\"text\": \"Greetings, young one. You stand in the Village of Haven, a sanctuary at the edge of the Gloomwood. Few travelers find their way here.\",\n\"choices\": [\n{\"text\": \"What is this place?\", \"next_node\": 1},\n{\"text\": \"Do you have work for me?\", \"next_node\": 2},\n{\"text\": \"Farewell.\", \"next_node\": -1}\n]",
       "_sourceFile": "game/data/dialogues/village_elder_greeting.tres",
+      "_scriptClass": "DialogueData"
+    },
+    "village_herbalist_intro": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "village_herbalist_intro",
+      "npc_id": "npc_herbalist_village",
+      "display_name": "Village Herbalist",
+      "nodes": "[\n{\n\"speaker\": \"Herbalist\",\n\"text\": \"Mind the spores drying on the sill. I sell draughts, but the honest trade here is knowing what the gloam is doing before it reaches the fence.\",\n\"choices\": [\n{\"text\": \"What do you sell?\", \"next_node\": 1},\n{\"text\": \"You have work?\", \"next_node\": 2},\n{\"text\": \"Farewell.\", \"next_node\": -1}\n]",
+      "_sourceFile": "game/data/dialogues/village_herbalist_intro.tres",
+      "_scriptClass": "DialogueData"
+    },
+    "warden_trainer_intro": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "warden_trainer_intro",
+      "npc_id": "npc_skill_academy_village",
+      "display_name": "Warden Trainer",
+      "nodes": "[\n{\n\"speaker\": \"Warden Trainer\",\n\"text\": \"Feet square, blade steady. The Academy's reach is long -- the basics are taught wherever a student stands, and I have stood here long enough.\",\n\"choices\": [\n{\"text\": \"What can you teach?\", \"next_node\": 1},\n{\"text\": \"I want to train.\", \"next_node\": 2},\n{\"text\": \"Farewell.\", \"next_node\": -1}\n]",
+      "_sourceFile": "game/data/dialogues/warden_trainer_intro.tres",
       "_scriptClass": "DialogueData"
     }
   },
@@ -20818,6 +21323,10 @@
       "zone_id": "zone_nexus_central",
       "includes": [
         {
+          "type": "dialogue",
+          "dialogue_id": "armory_capital_intro"
+        },
+        {
           "type": "offering",
           "ref_id": "armory"
         }
@@ -20831,7 +21340,7 @@
       },
       "id": "npc_banker_capital",
       "display_name": "Concord Banker",
-      "description": "The Federation's ledger keeper at the strand: deposits screened, withdrawals sealed, bullion stored below the plaza.",
+      "description": "The Concord's ledger keeper at the strand: deposits screened, withdrawals sealed, bullion stored below the plaza.",
       "level": 1,
       "faction": "friendly",
       "greeting": "The Concord vault honors every posted rate.",
@@ -20844,6 +21353,10 @@
       },
       "zone_id": "zone_nexus_central",
       "includes": [
+        {
+          "type": "dialogue",
+          "dialogue_id": "concord_banker_intro"
+        },
         {
           "type": "offering",
           "ref_id": "bank_vault"
@@ -20871,6 +21384,10 @@
       },
       "zone_id": "zone_village_center",
       "includes": [
+        {
+          "type": "dialogue",
+          "dialogue_id": "village_banker_intro"
+        },
         {
           "type": "offering",
           "ref_id": "bank_vault"
@@ -20910,6 +21427,10 @@
       "zone_id": "zone_nexus_central",
       "includes": [
         {
+          "type": "dialogue",
+          "dialogue_id": "underdeck_fixer_intro"
+        },
+        {
           "type": "offering",
           "ref_id": "black_market_ledger"
         },
@@ -20927,7 +21448,7 @@
       },
       "id": "npc_blacksmith_capital",
       "display_name": "Concord Smithy",
-      "description": "The Federation's forge at the strand. Same repair law, better leather -- the city smith runs the Concord rate book.",
+      "description": "The Concord's forge at the strand. Same repair law, better leather -- the city smith runs the Concord rate book.",
       "level": 1,
       "faction": "friendly",
       "greeting": "City rates, city work. Bring the worn gear.",
@@ -20950,7 +21471,7 @@
         },
         {
           "type": "dialogue",
-          "dialogue_id": "blacksmith_village_intro"
+          "dialogue_id": "concord_smithy_intro"
         }
       ],
       "_sourceFile": "game/data/npc/npc_blacksmith_capital.tres",
@@ -20994,7 +21515,10 @@
         },
         {
           "type": "quest",
-          "ref_id": "quest_intro_core_npcs"
+          "quest_ids": [
+            "quest_intro_core_npcs",
+            "quest_copper_seam"
+          ]
         }
       ],
       "_sourceFile": "game/data/npc/npc_blacksmith_village.tres",
@@ -21070,7 +21594,7 @@
       },
       "id": "npc_elder_capital",
       "display_name": "Strand Keeper",
-      "description": "The Federation's town warden on the baywalk. The same taught-lore the village elder carries, at city reach.",
+      "description": "The Concord's town warden on the baywalk. The same taught-lore the village elder carries, at city reach.",
       "level": 1,
       "faction": "friendly",
       "scene_path": "res://scenes/npcs/village_elder.tscn",
@@ -21085,7 +21609,7 @@
       "includes": [
         {
           "type": "dialogue",
-          "dialogue_id": "village_elder_greeting"
+          "dialogue_id": "strand_keeper_greeting"
         },
         {
           "type": "quest",
@@ -21152,7 +21676,7 @@
       },
       "id": "npc_herbalist_capital",
       "display_name": "Strand Apothecary",
-      "description": "The Federation's herb counter on the baywalk. The same draughts the village sells, kept in sea-glass jars.",
+      "description": "The Concord's herb counter on the baywalk. The same draughts the village sells, kept in sea-glass jars.",
       "level": 1,
       "faction": "friendly",
       "greeting": "Sea air needs different teas. Browse the shelf.",
@@ -21165,6 +21689,10 @@
       },
       "zone_id": "zone_nexus_central",
       "includes": [
+        {
+          "type": "dialogue",
+          "dialogue_id": "strand_apothecary_intro"
+        },
         {
           "type": "offering",
           "ref_id": "potions"
@@ -21202,6 +21730,10 @@
       "zone_id": "zone_village_center",
       "includes": [
         {
+          "type": "dialogue",
+          "dialogue_id": "village_herbalist_intro"
+        },
+        {
           "type": "offering",
           "ref_id": "potions"
         },
@@ -21209,7 +21741,8 @@
           "type": "quest",
           "quest_ids": [
             "quest_study_the_bloom",
-            "quest_the_runoff_line"
+            "quest_the_runoff_line",
+            "quest_gloam_harvest"
           ]
         }
       ],
@@ -21250,7 +21783,9 @@
         {
           "type": "quest",
           "quest_ids": [
-            "quest_deep_toll"
+            "quest_deep_toll",
+            "quest_pearl_dive",
+            "quest_tideline_kelp"
           ]
         }
       ],
@@ -21263,7 +21798,7 @@
       },
       "id": "npc_merchant_capital",
       "display_name": "Strand Merchant",
-      "description": "The gift-trade bourse at the cove: the same stock the village store carries, at Federation rates.",
+      "description": "The gift-trade bourse at the cove: the same stock the village store carries, at Concord rates.",
       "level": 1,
       "faction": "friendly",
       "scene_path": "res://scenes/npcs/merchant_general.tscn",
@@ -21281,7 +21816,7 @@
       "includes": [
         {
           "type": "dialogue",
-          "dialogue_id": "merchant_greeting"
+          "dialogue_id": "strand_merchant_intro"
         },
         {
           "type": "offering",
@@ -21413,6 +21948,10 @@
       "zone_id": "zone_nexus_central",
       "includes": [
         {
+          "type": "dialogue",
+          "dialogue_id": "master_trainer_intro"
+        },
+        {
           "type": "offering",
           "ref_id": "skill_academy"
         }
@@ -21439,6 +21978,10 @@
       },
       "zone_id": "zone_village_center",
       "includes": [
+        {
+          "type": "dialogue",
+          "dialogue_id": "warden_trainer_intro"
+        },
         {
           "type": "offering",
           "ref_id": "skill_academy"
@@ -21520,7 +22063,11 @@
           "type": "quest",
           "quest_ids": [
             "quest_wolves_hunt",
-            "quest_herb_gathering"
+            "quest_herb_gathering",
+            "quest_main_teachings",
+            "quest_arena_trial",
+            "quest_boar_tusks",
+            "quest_wings_over_haven"
           ]
         }
       ],
@@ -21682,7 +22229,7 @@
       "answer_kind": 0,
       "answer_day": 1,
       "hint": "The Concord's almanac re-derives any past day's code. Which day did the vault open? Act I remembers.",
-      "reward_title_id": "title_vault_reader",
+      "reward_title_id": "vault_reader",
       "reward_xp": 75,
       "_sourceFile": "game/data/mysteries/mystery_the_first_vault.tres",
       "_scriptClass": "MysteryData"
@@ -21699,7 +22246,7 @@
       "answer_kind": 1,
       "answer_day": -1,
       "hint": "Not the sky's rotation -- the ledger itself. How many signs does the almanac know?",
-      "reward_title_id": "title_wardens_word",
+      "reward_title_id": "wardens_word",
       "reward_xp": 60,
       "_sourceFile": "game/data/mysteries/mystery_the_watcher_tally.tres",
       "_scriptClass": "MysteryData"

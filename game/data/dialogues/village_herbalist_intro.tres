@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="DialogueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "village_herbalist_intro"
+npc_id = "npc_herbalist_village"
+display_name = "Village Herbalist"
+nodes = [
+    {
+        "speaker": "Herbalist",
+        "text": "Mind the spores drying on the sill. I sell draughts, but the honest trade here is knowing what the gloam is doing before it reaches the fence.",
+        "choices": [
+            {"text": "What do you sell?", "next_node": 1},
+            {"text": "You have work?", "next_node": 2},
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    },
+    {
+        "speaker": "Herbalist",
+        "text": "Tinctures, salves, the usual -- grown or wrung, nothing conjured. Sea-glass jars if you are bound for the strand.",
+        "choices": [
+            {"text": "Show me the shelf.", "next_node": 3, "action_type": 6, "action_data": {"shop_id": "potions"}},
+            {"text": "Back.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Herbalist",
+        "text": "I will not go into the gloam myself -- I have seen what it does to the ones who breathe it deep. But I will pay to know. Gather gloam spores and mind your breathing.",
+        "choices": [
+            {"text": "I will gather them.", "next_node": 4, "action_type": 1, "action_data": {"quest_id": "quest_gloam_harvest"}},
+            {"text": "Back.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Herbalist",
+        "text": "Take your time. Everything on this shelf was grown or wrung by hand.",
+        "choices": [
+            {"text": "Back.", "next_node": 0}
+        ]
+    },
+    {
+        "speaker": "Herbalist",
+        "text": "Six spores and I can start reading the corruption instead of fearing it. Come back when your hands are full.",
+        "choices": [
+            {"text": "Farewell.", "next_node": -1}
+        ]
+    }
+]

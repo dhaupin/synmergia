@@ -95,6 +95,12 @@ const UIStyles = preload("res://ui/components/ui_styles.gd")
 var _dialogues: Dictionary = {}
 var _current_dialogue: DialogueData = null
 var _current_node: int = 0
+## The NPC entity id the CURRENT conversation was opened with. The tree's
+## own `npc_id` is the AUTHORING id (who the copy was written for); when two
+## NPCs share one tree (the capital instances reuse the village trees) it is
+## not the NPC the player is standing in front of. TALK quest credit keys off
+## the NPCData id, so dialogue_ended must carry THIS, not the tree's.
+var _current_npc_id: String = ""
 var _dialogue_seen: Dictionary = {}  # dialogue_id -> max node index reached (per-player memory, prd-dialogue sec.3)
 
 signal dialogue_started(npc_id: String, dialogue_id: String)
@@ -139,9 +145,10 @@ func start_dialogue(npc_id: String, dialogue_id: String) -> bool:
 			_gl.warn("DialogService: Dialogue not found: %s" % _esc(dialogue_id))
 		return false
 	_current_dialogue = dialogue
+	_current_npc_id = _esc(npc_id)
 	_current_node = 0
 	_mark_seen(dialogue_id, 0)
-	dialogue_started.emit(_esc(npc_id), _esc(dialogue_id))
+	dialogue_started.emit(_current_npc_id, _esc(dialogue_id))
 	node_changed.emit(_current_node, _node_to_dict(dialogue.get_node(_current_node)))
 	return true
 
@@ -215,9 +222,10 @@ func _node_to_dict(node: Dictionary) -> Dictionary:
 	}
 
 func end_dialogue() -> void:
-	var npc_id: String = _current_dialogue.npc_id if _current_dialogue else ""
+	var npc_id: String = _current_npc_id
 	var dialogue_id: String = _current_dialogue.id if _current_dialogue else ""
 	_current_dialogue = null
+	_current_npc_id = ""
 	_current_node = 0
 	dialogue_ended.emit(npc_id, dialogue_id)
 
