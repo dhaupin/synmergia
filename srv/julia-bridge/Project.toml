@@ -1,9 +1,11 @@
 [deps]
-HTTP = "a4a69c2f-37ea-43b3-a5be-1bc1ba044a0e"
-JSON = "682c06a0-de6a-54fd-a101-0806b45a98e8"
-UUIDs = "cf711312-7c0a-468a-a6eb-70a8e2ea7388"
+HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
+UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [compat]
 HTTP = "0.9"
 JSON = "0.21"
+SHA = "0.7"
 UUIDs = "1.1"

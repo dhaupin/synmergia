@@ -128,6 +128,7 @@ AgentCoordinator="*res://core/services/agent_coordinator.gd"
 AgentRoster="*res://core/services/agent_roster.gd"
 AgentBodyService="*res://core/services/agent_body_service.gd"
 AgentDoor="*res://core/services/agent_door.gd"
+MultiIsoService="*res://core/services/multi_iso_service.gd"
 
 [display]
 

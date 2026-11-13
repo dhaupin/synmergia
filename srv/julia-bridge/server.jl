@@ -20,9 +20,13 @@ module Server
 
 using UUIDs
 using Sockets
+using HTTP
+using JSON
 
 include("orchestrator.jl")
-using .Orchestrator
+using .MultiIso
+using .MultiIso: Orchestrator, Entity, register!, unregister!, spatial_at, faction_eq,
+    social_eq, intersect, query, nsc9_encode, nsc9_parse, stats
 
 # ---- Global orchestrator instance ----
 const ORCH = Orchestrator()
@@ -48,8 +52,8 @@ function json_error(status::Int, message::String)
 end
 
 function route(req::HTTP.Request)
-    target = HTTP.target(req)
-    method = HTTP.method(req)
+    target = req.target
+    method = req.method
 
     @info "→ $method $target"
 
@@ -57,10 +61,11 @@ function route(req::HTTP.Request)
         # Health
         if target == "/health"
             return json_ok(Dict("status" => "ok", "entities" => length(ORCH.entities)))
+        end
 
         # Stats
         if target == "/stats"
-            axis_counts = Dict(String(k) => length(v) for (k, v) in ORCH.axes)
+            axis_counts = Dict(string(k) => length(v) for (k, v) in ORCH.by_axis)
             return json_ok(Dict(
                 "total_entities" => length(ORCH.entities),
                 "axes" => axis_counts
@@ -81,6 +86,14 @@ function route(req::HTTP.Request)
             )
             register!(ORCH, entity)
             return json_ok(Dict("id" => entity.id, "nsc9" => entity.nsc9))
+        end
+
+        # Unregister entity
+        if target == "/unregister" && method == "POST"
+            data = parse_json_body(req)
+            id = get(data, "id", "")
+            removed = unregister!(ORCH, id)
+            return json_ok(Dict("id" => id, "removed" => removed))
         end
 
         # Spatial query: GET /spatial/:vertex
@@ -172,8 +185,7 @@ function main()
     println("    POST /intersect       multi-axis intersection")
     println("=" ^ 60)
 
-    server = Sockets.listen(Sockets.IPv4(0.0.0.0), port)
-    HTTP.serve(route, server)
+    HTTP.serve(route, Sockets.IPv4(0, 0, 0, 0), port)
 end
 
 end  # module
