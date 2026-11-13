@@ -7,7 +7,7 @@ commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
 
-## 2026-11-29a -- titles + waking verbs: the dead title hooks, the lying lint, and Task 9 landed (branch feat/achievement-title-integrity, PR open)
+## 2026-11-29a -- titles + waking verbs: the dead title hooks, the lying lint, and Task 9 landed (branch feat/achievement-title-integrity, PR #66)
 - SESSION GOAL (user): continue on a fresh `labs/prd-subagent-tasks` triage -- open a NEW PR (independent of open PR #65), triage, and flesh out data `.tres` + schemas.
 - REAL DEAD-HOOK BUG (found in triage): 7 achievements carried a `title_reward` naming NO title (`streaker`, `bloodthirsty`, `juggernaut`, `unkillable`, `wind_rider`, `Hordebreaker`, `MVP`). `AchievementService._do_unlock` -> `TitleService.unlock` WARNS and returns false on an unknown id, so the player completed the achievement and silently got nothing. `test_data_naming_lint.gd`'s header PROMISED "Achievement title_reward must exist" but no code implemented the check (7 dangle).
 - THE FIX (data + gate): authored the 7 missing titles (`title_streaker`.. `title_mvp`), normalized the two capital-case rewards to bare ids (`Hordebreaker`->`hordebreaker`, `MVP`->`mvp`), and normalized the two prefix-doubled title ids (`title_vault_reader`->`vault_reader`, `title_wardens_word`->`wardens_word`) so ids are bare while FILES keep the `title_` prefix (the enemy convention). Added TWO lint gates that make the header honest: achievement `title_reward` must resolve; title `unlock_source` (achievement/quest) must resolve; title ids bare + filename == id. Both verified red BY NAME (planted a phantom reward / a phantom source).
