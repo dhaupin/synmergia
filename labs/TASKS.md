@@ -7,6 +7,19 @@ commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
 
+## 2026-11-28c -- content audit: the NPC parity breaks + the lore/wiring gap board (staging, no PRs yet)
+- SESSION CONTEXT: user asked for a review of the synmergia content layer (lore, .tres, dialogue, quests) to find gaps we can fill, then: "record all this in /labs/subagent-tasks before we proceed". Docs-only this round; the fixes land next.
+- AUDIT FOUND THREE CONFIRMED PARITY BUGS (code reading, each grep-verified):
+  - (1) **Dead quest hook.** `npc_blacksmith_village.tres` carries `{"type": "quest", "ref_id": "quest_intro_core_npcs"}` -- the inline-shape outlier (every sibling uses `quest_ids`), AND `quest_intro_core_npcs` is not an offering file, so the ref_id dangles. The naming lint validates offering `quest_ids` but never inline NPC quest includes, so it slipped.
+  - (2) **Sideways/backwards NPCs.** `NPCData.spawn_rotation` is declared but read NOWHERE (grep returns only the declaration), and `globe_world._spawn_town_npc` sets `global_position` but never aligns the body -- no `_align_radial`, no `basis`. Enemies get both laws (`EnemyAI._entity_up` + `enemy.gd` `Basis.looking_at(-fwd, up)`); gates/portals call `_align_radial`; NPCs get neither. So every village NPC stands world-Y-up (tilted off the sphere = "sideways") with identity facing ("backwards"). This is the user's reported bug, root-caused.
+  - (3) **11 orphaned quests.** After counting BOTH inline includes and offering files, 11 of 27 quests are offered by no NPC (`quest_arena_trial`, `quest_boar_tusks`, `quest_copper_seam`, `quest_gloam_harvest`, `quest_intro_core_npcs`, `quest_main_awakening`, `quest_main_teachings`, `quest_pearl_dive`, `quest_tideline_kelp`, `quest_watch_the_sky`, `quest_wings_over_haven`). `QuestData.giver_npc_id`/`turn_in_npc_id` are ALSO read nowhere, so the giver field is decorative and the `includes` graph is the real offer surface.
+- ALSO FOUND: 95 of 169 authored skills are referenced by no class; SIX classes have completely empty skill trees (`akkan_attacker`, `akkan_stalker`, `human_marksman`, `human_sorcerer`, `synthetic_psion`, `synthetic_tracker`) plus `human_warrior` (2 start, empty tree) -- but every skill already carries `required_class`+`required_level`, so the trees are DERIVABLE (this supersedes the "needs a design call" note at line 231). 8 NPCs are mute (no dialogue include), incl. `npc_herbalist_village` who gives two Bloom quests with no intro.
+- SHIPPED (docs only): `labs/subagent-tasks.md` PURGED + REWRITTEN as a 9-task board in three parts -- A: the three parity bugs (each with a fails-first gate), B: the class-kit wiring, C: the creative content (institution dialogue, signs/chronicle, weather lore, landmark names, achievement listeners). The old board's 3 surviving drafts (`story-dialogue-npcs.md`, `story-voice-concord.md`, `story-weather-events.md`) are recorded as reusable, with their stale counts flagged.
+- NEXT: land Part A (the three bugs) on a `fix/npc-parity` branch with gates, then the class kits, then the creative content.
+- GATES: none run (docs-only round). Baseline confirmed green before writing: `test_data_naming_lint` + `test_content_ref_integrity` both PASS.
+- PUSHED: not yet (board written, commit pending).
+
+
 ## 2026-11-04cj -- world: THE PROP LAYER SHIPS (flora back on the default renderer) (staging, no PRs)
 - SESSION CONTEXT: prior session nuked; user: "look over the codebase and check it out. Don't run the full runners yet they're being reworked to parallel." Then continue implementing the v2 prop-layer build plan (the design landed last round as 671c5ddf).
 - HEADLINE: the default clipmap drew ZERO flora (its prop lane was a stub). It now streams props. Verified on the LIVE clipmap at spawn: **110 prop chunks / 49 tree nodes / 96 tuft batches / 51 bushes / 31 flowers** (was `{}`).
