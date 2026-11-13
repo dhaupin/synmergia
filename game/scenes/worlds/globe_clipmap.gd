@@ -116,6 +116,22 @@ var _build_jobs: Array = []
 const _skin_shader = preload("res://assets/shaders/terrain_splat.gdshader")
 var _skin_mat: ShaderMaterial = null
 
+## The standing-water sheet material (surface 1 on a ring/cap mesh) and the
+## raised road-deck mesh. Both read vertex colours, so the tint/bridge laws
+## the streamer authored actually show (its materials left
+## `vertex_color_use_as_albedo` off, so its water/deck tints never rendered).
+var _water_mat: StandardMaterial3D = null
+var _deck_mesh: MeshInstance3D = null
+var _sea: float = -1.0e9
+## Minimum water depth (m) for a sheet to draw (the streamer's Hydro.BEACH_MIN).
+const WATER_BEACH_MIN: float = 0.35
+## The cartway ribbon half-width, radians of arc (~64 m at the canon radius).
+const DECK_RIBBON_HALF: float = 0.0032
+## The deck sits this far above the graded bed so planks read over the road
+## tint the ground skin already lays down (and never z-fight it).
+const DECK_LIFT: float = 0.15
+const DECK_PLANK_COLOR := Color(0.44, 0.33, 0.22)
+
 
 ## `p_provider` (optional): the world's GroundProvider. Omitted -> the main
 ## world's TerrainProvider (so existing callers keep working unchanged).
@@ -125,6 +141,7 @@ func configure(p_radius: float, _p_target_edge: float, p_parent: Node3D, p_provi
 	provider = p_provider if p_provider != null else TerrainProvider.new()
 	draw_lift = p_draw_lift
 	world_seed = provider.seed_bytes() if provider.has_method("seed_bytes") else TerrainGen.world_seed_bytes()
+	_sea = provider.sea_level()
 	_root = Node3D.new()
 	_root.name = "ClipmapRoot"
 	parent.add_child(_root)
@@ -161,6 +178,11 @@ func update(player_pos: Vector3) -> Dictionary:
 		_center_dir = _snap_dir(pdir)
 		_queue_all()
 
+	# Rebuild the deck whenever the lattice re-centres: its reach cull
+	# follows the drawn ground, so a moving player keeps planks on real
+	# terrain (the deck is cheap -- one quad per road node).
+	if recenter and terrain_on:
+		_install_deck()
 	var built: Array = _advance_build(BUDGET_MS)
 
 	# The flora streams on the SAME player position, independent of the mesh.
@@ -191,7 +213,10 @@ func build_all() -> int:
 		jobs.append({"kind": "ring", "level": lvl})
 	var derived: Array = _derive_jobs(jobs)
 	for i in range(jobs.size()):
-		_install_mesh(str(jobs[i]["kind"]), int(jobs[i]["level"]), derived[i])
+		var pair: Array = derived[i]
+		var water: Array = pair[1] if pair.size() > 1 else []
+		_install_mesh(str(jobs[i]["kind"]), int(jobs[i]["level"]), pair[0], water)
+	_install_deck()
 	return Time.get_ticks_msec() - t0
 
 
@@ -268,6 +293,8 @@ func _derive_worker() -> void:
 func _derive_job_arrays(kind: String, level: int) -> Array:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var stw := SurfaceTool.new()
+	stw.begin(Mesh.PRIMITIVE_TRIANGLES)
 	if kind == "cap":
 		var r0: float = radius * INNER_R_FRAC
 		var center: Dictionary = _vertex_of(_center_dir)
@@ -279,22 +306,34 @@ func _derive_job_arrays(kind: String, level: int) -> Array:
 			_add_vert(st, center)
 			_add_vert(st, rim[ci])
 			_add_vert(st, rim[cj])
+			_add_water(stw, center, rim[ci], rim[cj])
 	else:
 		var upper: Array = _ring_row(level, 0)
 		for ri in range(1, RSUB + 1):
 			var lower: Array = _ring_row(level, ri)
 			for ci in range(SEG):
 				_emit_quad(st, upper, lower, ci)
+				var cj: int = (ci + 1) % SEG
+				_add_water(stw, upper[ci], upper[cj], lower[cj])
+				_add_water(stw, upper[ci], lower[cj], lower[ci])
 			upper = lower
-	return st.commit_to_arrays()
+	return [st.commit_to_arrays(), stw.commit_to_arrays()]
 
 
 ## Install a derived job's arrays as a mesh on the MAIN thread (the
 ## MeshInstance3D + material live in the scene tree). Shared by the
 ## parallel build and the incremental commit.
-func _install_mesh(kind: String, level: int, arrays: Array) -> void:
+func _install_mesh(kind: String, level: int, arrays: Array, water_arrays: Array = []) -> void:
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	# Standing water rides a SECOND surface (the streamer's surface 2), drawn
+	# only where the tile is fully wet, so the mesh is empty on dry rings.
+	var has_water: bool = false
+	if water_arrays != null and water_arrays.size() > Mesh.ARRAY_VERTEX:
+		var wv = water_arrays[Mesh.ARRAY_VERTEX]
+		has_water = wv != null and wv.size() > 0
+	if has_water:
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, water_arrays)
 	if kind == "cap":
 		if _cap_mesh == null:
 			_cap_mesh = MeshInstance3D.new()
@@ -302,6 +341,8 @@ func _install_mesh(kind: String, level: int, arrays: Array) -> void:
 			_root.add_child(_cap_mesh)
 		_cap_mesh.mesh = mesh
 		_cap_mesh.set_surface_override_material(0, _skin_material())
+		if has_water:
+			_cap_mesh.set_surface_override_material(1, _water_material())
 		return
 	var mi: MeshInstance3D = _ring_meshes[level]
 	if mi == null:
@@ -311,6 +352,8 @@ func _install_mesh(kind: String, level: int, arrays: Array) -> void:
 		_ring_meshes[level] = mi
 	mi.mesh = mesh
 	mi.set_surface_override_material(0, _skin_material())
+	if has_water:
+		mi.set_surface_override_material(1, _water_material())
 	_ring_tris[level] = RSUB * SEG * 2
 	_ring_built[level] = true
 	patch_loaded.emit(level)
@@ -379,12 +422,43 @@ func prop_count() -> int:
 	return _prop_layer.built_count()
 
 
+## The standing-water surface triangle count across the cap + rings (the
+## streamer's `_patch_water_tris` analogue). Reads the committed meshes.
+func water_triangle_count() -> int:
+	var n: int = 0
+	for mi in _all_ground_meshes():
+		if mi != null and mi.mesh != null and mi.mesh.get_surface_count() > 1:
+			n += int(mi.mesh.surface_get_arrays(1)[Mesh.ARRAY_VERTEX].size()) / 3
+	return n
+
+
+## The raised road-deck quad count (0 when the world has no road).
+func deck_quad_count() -> int:
+	if _deck_mesh == null or not is_instance_valid(_deck_mesh) or _deck_mesh.mesh == null:
+		return 0
+	return int(_deck_mesh.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX].size()) / 6
+
+
+## Every ground mesh the clipmap owns (cap + live rings), for reads.
+func _all_ground_meshes() -> Array:
+	var out: Array = []
+	if _cap_mesh != null:
+		out.append(_cap_mesh)
+	for mi in _ring_meshes:
+		if mi != null:
+			out.append(mi)
+	return out
+
+
 func mesh_lane_stats() -> Dictionary:
 	return {"pending": _jobs.size(), "lanes": 0}
 
 
 func async_shutdown() -> void:
 	_jobs.clear()
+	if _deck_mesh != null and is_instance_valid(_deck_mesh):
+		_deck_mesh.queue_free()
+	_deck_mesh = null
 
 
 func lod_levels() -> Dictionary:
@@ -436,7 +510,7 @@ func _queue_all() -> void:
 
 func _new_job(kind: String, level: int) -> Dictionary:
 	return {"kind": kind, "level": level, "ri": 0, "ci": 0, "qci": 0, "phase": "row",
-		"st": null, "grid": [], "row": [], "center": null, "rim": []}
+		"st": null, "stw": null, "wtris": 0, "grid": [], "row": [], "center": null, "rim": []}
 
 
 ## Advance the incremental builder until `budget_ms` elapse or the queue
@@ -482,12 +556,18 @@ func _step_job(job: Dictionary, done: Array, deadline: int) -> void:
 func _step_cap(job: Dictionary, done: Array, deadline: int) -> void:
 	var st_v = job["st"]
 	var st: SurfaceTool
+	var stw_v = job["stw"]
+	var stw: SurfaceTool
 	if st_v == null:
 		st = SurfaceTool.new()
 		st.begin(Mesh.PRIMITIVE_TRIANGLES)
 		job["st"] = st
+		stw = SurfaceTool.new()
+		stw.begin(Mesh.PRIMITIVE_TRIANGLES)
+		job["stw"] = stw
 	else:
 		st = st_v
+		stw = stw_v
 	var phase: String = str(job["phase"])
 	if job["center"] == null:
 		job["center"] = _vertex_of(_center_dir)
@@ -508,18 +588,23 @@ func _step_cap(job: Dictionary, done: Array, deadline: int) -> void:
 	var ci: int = int(job["ci"])
 	var center: Dictionary = job["center"]
 	var rim: Array = job["rim"]
+	var wtris: int = int(job.get("wtris", 0))
 	while ci < SEG:
 		var cj: int = (ci + 1) % SEG
 		_add_vert(st, center)
 		_add_vert(st, rim[ci])
 		_add_vert(st, rim[cj])
+		if _add_water(stw, center, rim[ci], rim[cj]):
+			wtris += 1
 		ci += 1
 		if ci < SEG and Time.get_ticks_msec() >= deadline:
 			job["ci"] = ci
+			job["wtris"] = wtris
 			return
 	job["ri"] = 1
 	job["ci"] = 0
-	_commit_cap(st, done)
+	job["wtris"] = wtris
+	_commit_cap(st, stw, done)
 
 
 ## A ring: build each grid row, then emit the quads joining it to the row
@@ -529,12 +614,18 @@ func _step_ring(job: Dictionary, done: Array, deadline: int) -> void:
 	var level: int = int(job["level"])
 	var st_v = job["st"]
 	var st: SurfaceTool
+	var stw_v = job["stw"]
+	var stw: SurfaceTool
 	if st_v == null:
 		st = SurfaceTool.new()
 		st.begin(Mesh.PRIMITIVE_TRIANGLES)
 		job["st"] = st
+		stw = SurfaceTool.new()
+		stw.begin(Mesh.PRIMITIVE_TRIANGLES)
+		job["stw"] = stw
 	else:
 		st = st_v
+		stw = stw_v
 	var grid: Array = job["grid"]
 	var ri: int = int(job["ri"])
 	var phase: String = str(job["phase"])
@@ -551,24 +642,30 @@ func _step_ring(job: Dictionary, done: Array, deadline: int) -> void:
 		job["row"] = []
 		job["phase"] = "quads"
 		phase = "quads"
+	var wtris: int = int(job.get("wtris", 0))
 	if ri >= 1:
 		var upper: Array = grid[ri - 1]
 		var lower: Array = grid[ri]
 		var ci: int = int(job["qci"])
 		while ci < SEG:
 			_emit_quad(st, upper, lower, ci)
+			var cj: int = (ci + 1) % SEG
+			if _add_water(stw, upper[ci], upper[cj], lower[cj]) or _add_water(stw, upper[ci], lower[cj], lower[ci]):
+				wtris += 1
 			ci += 1
 			if ci < SEG and Time.get_ticks_msec() >= deadline:
 				job["qci"] = ci
+				job["wtris"] = wtris
 				return
 		grid[ri - 1] = null  # row consumed (keep memory flat)
 	job["ri"] = ri + 1
 	job["qci"] = 0
 	job["phase"] = "row"
+	job["wtris"] = wtris
 	if int(job["ri"]) >= RSUB + 1:
 		job["ri"] = RSUB + 1
 		job["ci"] = 0
-		_commit_ring(level, st, done)
+		_commit_ring(level, st, stw, done)
 
 
 func _row_radius(level: int, ri: int) -> float:
@@ -603,13 +700,13 @@ func _emit_quad(st: SurfaceTool, upper: Array, lower: Array, ci: int) -> void:
 	_add_vert(st, d)
 
 
-func _commit_cap(st: SurfaceTool, done: Array) -> void:
-	_install_mesh("cap", 0, st.commit_to_arrays())
+func _commit_cap(st: SurfaceTool, stw: SurfaceTool, done: Array) -> void:
+	_install_mesh("cap", 0, st.commit_to_arrays(), stw.commit_to_arrays())
 	done.append("cap")
 
 
-func _commit_ring(level: int, st: SurfaceTool, done: Array) -> void:
-	_install_mesh("ring", level, st.commit_to_arrays())
+func _commit_ring(level: int, st: SurfaceTool, stw: SurfaceTool, done: Array) -> void:
+	_install_mesh("ring", level, st.commit_to_arrays(), stw.commit_to_arrays())
 	done.append(level)
 
 
@@ -639,6 +736,33 @@ func _add_vert(st: SurfaceTool, v: Dictionary) -> void:
 	st.add_vertex(p)
 
 
+## Emit ONE standing-water triangle (a,b,c are ground vertices carrying "ws"
+## + "gh"). Emits only when ALL three corners are wet (the streamer's law);
+## returns true when a triangle landed.
+func _add_water(st_w: SurfaceTool, a: Dictionary, b: Dictionary, c: Dictionary) -> bool:
+	if not terrain_on:
+		return false
+	for v in [a, b, c]:
+		var ws: float = float(v.get("ws", -1.0e9))
+		if ws <= -1.0e8 or ws <= float(v["gh"]) + WATER_BEACH_MIN:
+			return false
+	var t_h: float = (float(a["ws"]) + float(b["ws"]) + float(c["ws"])) / 3.0
+	# Standing water is water ABOVE the sea line (rivers, high ponds): the
+	# sea itself is the globe's WaterShell sphere, so a sheet at/below the
+	# sea line would double-draw the ocean (the streamer had this flaw; the
+	# opaque shell merely hid it).
+	if t_h <= _sea + 0.05:
+		return false
+	var d_mid: Vector3 = ((a["d"] + b["d"] + c["d"]) / 3.0).normalized()
+	var g_mid: float = (float(a["gh"]) + float(b["gh"]) + float(c["gh"])) / 3.0
+	var tint: Color = provider.water_tint(d_mid, t_h - g_mid)
+	for v in [a, b, c]:
+		st_w.set_normal(d_mid)
+		st_w.set_color(tint)
+		st_w.add_vertex(_water_vertex(v["d"], t_h))
+	return true
+
+
 ## One fused ground_sample per vertex (TerrainGen memoizes it), feeding
 ## both the height and the colour -- no parallel clipmap caches. Called
 ## ONCE per distinct vertex; the quad pass reuses the result.
@@ -646,4 +770,158 @@ func _vertex_of(dir: Vector3) -> Dictionary:
 	if not terrain_on:
 		return {"p": dir * (radius + draw_lift), "d": dir, "splat": Color(0.42, 0.55, 0.30), "aux": Vector2(0.0, 1.0)}
 	var ss: Dictionary = provider.surface_sample(dir)
-	return {"p": dir * (radius + draw_lift + float(ss["height"])), "d": dir, "splat": ss["splat"], "aux": ss["aux"]}
+	var gh: float = float(ss["height"])
+	return {"p": dir * (radius + draw_lift + gh), "d": dir, "splat": ss["splat"], "aux": ss["aux"],
+		"gh": gh, "ws": _water_surface_at(dir)}
+
+
+## -- standing water (the streamer's surface 2) -------------------------
+##
+## The clipmap draws the ground mesh; standing water ABOVE the sea line
+## (rivers, high ponds) is a SECOND surface of tile quads at the water
+## table, drawn only where a tile is FULLY wet (its three corners each
+## clear the ground by BEACH_MIN). The streamer owned this law; the clipmap
+## now owns it too, so retiring the streamer loses no drawn water. The sea
+## itself is NOT drawn here -- the globe's WaterShell sphere floods it.
+
+func _water_material() -> StandardMaterial3D:
+	if _water_mat != null:
+		return _water_mat
+	_water_mat = StandardMaterial3D.new()
+	# The streamer left vertex colours OFF, so its water/deck tints never
+	# rendered; the clipmap turns them ON so the tint law actually shows.
+	_water_mat.vertex_color_use_as_albedo = true
+	_water_mat.roughness = 0.12
+	_water_mat.metallic = 0.0
+	return _water_mat
+
+
+## The standing-water surface height at `dir`, or -1e9 if none. Reads the
+## provider's water table; a world with no standing water reports the sea
+## line (so a sheet never fires above it).
+func _water_surface_at(dir: Vector3) -> float:
+	return provider.water_surface(dir)
+
+
+## The world-space vertex for a tile corner at radius (radius + draw_lift +
+## surface height). `h` is the surface lift above the base shell (NOT above
+## the ground) -- the sheet rides the water table, the ground rides its own.
+func _water_vertex(dir: Vector3, surf_h: float) -> Vector3:
+	return dir * (radius + draw_lift + surf_h)
+
+
+## Build the standing-water surface for the ring/cap triangle (three
+## directions). Returns { "arrays": PackedVector3Array-committed or null,
+## "tris": int }. The three corners are the tile's own dirs; the sheet is a
+## flat-ish lens at the average table height, tinted by the tile's climate.
+func _water_arrays_for(tri_dirs: Array, tri_ground: Array) -> Array:
+	if not terrain_on:
+		return [null, 0]
+	var surf: Array = []
+	var all_wet: bool = true
+	for i in range(3):
+		var s: float = _water_surface_at(tri_dirs[i])
+		surf.append(s)
+		if s <= -1.0e8 or s <= float(tri_ground[i]) + WATER_BEACH_MIN:
+			all_wet = false
+	if not all_wet:
+		return [null, 0]
+	var t_h: float = (float(surf[0]) + float(surf[1]) + float(surf[2])) / 3.0
+	if t_h <= _sea + 0.05:
+		return [null, 0]
+	var d_mid: Vector3 = ((tri_dirs[0] + tri_dirs[1] + tri_dirs[2]) / 3.0).normalized()
+	var g_mid: float = (float(tri_ground[0]) + float(tri_ground[1]) + float(tri_ground[2])) / 3.0
+	var tint: Color = provider.water_tint(d_mid, t_h - g_mid)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var n: Vector3 = d_mid
+	for i in range(3):
+		st.set_normal(n)
+		st.set_color(tint)
+		st.add_vertex(_water_vertex(tri_dirs[i], t_h))
+	return [st.commit_to_arrays(), 1]
+
+
+## -- raised road deck (the streamer's surface 3) -----------------------
+
+func _deck_material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.vertex_color_use_as_albedo = true
+	m.roughness = 0.95
+	return m
+
+
+## Build the raised cartway ribbon: a plank quad per road node, sitting at
+## the bed/deck height the walk law already answers (so feet and planks
+## agree). The deck is world-space (not tile-addressed), so it is rebuilt
+## whole on each cold build. Returns an ArrayMesh or null.
+func _build_deck() -> MeshInstance3D:
+	if not terrain_on:
+		return null
+	var spec = provider.road_spec()
+	if spec == null or not ("path" in spec):
+		return null
+	var path: PackedVector3Array = spec.path
+	var beds: PackedFloat32Array = spec.beds
+	var bridges: PackedFloat32Array = spec.bridges
+	if path.size() < 2:
+		return null
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var quads: int = 0
+	# The clipmap draws fine ground only out to the outermost ring; a deck
+	# segment past that would float over the coarse horizon. Cull to the
+	# covered reach (the streamer's per-face reach cull, made radial).
+	var reach: float = INNER_R_FRAC * pow(2.0, float(N_LEVELS)) + 0.02
+	var c: Vector3 = _center_dir if _center_dir != Vector3.ZERO else _spawn_dir()
+	for i in range(path.size() - 1):
+		var p0: Vector3 = path[i]
+		var p1: Vector3 = path[i + 1]
+		if p0.angle_to(c) > reach and p1.angle_to(c) > reach:
+			continue
+		var h0: float = beds[i]
+		var h1: float = beds[i + 1]
+		var is_bridge: bool = bridges[i] > 0.4 or bridges[i + 1] > 0.4
+		var seg: Vector3 = p0.cross(p1).normalized()
+		if seg.length() < 0.001:
+			continue
+		var half: float = DECK_RIBBON_HALF
+		var a0: Vector3 = p0.rotated(seg, half).normalized()
+		var b0: Vector3 = p0.rotated(seg, -half).normalized()
+		var a1: Vector3 = p1.rotated(seg, half).normalized()
+		var b1: Vector3 = p1.rotated(seg, -half).normalized()
+		var va0: Vector3 = a0 * (radius + draw_lift + h0 + DECK_LIFT)
+		var vb0: Vector3 = b0 * (radius + draw_lift + h0 + DECK_LIFT)
+		var va1: Vector3 = a1 * (radius + draw_lift + h1 + DECK_LIFT)
+		var vb1: Vector3 = b1 * (radius + draw_lift + h1 + DECK_LIFT)
+		var mid: Vector3 = ((a0 + b0 + a1 + b1) * 0.25).normalized()
+		var col: Color = DECK_PLANK_COLOR
+		if is_bridge:
+			col = col.lightened(0.25)
+		var pts: Array = [va0, vb0, va1, vb0, vb1, va1]
+		for p in pts:
+			st.set_normal(mid)
+			st.set_color(col)
+			st.add_vertex(p)
+		quads += 1
+	if quads == 0:
+		return null
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, st.commit_to_arrays())
+	var mi := MeshInstance3D.new()
+	mi.name = "ClipmapDeck"
+	mi.mesh = mesh
+	mi.set_surface_override_material(0, _deck_material())
+	return mi
+
+
+## Rebuild the world-space deck under the clipmap root (called after a cold
+## build). Idempotent: replaces the previous deck node.
+func _install_deck() -> void:
+	if _deck_mesh != null and is_instance_valid(_deck_mesh):
+		_deck_mesh.queue_free()
+	_deck_mesh = null
+	var mi: MeshInstance3D = _build_deck()
+	if mi != null and _root != null:
+		_root.add_child(mi)
+		_deck_mesh = mi

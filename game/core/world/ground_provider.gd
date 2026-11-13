@@ -40,8 +40,30 @@ func sea_level() -> float:
 
 
 ## The water surface height at a direction (lake/river/pool); -1e9 if none.
+## Distinct from `sea_level()`: the sea is a global shell the renderer floods
+## once, while standing water is a per-direction table the renderer draws as a
+## sheet wherever it clears the ground (rivers, high ponds). The default is the
+## sea line (a world with a sea reports its sea here too, so the sheet law
+## simply never fires above it).
 func water_surface(dir: Vector3) -> float:
 	return sea_level()
+
+
+## The tint of a standing-water sheet at `dir` for a given water depth (meters
+## above the bed). The default is the depth-only law (shallow film -> deep
+## blue); a world with a climate may override (freeze band, marsh murk).
+func water_tint(_dir: Vector3, depth: float) -> Color:
+	var wcol: Color = Color(0.72, 0.82, 0.86).lerp(Color(0.42, 0.62, 0.68), clampf(depth / 2.0, 0.0, 1.0))
+	if depth > 2.0:
+		wcol = wcol.lerp(Color(0.30, 0.44, 0.55), clampf((depth - 2.0) / 4.0, 0.0, 1.0))
+	return wcol
+
+
+## The world's authored road (a `TerrainGen.RoadSpec`-shaped value: `path`,
+## `beds`, `bridges`) the renderer draws as a raised deck ribbon, or null if the
+## world has no road. Default = none.
+func road_spec():
+	return null
 
 
 ## The vertex surface sample the renderer draws: a fused read returning the

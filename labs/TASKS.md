@@ -7,6 +7,20 @@ commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
 
+## 2026-11-28e -- world: the streamer's water sheet + road deck + chart-LOD fold into the clipmap
+- SESSION GOAL: make the clipmap (the sole renderer) draw EVERYTHING the legacy streamer drew, so the streamer can be retired.
+- THE GAP (recon): the clipmap drew the ground mesh + flora only. The legacy `globe_terrain_streamer.gd` uniquely DREW two laws, both LIVE: standing water (surface 2: `_derive_water` / `_emit_water_tri`) and the raised road deck (surface 3: `_derive_deck`). A diag found 17% of the sphere has above-sea standing water (max ~139 m); the cartway runs village -> capitol (975 m .. 11.4 km from spawn).
+- SHIPPED (provider-driven):
+  - `GroundProvider` gained `water_tint(dir, depth)` (depth band -> frozen sheet near `SNOWLINE_T` -> swamp murk) + `road_spec()` (default none); `water_surface` already existed.
+  - `TerrainProvider` overrides both off `TerrainGen` (`hydro_water_surface` / `climate_temperature` / `climate_biome_id` / `road_spec_cached`).
+  - The clipmap builds a SECOND mesh surface of tile quads at the water table (only where a tile is FULLY wet: all three corners clear the ground by `WATER_BEACH_MIN`), in BOTH build lanes (parallel `_derive_job_arrays` + incremental `_step_cap`/`_step_ring`), with a `_water_mat` (vertex colours ON -- the streamer left `vertex_color_use_as_albedo` off, so its water/deck TINTS never rendered; the clipmap fixes that).
+  - SEA-LINE GUARD: a sheet only draws ABOVE `sea_level + 0.05`, so the clipmap never double-draws the ocean the WaterShell sphere floods (the streamer's sheet drew below the sea too; the opaque shell hid it).
+  - ROAD DECK: a world-space plank ribbon (one quad per road node, `DECK_LIFT` 0.15 over the graded bed the walk law answers), culled to the drawn reach and rebuilt on each re-centre.
+  - CHART-LOD: the Penrose overlay was wired ONLY inside the streamer branch of `_setup_streamer`, so it was silently dead on the clipmap path; now set up unconditionally (gate `chart_overlays_on` stays OFF by default -- redundant decoration beside the Penrose ground backend).
+- RECEIPTS / GATES (all green): `probe_clipmap` grew G6 (wet sheet builds / dry yields none / sea guard) + G7 (deck draws, 68 quads at spawn) -- 7 legs ALL PASS; probe_prop_layer ALL PASS; probe_conjured_ground 26; probe_deep_garden ALL PASS; probe_instance_props ALL PASS; test_ground_provider ALL PASS; probe_terrain_backend 11/0; probe_terrain_climate 32; probe_chart_lod_scene 10/0; lint 37/0.
+- ALSO THIS SESSION: vetted + merged PR #64 (fix/npc-parity) and PR #63 (spawn-rung) to `staging` (doc-only conflicts resolved); pushed 6bb3d962.
+- NEXT: retarget the 6 streamer-internal probes (`probe_terrain_planet`, `probe_prop_density`, `probe_biodiversity_v7`, `probe_stream_flow_100m`, `probe_walk_mesh_gap`, `diag_detail_kinds`), then delete `globe_terrain_streamer.gd`.
+
 ## 2026-11-28d -- content: the class skill trees + the general shared verbs LAND (Part B) (branch fix/npc-parity, no PR yet)
 - SESSION GOAL: land Part B of the content board (`labs/subagent-tasks.md` Task 4) -- the empty class kits -- before Part C's creative content.
 - THE FINDING, CORRECTED: Task 4 read the 43 `*_sig` "signature" skills as "the pattern to study". They were actually the BULK OF THE ORPHANS: every one was authored, tagged, and referenced by NO class. 38 class-owned skills were unreachable, plus 6 classes shipped with EMPTY `starting_skills`/`skill_tree_unlocks` (akkan_attacker, akkan_stalker, human_marksman, human_sorcerer, synthetic_psion, synthetic_tracker) and `human_warrior` had 2 starting skills and no tree. No class kit named a single `*_sig`.

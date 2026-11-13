@@ -543,7 +543,12 @@ func _setup_streamer() -> void:
 		# every globe is a terrain globe.
 		streamer.terrain_on = true
 		streamer.update(_spawn_dir() * planet_radius)
-		_setup_chart_lod()
+	# CHART-LOD OVERLAY (renderer-agnostic): the penrose-lattice climb is a
+	# SEPARATE overlay root under world_root, so it rides EITHER renderer. The
+	# clipmap is the sole path now, so wire it here rather than inside the
+	# streamer branch (the gate stays OFF by default: the overlays are
+	# redundant decoration beside the Penrose ground backend).
+	_setup_chart_lod()
 	# SPAWN MESH GATE (round 10): the boot must be able to SEE its own
 	# ground. The first update is synchronous, so an unloaded spawn face
 	# means the streamer is broken -- fail LOUD here instead of booting

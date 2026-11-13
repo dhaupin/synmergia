@@ -174,4 +174,35 @@ func _initialize() -> void:
 		await process_frame
 	_check("G5 budgeted tick < 40 ms incl. re-centre (worst %d ms)" % worst_ms, worst_ms < 40)
 
+	# G6: the standing-water sheet law (the streamer's surface 2) is owned
+	# by the clipmap now. Assert a KNOWN-wet tile produces a non-null water
+	# surface (the pure helper -- no second concurrent cold build, which
+	# contends the terrain-law worker mutexes).
+	var wet_dir: Vector3 = Vector3.ZERO
+	var sea: float = Gen.sea_level(seed_b)
+	for i in range(400):
+		var th: float = TAU * float(i) / 400.0
+		var ph: float = PI * (float(i % 50) / 50.0 - 0.5)
+		var dd: Vector3 = Vector3(cos(ph) * cos(th), sin(ph), cos(ph) * sin(th)).normalized()
+		var h: float = Gen.terrain_height(dd, seed_b)
+		var ws: float = Gen.hydro_water_surface(dd, seed_b)
+		if ws > -1.0e8 and ws > h + 0.6 and ws > sea:
+			wet_dir = dd
+			break
+	if wet_dir == Vector3.ZERO:
+		_check("G6 found a wet above-sea direction to test", false)
+	else:
+		var hh: float = Gen.terrain_height(wet_dir, seed_b)
+		var res: Array = st._water_arrays_for([wet_dir, wet_dir, wet_dir], [hh, hh, hh])
+		_check("G6 standing-water sheet builds over wet ground", res[0] != null)
+		var dry_dir: Vector3 = Gen.SPAWN_CENTER
+		var hd: float = Gen.terrain_height(dry_dir, seed_b)
+		var res2: Array = st._water_arrays_for([dry_dir, dry_dir, dry_dir], [hd, hd, hd])
+		_check("G6 dry ground yields NO water sheet", res2[0] == null)
+
+	# G7: the raised road deck (the streamer's surface 3) draws on the
+	# clipmap at spawn (the main world authors a cartway through the plaza).
+	var dq: int = st.deck_quad_count()
+	_check("G7 raised road deck draws (quads %d > 0)" % dq, dq > 0)
+
 	await _quit()

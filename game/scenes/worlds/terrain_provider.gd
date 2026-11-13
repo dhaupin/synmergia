@@ -87,6 +87,25 @@ func water_surface(dir: Vector3) -> float:
 	return TerrainGen.hydro_water_surface(dir, _seed)
 
 
+## The standing-water tint (the streamer's climate law): depth band, then a
+## frozen sheet near the snowline, then the marsh murk in a swamp basin.
+func water_tint(dir: Vector3, depth: float) -> Color:
+	var wcol: Color = Color(0.72, 0.82, 0.86).lerp(Color(0.42, 0.62, 0.68), clampf(depth / 2.0, 0.0, 1.0))
+	if depth > 2.0:
+		wcol = wcol.lerp(Color(0.30, 0.44, 0.55), clampf((depth - 2.0) / 4.0, 0.0, 1.0))
+	if TerrainGen.climate_temperature(dir, _seed) < TerrainGen.SNOWLINE_T:
+		wcol = wcol.lerp(Color(0.86, 0.90, 0.94), 0.8)
+	elif TerrainGen.climate_biome_id(dir, _seed) == TerrainGen.BiomeId.SWAMP:
+		wcol = wcol.lerp(Color(0.42, 0.46, 0.30), 0.7)
+	return wcol
+
+
+## The main world's authored cartway (the streamer's road spec, now a provider
+## read so the renderer draws the deck). Cached in TerrainGen.
+func road_spec():
+	return TerrainGen.road_spec_cached(_seed)
+
+
 ## The fused draw sample (one call per clipmap vertex): the ground_sample
 ## memo + the splat skin, exactly what the clipmap used to inline.
 func surface_sample(dir: Vector3) -> Dictionary:

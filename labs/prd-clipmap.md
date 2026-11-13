@@ -520,9 +520,21 @@ without flora.
   if instances ever become open terrain. Dungeons share the sealed-room
   shape (no dedicated room scene today); when one lands, it calls the same
   kit.
+- **Step 3c (water + road deck + chart-LOD) -- DONE (2026-11-28).** The
+  streamer's two remaining DRAWN laws are now the clipmap's: standing water
+  above the sea line (a second mesh surface, `_add_water` / `_water_arrays_for`,
+  provider `water_surface` + `water_tint`) and the raised road deck
+  (`_build_deck`, provider `road_spec`), both culled to the drawn reach and
+  rebuilt on re-centre. A sea-line guard stops the sheet double-drawing the
+  WaterShell ocean (the streamer's sheet had this flaw; the opaque shell hid
+  it). The Penrose chart-LOD overlay moved OUT of the streamer branch in
+  `globe_world._setup_streamer` and now wires on the clipmap path too (the
+  gate stays OFF by default -- redundant decoration beside the Penrose ground
+  backend). Receipts: `probe_clipmap` G6 (wet sheet builds / dry yields none)
+  + G7 (deck quads > 0).
 - **Step 4 (retarget probes) -- IN PROGRESS.** The streamer owns nothing the
-  clipmap lacks now (the deep beds + the land harvest registration were the
-  last two gaps): `PropLayer` registers the drawn mushrooms / ore / bushes as
+  clipmap lacks now (the deep beds + the land harvest registration + the
+  water sheet + the road deck were the last gaps): `PropLayer` registers the drawn mushrooms / ore / bushes as
   live `HarvestService` nodes (chunk-stable `hs_<key>_<n>` ids, zone resolved
   by `GroundProvider.zone_for_dir`; receipt `probe_prop_layer` A9/A10), and
   every registered deep plant is guaranteed at least one painted strand (the
