@@ -184,14 +184,19 @@ a little reverent. NPCs do not say "powered on" -- they say "woke,"
   Fix the dialogue when quests get authored.
 - Zone descriptions predate the art bible (safe/no-mood tone); when
   rewriting zone copy, use gemini_zones.md moods as canon.
-- **"Haven" naming (OPEN).** Act 1 calls the starter settlement
-  "Haven", but the zone display names are **"Meadowhaven"**
-  (`zone_starter_plains`) and **"Easthollow Village"**
-  (`zone_village_center`). "Haven" survives in flavor ("Haven
-  Coliseum", "Haven Sandpit", `veh_haven_ferry`, `horde_haven_siege`,
-  the naming in §2). Pick one canon settlement name and align the
-  zones + copy (or keep "Haven" as the region and Meadowhaven/
-  Easthollow as its places). Not yet resolved.
+- **"Haven" naming (RESOLVED 2026-11-28).** The starter settlement
+  is **"Haven"**, full stop. The story PRD, the art bible, and the
+  canonized renders (`gemini_zones.md` sec. 3, "VILLAGE OF HAVEN")
+  all say Haven, and every game-data id agrees (`npc_jeweler_haven`,
+  `veh_haven_ferry`, `horde_haven_siege`, `quest_wings_over_haven`,
+  "Haven Coliseum", "Haven Sandpit", the "Haven Shelf"). The lone
+  outlier was the zone display name: `zone_village_center.tres`
+  shipped "Easthollow Village", which then leaked into the web
+  (achievements chain, lore, lander). Aligned the zone to
+  `display_name = "Haven"` and swept the copy. `Meadowhaven`
+  (`zone_starter_plains`) is a DIFFERENT place and keeps its name:
+  the starter plains, not the village. "Haven" is the settlement;
+  "Meadowhaven" is the meadow it sits in.
 - **Planet context (2026-11-04).** Act 1's locations stand, but the
   planet-level context is now fixed by `prd-world.md` v2: the capital
   (Nexus Central) is on the **coast**, the starter village is inland

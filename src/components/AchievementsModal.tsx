@@ -110,13 +110,13 @@ export const AchievementsModal: React.FC<AchievementsModalProps> = ({
           </div>
         </div>
 
-        {/* Onboarding chain: "First Steps in Easthollow" */}
+        {/* Onboarding chain: "First Steps in Haven" */}
         {chainProgress && (
           <div className="mb-5 p-4 rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-950/25 to-slate-950/50">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-fantasy font-bold text-sm text-amber-200 flex items-center gap-1.5">
                 <Sunrise className="w-4 h-4 text-amber-400" />
-                First Steps in Easthollow
+                First Steps in Haven
               </h3>
               <span className="text-[11px] font-bold text-amber-300">
                 {chainProgress.completed} / {chainProgress.total}

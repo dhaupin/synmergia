@@ -6,7 +6,7 @@
 // Sources of truth:
 //   - src/data/godot_data.json  (canonical .tres defs: ids, gold/xp/title rewards)
 //   - ACHIEVEMENT_OVERRIDES     (web tuning: counters, tiers, points)
-//   - ONBOARDING_CHAIN          ("First Steps in Easthollow" — gates the playable loop)
+//   - ONBOARDING_CHAIN          ("First Steps in Haven" — gates the playable loop)
 //
 // `initAchievementCatalog()` must be called once at module load (done in
 // gameData.ts) before any unlock evaluation happens.
@@ -212,7 +212,7 @@ const WEB_ONLY: WebDef[] = [
   },
 ];
 
-// --- Onboarding chain: "First Steps in Easthollow" --------------------------
+// --- Onboarding chain: "First Steps in Haven" --------------------------
 // Steps unlock strictly in order, teaching the playable loop. This is the
 // onboarding track that greets a brand-new character.
 

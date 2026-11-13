@@ -101,7 +101,7 @@ const WORLDS = [
     glyph: '◈',
     name: 'Synmergia',
     role: 'the home planet',
-    body: 'The sphere you play on. Meadowhaven and the starter plains, Easthollow Village, Nexus Central, the Sundered Sea, and the Gloomwood above them.',
+    body: 'The sphere you play on. Meadowhaven and the starter plains, Haven, Nexus Central, the Sundered Sea, and the Gloomwood above them.',
   },
   {
     glyph: '☾',
