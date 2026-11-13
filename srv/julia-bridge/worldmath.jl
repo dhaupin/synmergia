@@ -13,7 +13,7 @@ These are the frame's "a world is a function" primitives
 Ported so the pre-solve tier can evaluate a world forward at many
 epochs in parallel (the "pre-solves races" work) without booting
 Godot. The GDScript remains authoritative; this module is validated
-byte-for-byte against it by tests/test_julia_presolve.gd.
+byte-for-byte against it by tests/test_julia_parity.gd.
 """
 module WorldMath
 

@@ -12,7 +12,7 @@ extends SceneTree
 ##
 ## Server side is covered by orchestrator.jl's own self-tests
 ## (julia --project=. orchestrator.jl) and the GDScript<->Julia parity
-## probe (tests/probe_julia_parity.gd vs presolve.jl).
+## receipt (tests/test_julia_parity.gd vs presolve.jl).
 
 const EXPECTED_MAIN_SEED := "5d8e24a05d428934c6adf4badb6cc6aa9afbaacbf4ed44c801d6a615a814603b"
 

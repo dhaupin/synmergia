@@ -5,7 +5,7 @@
 # a swarm of epochs/worlds can be evaluated with no simulation. Julia
 # does the embarrassingly-parallel sweep; the GDScript frame stays the
 # authoritative evaluator and validates this output byte-for-byte
-# (tests/test_julia_presolve.gd).
+# (tests/test_julia_parity.gd).
 #
 # Usage:
 #     julia --project=. presolve.jl [--out FILE] [--epochs N] [--step D]
