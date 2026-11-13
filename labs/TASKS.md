@@ -7,6 +7,19 @@ commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
 
+## 2026-11-04ck -- world: THE LAND HARVEST LAW + THE PER-PLANT COVERAGE LAW join PropLayer (staging, no PRs)
+- SESSION CONTEXT: prior session nuked; user: "look over the codebase and check it out. Don't run the full runners yet they're being reworked to parallel." Continue the prop-everywhere leg: fold the LAST streamer-only prop law (land harvest registration) into `PropLayer`, and prove the deep garden never starves a harvest node.
+- HEADLINE: `PropLayer` now owns BOTH halves of the one placement law -- the drawn mushroom / ore / bush is ALSO the gatherable node. Nothing the streamer still owns blocks retargeting the remaining probes.
+- SHIPPED (commit bbf31433):
+  - **Land harvest registration** (`prop_layer.gd`): a drawn detail registers a live `HarvestService` node keyed on a chunk-stable site id (`hs_<chunk>_<n>`), the zone resolved by the new `GroundProvider.zone_for_dir(dir) -> String`. `TerrainProvider` maps the main world's homeland biome cluster to `zone_starter_plains` (the streamer's hardcoded zone); the base provider returns `""`, so a world with no zone law registers nothing (its flora stays paint only). `_land_registered` is the idempotence book (a chunk reload never resets the service's depletion book).
+  - **Per-plant coverage law** (`prop_layer.gd` `_build_deep_bed`): new `_claim_plant(plant_dirs, d, covered)` -- an unpainted plant outranks a painted one when labelling kelp/spire `plant_k`, so EVERY registered deep plant gets at least one painted strand. Kills the seed-dependent strand/plant mismatch (a live harvest node painting nothing) the swim receipt caught.
+  - **Byte-identical paint**: `_face_acc` now reads `TerrainGen.face_seed_bytes(world_seed, face)` (the streamer's own bed seed), not a fresh `SeedChain` derive -- the garden paint matches the pre-port look exactly.
+- RECEIPTS: `probe_prop_layer` A9/A10 (zone law + idempotent live registration), `probe_deep_garden` C5b (every plant painted). test_sundered_sea_swim back to **57/0**; probe_deep_garden / probe_instance_props / probe_clipmap / probe_prop_layer / test_terrain_splat_skin / test_globe_wildlife / lint (indent+charset+syntax+general+autoload) all green.
+- LORE: a `SceneTree` probe's `_init` runs BEFORE autoloads mount -- `get_root().get_node_or_null("HarvestService")` is null there; `call_deferred("_run")` is what the swim receipt uses (probe_prop_layer now does too). Lint indentation WARNs (14 space-indented files) are pre-existing and non-blocking.
+- NEXT (Step 4): retarget the remaining streamer-internal probes (`probe_terrain_planet`, `probe_prop_density`, `probe_biodiversity_v7`, `probe_stream_flow_100m`, `probe_walk_mesh_gap`, `diag_detail_kinds` -- they pin `terrain_render="streamer"` and read `_patch_lvl`/`_patches`/`_level_for_edge`), THEN delete `globe_terrain_streamer.gd`.
+- PUSHED: pending (committed on `staging`).
+
+
 ## 2026-11-04cj -- world: THE PROP LAYER SHIPS (flora back on the default renderer) (staging, no PRs)
 - SESSION CONTEXT: prior session nuked; user: "look over the codebase and check it out. Don't run the full runners yet they're being reworked to parallel." Then continue implementing the v2 prop-layer build plan (the design landed last round as 671c5ddf).
 - HEADLINE: the default clipmap drew ZERO flora (its prop lane was a stub). It now streams props. Verified on the LIVE clipmap at spawn: **110 prop chunks / 49 tree nodes / 96 tuft batches / 51 bushes / 31 flowers** (was `{}`).
