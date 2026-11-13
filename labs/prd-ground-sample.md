@@ -301,6 +301,59 @@ PASS; `probe_ground_law_audit` ALL PASS; `probe_terrain_planet` exit 0;
 PASS; `test_terrain_determinism` exit 0; `GEO_HASH` identical serial vs
 parallel (thread-safe + bit-identical).
 
+## 6d. The road probe bound + precomputed set, 2026-11-04
+
+After 6c, a fresh `ground_sample` was instrumented per-limb and the
+biggest remaining sub-limb was `road_height_override` at **139 us** --
+21% of the whole sample (the second-largest after `terrain_height`
+itself). Two causes, both the SAME shape as the river's S4 fix:
+
+1. `_road_probe` re-derived each segment's two slerp thirds (`cross` +
+   `rotated` + `normalized`) on EVERY query -- ~3x the road path size in
+   vector math per vertex, and the road is longer than any river.
+2. No early-out: every query scanned the whole road path even when the
+   road was a continent away.
+
+**Fixes (bit-identical -- `probe_ground_sample` now reconstructs the OLD
+inline algorithm and asserts EXACT equality over 246 dirs):**
+
+- `RoadSpec.probe_pts/probe_w/probe_bed/probe_deck`: the EXACT membership
+  point set `_road_probe` scans (nodes + per-segment slerp thirds), built
+  ONCE in `_build_road_probe_set`. The per-vertex scan reads the flat set
+  with no midpoint derivation. Order + weight law mirror the inline probe
+  exactly (node, its two thirds, next node, ...; a third takes the MAX of
+  its two endpoint beds/decks).
+- `RoadSpec.bound_pts/bound_ang` + `_road_spec_near()`: a coarse
+  checkpoint subset (every 6th node) with `bound_ang` = max nearest-
+  checkpoint distance over the probe set, padded by the widest query
+  radius (`ROAD_CLEAR_ANG`). A query farther than `bound_ang` from EVERY
+  checkpoint is rejected whole -- an EXACT early-out (the road analogue of
+  `RiverSpec.bound_ang`), pinned by a new probe leg.
+
+**Measured (fresh sector = cold miss):**
+
+| metric | before | after |
+|---|---|---|
+| `road_height_override` cold | 81.1 us | 7.3 us (11.1x) |
+| `terrain_height` cold | 163.7 us | 85.9 us (1.9x) |
+| `ground_sample` cold | 271 us | 196 us (1.4x) |
+| `splat_skin` cold | 313.7 us | 226.5 us (1.4x) |
+| clipmap cold build (`build_all`) | 990 ms | 780 ms |
+
+The road bound is the 6c waterfall pattern again: a per-vertex scan that
+re-derived invariant geometry and lacked a spec-level reject. The
+checkpoint subset keeps the reject cheap (the road path is longer than a
+river path, so a single-endpoint bound would be too loose).
+
+**Gates:** `probe_ground_sample` 15 checks ALL PASS (the new road-bound
+exactness, road-state finite, and the definitive "probe set == old inline
+algorithm exactly" legs); `probe_roads_flow` 14 ALL PASS; `probe_clipmap`
+ALL PASS; `probe_ground_law_audit` ALL PASS; `probe_starter_village` ALL
+PASS; `probe_world_shape_ground` 0 failures; `probe_terrain_climate` 32
+ALL PASS; `probe_terrain_backend` 11/0; `test_terrain_splat_skin` 25
+green; `test_terrain_determinism` exit 0; lint 37/0; `GEO_HASH`
+835956491 unchanged.
+
 ## 7. Open questions (for the owner)
 
 1. **How far to fuse?** Full (all eight fields) vs a smaller

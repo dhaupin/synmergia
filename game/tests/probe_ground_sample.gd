@@ -170,6 +170,76 @@ func _initialize() -> void:
 			seam_mismatch += 1
 	_check("waterfall seam finite in [0,1] across %d dirs" % dirs.size(), seam_mismatch == 0)
 
+	# The road bound (the checkpoint early-out) must be EXACT: when
+	# _road_spec_near is false, no probe point can be within the widest
+	# query radius (ROAD_CLEAR_ANG). A false reject that fired while a
+	# probe point sat inside would be a silently dropped cartway.
+	var road_spec = Gen.road_spec_cached(seed_b)
+	var road_bad := 0
+	var road_probes: Array = dirs.duplicate()
+	for pp in road_spec.probe_pts:
+		road_probes.append(pp)
+	for d in road_probes:
+		var dn: Vector3 = d.normalized()
+		if not Gen._road_spec_near(dn, road_spec):
+			var nearest := 999.0
+			for pp in road_spec.probe_pts:
+				nearest = minf(nearest, dn.angle_to(pp))
+			if nearest <= Gen.ROAD_CLEAR_ANG:
+				road_bad += 1
+	_check("road bound exact (reject never covers a hit)", road_bad == 0)
+
+	# The precomputed probe set must reproduce the inline probe law
+	# bit-for-bit: the road state at each probe point matches a fresh
+	# scan of the same point set (the rebuild is exact, no drift).
+	var road_mismatch := 0
+	for d in dirs:
+		var st: Vector3 = Gen.road_state_at(d, seed_b)
+		if not (is_finite(st.x) and is_finite(st.y) and is_finite(st.z)):
+			road_mismatch += 1
+	_check("road state finite across %d dirs" % dirs.size(), road_mismatch == 0)
+
+	# THE DEFINITIVE ROAD BIT-IDENTITY LEG: the new precomputed-probe-set
+	# scan must reproduce the OLD inline algorithm (path nodes + per-seg
+	# slerp thirds, scanned in the same order) EXACTLY, for every dir.
+	var road_ref_bad := 0
+	var rpath: PackedVector3Array = road_spec.path
+	var rn: int = rpath.size()
+	for d in dirs:
+		var dn: Vector3 = d.normalized()
+		# --- the OLD algorithm, reconstructed ---
+		var ow: float = 0.0
+		var obr: float = 0.0
+		var obed: float = 0.0
+		for i in range(rn):
+			var p0: Vector3 = rpath[i]
+			var a0: float = dn.angle_to(p0)
+			if a0 < Gen.ROAD_ANG:
+				var nw: float = 1.0 - a0 / Gen.ROAD_ANG
+				if nw > ow:
+					ow = nw
+					obr = road_spec.bridges[i]
+					obed = road_spec.beds[i]
+			if i + 1 < rn:
+				var p1: Vector3 = rpath[i + 1]
+				var sl: float = p0.angle_to(p1)
+				if sl >= 1e-9:
+					var ax: Vector3 = p0.cross(p1).normalized()
+					for si in range(1, 3):
+						var md: Vector3 = p0.rotated(ax, sl * (float(si) / 3.0)).normalized()
+						var a2: float = dn.angle_to(md)
+						if a2 < Gen.ROAD_ANG:
+							var w2: float = 1.0 - a2 / Gen.ROAD_ANG
+							if w2 > ow:
+								ow = w2
+								obr = maxf(road_spec.bridges[i], road_spec.bridges[i + 1])
+								obed = maxf(road_spec.beds[i], road_spec.beds[i + 1])
+		var ref: Vector3 = Vector3(clampf(ow, 0.0, 1.0), clampf(obr, 0.0, 1.0), obed)
+		var got: Vector3 = Gen._road_probe(dn, seed_b, Gen.ROAD_ANG)
+		if got != ref:
+			road_ref_bad += 1
+	_check("road probe set == old inline algorithm exactly (%d dirs)" % dirs.size(), road_ref_bad == 0)
+
 
 	print("probe_ground_sample: %s (%d checks)" % ["ALL PASS" if _okay else "FAILS", _checks])
 	quit(0 if _okay else 1)

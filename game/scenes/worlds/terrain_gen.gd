@@ -2523,6 +2523,21 @@ class RoadSpec:
 	var path: PackedVector3Array
 	var beds: PackedFloat32Array   # meters above the base surface, per node
 	var bridges: PackedFloat32Array
+	## THE PROBE SET (the road analogue of RiverSpec.bound_ang): the
+	## EXACT membership point set _road_probe scans -- every node plus
+	## each segment's two slerp thirds -- precomputed ONCE at build so a
+	## per-vertex query never re-derives a midpoint (cross + rotated +
+	## normalized per segment). probe_bed/probe_deck = the surface to land
+	## on a hit. The weight law is bit-identical to the inline probe.
+	var probe_pts: PackedVector3Array = PackedVector3Array()
+	var probe_bed: PackedFloat32Array = PackedFloat32Array()
+	var probe_deck: PackedFloat32Array = PackedFloat32Array()
+	## THE CHECKPOINT BOUND: a coarse node subset + the max nearest-
+	## checkpoint distance over the probe set, padded by the widest query
+	## radius. A query farther than bound_ang from EVERY checkpoint cannot
+	## be within any probe radius -- an EXACT reject (like RiverSpec.bound_ang).
+	var bound_pts: PackedVector3Array = PackedVector3Array()
+	var bound_ang: float = 0.0
 
 
 ## THE VILLAGE HARBOR: the mainland rim of the authored strait (the
@@ -2538,6 +2553,58 @@ static func village_harbor_dir() -> Vector3:
 ## the homeland, up to the road law to route it).
 static func capitol_plaza_dir() -> Vector3:
 	return capitol_dir()
+
+
+## THE PROBE SET BUILDER: expand a road path into the exact membership
+## point set _road_probe scans (nodes + per-segment slerp thirds), with
+## each point's bed/deck. Built ONCE at spec build; _road_probe then
+## scans the flat set with no per-query midpoint derivation. The bed/deck
+## mapping mirrors the inline law exactly (a third takes the MAX of its
+## two endpoint beds/decks).
+static func _build_road_probe_set(spec: RoadSpec) -> void:
+	var path: PackedVector3Array = spec.path
+	var n: int = path.size()
+	if n == 0:
+		return
+	var pts := PackedVector3Array()
+	var bds := PackedFloat32Array()
+	var dks := PackedFloat32Array()
+	for i in range(n):
+		pts.append(path[i])
+		bds.append(spec.beds[i])
+		dks.append(spec.bridges[i])
+		if i + 1 < n:
+			var p1: Vector3 = path[i + 1]
+			var seg_len: float = path[i].angle_to(p1)
+			if seg_len >= 1e-9:
+				var axis: Vector3 = path[i].cross(p1).normalized()
+				for si in range(1, 3):
+					pts.append(path[i].rotated(axis, seg_len * (float(si) / 3.0)).normalized())
+					bds.append(maxf(spec.beds[i], spec.beds[i + 1]))
+					dks.append(maxf(spec.bridges[i], spec.bridges[i + 1]))
+	spec.probe_pts = pts
+	spec.probe_bed = bds
+	spec.probe_deck = dks
+	# THE CHECKPOINT BOUND (exact): sample nodes every K steps, then take
+	# the max over every probe point of its nearest-checkpoint distance,
+	# padded by the WIDEST query radius (ROAD_CLEAR_ANG) so one bound
+	# covers both radii. Any hit implies a checkpoint within bound_ang.
+	var k: int = 6
+	var ck := PackedVector3Array()
+	var ci: int = 0
+	while ci < n:
+		ck.append(path[ci])
+		ci += k
+	if ck.is_empty():
+		ck.append(path[0])
+	var max_near: float = 0.0
+	for p in pts:
+		var best: float = 1e9
+		for c in ck:
+			best = minf(best, p.angle_to(c))
+		max_near = maxf(max_near, best)
+	spec.bound_pts = ck
+	spec.bound_ang = max_near + ROAD_CLEAR_ANG
 
 
 static func road_spec_cached(world_seed: PackedByteArray) -> RoadSpec:
@@ -2686,6 +2753,7 @@ static func _road_build(world_seed: PackedByteArray) -> RoadSpec:
 	spec.beds = beds
 	spec.bridges = deck_pins
 	spec.path = path
+	_build_road_probe_set(spec)
 	return spec
 
 
@@ -2698,36 +2766,43 @@ static func _road_probe(d: Vector3, world_seed: PackedByteArray, ang_radius: flo
 	if cached != null:
 		return cached
 	var spec: RoadSpec = road_spec_cached(world_seed)
+	# STAGE-5 ROAD BOUND (exact): when d is farther than the checkpoint
+	# bound from EVERY checkpoint, no probe point can be within the query
+	# radius -- skip the whole scan (mirrors RiverSpec.bound_ang).
+	if not _road_spec_near(d, spec):
+		var st_off: Vector3 = Vector3(0.0, 0.0, 0.0)
+		cache.set_value(d, world_seed, st_off)
+		return st_off
+	# The precomputed probe set (nodes + slerp thirds), built ONCE -- no
+	# per-query midpoint derivation. Order + weight law mirror the inline
+	# probe exactly (node, its two thirds, next node, ...).
 	var w: float = 0.0
 	var br: float = 0.0
 	var bed: float = 0.0
-	var n: int = spec.path.size()
-	for i in range(n):
-		var p: Vector3 = spec.path[i]
-		var ang: float = d.angle_to(p)
+	var pts: PackedVector3Array = spec.probe_pts
+	var np: int = pts.size()
+	for i in range(np):
+		var ang: float = d.angle_to(pts[i])
 		if ang < ang_radius:
-			var node_w: float = 1.0 - ang / ang_radius
-			if node_w > w:
-				w = node_w
-				br = spec.bridges[i]
-				bed = spec.beds[i]
-		if i + 1 < n:
-			var p1: Vector3 = spec.path[i + 1]
-			var seg_len: float = p.angle_to(p1)
-			if seg_len >= 1e-9:
-				var axis: Vector3 = p.cross(p1).normalized()
-				for si in range(1, 3):
-					var mid: Vector3 = p.rotated(axis, seg_len * (float(si) / 3.0)).normalized()
-					var ang2: float = d.angle_to(mid)
-					if ang2 < ang_radius:
-						var w2: float = 1.0 - ang2 / ang_radius
-						if w2 > w:
-							w = w2
-							br = maxf(spec.bridges[i], spec.bridges[i + 1])
-							bed = maxf(spec.beds[i], spec.beds[i + 1])
+			var pw: float = 1.0 - ang / ang_radius
+			if pw > w:
+				w = pw
+				br = spec.probe_deck[i]
+				bed = spec.probe_bed[i]
 	var st: Vector3 = Vector3(clampf(w, 0.0, 1.0), clampf(br, 0.0, 1.0), bed)
 	cache.set_value(d, world_seed, st)
 	return st
+
+
+## The road bound test (exact): true when d is within bound_ang of SOME
+## checkpoint, so the probe scan must run. False means no probe point can
+## be within any query radius.
+static func _road_spec_near(d_n: Vector3, spec: RoadSpec) -> bool:
+	var b: float = spec.bound_ang
+	for c in spec.bound_pts:
+		if d_n.angle_to(c) <= b:
+			return true
+	return false
 
 
 ## THE ROAD STATE at a direction: (corridor weight, deck weight, the

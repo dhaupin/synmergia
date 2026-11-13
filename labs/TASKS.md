@@ -7,6 +7,17 @@ commit fc316b1). Git history is the durable record; this file tracks
 CURRENT state + ACTIVE work only.
 
 
+## 2026-11-04ch -- world: road probe bound + precomputed set (cold sample 271 -> 196 us; clipmap 990 -> 780 ms) (staging, no PRs)
+- SESSION CONTEXT: continued on `staging`. User: keep going on perf/efficiency/stability/cohesion, anything we see (incl. my next suggestion), then /labs + prd-clipmap. Picked up the residual cold law.
+- FINDING (per-limb instrumented `ground_sample`): after 6c the biggest sub-limb was `road_height_override` at **139 us = 21% of the sample** (2nd only to `terrain_height` itself). TWO causes, the SAME shape as the river's S4 fix: (1) `_road_probe` re-derived each segment's two slerp thirds (`cross`+`rotated`+`normalized`) on EVERY query; (2) no early-out -- every query scanned the whole road path even when the road was a continent away.
+- SHIPPED (`terrain_gen.gd`, BIT-IDENTICAL -- `probe_ground_sample` now reconstructs the OLD inline algorithm and asserts EXACT equality over 246 dirs; GEO_HASH 835956491 unchanged): `RoadSpec.probe_pts/probe_w/probe_bed/probe_deck` = the exact membership point set (nodes + slerp thirds) built ONCE in `_build_road_probe_set`; `RoadSpec.bound_pts/bound_ang` + `_road_spec_near()` = a coarse checkpoint subset (every 6th node) with bound = max nearest-checkpoint distance + `ROAD_CLEAR_ANG`, an EXACT per-spec reject (the road analogue of `RiverSpec.bound_ang`). `_road_probe` now bound-rejects, then scans the flat precomputed set.
+- MEASURED: `road_height_override` cold 81.1 -> 7.3 us (11.1x); `terrain_height` cold 163.7 -> 85.9 us (1.9x); `ground_sample` cold 271 -> 196 us (1.4x); `splat_skin` cold 313.7 -> 226.5 us; clipmap cold build 990 -> 780 ms. CUMULATIVE this session: cold build 2004 -> 780 ms (2.6x), cold sample 389 -> ~290 us.
+- GATES: probe_ground_sample **15 checks ALL PASS** (new road-bound exactness, road-state finite, and the definitive 'probe set == old inline algorithm exactly' legs); probe_roads_flow 14 ALL PASS; probe_clipmap ALL PASS; probe_ground_law_audit ALL PASS; probe_starter_village ALL PASS; probe_world_shape_ground 0 failures; probe_terrain_climate 32 ALL PASS; probe_terrain_backend 11/0; test_terrain_splat_skin 25 green; test_terrain_determinism exit 0; lint 37/0.
+- NOTE: my earlier `_vnoise` memo idea was DROPPED after measuring -- post-6c a fresh sample issues only 17.2 `_vnoise` calls for 16.2 distinct (salt,freq) pairs, so a per-(salt,freq) memo has near-zero yield. Recorded so it is not re-attempted blindly.
+- DOCS: `labs/prd-ground-sample.md` section 6d; this entry; AGENTS.md.
+- PUSHED: `staging`.
+
+
 ## 2026-11-04cg -- world: shrink the cold ground law (residual ~2 s -> 947 ms) (staging, no PRs)
 - SESSION CONTEXT: prior session nuked; resumed on `staging`. User ask (2): work the residual ~2 s cold law -- per `prd-ground-sample.md`, the only remaining lever (hysteresis + the incremental tick already hide it in play).
 - FINDING (instrumented): ONE fused `ground_sample` issued **35.8 `_vnoise` calls but only 20 distinct `(salt,freq)` pairs** -- ~16 redundant noise derivations per vertex. Repeat offenders were PURE + UNCACHED: `_land_mass` ~5x/sample (same terrain salt), `_hydro_gates` 2.38x, `climate_moisture_field` ~2.3x. Separately, `waterfall_seam_at` (the per-vertex splat tail) re-derived the loop-INVARIANT `terrain_height(d)` 32x (once per waterfall segment) and lacked the S4 spec bound `river_channel` already had.
