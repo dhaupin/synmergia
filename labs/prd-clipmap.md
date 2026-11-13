@@ -159,14 +159,15 @@ gap is a smooth LOD error, not a snapped band.
 The ring ladder constants (inner radius fraction, 150 m hysteresis, ~8 m
 innermost cell) are tuned for the canon **20 km** planet. Below
 `PLANET_RENDER_MIN_R` (1000 m) -- e.g. the R=100 prototype bench sphere
-that several probes boot -- the clipmap would re-centre every step on a
-628 m-circumference sphere, so `_setup_streamer` falls back to the
-streamer. This is the same planet-scale line the world's other gates use.
+that several probes boot -- the clipmap re-centres every step on a 628
+m-circumference sphere, which the receipts (`probe_clipmap` +
+`probe_stream_flow_100m` at R=100) proved still correct; there is no
+fallback renderer anymore. This is the same planet-scale line the world's
+other gates use.
 
-## 4. Public surface (drop-in for the streamer)
+## 4. Public surface (the renderer's API)
 
-`globe_world` and the probes talk to the renderer through a small API. The
-clipmap implements the same names so the swap is a one-line switch:
+`globe_world` and the probes talk to the renderer through a small API:
 
 | member | meaning on the clipmap |
 |---|---|
@@ -225,8 +226,11 @@ streamer).
 - Per-vertex color memo sizing (bound the sector cache for the clipmap).
 - Whether the coarse horizon sphere needs its own LOD rings for the
   from-space view (currently one static sample).
-- Decommissioning the streamer + its skirt/hot-reload machinery once the
-  clipmap is the only path (a later cleanup round).
+- ~~Decommissioning the streamer + its skirt/hot-reload machinery once the
+  clipmap is the only path (a later cleanup round).~~ **DONE** (11a steps
+  4-5): every streamer-internal probe was retargeted and
+  `globe_terrain_streamer.gd` is deleted. `terrain_render` is a
+  compatibility read that warns + falls back to `"clipmap"`.
 - The **ground-law cold cost** (section 8) is the real ceiling: at ~390 µs
   per fresh fused sample the clipmap's cold build is ~2 s even after the
   S6 parallel build. Caching + hysteresis hide it, but shrinking the law
