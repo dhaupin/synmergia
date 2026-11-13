@@ -3,11 +3,16 @@
 Work items that can be handed to a subagent (OpenHands child conversation) or
 worked inline. See `labs/prd-openhands-canvas.md` for how subagent lanes run.
 
-**Rewritten 2026-11-28.** The previous board (five docs-only research tasks:
-NPC voice profiles, quest briefs, chronicle entries, weather lore, landmark
-names) is superseded -- those were written when the repo held 5 dialogues and
-9 quests. It now holds 9 dialogues and 27 quests, and a content audit on
+**Rewritten 2026-11-28; refreshed 2026-11-28 (later session).** The previous
+board (five docs-only research tasks: NPC voice profiles, quest briefs,
+chronicle entries, weather lore, landmark names) is superseded -- those were
+written when the repo held 5 dialogues and 9 quests. It now holds **20
+dialogues, 27 quests, 20 NPCs, and 5 weather events**, and a content audit on
 2026-11-28 found the gaps below. The old tasks are folded into Tasks 5-9 here.
+
+**All nine tasks below are landed.** The parity bugs (1-3) closed in the
+`fix/npc-parity` round; the class kits (4) and the creative content (5-9)
+followed. Task 10 is the one open item, opened by the refresh below.
 
 ## How to use this board
 
@@ -23,21 +28,24 @@ names) is superseded -- those were written when the repo held 5 dialogues and
   they are small and every content task downstream depends on the wiring being
   real. The creative tasks (4-9) follow.
 
-## Reusable existing drafts (checked 2026-11-28)
+## Reusable existing drafts (refreshed 2026-11-28, later session)
 
-The old board produced three `labs/` drafts that survive. They are **stale on
-counts** (written against 5 dialogues / 9 NPCs / 4 weather events; the repo now
-has 9 / 20 / 5) but their **voice work and lore framing are still good raw
-material**. Reuse them, do not re-write from scratch:
+The old board produced `labs/` drafts that survive. They are **stale on counts**
+(written against 5 dialogues / 9 NPCs / 4 weather events) but their **voice work
+and lore framing are still good raw material**. Reuse them, do not re-write from
+scratch:
 
 | draft | state | reuse for |
 |---|---|---|
 | `labs/story-dialogue-npcs.md` (268 lines) | voice profiles for the 9 then-authored NPCs, with lines tagged to real node ids and trigger conditions | **Task 5** -- done (2026-11-28g): the 8 mute NPCs now speak (PR #67); the profiles for the already-voiced NPCs are done |
 | `labs/story-voice-concord.md` (218 lines) | the Concord-as-reading-culture voice bible; the Bloom as maintenance failure | **Tasks 5, 6, 7** -- the tone authority alongside `story-dialogue-creative-voice.md` |
-| `labs/story-weather-events.md` (184 lines) | weather law + lore for the 4 then-authored events | **Task 7** -- add `weather_bloom_stir` (the 5th event) and refresh the count |
+| `labs/story-weather-events.md` (218 lines) | weather law + lore for the 4 then-authored events | **Task 7** -- done: `weather_bloom_stir` (the 5th event) landed |
 
-The other three old outputs (`story-quest-briefs.md`, `story-chronicle.md`,
-`story-landmark-names.md`) were never written; Tasks 3, 6, 8 cover them.
+Tasks 6 and 8 wrote the two drafts that were missing at rewrite time:
+`labs/story-chronicle.md` (220 lines) and `labs/story-landmark-names.md` (80
+lines, not the 143 the Task 8 entry first claimed). Only
+`labs/story-quest-briefs.md` was never produced; Task 3 covered the quest
+wiring instead of the prose briefs, so it is no longer owed.
 
 ---
 
@@ -330,7 +338,7 @@ far coast (capitol), the ford, the harbor, the underworld strata, the moon's
 meridian, the Gloamwood gate. For each: the name, a one-line etymology, and
 the field in code it would attach to. Name choices only -- no code edits.
 
-**Landed:** `labs/story-landmark-names.md` (143 lines) keyed to real
+**Landed:** `labs/story-landmark-names.md` (80 lines) keyed to real
 coordinates computed from the terrain law (`SPAWN_CENTER` 0.0/0.0,
 `ISLAND_CENTER` 0.0/30.0, `LAKE_CENTER` 15.1/73.1, `STRAIT_CENTER` 49.8/113.2,
 `cove_axis()` capitol 2.8/0.0). Resolved the naming split: **Gloamwood** is
@@ -347,7 +355,8 @@ strings only), regenerated the web mirror, and recorded the reversal in
 **The finding:** `labs/prd-quests.md` section 4 says achievements should
 celebrate the world's verbs, not grind counters. `achievement_listeners.gd`
 covers combat/horde/social; the waking verbs (EXPLORE/waypoint wakes, Bloom
-containment, companion/mount bonds) have thin coverage. 32 achievements exist.
+containment, companion/mount bonds) have thin coverage. 32 achievements
+existed at audit time (the corpus is now 40).
 
 **Landed:** the residual dead verb. `SignService.insight_recorded` -- the
 game's namesake "look up and write it down" practice -- reached only
@@ -363,6 +372,54 @@ added to the runner `DEFAULT_SET`. Web mirror re-synced.
 `achievement_listeners.gd` -- which verbs are celebrated, which are missing --
 then author 4-8 new achievements for the wake-counts ("Waymaker" tiers), the
 Bloom-containment deeds, and the bond lines. Schema: `achievement_data.gd`.
+
+---
+
+# PART D -- WIRING BUGS (found by the 2026-11-28 refresh)
+
+## Task 10 -- Skill buffs/debuffs are authored but never applied -- status: todo
+
+**The bug (two halves, one cause).** Skill `.tres` files carry buff/debuff
+effects in the `effects` array, e.g. `human_battle_cry.tres`:
+
+```
+effects = [{"type": "buff", "effect_id": "buff_battle_cry", "duration": 15.0}]
+```
+
+1. **The id dangles.** 29 skills name an `effect_id` that has no matching
+   `game/data/status_effects/*.tres` (`buff_battle_cry`, `debuff_stun`,
+   `debuff_weakness`, `buff_immunity`, ...). The authoring convention is that
+   the id names a real status effect -- `labs/TASKS.md` (the skill-tree round)
+   records the author explicitly checking "real effect_ids" and treating a
+   pre-existing matching status effect as the giveaway for a missing skill.
+2. **The runtime ignores the entry.** Both skill scripts flatten only
+   `damage`, `heal`, and `stun`/`root`/`slow` from `effects`; the `buff` and
+   `debuff` branches are `pass` stubs
+   (`game/core/schemas/skill.gd` `_apply_effects`; `game/core/combat/skill.gd`
+   `from_schema`). `get_status_effect()` has no caller anywhere in `game/`.
+   So even a *correct* id does nothing -- no buff lands, and the dangling ids
+   never surface because nothing resolves them.
+
+**Decide first (do not guess):** whether the intended design is
+data-authored status effects (skill `effect_id` -> `get_status_effect` ->
+`apply_status_effect`) or code-authored buffs (`Buff`/`AuraBuff` built at cast
+time, with the `.tres` `effect_id` as a hint). `Buff` and `AuraBuff` exist and
+are live through the aura path, so the code route is the smaller change; the
+data route needs the 29 `.tres` authored. Pick one, then make it uniform.
+
+**Fix:** wire the chosen route for `buff`/`debuff` in the live cast path (both
+`skill.execute` for instant/self and `CombatSystem._apply_skill_effects` for
+the hitbox family, so a landed hit and a self-cast behave the same). Then
+author the missing status effects or repoint the ids.
+
+**Gate:** extend `game/tests/test_data_naming_lint.gd`. Walk every
+`game/data/skills/**/*.tres`, find `"type": "buff"`/`"debuff"` entries, and
+assert each `effect_id` resolves to a real `data/status_effects/*.tres` -- the
+same fails-first shape as the offering `quest_ids` pass. Verify the gate FAILS
+on the current corpus (29 ids) before fixing.
+
+**Scope check:** 54 buff + 59 debuff effect entries ride on this. Until it
+lands, every "Battle Cry" in the game is a no-op.
 
 ---
 
