@@ -19,5 +19,6 @@ rewards = [{"type": "gold", "id": "", "quantity": 40}, {"type": "experience", "i
 gold_reward = 40
 xp_reward = 60
 next_quest_id = ""
+previous_quest_id = "quest_main_awakening"
 icon_path = "res://icons/quests/waypoint.png"
 map_marker = "explore"

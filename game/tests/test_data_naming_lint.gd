@@ -260,6 +260,43 @@ func _run() -> void:
 	else:
 		_fail("Phantom quest refs: %s" % ", ".join(bad_quest_refs))
 
+	# --- Quest chain symmetry ---
+	# The authored chain is bidirectional: a quest that names the next link
+	# and requires it is mirrored by that link naming it back as its
+	# previous_quest_id + required_quests. A one-sided link (the Awakening
+	# chain's missing back-edge) is a canon drift the resolve-only check
+	# above cannot see.
+	var bad_symmetry: Array = []
+	var chain: Dictionary = {}
+	for base in quest_ids:
+		var ctxt := _file_text("data/quests", base)
+		var cqid := str(quest_ids[base])
+		var cnext := ""
+		var cprev := ""
+		for line in ctxt.split("\n"):
+			var lt := line.strip_edges()
+			if lt.begins_with("next_quest_id = \""):
+				cnext = lt.trim_prefix("next_quest_id = \"").trim_suffix("\"")
+			elif lt.begins_with("previous_quest_id = \""):
+				cprev = lt.trim_prefix("previous_quest_id = \"").trim_suffix("\"")
+		chain[cqid] = {"next": cnext, "prev": cprev}
+	for cqid2 in chain:
+		var node: Dictionary = chain[cqid2]
+		var nx := str(node["next"])
+		if nx != "" and chain.has(nx):
+			var back: Dictionary = chain[nx]
+			if str(back["prev"]) != cqid2:
+				bad_symmetry.append("%s next -> %s but %s.previous_quest_id is '%s'" % [cqid2, nx, nx, str(back["prev"])])
+		var pv := str(node["prev"])
+		if pv != "" and chain.has(pv):
+			if str((chain[pv] as Dictionary)["next"]) != cqid2:
+				bad_symmetry.append("%s previous <- %s but %s.next_quest_id is '%s'" % [cqid2, pv, pv, str((chain[pv] as Dictionary)["next"])])
+	if bad_symmetry.is_empty():
+		_ok("Quest chain links are symmetric (next <-> previous)")
+	else:
+		_fail("One-sided quest chain links: %s" % "; ".join(bad_symmetry))
+
+
 	# --- Quest objective integrity ---
 	# Every objective's target must resolve against the SAME catalog its
 	# credit bridge reads. A KILL objective with a non-enemy target (the old
@@ -277,6 +314,12 @@ func _run() -> void:
 	var ocean_id_set := {}
 	for ob in ocean_ids:
 		ocean_id_set[ocean_ids[ob]] = true
+	# CRAFT objectives credit CraftingService.craft_completed with the
+	# recipe id verbatim, so the target must resolve against data/recipes.
+	var recipe_ids := _load_ids("data/recipes")
+	var recipe_id_set := {}
+	for rb in recipe_ids:
+		recipe_id_set[recipe_ids[rb]] = true
 	var bad_objectives: Array = []
 	for base in quest_ids:
 		var qtxt := _file_text("data/quests", base)
@@ -304,6 +347,9 @@ func _run() -> void:
 					4:
 						if not zone_id_set.has(otarget):
 							why = "EXPLORE target is not a zone id"
+					8:
+						if not recipe_id_set.has(otarget):
+							why = "CRAFT target is not a recipe id"
 					5:
 						if not npc_id_set.has(otarget):
 							why = "TALK target is not an npc_ id"

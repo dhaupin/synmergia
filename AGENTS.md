@@ -1416,3 +1416,27 @@ engine binary is provisioned by `scripts/setup-dev.sh`, not by LFS.
   seen, so never match on "the last literal in the args". Fed-but-
   unauthored categories (raw stat names `distance`/`time`/`max_altitude`,
   the follow/waypoint convenience verbs) print as `[info]`, not failures.
+
+### Canon gates in the naming lint (learned 2026-11-29, canon-gates round)
+
+- **Objective integrity covers 8 types, now including CRAFT.** The lint's
+  objective leg validates KILL(0)/COLLECT(1)/EXPLORE(4)/TALK(5)/
+  RECORD_INSIGHT(11)/SWIM(12)/GLIDE(13)/**CRAFT(8)** targets against the
+  SAME catalog their credit bridge reads (CRAFT -> `data/recipes` ids).
+  When you wire a new objective bridge, add its type to this leg or the
+  target goes unchecked.
+- **The quest chain is bidirectional and gated.** Every `next_quest_id`
+  link's target must name it back as `previous_quest_id`, and vice-versa
+  (the `_first_unmet_prereq` reader). The lint checks both resolve AND
+  symmetry -- a one-sided link is drift. (Fixed `quest_main_teachings`,
+  which lacked its back-edge to the Awakening.)
+- **Dead schema fields are the norm, not a bug.** `MountData.source` /
+  `source_ref` and most per-category fields (NPC `npc_type`/`shop_title`,
+  `guard.description`) have no reader -- the K3 baseline deliberately
+  closed 43 such phantom fields. Do NOT "wire up" a field just because
+  data authors it; confirm a real consumer exists first.
+- **The sigil sink catalog is the live mount surface** (`sigil_sink_service
+  .gd SINKS`); `MountData.source` is the dead one. The catalog prices five
+  mounts the data marks `DROP` even though its own comment says "only
+  VENDOR is sold here" -- a known inconsistency left for a deliberate call
+  (re-source the mounts, or relax the comment), not a drive-by edit.
