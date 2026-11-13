@@ -80,6 +80,25 @@ enum Liquid {
 ## body's radial column the same way the plane model does: negative
 ## above the line, meters-below below it, -1 inside the rock.
 @export var waterline_is_radial: bool = false
+## LOCAL RADIAL pool (the moon crater, S16.6): a LARGE dish near a
+## globe's surface where the plane waterline is dishonest -- the rim
+## of a big crater curves far below a flat plane (a 350 m dish on a
+## 1.2 km sphere sags ~50 m), so a body at the shore would read deep
+## water while standing on dry rock. When waterline_is_radial is true
+## AND surface_radius > 0, the waterline is a SPHERE of this radius
+## about floor_center, and depth is the radial column:
+##   depth = surface_radius - |pos - center|
+## The dish is BOUNDED, so `pool_dir` + `pool_angular_radius` gate the
+## claim (a local pool owns only its cap). Distinct from the world
+## sea's radial waterline (surface_radius == 0), which reads the seed's
+## sea radius -- that one is global, this one is a cap.
+@export var surface_radius: float = 0.0
+## The local radial pool's cap center direction (unit, about
+## floor_center). Only read when surface_radius > 0.
+@export var pool_dir: Vector3 = Vector3(0, 1, 0)
+## The local radial pool's angular half-width (rad): a body further
+## than this from pool_dir is outside the dish (not claimed).
+@export var pool_angular_radius: float = 0.0
 ## How deep the swimmable water goes before the SQUEEZE band starts
 ## (meters below the surface along the down axis).
 @export var max_depth: float = 60.0

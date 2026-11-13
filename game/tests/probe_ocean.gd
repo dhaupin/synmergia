@@ -58,22 +58,32 @@ func _run() -> void:
 		absf(svc.sample_depth(below, shelf) - 5.0) < 0.0001)
 	_check("the waterline itself reads zero", absf(svc.sample_depth(Vector3(0, 0, 0), shelf)) < 0.0001)
 
-	# ---- C. Terrain respect (the floor clamp) ----------------------------------
-	# The Builder's Pool: surface plane y=-6, rock plane y=-30 (24 m
-	# of honest water). Pressure depth is the WATER ABOVE the body:
-	# a body 1 m above the rock reads 23 m deep (23 m of water over
-	# it); a body pushed INSIDE the stone reads the no-water sentinel
-	# (-1, same as unknown space) -- the rock is not water.
-	var on_rock := Vector3(0, -29.0, 0)
+	# ---- C. Terrain respect (the radial floor clamp) --------------------------
+	# The Builder's Pool (S16.6): a GIGANTIC bounded radial pool -- a spherical
+	# sea of radius 1188 m about the moon's center, rock floor at radius 980,
+	# bounded to a cap (pool_angular_radius) about the crater direction.
+	# Pressure depth is the WATER ABOVE the body along the radial: a body 1 m
+	# above the rock reads 207 m deep; a body pushed INSIDE the stone reads the
+	# no-water sentinel (-1); a body OUTSIDE the dish (past the shore) also
+	# reads -1 (not this pool's water).
+	var on_rock := Vector3(0, 981.0, 0)
 	var honest: float = svc.sample_depth(on_rock, crater)
-	_check("the floor reads honest pressure depth near the rock (23 m)", absf(honest - 23.0) < 0.0001)
-	var under_rock := Vector3(0, -31.0, 0)
+	_check("the floor reads honest pressure depth near the rock (207 m)", absf(honest - 207.0) < 0.0001)
+	var under_rock := Vector3(0, 979.0, 0)
 	var clamped: float = svc.sample_depth(under_rock, crater)
 	_check("inside the stone there is no water (the -1 sentinel)", clamped == -1.0)
 	_check("the band inside the stone is DRY (stone is not water)", \
 		svc.band_at(under_rock) == B.DRY)
-	_check("the surface plane never lies about the waterline", \
-		svc.sample_depth(Vector3(0, -10.0, 0), crater) == 4.0)
+	# The waterline itself: a body exactly on the 1188 m sphere reads zero.
+	_check("the surface sphere never lies about the waterline", \
+			absf(svc.sample_depth(Vector3(0, 1188.0, 0), crater)) < 0.0001)
+	# A body 4 m above the waterline reads -4 (meters above, the sign law).
+	_check("above the waterline is NEGATIVE (meters above)", \
+			absf(svc.sample_depth(Vector3(0, 1192.0, 0), crater) + 4.0) < 0.0001)
+	# Outside the shore (past the cap) is not this pool's water.
+	var past_shore := Vector3(sin(0.6), cos(0.6), 0).normalized() * 1050.0
+	_check("outside the pool's shore there is no water (the cap bounds it)", \
+			svc.sample_depth(past_shore, crater) == -1.0)
 
 	# ---- D. Band mapping ---------------------------------------------------------
 	# band_for is an INSTANCE method of the schema; the enum is the
@@ -105,28 +115,31 @@ func _run() -> void:
 		and svc.current_at(below).is_equal_approx(shelf.current_vector()) \
 		and svc.volume_at(below) == shelf)
 	_check("the crater has no current (tame by design)", \
-		svc.current_at(Vector3(0, -8, 0)).length() == 0.0)
+		svc.current_at(Vector3(0, 1182.0, 0)).length() == 0.0)
 
 	# ---- F. Volume lookup --------------------------------------------------------------
 	_check("the sampler resolves the containing volume (shelf, its own span)", \
 		svc.volume_at(below) == shelf)
-	_check("the sampler resolves the crater (pool scale)", \
-		svc.volume_at(Vector3(0, -12.0, 0)) == crater)
+	_check("the sampler resolves the crater (the pool's own radial span)", \
+		svc.volume_at(Vector3(0, 1182.0, 0)) == crater)
 	var nowhere := Vector3(500000.0, 500000.0, 500000.0)
 	_check("unknown water reads as dry (no invented ocean)", \
 		svc.volume_at(nowhere) == null and svc.sample_depth(nowhere) == -1.0 \
 		and svc.band_at(nowhere) == B.DRY and svc.current_at(nowhere) == Vector3.ZERO)
 
-	# ---- G. The Builder's Pool (the dev workshop's water) ------------------------------
+	# ---- G. The Builder's Pool (the dev workshop's inland sea) -------------------------
 	_check("the pool is tame: no current, no pressure (a workshop, not a monster)", \
 		float(crater.current_strength) == 0.0 and float(crater.pressure_per_meter) == 0.0)
-	_check("the pool sits on the Watched Stone (a dish carved in the regolith)", \
-		not bool(crater.floor_is_radial) and absf(float(crater.floor_y) + 30.0) < 0.001 \
-		and absf(float(crater.surface_height) + 6.0) < 0.001)
+	_check("the pool sits on the Watched Stone (a sea in a carved dish)", \
+		bool(crater.floor_is_radial) and bool(crater.waterline_is_radial) \
+		and absf(float(crater.surface_radius) - 1188.0) < 0.001 \
+		and absf(float(crater.floor_radius) - 980.0) < 0.001)
+	_check("the pool's shore is a bounded cap (the sea owns only its dish)", \
+		float(crater.pool_angular_radius) > 0.0 and absf(float(crater.pool_dir.y) - 1.0) < 0.001)
 	_check("the pool's lore carries the workshop mystery", \
 		str(crater.lore).contains("builders") and str(crater.lore).contains("workshop"))
-	# The full swim band exists in the crater (24 m of honest water).
-	var crater_mid := Vector3(0, -12.0, 0)
+	# The full swim band exists in the crater (a deep sea -- 6 m at the mid mark).
+	var crater_mid := Vector3(0, 1182.0, 0)
 	_check("the crater holds a real swim band (6 m at the mid mark)", \
 		absf(svc.sample_depth(crater_mid, crater) - 6.0) < 0.0001 \
 		and svc.band_at(crater_mid) == B.SUBMERGED)

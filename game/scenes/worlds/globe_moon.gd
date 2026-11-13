@@ -63,10 +63,13 @@ func _ready() -> void:
 	planet_center = world_root.position
 	_build_regolith()
 	_build_terrain()
-	_build_crater_pool()
+	_build_crater_landmark()
 	_build_landing_gate()
 	_build_earthrise()
-	GameLog.info("GlobeMoon: conjured (dev target; radius %.0f m, the earthrise meridian waits)" % planet_radius)## Bring a visitor across. Called by the Moon Gate AFTER ScopeService
+	GameLog.info("GlobeMoon: conjured (dev target; radius %.0f m, the earthrise meridian waits)" % planet_radius)
+
+
+## Bring a visitor across. Called by the Moon Gate AFTER ScopeService
 ## accepted the swap; adopts the body into lunar physics and places
 ## it on the surface at the landing site. Idempotent per body.
 ## Bodies from the planar main world (the player body) get the
@@ -172,46 +175,24 @@ func _build_terrain() -> void:
 
 
 ## THE BUILDER'S POOL (S16.6): the crater the moon DECLARES
-## (data/oceans/ocean_lunar_crater.tres) is now a real dish -- a dark
-## water disc at the declared surface height, riding the provider's carved
-## bowl. The water physics stay in the ocean volume (floor_is_radial =
-## false, a LOCAL pool); this builds the STONE and the visible water.
-func _build_crater_pool() -> void:
+## (data/oceans/ocean_lunar_crater.tres) is a gigantic inland sea whose
+## water is drawn by the SHARED clipmap standing-water sheet -- the sheet
+## follows `provider.water_surface(dir)` over the sphere, so a 380 m cap at
+## radius 1188 is drawn as a real curved sea, no bespoke disc (the render
+## twin of the swim law; the same sheet draws the main world's rivers). The
+## marker node keeps the pool legible as a named landmark (probes, minimap,
+## future content); the SHAPE is the declaration's, the PAINT is the
+## clipmap's, the PHYSICS is OceanService's.
+func _build_crater_landmark() -> void:
 	if _provider == null:
 		return
 	var jug := Node3D.new()
 	jug.name = "BuilderPool"
+	# The crater's own direction, at the waterline radius (the pool's heart).
+	jug.position = _provider.crater_dir() * _provider.crater_water_radius()
 	world_root.add_child(jug)
-	var dir: Vector3 = _provider.crater_dir()
-	var water_y: float = _provider.crater_water_y()
-	var rim_r: float = 40.0
-	# The water disc: a translucent shell at the declared surface height,
-	# seated at the crater's radial position (planet-relative).
-	var water := MeshInstance3D.new()
-	var wmesh := CylinderMesh.new()
-	wmesh.top_radius = rim_r * 0.94
-	wmesh.bottom_radius = rim_r * 0.94
-	wmesh.height = 0.3
-	water.mesh = wmesh
-	water.name = "CraterWater"
-	water.position = dir * water_y
-	water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	var wmat := StandardMaterial3D.new()
-	wmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	wmat.albedo_color = Color(0.35, 0.40, 0.50, 0.72)
-	wmat.roughness = 0.2
-	wmat.metallic = 0.1
-	wmesh.material = wmat
-	# Lay the disc flat in the crater plane (its local +Y points up along dir).
-	var up: Vector3 = dir
-	var hint := Vector3(0, 1, 0)
-	if absf(up.dot(hint)) > 0.999:
-		hint = Vector3(0, 0, -1)
-	var east: Vector3 = (hint - up * hint.dot(up)).normalized()
-	var north: Vector3 = east.cross(up)
-	water.basis = Basis(east, up, north)
-	jug.add_child(water)
-	GameLog.info("GlobeMoon: the Builder's Pool is built (%.0f m dish, water at %.1f m)" % [rim_r, water_y])
+	GameLog.info("GlobeMoon: the Builder's Pool is declared (%.0f m sea, waterline r=%.0f m)" % \
+			[_provider.crater_pool_ang() * planet_radius, _provider.crater_water_radius()])
 
 
 ## The ride home: a return Moon Gate at the landing site naming main.
@@ -255,18 +236,40 @@ func _build_earthrise() -> void:
 	add_child(_parent_sky)
 
 
-func _process(_delta: float) -> void:
-	# Stream the terrain + keep the pad under the visitor (the clipmap's own
-	# tick path -- the same one the main world rides).
+func _process(delta: float) -> void:
 	if _visitors.is_empty():
 		return
 	var body = _visitors.values()[0]
 	if body == null or not is_instance_valid(body):
 		return
+	# THE SHARED SWIM LAW (S14/S16.6): every body on the pale stone rides the
+	# ONE sampler -- declare an OceanVolume and the body ticks through
+	# OceanService; the moon supplies the world-local frame (the crater is
+	# radial about world_root, the same frame the pool declares). This is the
+	# "just a call" seam: the moon adds NO swim code, it feeds positions.
+	_deliver_swim(body, delta)
 	if _clipmap != null:
 		_clipmap.update(body.global_position - world_root.global_position)
 	if _pad != null:
 		_pad.update(body.global_position, world_root.global_position)
+
+
+## Feed one body through the shared ocean sampler (the swim law's one reader
+## on the moon). World-local position (world_root-local planet coords) is the
+## frame the crater volume declares in; a body with no entity id is skipped.
+func _deliver_swim(body: Node, delta: float) -> void:
+	var svc = get_node_or_null("/root/OceanService")
+	if svc == null or not svc.has_method("tick_swimmer"):
+		return
+	var pid: String = ""
+	if "entity_id" in body:
+		pid = str(body.entity_id)
+	elif "player_id" in body:
+		pid = str(body.player_id)
+	if pid == "":
+		return
+	var local: Vector3 = body.global_position - world_root.global_position
+	svc.tick_swimmer(pid, local, delta)
 
 
 func _moon_data():

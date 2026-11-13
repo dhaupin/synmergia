@@ -539,6 +539,24 @@ without flora.
   gate stays OFF by default -- redundant decoration beside the Penrose ground
   backend). Receipts: `probe_clipmap` G6 (wet sheet builds / dry yields none)
   + G7 (deck quads > 0).
+- **Step 3d (water unification -- WaterKit) -- DONE (2026-11-29).** The
+  PHYSICS of water was always shared (`OceanVolume` + `OceanService.tick_swimmer`),
+  but the VISIBLE water was hand-rebuilt per site (crater disc, cistern disc,
+  lava disc) and the moon never ticked swimmers. Two halves now match the
+  one-sampler law: (1) `core/world/water_kit.gd` is the RENDER TWIN of
+  `OceanService` (sibling of `instance_prop_kit.gd`) -- `build_pool` /
+  `build_from_volume` read the SAME `OceanVolume` the swim law reads and draw
+  the translucent disc (never a collider; the volume is the truth). The
+  underworld cistern + lava lake call it. (2) RADIAL water: `ocean_volume.gd`
+  gained `waterline_is_radial` + `surface_radius` + `pool_dir` +
+  `pool_angular_radius` (the existing `floor_is_radial` handles the rock), so a
+  big crater/river can be a bounded spherical sea; `OceanService.volume_at` /
+  `sample_depth` read the bounded cap. The moon's Builder's Pool is now a
+  GIGANTIC radial inland sea (radius 1188 about the moon's center, rock 980,
+  208 m deep, a 0.305 rad shore) drawn by the SHARED clipmap standing-water
+  sheet, and `globe_moon._process` ticks every visitor through the one
+  sampler in the world-root-local frame. Receipts: `probe_ocean` 47,
+  `probe_swim` 20, `probe_conjured_ground` 29, `probe_clipmap` G6.
 - **Step 4 (retarget probes) -- DONE.** Every streamer-internal probe now
   reads the shared surface: `probe_prop_density` / `probe_biodiversity_v7` /
   `diag_detail_kinds` census the `PropLayer`, `probe_mesh_surface_enum` /
@@ -586,7 +604,7 @@ The work splits cleanly along the existing subagent-lane pattern
 | **LANE A** | Port the prop taxonomy (trees/species/vines, rocks/scree, boulders) from the streamer into `PropLayer` builders + the shared mesh registry. | new prop builder files |
 | **LANE B** | Port the detail kinds + grass field + harvest registration (stable chunk-keyed ids). | new prop builder files, `harvest_service.gd` |
 | **LANE C** | `UnderworldProvider` + wire `BiomeBand.family` dispatch + the lava lake/cistern as declared geography. | `globe_underworld.gd`, `biome_band.gd` |
-| **LANE D** | `MoonProvider` + build the declared crater pool + the moon's own biome bands. | `globe_moon.gd`, `world_moon.tres`, new `data/biomes/moon_*` |
+| **LANE D** | `MoonProvider` + build the declared crater pool + the moon's own biome bands. **DONE** (2026-11-29, 11a step 3d): the crater is a gigantic radial inland sea drawn by the shared clipmap sheet, the moon ticks swimmers through the one sampler, and `WaterKit` (`core/world/water_kit.gd`) is the shared visible-water builder. The moon's inline biome consts remain (no `data/biomes/moon_*` files yet). | `globe_moon.gd`, `moon_provider.gd`, `ocean_lunar_crater.tres`, new `core/world/water_kit.gd` |
 | **PARENT** (last) | Retarget the streamer-internal probes; delete the streamer. **DONE** (11a steps 4-5). | `game/tests/`, `globe_terrain_streamer.gd` (deleted) |
 
 Gates at every step: `probe_clipmap` ALL PASS; a NEW `probe_prop_layer`

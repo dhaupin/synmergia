@@ -1,5 +1,5 @@
 {
-  "lastSyncedAt": "2026-11-13T10:59:59.912Z",
+  "lastSyncedAt": "2026-11-13T13:50:43.284Z",
   "counts": {
     "classes": 39,
     "weapons": 82,
@@ -23613,16 +23613,23 @@
       },
       "id": "ocean_lunar_crater",
       "display_name": "The Builder's Pool",
-      "surface_height": -6,
-      "floor_is_radial": false,
+      "surface_height": -12,
+      "floor_is_radial": true,
       "floor_center": {
         "x": 0,
-        "y": -6,
+        "y": 0,
         "z": 0
       },
-      "floor_radius": 40,
-      "floor_y": -30,
-      "max_depth": 24,
+      "floor_radius": 980,
+      "waterline_is_radial": true,
+      "surface_radius": 1188,
+      "pool_dir": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "pool_angular_radius": 0.305,
+      "max_depth": 230,
       "current_direction": {
         "x": 0,
         "y": 0,
@@ -23630,16 +23637,16 @@
       },
       "current_strength": 0,
       "pressure_per_meter": 0,
-      "salinity": 0.3,
+      "salinity": 0.35,
       "ambient_fog_color": {
-        "r": 0.35,
-        "g": 0.4,
-        "b": 0.5,
+        "r": 0.12,
+        "g": 0.22,
+        "b": 0.34,
         "a": 1
       },
-      "ambient_fog_density": 0.015,
-      "ambient_sounds": "Array[String]([\"ocean_lap\"])",
-      "lore": "The builders filled a crater to learn what water is. Tame by design: no currents, no pressure, nothing that bites -- the workshop pool where the world works on itself. Whatever swims here first swims on the moon.",
+      "ambient_fog_density": 0.02,
+      "ambient_sounds": "Array[String]([\"ocean_deep\", \"ocean_lap\"])",
+      "lore": "The builders filled a crater to learn what water is, and the dish kept growing until it was an inland sea: three hundred and sixty paces across, two hundred deep, filled to within a stone's throw of its own rim. Tame by design -- no squeeze, no crush, a slow turn the way the pale stone turns -- the workshop pool where the world works on itself. Whatever swims here first swims on the moon.",
       "_sourceFile": "game/data/oceans/ocean_lunar_crater.tres",
       "_scriptClass": "OceanVolume"
     },

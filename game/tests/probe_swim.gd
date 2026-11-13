@@ -47,7 +47,9 @@ func _run() -> void:
 
 	# ---- B. The service driver ------------------------------------------------
 	var crater = svc.get_volume("ocean_lunar_crater")
-	var r: Dictionary = svc.tick_swimmer("pool_swimmer", Vector3(0, -12, 0), 1.0 / 60.0)
+	# The pool's frame is RADIAL about the moon's center: the water sphere is
+	# radius 1188 (declared surface_radius), so a body at r=1182 is 6 m under.
+	var r: Dictionary = svc.tick_swimmer("pool_swimmer", Vector3(0, 1182, 0), 1.0 / 60.0)
 	_check("one tick returns the whole water truth", \
 		r.has("state") and r.has("depth") and r.has("band") and r.has("current") \
 		and r.has("breath") and r.has("pressure") and r.has("drowning_s"))
@@ -56,15 +58,15 @@ func _run() -> void:
 	# ---- C. The first swim: a full dive in the Builder's Pool ------------------
 	svc.forget_swimmer("dive_1")
 	var dt: float = 1.0 / 60.0
-	# Walk in: ankles at y=-6.5 (0.5 m deep).
-	var w: Dictionary = svc.tick_swimmer("dive_1", Vector3(0, -6.5, 0), dt)
+	# Walk in: ankles at r=1187.5 (0.5 m deep).
+	var w: Dictionary = svc.tick_swimmer("dive_1", Vector3(0, 1187.5, 0), dt)
 	_check("entering the pool reads WADING", int(w["state"]) == SS.State.WADING)
 	# Head-up: 1.5 m deep (top meter of the swim band).
-	var h: Dictionary = svc.tick_swimmer("dive_1", Vector3(0, -7.5, 0), dt)
+	var h: Dictionary = svc.tick_swimmer("dive_1", Vector3(0, 1186.5, 0), dt)
 	_check("the top meter reads SURFACE_SWIM (breath refills)", int(h["state"]) == SS.State.SURFACE_SWIM)
-	# Dive to the floor-1 (23 m deep, 1 m above the rock).
+	# Dive to the rock + 1 m (the dish floor near r=981: 207 m of honest water).
 	for i in range(600):
-		svc.tick_swimmer("dive_1", Vector3(0, -29.0, 0), dt)
+		svc.tick_swimmer("dive_1", Vector3(0, 981.0, 0), dt)
 	var deep = svc.swim_state("dive_1")
 	_check("10 s at the pool floor: breath drained to 35 s", \
 		absf(float(deep.breath) - (SS.BREATH_SECONDS - 10.0)) < 0.1)
@@ -72,7 +74,7 @@ func _run() -> void:
 		float(deep.pressure) == 0.0)
 	# Surface: breath refills.
 	for i in range(6):
-		svc.tick_swimmer("dive_1", Vector3(0, -7.5, 0), dt)
+		svc.tick_swimmer("dive_1", Vector3(0, 1186.5, 0), dt)
 	var up = svc.swim_state("dive_1")
 	_check("surfacing refills the breath clock", float(up.breath) == SS.BREATH_SECONDS)
 
@@ -101,12 +103,12 @@ func _run() -> void:
 	# ---- E. Drowning ------------------------------------------------------------
 	svc.forget_swimmer("drowner")
 	for i in range(3000):
-		svc.tick_swimmer("drowner", Vector3(0, -20.0, 0), dt2)
+		svc.tick_swimmer("drowner", Vector3(0, 1150.0, 0), dt2)
 	var d = svc.swim_state("drowner")
 	_check("45 s under = drowning (the clock ran out)", d.is_drowning())
 	_check("the overtime pool accrues honestly", float(d.drowning_s) > 0.0 and float(d.drowning_s) < 10.0)
-	# Dry land stops everything.
-	svc.tick_swimmer("drowner", Vector3(0, 5.0, 0), dt2)
+	# Dry land stops everything (well above the sea sphere).
+	svc.tick_swimmer("drowner", Vector3(0, 5000.0, 0), dt2)
 	var d2 = svc.swim_state("drowner")
 	_check("dry land resets breath and drowning", \
 		float(d2.breath) == SS.BREATH_SECONDS and float(d2.drowning_s) == 0.0)

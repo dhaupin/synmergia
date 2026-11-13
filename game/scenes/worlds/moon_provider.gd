@@ -16,13 +16,25 @@ const PropLayer = preload("res://core/world/prop_layer.gd")
 const WORLD_ID: String = "moon"
 const PLANET_RADIUS: float = 1200.0
 
-## The crater sits at the moon's top pole, where the horizontal water-plane
-## model of a LOCAL ocean volume is a good approximation (a dish carved near
-## the summit of the regolith).
+## The crater sits at the moon's top pole, where a bounded spherical-cap
+## waterline (the "Builder's Pool") is honest. GIGANTIC by design: a 380 m
+## footprint radius on the 1.2 km stone is an inland sea, filled to within a
+## stone's throw of its own rim (water 12 m below the reference radius) and
+## 208 m deep at the centre (the bowl floor 220 m down). It is the work the
+## builders came to do -- the workshop pool grown ocean-like. Plane waterline
+## would be dishonest at this scale (a 380 m dish sags ~60 m below a flat
+## plane), so the pool declares a RADIAL waterline (surface_radius) with a
+## bounded cap (pool_dir + pool_angular_radius).
 const CRATER_DIR: Vector3 = Vector3(0, 1, 0)
-const CRATER_RADIUS_M: float = 40.0
-const CRATER_FLOOR_M: float = 30.0     # bowl depth below the reference radius
-const CRATER_WATER_M: float = 6.0      # water surface below the reference radius
+const CRATER_RADIUS_M: float = 380.0    # footprint radius (angular 380/1200 rad)
+const CRATER_FLOOR_M: float = 220.0     # bowl depth below the reference radius
+const CRATER_WATER_M: float = 12.0      # water surface below the reference radius
+const CRATER_RIM_LIP_M: float = 6.0     # the raised lip the water stays inside
+## The Pool's angular half-width (rad): where the bowl rises through the
+## waterline (the shore). The clipmap's standing-water sheet and the
+## `ocean_lunar_crater` declaration's pool_angular_radius both read this, so
+## the drawn sea and the swimmable sea share ONE shore.
+const CRATER_POOL_ANG: float = 0.305
 ## The landing site: just outside the crater rim, on the flat the return gate
 ## and the earthrise stand on. Derived so the visitor always lands level.
 const LANDING_ANG_MARGIN: float = 0.075
@@ -71,15 +83,17 @@ func ground_height(dir: Vector3) -> float:
         var a: float = d.angle_to(CRATER_DIR)
         var h: float = base
         if a < _crater_ang:
-                # The bowl: a parabola to the floor, with a raised rim lip.
+                # The bowl: a parabola to the floor, with a raised rim lip the
+                # water stays inside (the lip is why an inland sea neither
+                # spills nor dries).
                 var t: float = a / _crater_ang
                 h = -CRATER_FLOOR_M * (1.0 - t * t)
-                if t > 0.8:
-                        h += 2.2 * (t - 0.8) / 0.2
+                if t > 0.85:
+                        h += CRATER_RIM_LIP_M * (t - 0.85) / 0.15
         elif a < _crater_ang * 1.8:
                 # The ejecta apron: blend the rim back to the regolith.
                 var t2: float = (a - _crater_ang) / (_crater_ang * 0.8)
-                h = base + 2.2 * (1.0 - t2)
+                h = base + CRATER_RIM_LIP_M * (1.0 - t2)
         # Flatten a small apron at the landing so the gate stands level.
         var land_ang: float = d.angle_to(_landing_dir)
         if land_ang < 0.05:
@@ -108,10 +122,12 @@ func spawn_dir() -> Vector3:
 
 
 ## The crater's declared water surface (m above the reference radius); -1e9
-## outside the dish. The pool data (surface_height - floor_y) is the depth law.
+## outside the dish. The pool is a bounded spherical cap: a body inside the
+## shore direction reads the water height (the clipmap's standing-water sheet
+## rides this), and the `ocean_lunar_crater` volume is the swim truth.
 func water_surface(dir: Vector3) -> float:
         var d: Vector3 = dir.normalized()
-        if d.angle_to(CRATER_DIR) < _crater_ang * 1.05:
+        if d.angle_to(CRATER_DIR) < CRATER_POOL_ANG:
                 return -CRATER_WATER_M
         return -1.0e9
 
@@ -173,13 +189,27 @@ func crater_angular_radius() -> float:
         return _crater_ang
 
 
+## The Pool's shore half-width (rad): the angle from crater_dir where the
+## bowl rises through the declared waterline. The `ocean_lunar_crater`
+## volume's pool_angular_radius mirrors this, so the drawn sea and the
+## swimmable sea share ONE shore (the one-shore law).
+func crater_pool_ang() -> float:
+        return CRATER_POOL_ANG
+
+
 func landing_dir() -> Vector3:
         return _landing_dir
 
 
-## The crater's water surface, in world_root-local planet coords (the moon is
-## conjured at origin, so local == planet coords). Matches the declared
-## `surface_height` the ocean volume reads.
+## The crater's waterline RADIUS (m from the moon's center): the reference
+## radius minus the declared surface depth. The `ocean_lunar_crater` volume
+## declares the same number as its surface_radius (a bounded radial pool).
+func crater_water_radius() -> float:
+        return PLANET_RADIUS - CRATER_WATER_M
+
+
+## The crater's water surface, in world_root-local planet coords along the
+## crater direction (kept for callers that want the plane height at the pole).
 func crater_water_y() -> float:
         return PLANET_RADIUS - CRATER_WATER_M
 

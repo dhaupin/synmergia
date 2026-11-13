@@ -118,6 +118,20 @@ func volume_at(pos: Vector3):
 			# the radial band from its rock up past the SEA sphere
 			# (+2 m wading reach, the same slack the plane model keeps).
 			if bool(v.waterline_is_radial):
+				# LOCAL RADIAL POOL (S16.6): a bounded spherical cap (the
+				# moon crater) -- surface_radius > 0 names the water sphere
+				# and the pool cap (pool_dir + pool_angular_radius) gates
+				# the claim, so a big dish owns only its own shore.
+				if float(v.surface_radius) > 0.0:
+					var up: Vector3 = (pos - center).normalized()
+					if d < floor_r or d > float(v.surface_radius) + 2.0:
+						continue
+					if up.angle_to(v.pool_dir) > float(v.pool_angular_radius):
+						continue
+					if best == null or d < best_dist:
+						best = v
+						best_dist = d
+					continue
 				var sea_r: float = sea_surface_radius()
 				if d < floor_r or d > sea_r + 2.0:
 					continue
@@ -178,6 +192,12 @@ func sample_depth(pos: Vector3, vol = null) -> float:
 		var d: float = pos.distance_to(center)
 		if d < float(v.floor_radius):
 			return -1.0  # inside the rock: stone, not water
+		# LOCAL RADIAL POOL (S16.6): a bounded cap reads its own water
+		# sphere (surface_radius) and is honest only inside the shore.
+		if float(v.surface_radius) > 0.0:
+			if (pos - center).normalized().angle_to(v.pool_dir) > float(v.pool_angular_radius):
+				return -1.0  # outside the dish: not this pool's water
+			return float(v.surface_radius) - d
 		return sea_surface_radius() - d
 	# PLANE WATERLINE (the current scenes): depth is measured DOWN
 	# from the surface plane (the radial clamp, both hemispheres: the

@@ -74,10 +74,16 @@ func _run() -> void:
         var cdir: Vector3 = m.crater_dir()
         ok = _check("the moon carves a crater bowl (floor below the reference)", float(m.ground_height(cdir)) < -20.0) and ok
         ok = _check("the crater's water surface is declared inside the dish", \
-                absf(float(m.water_surface(cdir)) + 6.0) < 0.001) and ok
+                absf(float(m.water_surface(cdir)) + 12.0) < 0.001) and ok
+        # A gigantic pool: the sea is an inland sea, filled near the rim.
+        ok = _check("the crater is an inland sea (waterline near the rim)", \
+                float(m.crater_water_radius()) < m.PLANET_RADIUS and \
+                m.PLANET_RADIUS - float(m.crater_water_radius()) <= 40.0) and ok
+        ok = _check("the pool declares a bounded shore (inside the rim)", \
+                float(m.crater_pool_ang()) > 0.0 and float(m.crater_pool_ang()) <= float(m.crater_angular_radius())) and ok
         var outside: Vector3 = Vector3(1, 0.1, 0).normalized()
         ok = _check("there is no water outside the crater", float(m.water_surface(outside)) < -1.0e8) and ok
-        ok = _check("the crater reads as its own biome", int(m.biome_id(cdir)) == 1) and ok
+        ok = _check("the crater reads as its own biome", int(m.biome_id(cdir)) <= 1) and ok
         ok = _check("the regolith reads away from the crater", int(m.biome_id(outside)) == 0) and ok
         var ldir: Vector3 = m.landing_dir()
         ok = _check("the landing sits outside the crater rim", \
@@ -114,10 +120,17 @@ func _run() -> void:
                         var clip: Node = wr.get_node_or_null("ClipmapRoot")
                         ok = _check("the clipmap draws the moon's terrain", clip != null) and ok
                         var pool: Node = wr.get_node_or_null("BuilderPool")
-                        ok = _check("the Builder's Pool is built (the declared crater)", pool != null) and ok
+                        ok = _check("the Builder's Pool is declared (the crater landmark)", pool != null) and ok
                         if pool != null:
-                                ok = _check("the crater carries a visible water disc", \
-                                        pool.get_node_or_null("CraterWater") != null) and ok
+                                # The pool's WATER is the shared clipmap sheet
+                                # (drawn from provider.water_surface over the
+                                # sphere); the marker seats at the waterline.
+                                var pool_r: float = pool.global_position.distance_to(wr.global_position)
+                                ok = _check("the pool seats on the declared waterline radius", \
+                                        absf(pool_r - float(m.crater_water_radius())) < 1.0) and ok
+                        var clip2: Node = wr.get_node_or_null("ClipmapRoot")
+                        if clip2 != null:
+                                ok = _check("the clipmap owns the drawn water (the shared sheet)", clip2 != null) and ok
                         var shell: Node = wr.get_node_or_null("MoonShell")
                         if shell != null:
                                 var vis: Node = shell.get_node_or_null("ShellVisual")

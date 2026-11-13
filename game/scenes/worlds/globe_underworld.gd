@@ -35,6 +35,7 @@ const ResourceScan = preload("res://core/frame/srv/resource_scan.gd")
 const ClipmapScript = preload("res://scenes/worlds/globe_clipmap.gd")
 const UnderworldProviderScript = preload("res://scenes/worlds/underworld_provider.gd")
 const SurfacePadScript = preload("res://core/world/surface_pad.gd")
+const WaterKitScript = preload("res://core/world/water_kit.gd")
 ## The scatter families a BiomeBand declaration can name (the wilds dispatch
 ## key -- a band says which family walks there, not the builder's own id).
 const BiomeFamily = preload("res://core/schemas/biome_band.gd").Family
@@ -465,28 +466,25 @@ func _build_cistern() -> void:
 		piece.mesh = mesh
 		piece.rotation.y = -a
 		_cistern_piece(jug, piece)
-	# --- the glow-water disc: one translucent shell, physics in DATA ---
-	var water := MeshInstance3D.new()
-	var water_mesh := CylinderMesh.new()
-	water_mesh.top_radius = inner_r
-	water_mesh.bottom_radius = inner_r
-	water_mesh.height = 0.3
-	water.mesh = water_mesh
-	water.name = "CisternWater"
-	water.position = seat_xz + Vector3(0, water_y, 0)
-	water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	var wmat := StandardMaterial3D.new()
-	wmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	wmat.albedo_color = Color(0.16, 0.42, 0.44, 0.66)
-	wmat.roughness = 0.15
-	wmat.emission_enabled = true
-	wmat.emission = Color(0.3, 0.85, 0.6)
-	wmat.emission_energy_multiplier = cistern_glow(_glow_tide_phase())
-	water_mesh.material = wmat
-	_cistern_water_mat = wmat
-	# NO collider on the water: the swim law reads the OceanVolume, the
-	# disc is only the renderer's paint (one ground truth law).
-	jug.add_child(water)
+	# --- the glow-water disc: ONE WaterKit call, physics in DATA ---
+	# The render twin of the swim law: WaterKit reads the SAME declaration
+	# (ocean_deep_root_pool) the swim tick reads, drawing the visible water at
+	# the declared surface. No bespoke mesh, no collider (the disc is paint;
+	# the swim law reads the OceanVolume).
+	var wk = WaterKitScript.new()
+	var vol = _ocean_volume("ocean_deep_root_pool")
+	var water: MeshInstance3D = wk.build_from_volume(jug, vol, seat_xz, {
+		"name": "CisternWater",
+		"height": 0.3,
+		"albedo": Color(0.16, 0.42, 0.44),
+		"alpha": 0.66,
+		"roughness": 0.15,
+		"emission": Color(0.3, 0.85, 0.6),
+		"emission_energy": cistern_glow(_glow_tide_phase()),
+	})
+	# The per-frame glow rider reads this material off the built disc.
+	if water != null and water.mesh != null:
+		_cistern_water_mat = water.mesh.surface_get_material(0)
 	GameLog.info("GlobeUnderworld: the Glow Cistern caught tide at %.1f m (the pool gets the glow)" % water_y)
 
 
@@ -502,10 +500,7 @@ func _cistern_piece(jug: Node3D, stone: MeshInstance3D) -> void:
 ## physics. Empty when the declaration is unavailable (the builder's own
 ## literals are the fallback).
 func _ocean_decl(id: String) -> Dictionary:
-	var ocean = get_node_or_null("/root/OceanService")
-	if ocean == null or not ocean.has_method("get_volume"):
-		return {}
-	var v = ocean.get_volume(id)
+	var v = _ocean_volume(id)
 	if v == null:
 		return {}
 	return {
@@ -514,6 +509,15 @@ func _ocean_decl(id: String) -> Dictionary:
 		"surface": float(v.surface_height),
 		"floor_y": float(v.floor_y),
 	}
+
+
+## The raw OceanVolume declaration (the ONE truth the swim law and the water
+## renderer both read -- WaterKit.build_from_volume takes it directly).
+func _ocean_volume(id: String):
+	var ocean = get_node_or_null("/root/OceanService")
+	if ocean == null or not ocean.has_method("get_volume"):
+		return null
+	return ocean.get_volume(id)
 
 
 # ---- THE DEEP WILDS (S15.6, the underworld's first biome law) -------
@@ -1103,26 +1107,21 @@ func _build_lava_lake() -> void:
 		cald.add_child(curb)
 		PropCollider.attach(curb)
 	# THE MELT: one self-lit disc, emission riding the tide per frame
-	# (see _process's lava rider). NO collider on the liquid: the swim
-	# law reads the OceanVolume; the disc is only paint.
-	var melt := MeshInstance3D.new()
-	var melt_mesh := CylinderMesh.new()
-	melt_mesh.top_radius = inner_r
-	melt_mesh.bottom_radius = inner_r
-	melt_mesh.height = 0.5
-	melt.mesh = melt_mesh
-	melt.name = "LakeMelt"
-	melt.position = seat + Vector3(0, surface_y - 0.25, 0)
-	melt.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	var lmat := StandardMaterial3D.new()
-	lmat.albedo_color = Color(0.55, 0.12, 0.02)
-	lmat.roughness = 0.35
-	lmat.emission_enabled = true
-	lmat.emission = Color(1.0, 0.35, 0.03)
-	lmat.emission_energy_multiplier = 1.1 + 0.4 * cistern_glow(_glow_tide_phase())
-	melt_mesh.material = lmat
-	_lava_mat = lmat
-	cald.add_child(melt)
+	# (see _process's lava rider). ONE WaterKit call -- the render twin of
+	# the burn/current law the swim reads. NO collider on the liquid: the
+	# swim law reads the OceanVolume; the disc is only paint.
+	var wk = WaterKitScript.new()
+	var melt: MeshInstance3D = wk.build_pool(cald, seat + Vector3(0, surface_y - 0.25, 0), Vector3.UP, inner_r, {
+		"name": "LakeMelt",
+		"height": 0.5,
+		"albedo": Color(0.55, 0.12, 0.02),
+		"roughness": 0.35,
+		"emission": Color(1.0, 0.35, 0.03),
+		"emission_energy": 1.1 + 0.4 * cistern_glow(_glow_tide_phase()),
+	})
+	# The per-frame lava rider reads this material off the built disc.
+	if melt != null and melt.mesh != null:
+		_lava_mat = melt.mesh.surface_get_material(0)
 	GameLog.info("GlobeUnderworld: the Underglow Lake pools at (%.0f, %.0f), melt %.1f -- the melt licks east" % [seat.x, seat.z, surface_y])
 
 
