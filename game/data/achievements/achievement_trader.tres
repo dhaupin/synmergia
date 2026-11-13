@@ -11,5 +11,6 @@ achievement_type = 0
 category = 2
 rarity = 0
 target_type = "trade"
+title_reward = "trader"
 icon_path = "res://icons/achievements/trader.png"
 sort_order = 30
