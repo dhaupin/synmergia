@@ -127,6 +127,40 @@ func _run() -> void:
 			break
 	_check("aprons_clear", apron_ok, "gates 6 m, dish 8 m")
 
+	# 3b) THE WALK-LINE LAW: the wilds/lake/trail sit ON the shelf
+	#     (y ~= CAMP_HEAD_POS.y = the walk line), NOT a globe-radius
+	#     above it. A seat that already carries CAMP_HEAD_POS.y must
+	#     never add the ABSOLUTE walk line again -- that floats the
+	#     whole shelf to 2*radius (its physics stays at radius).
+	var walk_y: float = camp_head.y
+	var off_line := 0
+	for nm in ["DeepWilds", "UnderglowLake", "DeepTrail"]:
+		var holder: Node = wr.get_node_or_null(nm)
+		if holder == null:
+			continue
+		for c in holder.get_children():
+			if c is Node3D and absf((c as Node3D).position.y - walk_y) > 15.0:
+				off_line += 1
+	_check("shelf_sits_on_walk_line", off_line == 0, "off-line=%d (walk y=%.0f)" % [off_line, walk_y])
+
+	# 3c) THE DATA-READ LAW: the cistern/lake STONE is built to the same
+	#     numbers the OceanVolume declares (the ocean_ id law), so a data
+	#     edit moves the visible dish with its physics -- never silently.
+	var ocean = root.get_node_or_null("OceanService")
+	if ocean != null:
+		var pv = ocean.get_volume("ocean_deep_root_pool")
+		var cistern: Node = wr.get_node_or_null("GlowCistern")
+		var water: Node = cistern.get_node_or_null("CisternWater") if cistern != null else null
+		_check("cistern_reads_declaration", pv != null and water != null \
+			and absf(water.position.y - float(pv.surface_height)) < 0.01, \
+			"water_y=%.2f decl=%.2f" % [water.position.y if water != null else -1.0, float(pv.surface_height) if pv != null else -1.0])
+		var lv = ocean.get_volume("lava_underglow_lake")
+		var lake: Node = wr.get_node_or_null("UnderglowLake")
+		var basin: Node = lake.get_node_or_null("LakeBasin") if lake != null else null
+		_check("lake_reads_declaration", lv != null and basin != null \
+			and absf((basin.position.y + 0.2) - float(lv.floor_y)) < 0.01, \
+			"basin_top=%.2f decl=%.2f" % [basin.position.y + 0.2 if basin != null else -1.0, float(lv.floor_y) if lv != null else -1.0])
+
 	# 4) THE DETERMINISM LAW: a second globe re-derives the same seats
 	#    (byte-identical scatter).
 	var second: Node = packed.instantiate()

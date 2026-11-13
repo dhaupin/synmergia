@@ -63,16 +63,16 @@ const BAND_BIOME := {
         "biome_underworld_odd_grasses": BIOME_GRASSES,
 }
 
-## Biome -> the prop-layer detail kind (BiomeBand.family is the dispatch
-## key; the family enum maps onto the prop kinds). -1 = nothing, -2 = defer
-## to the prop layer's built-in ladder.
-const BIOME_KIND := {
-        BIOME_CAMP: -2,
-        BIOME_CRAG: PropLayer.KIND_ORE,
-        BIOME_GROVE: PropLayer.KIND_MUSHROOM,
-        BIOME_MYCELIUM: PropLayer.KIND_MYCELIUM,
-        BIOME_STALAGMITE: PropLayer.KIND_ORE,
-        BIOME_GRASSES: PropLayer.KIND_TUFT,
+## The band's declared scatter family (BiomeBand.family) is THE dispatch
+## key: a band says which family walks there, and the prop layer places that
+## family's detail kind. -1 = nothing, -2 = defer to the prop layer's ladder.
+const BiomeFamily = preload("res://core/schemas/biome_band.gd").Family
+const FAMILY_KIND := {
+        BiomeFamily.CRAG: PropLayer.KIND_ORE,
+        BiomeFamily.DEAD_TREE: PropLayer.KIND_MUSHROOM,
+        BiomeFamily.MYCELIUM: PropLayer.KIND_MYCELIUM,
+        BiomeFamily.STALAGMITE: PropLayer.KIND_ORE,
+        BiomeFamily.GRASS: PropLayer.KIND_TUFT,
 }
 
 ## Biome -> detail density (props per square kilometre). The glow meadow is
@@ -100,6 +100,7 @@ const BIOME_COLOR := {
 var _seed: PackedByteArray
 var _acc: int = 0
 var _bands: Array = []   # ordered band records (loaded once)
+var _biome_family: Dictionary = {}   # biome id -> declared Family (from the data)
 
 
 func _init() -> void:
@@ -216,12 +217,16 @@ func detail_density(bid: int) -> float:
         return float(BIOME_DETAIL_KM2.get(bid, 0.0))
 
 
-## The biome->kind dispatch the prop layer calls. Returns -2 to defer to the
-## prop layer's built-in ladder.
+## The biome->kind dispatch the prop layer calls: the biome's DECLARED
+## family (BiomeBand.family) resolves to the prop kind. Returns -2 to defer
+## to the prop layer's built-in ladder.
 func detail_kind(bid: int, rng: RandomNumberGenerator) -> int:
-        var kind: int = int(BIOME_KIND.get(bid, -2))
-        if kind == -1 or kind == -2:
-                return kind
+        if bid == BIOME_CAMP:
+                return -2
+        var family: int = int(_biome_family.get(bid, -1))
+        if not FAMILY_KIND.has(family):
+                return -1
+        var kind: int = int(FAMILY_KIND[family])
         # A little variety inside a band so the scatter is not monotone.
         if kind == PropLayer.KIND_ORE and rng.randf() < 0.35:
                 return PropLayer.KIND_TUFT
@@ -256,12 +261,17 @@ func _load_bands() -> Array:
                 var bid: String = str(b.id)
                 if not BAND_BIOME.has(bid):
                         continue
+                var biome: int = int(BAND_BIOME[bid])
                 _bands.append({
                         "id": bid,
-                        "biome": int(BAND_BIOME[bid]),
+                        "biome": biome,
+                        "family": int(b.family),
                         "inner": float(b.radius_inner_m),
                         "outer": float(b.radius_outer_m),
                         "offset": float(b.angular_offset),
                         "count": int(b.seat_count()),
                 })
+                # The declaration's own family is the biome's scatter key
+                # (the data law BiomeBand was written to be).
+                _biome_family[biome] = int(b.family)
         return _bands

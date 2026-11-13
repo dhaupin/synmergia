@@ -35,6 +35,9 @@ const ResourceScan = preload("res://core/frame/srv/resource_scan.gd")
 const ClipmapScript = preload("res://scenes/worlds/globe_clipmap.gd")
 const UnderworldProviderScript = preload("res://scenes/worlds/underworld_provider.gd")
 const SurfacePadScript = preload("res://core/world/surface_pad.gd")
+## The scatter families a BiomeBand declaration can name (the wilds dispatch
+## key -- a band says which family walks there, not the builder's own id).
+const BiomeFamily = preload("res://core/schemas/biome_band.gd").Family
 
 ## The draw lift (mirrors globe_clipmap.TILE_LIFT).
 ## The Deep Root's authored geometry rides the BASE shell (camp/cistern/
@@ -402,12 +405,23 @@ func _build_cistern() -> void:
 	var jug := Node3D.new()
 	jug.name = "GlowCistern"
 	world_root.add_child(jug)
+	# The dish's numbers are the declaration's (ocean_deep_root_pool): the
+	# seat, the floor line, the surface, and the reach come from data, so the
+	# stone can never drift from the swim law. Wall/bench heights stay the
+	# stone law.
+	var decl: Dictionary = _ocean_decl("ocean_deep_root_pool")
 	var seat_xz: Vector3 = Vector3(12.0, 0.0, 0.0)
 	var floor_top: float = planet_radius		# slab top == the walk line
 	var water_y: float = floor_top + 2.4		# the cistern's 2.4 m jug (the data law)
 	var rim_top: float = floor_top + 3.2			# walls tower 3.2 m: no fence-hop out
 	var ledge_top: float = water_y + 0.3			# the sheave bench tops 0.3 over the water
 	var inner_r: float = 3.4						# the dish's interior radius
+	if not decl.is_empty():
+		var c: Vector3 = decl["center"]
+		seat_xz = Vector3(c.x, 0.0, c.z)
+		floor_top = float(decl["floor_y"])
+		water_y = float(decl["surface"])
+		inner_r = float(decl["radius"])
 	var ring_r: float = inner_r + 0.4				# wall mid-radius (0.8 band)
 	# THE SHARED VEIN WALL: one vein-lit material for the whole ring --
 	# the glow law feeds it per frame. Local var so the global mat var
@@ -482,6 +496,26 @@ func _cistern_piece(jug: Node3D, stone: MeshInstance3D) -> void:
 	PropCollider.attach(stone)
 
 
+## The authored dish an OceanVolume declares (the ocean_ id law): the
+## cistern and the lava lake build their STONE to the SAME numbers the swim
+## law reads, so a data edit can never desync the visible dish from its
+## physics. Empty when the declaration is unavailable (the builder's own
+## literals are the fallback).
+func _ocean_decl(id: String) -> Dictionary:
+	var ocean = get_node_or_null("/root/OceanService")
+	if ocean == null or not ocean.has_method("get_volume"):
+		return {}
+	var v = ocean.get_volume(id)
+	if v == null:
+		return {}
+	return {
+		"center": v.floor_center,
+		"radius": float(v.floor_radius),
+		"surface": float(v.surface_height),
+		"floor_y": float(v.floor_y),
+	}
+
+
 # ---- THE DEEP WILDS (S15.6, the underworld's first biome law) -------
 # Five bands walk outward from the camp shelf, each its own scatter
 # family: crags (the ring ridge), dead trees (the grove), mycelium
@@ -506,9 +540,18 @@ const STONE_VEINS: Color = Color(0.35, 0.8, 0.55)
 ## THE LAKE SEAT: the Underglow Lake sits southeast of the cistern.
 const LAVA_LAKE_SEAT: Vector3 = Vector3(-26, 0, 20)
 
-## The wilds seat in world_root-local planet coords: the walk line.
+## The wilds seat in world_root-local planet coords: the walk line
+## (an ABSOLUTE y -- the glide-tick altitude read wants the walk line).
 func _wilds_surface() -> float:
 	return planet_radius
+
+
+## The authored ground OFFSET above a seat: seats already carry
+## CAMP_HEAD_POS.y (the walk line), so builders add only the height ABOVE
+## that line. _wilds_surface() is the ABSOLUTE walk line -- using it as the
+## offset double-counts the radius and floats the shelf a globe-radius up.
+func _authored_ground() -> float:
+	return _wilds_surface() - CAMP_HEAD_POS.y
 
 
 ## Deterministic scramble in [0, 1): pure arithmetic on the index
@@ -521,13 +564,38 @@ func _build_wilds() -> void:
 	var wilds := Node3D.new()
 	wilds.name = "DeepWilds"
 	world_root.add_child(wilds)
-	var ground: float = _wilds_surface()
-	_build_crag_ring(wilds, ground)
-	_build_dead_grove(wilds, ground)
-	_build_mycelium_field(wilds, ground)
-	_build_stalagmite_runs(wilds, ground)
-	_build_odd_grasses(wilds, ground)
-	GameLog.info("GlobeUnderworld: the Deep Wilds dress the shelf (%d bands, deterministic)" % _wire_bands().size())
+	var ground: float = _authored_ground()
+	# THE FAMILY DISPATCH: the declared band's OWN `family` picks the
+	# builder (BiomeBand.family is the key -- the builder never decides by
+	# band id). A band with no known family is reported, never silently
+	# dropped.
+	var by_family := {
+		BiomeFamily.CRAG: "_build_crag_ring",
+		BiomeFamily.DEAD_TREE: "_build_dead_grove",
+		BiomeFamily.MYCELIUM: "_build_mycelium_field",
+		BiomeFamily.STALAGMITE: "_build_stalagmite_runs",
+		BiomeFamily.GRASS: "_build_odd_grasses",
+	}
+	var placed := 0
+	for band in _ordered_bands():
+		var fam: int = int(band.family)
+		if by_family.has(fam):
+			call(by_family[fam], wilds, ground, band)
+			placed += 1
+		else:
+			GameLog.warn("GlobeUnderworld: band %s names no known family (%d)" % [str(band.id), fam])
+	GameLog.info("GlobeUnderworld: the Deep Wilds dress the shelf (%d bands, deterministic)" % placed)
+
+
+## The declared bands in a stable order (by family, then id) so the wilds
+## re-derive byte-identical regardless of the resource scan's order.
+func _ordered_bands() -> Array:
+	var out: Array = _wire_bands().values()
+	out.sort_custom(func(a, b):
+		if int(a.family) != int(b.family):
+			return int(a.family) < int(b.family)
+		return str(a.id) < str(b.id))
+	return out
 
 
 ## THE BAND BOOK (data law, the biome_band schema): loads
@@ -549,12 +617,6 @@ func _wire_bands() -> Dictionary:
 			continue
 		_bands[str(b.id)] = b
 	return _bands
-
-
-## The band the family builder reads (null-safe; a missing .tres
-## falls back to the builder's literals -- no silent degenerate).
-func _band(id: String):
-	return _wire_bands().get(id)
 
 
 ## Band palette resolves: null band (missing declaration) keeps the
@@ -585,8 +647,7 @@ static func _band_span(drift: float, inner: float, outer: float) -> float:
 ## band declaration (biome_underworld_crag_ring) owns the count,
 ## span, palette, and keeps-clear; the apron law says a crag never
 ## walls the arrival in.
-func _build_crag_ring(wilds: Node3D, ground: float) -> void:
-	var band = _band("biome_underworld_crag_ring")
+func _build_crag_ring(wilds: Node3D, ground: float, band) -> void:
 	var crag_mat := StandardMaterial3D.new()
 	crag_mat.albedo_color = _band_dark(band, Color(0.14, 0.12, 0.16))
 	crag_mat.roughness = 1.0
@@ -624,8 +685,7 @@ func _build_crag_ring(wilds: Node3D, ground: float) -> void:
 
 ## THE DEAD GROVE: charcoal trunks and bare branch forks -- the band
 ## declaration owns the count, span, palette, and the fork count.
-func _build_dead_grove(wilds: Node3D, ground: float) -> void:
-	var band = _band("biome_underworld_dead_grove")
+func _build_dead_grove(wilds: Node3D, ground: float, band) -> void:
 	var bark_mat := StandardMaterial3D.new()
 	bark_mat.albedo_color = _band_dark(band, Color(0.16, 0.13, 0.11))
 	bark_mat.roughness = 1.0
@@ -666,8 +726,7 @@ func _build_dead_grove(wilds: Node3D, ground: float) -> void:
 ## THE MYCELIUM FIELD: low glow caps pooled between the crags -- the
 ## band declaration owns count, span, palette, and the cap count per
 ## seat. Walk-over paint: the caps never block a boot.
-func _build_mycelium_field(wilds: Node3D, ground: float) -> void:
-	var band = _band("biome_underworld_mycelium_field")
+func _build_mycelium_field(wilds: Node3D, ground: float, band) -> void:
 	var base: Color = _band_dark(band, Color(0.45, 0.6, 0.5))
 	base.a = 0.85
 	var cap_mat := StandardMaterial3D.new()
@@ -705,8 +764,7 @@ func _build_mycelium_field(wilds: Node3D, ground: float) -> void:
 ## THE STALAGMITE RUNS: pale stone spikes growing where the shell
 ## sweats -- the band declaration owns count, span, palette; each
 ## spike is a wall you climb (PropCollider), never a shrub you push.
-func _build_stalagmite_runs(wilds: Node3D, ground: float) -> void:
-	var band = _band("biome_underworld_stalagmite_runs")
+func _build_stalagmite_runs(wilds: Node3D, ground: float, band) -> void:
 	var spike_mat := StandardMaterial3D.new()
 	spike_mat.albedo_color = _band_dark(band, Color(0.5, 0.48, 0.45))
 	spike_mat.roughness = 0.8
@@ -736,8 +794,7 @@ func _build_stalagmite_runs(wilds: Node3D, ground: float) -> void:
 ## THE ODD GRASSES: thin luminous blades across every band (the dark
 ## meadow, the band declaration owns count, span, palette, and blade
 ## count per tuft). Paint only: grass never blocks a foot.
-func _build_odd_grasses(wilds: Node3D, ground: float) -> void:
-	var band = _band("biome_underworld_odd_grasses")
+func _build_odd_grasses(wilds: Node3D, ground: float, band) -> void:
 	var blade_mat := StandardMaterial3D.new()
 	blade_mat.albedo_color = _band_dark(band, Color(0.4, 0.62, 0.42))
 	blade_mat.emission_enabled = true
@@ -993,15 +1050,28 @@ func _build_lava_lake() -> void:
 	var cald := Node3D.new()
 	cald.name = "UnderglowLake"
 	world_root.add_child(cald)
-	var ground: float = _wilds_surface()
+	var ground: float = _authored_ground()
 	var seat: Vector3 = CAMP_HEAD_POS + LAVA_LAKE_SEAT
+	# The lake's numbers are the declaration's (lava_underglow_lake): the
+	# seat, the floor line, the melt line, and the reach come from data, so
+	# the stone can never drift from the burn/current law the swim reads.
+	var decl: Dictionary = _ocean_decl("lava_underglow_lake")
+	if not decl.is_empty():
+		var c: Vector3 = decl["center"]
+		seat = Vector3(c.x, CAMP_HEAD_POS.y, c.z)
 	# THE BASEMENT SLAB: the dish's rock ON the walk line (the same
 	# dialect the cistern uses -- a real body STANDS here, never
 	# inside the shell). The melt rides 1.2 m above it (the data law).
 	var floor_top: float = ground							# slab top == the walk line
 	var surface_y: float = ground + 1.2					# the melt line (data law)
+	if not decl.is_empty():
+		floor_top = float(decl["floor_y"]) - CAMP_HEAD_POS.y
+		surface_y = float(decl["surface"]) - CAMP_HEAD_POS.y
+
 	var rim_top: float = surface_y + 0.55				# a curb you step over, never climb
 	var inner_r: float = 9.0									# the lake's reach (the data law)
+	if not decl.is_empty():
+		inner_r = float(decl["radius"])
 	var ring_r: float = inner_r + 0.5
 	# THE BASIN: a standable stone floor under the melt (piece law).
 	var basin := MeshInstance3D.new()
@@ -1065,7 +1135,7 @@ func _build_trail() -> void:
 	var path := Node3D.new()
 	path.name = "DeepTrail"
 	world_root.add_child(path)
-	var ground: float = _wilds_surface()
+	var ground: float = _authored_ground()
 	var plate_mat := StandardMaterial3D.new()
 	plate_mat.albedo_color = Color(0.2, 0.18, 0.21)
 	plate_mat.roughness = 0.9

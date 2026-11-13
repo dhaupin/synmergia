@@ -255,6 +255,8 @@ probe_crafting
 probe_crafting_ui
 probe_placeable_stations
 probe_underworld
+probe_conjured_ground
+probe_prop_layer
 probe_world_scoping
 probe_water_mounts
 probe_terrain_backend
