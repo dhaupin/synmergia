@@ -16,6 +16,7 @@ extends Node3D
 
 const Contract = preload("res://core/schemas/instance_contract.gd")
 const FighterScript = preload("res://scenes/instances/arena_fighter.gd")
+const InstancePropKit = preload("res://core/world/instance_prop_kit.gd")
 
 signal bout_started(rules: Dictionary)
 signal bout_ended(winner_team: int, stats: Dictionary)
@@ -733,6 +734,13 @@ func _build_room() -> void:
 	if int(_rules.get("mode")) != Contract.InstanceMode.ROYALE:
 		_build_cover(half)
 
+	# ROOM DECORATION (the instance prop law, labs/prd-clipmap.md 11a):
+	# a deterministic, seed-derived, mode-aware scatter over the flat floor.
+	# Decoration only -- it never collides and never crowds the bout center,
+	# a team spawn, or the solid cover, so the fight is unchanged; the room
+	# just stops reading as a bare box.
+	_build_room_props(half)
+
 func _build_cover(half: float) -> void:
 	# Per-mode silhouette: TDM slabs are wide/low (lane breakers),
 	# elimination pillars are narrow/tall (colonnade feel, full-height
@@ -769,6 +777,20 @@ func _build_cover(half: float) -> void:
 		rock_index += 1
 		add_child(rock)
 
+func _build_room_props(half: float) -> void:
+	var env := _mode_env(int(_rules.get("mode")))
+	var keep: Array = []
+	if zone_data != null and "spawn_points" in zone_data:
+		for sp in zone_data.spawn_points:
+			keep.append(Vector3(sp.x, 0.0, sp.z))
+	if int(_rules.get("mode")) != Contract.InstanceMode.ROYALE:
+		var layout: Array = ELIM_COVER_LAYOUT if int(_rules.get("mode")) == Contract.InstanceMode.ELIMINATION else COVER_LAYOUT
+		for spot in layout:
+			keep.append(Vector3(spot[0] * half, 0.0, spot[1] * half))
+	var palette := {"tuft": env["tuft"], "bush": env["bush"], "stone": env["stone"]}
+	InstancePropKit.new().build(self, half, int(_rules.get("mode")), int(env["seed"]), palette, keep)
+
+
 ## The instance style law: per-mode environment palette. Colors are
 ## read off TerrainGen.biome_color's palette so a room visually belongs
 ## to its zone's biome (coliseum/fringe desert, sandpit/steppe, the
@@ -777,13 +799,16 @@ func _build_cover(half: float) -> void:
 func _mode_env(mode: int) -> Dictionary:
 	match mode:
 		Contract.InstanceMode.ELIMINATION:
-			return {"seed": 11, "floor": Color(0.80, 0.68, 0.42), "wall": Color(0.55, 0.53, 0.50), "cover": Color(0.55, 0.52, 0.46)}
+			return {"seed": 11, "floor": Color(0.80, 0.68, 0.42), "wall": Color(0.55, 0.53, 0.50), "cover": Color(0.55, 0.52, 0.46),
+				"tuft": Color(0.55, 0.52, 0.30), "bush": Color(0.42, 0.45, 0.26), "stone": Color(0.52, 0.50, 0.46)}
 		Contract.InstanceMode.ROYALE:
-			return {"seed": 23, "floor": Color(0.55, 0.34, 0.26), "wall": Color(0.40, 0.26, 0.20), "cover": Color(0.55, 0.34, 0.26)}
+			return {"seed": 23, "floor": Color(0.55, 0.34, 0.26), "wall": Color(0.40, 0.26, 0.20), "cover": Color(0.55, 0.34, 0.26),
+				"tuft": Color(0.42, 0.34, 0.24), "bush": Color(0.38, 0.30, 0.20), "stone": Color(0.40, 0.30, 0.24)}
 		_:
 			# TEAM_DEATHMATCH (the sandpit): olive steppe ground, warm
 			# sand slabs.
-			return {"seed": 7, "floor": Color(0.52, 0.52, 0.32), "wall": Color(0.55, 0.53, 0.50), "cover": Color(0.45, 0.42, 0.38)}
+			return {"seed": 7, "floor": Color(0.52, 0.52, 0.32), "wall": Color(0.55, 0.53, 0.50), "cover": Color(0.45, 0.42, 0.38),
+				"tuft": Color(0.34, 0.44, 0.22), "bush": Color(0.26, 0.36, 0.18), "stone": Color(0.46, 0.44, 0.40)}
 
 ## Subtle seeded tint over a base albedo (biome albedo law): a small
 ## noise texture so floors do not read as one flat paint pour.

@@ -216,6 +216,8 @@ probe_terrain_backend
 probe_terrain_climate
 probe_ground_law_audit
 probe_clipmap
+probe_deep_garden
+probe_instance_props
 probe_sundered_sea
 test_instance_contract
 test_shard_mesh_identity

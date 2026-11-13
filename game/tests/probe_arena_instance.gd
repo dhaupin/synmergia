@@ -13,6 +13,13 @@ const ContractPath = "res://core/schemas/instance_contract.gd"
 
 var _fails: int = 0
 
+func _count_room_props(node: Node) -> int:
+	var n: int = 0
+	for c in node.get_children():
+		if str(c.name).begins_with("RoomProp"):
+			n += 1
+	return n
+
 func _init() -> void:
 	# Let autoloads finish (script mode still mounts them as nodes).
 	call_deferred("_run")
@@ -44,6 +51,9 @@ func _run() -> void:
 		Contract.bout_rules(null).get("respawn_allowed") == false)
 	var spawns: Array = arena.spawn_points
 	_check("zone provides two team spawns", spawns.size() == 2)
+	# The instance prop law: the room decorates itself (deterministic,
+	# mode-aware, non-colliding) so it reads as a biome slice, not a box.
+	_check("room builds its instance-prop decoration", _count_room_props(room) > 0)
 
 	# ---- B. Elimination bout: spawn, fight, resolve -----------------
 	var f1 = room.spawn_fighter("blue_one", 0)
