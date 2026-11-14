@@ -677,6 +677,10 @@ func applyTaunt(caster, duration_mult: float = 1.0) -> void:
 	if es == null or caster == null or not ("global_position" in caster):
 		return
 	var radius := aoe_radius if aoe_radius > 0.0 else 8.0
+	# A banded taunt reaches as far as its control ring, so the aggro sweep and
+	# the debuff fan-out never disagree on who is pulled.
+	if control_radius > 0.0:
+		radius = maxf(radius, control_radius)
 	var duration_ms := int(maxf(taunt_duration, 0.0) * maxf(duration_mult, 0.0) * 1000.0)
 	for enemy in EntityInterest.query_interest(caster.global_position, radius, [caster]):
 		if not is_instance_valid(enemy):
