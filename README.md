@@ -15,13 +15,13 @@
 ```
     ╔═══════════════════════════════════════════════════════════════╗
     ║   ⚔️  Browser MMORPG  •  Open World  •  Action Combat   ⚔️ ║
-    ║      RYL2-Style Combat  •  UO Economy  •  Guild Territory     ║
+    ║      RYL2-Style Combat  •  UO Economy  •  Guild Alliances     ║
     ╚═══════════════════════════════════════════════════════════════╝
 ```
 
 ## What Is Synmergia?
 
-Synmergia is an **open-world multiplayer RPG** built for the browser. Step into a persistent world where your choices shape the economy, your guild controls territory, and every battle matters. Whether you're gathering resources to craft legendary gear, building your dream house on the frontier, or leading your faction into heated guild wars — this is your world.
+Synmergia is an **open-world multiplayer RPG** built for the browser. Step into a persistent world where your choices shape the economy, your guild forges alliances, and every battle matters. Whether you're gathering resources to craft legendary gear, building your dream house on the frontier, or leading your faction into heated wars — this is your world.
 
 No other browser-based MMORPG offers this combination of deep action combat, player-driven sandbox economy, and true open-world freedom.
 
@@ -46,7 +46,7 @@ Forget auction house bots and NPC vendors setting prices. In Synmergia, **the ec
 - **Resources spawn in the world** — mines, forests, fishing spots scattered across the land
 - **Craft your gear** — blacksmithing with profession tiers, more crafting planned
 - **Player housing** — claim land, build your home, watch it persist
-- **Guild territories** — control resource nodes and shape the local economy
+- **Guild alliances** — ranks, permissions, and alliance play
 - **Legendary gear from players and world bosses** — not loot boxes
 
 This is the sandbox economy you remember from Ultima Online, rebuilt for a modern audience.
@@ -56,7 +56,7 @@ This is the sandbox economy you remember from Ultima Online, rebuilt for a moder
 Risk and reward in constant tension. Synmergia offers **configurable PvP across zones**:
 
 - **Full loot in PvP zones** — drop everything on death, fight for glory and gear
-- **Guild wars** — political alliances, territory control, server-shaping conflicts
+- **Guild wars (planned)** — territory control and war declarations are the next PvP layer
 - **Faction battles** — join species or ideological factions, shape the world's future
 - **Arena combat** — organized PvP with balanced rulesets
 - **Death has weight** — no zerg rushing, no consequence-free ganking
@@ -100,7 +100,7 @@ Want to play with friends but can't find enough players? **AI agents can join yo
 ### Economy & Crafting
 - 🔨 **Crafting system** with profession tiers (blacksmithing and more planned)
 - 🏠 **Player housing** — claim land and build your home
-- 🏰 **Guild halls** and territory control planned
+- 🏰 **Guild halls**, territory control, and guild wars planned
 - ⛏️ **Resource gathering** and player trading
 - 💰 **Player-driven market** — no auction house bot, prices set by players
 
@@ -114,7 +114,6 @@ Want to play with friends but can't find enough players? **AI agents can join yo
 ### PvP Systems
 - 🗺️ **5 zone PvP modes** (Safe, Species, Faction, Free, Warzone)
 - 💀 **Full loot** in PvP zones — drop your gear on death
-- ⚔️ **Guild wars** with war declarations
 - 🏟️ **Arena combat** with organized rulesets
 - 🎖️ **Faction reputation** and progression
 
@@ -229,7 +228,7 @@ per [SECURITY.md](./SECURITY.md).
 | [📜 Credits](./CREDITS.md) | Third-party software, fonts, and asset provenance |
 | [🔒 Security Policy](./SECURITY.md) | How to report a vulnerability |
 | [🤝 Code of Conduct](./CODE_OF_CONDUCT.md) | Community standards |
-| [✅ OSS Readiness Audit](./labs/OSS-AUDIT.md) | Self-audit checklist for the open source release |
+| [✅ Open Source Audit](./labs/OSS-AUDIT.md) | Launch audit + post-public hardening checklist |
 
 ---
 

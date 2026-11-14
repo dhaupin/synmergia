@@ -193,8 +193,9 @@ set a non-zero `weapon_type`.
 Armor types (`ArmorType`): `0 NONE, 1 CLOTH, 2 LEATHER, 3 MAIL, 4 PLATE`.
 An armor must set a non-zero `armor_type`.
 
-Rarity (`Rarity`): `0 COMMON, 1 UNCOMMON, 2 RARE, 3 EPIC, 4 LEGENDARY,
-5 MYTHIC`.
+Rarity (`Rarity`, sourced from `GameTier`): `0 COMMON, 1 RARE, 2 EPIC,
+3 LEGENDARY, 4 MYTHIC`. `UNCOMMON` is retired (2026-11-14) and the ladder
+is five rungs everywhere -- skills, items, titles, achievements.
 
 Purse law for items: `sell_price >= 0`, `buy_price >= 0`, and when
 `buy_price > 0` then `sell_price < buy_price`. A `0 / 0` purse is legal

@@ -94,7 +94,8 @@ long-form style guide. The short version:
 
 ## Pull requests
 
-1. **Branch** off the default branch (`main`). Use a short descriptive
+1. **Branch** off `staging` (the integration branch; `main` is promoted
+   from it). Use a short descriptive
    name (`fix/aura-binding`, `feat/harvest-service`).
 2. **Keep it focused.** One logical change per PR.
 3. **Test it.** Say in the description what you ran and what passed.

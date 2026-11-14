@@ -1,5 +1,9 @@
 # PRD: Geometry Layer  -  Vant Fragmenter Port + Spatial Fragmenter Integration
 
+> **Canonical geometry doc (consolidated 2026-11-14).** Absorbs the former
+> `prd-spatial-geometry.md` (now `archive/prd/`), which was a spatial-only
+> subset of this doc's fragmenter, bit-layout and service-wiring sections.
+
 > **For:** sub-agent implementation
 > **Phase:** 4 (per `world-building-arch.md` sec. 11.4, sec. 14)
 > **Depends on:** `prd-t3-substrate.md` (for content-hash keys), `prd-seed-schema.md` (for sequence derivation), `world-building-arch.md` sec. 16 (Vant geometric addressing)

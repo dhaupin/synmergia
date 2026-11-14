@@ -1162,6 +1162,10 @@ the file existed ONLY in the sandbox when the disk filled, and
   and running `git push` normally is the whole job. (Do NOT use
   `--no-verify` to get past a hook — if a hook fails, fix the cause;
   see the Git LFS note below.)
+- **The repo is public (since 2026-11-14).** Actions minutes are free, so
+  the old "staging saves the bill" rationale is gone; the staging-first flow
+  stays because staging is the integration/review branch, and `main` is
+  promoted from it.
 
 ### Bound the logs
 

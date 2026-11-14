@@ -128,13 +128,12 @@ touching the existing playable world.
       set forms spurious equilateral triples at chord 2.0 -- anchor
       triangles to the MINIMUM chord (a naive mutual-equal filter
       yields 42 faces).
-- [x] `scenes/worlds/globe_terrain_streamer.gd` — patch meshes per
-      face (spherical midpoint subdivision, ~7 m tile edge = level 4,
-      256 tris/patch), active set = current face + 3 neighbors
-      (steady state 4 patches / 1024 tris), load/unload signals,
-      deterministic per-face tints, tiles lifted +0.52 above the
-      sphere visual. Scene wired via stream_terrain (per-frame update
-      from the player).
+- [x] `scenes/worlds/globe_terrain_streamer.gd` — HISTORICAL (RETIRED): the
+      file was deleted; `globe_clipmap.gd` is the sole terrain renderer (see
+      `labs/prd-clipmap.md` 11a). The original patch: spherical midpoint
+      subdivision, ~7 m tile edge = level 4, 256 tris/patch, active set =
+      current face + 3 neighbors, per-face tints, tiles lifted +0.52, scene
+      wired via stream_terrain.
 - [x] `tests/probe_terrain_stream.gd` 9/9 headless AND rendered:
       initial 4-patch set, border crossing at 41.9 m swaps stale
       patches, steady state holds 4, all-20-face sweep at 4-patch

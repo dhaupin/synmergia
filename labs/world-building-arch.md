@@ -655,7 +655,7 @@ srv/
 | NSC-9 barcode format | vant `geometry/nsc9.js` | `game/core/frame/math/nsc9.gd` + `test_nsc9.gd` | `game/core/frame/math/nsc9.gd` + `test_nsc9.gd` | DONE |
 | Icosahedral projection | vant `geometry/icosahedral.js` | `game/core/frame/math/icosahedral.gd` + `test_icosahedral.gd` | `game/core/frame/math/icosahedral.gd` + `test_icosahedral.gd` | DONE |
 | Vant fragmenter | [prd-geometry.md](./prd-geometry.md) sec. US-001 | `game/core/frame/geometry/fragmenter.gd` | `game/core/frame/geometry/fragmenter.gd` | DONE |
-| Spatial geometry fragmenter | `prd-spatial-geometry.md` sec. US-001 | `game/core/frame/geometry/spatial_fragmenter.gd` | `game/core/frame/geometry/spatial_fragmenter.gd` | DONE |
+| Spatial geometry fragmenter | `prd-geometry.md` sec. US-004 | `game/core/frame/geometry/spatial_fragmenter.gd` | `game/core/frame/geometry/spatial_fragmenter.gd` | DONE |
 | Geometry integration bridge | `prd-geometry.md` sec. 6K | NSC-9  ->  SpatialFragmenter  ->  T3 wiring | `Nsc9Bridge` in `game/core/frame/geometry/nsc9_bridge.gd`, wired into EntityService + ZoneManager | DONE |
 
 ---

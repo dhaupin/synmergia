@@ -338,9 +338,10 @@ calls a retired symbol.
 **Endpoints:** `srv/` hosts five services. `pg-bridge` / `redis-bridge` back
 the storage adapters (`PG_BRIDGE_URL` / `REDIS_BRIDGE_URL`), `webhook-bridge`
 backs `webhook_transport` + the NetworkManager poller, and `julia-bridge`
-backs `multi_iso_service`. There is no dead HTTP endpoint in `game/`. The one
-unconsumed artifact is `srv/julia-bridge/presolve.jl` (prints JSON, no reader;
-legacy-inventory verdict PORT).
+backs `multi_iso_service`. There is no dead HTTP endpoint in `game/`. The prop
+presolve artifact (`prop_presolve.jl` -> `data/presolve/props_main.txt`) IS
+consumed at boot by `PresolveProps`; `presolve.jl` remains a parity oracle for
+`test_julia_parity`, not a runtime endpoint.
 
 **Removed this round (scratch, refs=0):** `game/dev2/*.gd` (9), the orphan
 `game/dev2_grade.gd.uid`, and `game/staging_notes_2026_10_14.md` -- the note
