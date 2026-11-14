@@ -25,6 +25,12 @@ func _entity_svc() -> Node:
 	var tree := Engine.get_main_loop() as SceneTree
 	return tree.root.get_node_or_null(NodePath("EntityService")) if tree and tree.root else null
 
+## DataService lookup (script-mode-safe). The data census + catalog
+## enumeration legs read the live loader, never a bare autoload id.
+func _data_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("DataService")) if tree and tree.root else null
+
 const EntityScript = preload("res://core/entities/entity.gd")
 ## Named collision bits (round 10): data/physics_layers/ LayerProfile.
 const Layers = preload("res://core/schemas/layer_profile.gd")
@@ -244,6 +250,11 @@ func _register_default_commands() -> void:
 	register_command(Command.new("status", _cmd_status, "Show system status", "status"))
 	register_command(Command.new("uptime", _cmd_uptime, "Show uptime", "uptime"))
 	register_command(Command.new("stats", _cmd_stats, "Show service statistics", "stats"))
+
+	# Data census (the loaded catalog: counts + the enumerable catalogs the
+	# gameplay paths reach only by id -- currencies, dwellings, recipes,
+	# layer profiles).
+	register_command(Command.new("data", _cmd_data, "Data catalog census", "data [counts|currencies|dwellings|recipes|layers]"))
 
 	# Config
 	register_command(Command.new("config", _cmd_config, "View/modify config", "config [key] [value]"))
@@ -574,6 +585,70 @@ func _cmd_uptime(args: String, executor_id: String) -> CommandResult:
 	var minutes: int = int(fmod(elapsed, 3600) / 60)
 	var seconds: int = int(fmod(elapsed, 60))
 	return CommandResult.new(true, "Uptime: %02d:%02d:%02d" % [hours, minutes, seconds], "")
+
+## Render a `get_all_*` catalog as one id/name row each. The getter is
+## called dynamically so a missing accessor degrades to an honest note.
+func _enumerate_catalog(ds: Node, getter: String, title: String) -> String:
+	var output: String = "[color=yellow]=== %s ===[/color]\n" % title
+	if not ds.has_method(getter):
+		return output + "[color=red]  %s unavailable[/color]\n" % getter
+	var rows: Array = ds.call(getter)
+	var ids: Array = []
+	for r in rows:
+		if r == null:
+			continue
+		var rid: String = str(r.get("id")) if ("id" in r) else ""
+		if rid == "":
+			continue
+		var name: String = str(r.get("display_name")) if ("display_name" in r) else rid
+		ids.append("%s  (%s)" % [rid, name])
+	ids.sort()
+	for line in ids:
+		output += "  %s\n" % line
+	output += "[color=cyan]  %d entries[/color]\n" % ids.size()
+	return output
+
+func _cmd_data(args: String, executor_id: String) -> CommandResult:
+	var ds: Node = _data_svc()
+	if ds == null:
+		return CommandResult.new(false, "", "DataService offline")
+
+	var sub: String = args.strip_edges().to_lower()
+	var output: String = ""
+
+	match sub:
+		"", "counts":
+			if not ds.has_method("get_counts"):
+				return CommandResult.new(false, "", "DataService.get_counts unavailable")
+			var counts: Dictionary = ds.get_counts()
+			var keys: Array = counts.keys()
+			keys.sort()
+			var total: int = 0
+			output = "[color=yellow]=== Data Census ===[/color]\n"
+			for k in keys:
+				output += "  %-16s %d\n" % [str(k), int(counts[k])]
+				total += int(counts[k])
+			output += "[color=cyan]  %-16s %d[/color]\n" % ["total", total]
+		"currencies":
+			output = _enumerate_catalog(ds, "get_all_currencies", "Currencies")
+		"dwellings":
+			output = _enumerate_catalog(ds, "get_all_dwellings", "Dwellings")
+		"recipes":
+			output = _enumerate_catalog(ds, "get_all_recipes", "Recipes")
+		"layers", "layer_profiles":
+			if not ds.has_method("get_layer_profiles"):
+				return CommandResult.new(false, "", "DataService.get_layer_profiles unavailable")
+			var profs: Dictionary = ds.get_layer_profiles()
+			var pids: Array = profs.keys()
+			pids.sort()
+			output = "[color=yellow]=== Layer Profiles ===[/color]\n"
+			for pid in pids:
+				output += "  %s\n" % str(pid)
+			output += "[color=cyan]  %d profiles[/color]\n" % pids.size()
+		_:
+			return CommandResult.new(false, "", "Usage: data [counts|currencies|dwellings|recipes|layers]")
+
+	return CommandResult.new(true, output, "")
 
 func _cmd_stats(args: String, executor_id: String) -> CommandResult:
 	var output: String = "[color=yellow]=== Service Statistics ===[/color]\n"
