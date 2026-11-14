@@ -794,6 +794,23 @@ Three admin-only classes hidden from normal character selection:
 
 GM visibility: `[GM]` prefix in chat, gold name color, "GAME MASTER" badge in tooltip (no emoji; see the no-UTF-8 rule).
 
+### Skill scope bands (`ScopeBand`)
+A skill's reach is folded from the band tables in `core/combat/scope_band.gd`
+(one source of truth), keyed by upgrade level. Opt in per verb:
+- `scope_bands = true` -- the HEAL verb. Also gates the banded CONTROL fan-out
+  (an AoE stun/slow/taunt hits every hostile in reach once a landed hit lands).
+- `guard_band = true` -- the GUARD verb (shields/armor). Runs at cast, fans to
+  allies from the epic band up. Separate from `scope_bands` so a self
+  damage-buff is never fanned to the party.
+The tank's identity is control/guard, so its control skills carry
+`scope_bands` and its party-shield auras carry `guard_band`.
+
+### The starter law
+A class's FIRST `starting_skills` entry carries the family identity verb,
+read off the class `role`: TANK=control, BENDER=teleport, HEALER=heal,
+DD/MAGE/ROGUE=damage. Enforced by `test_data_naming_lint.gd`; a new class
+cannot ship a starter that ignores its lane.
+
 ---
 
 ## Labs Conventions

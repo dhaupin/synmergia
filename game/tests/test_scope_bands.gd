@@ -256,4 +256,117 @@ func _run() -> void:
         else:
                 _fail("the authored-ring heal mended a hostile (hp %d)" % foe.current_health)
 
+        # --- 8. Guard band: the ally shield aura covers the party ---
+        for f in friends:
+                f.clear_all_status_effects()
+        caster.clear_all_status_effects()
+        var guard = CombatSkill.new()
+        guard.skill_id = "test_band_guard"
+        guard.skill_name = "Test Band Guard"
+        guard.grants_shield = 40
+        guard.shield_duration = 10.0
+        guard.guard_band = true
+        guard.upgrade_level = 3  # epic: guard ring
+        guard.apply_scope_bands()
+        guard.execute(caster, null)
+        var guarded_friends := 0
+        for f in friends:
+                if _has_shield(f):
+                        guarded_friends += 1
+        if guarded_friends == 2 and _has_shield(caster):
+                _ok("the epic-band guard shielded the caster and every ally in reach (2/2)")
+        else:
+                _fail("the banded guard shielded %d/2 allies (self=%s)" % [guarded_friends, _has_shield(caster)])
+        if not _has_shield(foe):
+                _ok("the banded guard never shields a hostile")
+        else:
+                _fail("the banded guard shielded a hostile")
+
+        # --- 9. Control band: the AoE stun locks every hostile ---
+        foe.clear_all_status_effects()
+        var control = CombatSkill.new()
+        control.skill_id = "test_band_stun"
+        control.skill_name = "Test Band Stun"
+        control.crowd_control_type = "stun"
+        control.crowd_control_duration = 1.5
+        control.scope_bands = true
+        control.upgrade_level = 3  # epic: control ring
+        control.apply_scope_bands()
+        var ctl_target: Node = EntityScript.new()
+        ctl_target.display_name = "BandFoe2"
+        ctl_target.entity_type = 2
+        ctl_target.relation = 1
+        root.add_child(ctl_target)
+        ctl_target.global_position = origin + Vector3(4.0, 0, 0)
+        es.register_entity(ctl_target)
+        await physics_frame
+        control.execute(caster, foe)
+        var stunned := 0
+        for e in [foe, ctl_target]:
+                for fx in e.status_effects:
+                        if fx.has_method("allows_movement") and not fx.allows_movement():
+                                stunned += 1
+                                break
+        if stunned == 2:
+                _ok("the epic-band control stunned every hostile in reach (2/2)")
+        else:
+                _fail("the banded control stunned %d/2 hostiles" % stunned)
+        var ally_stunned := false
+        for f in friends:
+                for fx in f.status_effects:
+                        if fx.has_method("allows_movement") and not fx.allows_movement():
+                                ally_stunned = true
+        if not ally_stunned:
+                _ok("the banded control never stuns an ally")
+        else:
+                _fail("the banded control stunned an ally")
+
+        # --- 10. An un-opted guard stays self-only ---
+        for f in friends:
+                f.clear_all_status_effects()
+        caster.clear_all_status_effects()
+        var solo_guard = CombatSkill.new()
+        solo_guard.skill_id = "test_solo_guard"
+        solo_guard.skill_name = "Test Solo Guard"
+        solo_guard.grants_shield = 40
+        solo_guard.shield_duration = 10.0
+        solo_guard.upgrade_level = 5  # top band, but no guard_band opt-in
+        solo_guard.apply_scope_bands()
+        solo_guard.execute(caster, null)
+        var solo_guarded := 0
+        for f in friends:
+                if _has_shield(f):
+                        solo_guarded += 1
+        if solo_guarded == 0 and _has_shield(caster):
+                _ok("an un-opted guard stays self-only even at the top band")
+        else:
+                _fail("an un-opted guard shielded %d allies (self=%s)" % [solo_guarded, _has_shield(caster)])
+
+        # --- 11. A heal opt-in (scope_bands) is NOT a guard opt-in ---
+        for f in friends:
+                f.clear_all_status_effects()
+        caster.clear_all_status_effects()
+        var heal_guard = CombatSkill.new()
+        heal_guard.skill_id = "test_heal_guard"
+        heal_guard.skill_name = "Test Heal Guard"
+        heal_guard.heal_amount = 20
+        heal_guard.grants_shield = 40
+        heal_guard.shield_duration = 10.0
+        heal_guard.scope_bands = true  # a mend opt-in, not a guard opt-in
+        heal_guard.upgrade_level = 5
+        heal_guard.apply_scope_bands()
+        if not heal_guard.has_guard_payload():
+                _ok("a scope_bands heal is not treated as a guard (no party shield)")
+        else:
+                _fail("a scope_bands-only heal wrongly fanned its shield to allies")
+
         _finish()
+
+## True when a body carries an unexpired shield pool.
+func _has_shield(body) -> bool:
+        if body == null or not ("status_effects" in body):
+                return false
+        for fx in body.status_effects:
+                if fx != null and "shield_amount" in fx and int(fx.shield_amount) > 0:
+                        return true
+        return false

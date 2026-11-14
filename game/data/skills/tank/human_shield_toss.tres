@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "human_shield_toss"
 display_name = "Shield Toss"
-description = "Hurls your shield at an enemy, dealing damage and reducing their armor."
+description = "Hurls your shield at a foe, dealing damage, reducing their armor, and briefly stunning them. The tank's first grab, a control ring from the first tier."
 skill_type = 0
 target_type = 0
 mana_cost = 15
@@ -14,9 +14,10 @@ cooldown = 8.0
 cast_time = 0.0
 animation_duration = 0.4
 range = 15.0
-effects = [{"type": "damage", "value": 30}, {"type": "debuff", "effect_id": "debuff_armor_reduce", "duration": 5.0}]
+effects = [{"type": "damage", "value": 30}, {"type": "debuff", "effect_id": "debuff_armor_reduce", "duration": 5.0}, {"type": "stun", "duration": 1.5}]
 required_level = 1
 required_class = "human_guardian"
+scope_bands = true
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",

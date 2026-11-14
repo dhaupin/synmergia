@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "synthetic_energy_transfer"
 display_name = "Energy Transfer"
-description = "Restores a large portion of a single ally mana by routing energy through the conduit."
+description = "Routes energy through the conduit to restore a large portion of an ally's mana and mend them. The healer's first mend, banded from the epic tier up."
 skill_type = 5
 target_type = 3
 mana_cost = 20
@@ -14,9 +14,10 @@ cooldown = 8.0
 cast_time = 0.8
 animation_duration = 0.5
 range = 20.0
-effects = [{"type": "buff", "effect_id": "buff_energy_transfer", "duration": 0.0}]
+effects = [{"type": "heal", "value": 15}, {"type": "buff", "effect_id": "buff_energy_transfer", "duration": 0.0}]
 required_level = 1
 required_class = "synthetic_conduit"
+scope_bands = true
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",

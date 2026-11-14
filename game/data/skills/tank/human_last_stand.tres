@@ -17,6 +17,7 @@ range = 0.0
 effects = [{"type": "buff", "effect_id": "buff_last_stand", "duration": 5.0}, {"type": "debuff", "effect_id": "debuff_aggro_horn", "duration": 5.0}]
 required_level = 10
 required_class = "human_guardian"
+scope_bands = true
 upgradable = false
 upgrade_tiers = [
 {

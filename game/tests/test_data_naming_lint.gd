@@ -329,6 +329,61 @@ func _bracket_block(txt: String, key: String) -> String:
 				return txt.substr(open_idx, i - open_idx + 1)
 	return txt.substr(open_idx)
 
+## Find the authored .tres text for a skill id by scanning the skill dirs
+## (matched on the authored `id`, not the filename, so a renamed file still
+## resolves). "" when the id is unknown.
+func _skill_text_by_id(skill_id: String) -> String:
+	var root := DirAccess.open("res://data/skills")
+	if root == null:
+		return ""
+	root.list_dir_begin()
+	var sub := root.get_next()
+	while sub != "":
+		var dir_name := sub
+		sub = root.get_next()
+		if dir_name == "" or dir_name.begins_with("."):
+			continue
+		var dir := DirAccess.open("res://data/skills/%s" % dir_name)
+		if dir == null:
+			continue
+		dir.list_dir_begin()
+		var f := dir.get_next()
+		while f != "":
+			if f.ends_with(".tres"):
+				var txt := FileAccess.get_file_as_string("res://data/skills/%s/%s" % [dir_name, f])
+				for line in txt.split("\n"):
+					var lt := line.strip_edges()
+					if lt.begins_with("id = \""):
+						if lt.trim_prefix("id = \"").trim_suffix("\"") == skill_id:
+							return txt
+						break
+			f = dir.get_next()
+	return ""
+
+## True when a skill's authored effects carry the family identity verb.
+func _skill_has_verb(txt: String, verb: String) -> bool:
+	var fx := _bracket_block(txt, "effects")
+	match verb:
+		"heal":
+			return fx.contains("\"type\": \"heal\"") or fx.contains("\"type\":\"heal\"") \
+				or fx.contains("\"type\": \"hot\"") or fx.contains("\"type\":\"hot\"")
+		"teleport":
+			if fx.contains("\"type\": \"teleport\"") or fx.contains("\"type\":\"teleport\""):
+				return true
+			for line in txt.split("\n"):
+				var lt := line.strip_edges()
+				if lt.begins_with("teleport_distance = ") and lt.to_float() > 0.0:
+					return true
+			return false
+		"control":
+			for k in ["stun", "root", "slow", "taunt", "silence", "fear", "knockback"]:
+				if fx.contains(k):
+					return true
+			return false
+		"damage":
+			return fx.contains("\"type\": \"damage\"") or fx.contains("\"type\":\"damage\"")
+	return false
+
 func _run() -> void:
 	var npc_ids := _load_ids("data/npc")
 	var quest_ids := _load_ids("data/quests")
@@ -1911,5 +1966,57 @@ func _run() -> void:
 		_ok("Skills: every multi-ally mend claim opts into scope bands")
 	else:
 		_fail("Heals promising a multi-ally mend without scope_bands = true: %s" % ", ".join(bad_band))
+
+	# --- The starter law: every family's FIRST skill carries its verb ---
+	# Healer gets the mend, bender the blink, tank the grab (control). The
+	# damage lanes (DD/MAGE/ROGUE) carry damage. The same law for every
+	# family, read off the class `role`, so a new class cannot ship with a
+	# starter that ignores its lane.
+	var role_verb := {
+		1: "control",  # TANK
+		2: "damage",   # DD
+		3: "damage",   # MAGE
+		4: "damage",   # ROGUE
+		5: "teleport", # BENDER
+		6: "heal",     # HEALER
+	}
+	var bad_starter: Array = []
+	var starters_checked := 0
+	var cls_root := DirAccess.open("res://data/classes")
+	if cls_root != null:
+		cls_root.list_dir_begin()
+		var cf := cls_root.get_next()
+		while cf != "":
+			if cf.ends_with(".tres") and not cf.begins_with("gm_"):
+				var ctxt := FileAccess.get_file_as_string("res://data/classes/%s" % cf)
+				var cid := ""
+				var c_role := -1
+				var first_skill := ""
+				for line in ctxt.split("\n"):
+					var ct := line.strip_edges()
+					if ct.begins_with("id = \"") and cid == "":
+						cid = ct.trim_prefix("id = \"").trim_suffix("\"")
+					elif ct.begins_with("role = ") and c_role < 0:
+						c_role = ct.trim_prefix("role = ").to_int()
+					elif ct.begins_with("starting_skills = [") and first_skill == "":
+						var m := _skill_ref_regex().search(ct)
+						if m != null:
+							first_skill = m.get_string(1)
+				if cid == "" or c_role < 0 or first_skill == "":
+					cf = cls_root.get_next()
+					continue
+				var want := str(role_verb.get(c_role, ""))
+				if want == "":
+					cf = cls_root.get_next()
+					continue
+				starters_checked += 1
+				var stxt := _skill_text_by_id(first_skill)
+				if stxt == "" or not _skill_has_verb(stxt, want):
+					bad_starter.append("%s (%s wants %s)" % [cid, first_skill, want])
+			cf = cls_root.get_next()
+	if bad_starter.is_empty():
+		_ok("Skills: every family's first skill carries its identity verb (%d checked)" % starters_checked)
+	else:
+		_fail("First skills missing their family verb: %s" % ", ".join(bad_starter))
 
 	_finish()
