@@ -1044,6 +1044,8 @@ func _run() -> void:
 	var skill_id_set := {}
 	var skill_owner := {}
 	var skill_dupes: Array = []
+	var class_skill_names := {}
+	var dup_class_names: Array = []
 	var skill_name_mismatch: Array = []
 	var sdir2 := DirAccess.open("res://data/skills")
 	if sdir2 != null:
@@ -1064,10 +1066,13 @@ func _run() -> void:
 					var ktxt := FileAccess.get_file_as_string("res://data/skills/%s/%s" % [sub, kf])
 					var kid := ""
 					var kowner := ""
+					var kdisp := ""
 					for line in ktxt.split("\n"):
 						var lt := line.strip_edges()
 						if lt.begins_with("id = \"") and kid == "":
 							kid = lt.trim_prefix("id = \"").trim_suffix("\"")
+						elif lt.begins_with("display_name = \""):
+							kdisp = lt.trim_prefix("display_name = \"").trim_suffix("\"")
 						elif lt.begins_with("required_class = \""):
 							kowner = lt.trim_prefix("required_class = \"").trim_suffix("\"")
 					if kid == "":
@@ -1080,6 +1085,12 @@ func _run() -> void:
 					else:
 						skill_id_set[kid] = "%s/%s" % [sub, kf]
 						skill_owner[kid] = kowner
+						if kowner != "" and kdisp != "":
+							var nkey := "%s|%s" % [kowner, kdisp]
+							if class_skill_names.has(nkey):
+								dup_class_names.append("%s: %s (also %s)" % [kowner, kdisp, class_skill_names[nkey]])
+							else:
+								class_skill_names[nkey] = kid
 				kf = kdir.get_next()
 	if skill_name_mismatch.is_empty():
 		_ok("Skills: all %d files named for their id" % skill_id_set.size())
@@ -1089,6 +1100,12 @@ func _run() -> void:
 		_ok("Skills: all %d ids unique (no shadowed skill)" % skill_id_set.size())
 	else:
 		_fail("Duplicate skill ids (one silently shadows the other): %s" % ", ".join(skill_dupes))
+	# A class kit is shown by name in the Skill Academy: two skills of the SAME
+	# class sharing a display_name are indistinguishable to the player.
+	if dup_class_names.is_empty():
+		_ok("Skills: no same-class duplicate display_names")
+	else:
+		_fail("Same-class duplicate skill names: %s" % ", ".join(dup_class_names))
 
 	# --- Skill buff/debuff effect_ids must resolve to a status effect ---
 	# A skill's {"type": "buff"/"debuff", "effect_id": X} resolves X through

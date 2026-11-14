@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "buff_sanctuary_aura"
 display_name = "Sanctuary Aura"
-description = "Receiving passive healing and damage reduction."
+description = "Receiving passive healing while it lasts."
 category = 0
 effect_type = 0
 duration = 15.0

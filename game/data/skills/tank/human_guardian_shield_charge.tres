@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "human_guardian_shield_charge"
-display_name = "Shield Charge"
+display_name = "Shield Ram"
 description = "Charges shield-first, hurling the foe back."
 icon_path = ""
 skill_type = 0

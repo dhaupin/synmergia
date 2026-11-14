@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "buff_last_stand"
 display_name = "Last Stand"
-description = "Immune to death. Maximum threat generated."
+description = "Refuses to fall. Draws the enemies' attention."
 category = 0
 effect_type = 0
 duration = 5.0

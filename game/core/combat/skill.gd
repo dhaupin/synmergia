@@ -110,6 +110,9 @@ enum TargetType {
 # Utility effects (authored as "revive"/"cleanse" entries).
 @export var is_revive: bool = false
 @export var cleanses: bool = false
+# Aggro control: a taunt force-locks enemies on the caster (AggroComponent.taunt).
+@export var taunt_targets: bool = false
+@export var taunt_duration: float = 4.0
 
 # Utility
 @export var teleport_distance: float = 0.0
@@ -219,6 +222,13 @@ static func from_schema(s: SkillSchema) -> Skill:
 				# StatusEffectFactory at cast time (effect_id ->
 				# data/status_effects/*.tres).
 				sk.status_effects.append(effect.duplicate())
+				# A taunt is aggro control, not a stat debuff: flag it so
+				# execute() force-locks enemies (AggroComponent.taunt). The
+				# aggro-horn payloads mean the same thing.
+				var fxid := str(effect.get("effect_id", ""))
+				if fxid == "debuff_taunt" or fxid == "debuff_aggro_horn" or fxid == "buff_aggro_horn":
+					sk.taunt_targets = true
+					sk.taunt_duration = maxf(sk.taunt_duration, float(effect.get("duration", 0.0)))
 			"shield":
 				# A self-shield pool that soaks damage before health
 				# (Entity._absorb_with_shields); it rides the status stack so
@@ -403,6 +413,9 @@ func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO, def
 	if cleanses and not defer_target_effects:
 		applyCleanse(caster)
 
+	if taunt_targets and not defer_target_effects:
+		applyTaunt(caster)
+
 	if teleport_distance > 0 and not defer_target_effects:
 		applyTeleport(caster, ground_position)
 
@@ -528,6 +541,27 @@ func applyShield(caster) -> void:
 	fx.shield_amount = grants_shield
 	fx.source = caster
 	caster.apply_status_effect(fx)
+
+## Force every enemy near the caster to target it (tank grab). The aggro
+## table owns the lock (AggroComponent.taunt); the authored debuff_taunt
+## entry rides along on the status stack for the buff-bar icon. Silent
+## no-op when EntityService is unavailable (parse-time) or nothing is in
+## range -- same degradation law as _generate_heal_threat.
+func applyTaunt(caster) -> void:
+	var es = _entity_service()
+	if es == null or caster == null or not ("global_position" in caster):
+		return
+	var radius := aoe_radius if aoe_radius > 0.0 else 8.0
+	var duration_ms := int(maxf(taunt_duration, 0.0) * 1000.0)
+	for enemy in EntityInterest.query_interest(caster.global_position, radius, [caster]):
+		if not is_instance_valid(enemy):
+			continue
+		# Only enemies hold an aggro table worth locking.
+		if "entity_type" in enemy and enemy.entity_type != Entity.EntityType.ENEMY:
+			continue
+		var ac = enemy.get("aggro_component")
+		if ac != null and ac.has_method("taunt"):
+			ac.taunt(caster, duration_ms)
 
 func applyInvincibility(caster) -> void:
 	# Create invincibility buff
