@@ -13,6 +13,7 @@ func _hub_emit(sig_name: String, args: Array) -> void:
 		hub.emit_signal(sig_name, args) if args.is_empty() else hub.emit_signal("%s" % sig_name, args[0], args[1] if args.size() > 1 else null, args[2] if args.size() > 2 else null, args[3] if args.size() > 3 else null, args[4] if args.size() > 4 else null)
 
 const StatusEffect = preload("res://core/entities/status_effect.gd")
+const CcImmunity = preload("res://core/combat/cc_immunity.gd")
 const SkillSchema = preload("res://core/schemas/skill.gd")
 # The data -> runtime status-effect join (a skill's effect_id names a
 # data/status_effects/*.tres). Preloaded, not a class_name reference, so
@@ -642,6 +643,7 @@ func create_stun_effect(_caster) -> StatusEffect:
 	effect.can_move = false
 	effect.can_cast = false
 	effect.can_attack = false
+	effect.cc_tag = CcImmunity.STUN
 	# DURATION behavior: the effect's own timer + the tick janitor own
 	# expiry. Without it (INSTANT default) nothing ever advances or
 	# sweeps the CC -- a stun would stick forever.
@@ -655,6 +657,7 @@ func create_root_effect(_caster) -> StatusEffect:
 	effect.effect_category = StatusEffect.EffectCategory.STUN
 	effect.duration = crowd_control_duration
 	effect.can_move = false
+	effect.cc_tag = CcImmunity.ROOT
 	# DURATION behavior: the effect's own timer + the tick janitor own
 	# expiry. Without it (INSTANT default) nothing ever advances or
 	# sweeps the CC -- a stun would stick forever.
@@ -670,6 +673,7 @@ func create_slow_effect(_caster) -> StatusEffect:
 	# A slow is a movement penalty, not a hold: the runtime multiplier field
 	# is an additive delta on a 1.0 base (StatusEffect._apply_combat_modifiers).
 	effect.movement_speed_multiplier = -crowd_control_slow_percent
+	effect.cc_tag = CcImmunity.SLOW
 	# DURATION behavior: the effect's own timer + the tick janitor own
 	# expiry. Without it (INSTANT default) nothing ever advances or
 	# sweeps the CC -- a stun would stick forever.

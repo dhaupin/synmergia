@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "akkan_seer_void_ward"
 display_name = "Void Ward"
-description = "Wraps an ally in a shell of stilled void."
+description = "Wraps an ally in a shell of stilled void: a damage shield that also makes them immune to stun."
 icon_path = ""
 skill_type = 0
 target_type = 3
@@ -16,7 +16,7 @@ cast_time = 0.4
 animation_duration = 1.0
 range = 20.0
 aoe_radius = 0.0
-effects = [{"type": "shield", "value": 70, "duration": 10.0}]
+effects = [{"type": "shield", "value": 70, "duration": 10.0}, {"type": "buff", "effect_id": "buff_immune_stun", "duration": 10.0}]
 required_level = 10
 required_class = "akkan_seer"
 upgrade_tiers = [

@@ -78,6 +78,14 @@ environment/CI-only until proven otherwise.
 
 ## RECENT SESSIONS (verbatim, in log order -- newest block at top)
 
+## 2026-11-16b -- CC immunity round: the immune_* flags go live (Bender owns the stun resist)
+- SESSION CONTEXT: continuing Part C on `feat/stat-modifiers-and-skill-polish`. Owner flagged `buff_immune_stun` as extremely critical ("stun is annoying asf") and steered the design: Bender (Seer/Temporalist/Overclocker) should hold the stun resists, reflections and auras -- the party-critical modifiers people will need later.
+- THE BUG: the `immune_*` fields and `grants_immunity_to()`/`get_immunity_list()` on `StatusEffectData` had ZERO callers -- immunity was declared but never consulted, so no body could ever resist a control.
+- THE GATE: new canonical `core/combat/cc_immunity.gd` (tags + `body_is_immune_to`), kept as a leaf to avoid the `status_effect.gd` <-> `entity.gd` preload cycle. `StatusEffect` gained `cc_tag`/`immune_tags`/`immune_all`; the gate sits at `apply_status_effect` on `Entity` and the player body (the one choke point). `StatusEffectFactory` translates data `immune_*` -> `immune_tags` and stamps `cc_tag`; the skill CC builders stamp their tags. `immune_all` now refuses crowd control too.
+- DATA: `buff_immune_stun` (was orphaned) now rides `akkan_seer_void_ward` (shield + stun immunity on an ally); `buff_time_anchor` now carries `immune_slow` + `immune_root`, so `human_time_anchor`'s promise is real.
+- LINT: parity claim rules are regex-based now and cover per-tag immunity; proven to bite by removing a payload (fails by name) then restoring it.
+- RECEIPTS: `test_status_effect_tres` 49/0 (new CC-immunity section, 9 legs); `test_data_naming_lint` 64/0; full default runner 180 passed, 0 failed (455s).
+
 ## 2026-11-04 -- the orchestrator index reads the canonical clipmap chunk (Facet 5) (staging, no PRs)
 - SESSION CONTEXT: prior session nuked; owner: "look over the codebase", "don't run the full runners yet". Worked directly on `staging`.
 - THE STEER: the Julia multi-iso index must align with the clipmap's CANONICAL PropChunk addressing, not a parallel scheme. Prior state: `MultiIsoService` mirrored the roster into the index (write side honest) but its spatial axis was only the coarse 0..11 icosahedral VERTEX (~1/12 of the planet per bucket) and nothing read the index -- the read side was the open gap.

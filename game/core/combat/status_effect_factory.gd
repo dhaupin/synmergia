@@ -18,6 +18,7 @@ class_name StatusEffectFactory
 const StatusEffect = preload("res://core/entities/status_effect.gd")
 const StatusEffectDataScript = preload("res://core/schemas/status_effect_data.gd")
 const StatId = preload("res://core/schemas/stat_id.gd")
+const CcImmunity = preload("res://core/combat/cc_immunity.gd")
 
 ## StatusEffectData.StatType name -> runtime stat export on StatusEffect.
 const STAT_EXPORT := {
@@ -148,6 +149,14 @@ static func from_data(data, duration_override: float = 0.0) -> StatusEffect:
                 fx.shield_amount = int(data.shield_amount)
         if bool(data.immune_all):
                 fx.is_invincible = true
+        # Immunity payload: translate the data's immune_* flags into the runtime
+        # tag list the apply_status_effect gate reads. This is what makes an
+        # authored "immune to stun" ward actually refuse a stun; before, the
+        # flags were declared but nothing consulted them.
+        fx.immune_all = bool(data.immune_all)
+        for tag in CcImmunity.TAGS:
+                if bool(data.grants_immunity_to(tag)):
+                        fx.immune_tags.append(tag)
         _apply_stealth(fx, data)
 
         return fx
@@ -228,9 +237,14 @@ static func _apply_control(fx: StatusEffect, data) -> void:
         var idx := int(data.control_type)
         if idx < 0 or idx >= names.size():
                 return
-        var flags: Dictionary = CONTROL.get(str(names[idx]), {})
+        var control_name := str(names[idx])
+        var flags: Dictionary = CONTROL.get(control_name, {})
         for key in flags:
                 fx.set(key, bool(flags[key]))
+        # Stamp the canonical tag so an immune body's apply_status_effect gate
+        # can refuse this control. A tag with no flags (unknown name) is left
+        # empty rather than guessed.
+        fx.cc_tag = CcImmunity.tag_for_control(control_name)
 
 static func _apply_stealth(fx: StatusEffect, data) -> void:
         var size: int = StatusEffectDataScript.StealthType.size()

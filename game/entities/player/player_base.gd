@@ -457,6 +457,7 @@ func _dock_vehicle_for_pin(gateway_pin_id: String) -> String:
 ## per-body state (each body loads its own from class data).
 const Skill = preload("res://core/combat/skill.gd")
 const Entity = preload("res://core/entities/entity.gd")
+const CcImmunity = preload("res://core/combat/cc_immunity.gd")
 const AuraComponentScript = preload("res://core/components/aura_component.gd")
 const CombatComponentScript = preload("res://core/components/combat_component.gd")
 
@@ -541,6 +542,10 @@ func _ensure_effect_stack(with_combat: bool = false) -> void:
 
 func apply_status_effect(effect) -> void:
 	if effect == null or effect.is_expired():
+		return
+	# Immunity gate -- same choke point and same law as Entity: a ward that
+	# refuses this control keeps the effect out of the stack entirely.
+	if CcImmunity.body_is_immune_to(self, str(effect.get("cc_tag"))):
 		return
 	status_effects.append(effect)
 	effect.apply(self)

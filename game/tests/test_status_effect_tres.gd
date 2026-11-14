@@ -190,4 +190,63 @@ func _run() -> void:
                         held_blocked = true
         _assert(held_blocked, "a skill-built stun blocks the victim's casting on the live store")
 
+        # --- 11. CC immunity actually refuses a control -------------------------
+        # The schema carried immune_stun/immune_slow/... and grants_immunity_to()
+        # with zero callers, so nothing could ever be immune: an immune body took
+        # the stun like anyone else. The gate now lives at apply_status_effect,
+        # the one choke point every CC path funnels through.
+        var ward_fx = Factory.from_id("buff_immune_stun")
+        _assert(ward_fx != null, "buff_immune_stun resolves through the factory")
+        _assert(ward_fx.immune_tags.has("stun"), "the stun ward carries the stun tag")
+
+        var shielded := _entity()
+        shielded.apply_status_effect(ward_fx)
+        shielded.apply_status_effect(warp_sk.create_stun_effect(caster))
+        var immune_blocked := false
+        for effect in shielded.status_effects:
+                if effect.has_method("allows_casting") and not effect.allows_casting():
+                        immune_blocked = true
+        _assert(not immune_blocked, "an immune body refuses the stun outright")
+
+        # The refusal is tag-specific: a root is not a stun and still lands.
+        shielded.apply_status_effect(warp_sk.create_root_effect(caster))
+        var immune_rooted := false
+        for effect in shielded.status_effects:
+                if effect.has_method("allows_movement") and not effect.allows_movement():
+                        immune_rooted = true
+        _assert(immune_rooted, "the stun ward does not stop an unrelated root")
+
+        # A plain body still takes the same stun (the gate is not a blanket mute).
+        var plain := _entity()
+        plain.apply_status_effect(warp_sk.create_stun_effect(caster))
+        var plain_stunned := false
+        for effect in plain.status_effects:
+                if effect.has_method("allows_casting") and not effect.allows_casting():
+                        plain_stunned = true
+        _assert(plain_stunned, "a body with no ward still takes the stun")
+
+        # immune_all blocks every control tag, matching get_immunity_list's ["all"].
+        var bastion = Factory.from_id("buff_immunity")
+        _assert(bastion.immune_all, "immune_all data maps to the runtime immune_all flag")
+        var allblock := _entity()
+        allblock.apply_status_effect(bastion)
+        allblock.apply_status_effect(warp_sk.create_stun_effect(caster))
+        var all_blocked := false
+        for effect in allblock.status_effects:
+                if effect.has_method("allows_casting") and not effect.allows_casting():
+                        all_blocked = true
+        _assert(not all_blocked, "immune_all refuses crowd control as well as damage")
+
+        # Time Anchor's description promises immunity; the payload now honors it.
+        var anchor = Factory.from_id("buff_time_anchor")
+        _assert(anchor != null and anchor.immune_tags.has("slow"), "buff_time_anchor refuses slow as its description promises")
+        var anchored := _entity()
+        anchored.apply_status_effect(anchor)
+        anchored.apply_status_effect(warp_sk.create_slow_effect(caster))
+        var anchored_slowed := false
+        for effect in anchored.status_effects:
+                if effect.has_method("allows_movement") and not effect.allows_movement():
+                        anchored_slowed = true
+        _assert(not anchored_slowed, "a time-anchored body cannot be slowed")
+
         print("--- STATUS EFFECT TRES: %d passed, %d failed ---" % [_pass, _fail])

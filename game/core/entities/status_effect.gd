@@ -127,6 +127,24 @@ signal tick_occurred(entity, amount: int, tick_type: String)
 @export var can_attack: bool = true
 @export var is_invincible: bool = false
 
+# Immunity. `cc_tag` names the control this effect INFLICTS (stun/root/slow/
+# silence/fear/knockback); `immune_tags` names the controls the body carrying
+# this effect REFUSES. A body is immune to an incoming effect when any of its
+# own effects lists the incoming effect's tag. See apply_status_effect, the
+# one choke point every CC path (skill, aura, item, factory) funnels through.
+@export var cc_tag: String = ""
+@export var immune_tags: Array[String] = []
+## Data-level "complete immunity" (StatusEffectData.immune_all). Blocks every
+## control tag in addition to damage, matching get_immunity_list's ["all"].
+@export var immune_all: bool = false
+
+## True when this effect refuses `tag` as an incoming control.
+func grants_immunity_to(tag: String) -> bool:
+	if tag.is_empty():
+		return false
+	return immune_all or immune_tags.has(tag)
+
+
 # Visibility/stealth
 @export var make_invisible: bool = false
 @export var break_on_damage: bool = false
