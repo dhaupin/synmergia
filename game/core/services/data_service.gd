@@ -14,6 +14,7 @@ const CharacterClass = preload("res://core/schemas/character_class.gd")
 const Species = preload("res://core/schemas/species.gd")
 const Faction = preload("res://core/schemas/faction.gd")
 const ZoneData = preload("res://core/schemas/zone_data.gd")
+const TerritoryData = preload("res://core/schemas/territory_data.gd")
 const EventData = preload("res://core/schemas/event_data.gd")
 const DwellingData = preload("res://core/schemas/dwelling_data.gd")
 const NPCData = preload("res://core/schemas/npc_data.gd")
@@ -39,6 +40,7 @@ var _classes: Dictionary = {}
 var _species: Dictionary = {}
 var _factions: Dictionary = {}
 var _zones: Dictionary = {}
+var _territories: Dictionary = {}
 
 var _currencies: Dictionary = {}
 var _mounts: Dictionary = {}
@@ -91,6 +93,7 @@ func load_all_data() -> void:
 	load_species()
 	load_factions()
 	load_zones()
+	load_territories()
 	load_events()
 	load_dwellings()
 	load_houses()
@@ -214,6 +217,12 @@ func load_factions() -> void:
 func load_zones() -> void:
 	_zones = _scan_directory(_data_path + "zones", "zone")
 	GameLog.info("DataService: Loaded %d zones" % _zones.size())
+
+## Load territories from data/territories/. A territory groups zones and
+## owns faction/guild control; ZoneData stays geography-only.
+func load_territories() -> void:
+	_territories = _scan_directory(_data_path + "territories", "territory")
+	GameLog.info("DataService: Loaded %d territories" % _territories.size())
 
 ## Load events from data/events/
 func load_events() -> void:
@@ -730,6 +739,15 @@ func get_all_factions() -> Array:
 func get_all_zones() -> Array:
 	return _zones.values()
 
+func get_territory(id: String) -> Resource:
+	if _territories.has(id):
+		return _territories.get(id)
+	GameLog.warn("DataService: Territory not found: " + id)
+	return null
+
+func get_all_territories() -> Array:
+	return _territories.values()
+
 func get_all_events() -> Array:
 	return _events.values()
 
@@ -776,6 +794,7 @@ func reload_all() -> void:
 	_species.clear()
 	_factions.clear()
 	_zones.clear()
+	_territories.clear()
 	_events.clear()
 	_dwellings.clear()
 	_npcs.clear()
@@ -824,6 +843,9 @@ func reload_category(category: String) -> void:
 		"zones":
 			_zones.clear()
 			load_zones()
+		"territories":
+			_territories.clear()
+			load_territories()
 		"npcs":
 			_npcs.clear()
 			load_npcs()

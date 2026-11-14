@@ -117,8 +117,9 @@ func is_at_war(faction1_id: String, faction2_id: String) -> bool:
 		return false
 	return _active_wars[faction1_id].has(faction2_id)
 
-## Declare war between factions
-func declare_war(faction1_id: String, faction2_id: String, attacker_id: String = "") -> bool:
+## Declare war between factions. An optional territory_id puts that
+## territory at stake: the war becomes its active contest.
+func declare_war(faction1_id: String, faction2_id: String, attacker_id: String = "", territory_id: String = "") -> bool:
 	var faction1 = _factions.get(faction1_id)
 	var faction2 = _factions.get(faction2_id)
 
@@ -164,6 +165,12 @@ func declare_war(faction1_id: String, faction2_id: String, attacker_id: String =
 
 	war_declared.emit(faction1, faction2)
 	GameLog.info("FactionManager: WAR declared between %s and %s" % [faction1_id, faction2_id])
+	if territory_id != "":
+		var territory_service = _territory_service()
+		if territory_service:
+			territory_service.contest(
+				territory_id, "war:%s:%s" % [faction1_id, faction2_id], faction1_id, faction2_id
+			)
 
 	# Frame-level toast. Dedupe on the war pair so a re-emit during the same
 	# 5s window (e.g. multiple systems reacting to the same event) collapses
@@ -177,7 +184,8 @@ func declare_war(faction1_id: String, faction2_id: String, attacker_id: String =
 
 	return true
 
-## End war between factions
+## End war between factions. Any territory contested by this pair resolves
+## to its strongest claimant.
 func end_war(faction1_id: String, faction2_id: String) -> bool:
 	if not is_at_war(faction1_id, faction2_id):
 		return false
@@ -198,6 +206,9 @@ func end_war(faction1_id: String, faction2_id: String) -> bool:
 
 	war_ended.emit(faction1, faction2)
 	GameLog.info("FactionManager: War ended between %s and %s" % [faction1_id, faction2_id])
+	var territory_service = _territory_service()
+	if territory_service:
+		territory_service.resolve_war_between(faction1_id, faction2_id)
 
 	# Frame-level toast.
 	_emit_faction(
@@ -208,6 +219,12 @@ func end_war(faction1_id: String, faction2_id: String) -> bool:
 	)
 
 	return true
+
+func _territory_service():
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null or tree.root == null:
+		return null
+	return tree.root.get_node_or_null(NodePath("TerritoryService"))
 
 ## Check if faction is on war declaration cooldown
 func is_on_cooldown(faction_id: String) -> bool:

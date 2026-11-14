@@ -18,6 +18,7 @@ const DictStore = preload("res://adapters/persistence/dict_store.gd")
 # _notify_player uses the typed-Kind pipeline; remove_member uses
 # PLAYER_WARNED to tell the kicked member that an officer acted.
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const TerritoryData = preload("res://core/schemas/territory_data.gd")
 
 # Guild data (guild_id -> guild data dict)
 var _guilds: Dictionary = {}
@@ -557,6 +558,39 @@ func _get_member_rank(guild: Dictionary, player_id: String) -> GuildRank:
 func _has_permission(rank: GuildRank, permission: int) -> bool:
 	var perms = _rank_permissions.get(rank, 0)
 	return (perms & permission) != 0
+
+## Claim a territory for a guild. MANAGE_GVG is the gate; the caller must be
+## a guild member whose rank carries it. TerritoryService owns the state.
+func claim_territory(guild_id: String, player_id: String, territory_id: String) -> bool:
+	var guild: Dictionary = _guilds.get(guild_id, {})
+	if guild.is_empty():
+		return false
+	var rank: int = _get_member_rank(guild, player_id)
+	if rank == -1 or not _has_permission(rank, Permission.MANAGE_GVG):
+		GameLog.warn("GuildService: %s lacks MANAGE_GVG for territory %s" % [player_id, territory_id])
+		return false
+	var territory_service = _territory_service()
+	if territory_service == null:
+		return false
+	var claimed: bool = territory_service.claim(
+		territory_id, TerritoryData.Controller.GUILD, guild_id, 50
+	)
+	if claimed:
+		GameLog.info("GuildService: %s claimed territory %s" % [guild_id, territory_id])
+	return claimed
+
+## Read back the territories this guild controls (UI / roster surface).
+func get_guild_territories(guild_id: String) -> Array:
+	var territory_service = _territory_service()
+	if territory_service == null:
+		return []
+	return territory_service.territories_for_guild(guild_id)
+
+func _territory_service():
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null or tree.root == null:
+		return null
+	return tree.root.get_node_or_null(NodePath("TerritoryService"))
 
 ## Create alliance
 func create_alliance(leader_id: String, name: String) -> String:

@@ -1,0 +1,34 @@
+name: Docs Link Gate
+
+on:
+  push:
+    branches: [staging, main]
+    paths:
+      - '**/*.md'
+      - 'scripts/check_docs_links.py'
+      - '.github/workflows/docs-ci.yml'
+  pull_request:
+    branches: [staging, main]
+    paths:
+      - '**/*.md'
+      - 'scripts/check_docs_links.py'
+      - '.github/workflows/docs-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  links:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check relative Markdown links
+        run: python3 scripts/check_docs_links.py

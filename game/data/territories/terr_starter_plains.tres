@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="TerritoryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/territory_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "terr_starter_plains"
+display_name = "Starter Plains"
+description = "The human alliance's home fields around the first waystone."
+zone_ids = ["zone_starter_plains"]
+controller = 1
+controller_id = "faction_human"
+claimants = [{
+"kind": 1,
+"id": "faction_human",
+"influence": 100,
+"since": 0
+}]
+active_war_id = ""
+capture_rule = &"SIEGE"
+horde_ids = []
+boss_ids = []
+event_ids = []
+pvp_mode_override = -1

@@ -43,6 +43,7 @@ func _initialize() -> void:
 	_test_installed_matches_analytic()
 	_test_foreign_seed_rejected()
 	_test_tampered_rejected()
+	_test_all_world_artifacts()
 	_test_uninstall_restores()
 	_finish()
 
@@ -167,6 +168,28 @@ func _test_tampered_rejected() -> void:
 		_ok("tampered artifact carries a count drift (%d vs live %d) the loader rejects" % [art_count, live_count])
 	else:
 		_fail("tamper did not change the count; test invalid")
+
+
+## Every declared world consumes its own artifact. The boot seam in
+## globe_world.gd passes the active world id, so an artifact for only main
+## would silently leave the moon and underworld on the analytic path.
+func _test_all_world_artifacts() -> void:
+	# The boot seam (globe_world.gd) passes TerrainGen.world_seed_bytes(),
+	# which is the project-level seed for every world today. Per-world
+	# WorldRegistry seeds are not wired into TerrainGen yet; generating
+	# against them would produce artifacts the live consumer rejects.
+	var live_seed: PackedByteArray = _seed()
+	for world_id in ["main", "moon", "underworld"]:
+		var path := "res://data/presolve/props_%s.txt" % world_id
+		if not FileAccess.file_exists(path):
+			_fail("missing artifact for world %s" % world_id)
+			continue
+		var report: Dictionary = _PP.load_for(live_seed, world_id)
+		if bool(report.get("installed", false)):
+			_ok("world %s artifact validated (%d rocks, %d boulders)"
+				% [world_id, report["rocks"], report["boulders"]])
+		else:
+			_fail("world %s artifact rejected: %s" % [world_id, report.get("reason", "?")])
 
 
 func _test_uninstall_restores() -> void:

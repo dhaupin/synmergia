@@ -79,6 +79,7 @@ always, for every prefixed family.
 | `npc/` | `npc_` | `npc_blacksmith_village` |
 | `zones/` | `zone_` | `zone_starter_plains` |
 | `factions/` | `faction_` | `faction_human` |
+| `territories/` | `terr_` | `terr_starter_plains` |
 | `currencies/` | `currency_` | `currency_gold` |
 | `mounts/` | `mount_` | `mount_plains_runner` |
 | `vehicles/` | `veh_` | `veh_haven_ferry` |
@@ -121,6 +122,7 @@ written in the **same order** the schema exports them.
 | `enemies/` | `enemy_data.gd` |
 | `zones/` | `zone_data.gd` |
 | `factions/` | `faction.gd` |
+| `territories/` | `territory_data.gd` |
 | `currencies/` | `currency_data.gd` |
 | `mounts/`, `gliders/` | `mount_data.gd` |
 | `vehicles/` | `vehicle_data.gd` |

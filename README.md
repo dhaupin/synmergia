@@ -56,7 +56,8 @@ This is the sandbox economy you remember from Ultima Online, rebuilt for a moder
 Risk and reward in constant tension. Synmergia offers **configurable PvP across zones**:
 
 - **Full loot in PvP zones** — drop everything on death, fight for glory and gear
-- **Guild wars (planned)** — territory control and war declarations are the next PvP layer
+- **Territory ownership** — factions and guilds hold zones; territories can be contested in faction wars
+- **Player-run guild wars (planned)** — the command surface and persistence for player-declared wars are the next PvP layer
 - **Faction battles** — join species or ideological factions, shape the world's future
 - **Arena combat** — organized PvP with balanced rulesets
 - **Death has weight** — no zerg rushing, no consequence-free ganking
@@ -100,7 +101,7 @@ Want to play with friends but can't find enough players? **AI agents can join yo
 ### Economy & Crafting
 - 🔨 **Crafting system** with profession tiers (blacksmithing and more planned)
 - 🏠 **Player housing** — claim land and build your home
-- 🏰 **Guild halls**, territory control, and guild wars planned
+- 🏰 **Guild halls** planned; territory ownership is shipped, player-run guild wars still planned
 - ⛏️ **Resource gathering** and player trading
 - 💰 **Player-driven market** — no auction house bot, prices set by players
 

@@ -252,14 +252,16 @@ files are the difference.
       and that nothing client-side is trusted. This is a design audit, not
       a doc.
 - [x] **Dependency + supply-chain automation (version updates).**
-      `.github/dependabot.yml` covers Bun (`bun.lock`), GitHub Actions and Docker against
-      `staging`. Still ops-only: enable Dependabot **security** updates and
-      dependency review in repo settings, and add `npm audit` to CI. An open
-      repo attracts dependency-confusion and typo-squatting attempts.
-- [ ] **Branch protection on `main`.** Now required: the repo is public and
-      direct pushes to `staging`/`main` are still allowed. Note CI does not
-      run the Godot suite on staging PRs, so the local runner remains the
-      real gate (see AGENTS.md).
+      `.github/dependabot.yml` covers Bun (`bun.lock`), GitHub Actions and
+      Docker against `staging`. Still ops-only: enable Dependabot **security**
+      updates and dependency review in repo settings, and add `bun audit` to
+      CI. An open repo attracts dependency-confusion and typo-squatting
+      attempts.
+- [x] **PR gates for `staging` and `main`.** `godot-ci.yml` runs the
+      default Godot set, `docs-ci.yml` checks relative Markdown links, and
+      `web-ci.yml` now includes staging. Remaining ops: branch protection
+      still allows direct pushes; turn it on once the new checks have run
+      green on a PR.
 
 - [ ] **Secret scanning + push protection** enabled (repeat of §2; verified
       DISABLED on the public repo 2026-11-14).

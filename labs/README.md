@@ -47,6 +47,7 @@ questions live.
 | --- | --- | --- |
 | [`prd.md`](./prd.md) | ACTIVE | Product spec, progression, game-wide laws |
 | [`prd-world.md`](./prd-world.md) | ACTIVE | World topology and player experience |
+| [`territory-system.md`](./territory-system.md) | ACTIVE | Territory ownership: schema, service, guild/war wiring, limits |
 | [`prd-web.md`](./prd-web.md) | ACTIVE | Web client, portal, admin |
 | [`prd-quests.md`](./prd-quests.md) | ACTIVE | Quests and achievements |
 | [`prd-social-instances.md`](./prd-social-instances.md) | ACTIVE | Social layer around instanced rooms |
