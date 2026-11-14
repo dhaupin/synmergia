@@ -4,7 +4,9 @@
 ## item_id names no item (a typo, or a removed item) drops nothing at runtime
 ## with no error; a currency_id that names no currency is dropped by the
 ## consumers. Book entries are the one exception -- book_<skill>_<tier> ids are
-## runtime-expanded by GroundLootService, so they validate as skill+tier.
+## runtime-expanded by GroundLootService, so they validate as skill+tier AND
+## the skill must be upgradable (the runtime catalog gate; a signature would
+## silently drop nothing).
 ##
 ## The npc-offering half guards catalog_items: a vendor entry whose item_id or
 ## currency_id names nothing is a shop row that can never be bought. The enemy
@@ -66,7 +68,14 @@ func _run() -> void:
 						var parts := iid.split("_")
 						var tier: String = parts[parts.size() - 1] if parts.size() > 0 else ""
 						var skill_id: String = iid.trim_prefix("book_").trim_suffix("_" + tier)
-						if not TIERS.has(tier) or ds.get_skill(skill_id) == null:
+						# The runtime gate is SkillAcademyService's catalog, which
+						# holds UPGRADABLE skills only: create_book returns null
+						# for a non-upgradable skill (a signature), so
+						# GroundLootService skips the drop with only a warn --
+						# the same silent-break class as a phantom item id.
+						var sk = ds.get_skill(skill_id) if ds.has_method("get_skill") else null
+						var upgradable: bool = sk != null and bool(sk.get("upgradable"))
+						if not TIERS.has(tier) or not upgradable:
 							bad_books.append("%s: %s" % [fn, iid])
 					elif ds.get_item(iid) == null:
 						bad_items.append("%s: %s" % [fn, iid])
