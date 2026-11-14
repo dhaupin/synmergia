@@ -360,6 +360,118 @@ func _run() -> void:
         else:
                 _fail("a scope_bands-only heal wrongly fanned its shield to allies")
 
+        # --- 12. Rally band: the DD's Charge fans buffs to the party ---
+        for f in friends:
+                f.clear_all_status_effects()
+        caster.clear_all_status_effects()
+        var rally = CombatSkill.new()
+        rally.skill_id = "test_rally"
+        rally.skill_name = "Test Rally"
+        rally.rally_band = true
+        rally.upgrade_level = 3  # epic: the party fan-out comes online here
+        rally.aoe_radius = 8.0
+        rally.status_effects.append({"type": "buff", "effect_id": "buff_rally_dd", "duration": 8.0})
+        rally.status_effects.append({"type": "debuff", "effect_id": "debuff_sunder", "duration": 6.0})
+        rally.apply_scope_bands()
+        if rally.rally_aoe and rally.rally_max_targets == 4:
+                _ok("the epic rally band fans to the party (aoe, cap 4)")
+        else:
+                _fail("the epic rally band did not fan (aoe=%s cap=%d)" % [rally.rally_aoe, rally.rally_max_targets])
+        rally.execute(caster, null)
+        var rallied := 0
+        for f in friends:
+                if float(f.stats.get("cooldown_reduction", 0.0)) > 0.0:
+                        rallied += 1
+        if rallied == 2:
+                _ok("the rally granted its cooldown buff to every friendly in reach (2/2)")
+        else:
+                _fail("the rally reached %d/2 friends" % rallied)
+        if float(caster.stats.get("cooldown_reduction", 0.0)) > 0.0:
+                _ok("the rally also buffed the caster (self always leads)")
+        else:
+                _fail("the rally did not buff its own caster")
+        if int(foe.stats.get("vitality", 10)) < 10:
+                _ok("the rally sundered the hostile's armor in the same cast")
+        else:
+                _fail("the rally did not debuff the hostile (vitality %d)" % int(foe.stats.get("vitality", 10)))
+
+        # --- 13. An un-opted rally never fans (a plain self buff stays solo) ---
+        for f in friends:
+                f.clear_all_status_effects()
+                f.stats["cooldown_reduction"] = 0.0
+        caster.clear_all_status_effects()
+        caster.stats["cooldown_reduction"] = 0.0
+        var solo_rally = CombatSkill.new()
+        solo_rally.skill_id = "test_solo_rally"
+        solo_rally.skill_name = "Test Solo Rally"
+        solo_rally.upgrade_level = 5  # top band, but no rally_band opt-in
+        solo_rally.aoe_radius = 8.0
+        solo_rally.status_effects.append({"type": "buff", "effect_id": "buff_rally_dd", "duration": 8.0})
+        solo_rally.apply_scope_bands()
+        solo_rally.execute(caster, null)
+        var solo_reached := 0
+        for f in friends:
+                if float(f.stats.get("cooldown_reduction", 0.0)) > 0.0:
+                        solo_reached += 1
+        if solo_reached == 0:
+                _ok("a rally with the band off stays self-only even at the top band")
+        else:
+                _fail("an un-opted rally fanned to %d allies" % solo_reached)
+
+        # --- 14. Cooldown reduction shaves the one cooldown set point ---
+        var cdr_skill = CombatSkill.new()
+        cdr_skill.skill_id = "test_cdr"
+        cdr_skill.skill_name = "Test CDR"
+        cdr_skill.cooldown = 20.0
+        caster.stats["cooldown_reduction"] = 0.5
+        cdr_skill.execute(caster, null)
+        if is_equal_approx(cdr_skill.remaining_cooldown, 10.0):
+                _ok("50%% cooldown reduction halves a 20s cooldown to 10s")
+        else:
+                _fail("cooldown reduction did not apply (remaining %.2f)" % cdr_skill.remaining_cooldown)
+        caster.stats["cooldown_reduction"] = 5.0  # absurd: must clamp to 0.5
+        var clamp_skill = CombatSkill.new()
+        clamp_skill.skill_id = "test_cdr_clamp"
+        clamp_skill.cooldown = 20.0
+        clamp_skill.execute(caster, null)
+        if clamp_skill.remaining_cooldown >= 10.0:
+                _ok("cooldown reduction clamps at 50%% (never zeroes a cooldown)")
+        else:
+                _fail("cooldown reduction was not clamped (remaining %.2f)" % clamp_skill.remaining_cooldown)
+        caster.stats["cooldown_reduction"] = 0.0
+
+        # --- 15. Duration extension (the DD's reach verb) lengthens a buff ---
+        caster.clear_all_status_effects()
+        caster.stats["effect_duration_mult"] = 1.5
+        var lengthen = CombatSkill.new()
+        lengthen.skill_id = "test_lengthen"
+        lengthen.skill_name = "Test Lengthen"
+        lengthen.status_effects.append({"type": "buff", "effect_id": "buff_haste", "duration": 10.0})
+        lengthen.execute(caster, null)
+        var longest := 0.0
+        for fx in caster.status_effects:
+                if fx != null and "duration" in fx:
+                        longest = maxf(longest, float(fx.duration))
+        if is_equal_approx(longest, 15.0):
+                _ok("a 1.5x LENGTHEN stat turns a 10s buff into 15s")
+        else:
+                _fail("duration extension did not apply (longest %.2f)" % longest)
+        caster.stats["effect_duration_mult"] = 1.0
+
+        # --- 16. Power amplification (the Bender's verb) raises a heal ---
+        caster.stats["effect_power_mult"] = 1.0
+        var plain_heal = CombatSkill.new()
+        plain_heal.skill_id = "test_heal_plain"
+        plain_heal.heal_amount = 100
+        var base_heal: int = plain_heal.calculate_healing(caster)
+        caster.stats["effect_power_mult"] = 1.5
+        var amp_heal: int = plain_heal.calculate_healing(caster)
+        if amp_heal == int(float(base_heal) * 1.5):
+                _ok("a 1.5x AMPLIFY stat raises a %d heal to %d" % [base_heal, amp_heal])
+        else:
+                _fail("power amplification did not apply (%d -> %d)" % [base_heal, amp_heal])
+        caster.stats["effect_power_mult"] = 1.0
+
         _finish()
 
 ## True when a body carries an unexpired shield pool.

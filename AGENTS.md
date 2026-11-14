@@ -802,8 +802,31 @@ A skill's reach is folded from the band tables in `core/combat/scope_band.gd`
 - `guard_band = true` -- the GUARD verb (shields/armor). Runs at cast, fans to
   allies from the epic band up. Separate from `scope_bands` so a self
   damage-buff is never fanned to the party.
+- `rally_band = true` -- the RALLY verb (the DD's Charge: damage / cooldown /
+  mana-regen buffs). Runs at cast like a guard, fans to the party from the epic
+  band up, and its band's `duration_mult` lengthens the buffs (DD's reach verb).
+  A rally also sunders the enemy ring with its `debuff` payload, in one cast.
 The tank's identity is control/guard, so its control skills carry
-`scope_bands` and its party-shield auras carry `guard_band`.
+`scope_bands` and its party-shield auras carry `guard_band`. The DD's rally and
+the Bender's amplify are class-agnostic verbs of the Concord (like
+`general_shield` for the guard), so they are authored under `data/skills/general/`
+and every class carries them (`general_rally`, `general_amplify`).
+
+### Support-lane reach stats (`StatId`)
+Two stat keys carry the support lanes' verbs, read off the caster's stat block
+at cast and clamped by `StatId`:
+- `effect_duration_mult` -- DD LENGTHENS. A delta on 1.0 (`0.25` = +25%) that
+  scales every authored entry duration and the skill's own CC/shield duration.
+- `effect_power_mult` -- Bender AMPLIFIES. A delta on 1.0 that scales outgoing
+  heal and shield magnitudes and buff stat magnitudes.
+- `cooldown_reduction` -- a flat fraction (`0.25` = 25% faster) applied at the
+  one cooldown set point in `Skill.execute` (`remaining_cooldown = cooldown *
+  (1 - cdr)`), clamped to `MAX_COOLDOWN_REDUCTION` so it never reaches zero.
+A buff can grant any of these: author them in a `StatusEffectData`'s
+`stat_multipliers` (`effect_duration_mult`, `effect_power_mult`,
+`cooldown_reduction`), and `StatusEffectFactory` maps them onto the runtime stat
+block. The authored key IS the `StatId` key, so the data vocabulary and the stat
+vocabulary are one.
 
 ### The starter law
 A class's FIRST `starting_skills` entry carries the family identity verb,

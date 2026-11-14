@@ -543,13 +543,15 @@ func _activate_world(entry: Dictionary) -> bool:
 		return false
 	var action: String = String(entry["action"])
 	if action.begins_with("Attack "):
-		# Set the game's own target FIRST (TargetingManager), then cast
-		# through the player's skillbar exactly like a keypress: use_skill
-		# reads the current target from the targeting pool and routes the
-		# skill through CombatComponent (GCD + live stack). No bypass.
+		# Set the game's own target FIRST (TargetingManager), then swing the
+		# body's basic attack at it through the real combat entry point
+		# (CombatComponent: GCD + live stack). Attack must not depend on
+		# skillbar ORDER -- a shared verb can sort into slot 0.
 		_set_game_target(entity)
+		seed(int(Time.get_ticks_msec()) % 100000)
+		if player.has_method("basic_attack_target"):
+			return player.basic_attack_target(entity)
 		if player.has_method("use_skill"):
-			seed(int(Time.get_ticks_msec()) % 100000)
 			player.use_skill(0)
 			return true
 		return false

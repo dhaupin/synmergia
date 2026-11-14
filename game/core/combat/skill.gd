@@ -15,6 +15,7 @@ func _hub_emit(sig_name: String, args: Array) -> void:
 const StatusEffect = preload("res://core/entities/status_effect.gd")
 const CcImmunity = preload("res://core/combat/cc_immunity.gd")
 const ScopeBand = preload("res://core/combat/scope_band.gd")
+const StatId = preload("res://core/schemas/stat_id.gd")
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const SkillSchema = preload("res://core/schemas/skill.gd")
 # The data -> runtime status-effect join (a skill's effect_id names a
@@ -178,6 +179,19 @@ var upgrade_unlocks: Array = []
 ## fanned to the party): the shield pool + authored buffs cover allies as the
 ## tier climbs -- the tank's Hold.
 @export var guard_band: bool = false
+@export var rally_aoe: bool = false
+@export var rally_radius: float = 0.0
+@export var rally_max_targets: int = 1  # 0 = unlimited
+@export var rally_duration_mult: float = 1.0
+## Opt in to the RALLY band (the DD's Charge): fan this skill's buffs to the
+## party as the tier climbs, lengthening them by the band. Its own opt-in so a
+## mend or a hold is never fanned by a rally.
+@export var rally_band: bool = false
+## Tier goodies from the upgrade table (authored but previously inert):
+## effect_duration_mult lengthens this cast's effects, effect_strength_mult
+## amplifies them. Folded into _duration_scale / _power_scale.
+var upgrade_effect_duration_mult: float = 1.0
+var upgrade_effect_strength_mult: float = 1.0
 ## Per-cast latch: the hitbox sweep fans a banded control over the ring ONCE
 ## (on the first landed hit), then stops re-sweeping for the rest of the cast.
 ## A fresh Skill instance is duplicated per cast, so the latch resets itself.
@@ -238,6 +252,7 @@ static func from_schema(s: SkillSchema) -> Skill:
 	sk.required_role = int(s.required_role)
 	sk.scope_bands = bool(s.scope_bands)
 	sk.guard_band = bool(s.guard_band)
+	sk.rally_band = bool(s.rally_band)
 	sk.required_stance = s.required_stance
 	sk.schema = s
 	# Flatten effect dictionaries into runtime fields. THIS is the one effect
@@ -384,6 +399,7 @@ func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO, def
 		"heal_targets": 0,
 		"guard_targets": 0,
 		"control_targets": 0,
+		"rally_targets": 0,
 		"effects_applied": [],
 		"targets_hit": []
 	}
@@ -392,8 +408,9 @@ func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO, def
 	if not consume_resources(caster):
 		return result
 
-	# Start cooldown
-	remaining_cooldown = cooldown
+	# Start cooldown. The caster's cooldown reduction (a DD goodie) shaves
+	# every cooldown at this one point; clamped so it can never reach zero.
+	remaining_cooldown = cooldown * (1.0 - _cooldown_reduction_of(caster))
 
 	# Calculate damage
 	if damage > 0:
@@ -455,17 +472,24 @@ func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO, def
 	# sweep (landed hits only, unless there is no target -- a self-buff still
 	# lands at cast). The guard band owns them when it fans them to the party
 	# (apply_banded_guard below), so they are not applied twice.
-	if not status_effects.is_empty() and not has_guard_payload() and (not defer_target_effects or target == null):
+	if not status_effects.is_empty() and not has_guard_payload() and not has_rally_payload() and (not defer_target_effects or target == null):
 		apply_buff_entries(caster, target)
 	# Authored DEBUFFS are offense: a hitbox cast defers them to the sweep
 	# (landed hits only), and a banded control fans them to the whole ring.
-	if not status_effects.is_empty() and not defer_target_effects and not banded_control:
+	# The rally owns its own debuff fan-out (apply_banded_rally sunders the
+	# enemy ring), so a rally skill never double-applies its debuff here.
+	if not status_effects.is_empty() and not defer_target_effects and not banded_control and not has_rally_payload():
 		apply_debuff_entries(caster, target)
 
 	# The guard (shield pool + authored buffs) fans to allies when the guard
 	# band is on, else the shield pool lands on the caster alone. A guard is
 	# ally-support, not offense, so it never waits on a landed hit -- it lands
 	# the moment the skill is cast (a tank alone still shields the party).
+	# The rally (the DD's Charge) fans the buffs to the party, lengthened by
+	# the band. Like a guard it is ally-support, so it lands at cast.
+	if has_rally_payload():
+		result.rally_targets = apply_banded_rally(caster, target)
+
 	if has_guard_payload():
 		result.guard_targets = apply_banded_guard(caster, target, grants_shield)
 	elif grants_shield > 0:
@@ -551,6 +575,10 @@ func calculate_healing(caster) -> int:
 	# Apply caster's healing power (WIS-based)
 	base_heal += caster.get_healing_power()
 
+	# A Bender's AMPLIFY stat raises every outgoing heal (the healer's lane
+	# partner). Clamped, so a buff can never double a mend.
+	base_heal = int(float(base_heal) * _power_scale(caster))
+
 	# Daily Class Blessing (prd-psy.md section 8): the blessed class
 	# heals +20% for the day. Duck-typed + late-resolved so script-mode
 	# tests and bare Entities (never blessed) pass through clean.
@@ -606,11 +634,13 @@ func _apply_entries_of_kind(body, caster, kind: String, duration_mult: float = 1
 	for entry in status_effects:
 		if str(entry.get("type", "")) != kind:
 			continue
-		var entry_dur := float(entry.get("duration", 0.0)) * maxf(duration_mult, 0.0)
+		var entry_dur := float(entry.get("duration", 0.0)) * maxf(duration_mult, 0.0) * _duration_scale(caster)
 		var fx := StatusEffectFactory.from_id(str(entry.get("effect_id", "")), entry_dur)
 		if fx == null:
 			continue
 		fx.source = caster
+		if kind == "buff":
+			_scale_effect_power(fx, _power_scale(caster))
 		body.apply_status_effect(fx)
 
 ## True when this skill carries a guard payload AND opts into the guard band
@@ -663,7 +693,7 @@ func applyShield(caster) -> void:
 	fx.effect_type = StatusEffect.EffectType.BUFF
 	fx.tick_behavior = StatusEffect.TickBehavior.DURATION
 	fx.duration = shield_duration
-	fx.shield_amount = grants_shield
+	fx.shield_amount = int(float(grants_shield) * _power_scale(caster))
 	fx.source = caster
 	caster.apply_status_effect(fx)
 
@@ -794,6 +824,14 @@ func apply_scope_bands() -> void:
 		guard_max_targets = int(gb.get("max_targets", 1))
 		guard_radius = float(gb.get("radius", 0.0))
 		guard_duration_mult = float(gb.get("duration_mult", 1.0))
+	# Rally: the DD's party buff widens and lengthens as it climbs, the same
+	# ladder as the mend and the hold. Its own opt-in (rally_band).
+	if rally_band:
+		var rb: Dictionary = ScopeBand.rally_band(upgrade_level)
+		rally_aoe = bool(rb.get("aoe", false))
+		rally_max_targets = int(rb.get("max_targets", 1))
+		rally_radius = float(rb.get("radius", 0.0))
+		rally_duration_mult = float(rb.get("duration_mult", 1.0))
 	# A teleport bands by nature; the reach climbs and eventually crosses
 	# scopes. At base (0) the skill's own authored distance governs.
 	if teleport_distance > 0.0:
@@ -890,7 +928,7 @@ func apply_banded_guard(caster, target, amount: int) -> int:
 			fx.effect_type = StatusEffect.EffectType.BUFF
 			fx.tick_behavior = StatusEffect.TickBehavior.DURATION
 			fx.duration = dur
-			fx.shield_amount = amount
+			fx.shield_amount = int(float(amount) * _power_scale(caster))
 			fx.source = caster
 			body.apply_status_effect(fx)
 		# The authored buff payload (a fortify/reflect aura) lands on each body
@@ -949,6 +987,108 @@ func apply_banded_control(caster, target, ground_position: Vector3) -> int:
 	if taunt_targets:
 		applyTaunt(caster, control_duration_mult)
 	return controlled
+
+## --- The support lanes' goodies ---------------------------------------
+## DD LENGTHENS (effect_duration_mult); Bender AMPLIFIES (effect_power_mult);
+## and a buff can shorten cooldowns (cooldown_reduction). These read the
+## caster's stat block, clamped, so an amplifier can never zero a cooldown or
+## double a heal. A caster with no stat block passes through at 1.0 / 0.0.
+
+## Scale an outgoing effect duration by the caster's LENGTHEN stat (DD).
+func _duration_scale(caster) -> float:
+	return clampf(_stat_of(caster, "effect_duration_mult", 1.0) * upgrade_effect_duration_mult, 0.0, StatId.MAX_EFFECT_DURATION_MULT)
+
+## Scale an outgoing heal/shield magnitude by the caster's AMPLIFY stat (Bender).
+func _power_scale(caster) -> float:
+	return clampf(_stat_of(caster, "effect_power_mult", 1.0) * upgrade_effect_strength_mult, 0.0, StatId.MAX_EFFECT_POWER_MULT)
+
+## The caster's cooldown-reduction fraction, clamped (read at the one
+## cooldown set point in execute()).
+func _cooldown_reduction_of(caster) -> float:
+	return clampf(_stat_of(caster, "cooldown_reduction", 0.0), 0.0, StatId.MAX_COOLDOWN_REDUCTION)
+
+## Multiply every numeric magnitude on a built status effect by `mult` (the
+## Bender's AMPLIFY). One field list, so a new magnitude field is added here
+## once. A `mult` of 1.0 is a no-op, so a non-amplified cast is untouched.
+func _scale_effect_power(fx, mult: float) -> void:
+	if fx == null or is_equal_approx(mult, 1.0):
+		return
+	for field in ["strength_mod", "agility_mod", "intelligence_mod", "vitality_mod",
+			"endurance_mod", "wisdom_mod", "damage_multiplier", "defense_multiplier",
+			"armor_multiplier", "attack_speed_multiplier", "movement_speed_multiplier",
+			"health_regen_mod", "mana_regen_mod", "damage_reduction", "damage_reflect",
+			"shield_amount", "tick_heal"]:
+		if field in fx:
+			var v = fx.get(field)
+			if v is int:
+				fx.set(field, int(round(float(v) * mult)))
+			else:
+				fx.set(field, float(v) * mult)
+
+func _stat_of(body, key: String, fallback: float) -> float:
+	if body != null and "stats" in body:
+		return float(body.stats.get(key, fallback))
+	return fallback
+
+## Fan this skill's buffs to the party (the DD's Charge), lengthened by the
+## rally band. Returns the number of bodies rallied. Modeled on the guard
+## fan-out: self always leads, the named ally joins, then the friendly ring
+## once the band grants AoE. Only buff entries ride a rally (a debuff is
+## offense and lands separately, off a landed hit).
+func apply_banded_rally(caster, target) -> int:
+	if caster == null or not caster.has_method("apply_status_effect"):
+		return 0
+	var bodies: Array = [caster]
+	var seen := {caster.get_instance_id(): true}
+	if target != null and target != caster and _is_friendly(caster, target):
+		bodies.append(target)
+		seen[target.get_instance_id()] = true
+	if rally_aoe:
+		var radius := maxf(rally_radius, aoe_radius)
+		for body in EntityInterest.query_interest(caster.global_position, radius, [caster]):
+			if seen.has(body.get_instance_id()):
+				continue
+			if not _is_friendly(caster, body):
+				continue
+			seen[body.get_instance_id()] = true
+			bodies.append(body)
+	var cap := rally_max_targets if rally_aoe else 1
+	var rallied := 0
+	for body in bodies:
+		if cap > 0 and rallied >= cap:
+			break
+		if not is_instance_valid(body) or not body.has_method("apply_status_effect"):
+			continue
+		_apply_entries_of_kind(body, caster, "buff", rally_duration_mult)
+		rallied += 1
+	# The rally also sunders the enemy ring (its debuff payload) -- the DD's
+	# Charge, the same one cast the tank's battle cry taunts on. Guarded so a
+	# rally with no debuff entry stays a pure party buff.
+	if _has_debuff_entry():
+		var er := maxf(rally_radius, aoe_radius)
+		for body in EntityInterest.query_interest(caster.global_position, er, [caster]):
+			if not is_instance_valid(body):
+				continue
+			if "entity_type" in body and body.entity_type != Entity.EntityType.ENEMY:
+				continue
+			_apply_entries_of_kind(body, caster, "debuff", rally_duration_mult)
+	return rallied
+
+## True when this skill carries a buff payload and opts into the rally band.
+func has_rally_payload() -> bool:
+	if not rally_band:
+		return false
+	for entry in status_effects:
+		if str(entry.get("type", "")) == "buff":
+			return true
+	return false
+
+## True when this skill authors a debuff entry (the rally's Sunder payload).
+func _has_debuff_entry() -> bool:
+	for entry in status_effects:
+		if str(entry.get("type", "")) == "debuff":
+			return true
+	return false
 
 ## A body the caster's banded heal may mend: not hostile, and the same
 ## relation as the caster when both declare one.

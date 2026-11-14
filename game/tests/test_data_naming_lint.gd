@@ -2039,6 +2039,68 @@ func _run() -> void:
 	else:
 		_fail("Guards promising a party-wide shield without aoe_radius/guard_band: %s" % ", ".join(bad_guard))
 
+	# --- The rally law: a description that promises a party-wide charge must
+	# opt into the rally band. Same shape as the guard law above, one for the
+	# DD's verb.
+	# Distinctly rally wording. The party-ally phrases belong to the guard law
+	# above; a rally is the DD's charge, so it says so.
+	var rally_claims := ["the pack", "rally", "rallying", "drives the pack"]
+	var bad_rally: Array = []
+	var rl_root := DirAccess.open("res://data/skills")
+	if rl_root != null:
+		rl_root.list_dir_begin()
+		var rl_sub := rl_root.get_next()
+		while rl_sub != "":
+			var rl_dir_name := rl_sub
+			rl_sub = rl_root.get_next()
+			if rl_dir_name == "" or rl_dir_name.begins_with("."):
+				continue
+			var rl_dir := DirAccess.open("res://data/skills/%s" % rl_dir_name)
+			if rl_dir == null:
+				continue
+			rl_dir.list_dir_begin()
+			var rl_f := rl_dir.get_next()
+			while rl_f != "":
+				if rl_f.ends_with(".tres"):
+					var rl_txt := FileAccess.get_file_as_string("res://data/skills/%s/%s" % [rl_dir_name, rl_f])
+					var rl_id := ""
+					var rl_desc := ""
+					var rl_opts := false
+					for line in rl_txt.split("\n"):
+						var rll := line.strip_edges()
+						if rll.begins_with("id = \"") and rl_id == "":
+							rl_id = rll.trim_prefix("id = \"").trim_suffix("\"")
+						elif rll.begins_with("description = \""):
+							rl_desc = rll.to_lower()
+						elif rll == "rally_band = true":
+							rl_opts = true
+					var rl_fx := _bracket_block(rl_txt, "effects").to_lower()
+					if rl_fx.contains("\"type\": \"buff\"") and not rl_opts:
+						for phrase in rally_claims:
+							if rl_desc.contains(phrase):
+								bad_rally.append("%s ('%s')" % [rl_id, phrase])
+								break
+				rl_f = rl_dir.get_next()
+	if bad_rally.is_empty():
+		_ok("Skills: every party-wide rally claim opts into the rally band")
+	else:
+		_fail("Rallies promising a party-wide charge without rally_band = true: %s" % ", ".join(bad_rally))
+
+	# --- The shared-verb law: the DD's rally and the Bender's amplify are
+	# class-agnostic verbs of the Concord (like general_shield for the guard),
+	# so every class carries them. Authored under data/skills/general/.
+	var shared_verbs := {"general_rally": "rally_band = true", "general_amplify": ""}
+	var verbs_missing: Array = []
+	for vid in shared_verbs:
+		var vtxt := _skill_text_by_id(vid)
+		var want2: String = shared_verbs[vid]
+		if vtxt == "" or (want2 != "" and not vtxt.contains(want2)):
+			verbs_missing.append(vid)
+	if verbs_missing.is_empty():
+		_ok("Skills: the shared DD rally and Bender amplify verbs are authored (2 checked)")
+	else:
+		_fail("Shared support verbs missing or malformed: %s" % ", ".join(verbs_missing))
+
 	# --- The starter law: every family's FIRST skill carries its verb ---
 	# Healer gets the mend, bender the blink, tank the grab (control). The
 	# damage lanes (DD/MAGE/ROGUE) carry damage. The same law for every

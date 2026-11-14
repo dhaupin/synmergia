@@ -103,6 +103,13 @@ signal tick_occurred(entity, amount: int, tick_type: String)
 @export var movement_speed_multiplier: float = 0.0
 @export var health_regen_mod: float = 0.0
 @export var mana_regen_mod: float = 0.0
+# The support lanes' reach verbs, carried as a buff on the target. DD LENGTHENS
+# (effect_duration_mult) and Bender AMPLIFIES (effect_power_mult) -- both deltas
+# on a 1.0 base, read by Skill's goodie helpers off the caster's stat block.
+@export var effect_duration_mult_mod: float = 0.0
+@export var effect_power_mult_mod: float = 0.0
+# Flat cooldown-reduction fraction a buff grants its holder (0.2 = 20% faster).
+@export var cooldown_reduction_mod: float = 0.0
 # Mitigation payloads (flat deltas on a 0.0 base). damage_reduction trims
 # incoming damage; damage_reflect sends a fraction of it back to the
 # attacker. Both read by the entity/health-component damage pipeline.
@@ -288,6 +295,15 @@ func _apply_combat_modifiers(adding: bool) -> void:
 		entity.stats.health_regen += sign * health_regen_mod * current_stacks
 	if mana_regen_mod != 0 and "mana_regen" in entity.stats:
 		entity.stats.mana_regen += sign * mana_regen_mod * current_stacks
+	# The support-lane goodies. duration/power are deltas on a 1.0 base, so a
+	# +0.3 rides the same additive law as damage_multiplier; CDR is a flat
+	# fraction. Skill reads all three off the caster's stat block.
+	if effect_duration_mult_mod != 0 and "effect_duration_mult" in entity.stats:
+		entity.stats.effect_duration_mult += sign * effect_duration_mult_mod * current_stacks
+	if effect_power_mult_mod != 0 and "effect_power_mult" in entity.stats:
+		entity.stats.effect_power_mult += sign * effect_power_mult_mod * current_stacks
+	if cooldown_reduction_mod != 0 and "cooldown_reduction" in entity.stats:
+		entity.stats.cooldown_reduction += sign * cooldown_reduction_mod * current_stacks
 
 func _start_duration_timer() -> void:
 	if duration <= 0:

@@ -48,6 +48,7 @@ const VERB_HEAL: String = "heal"
 const VERB_GUARD: String = "guard"
 const VERB_CONTROL: String = "control"
 const VERB_TELEPORT: String = "teleport"
+const VERB_RALLY: String = "rally"
 
 ## --- Heal bands ---------------------------------------------------------
 ## A heal is single-target at base/rare and a friendly AoE from epic up
@@ -93,6 +94,20 @@ const CONTROL_BANDS: Array[Dictionary] = [
         {"aoe": true, "radius": 12.0, "max_targets": 0, "duration_mult": 1.5},   # 5 mythic
 ]
 
+## --- Rally bands (the DD's Charge) --------------------------------------
+## A rally is the DD's party-wide buff (damage / cooldown / regen), modeled on
+## the tank's Hold: it lands on the caster at base and fans to the party from
+## the epic band up, the SAME rung the mend and the hold come online. DD's reach
+## verb is LENGTHEN (effect_duration_mult), carried by the same band table.
+const RALLY_BANDS: Array[Dictionary] = [
+        {"aoe": false, "radius": 0.0, "max_targets": 1, "duration_mult": 1.0},   # 0 base
+        {"aoe": false, "radius": 0.0, "max_targets": 1, "duration_mult": 1.0},   # 1 common
+        {"aoe": false, "radius": 0.0, "max_targets": 1, "duration_mult": 1.1},   # 2 rare
+        {"aoe": true, "radius": 10.0, "max_targets": 4, "duration_mult": 1.2},   # 3 epic
+        {"aoe": true, "radius": 14.0, "max_targets": 0, "duration_mult": 1.35},  # 4 legendary
+        {"aoe": true, "radius": 20.0, "max_targets": 0, "duration_mult": 1.5},   # 5 mythic
+]
+
 ## --- Teleport bands -----------------------------------------------------
 ## Reach in metres when the cast names no ground point, plus the scope the
 ## band may cross. Legendary is a ~10 km fold; mythic is the cross-scope one
@@ -116,6 +131,8 @@ static func table_for(verb: String) -> Array:
                         return GUARD_BANDS
                 VERB_TELEPORT:
                         return TELEPORT_BANDS
+                VERB_RALLY:
+                        return RALLY_BANDS
                 _:
                         return CONTROL_BANDS
 
@@ -143,8 +160,12 @@ static func control_band(upgrade_level: int) -> Dictionary:
 static func teleport_band(upgrade_level: int) -> Dictionary:
         return TELEPORT_BANDS[_level(upgrade_level)]
 
-## True when a verb at this level sweeps a ring (epic-and-up for heal/guard,
-## rare-and-up for control).
+## The rally band at an upgrade level. Always a valid dictionary.
+static func rally_band(upgrade_level: int) -> Dictionary:
+        return RALLY_BANDS[_level(upgrade_level)]
+
+## True when a verb at this level sweeps a ring (epic-and-up for heal/guard/
+## rally, common-and-up for control).
 static func is_aoe(verb: String, upgrade_level: int) -> bool:
         return bool(band_for(verb, upgrade_level).get("aoe", false))
 
