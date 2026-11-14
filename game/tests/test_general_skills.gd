@@ -105,6 +105,25 @@ func _run() -> void:
         else:
                 _fail("general skills are not id-sorted: %s" % ", ".join(ids))
 
+        # The shared-verb band: 5-10 common skills (bind/stun/slow/regen/
+        # shield/purge/sprint/recover), so every species and class has a
+        # meaningful baseline kit without crowding the skillbar.
+        var n_general: int = ids.size()
+        if n_general >= 5 and n_general <= 10:
+                _ok("the shared-verb set sits in the 5-10 band (%d)" % n_general)
+        else:
+                _fail("the shared-verb set is outside 5-10 (%d): %s" % [n_general, ", ".join(ids)])
+
+        # Every shared verb is upgradable (a book exists for it).
+        var not_up: Array = []
+        for g in generals:
+                if not g.upgradable:
+                        not_up.append(str(g.id))
+        if not_up.is_empty():
+                _ok("every shared verb is upgradable")
+        else:
+                _fail("shared verbs that are NOT upgradable: %s" % ", ".join(not_up))
+
         # The class gate: a general skill casts for a foreign class; a
         # class-owned skill does not.
         var bind_schema = ds.get_skill("general_bind")

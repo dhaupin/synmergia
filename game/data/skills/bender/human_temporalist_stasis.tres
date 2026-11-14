@@ -4,20 +4,21 @@
 
 [resource]
 script = ExtResource("1")
-id = "akkan_void_burst"
-display_name = "Void Burst"
-description = "Releases a burst of void energy damaging nearby enemies."
-skill_type = 1
+id = "human_temporalist_stasis"
+display_name = "Stasis"
+description = "Freezes a foe outside of time for a breath."
+icon_path = ""
+skill_type = 0
 target_type = 0
-mana_cost = 25
-cooldown = 8.0
-cast_time = 1.5
+mana_cost = 26
+cooldown = 22.0
+cast_time = 0.4
 animation_duration = 1.0
-range = 15.0
+range = 22.0
 aoe_radius = 0.0
-effects = [{"type": "damage", "value": 18}]
-required_level = 10
-required_class = "akkan_rune"
+effects = [{"type": "debuff", "effect_id": "stun_common", "duration": 2.0}]
+required_level = 15
+required_class = "human_temporalist"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",

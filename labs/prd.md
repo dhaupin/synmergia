@@ -526,7 +526,7 @@ Players unlock and upgrade skills via the Skill Academy:
 
 | Feature | Description |
 |---------|-------------|
-| **Upgradable Skills** | Every non-signature skill of a class is upgradable (6-12 per class today) |
+| **Upgradable Skills** | Every non-signature skill of a class is upgradable (exactly 10 per class) |
 | **Signature Skills** | 3 non-upgradable abilities per class; unlock 1 at level 10 |
 | **Upgrade Tiers** | 5 rungs: common → rare → epic → legendary → mythic |
 | **First Signature** | FREE |
@@ -558,6 +558,25 @@ Players unlock and upgrade skills via the Skill Academy:
   the character's primary focal stat (`focal_stat_1`), so a level-1
   warrior cannot buy a rare upgrade until strength reaches 30. An explicit
   `min_stat` / `min_stat_value` on the tier overrides both.
+- **Class kit.** Every class ships **3 signatures** and **exactly 10
+  upgradable class skills** (`FLOOR == CAP == 10` in the parity receipt),
+  and every upgradable class skill is reachable from that class's own
+  `skill_tree_unlocks` / `starting_skills`. The roster is balanced
+  class-to-class: no one-button shell, no runaway.
+- **Shared verbs.** A band of **5-10 class-agnostic common skills** lives
+  in `data/skills/general/` (bind, stun, slow, sprint, regen, shield,
+  purge, recover), all `required_class = ""` and upgradable, so every
+  species and class has a meaningful baseline kit. Every character's
+  skillbar leads with them (`DataService.get_general_skills()` ->
+  `PlayerBase._setup_starting_skills`).
+- **One engine.** Skills are DATA in `core/schemas/skill.gd`
+  (`SkillSchema`, the `.tres` shape) and BEHAVIOUR in
+  `core/combat/skill.gd` (`Skill.from_schema` -> `execute`, the single
+  live combat path). The one effect vocabulary is the `match` in
+  `from_schema`: `damage`, `heal`, `stun`/`root`/`slow`, `buff`/`debuff`,
+  `shield`, `damage_over_time`, `hot`, `revive`, `cleanse`. An authored
+  type outside that set is a lint-gate miss, never a silent no-op.
+
 
 #### ONE scale everywhere: tiers ARE rarity
 

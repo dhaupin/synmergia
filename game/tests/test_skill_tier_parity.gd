@@ -148,6 +148,51 @@ func _run() -> void:
 			orphan.append(cid)
 	_check(bad_sig.is_empty(), "every class ships exactly 3 signatures (%s)" % ("ok" if bad_sig.is_empty() else ", ".join(bad_sig)))
 	_check(orphan.is_empty(), "no class is all-signature")
+
+	# --- 7b. The class-kit balance law ----------------------------------
+	# Every class ships EXACTLY 10 upgradable class skills (FLOOR == CAP
+	# == 10), so the roster is balanced class-to-class: no one-button
+	# shell, no runaway (akkan_rune once shipped 12; akkan_attacker once
+	# shipped 1).
+	var FLOOR: int = 10
+	var CAP: int = 10
+	var too_thin: Array = []
+	var too_fat: Array = []
+	for cid2 in by_class:
+		if cid2 == "":
+			continue
+		var u2: int = by_class[cid2]["up"]
+		if u2 < FLOOR:
+			too_thin.append("%s=%d" % [cid2, u2])
+		elif u2 > CAP:
+			too_fat.append("%s=%d" % [cid2, u2])
+	_check(too_thin.is_empty(), "every class ships >= %d upgradable skills (%s)" % [FLOOR, "ok" if too_thin.is_empty() else ", ".join(too_thin)])
+	_check(too_fat.is_empty(), "no class exceeds %d upgradable skills (%s)" % [CAP, "ok" if too_fat.is_empty() else ", ".join(too_fat)])
+
+	# Every class skill resolves from its OWN class tree: the ids a class
+	# unlocks must exist and be owned by that class.
+	var tree_bad: Array = []
+	var tree_checked: int = 0
+	for s2 in ds.get_all_skills():
+		if s2 == null or str(s2.required_class) == "":
+			continue
+		if not s2.upgradable:
+			continue
+		var owner_cls = ds.get_character_class(str(s2.required_class))
+		if owner_cls == null:
+			continue
+		tree_checked += 1
+		var reachable: bool = false
+		for lv in owner_cls.skill_tree_unlocks.keys():
+			var ids_at: Array = owner_cls.skill_tree_unlocks[lv]
+			if ids_at.has(str(s2.id)):
+				reachable = true
+				break
+		if not reachable and not owner_cls.starting_skills.has(str(s2.id)):
+			tree_bad.append("%s (%s)" % [str(s2.id), str(s2.required_class)])
+	_check(tree_checked >= 50 and tree_bad.is_empty(),
+			"every upgradable class skill is reachable from its tree (%d checked: %s)" % [tree_checked, "ok" if tree_bad.is_empty() else ", ".join(tree_bad)])
+
 	# The any-class skills are all upgradable (no signature is classless).
 	_check(unclassified == 0 or unclassified == by_class[""]["up"],
 			"the %d any-class skills are all upgradable" % unclassified)
