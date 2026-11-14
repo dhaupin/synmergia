@@ -1,5 +1,13 @@
 # PRD -- Planar Retirement (the two-worlds debt)
 
+> **COMPLETED AND ARCHIVED 2026-11-14.** The retirement this PRD scoped has
+> landed: `world_playable.tscn` / `player_controller.gd` are gone, and the
+> globe now carries the setups this PRD catalogued as missing
+> (`_setup_blessed_marks`, housing, moon gate, ascent gate, and an ancient
+> door in the `ancient_doors` group -- receipt `test_globe_concord_loop`).
+> Kept for the feature-parity table and the "a naive delete is wrong"
+> finding; do not re-open it as active work.
+
 > **Status:** SCOPED 2026-11-06. Owner confirmed retirement is wanted.
 > This PRD exists because the naive read -- "delete world_playable" --
 > is WRONG and would delete live gameplay. Read sec 2 before touching

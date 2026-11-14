@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="LandmarkData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/landmark_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "landmark_sundered_strait"
+display_name = "The Sundered Strait"
+description = "The channel the barque run crosses; the sea tables' site anchor."
+kind = 3
+dir = Vector3(-0.2545, 0.7634, 0.5937)
+world_id = "main"
+zone_id = "zone_sundered_sea"
+map_icon = "strait"
+discover = 0
+gateway_id = "waypoint_strait_moor"
+codex_ref = "sundered_strait"

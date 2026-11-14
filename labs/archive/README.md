@@ -1,27 +1,31 @@
 # Archive
 
-This directory contains deprecated/archived documentation from previous sessions.
-
-**Do not rely on these documents as source of truth.** They may contain:
-- Outdated information that is no longer accurate
-- Design ideas that were later abandoned
-- Technical approaches that were not implemented
-- Notes from planning sessions that may conflict with current decisions
+Deprecated documentation from earlier rounds. **Do not rely on these as source
+of truth.** They may contain information that is no longer accurate, designs
+that were abandoned, or approaches that were never implemented.
 
 ## Contents
 
-- `docs/` - Previous architecture docs (superseded by `/labs` PRDs)
-- `multi-iso/` - Old multi-iso frame prototyping (Julia-based, pre-Godot)
-- `polyglot-ffi/` - Previous FFI exploration (Julia runtime)
-- `jolt-playground/` - Old experimental work
-- `audit/` - Previous session audits and gap analyses
-- `captures-session-log.md` - Session logs from old sessions
+| Path | What it is |
+| --- | --- |
+| `prd/prd-planar-retirement.md` | Completed PRD. The planar world is retired and its gameplay setups now live on the globe; history only. |
+| `audit/gap-analysis-2026-08-31.md` | Gap analysis from before the vertical slice. |
+| `audit/m3-initial-world-audit.md` | 2026-09-05 code-state snapshot ("where we are today" at the time). |
+| `docs/architecture/` | Pre-`labs` architecture notes. Some are still useful background (NSC-9 evaluation, multi-iso frame, autoload races); none are current. |
+| `docs/docker-setup.md`, `docs/vps-architecture.md` | Superseded deployment notes; see `DEPLOY.md` instead. |
+| `captures-session-log.md` | Session logs from old rounds. |
+| `refactor-npc-plan.md` | Abandoned NPC refactor plan. |
+| `quest_guide_npc_stub.gd` | Orphan script kept as a stub reference. |
 
-## Current Source of Truth
+Note: `labs/polyglot-ffi/` and `labs/jolt-playground/` are still at the `labs/`
+root — they are design/experiment folders, not archived work.
 
-The current documentation lives directly in `/labs/`:
-- **PRDs** (`prd-*.md`) - Product Requirements Documents for Phase 1
-- **World-building docs** (`world-building*.md`) - Source of truth for world/netcode/persistence stack
-- `m3-initial-world-audit.md` - Current "where we are today" snapshot
+## Where current documentation lives
 
-See `/labs/README.md` for details.
+Start at [`../README.md`](../README.md). The short version:
+
+- Product spec — `../prd.md`
+- Frame architecture — `../world-building-arch.md`
+- Terrain renderer — `../prd-clipmap.md`
+- Dead / migrating systems — `../legacy-inventory.md`
+- Agent-facing reference — `../../AGENTS.md`

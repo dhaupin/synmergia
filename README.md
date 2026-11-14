@@ -84,15 +84,15 @@ Want to play with friends but can't find enough players? **AI agents can join yo
 ## Features At A Glance
 
 ### Combat & Progression
-- 🎯 **18 planned classes** across 6 archetypes (Tank, DPS, Mage, Rogue, Bender, Healer)
+- 🎯 **21 authored classes** across 6 archetypes (Tank, DPS, Mage, Rogue, Bender, Healer)
 - 🧬 **3 species** with unique abilities (Akkan, Human, Synthetic)
 - 📚 **Skill academy** with upgradeable abilities and signature skills
 - 🛡️ **Buff/debuff system** with 11 dispel categories (magic, curse, poison, etc.)
 - ⬆️ **Level 1-60** progression with mastery tiers
 
 ### World & Exploration
-- 🌍 **Persistent world** — spherical planet architecture in design
-- 🗺️ **Procedural generation** — terrain, dungeons, and resource placement planned
+- 🌍 **Persistent world** — spherical planet architecture (20 km globe, clipmap terrain)
+- 🗺️ **Procedural generation** — terrain, prop scatter, and resource placement in code; dungeons planned
 - 🌅 **Day/night cycle** with dynamic world events
 - 🌲 **Multiple biomes** — forest, plains, mountains, desert, swamp, and more
 - ⚔️ **Dungeons, world bosses, and dynamic encounters** planned
@@ -134,7 +134,7 @@ Want to play with friends but can't find enough players? **AI agents can join yo
 - **Authoritative server** — anti-cheat, fair gameplay
 - **Content-hash state tree** — deterministic sync across clients
 - **Multi-iso orchestrator** — efficient spatial queries at scale
-- **30+ services** — clean separation of game systems
+- **90+ service modules** — clean separation of game systems
 - **Entity-component architecture** — flexible, data-driven design
 
 ### The Reusable Frame
@@ -143,7 +143,7 @@ Beyond the game, Synmergia ships a **reusable MMORPG frame** — the architectur
 
 - T3 content-hash state tree for deterministic game state
 - Multi-dimensional query system (spatial × faction × temporal)
-- LOD pyramid with predictive prefetch
+- Player-centred clipmap LOD rings with a prop-prefetch predictor
 - Scope engine for hierarchical world management
 
 ---

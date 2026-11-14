@@ -13,7 +13,7 @@ const Faces = preload("res://core/frame/math/icosahedral_faces.gd")
 const PLANET_RADIUS: float = 20000.0
 
 ## Tree density per biome, in trees per square kilometre. Calibrated from the
-## streamer's own scatter (a face is ~251 km2 at R=20 km; the ladder plants
+## retired streamer's own scatter (a face is ~251 km2 at R=20 km; the ladder plants
 ## ~sites x planted-fraction per face) and then tuned UP ~2x for a fuller
 ## near view -- this is the one art knob, deliberately data so a world may
 ## override it. (labs/prd-clipmap.md 9.4.)
@@ -25,7 +25,7 @@ const TREE_DENSITY_KM2 := {
 	TerrainGen.BiomeId.SWAMP: 9.0,
 	TerrainGen.BiomeId.SAVANNA: 5.0,
 	TerrainGen.BiomeId.SHORE: 3.0,
-	# The streamer plants NO trees past the tree line (desert / steppe /
+	# The retired streamer plants NO trees past the tree line (desert / steppe /
 	# badlands / tundra / alpine): those bands are detail-prop country.
 	TerrainGen.BiomeId.STEPPE: 0.0,
 	TerrainGen.BiomeId.BADLANDS: 0.0,
@@ -35,7 +35,7 @@ const TREE_DENSITY_KM2 := {
 }
 
 ## Detail-prop density per biome, in props per square kilometre. Calibrated
-## from the streamer's `_DETAIL_BUDGETS` (a face is ~251 km2; grassland 700
+## from the retired retired streamer's `_DETAIL_BUDGETS` (a face is ~251 km2; grassland 700
 ## per face ~= 2.8/km2) then tuned UP ~3x for the AAA near view -- the
 ## discrete mushrooms/ore/bushes/flowers that read as ground furniture.
 const DETAIL_DENSITY_KM2 := {
@@ -109,7 +109,7 @@ func water_surface(dir: Vector3) -> float:
 	return TerrainGen.hydro_water_surface(dir, _seed)
 
 
-## The standing-water tint (the streamer's climate law): depth band, then a
+## The standing-water tint (the retired retired streamer's climate law): depth band, then a
 ## frozen sheet near the snowline, then the marsh murk in a swamp basin.
 func water_tint(dir: Vector3, depth: float) -> Color:
 	var wcol: Color = Color(0.72, 0.82, 0.86).lerp(Color(0.42, 0.62, 0.68), clampf(depth / 2.0, 0.0, 1.0))
@@ -122,7 +122,7 @@ func water_tint(dir: Vector3, depth: float) -> Color:
 	return wcol
 
 
-## The main world's authored cartway (the streamer's road spec, now a provider
+## The main world's authored cartway (the retired retired streamer's road spec, now a provider
 ## read so the renderer draws the deck). Cached in TerrainGen.
 func road_spec():
 	return TerrainGen.road_spec_cached(_seed)
@@ -165,7 +165,7 @@ func seed_bytes() -> PackedByteArray:
 
 
 ## The land-harvest zone for a prop site: the main world's homeland biome
-## cluster is the starter plains (the streamer's hardcoded zone), everything
+## cluster is the starter plains (the retired retired streamer's hardcoded zone), everything
 ## else is paint only (the sea/atoll/deep-root keep their own gather laws).
 func zone_for_dir(dir: Vector3) -> String:
 	var bid: int = TerrainGen.climate_biome_id(dir, _seed)
@@ -179,7 +179,7 @@ func zone_for_dir(dir: Vector3) -> String:
 	return ""
 
 
-## The Sundered Sea's authored beds (the streamer's DEEP_BEDS): chart
+## The Sundered Sea's authored beds (the retired retired streamer's DEEP_BEDS): chart
 ## coordinates -> a world direction, owned by the world's own face. Kept
 ## here so the prop layer grows the gardens; the renderer no longer owns
 ## them.

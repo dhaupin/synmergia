@@ -47,7 +47,7 @@ SeedSchema with type and scope so I can attach it to a
 seed tree node.
 
 **Acceptance Criteria:**
-- [ ] `SeedSchema` class exists in `game/data/roots/seed_schema.gd`, extends `Resource`
+- [ ] `SeedSchema` class exists in `game/core/frame/schemas/seed_schema.gd`, extends `Resource`
 - [ ] `@export_enum("locked", "open", "frame") var seed_type: String`
 - [ ] `@export_enum("world", "shard", "instance", "player") var visibility_scope: String`
 - [ ] Resource can be created via the Godot editor
@@ -109,7 +109,7 @@ editor flow.
 ## 4. Functional Requirements
 
 - **FR-1:** One GDScript Resource `SeedSchema` in
-  `game/data/roots/seed_schema.gd`, extends `Resource`
+  `game/core/frame/schemas/seed_schema.gd`, extends `Resource`
 - **FR-2:** Two `@export` fields with `@export_enum` constraints (type, scope)
 - **FR-3:** Three instance methods: `_to_canonical_bytes`,
   `_validate`, `_to_display`
@@ -188,7 +188,7 @@ editor flow.
 1. **Field naming:** `seed_type` vs `seedType` vs `kind`?
    GDScript convention is snake_case for fields. Picked
    `seed_type`.
-2. **Schema location:** `game/data/roots/seed_schema.gd`
+2. **Schema location:** `game/core/frame/schemas/seed_schema.gd`
    vs `game/core/schemas/seed_schema.gd` (the existing
    convention)? Per arch doc §6.2, the roots dir is the
    new home. The existing `core/schemas/` stays for non-

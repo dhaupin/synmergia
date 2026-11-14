@@ -1,5 +1,10 @@
 # Synmergia — Dialogue System (Design Bible + Engineering Map)
 
+> **STATUS 2026-11-14 (labs fiction pass).** PARTLY IMPLEMENTED:
+> `game/core/services/dialog_service.gd` exists and 20 dialogue resources
+> ship. Sections describing UI, branching modes or multi-speaker scenes beyond
+> that are design, not shipped behaviour.
+
 > **Status:** CANON for dialogue design and the law for how dialogue chains.
 > Companion to `labs/prd-story.md` (world bible — read that first),
 > `labs/prd-quests.md` (quest engine map; TALK bridge lives there),

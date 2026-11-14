@@ -1,6 +1,20 @@
 # Landmark naming pass — names keyed to the real world coordinates
 
-> **Scope:** `labs/` only. `game/` is read-only context; every coordinate and id
+> **STATUS 2026-11-14 (labs fiction pass + atlas follow-on).** BACKED BY DATA:
+> all seven named anchors now ship as `data/landmarks/*.tres` (Haven Shore,
+> Novo Concord, Gull Island, The High Tarn, The Home Ring, The Sundered
+> Strait, The Deep Root), each with a sphere direction and, where relevant,
+> a gateway backref. Four of the seven also appear as shipped zone/name
+> strings; the other three exist only through the atlas. See
+> `prd-world.md` sec. 2.1 for the identity/travel/pin split. PASS 2026-11-14.
+
+> **Haven Shore**, **Gull Island**, **Deep Root**. The High Tarn, The Home Ring
+> and The Sundered Strait were doc-only until 2026-11-14; all three now ship
+> as `data/landmarks/*.tres`, so the whole table below is canon. Their names
+> still appear in no zone string or dialogue -- only in the atlas -- and that
+> is the atlas's job (identity now, copy later).
+> **Scope:** the 2026-11-13 fiction pass was `labs/` only; the 2026-11-14 atlas
+> follow-on (owner-authorized) added the schema, anchors and receipt. Every coordinate and id
 > below is quoted from the terrain law or the data. The point of this pass is to
 > give each landmark a name that *matches the thing the code actually places*, so
 > a later copy pass never invents a place the world does not have.

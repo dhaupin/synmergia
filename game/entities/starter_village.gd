@@ -5,7 +5,7 @@
 ## THREE authored structures ride laws that already exist -- the village
 ## needs NO terrain law of its own:
 ##   - the spawn plaza is flat at exactly SPAWN_HEIGHT out to
-##     SPAWN_FLAT_ANG (the streamer's mesh saw it), so every structure
+##     SPAWN_FLAT_ANG (the retired retired streamer's mesh saw it), so every structure
 ##     foot lands on exact flat ground;
 ##   - the apron keeps the ring dry and owns its ground (the boot
 ##     apron outranks the cartway), so the road never regrades or
@@ -43,8 +43,8 @@ const STORE_REACH: float = 0.020
 
 
 ## Build the village under `parent` (globe_world's world_root):
-## planet_radius + the streamer's tile lift + the walk law answer the
-## lift for each structure's dir; walk provider must be the streamer's
+## planet_radius + the retired retired streamer's tile lift + the walk law answer the
+## lift for each structure's dir; walk provider must be the retired retired streamer's
 ## walk_surface_h Callable (law-consistent ground under every boot).
 static func build(parent: Node3D, planet_radius: float, surface_lift: float,
 		walk_surface_h: Callable) -> Node3D:

@@ -5,7 +5,7 @@
 > [prd-spherical-mvp.md](prd-spherical-mvp.md): wave checkboxes (S1-S4),
 > locked decisions, and the crash pickup protocol live there.
 > **Updated:** 2026-09-07 to align with world-building.md
-> **Sources:** [`world-building.md`](../world-building.md), [`world-building-arch.md`](./world-building-arch.md)
+> **Sources:** [`world-building.md`](./world-building.md), [`world-building-arch.md`](./world-building-arch.md)
 > **Purpose:** Design for spherical planet map and navigation systems
 
 ---

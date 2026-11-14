@@ -5,7 +5,7 @@
 ## SIBLINGS with no shared base. ~20 shared systems gate on
 ## `is the player body` (resurrection targeting, player_died,
 ## player_killed_player), so the globe body silently fell outside them
-## and the two worlds drifted (see labs/prd-planar-retirement.md). This
+## and the two worlds drifted (see labs/archive/prd/prd-planar-retirement.md). This
 ## base owns the surface those systems gate on, so both bodies are
 ## `is PlayerBase` and the gates work on either.
 ##
@@ -446,7 +446,7 @@ func _dock_vehicle_for_pin(gateway_pin_id: String) -> String:
 ## and the hitbox sweep calls `target.apply_status_effect(...)` on whatever it
 ## hits. The planar controller carried both; the globe body did not, so on the
 ## planet the ActionBar no-oped and live DoTs/CCs could not land -- the same
-## two-worlds drift PlayerBase exists to close (labs/prd-planar-retirement.md
+## two-worlds drift PlayerBase exists to close (labs/archive/prd/prd-planar-retirement.md
 ## Step 2). Both bodies now inherit the surface; the skillbar is the only
 ## per-body state (each body loads its own from class data).
 const Skill = preload("res://core/combat/skill.gd")

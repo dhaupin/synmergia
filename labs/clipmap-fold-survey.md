@@ -2,6 +2,8 @@
 
 > **Status:** SCOPED 2026-11-04. The clipmap is the SOLE terrain renderer
 > (prd-clipmap sec 11a steps 1-5 DONE, `globe_terrain_streamer.gd` deleted).
+> **Update 2026-11-14:** A1-A4 and B1 are all CLOSED; Part D re-censused
+> the residue with a token index and closed the scratch-file question.
 > This doc answers two questions the owner asked:
 > **(A)** what is still OFF the clipmap / provider path and should fold into it,
 > **(B)** what is now dead and can be removed.
@@ -227,11 +229,10 @@ grep the runner DEFAULT_SET and `tests/` first (done -- none reference these).
 - ~~`game/scenes/worlds/backend_penrose.gd` (191) + `game/tests/probe_backend_penrose.gd`
   -- see A4.~~ **REMOVED with A4 (2026-11-13)** (plus the chart-LOD trio + their
   3 probes).
-- `game/debug/*.gd` (9 files, `git ls-files game/debug`) -- dev scans
-  (`geo_probe`, `land_scan`, `river_find`, `vista_scan`, ...). refs=0 in
-  `game/**`; not in the runner. The repo already has `dev_temp/probes/` +
-  `dev2/` for this purpose. Candidate to drop the whole `game/debug/` dir, or
-  move the still-useful ones into `dev_temp/probes/`.
+- `game/debug/*.gd` (9 files) -- **RESOLVED 2026-11-14:** moved to
+  `game/tools/diagnostics/` (canonical, with a README run guide); the
+  `dev2/` scratch dir was removed and `dev_temp/probes/` stays because its
+  probes are cited receipts. `terrain_gen.gd`'s pointer was repointed.
 - `game/dev2/*.gd` (9 files) + `game/dev_temp/probes/*.gd` (13 files) -- 2,834
   lines total, all refs=0, not in the runner. These are hand-run diagnostics
   (prd-clipmap sec 11a step 4 says several were retargeted to `PropLayer`).
@@ -305,5 +306,48 @@ ones sit on disk for deleted sources: `probe_meshcache_ram.gd.uid`,
    (see A2 above); no shell deletion (a whole-sphere sea is structurally a
    shell, not a sheet).
 4. ~~B2~~ **A4 REMOVED 2026-11-13** (`backend_penrose` + the chart-LOD trio +
-   4 probes). Remaining B2 decision: `game/debug/`, `dev2`/`dev_temp`.
+   4 probes). B2 RESOLVED 2026-11-14: `game/debug/` -> `game/tools/diagnostics/`,
+   `dev2/` removed, `dev_temp/probes/` kept as cited receipts.
 5. **B4** (comment sweep) -- cosmetic, do last.
+
+---
+
+## Part D -- Post-fold residue census (2026-11-14)
+
+Method: a token index over every engine-read surface (`game/**/*.gd|tscn|tres`,
+`project.godot`, scripts, docs) -- 2,308 files / 14.4 MB -- then every `.gd`
+under `game/` checked for references outside itself. Stricter than a path grep:
+a `class_name` mention counts as a reference.
+
+**Result: zero dead files in live game code.** The 16 zero-reference scripts
+break down as:
+
+- 2 false positives kept by design: `core/frame/kv/t3.gd` (frame primitive,
+  reached as `T3Script` by path) and `ui/components/ui_widget.gd`
+  (`class_name UIWidget`, base of the admin chrome).
+- 7 test/probe entry points, not libraries: `test_base`, `test_base2`,
+  `test_eh`, `test_preload`, `test_adapter_parse`, `probe_banker_gate`,
+  `probe_panel_titles`.
+- 4 `dev2/` diagnostics + 1 `debug/` diagnostic (hand-run scratch, below).
+
+**Comment-only residue (not breakage):** `world_playable` 45,
+`player_controller` 11, `EventBus` 6, `LODManager` 3, `streamer` 79 -- every
+hit is a comment, docstring, or test lore line. Nothing preloads, loads or
+calls a retired symbol.
+
+**Endpoints:** `srv/` hosts five services. `pg-bridge` / `redis-bridge` back
+the storage adapters (`PG_BRIDGE_URL` / `REDIS_BRIDGE_URL`), `webhook-bridge`
+backs `webhook_transport` + the NetworkManager poller, and `julia-bridge`
+backs `multi_iso_service`. There is no dead HTTP endpoint in `game/`. The one
+unconsumed artifact is `srv/julia-bridge/presolve.jl` (prints JSON, no reader;
+legacy-inventory verdict PORT).
+
+**Removed this round (scratch, refs=0):** `game/dev2/*.gd` (9), the orphan
+`game/dev2_grade.gd.uid`, and `game/staging_notes_2026_10_14.md` -- the note
+was migrated verbatim into `TASKS_ARCHIVE.md` first. The nine `game/debug/`
+scans were MOVED to `game/tools/diagnostics/` (canonical home + README);
+`game/dev_temp/probes/` stays as cited receipts.
+
+**Still open (the honest remainder):** the B4 `streamer` comment sweep (79 live
+mentions) and the four editorial merges tracked in `labs/README.md`.
+(`game/debug/` was resolved: moved to `game/tools/diagnostics/`.)

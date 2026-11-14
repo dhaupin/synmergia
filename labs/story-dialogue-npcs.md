@@ -1,5 +1,11 @@
 # NPC Voice Profiles + Extended Dialogue Drafts — Synmergia
 
+> **STATUS 2026-11-14 (labs fiction pass).** CONTEXT: the repo ships 20
+> dialogue resources (`game/data/dialogues/`) and 20 NPC definitions
+> (`game/data/npc/`). This doc is a voice bank and coverage map -- the line
+> drafts here are NOT transcripts of shipped dialogue, and any line not in a
+> `.tres` is unshipped.
+
 > **Scope rule (from the board):** everything here is `labs/` lore. `game/`
 > is read-only context. Do not edit GDScript, `.tres`, or any schema file
 > from this pass. A person or agent lands the good parts later.

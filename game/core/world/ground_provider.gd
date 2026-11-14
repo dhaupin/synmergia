@@ -114,7 +114,7 @@ func grass_density(_biome_id: int) -> float:
 
 ## The authored deep-water beds (the Sundered Sea's kelp/pearl gardens): an
 ## array of {dir: Vector3, kind: int, bed: int}. Default = none, so only the
-## world that authored beds grows them (the streamer's DEEP_BEDS, now a
+## world that authored beds grows them (the retired retired streamer's DEEP_BEDS, now a
 ## provider read so the prop layer -- not the renderer -- owns the garden).
 func deep_beds() -> Array:
 	return []

@@ -144,7 +144,7 @@ func _on_body_exited(body: Node3D) -> void:
 	_entered.erase(str(body.entity_id))
 
 ## Lobby moment: OPEN/FULL + entry deadline surfaced as a typed toast.
-## THE STORM LAW (world-load dedupe): the globe streamer REBUILDS the
+## THE STORM LAW (world-load dedupe): the retired globe retired streamer REBUILDS the
 ## queue/arena stones as the player moves -- each rebuild re-enters the
 ## standing body, `_entered` reset, and the FULL toast re-fired every
 ## stream tick (6x in 6 s at world load). The cooldown lives in a

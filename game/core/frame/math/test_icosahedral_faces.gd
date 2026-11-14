@@ -112,7 +112,7 @@ func _test_partition() -> bool:
 ## COUNTER-clockwise as seen from OUTSIDE (right-handed, outward
 ## normal) for ALL 20 faces. That is the math convention, and it is
 ## the OPPOSITE of Godot's front face (clockwise), which is exactly
-## how the round-15 terrain streamer ended up back-facing and culled.
+## how the round-15 terrain retired streamer ended up back-facing and culled.
 ## This guard pins the contract so a Godot mesh builder MUST flip the
 ## winding (or the primitive must gain a godot-wound accessor).
 func _test_winding_is_outward_ccw() -> bool:

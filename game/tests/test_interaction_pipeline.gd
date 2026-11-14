@@ -134,7 +134,7 @@ func _await_player(max_wait: float) -> Variant:
 	return _player()
 
 ## BOUNDED ROSTER WAIT: the globe boots ASYNC and places its town
-## NPCs a few seconds in (after the terrain streamer's first faces),
+## NPCs a few seconds in (after the retired terrain retired streamer's first faces),
 ## so the fixed schedule slots can fire while the offering_npcs group
 ## is still empty. Await the roster instead of trusting the slot.
 func _await_offering_npcs(max_wait: float) -> void:

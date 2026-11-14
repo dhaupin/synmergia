@@ -28,7 +28,7 @@ var _fails: int = 0
 var _checks: int = 0
 
 func _init() -> void:
-	# Reads the renderer-agnostic PropLayer's deep beds (the streamer no
+	# Reads the renderer-agnostic PropLayer's deep beds (the retired streamer no
 	# longer owns them); no globe boots, so no renderer pin is needed.
 	call_deferred("_run")
 
@@ -56,7 +56,7 @@ func _run() -> void:
 	var sea_r: float = os.sea_surface_radius()
 	_check("sea line is the radial law", sea_r > 20000.0)
 
-	# The renderer-agnostic PropLayer authors the deep beds now (the streamer
+	# The renderer-agnostic PropLayer authors the deep beds now (the retired streamer
 	# no longer owns them): the provider holds the chart, the layer buckets
 	# beds into chunks, and the deep builder paints + registers the gardens.
 	var PropLayer = load("res://core/world/prop_layer.gd")

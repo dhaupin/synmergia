@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="LandmarkData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/landmark_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "landmark_gull_island"
+display_name = "Gull Island"
+description = "The offshore plateau the ferry owns; the strait moat cuts its crossing."
+kind = 0
+dir = Vector3(0.866, 0, 0.5)
+world_id = "main"
+zone_id = "zone_gull_island"
+map_icon = "settlement"
+discover = 0
+gateway_id = "waypoint_island_dock"
+codex_ref = "gull_island"

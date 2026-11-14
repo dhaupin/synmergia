@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="LandmarkData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/landmark_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "landmark_deep_root"
+display_name = "The Deep Root"
+description = "The strata-lit underworld the Warden keeps a hearth in."
+kind = 8
+dir = Vector3(0, 0, 0)
+world_id = "underworld"
+zone_id = "zone_deep_root_camp"
+map_icon = "site"
+discover = 2
+gateway_id = ""
+codex_ref = "deep_root"

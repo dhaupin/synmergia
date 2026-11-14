@@ -171,6 +171,53 @@ The near-village Regulars (wolves, a boar, a training dummy) still place
 at boot so the plaza is never empty while the streamer warms; everything
 past that is authored data, streamed by interest.
 
+## 2.1 Landmarks: the atlas (identity, not travel)
+
+Ships: `core/schemas/landmark_data.gd`, `DataService.load_landmarks()`,
+`data/landmarks/` (7 anchors), and `tests/test_landmark_catalog.gd`
+(19 checks). Lint gate: `landmark_` prefix, filename == id, unit-length
+`dir`, zone/gateway refs resolve.
+
+The map currently builds "landmark" markers by stitching three sources in
+`minimap.gd::_sync_static_landmarks` (zones -> towns, gateways -> gates,
+ankhs). That is why a place can be drawn on the map yet have no name in
+data. The atlas replaces the stitching with one catalog; the map overhaul
+reads this catalog instead of three loops.
+
+Three neighbouring systems, three laws, no merging:
+
+| System | Owns | Never |
+| --- | --- | --- |
+| `LandmarkData` | identity: name, description, kind, `dir`, zone, icon, discovery | travel rules, per-player state |
+| `GatewayData` | travel: type, activation, source/destination | naming a place |
+| `WaypointService` | the player's pins (cap 50) | shared world facts |
+
+A landmark that is also a travel point sets `gateway_id`; the gateway keeps
+its `ActivationRequirement`. The reverse reference never exists.
+
+Fields: `id`, `display_name`, `description`, `kind` (SETTLEMENT, PEAK, LAKE,
+STRAIT, MONOLITH, GATE, ANKH, RUIN, SITE), `dir` (sphere direction, unit
+length; zero = a band or a whole world), `world_id`, `zone_id`, `map_icon`,
+`discover` (VISIBLE/HIDDEN/VISITED), `gateway_id`, `codex_ref`.
+
+Shipped anchors: Haven Shore (SETTLEMENT, spawn dir, `waypoint_village_center`),
+Novo Concord (SETTLEMENT, cove bearing, `waypoint_capitol_pier`), Gull Island
+(SETTLEMENT, island center, `waypoint_island_dock`), The High Tarn (LAKE,
+`LAKE_CENTER`), The Home Ring (PEAK band, no point), The Sundered Strait
+(STRAIT, `STRAIT_CENTER`, `waypoint_strait_moor`), The Deep Root (SITE,
+underworld, VISITED).
+
+Non-goals: landmark activation, landmark-owned teleports, per-player landmark
+state, and a second "POI" vocabulary.
+
+Consumers (no orphan): `world_map.sync_landmark_markers()` draws every
+positioned main-world landmark and wins the label over the legacy
+zone/gateway stitching (deduped by name); `minimap` resolves zone and
+gateway marker names through `_atlas_landmark_for_zone` /
+`_atlas_landmark_for_gateway`. Receipt
+`tests/test_map_landmark_wiring.gd` (13 checks) proves both reads and
+that a band or world-level entry never draws a point.
+
 ## 3. Procgen pipeline: how the world gets built
 
 Mostly procedural, hand-authored where it earns it. **The ground

@@ -1,5 +1,9 @@
 # The Concord as a reading culture — voice bible (staging, labs only)
 
+> **STATUS 2026-11-14 (labs fiction pass).** VOICE BIBLE. Makes no claims
+> about shipped content; it is the tone canon the other lore docs are held to.
+> Nothing here is executable or data-backed, and it should not be cited as
+> evidence that a lore system exists.
 > Labs-only creative pass. No game/ edits. This is the “how people talk
 > about the sky and the wilds and the deep” layer for the world’s
 > watcher culture: the Concord’s civic-practice + slightly-uncanny

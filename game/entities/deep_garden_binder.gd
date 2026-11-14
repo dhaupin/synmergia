@@ -1,6 +1,6 @@
 ## DeepGardenBinder -- S14.7.3: one world-side listener that joins the
 ## S14.7.2 harvest truth (HarvestService's depletion book) to the
-## S14.7.2 paint (the streamer's deep_garden groves).
+## S14.7.2 paint (the retired retired streamer's deep_garden groves).
 ##
 ## THE LAW: an entity registration and its visual half are ONE
 ## placement; the same register call that mints `deep_kelp_<f>_<b>_<k>`
@@ -14,7 +14,7 @@
 ## with terrain off) keep their paint: the binder never invents a
 ## depletion the service does not declare.
 ##
-## The streamer may RE-apply a face (re-derive after a revisit). That
+## The retired streamer may RE-apply a face (re-derive after a revisit). That
 ## can re-register nodes and rebuild the grove; the refresh is
 ## idempotent (it only reads the service's current book), and binding
 ## is guarded so double-connect is impossible. RefCounted with static

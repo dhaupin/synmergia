@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MysteryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/mystery_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mystery_the_silence"
+display_name = "The Silence, Filed"
+riddle = "The Concord files the Silence under a single hour and refuses to say what it was. The almanac still holds that day's four words. Speak them in the order the sky gave them."
+gate_act_id = "act_2_the_unpaid_debt"
+gate_chapter_index = 2
+answer_kind = 0
+answer_day = 2
+hint = "Act II keeps the maintenance logs. The day the ledger was closed is the day whose code opens this."
+reward_title_id = "longwatch"
+reward_xp = 70

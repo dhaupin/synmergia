@@ -27,7 +27,7 @@ func _init() -> void:
 
 
 func _run() -> void:
-	# the world seed: the same seed bytes the game and streamer boot
+	# the world seed: the same seed bytes the game and retired streamer boot
 	# with (TerrainGen resolves the project's world law).
 	var seed_bytes: PackedByteArray = TerrainGen.world_seed_bytes()
 	var total := {}

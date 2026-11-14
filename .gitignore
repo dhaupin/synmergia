@@ -55,6 +55,9 @@ game/captures/
 # The repo's official build process is documented in AGENTS.md.
 tools/
 
+# ...but game/tools/ is SOURCE (hand-run diagnostics), not the engine drop.
+!game/tools/
+
 # Media captures
 # captures/          # UN-IGNORED — track screenshots/videos in version control
 # Re-ignore if you want local-only captures:

@@ -7,7 +7,7 @@
 ## icosahedral; only the drawn mesh changes.
 ##
 ## WHY (see labs/prd-clipmap.md):
-##  - The streamer's discrete per-face LOD draws the ground in ~165 m
+##  - The retired retired streamer's discrete per-face LOD draws the ground in ~165 m
 ##    cells at L7, so authored structures (which ride the analytic walk
 ##    law) float above the coarse drawn mesh and the LOD band flip makes
 ##    the gap SNAP on approach. The clipmap's innermost cells are ~8 m,
@@ -32,7 +32,7 @@
 ##     single frame pays the full rebuild.
 ##
 ## RefCounted helper (preloaded by the globe scene; no autoload), matching
-## the streamer's shape so the swap is one line in globe_world.
+## the retired retired streamer's shape so the swap is one line in globe_world.
 extends RefCounted
 
 const FacePatches = preload("res://core/frame/math/icosahedral_faces.gd")
@@ -75,7 +75,7 @@ var world_seed: PackedByteArray = PackedByteArray()
 var terrain_on: bool = true
 var parent: Node3D = null
 
-## The icosa face under the player (parity with the streamer's boot gate).
+## The icosa face under the player (parity with the retired retired streamer's boot gate).
 var current_face: int = -1
 
 var _root: Node3D = null          # the clipmap holder under world_root
@@ -102,7 +102,7 @@ var _building: bool = false
 var _prop_layer = null            # PropLayer: the chunk-addressed flora
 ## Parallel cold-build book (build_all): per-job derived vertex arrays
 ## cross the mutex from the workers; the meshes are installed on the
-## main thread (the streamer's derive/apply split, same law).
+## main thread (the retired retired streamer's derive/apply split, same law).
 var _build_mutex := Mutex.new()
 var _build_results: Dictionary = {}
 var _build_next: int = 0
@@ -119,12 +119,12 @@ var _skin_mat: ShaderMaterial = null
 
 ## The standing-water sheet material (surface 1 on a ring/cap mesh) and the
 ## raised road-deck mesh. Both read vertex colours, so the tint/bridge laws
-## the streamer authored actually show (its materials left
+## the retired streamer authored actually show (its materials left
 ## `vertex_color_use_as_albedo` off, so its water/deck tints never rendered).
 var _water_mat: StandardMaterial3D = null
 var _deck_mesh: MeshInstance3D = null
 var _sea: float = -1.0e9
-## Minimum water depth (m) for a sheet to draw (the streamer's Hydro.BEACH_MIN).
+## Minimum water depth (m) for a sheet to draw (the retired retired streamer's Hydro.BEACH_MIN).
 const WATER_BEACH_MIN: float = 0.35
 ## The cartway ribbon half-width, radians of arc (~64 m at the canon radius).
 const DECK_RIBBON_HALF: float = 0.0032
@@ -162,7 +162,7 @@ func terrain_on_flag() -> bool:
 	return terrain_on
 
 
-## Snap/re-centre + budgeted build tick. Returns the streamer-shaped dict.
+## Snap/re-centre + budgeted build tick. Returns the retired streamer-shaped dict.
 func update(player_pos: Vector3) -> Dictionary:
 	var t0: int = Time.get_ticks_msec()
 	var pdir: Vector3 = player_pos.normalized() if player_pos.length() > 0.001 else _spawn_dir()
@@ -207,7 +207,7 @@ func build_all() -> int:
 	# S6 (labs/prd-clipmap.md): the cap + each ring is an INDEPENDENT
 	# derive, so the cold build fans them onto workers and installs the
 	# meshes on the main thread. The terrain law is thread-safe (the
-	# sector caches are mutex-guarded; the streamer already derives
+	# sector caches are mutex-guarded; the retired streamer already derives
 	# off-thread), so this is the same derive/apply split, not a new law.
 	var jobs: Array = [{"kind": "cap", "level": 0}]
 	for lvl in range(N_LEVELS):
@@ -221,7 +221,7 @@ func build_all() -> int:
 	return Time.get_ticks_msec() - t0
 
 
-## The parallel-build gate: the streamer's mesh-lane setting
+## The parallel-build gate: the retired retired streamer's mesh-lane setting
 ## (synmergia/world/async_mesh, default on) so the boot-wall bench can
 ## A/B both laws in one build; a single-core host stays serial.
 func _parallel_build_ok() -> bool:
@@ -327,7 +327,7 @@ func _derive_job_arrays(kind: String, level: int) -> Array:
 func _install_mesh(kind: String, level: int, arrays: Array, water_arrays: Array = []) -> void:
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	# Standing water rides a SECOND surface (the streamer's surface 2), drawn
+	# Standing water rides a SECOND surface (the retired retired streamer's surface 2), drawn
 	# only where the tile is fully wet, so the mesh is empty on dry rings.
 	var has_water: bool = false
 	if water_arrays != null and water_arrays.size() > Mesh.ARRAY_VERTEX:
@@ -423,7 +423,7 @@ func prop_count() -> int:
 
 
 ## The standing-water surface triangle count across the cap + rings (the
-## streamer's `_patch_water_tris` analogue). Reads the committed meshes.
+## retired streamer's `_patch_water_tris` analogue). Reads the committed meshes.
 func water_triangle_count() -> int:
 	var n: int = 0
 	for mi in _all_ground_meshes():
@@ -762,7 +762,7 @@ func _add_vert(st: SurfaceTool, v: Dictionary) -> void:
 
 
 ## Emit ONE standing-water triangle (a,b,c are ground vertices carrying "ws"
-## + "gh"). Emits only when ALL three corners are wet (the streamer's law);
+## + "gh"). Emits only when ALL three corners are wet (the retired retired streamer's law);
 ## returns true when a triangle landed.
 func _add_water(st_w: SurfaceTool, a: Dictionary, b: Dictionary, c: Dictionary) -> bool:
 	if not terrain_on:
@@ -800,13 +800,13 @@ func _vertex_of(dir: Vector3) -> Dictionary:
 		"gh": gh, "ws": _water_surface_at(dir)}
 
 
-## -- standing water (the streamer's surface 2) -------------------------
+## -- standing water (the retired retired streamer's surface 2) -------------------------
 ##
 ## The clipmap draws the ground mesh; standing water ABOVE the sea line
 ## (rivers, high ponds) is a SECOND surface of tile quads at the water
 ## table, drawn only where a tile is FULLY wet (its three corners each
-## clear the ground by BEACH_MIN). The streamer owned this law; the clipmap
-## now owns it too, so retiring the streamer loses no drawn water. The sea
+## clear the ground by BEACH_MIN). The retired streamer owned this law; the clipmap
+## now owns it too, so retiring the retired streamer loses no drawn water. The sea
 ## itself is NOT drawn here -- the globe's WaterShell sphere floods it.
 
 func _water_material() -> StandardMaterial3D:
@@ -867,7 +867,7 @@ func _water_arrays_for(tri_dirs: Array, tri_ground: Array) -> Array:
 	return [st.commit_to_arrays(), 1]
 
 
-## -- raised road deck (the streamer's surface 3) -----------------------
+## -- raised road deck (the retired retired streamer's surface 3) -----------------------
 
 func _deck_material() -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -896,7 +896,7 @@ func _build_deck() -> MeshInstance3D:
 	var quads: int = 0
 	# The clipmap draws fine ground only out to the outermost ring; a deck
 	# segment past that would float over the coarse horizon. Cull to the
-	# covered reach (the streamer's per-face reach cull, made radial).
+	# covered reach (the retired retired streamer's per-face reach cull, made radial).
 	var reach: float = INNER_R_FRAC * pow(2.0, float(N_LEVELS)) + 0.02
 	var c: Vector3 = _center_dir if _center_dir != Vector3.ZERO else _spawn_dir()
 	for i in range(path.size() - 1):

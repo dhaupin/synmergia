@@ -1379,7 +1379,7 @@ func _body_dir_law() -> Vector3:
 	return (global_position - planet_center).normalized()
 
 
-## The terrain-on flag for the wade law (the streamer's live flag,
+## The terrain-on flag for the wade law (the retired retired streamer's live flag,
 ## resolved up the parent chain like terrain_h_at).
 func terrain_on_local() -> bool:
 	var node: Node = self

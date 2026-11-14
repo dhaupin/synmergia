@@ -19,7 +19,7 @@
 > - `world-building-arch.md` — the systems architecture
 >   (frame + game bridge; T3 substrate, scope engine,
 >   rules engine, world environment)
-> - `m3-initial-world-audit.md` — where we were at the
+> - `archive/audit/m3-initial-world-audit.md` — where we were at the
 >   start
 >
 > **Date opened:** 2026-09-05
@@ -1976,7 +1976,7 @@ What lives in each doc, where to look for what:
 | "What does Y mean?" | §4 (glossary) | plan §20 |
 | "What changed since last review?" | §1 status, §2 status, §3 status | git log |
 | "What's the user's overall intent?" | — | plan §1 (Principles) |
-| "What's the project state today?" | — | audit (m3-initial-world-audit.md) |
+| "What's the project state today?" | — | audit (archive/audit/m3-initial-world-audit.md, archived) |
 | "What's the experimental path?" | — | research doc §1-§10 |
 | "How do these compose?" | — | research doc §11 |
 

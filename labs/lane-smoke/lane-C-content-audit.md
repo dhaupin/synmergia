@@ -5,7 +5,7 @@ enemies,factions,gateways,guards,hordes,world_bosses,vehicles}`, audited 2026-11
 against the LIVE spherical globe (`game/scenes/worlds/globe_world.gd`). No file
 under `game/` was modified. The retired planar path
 (`scenes/world_playable.{gd,tscn}` + `entities/player/player_controller.gd`,
-deleted in commit `5e7416df`, per `labs/prd-planar-retirement.md:100`) is treated
+deleted in commit `5e7416df`, per `labs/archive/prd/prd-planar-retirement.md:100`) is treated
 as dead code; the question is which DATA it was the last reader of.
 
 Lint result (point 4): `godot --headless --path game --script

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MysteryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/mystery_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mystery_the_bloom_remembers"
+display_name = "The Bloom's First Entry"
+riddle = "Before it was the Bloom it kept the Convergence's garden, and the almanac kept the garden's days. Speak the four words the sky said on the first day the ledger was kept."
+gate_act_id = "act_3_the_trust_audit"
+gate_chapter_index = 1
+answer_kind = 0
+answer_day = 1
+hint = "The first recorded day is the plainest one. Act III opens where the ledger opens."
+reward_title_id = "bloomwarden"
+reward_xp = 65

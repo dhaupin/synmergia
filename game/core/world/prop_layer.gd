@@ -6,7 +6,7 @@
 ## THIRD system, independent of any renderer, addressed by a stable prop
 ## CHUNK (`PropChunk`): a chunk is a PURE FUNCTION of `(world_seed, key)`, so
 ## its content re-derives byte-identically everywhere, caches in an LRU, and
-## streams around every viewer. The clipmap, the streamer, the underworld, and
+## streams around every viewer. The clipmap, the retired streamer, the underworld, and
 ## the moon all consume this one layer.
 ##
 ## The layer owns three things and nothing else:
@@ -51,7 +51,7 @@ const KIND_FERN: int = 10
 ## cluster, not a scattered point. Owned by the world's provider
 ## (`deep_beds()`), grown here so the RENDERER no longer owns the garden.
 const FAMILY_DEEP: int = 4
-## Deep-bed tuning (ported from the streamer's DEEP_* constants): the
+## Deep-bed tuning (ported from the retired retired streamer's DEEP_* constants): the
 ## shelf's kelp band + the trench's pearl band, their anchor depths, and
 ## respawn windows.
 const DEEP_KELP_M: float = 38.0
@@ -95,13 +95,13 @@ var _scan_center: Vector3 = Vector3.ZERO
 var _recenter_m: float = 120.0
 var _decor_salt: int = 0
 
-# The shared prop mesh registry (quantized-key dedup, the streamer's law).
+# The shared prop mesh registry (quantized-key dedup, the retired retired streamer's law).
 var _mesh_registry: Dictionary = {}
 
 # Rocks + boulders are PER-FACE fixed content (TerrainGen.rock_specs /
 # boulder_specs), bucketed into chunks lazily: the first time a chunk near a
 # face is derived, that face's specs are computed once and each spec is
-# assigned to the chunk containing its direction. Same specs the streamer
+# assigned to the chunk containing its direction. Same specs the retired streamer
 # used, so parity holds; the chunk grid stays the addressing truth.
 var _rocks_by_chunk: Dictionary = {}
 var _boulders_by_chunk: Dictionary = {}
@@ -180,7 +180,7 @@ func _prefetch_step(viewer_dir: Vector3) -> void:
 	if target < 0 or target == key:
 		return
 	# Only warm cells inside the load radius -- a prediction never
-	# reaches past what the streamer could build anyway.
+	# reaches past what the retired streamer could build anyway.
 	var ang_load: float = _load_radius / maxf(radius_m, 1.0)
 	if PropChunk.chunk_center_dir(target, chunk_depth).angle_to(viewer_dir) > ang_load:
 		return
@@ -361,7 +361,7 @@ func _derive_trees(key: int, count: int, out: Dictionary) -> void:
 
 
 ## Detail props: a biome-weighted kind per site, placed on the ground.
-## The kind law mirrors the streamer's tiers (tufts fill the meadow; the
+## The kind law mirrors the retired retired streamer's tiers (tufts fill the meadow; the
 ## wet bands grow mushrooms + mycelium; the dry bands split brush vs ore;
 ## the shore splits shells vs kelp wrack; the marsh grows cattail; shrub
 ## bands grow bushes).
@@ -462,7 +462,7 @@ func _derive_grass(key: int, count: int, out: Dictionary) -> void:
 	out["grass"] = blades
 
 
-## The detail kind for a biome (mirrors the streamer's tier ladder).
+## The detail kind for a biome (mirrors the retired retired streamer's tier ladder).
 func _detail_kind(bid: int, rng: RandomNumberGenerator) -> int:
 	# A world may own the biome->kind law (BiomeBand family dispatch); the
 	# provider returns -2 to defer to this built-in main-world ladder.
@@ -700,7 +700,7 @@ func _build_detail(inst: Dictionary, node: Node3D) -> void:
 
 
 ## The tuft field: one MultiMesh per chunk (a node per blade would flood
-## the tree; the streamer paints the field the same way).
+## the tree; the retired streamer paints the field the same way).
 func _build_tuft_batch(tufts: Array, node: Node3D) -> void:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -724,7 +724,7 @@ func _build_tuft_batch(tufts: Array, node: Node3D) -> void:
 
 
 ## The grass carpet: one MultiMesh per chunk (a node per blade would flood
-## the tree; the streamer paints the field the same way). The mesh is a
+## the tree; the retired streamer paints the field the same way). The mesh is a
 ## shared 3-blade cluster; per-site variance rides the transform (scale/yaw).
 func _build_grass_batch(blades: Array, node: Node3D) -> void:
 	var mm := MultiMesh.new()
@@ -749,7 +749,7 @@ func _build_grass_batch(blades: Array, node: Node3D) -> void:
 
 
 ## The grass-blade cluster: one shared 3-blade mesh, vertex-graded base ->
-## sun-tip (the streamer's tuft law, taller). One instance per grass site.
+## sun-tip (the retired retired streamer's tuft law, taller). One instance per grass site.
 func _shared_grass_mesh() -> Mesh:
 	var key: String = "grass_mesh"
 	if _mesh_registry.has(key):
@@ -1021,7 +1021,7 @@ func _build_fern(inst: Dictionary, node: Node3D) -> void:
 	node.add_child(g)
 
 
-## The rock's biome color law (ported from the streamer: alpine/tundra gray,
+## The rock's biome color law (ported from the retired streamer: alpine/tundra gray,
 ## badlands rust, desert sandstone, swamp mossy, default weathered).
 func _rock_color(dir: Vector3) -> Color:
 	match provider.biome_id(dir):
@@ -1405,7 +1405,7 @@ func _register_land_harvest(inst: Dictionary) -> void:
 		dir * (radius_m + float(inst.get("h", 0.0))), 1, respawn)
 
 
-## The bush's yield: the alpine meadow's herb, else iron ore (the streamer's
+## The bush's yield: the alpine meadow's herb, else iron ore (the retired retired streamer's
 ## own bush law -- the biome the site stands in decides).
 func _bush_item(bid: int) -> String:
 	if bid == TerrainGen.BiomeId.ALPINE_MEADOW:
@@ -1444,7 +1444,7 @@ func _claim_plant(plant_dirs: Array, d: Vector3, covered: Array) -> int:
 
 ## The stable per-face accumulator the bed seeds read (world-seed only, no
 ## day salt -- anchored culture must survive a re-stream). Reads the SAME
-## face seed bytes the streamer's authored beds derived from, so the garden
+## face seed bytes the retired retired streamer's authored beds derived from, so the garden
 ## paint (strand placement + its plant_k shearing) is byte-identical to the
 ## pre-port look.
 func _face_acc(face: int) -> int:

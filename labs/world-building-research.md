@@ -1409,7 +1409,7 @@ Benefits:
 
 ### 10.2 What's currently impure
 
-Looking at the codebase (per `m3-initial-world-audit.md`):
+Looking at the codebase (per `archive/audit/m3-initial-world-audit.md`):
 
 - **Autoload singletons** with global mutable state
   (`GameManager`, `EventBus`, etc.). Many gameplay

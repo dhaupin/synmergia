@@ -1,5 +1,10 @@
 # Initial World / Network / Sync Audit
 
+> **ARCHIVED 2026-11-14.** Point-in-time pre-planning snapshot (authored
+> 2026-09-05, last revised 2026-09-30). Kept for its audit method and early
+> census, NOT as current state. For current code state read `AGENTS.md` and
+> the receipts it cites; for the terrain path read `labs/prd-clipmap.md`.
+
 > **Status:** Pre-planning reference. Captures the current state of
 > the codebase before any planning-doc work begins. This is the
 > "where we are today" snapshot. The actual design discussion

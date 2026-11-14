@@ -1,8 +1,8 @@
 ## probe_prop_port_laws -- the v7 prop laws the fold must carry.
 ##
 ## The prop fold (labs/prd-clipmap.md 9.5 port surface + 13 LANE A) moved the
-## streamer's prop taxonomy into PropLayer. Three of those laws were the
-## streamer's v7 texture: the VINE HANGS on wet-band canopies (TREE family),
+## retired streamer's prop taxonomy into PropLayer. Three of those laws were the
+## retired streamer's v7 texture: the VINE HANGS on wet-band canopies (TREE family),
 ## the SCREE COLLAR on rocky-band rocks (ROCK family), and the RIM COLLAR on
 ## boulders (BOULDER family). This receipt pins all three against a stub
 ## provider that forces the biome each law keys off, so the check is

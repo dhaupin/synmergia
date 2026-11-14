@@ -92,7 +92,7 @@ func _dir_for(center: Vector3, bearing_deg: float, reach: float) -> Vector3:
 
 ## The world-space surface point for a bearing/reach on an anchor
 ## (renderer-agnostic: reads the shared walk law, so it is honest under
-## the clipmap and the streamer alike).
+## the clipmap and the retired streamer alike).
 func surface_point(bearing_deg: float, reach: float, center: Vector3 = Vector3.ZERO) -> Vector3:
         var anchor: Vector3 = center.normalized() if center.length_squared() > 0.000001 else _center
         var dir: Vector3 = _dir_for(anchor, bearing_deg, reach)

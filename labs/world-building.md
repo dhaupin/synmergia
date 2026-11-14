@@ -12,7 +12,7 @@
 > continents + the two polar caps (shipped v12); the dev island is
 > retired (dev lives on the moon).
 >
-> Companion reference: `m3-initial-world-audit.md`
+> Companion reference: `archive/audit/m3-initial-world-audit.md` (2026-09-05 snapshot, archived)
 > (the "where we are today" snapshot) and `world-building-research.md`
 > (research companion for §21's experimental angles) and
 > `world-building-arch.md` (the systems architecture — frame

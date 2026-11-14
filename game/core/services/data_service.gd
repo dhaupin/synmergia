@@ -56,6 +56,9 @@ var _events: Dictionary = {}
 var _dwellings: Dictionary = {}
 ## id -> HouseData (data/houses/, the plot STRUCTURE tiers).
 var _houses: Dictionary = {}
+## Named places (the atlas). Identity only -- travel law lives in
+## GatewayData, player pins in WaypointService.
+var _landmarks: Dictionary = {}
 ## id -> WardGateData (data/gates/, the hard gate registry).
 var _gates: Dictionary = {}
 var _npcs: Dictionary = {}
@@ -91,6 +94,7 @@ func load_all_data() -> void:
 	load_events()
 	load_dwellings()
 	load_houses()
+	load_landmarks()
 	load_npcs()
 	load_status_effects()
 	load_quests()
@@ -238,6 +242,13 @@ func load_dwellings() -> void:
 func load_houses() -> void:
 	_houses = _scan_directory(_data_path + "houses", "house")
 	GameLog.info("DataService: Loaded %d house tiers" % _houses.size())
+
+## Load named places from data/landmarks/.
+## A landmark is identity (name, direction, kind, zone); it is never travel
+## and never a player pin. A travel-capable landmark names its gateway.
+func load_landmarks() -> void:
+	_landmarks = _scan_directory(_data_path + "landmarks", "landmark")
+	GameLog.info("DataService: Loaded %d landmarks" % _landmarks.size())
 
 ## Load NPCs from data/npc/
 func load_npcs() -> void:
@@ -610,6 +621,15 @@ func get_house(id: String) -> Resource:
 
 func get_all_houses() -> Array:
 	return _houses.values()
+
+func get_landmark(id: String) -> Resource:
+	if _landmarks.has(id):
+		return _landmarks.get(id)
+	GameLog.warn("DataService: Landmark not found: " + id)
+	return null
+
+func get_all_landmarks() -> Array:
+	return _landmarks.values()
 
 func get_npc(id: String) -> NPCData:
 	if _npcs.has(id):

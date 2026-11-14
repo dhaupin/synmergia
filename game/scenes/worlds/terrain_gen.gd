@@ -28,7 +28,7 @@
 ## legal), carried by a water-table field -- not by pushing terrain
 ## down to one global sea shell. Rivers are carved polylines in the
 ## law itself (data, not nodes). RefCounted static helper (preloaded
-## by the terrain streamer).
+## by the retired terrain retired streamer).
 extends RefCounted
 
 const SeedChain = preload("res://core/frame/kv/seed_chain.gd")
@@ -86,7 +86,7 @@ static var _moist_field_cache = SECTOR_CACHE.new()
 ## tests/probe_prop_density.gd: the nearest prop to the boot was
 ## ~6.4 km over a ~251 km2 face): scatter counts now carry the face's
 ## real geometry (rock specs 6..10, boulders 2..3, tree site ladder
-## in the streamer's _spawn_trees). Prop content re-derives; the
+## in the retired retired streamer's _spawn_trees). Prop content re-derives; the
 ## height law is BIT-IDENTICAL through the v3->v4 move.
 const RULESET_VERSION: String = "terrain_v7"
 
@@ -104,7 +104,7 @@ const ROCK_EMBED: float = 0.3
 ## -- BIODIVERSITY LEG (v7) --------------------------------------------
 ## TREE SPECIES LAW (v7). Species codes -- NEVER renumber (sites may
 ## carry these into derived content). The biome at the tree SITE picks
-## one via species_at(); the streamer's twin tree builders (sync node
+## one via species_at(); the retired retired streamer's twin tree builders (sync node
 ## path + batched MultiMesh path) read the SAME code, so a promoted
 ## face and its far-face twin show the same tree.
 class TreeSpecies:
@@ -524,7 +524,7 @@ static func _cell_hash(cell: Vector3i, salt: int) -> float:
 ## [0, 1] on the site direction -- two value-noise octaves at a meadow
 ## patch scale (~50 m cells at the planet scale), sharpened so only the
 ## strong cells form drifts and a high fraction of sites inside them
-## bloom. THE MEADOW LAW readers (the streamer's rng-for-rng twins)
+## bloom. THE MEADOW LAW readers (the retired retired streamer's rng-for-rng twins)
 ## raise the bloom draw gate by this member and weight the palette to
 ## the drift band -- a patch reads as ONE wildflower kind, then hands
 ## off to the next: real fields of wildflowers, not sprinkles. Pure
@@ -609,7 +609,7 @@ static func _land_mass(d: Vector3, salt: int) -> float:
 ## THE SEA BIAS NOTE (the oceanify calibration): the world's land
 ## share lives inside the W1 budget band (100..380 km2); the recorded
 ## rolls measured 214 km2 on the winner seed up to 437 km2 on a
-## moonstruck candidate. See the seed scans in game/debug for the
+## moonstruck candidate. See the seed scans in game/tools/diagnostics for the
 ## calibration history.
 
 
@@ -736,7 +736,7 @@ static func _cove_window(d: Vector3) -> float:
 static var _height_backend: Callable = Callable()
 
 ## THE LAW EPOCH (perf leg): bumped on every backend install/uninstall --
-## derived caches elsewhere (the streamer's warm-mesh ring) compare
+## derived caches elsewhere (the retired retired streamer's warm-mesh ring) compare
 ## their epoch against this to invalidate THEMSELVES, so a law change
 ## guards every consumer seam without wiring a flush into each one.
 static var LAW_EPOCH: int = 0
@@ -1410,7 +1410,7 @@ static func hydro_water_surface(d: Vector3, world_seed: PackedByteArray) -> floa
 
 
 ## THE BIOME PALETTE (slice 2, prd-terrain.md): the albedo law. One
-## color per biome id, consumed by the streamer's vertex-tint pass via
+## color per biome id, consumed by the retired retired streamer's vertex-tint pass via
 ## climate_biome_weights (band edges blend, no hard rings).
 static func biome_color(id: int, world_seed: PackedByteArray, d: Vector3) -> Color:
 	var c: Color
@@ -1460,9 +1460,9 @@ static func biome_color(id: int, world_seed: PackedByteArray, d: Vector3) -> Col
 	return Color(clampf(c.r + w, 0.0, 1.0), clampf(c.g + w, 0.0, 1.0), clampf(c.b + w, 0.0, 1.0))
 
 
-## THE VERTEX COLOR LAW (slice 2 entry point for the streamer): blended
+## THE VERTEX COLOR LAW (slice 2 entry point for the retired streamer): blended
 ## biome palette + the slope/snow physics. `steep` is [0, 1] slope
-## factor (the streamer computes it from the local height gradient);
+## factor (the retired streamer computes it from the local height gradient);
 ## steep ground blends toward rock gray. The snowline rides temperature
 ## (not a fixed lift) EXCEPT the spawn apron (dry boot ground). Below
 ## the waterline everything dims (the shell paints depth through it).
@@ -1638,7 +1638,7 @@ static func vertex_color(d: Vector3, world_seed: PackedByteArray, lift: float, s
 ## only -- the tileable skins carry their own grain, and the receipts
 ## pin exactly what moved and what did not. The color law itself is
 ## byte-identical: the spike adds a lane, never edits the law.
-## Toggle: SPLAT_SKIN (below); the streamer's skin lane reads it.
+## Toggle: SPLAT_SKIN (below); the retired retired streamer's skin lane reads it.
 const SPLAT_SKIN := true
 
 static func skin_classes(d: Vector3, world_seed: PackedByteArray) -> Color:
@@ -1937,7 +1937,7 @@ static func _hydro_gates(d: Vector3, world_seed: PackedByteArray) -> Vector2:
 ## segment: inside RIVER_RADIUS_ANG of the segment chord, depth falls
 ## off smoothly from the channel floor.
 ## PERFORMANCE LAW: per-direction results cache on the QUANTIZED
-## direction (the same law the streamer's height cache reads) -- the
+## direction (the same law the retired retired streamer's height cache reads) -- the
 ## mesh pass asks ~50k corners, each a O(rivers x steps) capsule
 ## sweep; without the cache a level-6 patch build hung the probe
 ## (measured: continent walk stalled). Same answer per quantized
@@ -2375,7 +2375,7 @@ static func river_goes_downhill(path: PackedVector3Array, world_seed: PackedByte
 
 
 ## Rivers that exist (specs with path length >= 2, land-legal).
-## The streamer carves the bed + raises the local table by these in
+## The retired streamer carves the bed + raises the local table by these in
 ## slice 3's render pass; the LAW already carries them as data.
 static func river_specs(world_seed: PackedByteArray) -> Array:
 	var out: Array = []

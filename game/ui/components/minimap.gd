@@ -622,6 +622,9 @@ func _sync_static_landmarks(zone_data) -> void:
 			var tm_name: String = "Town"
 			if "display_name" in zone:
 				tm_name = str(zone.display_name)
+			var tm_lm = _atlas_landmark_for_zone(zid)
+			if tm_lm != null:
+				tm_name = str(tm_lm.get("display_name"))
 			var key := "LANDMARK_town_" + zid
 			if seen.has(key):
 				continue
@@ -654,6 +657,10 @@ func _sync_static_landmarks(zone_data) -> void:
 				var gid = g.id
 				if gid != null and str(gid) != "":
 					gate_id = str(gid)
+			# The atlas names the place when one exists (identity wins).
+			var gw_lm = _atlas_landmark_for_gateway(gate_id)
+			if gw_lm != null:
+				gname = str(gw_lm.get("display_name"))
 			var gkey := "LANDMARK_gate_%s" % gate_id
 			if seen.has(gkey):
 				continue
@@ -682,6 +689,27 @@ func _sync_static_landmarks(zone_data) -> void:
 			var wpos := Vector3(float(active.get("position_x", 0.0)), float(active.get("position_y", 0.0)), float(active.get("position_z", 0.0)))
 			add_marker("LANDMARK_active_waypoint", wpos, MARKER_WAYPOINT, str(active.get("name", "Waypoint")))
 			_static_landmarks.append("LANDMARK_active_waypoint")
+
+
+## ATLAS LAW (labs/prd-world.md sec. 2.1): the minimap is a player-centred
+## radar, so it does not plot sphere directions -- but the NAME on a zone
+## or gateway marker comes from the atlas when one exists, so a place is
+## never labelled two different ways by two systems.
+func _atlas_landmark_for_zone(zid: String):
+	if zid == "" or DataService == null or not DataService.has_method("get_all_landmarks"):
+		return null
+	for lm in DataService.get_all_landmarks():
+		if lm != null and str(lm.get("zone_id")) == zid:
+			return lm
+	return null
+
+func _atlas_landmark_for_gateway(gid: String):
+	if gid == "" or DataService == null or not DataService.has_method("get_all_landmarks"):
+		return null
+	for lm in DataService.get_all_landmarks():
+		if lm != null and str(lm.get("gateway_id")) == gid:
+			return lm
+	return null
 
 
 func _apply_zone_backdrop(zone_data) -> void:

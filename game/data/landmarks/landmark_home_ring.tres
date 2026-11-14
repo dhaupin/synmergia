@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="LandmarkData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/landmark_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "landmark_home_ring"
+display_name = "The Home Ring"
+description = "The home-anchored mountain band (RING_R0..R2, 5.2-14.8 km out) -- a range, not a point."
+kind = 1
+dir = Vector3(0, 0, 0)
+world_id = "main"
+zone_id = ""
+map_icon = "peak"
+discover = 0
+gateway_id = ""
+codex_ref = "home_ring"

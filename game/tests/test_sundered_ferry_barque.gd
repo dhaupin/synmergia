@@ -79,7 +79,7 @@ func _run() -> void:
 	var sea: float = Gen.sea_level(world_seed)
 	var RADIUS: float = 20000.0
 	# THE WALK TRUTH: the real terrain law (the same callable shape the
-	# streamer hands the runner) -- at sea dirs it reads the seabed, so
+	# retired streamer hands the runner) -- at sea dirs it reads the seabed, so
 	# place()'s max(walk, sea) is exercised for real.
 	var walk: Callable = func(d: Vector3) -> float:
 		return float(Gen.terrain_height(d, world_seed))

@@ -1,5 +1,14 @@
 # The Concord Chronicle — almanac entries, the monolith, and the village origin
 
+> **STATUS 2026-11-14 (labs fiction pass).** BACKED BY DATA: `game/data/acts/`
+> ships all three acts, three `gate_day` chapters each (9 chapters total), and
+> the quoted `record_text` is the shipped text. `game/data/mysteries/` now
+> ships five Chronicle puzzles (three authored 2026-11-14 from `prd-story.md`
+> sec 9), all gated on act chapters with derived sky-code answers.
+> DOC-ONLY: the reader framing (archivist, loading tip, library plaque) and any
+> entry not present in the act `.tres` files. This doc is canon-authoring, not
+> code truth.
+
 > **Scope:** `labs/` only. `game/` is read-only context. This is the lore the
 > Chronicle surface *would* carry; where it quotes data it quotes the shipped
 > `.tres` verbatim.

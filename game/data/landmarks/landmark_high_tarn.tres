@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="LandmarkData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/landmark_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "landmark_high_tarn"
+display_name = "The High Tarn"
+description = "The mountain bowl that drains low (LAKE_DROP), fed by the ring range."
+kind = 2
+dir = Vector3(0.2811, 0.2610, 0.9235)
+world_id = "main"
+zone_id = "zone_dark_highlands"
+map_icon = "lake"
+discover = 0
+gateway_id = ""
+codex_ref = ""

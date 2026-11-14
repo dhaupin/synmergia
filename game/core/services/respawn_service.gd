@@ -918,7 +918,7 @@ func _get_default_respawn_position(player) -> Vector3:
 	# the body's own direction instead: the exact resting law
 	# globe_player uses for its radial snap (radius + ground offset +
 	# skin + terrain lift), so the body is already glued where its own
-	# snap law wants it the frame after respawn. No streamer, no seed,
+	# snap law wants it the frame after respawn. No retired streamer, no seed,
 	# no scene coupling needed. Dry-land deaths respawn dry; the boot
 	# spawn sea guard in globe_world keeps the plaza case honest.
 	if player != null and player.has_method("planet_up"):

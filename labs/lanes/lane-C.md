@@ -3,7 +3,7 @@ You are a Synmergia subagent lane (Lane C: world / data building). Work ONLY ins
 CONTEXT
 - Synmergia is a Godot 4.7.2 MMORPG (GDScript). Content is authored as .tres resources under game/data/. The data-naming law (game/tests/test_data_naming_lint.gd) enforces: category-prefix ids, filename == id, and cross-file reference integrity.
 - The planar world is retired; the LIVE world is the spherical globe (game/scenes/worlds/globe_world.gd). Content that only the retired planar scene ever instantiated may now be dead on the live planet.
-- Relevant docs: labs/prd-planar-retirement.md (what was ported to the globe), labs/prd-agent-play.md (the door), AGENTS.md "ID Naming Conventions".
+- Relevant docs: labs/archive/prd/prd-planar-retirement.md (what was ported to the globe), labs/prd-agent-play.md (the door), AGENTS.md "ID Naming Conventions".
 
 GOAL (audit, docs-only unless the naming lint finds a real defect)
 Produce a content-audit report labs/lane-smoke/lane-C-content-audit.md answering, with file:line evidence:

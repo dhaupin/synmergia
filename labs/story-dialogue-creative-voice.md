@@ -1,5 +1,8 @@
 # Dialogue creativity mode — Concord voice in practice (staging, labs only)
 
+> **STATUS 2026-11-14 (labs fiction pass).** WORKING NOTE under
+> `story-voice-concord.md`. The beats and line shapes are texture for a later
+> dialogue pass, not committed dialogue; none of it ships today.
 > Labs-only creative pass. No game/ edits. This is how the Concord/refusal-of-hubris,
 > watcher-culture voice would actually sound in rooms with a traveler — short
 > beats, texture, and a few usable line shapes that a later dialogue writer

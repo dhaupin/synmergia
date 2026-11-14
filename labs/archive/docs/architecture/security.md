@@ -327,7 +327,7 @@ common attack vectors. The rest is defense in depth.
 - [`multi-iso-frame.md`](./multi-iso-frame.md) — the
   orchestrator. The recursion guard is the first thing
   the orchestrator calls.
-- [`labs/prd.md §10.6`](../../labs/prd.md) — the state tree
+- [`labs/prd.md §10.6`](../../../prd.md) — the state tree
   design. The content hash chain is Layer 6 here.
 - The security skill (always-on): apply least privilege,
   validate all inputs, use secure storage, never expose

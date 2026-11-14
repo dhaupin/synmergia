@@ -1,5 +1,11 @@
 # Weather & Event Lore — Synmergia
 
+> **STATUS 2026-11-14 (labs fiction pass).** FULLY BACKED: all five events
+> this doc names ship as resources in `game/data/weather_events/` --
+> `weather_aurora_window`, `weather_bloom_stir`, `weather_fog_mystery`,
+> `weather_kp_gate`, `weather_storm_pack`. Lore text beyond their authored
+> fields is doc-only.
+
 > **Scope rule (from the board):** everything here is `labs/` lore. `game/` is
 > read-only context. Do not edit GDScript, `.tres`, or any schema file from this
 > pass. A person or agent lands the good parts later. Grounded in the actual

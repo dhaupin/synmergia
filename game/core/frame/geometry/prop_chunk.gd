@@ -1,7 +1,7 @@
 ## PropChunk -- stable, player-independent addressing for the prop layer.
 ##
 ## THE PROBLEM IT SOLVES (labs/prd-clipmap.md section 9): props must not be
-## addressed by the terrain RENDERER. The streamer addressed them by icosa
+## addressed by the terrain RENDERER. The retired streamer addressed them by icosa
 ## FACE (coarse, 4 live, whole-face rebuilds); the clipmap is RING-addressed
 ## and its rings RE-CENTRE on the player -- a prop addressed by a ring would
 ## change identity as the player walks. Both are wrong for props.

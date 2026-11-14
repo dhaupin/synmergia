@@ -866,6 +866,30 @@ func sync_landmark_markers() -> void:
 	# SceneTree itself (the root-node call threw on every sync).
 	var seen := {}
 
+	# ATLAS LAW (labs/prd-world.md sec. 2.1): named places come from the
+	# landmark catalog. The stitched blocks below stay as a fallback for
+	# places the atlas does not name yet, but a landmark ALWAYS wins the
+	# label -- so a place can never draw twice under two names.
+	var atlas_names := {}
+	if DataService != null and DataService.has_method("get_all_landmarks"):
+		var sph = load("res://core/frame/math/spherical.gd")
+		var radius: float = sph.PLANET_RADIUS_METERS if sph != null else 1000.0
+		for lm in DataService.get_all_landmarks():
+			if lm == null:
+				continue
+			if str(lm.get("world_id")) != "main":
+				continue
+			if not lm.has_position():
+				continue  # a band or a world-level entry has no dot
+			var lm_name := str(lm.get("display_name"))
+			var key := "LANDMARK_atlas_" + str(lm.get("id"))
+			if seen.has(key):
+				continue
+			seen[key] = true
+			if lm_name != "":
+				atlas_names[lm_name] = true
+			add_marker(key, lm.dir_normalized() * radius, _atlas_marker_type(lm), lm_name)
+
 	if ZoneManager != null and ZoneManager.has_method("get_all_zones"):
 		for zone in ZoneManager.get_all_zones():
 			if zone == null:
@@ -889,6 +913,8 @@ func sync_landmark_markers() -> void:
 			var town_name: String = "Town"
 			if "display_name" in zone:
 				town_name = str(zone.display_name)
+			if atlas_names.has(town_name):
+				continue  # the atlas already drew + named this place
 			var key := "LANDMARK_town_" + zid
 			if seen.has(key):
 				continue
@@ -902,6 +928,8 @@ func sync_landmark_markers() -> void:
 			var gname: String = "Gateway"
 			if "display_name" in g:
 				gname = str(g.display_name)
+			if atlas_names.has(gname):
+				continue  # the atlas already drew + named this place
 			var pos: Vector3 = Vector3.ZERO
 			if "source_position" in g:
 				pos = g.source_position
@@ -926,6 +954,19 @@ func sync_landmark_markers() -> void:
 			continue
 		seen[key] = true
 		add_marker(key, ankh.global_position, 7, ak_name)
+
+## Atlas kind -> the full map's marker palette (8 town, 6 gate, 7 ankh,
+## 5 info). Kind order matches LandmarkData.Kind.
+func _atlas_marker_type(lm) -> int:
+	match int(lm.get("kind")):
+		0:  # SETTLEMENT
+			return 8
+		5:  # GATE
+			return 6
+		6:  # ANKH
+			return 7
+		_:
+			return 5
 
 # Marker visibility toggles
 var _show_players: bool = true

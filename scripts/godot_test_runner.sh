@@ -149,6 +149,8 @@ test_general_skills
 test_item_catalog
 test_canon_bosses
 test_house_catalog
+test_landmark_catalog
+test_map_landmark_wiring
 test_zenith_capstone
 test_item_use
 test_a11y_service

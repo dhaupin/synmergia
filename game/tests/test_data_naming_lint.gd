@@ -1035,6 +1035,50 @@ func _run() -> void:
 	else:
 		_fail("Mystery style violations: %s" % ", ".join(bad_mysteries))
 
+	# --- Landmarks: landmark_ prefix, filename == id, unit-length dirs, and
+	# zone/gateway refs that resolve (the atlas law: identity only) ---
+	var landmark_ids := _load_ids("data/landmarks")
+	var bad_landmarks: Array = []
+	var landmark_zone_set: Dictionary = {}
+	var zone_ids_raw := _load_ids("data/zones")
+	for zb in zone_ids_raw:
+		landmark_zone_set[str(zone_ids_raw[zb])] = true
+	var landmark_gate_set: Dictionary = {}
+	var gate_ids_raw := _load_ids("data/gateways")
+	for gb in gate_ids_raw:
+		landmark_gate_set[str(gate_ids_raw[gb])] = true
+	for lb in landmark_ids:
+		var lid := str(landmark_ids[lb])
+		if not lid.begins_with("landmark_"):
+			bad_landmarks.append(lid)
+		if lb != lid:
+			bad_landmarks.append("%s (filename mismatch: %s.tres)" % [lid, lb])
+		var ltxt := _file_text("data/landmarks", lb)
+		var ldir := Vector3.ZERO
+		var lzone := ""
+		var lgw := ""
+		for line in ltxt.split("\n"):
+			var t := line.strip_edges()
+			if t.begins_with("dir = Vector3("):
+				var inner := t.trim_prefix("dir = Vector3(").trim_suffix(")")
+				var parts := inner.split(",")
+				if parts.size() == 3:
+					ldir = Vector3(parts[0].to_float(), parts[1].to_float(), parts[2].to_float())
+			elif t.begins_with("zone_id = \"") and t != "zone_id = \"\"":
+				lzone = t.trim_prefix("zone_id = \"").trim_suffix("\"")
+			elif t.begins_with("gateway_id = \"") and t != "gateway_id = \"\"":
+				lgw = t.trim_prefix("gateway_id = \"").trim_suffix("\"")
+		if ldir.length_squared() > 0.000001 and absf(ldir.length() - 1.0) > 0.001:
+			bad_landmarks.append("%s (dir not unit length: %.4f)" % [lid, ldir.length()])
+		if lzone != "" and not landmark_zone_set.has(lzone):
+			bad_landmarks.append("%s zone -> missing %s" % [lid, lzone])
+		if lgw != "" and not landmark_gate_set.has(lgw):
+			bad_landmarks.append("%s gateway -> missing %s" % [lid, lgw])
+	if bad_landmarks.is_empty():
+		_ok("Landmarks: all %d ids use 'landmark_' prefix, unit-length dirs, zone/gateway refs resolve" % landmark_ids.size())
+	else:
+		_fail("Landmark style violations: %s" % ", ".join(bad_landmarks))
+
 	# --- Skills: unique ids, filename == id, class->skill refs resolve ---
 	# Skills live in data/skills/<archetype>/ and load into an id-keyed catalog,
 	# so a duplicate id silently SHADOWS another skill (real bug: akkan_void_bolt

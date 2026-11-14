@@ -8,7 +8,7 @@
 ##   2. The shapes their biomes DID answer (acacia in savanna,
 ##      conifer set for taiga when taiga resolves).
 ##   3. The v7 ruleset bump: biome ids untouched (never renumbered).
-## The streamer's vine/mushroom/mycelium/scree laws read the SAME
+## The retired retired streamer's vine/mushroom/mycelium/scree laws read the SAME
 ## biome ints, so whatever this seed offers they've got covered.
 extends SceneTree
 

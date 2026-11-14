@@ -1,5 +1,13 @@
 # Synmergia — Story & World Lore (PRD)
 
+> **STATUS 2026-11-14 (labs fiction pass).** LORE PRD. The five open questions
+> in sec 9 are lore restraint, not data. `game/data/mysteries/` ships five
+> Chronicle puzzles: two pre-existing (`the_first_vault`, `the_watcher_tally`)
+> and three authored from these questions on 2026-11-14 (`the_silence`,
+> `the_nexus_core`, `the_bloom_remembers`). Each puzzle asks for a day's
+> derived sky code -- none of them answers a mystery. Treat named lore that is
+> not in a `.tres` as proposal.
+
 > **Status:** CANON. The narrative bible. Systems PRDs (prd.md,
 > world-building-arch.md) say how the world RUNS; this document says
 > WHY it is the way it is, what happened before the player arrived,

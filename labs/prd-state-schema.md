@@ -44,7 +44,7 @@ StateSchema with a type so I can attach it to a state tree
 node.
 
 **Acceptance Criteria:**
-- [ ] `StateSchema` class exists in `game/data/roots/state_schema.gd`, extends `Resource`
+- [ ] `StateSchema` class exists in `game/core/frame/schemas/state_schema.gd`, extends `Resource`
 - [ ] `@export_enum("position", "inventory", "health", "faction", "status", "quest", "social", "other") var type: String`
 - [ ] Resource can be created via the Godot editor
 - [ ] Resource can be saved to `.tres` and loaded
@@ -103,7 +103,7 @@ editor flow.
 ## 4. Functional Requirements
 
 - **FR-1:** One GDScript Resource `StateSchema` in
-  `game/data/roots/state_schema.gd`, extends `Resource`
+  `game/core/frame/schemas/state_schema.gd`, extends `Resource`
 - **FR-2:** One `@export` field with `@export_enum`
   constraints (type)
 - **FR-3:** Three instance methods: `_to_canonical_bytes`,
@@ -189,7 +189,7 @@ editor flow.
    itself contain a sub-schema for the payload? Out of
    scope for v1; the payload is a free Dictionary
    validated per-type.
-3. **Schema location:** `game/data/roots/state_schema.gd`
+3. **Schema location:** `game/core/frame/schemas/state_schema.gd`
    vs `game/core/schemas/state_schema.gd`. Per arch doc
    §6.2, the roots dir is the new home.
 4. **Visibility scope:** seed trees have a `visibility_scope`
