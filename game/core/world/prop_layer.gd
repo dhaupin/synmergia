@@ -126,7 +126,8 @@ var _land_registered: Dictionary = {}
 var _markov = null
 var _prefetch_enabled: bool = false
 var _prefetch_viewer_id: String = ""
-var _prefetched: Dictionary = {}
+var _prefetched: Dictionary = {}   # diagnostic: cells warmed this session (bounded)
+const _PREFETCH_LOG_CAP: int = 512
 
 
 func configure(p_provider, p_radius: float, p_parent: Node3D, p_depth: int = PropChunk.DEFAULT_DEPTH) -> void:
@@ -186,6 +187,9 @@ func _prefetch_step(viewer_dir: Vector3) -> void:
 	if not _cache.has(target):
 		_derive_chunk(target)          # pure: fills the LRU, no scene nodes
 		_prefetched[target] = true
+		# Keep the diagnostic log bounded; drop the oldest entry.
+		while _prefetched.size() > _PREFETCH_LOG_CAP:
+			_prefetched.erase(_prefetched.keys()[0])
 
 
 ## The streaming tick: recenter on the viewer, queue near chunks, build
