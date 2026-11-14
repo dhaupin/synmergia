@@ -161,6 +161,54 @@ func _run() -> void:
         else:
                 _fail("_setup_starting_skills never reads get_general_skills()")
 
+        # --- Teleport is a real, Bender-exclusive verb -----------------
+        # The dead path: teleport_distance/applyTeleport existed with NO data
+        # able to set them, so no skill ever teleported. The "teleport" effect
+        # now feeds teleport_distance, and required_role keeps the verb in the
+        # Bender family (Seer/Temporalist/Overclocker), the way res is healer-only.
+        var phase_schema = ds.get_skill("akkan_seer_phase_shift")
+        if phase_schema == null:
+                _fail("akkan_seer_phase_shift did not load")
+        else:
+                var phase = CombatSkill.from_schema(phase_schema)
+                if phase.teleport_distance > 0.0:
+                        _ok("a teleport payload reaches the runtime (phase_shift distance %.0f)" % phase.teleport_distance)
+                else:
+                        _fail("teleport payload did not reach teleport_distance -- the effect is still dead")
+                if int(phase.required_role) == 5:
+                        _ok("phase_shift carries required_role == Role.BENDER")
+                else:
+                        _fail("phase_shift required_role is %d, expected 5" % int(phase.required_role))
+
+        # The role gate in isolation: a skill with NO class gate but a Bender
+        # role gate. A Bender passes; a Warrior is refused on role alone.
+        var role_skill = CombatSkill.new()
+        role_skill.required_role = 5
+        if role_skill.can_cast(_caster("human_temporalist")) and role_skill.can_cast(_caster("synthetic_overclocker")):
+                _ok("a Bender passes a Role.BENDER gate (temporalist + overclocker)")
+        else:
+                _fail("a Bender was refused a Role.BENDER skill")
+        if not role_skill.can_cast(_caster("human_warrior")):
+                _ok("a human_warrior is refused a Role.BENDER skill (role gate bites)")
+        else:
+                _fail("a non-Bender cast a Role.BENDER skill -- the role gate is open")
+        var open_skill = CombatSkill.new()
+        if open_skill.can_cast(_caster("human_warrior")):
+                _ok("required_role == -1 leaves a skill open to every class")
+        else:
+                _fail("an ungated skill (required_role -1) refused a class")
+
+        # The class-role helper resolves family membership by id.
+        var CD = preload("res://core/schemas/character_data.gd")
+        if CD.class_role("human_temporalist") == 5 and CD.class_role("human_cleric") == 6:
+                _ok("class_role resolves the Bender (5) and Healer (6) families")
+        else:
+                _fail("class_role misresolved a family: temporalist=%d cleric=%d" % [CD.class_role("human_temporalist"), CD.class_role("human_cleric")])
+        if not CD.class_has_role("human_warrior", 5):
+                _ok("class_has_role refuses a Warrior for Role.BENDER")
+        else:
+                _fail("class_has_role let a Warrior into Role.BENDER")
+
         _finish()
 
 func _general_ids(arr: Array) -> String:

@@ -14,6 +14,7 @@ func _hub_emit(sig_name: String, args: Array) -> void:
 
 const StatusEffect = preload("res://core/entities/status_effect.gd")
 const CcImmunity = preload("res://core/combat/cc_immunity.gd")
+const CharacterData = preload("res://core/schemas/character_data.gd")
 const SkillSchema = preload("res://core/schemas/skill.gd")
 # The data -> runtime status-effect join (a skill's effect_id names a
 # data/status_effects/*.tres). Preloaded, not a class_name reference, so
@@ -119,6 +120,7 @@ enum TargetType {
 @export var taunt_duration: float = 4.0
 
 # Utility
+@export var required_role: int = -1  # CharacterClass.Role; -1 = any (class FAMILY gate)
 @export var teleport_distance: float = 0.0
 @export var movement_speed_mod: float = 0.0  # % movement speed buff
 @export var movement_speed_duration: float = 0.0
@@ -207,6 +209,7 @@ static func from_schema(s: SkillSchema) -> Skill:
 	sk.targeted_aoe_radius = s.targeted_aoe_radius
 	sk.required_level = s.required_level
 	sk.required_class = s.required_class
+	sk.required_role = int(s.required_role)
 	sk.required_stance = s.required_stance
 	sk.schema = s
 	# Flatten effect dictionaries into runtime fields. THIS is the one effect
@@ -265,6 +268,11 @@ static func from_schema(s: SkillSchema) -> Skill:
 				# Strips debuffs from the caster/ally target
 				# (AuraComponent.cleanse owns the strip).
 				sk.cleanses = true
+			"teleport":
+				# A blink/gap-closer (Bender-only via required_role). The value is the
+				# distance in metres when no ground point is given; a GROUND-targeted
+				# cast teleports to the aim point instead (applyTeleport).
+				sk.teleport_distance = maxf(sk.teleport_distance, float(effect.get("value", 0.0)))
 	return sk
 
 func _init() -> void:
@@ -298,6 +306,14 @@ func can_cast(caster: Node) -> bool:
 	# Check class
 	if required_class != "" and caster.get("character_class") != required_class:
 		return false
+
+	# Check role (class FAMILY). Teleport is Bender-only, so a skill can gate
+	# on Role.BENDER rather than naming one class -- all three family classes
+	# (Seer/Temporalist/Overclocker) share the role and qualify.
+	if required_role >= 0:
+		var cid := str(caster.get("character_class"))
+		if not CharacterData.class_has_role(cid, required_role):
+			return false
 
 	return true
 

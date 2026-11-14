@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "synthetic_warp_point"
 display_name = "Warp Point"
-description = "Bends local space to fold the caster and nearby allies forward, granting a burst of movement and attack speed for a rapid reposition."
+description = "Folds local space to blink the caster forward, leaving a surge that quickens nearby allies."
 skill_type = 5
 target_type = 2
 mana_cost = 30
@@ -15,9 +15,10 @@ cast_time = 0.3
 animation_duration = 0.4
 range = 0.0
 aoe_radius = 10.0
-effects = [{"type": "buff", "effect_id": "buff_overclock_ally", "duration": 6.0}]
+effects = [{"type": "teleport", "value": 14}, {"type": "buff", "effect_id": "buff_overclock_ally", "duration": 6.0}]
 required_level = 10
 required_class = "synthetic_overclocker"
+required_role = 5
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",

@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "akkan_seer_phase_shift"
 display_name = "Phase Shift"
-description = "Slips half out of the world, slowing all who chase."
+description = "Slips half out of the world, blinking a short distance and slowing all who chase."
 icon_path = ""
 skill_type = 0
 target_type = 1
@@ -16,9 +16,10 @@ cast_time = 0.0
 animation_duration = 1.0
 range = 6.0
 aoe_radius = 5.0
-effects = [{"type": "debuff", "effect_id": "slow_common", "duration": 4.0}]
+effects = [{"type": "teleport", "value": 12}, {"type": "debuff", "effect_id": "slow_common", "duration": 4.0}]
 required_level = 20
 required_class = "akkan_seer"
+required_role = 5
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",

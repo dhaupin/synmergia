@@ -78,6 +78,15 @@ environment/CI-only until proven otherwise.
 
 ## RECENT SESSIONS (verbatim, in log order -- newest block at top)
 
+## 2026-11-16c -- Part C teleport round: the blink goes live, Bender-exclusive (branch feat/cc-immunity)
+- SESSION CONTEXT: continuing Part C on the same branch. Owner: "just like healer is the only class that can res, bender is the only class that can teleport" -- a perk to pull players onto the utility class. Then: "it'd have to be a bender skill (not signature)" and "healer isn't developed yet, we are starting with bender".
+- THE DEAD PATH: `Skill.teleport_distance` + `applyTeleport()` existed and `execute()` called them, but `from_schema` had no `teleport` case, so no data could set the distance -- no skill ever teleported. `from_schema` now reads `{"type": "teleport", "value": N}` -> `teleport_distance`.
+- THE GATE: new `SkillSchema.required_role` (int, -1 = any) + `CharacterData.class_role()`/`class_has_role()`; `Skill.can_cast` enforces it after the class check. Gate on `Role.BENDER` (=5) so all three family classes qualify (naming one `required_class` cannot express the family). -1 keeps every existing skill untouched.
+- DATA: `akkan_seer_phase_shift` (blink 12 + slow), `human_temporalist_accelerate` -> renamed "Time Slip" (blink 14 + self haste; old ally-haste duped `human_haste_ally`), `synthetic_warp_point` (blink 14 + ally haste). All carry `required_role = 5`; descriptions retitled to the real payload.
+- LINT: new `test_data_naming_lint` leg refuses a teleport without `required_role = 5`; proven to bite by planting one on `human_charge` (failed by name) then restoring.
+- NOTE (deferred): the "healer-only res" precedent is NOT enforced -- revive lives on the healer AND all three Benders (`*_revive_ally`). Separate call.
+- RECEIPTS: `test_general_skills` new teleport+role section (6 legs) all green; `test_data_naming_lint` green; full default runner 182 passed, 0 failed (457s).
+
 ## 2026-11-16b -- CC immunity round: the immune_* flags go live (Bender owns the stun resist)
 - SESSION CONTEXT: continuing Part C on `feat/stat-modifiers-and-skill-polish`. Owner flagged `buff_immune_stun` as extremely critical ("stun is annoying asf") and steered the design: Bender (Seer/Temporalist/Overclocker) should hold the stun resists, reflections and auras -- the party-critical modifiers people will need later.
 - THE BUG: the `immune_*` fields and `grants_immunity_to()`/`get_immunity_list()` on `StatusEffectData` had ZERO callers -- immunity was declared but never consulted, so no body could ever resist a control.

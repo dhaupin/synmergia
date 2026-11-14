@@ -1830,8 +1830,44 @@ func _run() -> void:
 						if re_claim.search(sk_desc) != null and not sk_caps.has(rule[1]):
 							lying.append("%s claims '%s' with no %s payload" % [sk_id, rule[2], rule[1]])
 				sk_f = sk_dir.get_next()
-	if lying.is_empty():
-		_ok("Skills: no description promises behavior the payload lacks")
+	# --- Teleport is Bender-exclusive (class identity, like healer-res) ---
+	# The owner's rule: only the Bender family teleports, the way only a
+	# healer resurrects. A teleport payload on any other class is a broken
+	# promise of class identity, so refuse it by name. required_role = 5 is
+	# CharacterClass.Role.BENDER (Seer/Temporalist/Overclocker).
+	var bad_tp: Array = []
+	var tp_root := DirAccess.open("res://data/skills")
+	if tp_root != null:
+		tp_root.list_dir_begin()
+		var tp_sub := tp_root.get_next()
+		while tp_sub != "":
+			var tp_dir_name := tp_sub
+			tp_sub = tp_root.get_next()
+			if tp_dir_name == "" or tp_dir_name.begins_with("."):
+				continue
+			var tp_dir := DirAccess.open("res://data/skills/%s" % tp_dir_name)
+			if tp_dir == null:
+				continue
+			tp_dir.list_dir_begin()
+			var tp_f := tp_dir.get_next()
+			while tp_f != "":
+				if tp_f.ends_with(".tres"):
+					var tp_txt := FileAccess.get_file_as_string("res://data/skills/%s/%s" % [tp_dir_name, tp_f])
+					if tp_txt.contains('"type": "teleport"') or tp_txt.contains('"type":"teleport"'):
+						var tp_id := ""
+						var tp_role := false
+						for line in tp_txt.split("\n"):
+							var lt := line.strip_edges()
+							if lt.begins_with("id = \"") and tp_id == "":
+								tp_id = lt.trim_prefix("id = \"").trim_suffix("\"")
+							elif lt == "required_role = 5":
+								tp_role = true
+						if not tp_role:
+							bad_tp.append(tp_id)
+				tp_f = tp_dir.get_next()
+	if bad_tp.is_empty():
+		_ok("Skills: every teleport is Bender-exclusive")
 	else:
-		_fail("Skill descriptions overclaim: %s" % ", ".join(lying))
+		_fail("Teleport skills outside the Bender role: %s" % ", ".join(bad_tp))
+
 	_finish()

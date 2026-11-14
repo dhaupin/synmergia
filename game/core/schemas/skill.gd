@@ -61,6 +61,10 @@ enum TargetType {
 # Requirements
 @export var required_level: int = 1
 @export var required_class: String = ""  # Empty = all classes
+## Optional role gate (CharacterClass.Role): -1 = any role. A skill that
+## must stay exclusive to a class FAMILY (e.g. teleport, which is Bender-only)
+## sets this instead of naming one class, so all three family classes qualify.
+@export var required_role: int = -1
 @export var required_stance: String = ""
 
 # Visual/Audio

@@ -103,6 +103,25 @@ static func is_gm_class(cls_or_role) -> bool:
 		return cls_or_role == CharacterClass.Role.GM
 	return false
 
+## The CharacterClass.Role a class id belongs to, or -1 when it cannot be
+## resolved. Role is how a skill gates an exclusive CLASS FAMILY (teleport is
+## Bender-only: Seer/Temporalist/Overclocker all share Role.BENDER). Duck-typed
+## through DataService, with the same filesystem fallback as load_class.
+static func class_role(class_id: String) -> int:
+	if class_id.is_empty():
+		return -1
+	var cls := load_class(class_id)
+	if cls == null:
+		return -1
+	return int(cls.role)
+
+## True when `class_id` belongs to `role` (CharacterClass.Role). A negative
+## role means "any role", so an ungated skill passes.
+static func class_has_role(class_id: String, role: int) -> bool:
+	if role < 0:
+		return true
+	return class_role(class_id) == role
+
 ## Check if this character data is a GM character
 func is_gm() -> bool:
 	return is_gm_class(class_id)

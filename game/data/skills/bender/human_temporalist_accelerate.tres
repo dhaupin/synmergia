@@ -5,20 +5,21 @@
 [resource]
 script = ExtResource("1")
 id = "human_temporalist_accelerate"
-display_name = "Accelerate"
-description = "Bends time around an ally, quickening their every act."
+display_name = "Time Slip"
+description = "Slips through a fold in time, blinking forward and arriving quickened."
 icon_path = ""
 skill_type = 0
-target_type = 3
+target_type = 2
 mana_cost = 22
 cooldown = 24.0
 cast_time = 0.4
 animation_duration = 1.0
 range = 25.0
 aoe_radius = 0.0
-effects = [{"type": "buff", "effect_id": "buff_haste", "duration": 12.0}]
+effects = [{"type": "teleport", "value": 14}, {"type": "buff", "effect_id": "buff_haste", "duration": 4.0}]
 required_level = 10
 required_class = "human_temporalist"
+required_role = 5
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
