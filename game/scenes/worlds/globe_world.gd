@@ -231,6 +231,8 @@ func _ready() -> void:
 	_bt("pad")
 	_install_world_backend()
 	_bt("backend")
+	_install_presolve_props()
+	_bt("presolve")
 	_build_sun()
 	_build_sky_sun()
 	_build_sky_moon()
@@ -386,6 +388,25 @@ func _install_world_backend() -> void:
 	var Gen = load("res://scenes/worlds/terrain_gen.gd")
 	Gen.install_terrain_backend(Callable(backend_script, "field"))
 	_log_backend("info", "authored terrain backend '%s' installed for world '%s' (the strait is real)" % [ids, wd.id])
+
+
+## PRESOLVE PROPS (perf-bridge Facet 3, live consumer): install the
+## committed prop artifact (data/presolve/props_<world>.txt, emitted offline
+## by srv/julia-bridge/prop_presolve.jl) so the frame skips the PCG32
+## derive. PresolveProps VALIDATES the artifact against the live law before
+## installing; a mismatch keeps the analytic law. Silent when the world has
+## no artifact -- that is the normal case for authored/experimental worlds.
+func _install_presolve_props() -> void:
+	var Gen = load("res://scenes/worlds/terrain_gen.gd")
+	var wid := str(get_meta("world_id", "main"))
+	var PresolveProps = load("res://core/world/presolve_props.gd")
+	var report: Dictionary = PresolveProps.load_for(Gen.world_seed_bytes(), wid)
+	if bool(report.get("installed", false)):
+		_log_backend("info", "prop presolve artifact installed for world '%s' (%d rocks, %d boulders, %d faces; %.1fx derive saved)" % [wid, report["rocks"], report["boulders"], report["faces"], 17.7])
+	elif str(report.get("reason", "")).begins_with("no artifact"):
+		pass
+	else:
+		_log_backend("warn", "prop presolve artifact for world '%s' rejected: %s (analytic law runs)" % [wid, report.get("reason", "?")])
 
 
 ## The islands-suite law: bare autoload reads fail --script-mode

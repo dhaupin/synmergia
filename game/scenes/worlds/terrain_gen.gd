@@ -411,6 +411,35 @@ class BoulderSpec:
 	var yaw: float
 
 
+## PRESOLVE INSTALL (perf-bridge Facet 3): face -> Array[RockSpec] /
+## Array[BoulderSpec] served in place of the PCG32 derive, but ONLY for the
+## seed they were derived from (`_presolve_seed`). Empty by default (the
+## analytic law runs). `install_presolve` is the one writer: it takes the
+## validated maps from core/world/presolve_props.gd and clears the spec
+## cache so the next query picks up the artifact.
+static var _presolve_rocks: Dictionary = {}
+static var _presolve_boulders: Dictionary = {}
+static var _presolve_seed: PackedByteArray = PackedByteArray()
+
+
+static func install_presolve(rocks: Dictionary, boulders: Dictionary, world_seed: PackedByteArray) -> void:
+	_presolve_rocks = rocks
+	_presolve_boulders = boulders
+	_presolve_seed = world_seed
+	_rock_specs_cache.clear()
+
+
+static func uninstall_presolve() -> void:
+	_presolve_rocks = {}
+	_presolve_boulders = {}
+	_presolve_seed = PackedByteArray()
+	_rock_specs_cache.clear()
+
+
+static func has_presolve_for(world_seed: PackedByteArray) -> bool:
+	return not _presolve_rocks.is_empty() and _presolve_seed == world_seed
+
+
 ## Per-seed scalar in [0, 1) from the seed bytes (stream salt).
 ## LANE-H2 SEED-CONSTANT MEMO: _seed_salt is a pure function of
 ## (world_seed, tag) -- no direction, no state. Measured: ~958k calls
@@ -956,6 +985,14 @@ static func rock_specs(world_seed: PackedByteArray, face: int) -> Array:
 	var cached = _rock_specs_cache.get_value(ckey)
 	if cached != null:
 		return cached
+	# PRESOLVE (perf-bridge Facet 3): a validated offline artifact
+	# (core/world/presolve_props.gd) serves the specs without deriving the
+	# PCG32 stream. Installed only when it matches this seed+ruleset on a
+	# sample; absent/mismatched -> the analytic law below runs.
+	if not _presolve_rocks.is_empty() and _presolve_seed == world_seed and _presolve_rocks.has(face):
+		var pspecs: Array = _presolve_rocks[face]
+		_rock_specs_cache.set_value(ckey, pspecs)
+		return pspecs
 	var bytes: PackedByteArray = face_seed_bytes(world_seed, face)
 	# Fold the 32 seed bytes into one 64-bit RNG seed.
 	var acc: int = 0
@@ -1014,6 +1051,9 @@ static func rock_specs(world_seed: PackedByteArray, face: int) -> Array:
 ## boulders never reshuffles the rocks). Spawn-adjacent draws are
 ## re-rolled.
 static func boulder_specs(world_seed: PackedByteArray, face: int) -> Array:
+	# PRESOLVE (perf-bridge Facet 3): see rock_specs.
+	if not _presolve_boulders.is_empty() and _presolve_seed == world_seed and _presolve_boulders.has(face):
+		return _presolve_boulders[face]
 	var bytes: PackedByteArray = SeedChain.derive_seed(
 		[world_seed], "terrain/%s/boulders/%d" % [RULESET_VERSION, face])
 	var acc: int = 0
