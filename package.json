@@ -35,7 +35,7 @@
     "gamestruct": "github:dhaupin/gamestruct#447a0e4ae7aaaa3f338b56300dbb55481cdb2e14",
     "tailwindcss": "^4.0.9",
     "tsx": "^4.23.13",
-    "typescript": "^5.7.3",
+    "typescript": "^7.0.2",
     "vite": "^6.2.0"
   }
 }
