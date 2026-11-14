@@ -48,6 +48,19 @@ no julia -> the engine degrades to empty results. Receipt
 `game/tests/test_julia_orchestrator_live.gd` boots its own sidecar and
 drives the real register -> query -> unregister cycle.
 
+The index carries TWO spatial axes: the coarse 0..11 icosahedral VERTEX
+(near-uniform, ~1/12 of the planet) AND the EXACT canonical clipmap
+CHUNK (`PropChunk`: terrain face 0..19 + a barycentric cell at depth 6,
+`core/frame/geometry/prop_chunk.gd`). `MultiIsoService` registers every
+positioned body at both; `query_chunk(key)` / `query_chunk_at_dir(dir)`
+read the fine axis and `/intersect` accepts a `chunk_key`. The chunk is
+the unit "the whole online pipeline wants" (`labs/prd-clipmap.md`
+sec. 12) -- player-independent, deterministic, the same cell a client
+derives -- so the index answers "who is in THIS cell", not just "who is
+in this twelfth of the world". Admin `/chunk` prints the sender's
+canonical cell + the bodies the index holds there. Receipts:
+`test_julia_orchestrator_live` (chunk legs) + `test_chunk_command`.
+
 ### Running as a shard (multi-container)
 
 The image runs a dev env and a single server out of the box. To run a

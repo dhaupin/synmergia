@@ -50,6 +50,25 @@ same `http://localhost:8090`. The receipt
 `MultiIsoService` through a real register -> query -> unregister cycle,
 and asserts the results.
 
+## Spatial axes: vertex + canonical chunk
+
+An entity is indexed on TWO spatial axes:
+
+- the coarse 0..11 icosahedral VERTEX (`/spatial/:v`) -- near-uniform,
+  ~1/12 of the planet per bucket; and
+- the EXACT canonical clipmap CHUNK (`GET /chunk/:c`) -- `PropChunk`
+  (terrain face 0..19 + a barycentric cell at depth 6), the
+  player-independent cell the prop layer and every client derive
+  (`labs/prd-clipmap.md` sec. 12).
+
+`/register` and `/intersect` take a `chunk_key` (>= 0; -1 means "no
+position", so a body with no position is indexed on every axis EXCEPT
+`chunk`). The Godot side derives it with `PropChunk.chunk_for_dir`, the
+same law the prop layer uses, so the server holds exactly the cell a
+client derives. Readers: `MultiIsoService.query_chunk` /
+`query_chunk_at_dir`; admin `/chunk` prints the sender's cell + the
+bodies the index holds there.
+
 
 ## History
 

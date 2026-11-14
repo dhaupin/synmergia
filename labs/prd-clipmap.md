@@ -612,6 +612,18 @@ online pipeline wants:
   `GroundSample` / sector cache the mesh does, so a chunk's prop derive
   and its ground derive share memoized samples.
 
+**Landed (2026-11-04): the chunk is now the multi-iso index's spatial
+axis.** The Julia orchestrator (`srv/julia-bridge/`, reached by
+`MultiIsoService`) indexed entities only at the coarse 0..11 icosahedral
+VERTEX. It now also indexes the EXACT canonical chunk (`chunk_axis`,
+`chunk_at`, `GET /chunk/:c`, `chunk_key` on `/register` + `/intersect`),
+derived by the SAME `PropChunk.chunk_for_dir` the prop layer uses, so the
+server holds the cell a client derives. `MultiIsoService.query_chunk` /
+`query_chunk_at_dir` read it and admin `/chunk` prints the sender's
+canonical cell + its occupants -- the index's read side, live and
+speaking the canonical layer's addressing (`labs/prd-perf-bridges.md`
+Facet 5).
+
 ## 13. Build plan (parallelisable across the existing lanes)
 
 The work splits cleanly along the existing subagent-lane pattern

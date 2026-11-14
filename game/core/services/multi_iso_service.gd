@@ -34,6 +34,14 @@ extends Node
 ## axis, so the orchestrator's spatial bucket agrees with the frame's.
 const IcosahedralScript = preload("res://core/frame/math/icosahedral.gd")
 
+## The canonical clipmap CHUNK addressing (labs/prd-clipmap.md sec. 9/12):
+## a stable, player-independent cell (terrain face 0..19 + barycentric cell
+## at depth 6). The orchestrator indexes it as a SECOND, EXACT spatial axis
+## beside the coarse 0..11 vertex, so a query answers "who is in this
+## canonical chunk" -- the same cell a client derives -- not just "who is
+## in this twelfth of the world". Frame primitive: pure static addressing.
+const PropChunk = preload("res://core/frame/geometry/prop_chunk.gd")
+
 ## Julia server URL (docker-compose service name)
 @export var julia_server_url: String = "http://julia:8090"
 ## Dev default: the sidecar the container entrypoint starts on the local host
@@ -116,13 +124,16 @@ static func instance() -> Node:
 
 ## Register a player/enemy/NPC on the Julia orchestrator.
 ## Call this once per entity when they spawn in the world.
+## `chunk_key` is the canonical clipmap cell (PropChunk key); -1 means
+## "no position", so the entity indexes on every axis except `chunk`.
 func register_entity(
 	entity_id: String,
 	spatial_vertex: int,
 	faction_id: int,
 	social_group: int = 0,
 	game_class: int = 0,
-	birth_year: int = 2026
+	birth_year: int = 2026,
+	chunk_key: int = -1
 ) -> void:
 	var body := {
 		"id": entity_id,
@@ -131,6 +142,7 @@ func register_entity(
 		"social_group": social_group,
 		"game_class": game_class,
 		"birth_year": birth_year,
+		"chunk_key": chunk_key,
 	}
 	await _http_post("/register", body)
 
@@ -155,12 +167,27 @@ func query_social(group: int) -> Array:
 	var result := await _http_get("/social/%d" % group)
 	return result.get("entity_ids", [])
 
+## Query all entities in an EXACT canonical clipmap chunk (PropChunk key).
+## The chunk is the player-independent cell the whole online pipeline shares
+## (labs/prd-clipmap.md sec. 12); this is the spatial reader the coarse
+## vertex axis could not give.
+func query_chunk(chunk_key: int) -> Array:
+	var result := await _http_get("/chunk/%d" % chunk_key)
+	return result.get("entity_ids", [])
+
+## Convenience: entities in the canonical chunk containing a direction.
+func query_chunk_at_dir(dir: Vector3, depth: int = PropChunk.DEFAULT_DEPTH) -> Array:
+	return await query_chunk(PropChunk.chunk_for_dir(dir, depth))
+
 ## Multi-axis intersection: entities that match ALL specified criteria.
-## Returns Array of entity_ids.
+## Returns Array of entity_ids. `chunk_key` (>= 0) adds the EXACT canonical
+## clipmap cell to the intersection, so a query can be "these players, in
+## this chunk, of this faction" instead of the coarse vertex alone.
 func query_intersect(
 	spatial_vertex: int = -1,
 	faction_id: int = -1,
-	social_group: int = -1
+	social_group: int = -1,
+	chunk_key: int = -1
 ) -> Array:
 	var body := {}
 	if spatial_vertex >= 0:
@@ -169,6 +196,8 @@ func query_intersect(
 		body["faction_id"] = faction_id
 	if social_group >= 0:
 		body["social_group"] = social_group
+	if chunk_key >= 0:
+		body["chunk_key"] = chunk_key
 	var result := await _http_post("/intersect", body)
 	return result.get("entity_ids", [])
 
@@ -260,6 +289,17 @@ func _on_health_completed(_result: int, response_code: int, _headers: PackedStri
 ## orchestrator's spatial axis is the whole point of the multi-iso
 ## index, so feeding it a fabricated vertex (the old team_id/faction
 ## hash) made every spatial query a lie.
+## The canonical clipmap chunk for an entity, or -1 when it has no
+## position. The direction is the planet-radial unit vector, the SAME
+## frame the vertex axis and the prop layer use, so the chunk the server
+## indexes is the chunk a client derives for that cell.
+func _chunk_for_entity(entity) -> int:
+	var dir: Vector3 = _planet_dir(entity)
+	if dir.length_squared() <= 0.000001:
+		return -1
+	return PropChunk.chunk_for_dir(dir, PropChunk.DEFAULT_DEPTH)
+
+
 func _vertex_for_entity(entity) -> int:
 	var dir: Vector3 = _planet_dir(entity)
 	if dir.length_squared() > 0.000001:
@@ -330,7 +370,8 @@ func _faction_for_entity(entity) -> int:
 func _on_entity_registered(entity, _metadata) -> void:
 	if not enabled or entity == null or not ("entity_id" in entity):
 		return
-	register_entity(str(entity.entity_id), _vertex_for_entity(entity), _faction_for_entity(entity))
+	register_entity(str(entity.entity_id), _vertex_for_entity(entity), _faction_for_entity(entity),
+		0, 0, 2026, _chunk_for_entity(entity))
 
 func _on_entity_unregistered(entity, _metadata) -> void:
 	if not enabled or entity == null or not ("entity_id" in entity):

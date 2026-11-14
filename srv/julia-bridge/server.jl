@@ -12,6 +12,7 @@ Endpoints:
     GET  /spatial/:v  Entities at vertex v
     GET  /faction/:f  Entities in faction f
     GET  /social/:s   Entities in social group s
+    GET  /chunk/:c    Entities in the exact canonical clipmap chunk c
     POST /intersect   Multi-axis intersection
     GET  /stats       Orchestrator statistics
     GET  /health      Health check
@@ -26,7 +27,7 @@ using JSON
 include("orchestrator.jl")
 using .MultiIso
 using .MultiIso: Orchestrator, Entity, register!, unregister!, spatial_at, faction_eq,
-    social_eq, intersect, query, nsc9_encode, nsc9_parse, stats
+    social_eq, chunk_at, intersect, query, nsc9_encode, nsc9_parse, stats
 
 # ---- Global orchestrator instance ----
 const ORCH = Orchestrator()
@@ -82,7 +83,8 @@ function route(req::HTTP.Request)
                 faction_id      = get(data, "faction_id", 0),
                 birth_year      = get(data, "birth_year", 2026),
                 social_group    = get(data, "social_group", 0),
-                game_class      = get(data, "game_class", 0)
+                game_class      = get(data, "game_class", 0),
+                chunk_key       = get(data, "chunk_key", -1)
             )
             register!(ORCH, entity)
             return json_ok(Dict("id" => entity.id, "nsc9" => entity.nsc9))
@@ -120,6 +122,14 @@ function route(req::HTTP.Request)
             return json_ok(Dict("social_group" => group, "entity_ids" => collect(result)))
         end
 
+        # Chunk query: GET /chunk/:chunk_key  (the exact canonical clipmap cell)
+        m = match(r"^/chunk/(\d+)$", target)
+        if !isnothing(m)
+            ck = parse(Int, m.captures[1])
+            result = chunk_at(ORCH, ck)
+            return json_ok(Dict("chunk_key" => ck, "entity_ids" => collect(result)))
+        end
+
         # Intersect: POST /intersect
         if target == "/intersect" && method == "POST"
             data = parse_json_body(req)
@@ -136,6 +146,9 @@ function route(req::HTTP.Request)
             if haskey(data, "social_group")
                 kwargs[:social] = social_eq(ORCH, data["social_group"])
             end
+            if haskey(data, "chunk_key")
+                kwargs[:chunk] = chunk_at(ORCH, data["chunk_key"])
+            end
 
             result_ids = intersect(ORCH; kwargs...)
             result_entities = [Dict(
@@ -145,7 +158,8 @@ function route(req::HTTP.Request)
                 "faction_id" => e.faction_id,
                 "birth_year" => e.birth_year,
                 "social_group" => e.social_group,
-                "game_class" => e.game_class
+                "game_class" => e.game_class,
+                "chunk_key" => e.chunk_key
             ) for e in query(ORCH; kwargs...)]
 
             return json_ok(Dict(
@@ -182,6 +196,7 @@ function main()
     println("    GET  /spatial/:v      entities at vertex v")
     println("    GET  /faction/:f      entities in faction f")
     println("    GET  /social/:s       entities in social group s")
+    println("    GET  /chunk/:c        entities in an exact clipmap chunk")
     println("    POST /intersect       multi-axis intersection")
     println("=" ^ 60)
 

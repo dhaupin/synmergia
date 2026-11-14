@@ -28,6 +28,10 @@ const ShardTuning = preload("res://core/progression/shard_tuning.gd")
 const ContentPacks = preload("res://core/mesh/content_packs.gd")
 # Phase 3 mesh visibility: /mesh reports role, registry, and bus state.
 const MeshRole = preload("res://core/mesh/mesh_role.gd")
+# Canonical clipmap chunk addressing (prd-clipmap.md sec. 9/12): the
+# /chunk report reads the multi-iso index by the EXACT cell a client
+# derives, tying the spatial index to the canonical layer.
+const PropChunk = preload("res://core/frame/geometry/prop_chunk.gd")
 
 ## Runtime autoload lookups (script-mode-safe; the bare identifiers
 ## fail compile when autoloads are absent -- test_islands).
@@ -528,6 +532,8 @@ func _handle_command(sender_id: String, channel: Channel, command: String, targe
 			return _cmd_contentpack(sender_id, args)
 		"mesh":
 			return _cmd_mesh(sender_id, args)
+		"chunk":
+			return _cmd_chunk(sender_id, args)
 
 	# Fallback layer: the player command shell owns the per-player
 	# customization surface (/alias, /macro, /settings, /stats, /whois,
@@ -1098,6 +1104,63 @@ func _mesh_bus_line() -> String:
 	return "bus: %s%s" % [
 		bus_id if bus_id != "" else "(none)",
 		" (%s)" % transport if transport != "" else ""]
+
+## Command: /chunk -- the canonical clipmap cell report. Admin-only (it
+## reaches the live multi-iso index). Resolves the sender's planet-radial
+## direction, derives the EXACT PropChunk cell, and reads the orchestrator
+## index for that cell -- the spatial index tied to the canonical layer
+## (labs/prd-clipmap.md sec. 12: the chunk is the unit the whole online
+## pipeline shares).
+func _cmd_chunk(sender_id: String, _args: Array) -> bool:
+	if not _require_admin(sender_id, "chunk"):
+		return true
+	_chunk_report.call_deferred(sender_id)
+	return true
+
+func _chunk_report(sender_id: String) -> void:
+	var es := _entity_svc()
+	var body = es.get_entity(sender_id) if es != null and es.has_method("get_entity") else null
+	if body == null:
+		_send_system_message(sender_id, "[chunk] no body for sender -- cannot resolve a chunk.")
+		return
+	var pos: Vector3 = _entity_world_position(body)
+	var center := Vector3.ZERO
+	if "planet_center" in body and body.planet_center is Vector3:
+		center = body.planet_center
+	var rel: Vector3 = pos - center
+	if rel.length_squared() <= 0.000001:
+		_send_system_message(sender_id, "[chunk] no position -- cannot resolve a chunk.")
+		return
+	var dir: Vector3 = rel.normalized()
+	var depth: int = PropChunk.DEFAULT_DEPTH
+	var key: int = PropChunk.chunk_for_dir(dir, depth)
+	var face: int = PropChunk.face_of(key)
+	var cell: Vector2i = PropChunk.cell_of(key)
+	var radius: float = float(ProjectSettings.get_setting("synmergia/world/planet_radius", 20000.0))
+	var lines: Array = ["[chunk] canonical clipmap cell:"]
+	lines.append("  key: %d  (depth %d)" % [key, depth])
+	lines.append("  face: %d  cell: (%d, %d)" % [face, cell.x, cell.y])
+	lines.append("  area: %.4f km2" % PropChunk.chunk_area_km2(radius, depth))
+	var iso = get_node_or_null(NodePath("/root/MultiIsoService"))
+	if iso == null:
+		lines.append("  index: (MultiIsoService absent)")
+	else:
+		var ids: Array = await iso.query_chunk(key)
+		ids.sort()
+		lines.append("  index: %d entit%s in this chunk -- %s" % [
+			ids.size(), "y" if ids.size() == 1 else "ies",
+			", ".join(ids) if not ids.is_empty() else "(none)"])
+	_send_system_message(sender_id, "\n".join(lines))
+
+## Safe world-position read for a body (global_position throws outside the
+## tree); falls back to the local position property.
+static func _entity_world_position(body) -> Vector3:
+	if body is Node3D and body.is_inside_tree():
+		return body.global_position
+	if "position" in body and body.position is Vector3:
+		return body.position
+	return Vector3.ZERO
+
 
 ## Command: /horde [<config_id>|status|stop] [zone_id] [alert]
 ## Live trigger for data-driven horde events (data/hordes/*.tres).

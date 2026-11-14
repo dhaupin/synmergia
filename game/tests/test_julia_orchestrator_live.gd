@@ -24,6 +24,10 @@
 ##   7. Disabled service never egresses (contract leg, always runs).
 ##   8. The REAL EntityService hook buckets a positioned body at the
 ##      vertex its world position implies (the spatial axis is truthful).
+##   9. The canonical clipmap CHUNK axis: register with a PropChunk key ->
+##      query_chunk finds it in that exact cell and not a neighbour; the
+##      chunk x faction intersection resolves; the REAL hook buckets a
+##      positioned body at its canonical chunk (the clipmap tie-in).
 ##
 ## Run:
 ##   godot --headless --path . --script res://tests/test_julia_orchestrator_live.gd
@@ -33,6 +37,7 @@ const SVC_PATH := "res://core/services/multi_iso_service.gd"
 const SERVER := "/workspace/project/synmergia/srv/julia-bridge/server_lite.jl"
 const PROJECT := "/workspace/project/synmergia/srv/julia-bridge"
 const ICOSA := "res://core/frame/math/icosahedral.gd"
+const PropChunk = preload("res://core/frame/geometry/prop_chunk.gd")
 
 const PORT := 8092
 const URL := "http://127.0.0.1:8092"
@@ -208,6 +213,29 @@ func _test_live_cycle() -> void:
 	else:
 		_fail("query_faction wrong: f7=%s f9=%s" % [str(fac), str(other)])
 
+	# The canonical clipmap chunk axis (prd-clipmap.md sec. 12): the
+	# exact cell a client derives is a first-class index axis.
+	var chunk: int = PropChunk.chunk_for_dir(Vector3(0, 1, 0))
+	var cprobe := "chunk_probe_%d" % Time.get_ticks_usec()
+	await _svc.register_entity(cprobe, 3, 7, 0, 0, 2026, chunk)
+	var cin: Array = await _svc.query_chunk(chunk)
+	var cout: Array = await _svc.query_chunk(chunk + 1)
+	if cin.has(cprobe) and not cout.has(cprobe):
+		_ok("register with a canonical chunk -> query_chunk finds it in that cell only")
+	else:
+		_fail("query_chunk wrong: in=%s out=%s" % [str(cin), str(cout)])
+	var cinter: Array = await _svc.query_intersect(-1, 7, -1, chunk)
+	if cinter.has(cprobe):
+		_ok("query_intersect (chunk x faction) finds it")
+	else:
+		_fail("query_intersect chunk+faction missed: %s" % str(cinter))
+	await _svc.unregister_entity(cprobe)
+	var cafter: Array = await _svc.query_chunk(chunk)
+	if not cafter.has(cprobe):
+		_ok("unregister removes it from the chunk axis")
+	else:
+		_fail("unregistered entity still in chunk: %s" % str(cafter))
+
 	await _svc.unregister_entity(probe)
 	var after: Array = await _svc.query_spatial(3)
 	if not after.has(probe):
@@ -246,6 +274,12 @@ func _test_entity_hook_leg() -> void:
 		_ok("entity hook registers a positioned body at its real vertex 0")
 	else:
 		_fail("entity hook did not bucket the body at vertex 0: %s" % str(hits))
+	var chunk: int = PropChunk.chunk_for_dir(v0)
+	var chin: Array = await _svc.query_chunk(chunk)
+	if chin.has(body.entity_id):
+		_ok("entity hook buckets the body at its canonical clipmap chunk")
+	else:
+		_fail("entity hook missed the canonical chunk %d: %s" % [chunk, str(chin)])
 
 	_svc._on_entity_unregistered(body, null)
 	for _i in range(60):
@@ -255,6 +289,11 @@ func _test_entity_hook_leg() -> void:
 		_ok("entity hook unregisters the body from the vertex")
 	else:
 		_fail("entity hook left the body registered: %s" % str(gone))
+	var cgone: Array = await _svc.query_chunk(chunk)
+	if not cgone.has(body.entity_id):
+		_ok("entity hook unregisters the body from the canonical chunk")
+	else:
+		_fail("entity hook left the body in the chunk: %s" % str(cgone))
 	root.remove_child(body)
 	body.free()
 

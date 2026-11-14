@@ -37,6 +37,7 @@ anything with a small per-call payload (the round-trip dominates).
 | 2 | Wire the presolve tier to a real consumer | (b) offline | DONE |
 | 3 | Prop-layer chunk bucketing offline | (b) offline | DONE |
 | 4 | Wire the redis shard bus into dev | transport | DONE |
+| 5 | Tie the orchestrator index to the canonical clipmap chunk (live read side) | index + consumer | DONE |
 
 ---
 
@@ -109,12 +110,44 @@ mailbox the dev default never exercised.
 
 ---
 
+## Facet 5 -- the orchestrator index tied to the canonical clipmap chunk
+
+The orchestrator was WRITE-ONLY in gameplay: `MultiIsoService` mirrored
+the entity roster into the index, but its spatial axis was the coarse
+0..11 icosahedral VERTEX (~1/12 of the planet per bucket) and nothing
+read the index (only the receipts queried it). The canonical CLIPMAP
+layer already owns the exact cell -- `PropChunk` (terrain face 0..19 + a
+barycentric cell at depth 6), "the unit the whole online pipeline wants"
+(`labs/prd-clipmap.md` sec. 12).
+
+**Landed (2026-11-04).** The index gains a SECOND, EXACT spatial axis:
+the canonical chunk. `orchestrator.jl` adds `chunk_axis` (500+) +
+`chunk_at` + a `chunk=` intersect keyword; `server_lite.jl`/`server.jl`
+add `GET /chunk/:c` and accept `chunk_key` on `/register` + `/intersect`.
+`MultiIsoService.register_entity` carries the `chunk_key` and
+`_chunk_for_entity` derives it with the SAME `PropChunk.chunk_for_dir`
+the prop layer uses, so the server indexes exactly the cell a client
+derives. New readers: `query_chunk` / `query_chunk_at_dir` and the admin
+`/chunk` command (the sender's canonical cell + the bodies the index
+holds there). A position-less body is indexed on every axis EXCEPT
+`chunk` (`chunk_key = -1`), so "who is in chunk C" never matches a
+no-position body.
+
+The win is the SHAPE, not a speedup number: the read side is now live
+and it speaks the canonical layer's addressing, so the index answers
+"who is in THIS cell" (player-independent, deterministic, the same cell
+every client derives) instead of only "who is in this twelfth".
+
+---
+
 ## Receipts (one per facet, committed alongside)
 
 - `game/tests/test_julia_terrain.gd` — parity + timing (Facet 1)
 - `game/tests/test_julia_presolve.gd` — artifact validation (Facet 2)
 - `game/tests/test_julia_prop_batch.gd` — parity + timing (Facet 3)
 - `game/tests/test_redis_shard_bus.gd` — bus round-trip (Facet 4)
+- `game/tests/test_julia_orchestrator_live.gd` — live cycle + chunk axis (Facet 5)
+- `game/tests/test_chunk_command.gd` — the `/chunk` reader (Facet 5)
 
 ## Measurement ledger (fill as each facet lands)
 

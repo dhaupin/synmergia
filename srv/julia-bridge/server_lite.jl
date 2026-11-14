@@ -60,7 +60,8 @@ function handle(method::String, target::String, rawbody::Vector{UInt8})
             faction_id     = get(data, "faction_id", 0),
             birth_year     = get(data, "birth_year", 2026),
             social_group   = get(data, "social_group", 0),
-            game_class     = get(data, "game_class", 0))
+            game_class     = get(data, "game_class", 0),
+            chunk_key      = get(data, "chunk_key", -1))
         MultiIso.register!(ORCH, entity)
         return (200, Dict{String,Any}("id" => entity.id, "nsc9" => entity.nsc9[:spatial]))
     end
@@ -94,6 +95,13 @@ function handle(method::String, target::String, rawbody::Vector{UInt8})
                                       "entity_ids" => collect(MultiIso.social_eq(ORCH, s))))
     end
 
+    m = match(r"^/chunk/(\d+)$", target)
+    if !isnothing(m)
+        c = parse(Int, m.captures[1])
+        return (200, Dict{String,Any}("chunk_key" => c,
+                                      "entity_ids" => collect(MultiIso.chunk_at(ORCH, c))))
+    end
+
     if target == "/intersect" && method == "POST"
         data = JsonLite.parse_json(String(rawbody))
         data isa AbstractDict || return (400, Dict{String,Any}("error" => "bad body"))
@@ -101,12 +109,13 @@ function handle(method::String, target::String, rawbody::Vector{UInt8})
         haskey(data, "spatial_vertex") && (kwargs[:spatial] = MultiIso.spatial_at(ORCH, data["spatial_vertex"]))
         haskey(data, "faction_id")     && (kwargs[:faction] = MultiIso.faction_eq(ORCH, data["faction_id"]))
         haskey(data, "social_group")   && (kwargs[:social]  = MultiIso.social_eq(ORCH, data["social_group"]))
+        haskey(data, "chunk_key")      && (kwargs[:chunk]   = MultiIso.chunk_at(ORCH, data["chunk_key"]))
         ids = MultiIso.intersect(ORCH; kwargs...)
         ents = [Dict{String,Any}(
             "id" => e.id, "facility" => e.facility,
             "spatial_vertex" => e.spatial_vertex, "faction_id" => e.faction_id,
             "birth_year" => e.birth_year, "social_group" => e.social_group,
-            "game_class" => e.game_class) for e in MultiIso.query(ORCH; kwargs...)]
+            "game_class" => e.game_class, "chunk_key" => e.chunk_key) for e in MultiIso.query(ORCH; kwargs...)]
         return (200, Dict{String,Any}("count" => length(ids),
                                       "entity_ids" => collect(ids),
                                       "entities" => ents))

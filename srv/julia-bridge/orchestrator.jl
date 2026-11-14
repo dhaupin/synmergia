@@ -81,6 +81,24 @@ social_axis(s::Int) = 300 + s
 # Game axis: 400-499
 game_axis(g::Int) = 400 + g
 
+# Chunk axis: 500+ (EXACT canonical clipmap cell).
+#
+# The spatial axis above is the COARSE 0..11 icosahedral VERTEX -- a
+# near-uniform approximation of "where" (12 buckets, ~1/12 of the
+# planet each). The canonical CLIPMAP layer addresses the world by
+# CHUNK (`PropChunk`: terrain face 0..19 + a barycentric cell at depth
+# 6 -> a stable int), the unit "the whole online pipeline wants"
+# (labs/prd-clipmap.md sec. 12). `chunk_axis` makes that EXACT cell a
+# first-class axis, so the index can answer "who is in this chunk"
+# (player-independent, deterministic, the same cell a client derives)
+# instead of only "who is in this twelfth of the world".
+#
+# Axis numbers only need to be unique Dict keys; they are NOT encoded
+# into an NSC-9 string (the chunk key is up to ~21k, past the 0..999
+# axis field), so no `nsc9_encode` is emitted for this axis.
+const CHUNK_AXIS_BASE = 500
+chunk_axis(c::Int) = CHUNK_AXIS_BASE + c
+
 # ============================================================
 # Entity
 # ============================================================
@@ -99,13 +117,17 @@ mutable struct Entity
     birth_year::Int
     social_group::Int
     game_class::Int
+    chunk_key::Int
     nsc9::Dict{Symbol, String}
 end
 
 """
-    Entity(; id, facility, spatial_vertex, faction_id, birth_year, social_group, game_class)
+    Entity(; id, facility, spatial_vertex, faction_id, birth_year, social_group, game_class, chunk_key)
 
 Construct an Entity with auto-generated NSC-9 codes for all axes.
+`chunk_key` is the EXACT canonical clipmap cell (PropChunk key); the
+default -1 means "no canonical chunk" (a body with no position), so it
+is registered on every axis except `chunk`.
 """
 function Entity(;
     id::String = string(UUIDs.uuid4()),
@@ -114,7 +136,8 @@ function Entity(;
     faction_id::Int = 0,
     birth_year::Int = 2026,
     social_group::Int = 0,
-    game_class::Int = 0
+    game_class::Int = 0,
+    chunk_key::Int = -1
 )
     seq(s::String) = Int(hash(id * s) % 1_000_000)
 
@@ -127,7 +150,7 @@ function Entity(;
         :game             => nsc9_encode(facility, game_axis(game_class), seq("g"))
     )
 
-    Entity(id, facility, spatial_vertex, faction_id, birth_year, social_group, game_class, nsc9)
+    Entity(id, facility, spatial_vertex, faction_id, birth_year, social_group, game_class, chunk_key, nsc9)
 end
 
 # ============================================================
@@ -169,6 +192,12 @@ function register!(orch::Orchestrator, entity::Entity)
     )
         push!(get!(orch.by_axis, axis, Set{String}()), entity.id)
     end
+    # The exact canonical chunk is a second, finer spatial axis. A body
+    # with no position (chunk_key < 0) is registered on every axis except
+    # this one, so "who is in chunk C" never matches a position-less body.
+    if entity.chunk_key >= 0
+        push!(get!(orch.by_axis, chunk_axis(entity.chunk_key), Set{String}()), entity.id)
+    end
     return entity
 end
 
@@ -206,6 +235,10 @@ faction_eq(orch::Orchestrator, faction_id::Int)::Set{String} =
 social_eq(orch::Orchestrator, group::Int)::Set{String} =
     _bucket(orch, social_axis(group))
 
+"""All entity IDs in an exact canonical clipmap chunk (PropChunk key)."""
+chunk_at(orch::Orchestrator, chunk_key::Int)::Set{String} =
+    _bucket(orch, chunk_axis(chunk_key))
+
 # ---- Multi-axis intersection ----
 
 """
@@ -220,6 +253,7 @@ function intersect(orch::Orchestrator;
     faction=nothing,
     social=nothing,
     temporal_year=nothing,
+    chunk=nothing,
     kwargs...
 )
     sets = Set{String}[]
@@ -227,6 +261,7 @@ function intersect(orch::Orchestrator;
     !isnothing(faction)        && push!(sets, faction)
     !isnothing(social)         && push!(sets, social)
     !isnothing(temporal_year)  && push!(sets, temporal_year)
+    !isnothing(chunk)          && push!(sets, chunk)
     for (key, val) in kwargs
         if !isnothing(val)
             push!(sets, val)
@@ -300,6 +335,19 @@ function run_self_tests()::Bool
     # Query resolves back to entities.
     ents = query(orch; faction = faction_eq(orch, 2))
     check("query resolves entities", Set([e.id for e in ents]) == Set(["a", "c"]))
+
+    # The exact canonical chunk axis (PropChunk key).
+    orch2 = Orchestrator()
+    p = Entity(id = "p", spatial_vertex = 3, faction_id = 2, chunk_key = 123456)
+    q = Entity(id = "q", spatial_vertex = 3, faction_id = 2, chunk_key = 123456)
+    r = Entity(id = "r", spatial_vertex = 3, faction_id = 2, chunk_key = -1)   # no chunk
+    for e in (p, q, r); register!(orch2, e); end
+    check("chunk_at returns set", chunk_at(orch2, 123456) == Set(["p", "q"]))
+    check("chunk_at empty for a foreign cell", isempty(chunk_at(orch2, 777)))
+    check("a position-less body is not in any chunk", isempty(chunk_at(orch2, -1)))
+    cr = intersect(orch2; chunk = chunk_at(orch2, 123456), faction = faction_eq(orch2, 2))
+    check("intersect chunk+faction", cr == Set(["p", "q"]))
+    check("chunk shares the vertex (both axes live)", spatial_at(orch2, 3) == Set(["p", "q", "r"]))
 
     println(failures[] == 0 ? "SELF-TESTS PASS" : "SELF-TESTS FAIL ($(failures[]) failures)")
     return failures[] == 0
