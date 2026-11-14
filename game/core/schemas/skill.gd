@@ -102,19 +102,13 @@ enum TargetType {
 ##     { "type": "hot", "ticks": int, "heal_mult": float }
 ##     { "type": "chain", "max_targets": int, "damage_mult": float }
 ##     { "type": "armor_pierce", "percent": float }
-## Stat thresholds for upgrade tiers (30-point intervals)
-## min_stat: which stat is required (e.g., "intelligence", "strength")
-## min_stat_value: minimum stat value needed (30=common, 60=rare, 90=epic, 120=legendary, 150=mythic)
-const STAT_TIER_THRESHOLDS: Dictionary = {
-	"common": {"min_stat_value": 30},
-	"rare": {"min_stat_value": 60},
-	"epic": {"min_stat_value": 90},
-	"legendary": {"min_stat_value": 120},
-	"mythic": {"min_stat_value": 150}
-}
+## Stat thresholds for upgrade tiers live in GameTier.TIER_STAT_THRESHOLD
+## (0/30/60/90/120 for common..mythic). The gating STAT is authored in
+## `min_stat` per skill; when it is blank the academy gates the tier on the
+## character's primary focal stat.
 
 @export var upgrade_tiers: Array[Dictionary] = [
-	{"level": 1, "books_required": 4, "tier": "common", "min_stat": "", "min_stat_value": 30,
+	{"level": 1, "books_required": 4, "tier": "common", "min_stat": "", "min_stat_value": 0,
 		"delta": {
 			"damage_mult": 1.12, "heal_mult": 1.12, "range_mult": 1.05,
 			"cooldown_mult": 0.95, "cast_time_mult": 1.05, "aoe_mult": 1.03,
@@ -122,7 +116,7 @@ const STAT_TIER_THRESHOLDS: Dictionary = {
 			"cost_mult": 0.97, "charge_mult": 1.05, "max_targets_mult": 1.0
 		},
 		"unlocks": []},
-	{"level": 2, "books_required": 4, "tier": "rare", "min_stat": "", "min_stat_value": 60,
+	{"level": 2, "books_required": 4, "tier": "rare", "min_stat": "", "min_stat_value": 30,
 		"delta": {
 			"damage_mult": 1.24, "heal_mult": 1.24, "range_mult": 1.10,
 			"cooldown_mult": 0.90, "cast_time_mult": 1.10, "aoe_mult": 1.06,
@@ -130,7 +124,7 @@ const STAT_TIER_THRESHOLDS: Dictionary = {
 			"cost_mult": 0.94, "charge_mult": 1.10, "max_targets_mult": 1.0
 		},
 		"unlocks": []},
-	{"level": 3, "books_required": 4, "tier": "epic", "min_stat": "", "min_stat_value": 90,
+	{"level": 3, "books_required": 4, "tier": "epic", "min_stat": "", "min_stat_value": 60,
 		"delta": {
 			"damage_mult": 1.36, "heal_mult": 1.36, "range_mult": 1.15,
 			"cooldown_mult": 0.85, "cast_time_mult": 1.15, "aoe_mult": 1.09,
@@ -138,7 +132,7 @@ const STAT_TIER_THRESHOLDS: Dictionary = {
 			"cost_mult": 0.91, "charge_mult": 1.15, "max_targets_mult": 1.0
 		},
 		"unlocks": []},
-	{"level": 4, "books_required": 4, "tier": "legendary", "min_stat": "", "min_stat_value": 120,
+	{"level": 4, "books_required": 4, "tier": "legendary", "min_stat": "", "min_stat_value": 90,
 		"delta": {
 			"damage_mult": 1.48, "heal_mult": 1.48, "range_mult": 1.20,
 			"cooldown_mult": 0.80, "cast_time_mult": 1.20, "aoe_mult": 1.12,
@@ -146,7 +140,7 @@ const STAT_TIER_THRESHOLDS: Dictionary = {
 			"cost_mult": 0.88, "charge_mult": 1.20, "max_targets_mult": 1.0
 		},
 		"unlocks": []},
-	{"level": 5, "books_required": 4, "tier": "mythic", "min_stat": "", "min_stat_value": 150,
+	{"level": 5, "books_required": 4, "tier": "mythic", "min_stat": "", "min_stat_value": 120,
 		"delta": {
 			"damage_mult": 1.60, "heal_mult": 1.60, "range_mult": 1.25,
 			"cooldown_mult": 0.75, "cast_time_mult": 1.25, "aoe_mult": 1.15,

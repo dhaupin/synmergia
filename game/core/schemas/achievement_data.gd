@@ -19,12 +19,13 @@ enum Category {
 }
 
 ## Difficulty/Rarity
+## The one game-wide five-rung scale (GameTier).
 enum Rarity {
-		COMMON,
-		UNCOMMON,
-		RARE,
-		EPIC,
-		LEGENDARY,
+	COMMON,
+	RARE,
+	EPIC,
+	LEGENDARY,
+	MYTHIC,
 }
 
 @export var id: String = ""

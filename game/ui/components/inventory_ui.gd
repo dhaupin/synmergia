@@ -2,6 +2,8 @@
 ## Migrated onto UIPanel base class.
 extends "res://ui/components/ui_panel.gd"
 class_name InventoryUI
+
+const GameTier = preload("res://core/schemas/game_tier.gd")
 const InventoryComponent = preload("res://core/components/inventory_component.gd")
 const Item = preload("res://core/schemas/item.gd")
 const IconResolver = preload("res://core/utils/icon_resolver.gd")
@@ -329,22 +331,10 @@ func _set_slot_item(index: int, item: Item) -> void:
 	slot.tooltip_text = "%s [%s]" % [item.display_name, _rarity_name(item.rarity)]
 
 func _rarity_name(rarity: int) -> String:
-	match rarity:
-		Item.Rarity.COMMON: return "common"
-		Item.Rarity.UNCOMMON: return "uncommon"
-		Item.Rarity.RARE: return "rare"
-		Item.Rarity.EPIC: return "epic"
-		Item.Rarity.LEGENDARY: return "legendary"
-		_: return "common"
+	return GameTier.name_of(rarity)
 
 func _get_rarity_color(rarity: int) -> Color:
-	match rarity:
-		Item.Rarity.COMMON: return Color(0.6, 0.6, 0.6)
-		Item.Rarity.UNCOMMON: return Color(0.2, 0.9, 0.2)
-		Item.Rarity.RARE: return Color(0.2, 0.4, 1.0)
-		Item.Rarity.EPIC: return Color(0.6, 0.2, 0.9)
-		Item.Rarity.LEGENDARY: return Color(1.0, 0.6, 0.1)
-		_: return Color(0.6, 0.6, 0.6)
+	return GameTier.color_of(rarity)
 
 func _get_item_icon(item: Item) -> Texture2D:
 	return IconResolver.get_item_icon(item)

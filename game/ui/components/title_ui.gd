@@ -17,7 +17,7 @@ func _titleservice() -> Node:
 ## Title color options (excluding gold - reserved for GM)
 const TITLE_COLORS: Array[Color] = [
 	Color(0.65, 0.65, 0.65),   # gray (common)
-	Color(0.75, 0.60, 0.40),   # bronze (uncommon)
+	Color(0.75, 0.60, 0.40),   # bronze
 	Color(0.65, 0.70, 0.80),   # silver (rare)
 	Color(0.60, 0.50, 0.75),   # purple (epic)
 	Color(0.45, 0.65, 0.70),   # teal (legendary)

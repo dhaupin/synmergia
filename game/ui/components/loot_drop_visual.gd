@@ -8,15 +8,7 @@ extends Node3D
 
 const ITEM = preload("res://core/schemas/item.gd")
 
-## Rarity -> label color (matches the game's rarity palette).
-const RARITY_COLORS: Array = [
-	Color(0.8, 0.8, 0.8),   # COMMON    gray
-	Color(0.4, 1.0, 0.4),   # UNCOMMON  green
-	Color(0.35, 0.6, 1.0),  # RARE      blue
-	Color(0.7, 0.4, 1.0),   # EPIC      purple
-	Color(1.0, 0.65, 0.2),  # LEGENDARY orange
-	Color(1.0, 0.3, 0.35),  # MYTHIC    red
-]
+const GameTier = preload("res://core/schemas/game_tier.gd")
 
 const ROTATE_SPEED: float = 1.6          # radians/sec spin
 const BOB_AMPLITUDE: float = 0.12        # meters of vertical bob
@@ -79,7 +71,7 @@ func setup(drop: Dictionary) -> void:
 
 	if _label != null:
 		_label.text = "\n".join(lines)
-	var tint: Color = RARITY_COLORS[best_rarity] if best_rarity < RARITY_COLORS.size() else RARITY_COLORS[0]
+	var tint: Color = GameTier.color_of(best_rarity)
 	if _label != null:
 		_label.modulate = tint
 	if _coin != null and _coin.material_override is StandardMaterial3D:

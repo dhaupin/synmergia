@@ -7,7 +7,7 @@
 extends Item
 class_name SkillBook
 
-const SkillTier = preload("res://core/schemas/skill_tier.gd")
+const GameTier = preload("res://core/schemas/game_tier.gd")
 
 ## Runtime metadata (not exported: books are runtime-generated items,
 ## the academy catalog + loot rolls are the only producers).
@@ -16,7 +16,7 @@ var book_upgrade_level: int = 0
 
 
 static func create(skill_id: String, upgrade_level: int, skill_display_name: String) -> SkillBook:
-	var tier: String = SkillTier.name_of(upgrade_level)
+	var tier: String = GameTier.tier_of_level(upgrade_level)
 	if tier == "":
 		tier = "common"
 
@@ -28,7 +28,7 @@ static func create(skill_id: String, upgrade_level: int, skill_display_name: Str
 	book.book_skill_id = skill_id
 	book.book_upgrade_level = upgrade_level
 	book.id = "book_%s_%s" % [skill_id, tier]
-	book.display_name = "Manual of %s %s" % [skill_display_name, SkillTier.roman(upgrade_level)]
+	book.display_name = "Manual of %s %s" % [skill_display_name, GameTier.roman_of_level(upgrade_level)]
 	book.description = "A weathered manual containing techniques to enhance %s. Consume 4 of the same tier to upgrade." % skill_display_name
 	book.soulbound = false
 	book.stack_size = 1

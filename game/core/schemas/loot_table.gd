@@ -31,10 +31,10 @@ class_name LootTable
 # Rarity weights
 @export var rarity_weights: Dictionary = {
 	"COMMON": 1.0,
-	"UNCOMMON": 0.5,
 	"RARE": 0.2,
 	"EPIC": 0.05,
-	"LEGENDARY": 0.01
+	"LEGENDARY": 0.01,
+	"MYTHIC": 0.002
 }
 
 func _init() -> void:

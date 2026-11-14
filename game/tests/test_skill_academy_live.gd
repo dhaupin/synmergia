@@ -95,6 +95,10 @@ func _run() -> void:
 	# global (character_data.gd itself carries bare autoload refs and is
 	# not load()-safe in script mode).
 	var char_data: CharacterData = CharacterData.new()
+	# The stat gate is LIVE: a tier with no authored `min_stat` gates on the
+	# character's focal stat (human_warrior -> strength). Fund it so the legs
+	# below exercise the book economy rather than the gate.
+	char_data.allocated_stats["strength"] = 120
 
 	var one_book: Dictionary = svc.apply_upgrade(pid, "human_charge", char_data, [bought])
 	_assert(not one_book.get("success", true), "upgrade fails with 1 of 4 books")
@@ -141,6 +145,18 @@ func _run() -> void:
 	for i in range(4):
 		var r: Item = svc.create_book("human_charge", "rare")
 		inv.add_item(r)
+
+	# THE STAT GATE: a fresh level-1 warrior (strength 14) cannot reach a rare
+	# tier (needs 30) even holding all four books.
+	var low_stat: CharacterData = CharacterData.new()
+	low_stat.skill_upgrades = {"human_charge": 1}  # already at common; next is rare
+	low_stat.spent_skill_points = 1
+	var gated: Dictionary = svc.apply_upgrade(pid, "human_charge", low_stat, _inv_books(inv))
+	_assert(not gated.get("success", true),
+			"stat gate blocks a rare upgrade below the focal threshold")
+	_assert(str(gated.get("reason", "")).begins_with("Requires"),
+			"stat gate reason names the stat (%s)" % str(gated.get("reason", "")))
+
 	var two: Dictionary = svc.apply_upgrade(pid, "human_charge", char_data,
 			_inv_books(inv))
 	_assert(two.get("success", false), "level 2 upgrade succeeds with 4 rare books")

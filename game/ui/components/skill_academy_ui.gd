@@ -4,7 +4,7 @@
 extends "res://ui/components/ui_panel.gd"
 class_name SkillAcademyUI
 
-const SkillTier = preload("res://core/schemas/skill_tier.gd")
+const GameTier = preload("res://core/schemas/game_tier.gd")
 
 func _r_gm() -> Node:
 	var tree := Engine.get_main_loop() as SceneTree
@@ -119,7 +119,7 @@ var _stat_points_label: Label
 var _stat_respec_button: Button
 var _stat_warnings_label: Label
 
-const _TIER_THRESHOLDS: Dictionary = SkillTier.TIER_STAT_THRESHOLD
+const _TIER_THRESHOLDS: Dictionary = GameTier.TIER_STAT_THRESHOLD
 
 # Respec tab
 var _respec_label: Label
@@ -811,7 +811,7 @@ func _refresh_books_tab() -> void:
 		row.add_child(name_lbl)
 
 		var tier_lbl := Label.new()
-		tier_lbl.text = SkillTier.display(level)
+		tier_lbl.text = GameTier.display(level - 1)
 		tier_lbl.add_theme_color_override("font_color", book.get_rarity_color())
 		tier_lbl.custom_minimum_size.x = 80
 		row.add_child(tier_lbl)

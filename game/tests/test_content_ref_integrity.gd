@@ -14,8 +14,8 @@
 ## an enemy silently drop nothing.
 extends SceneTree
 
-const SkillTier = preload("res://core/schemas/skill_tier.gd")
-const TIERS: Array = SkillTier.TIER_NAMES
+const GameTier = preload("res://core/schemas/game_tier.gd")
+const TIERS: Array = GameTier.NAMES
 
 var _checks: int = 0
 var _fails: int = 0

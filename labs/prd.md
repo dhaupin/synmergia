@@ -539,10 +539,11 @@ Players unlock and upgrade skills via the Skill Academy:
 
 - **Tiers.** The ladder is five rungs, `common` → `mythic`, mapped to
   upgrade levels 1-5. It lives in ONE place:
-  `core/schemas/skill_tier.gd` (`SkillTier`). Every consumer —
-  `SkillAcademyService`, `DataService`, `GroundLootService`,
-  `SkillBook`, `SkillAcademyUI`, `CharacterStatsUI` — reads it. Do not
-  re-declare the array.
+  `core/schemas/game_tier.gd` (`GameTier`) — THE game-wide tier scale.
+  Every consumer — `SkillAcademyService`, `DataService`,
+  `GroundLootService`, `SkillBook`, `SkillAcademyUI`,
+  `CharacterStatsUI`, `Item`, `TitleData`, `AchievementData`,
+  `UIStyles` — reads it. Do not re-declare the array.
 - **Books.** A book id is `book_<skill_id>_<tier>`. Reaching tier N
   consumes **4 books of tier N** plus **1 skill point**. Books are
   runtime-generated items (`SkillBook.create`), never authored `.tres`;
@@ -552,18 +553,28 @@ Players unlock and upgrade skills via the Skill Academy:
   signature is `upgradable = false`, so `book_<signature>_<tier>`
   resolves to nothing on both the academy and loot paths.
 - **Stat gate.** Each rung carries a stat-total threshold
-  (0/30/60/90/120 for common…mythic) in `SkillTier.TIER_STAT_THRESHOLD`.
-  No authored skill sets `min_stat` today, so the gate is currently
-  inert — it is real code, not a stub.
+  (0/30/60/90/120 for common…mythic) in `GameTier.TIER_STAT_THRESHOLD`.
+  The gate is **live**: a tier whose skill authors no `min_stat` gates on
+  the character's primary focal stat (`focal_stat_1`), so a level-1
+  warrior cannot buy a rare upgrade until strength reaches 30. An explicit
+  `min_stat` / `min_stat_value` on the tier overrides both.
 
-#### Tier names are NOT item rarity
+#### ONE scale everywhere: tiers ARE rarity
 
-`SkillTier` (5 rungs, book-gated) is a different ladder from
-`Item.Rarity` (6 rungs — it adds `UNCOMMON` — roll-gated, and shared
-with achievements and titles). They share a few names and a colour
-vocabulary, nothing else. Do not feed one into the other.
+There is a single five-rung scale, `common → mythic`, in
+`core/schemas/game_tier.gd` (`GameTier`). It is used by **skill upgrade
+tiers, item rarity, titles, and achievements** alike — one vocabulary,
+one colour set (grey / blue / purple / orange / red).
 
-See `core/services/skill_academy_service.gd`, `core/schemas/skill_tier.gd`,
+History: this used to be three ladders that shared names but disagreed —
+the skill ladder was five rungs; `Item.Rarity` was **six** (an extra
+`UNCOMMON` wedged between common and rare); titles and achievements were
+five but stopped at `legendary`. `UNCOMMON` is retired, and the tier
+names are now identical everywhere. The old `Item.Rarity` ints were
+migrated on disk (`UNCOMMON` folded into `common`, everything above
+shifted down one).
+
+See `core/services/skill_academy_service.gd`, `core/schemas/game_tier.gd`,
 and `ui/components/skill_academy_ui.gd`.
 
 ### 6.4 Leveling & Progression
