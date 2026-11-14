@@ -164,7 +164,7 @@ test_daily_quest
 test_quest_availability
 test_level_curve
 test_soulbind_revival
-test_world_chunks
+test_chunk_prefetch
 test_tick_n017_cleanup
 test_tick_phase2_systems
 test_combat_stack_live

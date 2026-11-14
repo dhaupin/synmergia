@@ -126,6 +126,11 @@ var clipmap
 var player  # GlobeWorldPlayer; untyped on purpose - set_script + dynamic
 # dispatch keeps this scene free of parse-time class_name dependencies.
 
+## Predictive prefetch arming (idempotent): flips once the local body
+## carries an identity, so the flora layer starts warming the predicted
+## next canonical chunk.
+var _prefetch_armed: bool = false
+
 ## PLANAR-RETIREMENT STEP 2: the globe's wildlife. One record per
 ## scene-placed enemy so a kill rebuilds it at its spawn point after
 ## EnemyData.respawn_time (ported from world_playable's SceneSpawn law).
@@ -584,6 +589,20 @@ func terrain_on_flag() -> bool:
 	return clipmap != null and clipmap.terrain_on
 
 
+## Arm the flora layer's predictive prefetch once the local body has an
+## identity. Idempotent: the first frame the player carries a non-empty
+## entity_id enables it, later frames no-op (cheap string compare).
+func _arm_prop_prefetch() -> void:
+	if _prefetch_armed or clipmap == null:
+		return
+	var pid: String = str(player.entity_id) if "entity_id" in player else ""
+	if pid == "":
+		return
+	if clipmap.has_method("enable_prop_prefetch"):
+		clipmap.enable_prop_prefetch(pid)
+		_prefetch_armed = true
+
+
 func _physics_process(delta: float) -> void:
 	if player == null:
 		return
@@ -598,6 +617,7 @@ func _physics_process(delta: float) -> void:
 		# floating-origin shifts).
 		clipmap.update(player.global_position - planet_center)
 		_tick_zone_spawns(delta)
+		_arm_prop_prefetch()
 	_maybe_shift_world()
 	# SPAWN TRUTH (round 7, item 4): keep the on-screen position line
 	# fresh at 2 Hz. No-op until _build_spawn_truth() made the label

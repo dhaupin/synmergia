@@ -26,6 +26,7 @@ const PropChunk = preload("res://core/frame/geometry/prop_chunk.gd")
 const SeedChain = preload("res://core/frame/kv/seed_chain.gd")
 const TerrainGen = preload("res://scenes/worlds/terrain_gen.gd")
 const PropCollider = preload("res://entities/prop_collider.gd")
+const MarkovScript = preload("res://core/frame/srv/markov.gd")
 
 ## Prop families (the dispatch key). BiomeBand.Family maps onto these.
 const FAMILY_TREE: int = 0
@@ -118,6 +119,15 @@ var _deep_registered: Dictionary = {}
 # session, keyed by node id -- a chunk reload must not re-register.
 var _land_registered: Dictionary = {}
 
+# Predictive prefetch (the canonical read side): a Markov model of the
+# viewer's chunk-to-chunk movement warms the cell it is heading into
+# BEFORE arrival, so props are ready and the build queue is empty on
+# crossing. Off by default; a consumer enables it via enable_prefetch().
+var _markov = null
+var _prefetch_enabled: bool = false
+var _prefetch_viewer_id: String = ""
+var _prefetched: Dictionary = {}
+
 
 func configure(p_provider, p_radius: float, p_parent: Node3D, p_depth: int = PropChunk.DEFAULT_DEPTH) -> void:
 	provider = p_provider
@@ -137,6 +147,47 @@ func configure(p_provider, p_radius: float, p_parent: Node3D, p_depth: int = Pro
 	_decor_salt = int(Time.get_unix_time_from_system()) / 86400
 
 
+## Turn on predictive prefetch for one viewer. The layer learns the
+## viewer's canonical chunk-to-chunk movement and warms the predicted
+## next cell before arrival (the read side of the canonical addressing).
+func enable_prefetch(viewer_id: String) -> void:
+	_markov = MarkovScript.new()
+	_prefetch_viewer_id = viewer_id
+	_prefetch_enabled = true
+
+
+func disable_prefetch() -> void:
+	_prefetch_enabled = false
+
+
+## The canonical chunk key the viewer currently occupies.
+func current_chunk_key() -> int:
+	if _markov == null or _prefetch_viewer_id == "":
+		return -1
+	return int(_markov.get_current_chunk(_prefetch_viewer_id))
+
+
+## One prefetch step: observe the viewer's cell, then derive (cache) the
+## top predicted cell so the build queue has nothing to do on arrival.
+func _prefetch_step(viewer_dir: Vector3) -> void:
+	var key: int = PropChunk.chunk_for_dir(viewer_dir, chunk_depth)
+	_markov.observe(_prefetch_viewer_id, key, chunk_depth)
+	var preds: Array = _markov.predict_next(_prefetch_viewer_id)
+	if preds.is_empty():
+		return
+	var target: int = int(preds[0].get("chunk_key", -1))
+	if target < 0 or target == key:
+		return
+	# Only warm cells inside the load radius -- a prediction never
+	# reaches past what the streamer could build anyway.
+	var ang_load: float = _load_radius / maxf(radius_m, 1.0)
+	if PropChunk.chunk_center_dir(target, chunk_depth).angle_to(viewer_dir) > ang_load:
+		return
+	if not _cache.has(target):
+		_derive_chunk(target)          # pure: fills the LRU, no scene nodes
+		_prefetched[target] = true
+
+
 ## The streaming tick: recenter on the viewer, queue near chunks, build
 ## within budget, unload far chunks. `viewer_pos` is planet-relative.
 ## HYSTERESIS: the chunk set only re-scans when the viewer drifts past
@@ -147,6 +198,10 @@ func update(viewer_pos: Vector3) -> void:
 		return
 	var dir: Vector3 = viewer_pos.normalized() if viewer_pos.length() > 0.001 else Vector3(1, 0, 0)
 	_last_center = dir
+	# Predictive prefetch rides the SAME viewer direction: observe the
+	# current canonical chunk and warm the predicted next one.
+	if _prefetch_enabled:
+		_prefetch_step(dir)
 	if _scan_center != Vector3.ZERO and _scan_center.angle_to(dir) * radius_m < _recenter_m:
 		_advance_build(dir)
 		return

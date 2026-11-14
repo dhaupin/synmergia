@@ -148,9 +148,6 @@ var _state_command_buffer: Array = []
 ## Async persistence task
 var _persistence_task = null
 
-## Predicted prefetch task
-var _prefetch_task = null
-
 ## Previous tick timing for N014 invariant check
 var _last_tick_end_ms: int = 0
 
@@ -277,9 +274,6 @@ func _on_tick() -> void:
 
 	# ---- Phase 5: Persistence (async) ----
 	_phase5_persistence()
-
-	# ---- Phase 6: Predicted prefetch (async) ----
-	_phase6_predicted_prefetch()
 
 	# Update flywheel
 	_flywheel_decay()
@@ -1209,93 +1203,13 @@ func _phase5_persistence() -> void:
 	_persistence_task = task
 
 ## ============================================================================
-## PHASE 6: Predicted Prefetch (async)
+## PHASE 6: Predicted Prefetch -- RETIRED
 ## ============================================================================
-
-## Markov predictor estimates player position in 1s,
-## LOD-promotes predicted chunks, procedural generator runs on those chunks.
-func _phase6_predicted_prefetch() -> void:
-	# Cancel previous task if still running
-	if _prefetch_task and is_instance_valid(_prefetch_task):
-		_prefetch_task.cancel()
-
-	# Fire and forget - async, does not block the tick
-	var task := _Task.new()
-	add_child(task)
-
-	task._setup(func() -> void:
-		var promoted_chunks: Array[String] = []
-
-		# Markov predictor estimate player position in 1s
-		if EntityService and PlayerManager:
-			var players = EntityService.get_all_players()
-			for player in players:
-				if not is_instance_valid(player):
-					continue
-				var predicted_pos = _markov_predict(player)
-				if predicted_pos != null:
-					# LOD-promote predicted chunks. The key MUST be in
-					# LODManager's own fragmenter format or the promoted
-					# state lands under a key nothing ever reads back
-					# (the old call passed a Vector2 where promote_chunk
-					# wants a String chunk key).
-					if LODManager and LODManager.has_method("promote_chunk") and LODManager.has_method("get_chunk_key_from_position"):
-						var lod_key: String = LODManager.get_chunk_key_from_position(predicted_pos)
-						LODManager.promote_chunk(lod_key, LODManager.LODState.WARM)
-					var chunk_coords = _position_to_chunk(predicted_pos)
-					var chunk_key: String = "%d_%d" % [chunk_coords.x, chunk_coords.y]
-					promoted_chunks.append(chunk_key)
-
-		# Procedural generator runs on promoted chunks
-		_promote_generation(promoted_chunks)
-
-		GameLog.debug("TickService: Phase 6 prefetch complete for tick %d" % _tick_number)
-	)
-	task.start()
-	_prefetch_task = task
-
-## Markov prediction for Phase 6 prefetch: the player's predicted
-## position in ~1s (top-probability chunk center), or null when the
-## frame Markov has no prediction (no state / no current chunk -- it
-## cold-starts on momentum, else falls back to uniform over the 3x3
-## grid). The predictor and its movement feed live in LODManager
-## (record_movement fires on every chunk change at LOD tick rate);
-## Phase 6 only consumes the top prediction.
-func _markov_predict(player) -> Variant:
-	var lod := get_node_or_null("/root/LODManager")
-	if lod == null or not lod.has_method("get_markov"):
-		return null
-	var markov: Variant = lod.get_markov()
-	if markov == null or not markov.has_method("predict_next"):
-		return null
-	var player_id: String = ""
-	if player != null and "entity_id" in player:
-		player_id = str(player.entity_id)
-	if player_id == "":
-		return null
-	var predictions: Array = markov.predict_next(player_id)
-	if predictions.is_empty() or not (predictions[0] is Dictionary):
-		return null
-	var top: Dictionary = predictions[0]
-	var chunk_key: String = str(top.get("chunk_key", ""))
-	if chunk_key == "" or not lod.has_method("get_chunk_position"):
-		return null
-	return lod.get_chunk_position(chunk_key)
-
-## Convert a world position to chunk coordinates.
-func _position_to_chunk(pos: Vector3) -> Vector2:
-	return Vector2(int(floor(pos.x / float(CHUNK_SIZE))), int(floor(pos.z / float(CHUNK_SIZE))))
-
-## Promote a chunk's LOD level.
-func _promote_generation(chunk_keys: Array[String]) -> void:
-	if WorldService == null:
-		return
-	for chunk_key in chunk_keys:
-		if WorldService.has_method("generate_chunk"):
-			WorldService.generate_chunk(chunk_key)
-		else:
-			GameLog.debug("TickService: WorldService.generate_chunk not available for chunk %s" % chunk_key)
-
+## The old planar predictive prefetch (Markov over the floor(pos/100) chunk
+## grid, LOD-promoting into LODManager, then WorldService.generate_chunk) is
+## gone: its addresses pointed at nothing the clipmap streams. The idea moved
+## to the canonical read side -- PropLayer.enable_prefetch() warms the
+## predicted PropChunk cell the viewer is heading into (frame/srv/markov.gd).
 ## N017 boot policy: the per-tick root history keys ("tick:N:root")
 ## are write-only telemetry -- nothing reads them back; the live reads
 ## are the world_state:latest_* pointers -- and the retention window

@@ -465,6 +465,20 @@ func prop_layer():
 	return _prop_layer
 
 
+## Predictive prefetch passthrough: the world arms it once the local
+## player's identity is known, so the flora layer warms the chunk the
+## player is heading into (the canonical read side).
+func enable_prop_prefetch(viewer_id: String) -> void:
+	if _prop_layer != null:
+		_prop_layer.enable_prefetch(viewer_id)
+
+
+func prop_prefetch_current_chunk() -> int:
+	if _prop_layer == null:
+		return -1
+	return _prop_layer.current_chunk_key()
+
+
 func async_shutdown() -> void:
 	_jobs.clear()
 	if _deck_mesh != null and is_instance_valid(_deck_mesh):
