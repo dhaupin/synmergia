@@ -6,9 +6,10 @@
 >
 > Mode-specific contracts: [duel](./prd-duel.md),
 > [elimination](./prd-elimination.md), [team deathmatch](./prd-tdm.md),
-> [royale](./prd-royale.md). This document owns the shared host, lobby
-> assembly, payout and teardown; the mode docs own their own rules and
-> fiction.
+> [royale](./prd-royale.md). Matchmaking queues and the QoS seam:
+> [prd-matchmaking.md](./prd-matchmaking.md). This document owns the
+> shared host, lobby assembly, payout and teardown; the mode docs own
+> their own rules and fiction.
 
 ## Status quo (2026-09-28)
 

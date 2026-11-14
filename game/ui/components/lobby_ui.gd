@@ -1,5 +1,5 @@
 ## LobbyUI - the S11 lobby panel (owner decision: the lobby is
-## canonical). One panel, three tabs:
+## canonical). One panel, four tabs:
 ##
 ##   BOUTS - matchmaking: queue for a bout zone (coliseum/sandpit),
 ##           consent to fill-to-parity, leave queue, live queue feed.
@@ -19,17 +19,26 @@ class_name LobbyUI
 
 const Contract = preload("res://core/schemas/instance_contract.gd")
 
-## Queuable bout zones: (zone_id, label). S11 scope: the two live
-## arenas; ROYALE appears when its zone ships.
+## Queuable bout zones: (zone_id, label). All three authored arenas
+## are live; the labels carry the mode so the selector is legible.
 const BOUT_ZONES: Array = [
 	["zone_arena_coliseum", "The Coliseum (Elimination)"],
 	["zone_arena_sandpit", "The Sandpit (Team Deathmatch)"],
 	["zone_royale_valley", "The Sundered Valley (Royale)"],
 ]
 
+## The mode contract in one line per zone. The lobby is the gate UI's
+## landing page; the blurb is what makes a stone's mode legible there.
+const MODE_BLURBS := {
+	"zone_arena_coliseum": "Elimination - one life, last team standing. 1v1 to 6v6.",
+	"zone_arena_sandpit": "Team Deathmatch - first to 20 kills, 4 s spawn shield. 1v1 to 6v6.",
+	"zone_royale_valley": "Royale - sky drop, closing storm, last team standing. 1v1 to 15v15.",
+}
+
 var _tabs: TabContainer
 var _queue_zone: OptionButton
 var _queue_fill: CheckButton
+var _mode_blurb: Label
 var _queue_status: Label
 var _queue_feed: VBoxContainer
 var _duel_target: LineEdit
@@ -120,6 +129,12 @@ func _setup_bouts_tab() -> void:
 	for entry in BOUT_ZONES:
 		_queue_zone.add_item(str(entry[1]))
 	row.add_child(_queue_zone)
+
+	_mode_blurb = Label.new()
+	_mode_blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_mode_blurb.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	bouts.add_child(_mode_blurb)
+	_queue_zone.item_selected.connect(func(_index: int): _refresh_mode_blurb())
 
 	_queue_fill = CheckButton.new()
 	_queue_fill.text = "Allow fill-to-parity"
@@ -415,7 +430,8 @@ func refresh() -> void:
 
 
 func _refresh_bouts(svc) -> void:
-	var zone_id: String = str(BOUT_ZONES[_queue_zone.selected][0])
+	var zone_id: String = _selected_zone_id()
+	_refresh_mode_blurb()
 	var mine: String = svc.queue_for(_local_id)
 	if mine != "":
 		_queue_status.text = "Queued (%s)." % _zone_label(mine)
@@ -433,6 +449,39 @@ func _refresh_bouts(svc) -> void:
 		]
 		row.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
 		_queue_feed.add_child(row)
+
+
+func _selected_zone_id() -> String:
+	if _queue_zone == null:
+		return str(BOUT_ZONES[0][0])
+	var idx: int = clampi(_queue_zone.selected, 0, BOUT_ZONES.size() - 1)
+	return str(BOUT_ZONES[idx][0])
+
+
+func _refresh_mode_blurb() -> void:
+	if _mode_blurb == null or _queue_zone == null:
+		return
+	var zone_id: String = _selected_zone_id()
+	var waiting: int = 0
+	var svc = _lobby_service()
+	if svc != null and svc.has_method("queue_snapshot"):
+		waiting = svc.queue_snapshot(zone_id).size()
+	_mode_blurb.text = "%s  Queue blocks: %d." % [str(MODE_BLURBS.get(zone_id, "")), waiting]
+
+
+## Gate entry: focus the Bouts tab on one stone's zone. Returns false for
+## an unknown zone, letting the caller keep the generic lobby panel.
+func focus_zone(zone_id: String) -> bool:
+	if _tabs == null or _queue_zone == null:
+		return false
+	for i in range(BOUT_ZONES.size()):
+		if str(BOUT_ZONES[i][0]) == zone_id:
+			_queue_zone.select(i)
+			_tabs.current_tab = 0
+			_refresh_mode_blurb()
+			refresh()
+			return true
+	return false
 
 
 func _refresh_duels(svc) -> void:

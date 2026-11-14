@@ -62,7 +62,8 @@ and implementation tracking.
 | `ShardManager` | ⚠️ TODO | `shards` | Shard status | Active shards | `ShardStore` | P1 |
 | `ServerManager` | ⚠️ TODO | `servers` | Server status | - | `ServerStore` | P1 |
 | `DataService` | ⚠️ TODO | `game_data` (templates) | Data cache | - | `GameDataStore` | P1 |
-| `MatchmakingQoS` | ⚠️ TODO | `matchmaking_queue` | Queue state | Active queue | `MatchmakingStore` | P2 |
+| `LobbyService` | ✅ Runtime (session-only) | - | - | Active queue | (none) | P2 |
+| `MatchmakingQoS` | ⏸ Dormant | `matchmaking_queue` (label only) | QoS samples | - | (none) | P3 |
 | `DialogService` | ⚠️ TODO | - | - | Active dialogue | `DialogueStateStore` | P2 |
 | `ConnectorService` | ⚠️ TODO | `agent_connectors`, `agent_actions` | Online status | Active agents | `ConnectorStore` | P3 |
 | `PlayerConfig` | ⚠️ TODO | `player_settings` | - | - | `PlayerConfigStore` | P2 |
@@ -1026,7 +1027,7 @@ default; overrideable via env at boot.
 | `ShardStore` | `ShardManager` | Postgres + Redis cache | Shard status. |
 | `ServerStore` | `ServerManager` | Postgres + Redis cache | Server status. |
 | `GameDataStore` | `DataService` | Postgres + Redis cache | Templates hot. Reference data inventory in §3.20. |
-| `MatchmakingStore` | `MatchmakingQoS` | Postgres + Redis cache | Queue state in Redis. |
+| `MatchmakingStore` | (retired) | - | Queue state is session-only in `LobbyService`; no adapter store exists. |
 | `DialogueStateStore` | `DialogService` | Memory only | Per-session node pointer. Templates in `GameDataStore`. |
 | `ConnectorStore` | `ConnectorService` | Postgres | Connector config + agent action audit log. |
 | `PlayerConfigStore` | `PlayerConfig` | Postgres + Redis cache | Replaces `user://*.cfg` + `user://characters.json` files. |

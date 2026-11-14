@@ -102,6 +102,8 @@ const STORE_MANIFEST := {
 	"shards": "ShardManager",
 	"servers": "ServerManager",
 	"game_data": "DataService (templates)",
+	# Dormant QoS label. Live bout queues are session-only in
+	# LobbyService; this is not a queue store.
 	"matchmaking_queue": "MatchmakingQoS",
 	"dialogues": "DialogService",
 	"player_settings": "PlayerConfig",

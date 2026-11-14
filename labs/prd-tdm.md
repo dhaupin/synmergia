@@ -96,9 +96,8 @@ inside the room.
 1. **No in-bout scoreboard.** The room exposes `score_for(team)` and the
    kill target, but the HUD has no TDM score display. Players track the race
    by kills and the final toast.
-2. **The start toast is wrong for TDM.** BoutHostService says "The bout
-   begins. Last team standing." for every mode. TDM is first-to-twenty, not
-   last-team-standing.
+2. **Start copy is mode-aware (fixed 2026-11-14).** TDM now announces the
+   kill target instead of the old generic "Last team standing" line.
 3. **No TDM title or ladder.** Generic bout payout only; kill-streak
    achievements are the only progression hook.
 4. **Loot is inherited, not designed.** `pvp_mode = FREE_PVP` means the

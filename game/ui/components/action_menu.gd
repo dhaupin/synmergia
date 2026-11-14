@@ -276,6 +276,7 @@ func _get_actions_for_type(target_type: int) -> Array:
 					]
 				elif "queue_mode" in tnode and bool(tnode.queue_mode):
 					actions = [
+						{"id": "view_gate", "text": "View Gate", "icon": ""},
 						{"id": "queue_bout", "text": "Queue for Bout", "icon": ""},
 						{"id": "leave_bout_queue", "text": "Leave Queue", "icon": ""},
 						{"id": "check_lobby", "text": "Check Lobby", "icon": ""},

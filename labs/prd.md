@@ -728,8 +728,10 @@ See `core/services/vendor_service.gd`, `core/services/trade_service.gd`.
 | **Guild War System** | Declare war, territory control | P1 — territory claims ship; guild wars do not |
 
 Arena mode contracts: [duel](./prd-duel.md), [elimination](./prd-elimination.md),
-[team deathmatch](./prd-tdm.md), [royale](./prd-royale.md). The lobby and
-shared host live in [prd-bout-host.md](./prd-bout-host.md).
+[team deathmatch](./prd-tdm.md), [royale](./prd-royale.md). Matchmaking
+queues, gate entry and the QoS seam live in
+[prd-matchmaking.md](./prd-matchmaking.md). The lobby and shared host live
+in [prd-bout-host.md](./prd-bout-host.md).
 
 ### 9.2 Full Loot Mechanics
 

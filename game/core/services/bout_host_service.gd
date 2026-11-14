@@ -218,8 +218,20 @@ func _start_if_live(instance_id: String) -> void:
 
 
 func _announce_start(book: Dictionary, instance_id: String) -> void:
+	# One start line per mode. Elimination really is last-team-standing;
+	# TDM is first-to-target; royale is the closing valley. The generic
+	# line used to lie to TDM players.
+	var copy := "The bout begins. Last team standing."
+	var room = book.get("room")
+	if room != null and room.has_method("bout_rules"):
+		var rules: Dictionary = room.bout_rules()
+		var mode: int = int(rules.get("mode", -1))
+		if mode == Contract.InstanceMode.TEAM_DEATHMATCH:
+			copy = "The bout begins. First to %d kills." % int(rules.get("kill_target", 20))
+		elif mode == Contract.InstanceMode.ROYALE:
+			copy = "The bout begins. The valley closes."
 	for pid in book.get("participants", []):
-		_toast(str(pid), "The bout begins. Last team standing.", "bout_start:%s:%s" % [str(pid), instance_id])
+		_toast(str(pid), copy, "bout_start:%s:%s" % [str(pid), instance_id])
 
 
 ## Bout closed: payout, release, teardown. instance_id arrives via

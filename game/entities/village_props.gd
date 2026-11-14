@@ -14,10 +14,10 @@
 ##   - THE MOON GATE (entities/moon_gate.gd): the sealed way between
 ##     worlds. Its mystery-state visuals are the entity's own; the
 ##     prop stands it on the plaza edge, village and capitol alike.
-##   - THE BOUT GATE STONES: three authored stone arches (Duel /
-##     Elim / TDM / Royale queue stones on TWO arches: duel+elim on
-##     the first, tdm+royale on the second), each an Area3D loaded
-##     from scenes/worlds/arena_gateway.gd carrying its zone id --
+##   - THE BOUT GATE STONES: three authored stone arches (Coliseum
+##     for duel/elimination, Sandpit for TDM, Valley for royale),
+##     each an Area3D loaded from scenes/worlds/arena_gateway.gd
+##     carrying its zone id --
 ##     the S11 law: stones in towns are the lobby's doors; the queue
 ##     teleports in at assembly and every ending returns here.
 ##

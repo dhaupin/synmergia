@@ -120,9 +120,8 @@ dummy fighters, a 4 s fast start, no AFK sweep and a 300 s cap. It pays 40 XP
 6. **No explicit mode field.** The zone relies on the schema default. Add
    `instance_mode = 0` when touching the data so a future default change
    cannot silently retune the Coliseum.
-7. **The start toast is generic.** `BoutHostService` announces "Last team
-   standing" for every mode, which happens to be accurate for elimination but
-   is wrong for TDM.
+7. **Start copy is mode-aware (fixed 2026-11-14).** Elimination keeps "Last
+   team standing"; TDM and royale now get their own start lines.
 8. **No class, role or team-size preference.** Assembly decides the shape;
    the player chooses a zone, not a bracket.
 

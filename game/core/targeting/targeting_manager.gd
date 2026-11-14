@@ -473,22 +473,35 @@ func _register_default_actions() -> void:
 	))
 
 	# === BOUT STONES (queue/lobby pass) ===
+	# Gate actions target a world prop, not a player: the targeting
+	# defaults (online+alive) would block every one of them with
+	# "Target is offline". Stones are always-on world interaction.
+	register_action(ActionDef.new(
+		"view_gate", "View Gate", "",
+		ActionDef.ActionCategory.INTERACTION,
+		func(src, tgt): return _action_view_gate(src, tgt),
+		false, false
+	))
+
 	register_action(ActionDef.new(
 		"queue_bout", "Queue for Bout", "",
 		ActionDef.ActionCategory.INTERACTION,
-		func(src, tgt): return _action_queue_bout(src, tgt)
+		func(src, tgt): return _action_queue_bout(src, tgt),
+		false, false
 	))
 
 	register_action(ActionDef.new(
 		"leave_bout_queue", "Leave Queue", "",
 		ActionDef.ActionCategory.INTERACTION,
-		func(src, tgt): return _action_leave_bout_queue(src, tgt)
+		func(src, tgt): return _action_leave_bout_queue(src, tgt),
+		false, false
 	))
 
 	register_action(ActionDef.new(
 		"check_lobby", "Check Lobby", "",
 		ActionDef.ActionCategory.INTERACTION,
-		func(src, tgt): return _action_check_lobby(src, tgt)
+		func(src, tgt): return _action_check_lobby(src, tgt),
+		false, false
 	))
 
 ## ============================================================================
@@ -669,6 +682,26 @@ func _action_leave_bout_queue(source_id: String, _target_id: String) -> Dictiona
 ## action result carries a typed "action" the HUD router honors.
 func _action_check_lobby(_source_id: String, _target_id: String) -> Dictionary:
 	return {"success": true, "message": "Opening the lobby...", "action": "open_lobby"}
+
+
+## View Gate: open the lobby already focused on this stone's zone. A
+## gateway never reaches into the UI; the action carries the zone and the
+## HUD router does the panel work.
+func _action_view_gate(_source_id: String, target_id: String) -> Dictionary:
+	var node := get_entity_by_id(target_id)
+	if node == null or not is_instance_valid(node):
+		return {"success": false, "message": "Gate not found"}
+	var zone_id := ""
+	if "zone_id" in node:
+		zone_id = str(node.zone_id)
+	if zone_id == "":
+		return {"success": false, "message": "This gate has no arena zone"}
+	return {
+		"success": true,
+		"message": "Opening gate...",
+		"action": "open_lobby",
+		"zone_id": zone_id,
+	}
 
 ## ============================================================================
 ## TARGETING API
