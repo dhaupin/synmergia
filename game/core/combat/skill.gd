@@ -698,7 +698,12 @@ func apply_banded_heal(caster, target, amount: int) -> int:
 			return 1
 		return 0
 	# Friendly AoE: sweep the band radius around the caster. Enemies are never
-	# mended, and the cap (0 = unlimited) trims the sweep.
+	# mended, and the cap (0 = unlimited) trims the sweep. An authored ring is
+	# uncapped even if apply_scope_bands() never ran (defensive: the cap must
+	# not depend on call order).
+	var cap := heal_max_targets
+	if aoe_radius > 0.0 and not heal_aoe and cap <= 1:
+		cap = 0
 	var radius := maxf(heal_aoe_radius, aoe_radius)
 	var origin: Vector3 = caster.global_position
 	var healed := 0
@@ -715,7 +720,7 @@ func apply_banded_heal(caster, target, amount: int) -> int:
 		seen[body.get_instance_id()] = true
 		candidates.append(body)
 	for body in candidates:
-		if heal_max_targets > 0 and healed >= heal_max_targets:
+		if cap > 0 and healed >= cap:
 			break
 		if not is_instance_valid(body) or not body.has_method("heal"):
 			continue
