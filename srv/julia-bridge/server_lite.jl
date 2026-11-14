@@ -10,7 +10,7 @@
 # real to talk to.
 #
 # Usage:
-#     julia --startup-file=no --project=. server_lite.jl [--port 8080]
+#     julia --startup-file=no --project=. server_lite.jl [--port 8090]
 #
 # Endpoints (identical to server.jl):
 #     POST /register     Register an entity
@@ -164,7 +164,7 @@ function write_response(sock, status::Int, body::String)
 end
 
 function main()
-    port = 8080
+    port = 8090
     args = ARGS
     i = 1
     while i <= length(args)

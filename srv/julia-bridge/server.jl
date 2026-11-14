@@ -5,7 +5,7 @@ Exposes the Julia Orchestrator as a JSON HTTP API so Godot can
 query it via HTTP calls (no FFI needed, works across Docker networks).
 
 Usage:
-    julia --project=. server.jl [--port 8080]
+    julia --project=. server.jl [--port 8090]
 
 Endpoints:
     POST /register     Register an entity
@@ -165,7 +165,7 @@ end
 
 # ---- Main ----
 function main()
-    port = 8080
+    port = 8090
     for (i, arg) in enumerate(ARGS)
         if arg == "--port" && i < length(ARGS)
             port = parse(Int, ARGS[i + 1])
