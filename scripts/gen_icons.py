@@ -33,7 +33,7 @@ FAMILY_COLORS = {
     "ankh": (240, 220, 140),
     "buffs": (120, 210, 130),
     "currency": (230, 200, 80),
-    "dwellings": (170, 130, 90),
+    "furnishings": (170, 130, 90),
     "houses": (176, 138, 96),
     "enemies": (170, 60, 160),
     "events": (150, 110, 230),

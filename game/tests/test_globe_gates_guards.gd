@@ -12,7 +12,7 @@
 ##      REAL non-zero post -- the return-to-post law needs it).
 ##   3. PORTAL: the dungeon gateway is registered with WorldService and
 ##      targetable as TELEPORT (the walk-up Enter path resolves it).
-##   4. HOUSING: the demo plot is registered with DwellingService.
+##   4. HOUSING: the demo plot is registered with HousingService.
 ##   5. INTERACT: the globe body's E dispatch binds the village ankh
 ##      through the real bind_player path (and resolves a nearby gate).
 ##
@@ -172,12 +172,12 @@ func _leg_portal() -> void:
 
 ## LEG 4: the demo housing plot is registered.
 func _leg_housing() -> void:
-	var dw = root.get_node_or_null("DwellingService")
+	var dw = root.get_node_or_null("HousingService")
 	if dw == null:
-		_fail("no DwellingService for the housing leg")
+		_fail("no HousingService for the housing leg")
 		return
 	var plot: Dictionary = dw.get_plot("plot_haven_1") if dw.has_method("get_plot") else {}
-	if not _check(not plot.is_empty(), "the demo plot is registered with DwellingService"):
+	if not _check(not plot.is_empty(), "the demo plot is registered with HousingService"):
 		return
 	_check(str(plot.get("zone_id", "")) == "zone_village_center", "the plot rides the village zone")
 	_check(int(plot.get("price", 0)) > 0, "the plot carries a purchase price")

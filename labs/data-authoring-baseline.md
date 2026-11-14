@@ -91,7 +91,7 @@ always, for every prefixed family.
 | `gates/` | `gate_` | a ward gate |
 | `enemies/` | bare id, file keeps `enemy_` prefix | id `wolf` in `enemy_wolf.tres` |
 
-Other families (dialogues, dwellings, biomes, oceans, thermals,
+Other families (dialogues, furnishings, biomes, oceans, thermals,
 world_bosses, worlds, roads, targets, events, guards, hordes,
 movement_profiles, status_effects, species, classes, titles,
 achievements, npc_offerings, gateways, containers, roots) use bare or
@@ -113,7 +113,7 @@ written in the **same order** the schema exports them.
 
 | Family | Schema |
 |---|---|
-| `resources/`, `items/`, `weapons/`, `armors/`, `accessories/`, `consumables/`, `dwellings/` | `item.gd` |
+| `resources/`, `items/`, `weapons/`, `armors/`, `accessories/`, `consumables/`, `furnishings/` | `item.gd` |
 | `recipes/` | `recipe_data.gd` |
 | `loot_tables/` | `loot_table.gd` |
 | `quests/` | `quest_data.gd` |
@@ -176,12 +176,12 @@ family's meaning:
 
 ```
 ItemCategory: 0 WEAPON, 1 ARMOR, 2 ACCESSORY, 3 CONSUMABLE,
-              4 RESOURCE, 5 GEM, 6 EVENT, 7 DWELLING, 8 MISC,
+              4 RESOURCE, 5 GEM, 6 EVENT, 7 FURNISHING, 8 MISC,
               9 SKILL_BOOK
 ```
 
 So a resource is `item_category = 4`, a consumable `= 3`, misc/quest
-goods `= 8`, housing goods `= 7`. Set `is_quest_item = true` and a
+goods `= 8`, furnishings `= 7`. Set `is_quest_item = true` and a
 resolvable `quest_id` on quest tokens.
 
 Equipment slots (`EquipSlot`): `0 NONE, 1 HEAD, 2 CHEST, 3 LEGS, 4 FEET,

@@ -738,7 +738,7 @@ consumers read exactly one form.
 | Mysteries | `mystery_` prefix | `mystery_the_first_vault` | filename == id; answers are DERIVED (never stored) -- SKY_CODE re-derives SignService.get_ancient_code(answer_day), OBSERVATION_TALLY from the live sign catalog; reward titles must exist in data/titles |
 | Daily sky quest | `quest_watch_the_sky` | `quest_watch_the_sky.tres` | RECORD_INSIGHT objective targets the literal `sky_insight`; reset keys off SignService.current_day_index() |
 | Ancient doors | bare id on the node | `AncientDoor` (entities/ancient_door.gd) | no .tres (door state is SignService unlock history) |
-| Dwellings | `dwel_` prefix | `dwel_fireplace_stone` | filename == id |
+| Furnishings | `furn_` prefix | `furn_fireplace_stone` | filename == id |
 | Currencies | `currency_` prefix | `currency_gold` | filename == id |
 | Mounts | `mount_` prefix | `mount_plains_runner` | filename == id |
 | Vehicles | `veh_` prefix | `veh_haven_ferry` | filename == id |
@@ -779,8 +779,8 @@ sheet (`labs/prompts/gemini_housing.md` sec. 1). Fields: `tier`, `cost`,
 `footprint`, `wall_height`, `door_width`, `roof_pitch`, `wall_color`,
 `roof_color`, `features[]`. Loaded by `DataService.load_houses()` (pure
 `_houses` registry, never merged into `_items`) and read by
-`DwellingService.build_house` via `get_house`. NOT hardcoded: a new tier
-ships as a `.tres`. `HOUSE_COST` in `DwellingService` is only the
+`HousingService.build_house` via `get_house`. NOT hardcoded: a new tier
+ships as a `.tres`. `HOUSE_COST` in `HousingService` is only the
 fallback when DataService has no such tier.
 
 ### Item

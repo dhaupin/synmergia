@@ -11,7 +11,7 @@ export type ZoneId =
 
 export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
 
-export type ItemType = 'weapon' | 'armor' | 'accessory' | 'consumable' | 'material' | 'misc' | 'event' | 'gem' | 'dwelling' | 'skill_book';
+export type ItemType = 'weapon' | 'armor' | 'accessory' | 'consumable' | 'material' | 'misc' | 'event' | 'gem' | 'furnishing' | 'skill_book';
 
 export type EquipSlot = 'head' | 'chest' | 'main_hand' | 'off_hand' | 'accessory';
 

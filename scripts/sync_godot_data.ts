@@ -37,7 +37,7 @@ export interface GodotDataPayload {
   gateways: Record<string, any>;
   oceans: Record<string, any>;
   biomes: Record<string, any>;
-  dwellings: Record<string, any>;
+  furnishings: Record<string, any>;
   gliders: Record<string, any>;
   thermals: Record<string, any>;
 }
@@ -232,7 +232,7 @@ export function syncGodotData(): GodotDataPayload {
     gateways: {},
     oceans: {},
     biomes: {},
-    dwellings: {},
+    furnishings: {},
     gliders: {},
     thermals: {},
   };
@@ -271,7 +271,7 @@ export function syncGodotData(): GodotDataPayload {
     'gateways',
     'oceans',
     'biomes',
-    'dwellings',
+    'furnishings',
     'gliders',
     'thermals',
   ];

@@ -1165,7 +1165,7 @@ See `labs/prd-geometry.md` for the full fragmenter spec.
 | **StatusEffectData** | `core/schemas/status_effect_data.gd` | Buff/debuff templates |
 | **LootTable** | `core/schemas/loot_table.gd` | Loot drop probability tables |
 | **GatewayData** | `core/schemas/gateway_data.gd` | Portal/dungeon entrance definitions |
-| **DwellingData** | `core/schemas/dwelling_data.gd` | Player housing definitions |
+| **FurnishingData** | `core/schemas/furnishing_data.gd` | Player housing definitions |
 | **EventData** | `core/schemas/event_data.gd` | World event definitions |
 | **NpcOffering** | `core/schemas/npc_offering.gd` | Vendor inventory definitions |
 | **Ankh** | `core/schemas/ankh.gd` | Respawn point definitions |

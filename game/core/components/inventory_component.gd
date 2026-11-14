@@ -240,7 +240,7 @@ func _dup_item(src: Item) -> Item:
 ## Remove by ID: stack-aware consume of `quantity` of item_id. Returns
 ## true when ALL were consumed (refuses with NOTHING eaten when the
 ## purse holds less -- the same no-partial-consumes law the crafting
-## gate uses). The by-id seam DwellingService.place_station pays
+## gate uses). The by-id seam HousingService.place_station pays
 ## stations through.
 func remove_item_by_id(item_id: String, quantity: int = 1) -> bool:
 	if item_id.is_empty() or quantity <= 0:

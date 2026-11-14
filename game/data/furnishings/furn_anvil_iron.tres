@@ -4,10 +4,10 @@
 
 [resource]
 script = ExtResource("1")
-id = "dwel_anvil_iron"
+id = "furn_anvil_iron"
 display_name = "Iron Anvil"
 description = "A blacksmith's anvil for your hall. Repair worn blades at home -- no more hauling to the village smithy. Interact once placed to open the smithy at this anvil."
-icon_path = "res://icons/dwellings/anvil_iron.png"
+icon_path = "res://icons/furnishings/anvil_iron.png"
 item_category = 7
 rarity = 1
 equip_slot = 0
@@ -15,7 +15,7 @@ stack_size = 1
 sell_price = 1200
 buy_price = 24000
 required_level = 0
-dwelling_category = "functional"
+furnishing_category = "functional"
 is_placeable = true
 is_interactable = true
 interaction_type = "blacksmith"

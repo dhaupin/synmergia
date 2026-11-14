@@ -2254,9 +2254,9 @@ func _try_target_context_interact() -> bool:
 ## A placed crafting/repair station in range: open ITS UI at ITS station
 ## (repair -> BlacksmithUI; crafting_* -> WorkbenchUI at the
 ## STATION_FUNCTIONS id). Ported from the planar controller so the
-## housing loop (DwellingService.place_station) is usable on the globe.
+## housing loop (HousingService.place_station) is usable on the globe.
 func _use_nearby_placed_station() -> bool:
-	var dw = get_node_or_null("/root/DwellingService")
+	var dw = get_node_or_null("/root/HousingService")
 	if dw == null or not dw.has_method("resolve_nearby_station"):
 		return false
 	var hit: Dictionary = dw.resolve_nearby_station(self)
@@ -2271,21 +2271,23 @@ func _use_nearby_placed_station() -> bool:
 		inventory = inventory_component
 	var function := str(hit.get("function", ""))
 	if function == "blacksmith":
-		var BlacksmithUI = load("res://ui/components/blacksmith_ui.gd")
-		var ui = BlacksmithUI.new()
-		add_child(ui)
-		ui.set_inventory(inventory)
-		ui.open_for_player(pid)
+		if _blacksmith_ui == null:
+			var BlacksmithUI = load("res://ui/components/blacksmith_ui.gd")
+			_blacksmith_ui = BlacksmithUI.new()
+			add_child(_blacksmith_ui)
+		_blacksmith_ui.set_inventory(inventory)
+		_blacksmith_ui.open_for_player(pid)
 		return true
 	var stations: Dictionary = dw.STATION_FUNCTIONS if "STATION_FUNCTIONS" in dw else {}
 	var station: int = int(stations.get(function, -1))
 	if station < 0:
 		return false
-	var WorkbenchUI = load("res://ui/components/workbench_ui.gd")
-	var wb = WorkbenchUI.new()
-	add_child(wb)
-	wb.set_inventory(inventory)
-	wb.open_for_player(pid, station)
+	if _workbench_ui == null:
+		var WorkbenchUI = load("res://ui/components/workbench_ui.gd")
+		_workbench_ui = WorkbenchUI.new()
+		add_child(_workbench_ui)
+	_workbench_ui.set_inventory(inventory)
+	_workbench_ui.open_for_player(pid, station)
 	return true
 
 

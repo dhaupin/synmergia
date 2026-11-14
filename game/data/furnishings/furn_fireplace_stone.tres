@@ -4,15 +4,15 @@
 
 [resource]
 script = ExtResource("1")
-id = "dwel_fireplace_stone"
+id = "furn_fireplace_stone"
 display_name = "Stone Fireplace"
 description = "A cozy stone fireplace. Provides ambient warmth and lighting."
-icon_path = "res://icons/dwellings/fireplace_stone.png"
+icon_path = "res://icons/furnishings/fireplace_stone.png"
 item_category = 7
 rarity = 0
 equip_slot = 0
-dwelling_category = "lighting"
-dwelling_size = Vector3(3, 2, 1)
+furnishing_category = "lighting"
+furnishing_size = Vector3(3, 2, 1)
 is_placeable = true
 placement_zones = ["housing_zone_1"]
 is_interactable = true

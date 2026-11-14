@@ -110,7 +110,7 @@ var _pending_respawn_choice: Dictionary = {}
 # --- THE ONE PURSE --------------------------------------------------------
 ## The mounted InventoryComponent is the authoritative wallet for this
 ## player; `gold` is its synced mirror (persistence, HUD, and duck-typed
-## payers read it). Direct writes to `gold` (restore, horde shares, dwelling
+## payers read it). Direct writes to `gold` (restore, horde shares, housing
 ## spends) convert into REAL deltas in the component purse, so every payment
 ## speaks through the ONE wallet-voice lane instead of a silent field write.
 var _wallet_swallow: bool = false

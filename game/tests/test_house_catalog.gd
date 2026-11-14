@@ -1,5 +1,5 @@
 # test_house_catalog.gd - THE HOUSING RECEIPT: every house tier in
-# data/houses/ must hold its own integrity LAWS, and DwellingService must
+# data/houses/ must hold its own integrity LAWS, and HousingService must
 # read the tier rather than a hardcoded constant:
 #
 #   A. IDENTITY: filename == id, the family's house_ prefix, and the
@@ -9,7 +9,7 @@
 #   C. THE TIER LADDER: cost climbs with tier (a later tier never costs
 #      less than an earlier one), footprint and wall_height grow too, and
 #      every tier carries at least one structural feature.
-#   D. THE SERVICE READS DATA: DwellingService.build_house charges the
+#   D. THE SERVICE READS DATA: HousingService.build_house charges the
 #      tier's cost and stamps plot.house_tier, and an unknown tier falls
 #      back to the built-in cottage constants (never a crash).
 #
@@ -105,13 +105,13 @@ func _run() -> void:
 			_check("%s: carries at least one structural feature" % t.id, t.features.size() > 0)
 
 	# E. THE HEARTH KIT (labs/prompts/gemini_housing.md sec. 2): the eight
-	# canon placeables must all resolve as real dwellings. A canon-named
+	# canon placeables must all resolve as real furnishings. A canon-named
 	# item with no data is a promise the world cannot keep.
 	if ds != null:
 		var hearth_kit: Array = [
-			"dwel_fireplace_stone", "dwel_wooden_chair", "dwel_plank_bed",
-			"dwel_workbench_oak", "dwel_bookshelf", "dwel_potted_megaseed",
-			"dwel_coat_rack", "dwel_lantern_post",
+			"furn_fireplace_stone", "furn_wooden_chair", "furn_plank_bed",
+			"furn_workbench_oak", "furn_bookshelf", "furn_potted_megaseed",
+			"furn_coat_rack", "furn_lantern_post",
 		]
 		var missing: Array = []
 		for hid in hearth_kit:
@@ -122,8 +122,8 @@ func _run() -> void:
 			_check("Hearth Kit gaps: " + ", ".join(missing), false)
 
 	# D. THE SERVICE READS DATA
-	var svc = root_node.get_node_or_null("DwellingService")
-	_check("DwellingService autoload present", svc != null)
+	var svc = root_node.get_node_or_null("HousingService")
+	_check("HousingService autoload present", svc != null)
 	if svc != null and ds != null:
 		var cottage = ds.get_house("house_cottage")
 		_check("DataService.get_house resolves house_cottage", cottage != null)
