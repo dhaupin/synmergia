@@ -212,6 +212,38 @@ teleport home, storage, guild houses or relocation. Those are not shipped.
   chartered homestead are a designed overlay, not current behavior. This
   document is the base they must build on.
 
+## Natural next steps (sequence, not design)
+
+Housing is not being designed further here. If the next implementer picks it
+up, this is the dependency order the current service implies; each step still
+needs the product decision listed under Open decisions.
+
+1. **Give plots a durable identity.** Choose the plot catalog shape (authored
+   data or scene/world-builder registration) and give every plot a stable id
+   and zone. The service already accepts `register_plot`; the missing piece is
+   a boot identity that does not depend on one scene's demo call.
+2. **Persist the plot record.** Store the owner, house tier, guard, ankh and
+   station slots through the adapter layer, restore them before scene
+   registration rehydrates the plot, and save on every mutation. A restart
+   must not duplicate or erase a plot. Do not put plot ownership on
+   `TerritoryData`.
+3. **Decide the door law.** Either enforce `PlacementAccess` on the house
+   structure or explicitly make plot ownership the only entry rule. Do this
+   before interiors, guild halls or shared furnishings are added.
+4. **Expose the stable surface.** Chat commands work today; add a housing
+   panel or command help only after the plot record and access rule are
+   settled. A UI on top of a session-only plot would hide the persistence gap.
+5. **Resolve the decorative-furniture promise.** Either add a general
+   placement path for the Hearth Kit items or remove the claim that they are
+   placeable. Functional stations remain a separate arm.
+6. **Then take ownership policy.** Sale, relocation, abandonment, demolition,
+   refunds and guild halls are one ownership-policy pass, not drive-by edits
+   to the plot service.
+
+Keep `HousingService` the single housing authority while doing this. The
+service is already runtime-only and narrow; the next step is durability and
+identity, not a broad rewrite.
+
 ## Open decisions
 
 1. Define a persistent plot record and a durable house/guard/ankh/station
