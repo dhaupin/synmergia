@@ -9,20 +9,16 @@ const SkillBook = preload("res://core/schemas/skill_book.gd")
 const InventoryComponent = preload("res://core/components/inventory_component.gd")
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const SkillSchema = preload("res://core/schemas/skill.gd")
+const SkillTier = preload("res://core/schemas/skill_tier.gd")
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 # Singleton
 static var instance: SkillAcademyService
 
-## Tier names in display order
-const TIER_NAMES: Array = ["common", "rare", "epic", "legendary", "mythic"]
-
-## Tier -> upgrade level mapping
-const TIER_TO_LEVEL: Dictionary = {
-	"common": 1, "rare": 2, "epic": 3, "legendary": 4, "mythic": 5
-}
-
-## Books required per upgrade level
-const BOOKS_PER_UPGRADE: int = 4
+## The canonical ladder lives in core/schemas/skill_tier.gd. These aliases
+## stay for callers that read them off the service.
+const TIER_NAMES: Array = SkillTier.TIER_NAMES
+const TIER_TO_LEVEL: Dictionary = SkillTier.TIER_LEVELS
+const BOOKS_PER_UPGRADE: int = SkillTier.BOOKS_PER_UPGRADE
 
 ## Gold price for a common-tier skill book at the academy vendor
 const COMMON_BOOK_PRICE: int = 100
@@ -92,7 +88,10 @@ func create_book(skill_id: String, tier: String) -> SkillBook:
 
 	var schema: SkillSchema = entry.get("schema")
 	var display_name: String = entry.get("display_name", "Unknown Skill")
-	var upgrade_level: int = TIER_TO_LEVEL.get(tier.to_lower(), 1)
+	if not SkillTier.is_valid(tier):
+		GameLog.warn("SkillAcademyService: unknown book tier '%s' for %s" % [tier, skill_id])
+		return null
+	var upgrade_level: int = SkillTier.level_of(tier)
 
 	return SkillBook.create(skill_id, upgrade_level, display_name)
 
@@ -511,10 +510,13 @@ func get_class_signatures(class_id: String) -> Array[String]:
 			signatures.append(skill_schema.id)
 	return signatures
 
-## Get signature schema by ID
+## Get signature schema by ID. Signatures are non-upgradable, so they are
+## NOT in _catalog (that holds upgradable skills only) -- resolve through
+## DataService, which is where get_class_signatures reads them from.
 func get_signature_schema(skill_id: String) -> SkillSchema:
-	var entry: Dictionary = _catalog.get(skill_id, {})
-	return entry.get("schema", null) as SkillSchema
+	if DataService == null or not DataService.has_method("get_skill"):
+		return null
+	return DataService.get_skill(skill_id) as SkillSchema
 
 ## Change player's active signature
 func change_signature(

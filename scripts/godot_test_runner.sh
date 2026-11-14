@@ -185,6 +185,7 @@ test_gm_indicator
 test_fairness_service
 test_admin_catalog
 test_admin_data_census
+test_skill_tier_parity
 test_mysteries
 test_audio_service
 test_ambience_driver

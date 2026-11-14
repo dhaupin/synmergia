@@ -4,6 +4,8 @@
 extends "res://ui/components/ui_panel.gd"
 class_name SkillAcademyUI
 
+const SkillTier = preload("res://core/schemas/skill_tier.gd")
+
 func _r_gm() -> Node:
 	var tree := Engine.get_main_loop() as SceneTree
 	return tree.root.get_node_or_null(NodePath("GameManager")) if tree and tree.root else null
@@ -117,7 +119,7 @@ var _stat_points_label: Label
 var _stat_respec_button: Button
 var _stat_warnings_label: Label
 
-const _TIER_THRESHOLDS := {"rare": 30, "epic": 60, "legendary": 90, "mythic": 120}
+const _TIER_THRESHOLDS: Dictionary = SkillTier.TIER_STAT_THRESHOLD
 
 # Respec tab
 var _respec_label: Label
@@ -799,7 +801,6 @@ func _refresh_books_tab() -> void:
 		var info: Dictionary = book_counts[key]
 		var count: int = info["count"]
 		var book: Item = info["book"]
-		var tier_names := ["", "Common", "Rare", "Epic", "Legendary", "Mythic"]
 
 		var row := HBoxContainer.new()
 		row.custom_minimum_size.y = 30
@@ -810,7 +811,7 @@ func _refresh_books_tab() -> void:
 		row.add_child(name_lbl)
 
 		var tier_lbl := Label.new()
-		tier_lbl.text = tier_names[level]
+		tier_lbl.text = SkillTier.display(level)
 		tier_lbl.add_theme_color_override("font_color", book.get_rarity_color())
 		tier_lbl.custom_minimum_size.x = 80
 		row.add_child(tier_lbl)
