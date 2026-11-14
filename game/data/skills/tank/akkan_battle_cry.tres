@@ -18,6 +18,7 @@ aoe_radius = 10.0
 effects = [{"type": "debuff", "effect_id": "debuff_taunt", "duration": 3.0}, {"type": "buff", "effect_id": "buff_battle_cry_dmg", "duration": 4.0}]
 required_level = 1
 required_class = "akkan_bulwark"
+scope_bands = true
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",

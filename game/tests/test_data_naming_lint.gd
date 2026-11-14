@@ -329,6 +329,61 @@ func _bracket_block(txt: String, key: String) -> String:
 				return txt.substr(open_idx, i - open_idx + 1)
 	return txt.substr(open_idx)
 
+## Find the authored .tres text for a skill id by scanning the skill dirs
+## (matched on the authored `id`, not the filename, so a renamed file still
+## resolves). "" when the id is unknown.
+func _skill_text_by_id(skill_id: String) -> String:
+	var root := DirAccess.open("res://data/skills")
+	if root == null:
+		return ""
+	root.list_dir_begin()
+	var sub := root.get_next()
+	while sub != "":
+		var dir_name := sub
+		sub = root.get_next()
+		if dir_name == "" or dir_name.begins_with("."):
+			continue
+		var dir := DirAccess.open("res://data/skills/%s" % dir_name)
+		if dir == null:
+			continue
+		dir.list_dir_begin()
+		var f := dir.get_next()
+		while f != "":
+			if f.ends_with(".tres"):
+				var txt := FileAccess.get_file_as_string("res://data/skills/%s/%s" % [dir_name, f])
+				for line in txt.split("\n"):
+					var lt := line.strip_edges()
+					if lt.begins_with("id = \""):
+						if lt.trim_prefix("id = \"").trim_suffix("\"") == skill_id:
+							return txt
+						break
+			f = dir.get_next()
+	return ""
+
+## True when a skill's authored effects carry the family identity verb.
+func _skill_has_verb(txt: String, verb: String) -> bool:
+	var fx := _bracket_block(txt, "effects")
+	match verb:
+		"heal":
+			return fx.contains("\"type\": \"heal\"") or fx.contains("\"type\":\"heal\"") \
+				or fx.contains("\"type\": \"hot\"") or fx.contains("\"type\":\"hot\"")
+		"teleport":
+			if fx.contains("\"type\": \"teleport\"") or fx.contains("\"type\":\"teleport\""):
+				return true
+			for line in txt.split("\n"):
+				var lt := line.strip_edges()
+				if lt.begins_with("teleport_distance = ") and lt.to_float() > 0.0:
+					return true
+			return false
+		"control":
+			for k in ["stun", "root", "slow", "taunt", "silence", "fear", "knockback"]:
+				if fx.contains(k):
+					return true
+			return false
+		"damage":
+			return fx.contains("\"type\": \"damage\"") or fx.contains("\"type\":\"damage\"")
+	return false
+
 func _run() -> void:
 	var npc_ids := _load_ids("data/npc")
 	var quest_ids := _load_ids("data/quests")
@@ -1911,5 +1966,191 @@ func _run() -> void:
 		_ok("Skills: every multi-ally mend claim opts into scope bands")
 	else:
 		_fail("Heals promising a multi-ally mend without scope_bands = true: %s" % ", ".join(bad_band))
+
+	# --- A description that promises a ring of control, or a party-wide
+	# guard, must author a ring or opt into the matching band. Same law as
+	# the mend claim above, once for each of the tank's verbs.
+	var ctrl_claims := ["nearby enemies", "nearby foes", "all nearby enemies",
+		"all nearby foes", "every nearby foe", "every nearby enemy",
+		"enemies within range", "enemies in a cone", "all enemies inside",
+		"nearby systems", "every mind nearby", "every foe nearby"]
+	var guard_claims := ["nearby allies", "all nearby allies", "all allies",
+		"every nearby ally", "all party members", "nearby party members"]
+	var bad_ctrl: Array = []
+	var bad_guard: Array = []
+	var cg_root := DirAccess.open("res://data/skills")
+	if cg_root != null:
+		cg_root.list_dir_begin()
+		var cg_sub := cg_root.get_next()
+		while cg_sub != "":
+			var cg_dir_name := cg_sub
+			cg_sub = cg_root.get_next()
+			if cg_dir_name == "" or cg_dir_name.begins_with("."):
+				continue
+			var cg_dir := DirAccess.open("res://data/skills/%s" % cg_dir_name)
+			if cg_dir == null:
+				continue
+			cg_dir.list_dir_begin()
+			var cg_f := cg_dir.get_next()
+			while cg_f != "":
+				if cg_f.ends_with(".tres"):
+					var cg_txt := FileAccess.get_file_as_string("res://data/skills/%s/%s" % [cg_dir_name, cg_f])
+					var cg_id := ""
+					var cg_desc := ""
+					var cg_aoe := 0.0
+					var cg_scope := false
+					var cg_guard := false
+					for line in cg_txt.split("\n"):
+						var cl := line.strip_edges()
+						if cl.begins_with("id = \"") and cg_id == "":
+							cg_id = cl.trim_prefix("id = \"").trim_suffix("\"")
+						elif cl.begins_with("description = \""):
+							cg_desc = cl.to_lower()
+						elif cl.begins_with("aoe_radius = "):
+							cg_aoe = cl.trim_prefix("aoe_radius = ").to_float()
+						elif cl == "scope_bands = true":
+							cg_scope = true
+						elif cl == "guard_band = true":
+							cg_guard = true
+					var cg_fx := _bracket_block(cg_txt, "effects").to_lower()
+					var cg_has_ctrl := false
+					for k in ["stun", "root", "slow", "taunt", "silence", "fear", "knockback"]:
+						if cg_fx.contains(k):
+							cg_has_ctrl = true
+							break
+					var cg_has_guard := cg_fx.contains("\"type\": \"shield\"") or cg_fx.contains("\"type\": \"buff\"")
+					if cg_has_ctrl and not (cg_scope or cg_aoe > 0.0):
+						for phrase in ctrl_claims:
+							if cg_desc.contains(phrase):
+								bad_ctrl.append("%s ('%s')" % [cg_id, phrase])
+								break
+					if cg_has_guard and not (cg_guard or cg_aoe > 0.0):
+						for phrase in guard_claims:
+							if cg_desc.contains(phrase):
+								bad_guard.append("%s ('%s')" % [cg_id, phrase])
+								break
+				cg_f = cg_dir.get_next()
+	if bad_ctrl.is_empty():
+		_ok("Skills: every multi-enemy control claim authors a ring or bands")
+	else:
+		_fail("Control promising a ring without aoe_radius/scope_bands: %s" % ", ".join(bad_ctrl))
+	if bad_guard.is_empty():
+		_ok("Skills: every multi-ally guard claim authors a ring or bands")
+	else:
+		_fail("Guards promising a party-wide shield without aoe_radius/guard_band: %s" % ", ".join(bad_guard))
+
+	# --- The rally law: a description that promises a party-wide charge must
+	# opt into the rally band. Same shape as the guard law above, one for the
+	# DD's verb.
+	# Distinctly rally wording. The party-ally phrases belong to the guard law
+	# above; a rally is the DD's charge, so it says so.
+	var rally_claims := ["the pack", "rally", "rallying", "drives the pack"]
+	var bad_rally: Array = []
+	var rl_root := DirAccess.open("res://data/skills")
+	if rl_root != null:
+		rl_root.list_dir_begin()
+		var rl_sub := rl_root.get_next()
+		while rl_sub != "":
+			var rl_dir_name := rl_sub
+			rl_sub = rl_root.get_next()
+			if rl_dir_name == "" or rl_dir_name.begins_with("."):
+				continue
+			var rl_dir := DirAccess.open("res://data/skills/%s" % rl_dir_name)
+			if rl_dir == null:
+				continue
+			rl_dir.list_dir_begin()
+			var rl_f := rl_dir.get_next()
+			while rl_f != "":
+				if rl_f.ends_with(".tres"):
+					var rl_txt := FileAccess.get_file_as_string("res://data/skills/%s/%s" % [rl_dir_name, rl_f])
+					var rl_id := ""
+					var rl_desc := ""
+					var rl_opts := false
+					for line in rl_txt.split("\n"):
+						var rll := line.strip_edges()
+						if rll.begins_with("id = \"") and rl_id == "":
+							rl_id = rll.trim_prefix("id = \"").trim_suffix("\"")
+						elif rll.begins_with("description = \""):
+							rl_desc = rll.to_lower()
+						elif rll == "rally_band = true":
+							rl_opts = true
+					var rl_fx := _bracket_block(rl_txt, "effects").to_lower()
+					if rl_fx.contains("\"type\": \"buff\"") and not rl_opts:
+						for phrase in rally_claims:
+							if rl_desc.contains(phrase):
+								bad_rally.append("%s ('%s')" % [rl_id, phrase])
+								break
+				rl_f = rl_dir.get_next()
+	if bad_rally.is_empty():
+		_ok("Skills: every party-wide rally claim opts into the rally band")
+	else:
+		_fail("Rallies promising a party-wide charge without rally_band = true: %s" % ", ".join(bad_rally))
+
+	# --- The shared-verb law: the DD's rally and the Bender's amplify are
+	# class-agnostic verbs of the Concord (like general_shield for the guard),
+	# so every class carries them. Authored under data/skills/general/.
+	var shared_verbs := {"general_rally": "rally_band = true", "general_amplify": ""}
+	var verbs_missing: Array = []
+	for vid in shared_verbs:
+		var vtxt := _skill_text_by_id(vid)
+		var want2: String = shared_verbs[vid]
+		if vtxt == "" or (want2 != "" and not vtxt.contains(want2)):
+			verbs_missing.append(vid)
+	if verbs_missing.is_empty():
+		_ok("Skills: the shared DD rally and Bender amplify verbs are authored (2 checked)")
+	else:
+		_fail("Shared support verbs missing or malformed: %s" % ", ".join(verbs_missing))
+
+	# --- The starter law: every family's FIRST skill carries its verb ---
+	# Healer gets the mend, bender the blink, tank the grab (control). The
+	# damage lanes (DD/MAGE/ROGUE) carry damage. The same law for every
+	# family, read off the class `role`, so a new class cannot ship with a
+	# starter that ignores its lane.
+	var role_verb := {
+		1: "control",  # TANK
+		2: "damage",   # DD
+		3: "damage",   # MAGE
+		4: "damage",   # ROGUE
+		5: "teleport", # BENDER
+		6: "heal",     # HEALER
+	}
+	var bad_starter: Array = []
+	var starters_checked := 0
+	var cls_root := DirAccess.open("res://data/classes")
+	if cls_root != null:
+		cls_root.list_dir_begin()
+		var cf := cls_root.get_next()
+		while cf != "":
+			if cf.ends_with(".tres") and not cf.begins_with("gm_"):
+				var ctxt := FileAccess.get_file_as_string("res://data/classes/%s" % cf)
+				var cid := ""
+				var c_role := -1
+				var first_skill := ""
+				for line in ctxt.split("\n"):
+					var ct := line.strip_edges()
+					if ct.begins_with("id = \"") and cid == "":
+						cid = ct.trim_prefix("id = \"").trim_suffix("\"")
+					elif ct.begins_with("role = ") and c_role < 0:
+						c_role = ct.trim_prefix("role = ").to_int()
+					elif ct.begins_with("starting_skills = [") and first_skill == "":
+						var m := _skill_ref_regex().search(ct)
+						if m != null:
+							first_skill = m.get_string(1)
+				if cid == "" or c_role < 0 or first_skill == "":
+					cf = cls_root.get_next()
+					continue
+				var want := str(role_verb.get(c_role, ""))
+				if want == "":
+					cf = cls_root.get_next()
+					continue
+				starters_checked += 1
+				var stxt := _skill_text_by_id(first_skill)
+				if stxt == "" or not _skill_has_verb(stxt, want):
+					bad_starter.append("%s (%s wants %s)" % [cid, first_skill, want])
+			cf = cls_root.get_next()
+	if bad_starter.is_empty():
+		_ok("Skills: every family's first skill carries its identity verb (%d checked)" % starters_checked)
+	else:
+		_fail("First skills missing their family verb: %s" % ", ".join(bad_starter))
 
 	_finish()

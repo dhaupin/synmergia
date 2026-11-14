@@ -69,7 +69,17 @@ enum TargetType {
 ## Opt in to scope bands: a heal grows into a friendly AoE from the epic
 ## band up (ScopeBand). Off by default so a lifesteal/drain rider never
 ## silently becomes a party heal -- banding a heal is a deliberate identity.
+## Also gates the CONTROL band (an AoE stun/taunt from the first tier).
 @export var scope_bands: bool = false
+## Opt in to the GUARD band: this skill's shield pool + authored buffs fan out
+## to nearby allies as the tier climbs (the tank's Hold). Separate from
+## scope_bands so a self damage buff (Battle Cry) is never fanned to the party.
+@export var guard_band: bool = false
+## Opt in to the RALLY band: this skill's buffs (damage / cooldown / regen) fan
+## out to the party as the tier climbs (the DD's Charge), and the band's
+## duration_mult lengthens them (DD's reach verb). Its own opt-in so a healer's
+## mend or a tank's hold is never fanned by a rally.
+@export var rally_band: bool = false
 
 # Visual/Audio
 @export var vfx_cast: String = ""

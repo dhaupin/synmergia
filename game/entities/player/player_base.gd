@@ -76,6 +76,9 @@ var stats: Dictionary = {
 	"damage_reflect": 0.0,
 	"health_regen": 0.0,
 	"mana_regen": 0.0,
+	"cooldown_reduction": 0.0,
+	"effect_duration_mult": 1.0,
+	"effect_power_mult": 1.0,
 }
 
 # --- Health + mana --------------------------------------------------------
@@ -597,6 +600,18 @@ func use_skill(slot: int) -> void:
 			_cs().execute_skill(self, skill, null, _get_ground_target_position(skill.ground_target_range))
 		else:
 			_cs().execute_skill(self, skill, target as Entity)
+
+## Swing the body's basic attack at `target` through the same combat entry
+## point a keypress takes (CombatComponent when attached, else the hitbox
+## path). Callers that mean "attack" use this instead of assuming skillbar
+## slot 0 is an attack -- the skillbar order is not an attack contract.
+func basic_attack_target(target = null) -> bool:
+	if basic_attack == null or not basic_attack.can_cast(self):
+		return false
+	if combat_component:
+		return combat_component.execute_skill(basic_attack, target)
+	create_hitbox(basic_attack, target)
+	return true
 
 func _get_ground_target_position(max_range: float) -> Vector3:
 	var direction: Vector2 = _im().last_direction if _im() else Vector2(0, -1)

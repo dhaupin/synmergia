@@ -82,7 +82,10 @@ var stats: Dictionary = {
 	"damage_reduction": 0.0,
 	"damage_reflect": 0.0,
 	"health_regen": 0.0,
-	"mana_regen": 0.0
+	"mana_regen": 0.0,
+	"cooldown_reduction": 0.0,
+	"effect_duration_mult": 1.0,
+	"effect_power_mult": 1.0
 }
 
 # Resources

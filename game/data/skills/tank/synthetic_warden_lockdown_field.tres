@@ -19,6 +19,7 @@ aoe_radius = 6.0
 effects = [{"type": "debuff", "effect_id": "root_common", "duration": 3.0}]
 required_level = 20
 required_class = "synthetic_warden"
+scope_bands = true
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",

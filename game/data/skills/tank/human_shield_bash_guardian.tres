@@ -17,6 +17,7 @@ range = 3.0
 effects = [{"type": "damage", "value": 15}, {"type": "debuff", "effect_id": "stun_common", "duration": 1.5}]
 required_level = 1
 required_class = "human_guardian"
+scope_bands = true
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",

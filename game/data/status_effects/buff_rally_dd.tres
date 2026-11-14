@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/status_effect_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "buff_rally_dd"
+display_name = "Rallied"
+description = "Damage output raised, cooldowns running shorter, mana flowing faster, and effects lingering longer."
+category = 0
+effect_type = 0
+duration = 8.0
+max_stacks = 1
+can_refresh = true
+stat_modifiers = {"strength": 10}
+stat_multipliers = {"cooldown_reduction": 0.2, "mana_regen": 6.0, "effect_duration_mult": 0.2}
+show_in_buff_bar = true
