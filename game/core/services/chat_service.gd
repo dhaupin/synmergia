@@ -4,6 +4,7 @@ extends Node
 # QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
 const QoSService = preload("res://core/autoload/qos_service.gd")
 const CharacterData = preload("res://core/schemas/character_data.gd")
+const TerritoryData = preload("res://core/schemas/territory_data.gd")
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
 const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
@@ -62,6 +63,10 @@ static func _party_svc() -> Node:
 static func _guild_svc() -> Node:
 	var tree := Engine.get_main_loop() as SceneTree
 	return tree.root.get_node_or_null(NodePath("GuildService")) if tree and tree.root else null
+
+static func _territory_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("TerritoryService")) if tree and tree.root else null
 
 static func _notify_svc() -> Node:
 	var tree := Engine.get_main_loop() as SceneTree
@@ -534,6 +539,10 @@ func _handle_command(sender_id: String, channel: Channel, command: String, targe
 			return _cmd_mesh(sender_id, args)
 		"chunk":
 			return _cmd_chunk(sender_id, args)
+		"claim":
+			return _cmd_claim(sender_id, args)
+		"war":
+			return _cmd_war(sender_id, args)
 
 	# Fallback layer: the player command shell owns the per-player
 	# customization surface (/alias, /macro, /settings, /stats, /whois,
@@ -572,6 +581,92 @@ func _sender_zone(sender_id: String) -> String:
 	if player == null:
 		return ""
 	return str(zm.get_entity_zone_id(player))
+
+## Command: /claim [territory_id]
+## Player-facing guild claim. The guild's MANAGE_GVG rank is the gate;
+## bare uses the sender's current zone -> territory. A claim that cannot
+## out-influence the holder still stakes a claim and marks it contested.
+func _cmd_claim(sender_id: String, args: Array) -> bool:
+	var guild_svc = _guild_svc()
+	if guild_svc == null:
+		_send_system_message(sender_id, "Territory service unavailable.")
+		return true
+	var guild: Dictionary = guild_svc.get_player_guild(sender_id)
+	if guild.is_empty():
+		_send_system_message(sender_id, "You must be in a guild to claim territory.")
+		return true
+	var territory_svc = _territory_svc()
+	if territory_svc == null:
+		_send_system_message(sender_id, "Territory service unavailable.")
+		return true
+
+	var territory_id: String = str(args[0]) if args.size() > 0 else ""
+	if territory_id == "":
+		var zone_id: String = _sender_zone(sender_id)
+		var current: Variant = territory_svc.for_zone(zone_id) if zone_id != "" else null
+		if current != null:
+			territory_id = str(current.id)
+	if territory_id == "":
+		_send_system_message(sender_id, "Usage: /claim <territory_id> (or stand in a territory).")
+		return true
+	var territory = territory_svc.get_territory(territory_id)
+	if territory == null:
+		_send_system_message(sender_id, "Unknown territory: " + territory_id)
+		return true
+
+	var ok: bool = guild_svc.claim_territory(str(guild.get("id", "")), sender_id, territory_id)
+	if not ok:
+		_send_system_message(sender_id, "Claim refused: MANAGE_GVG permission required.")
+		return true
+	if int(territory.controller) == TerritoryData.Controller.GUILD \
+			and str(territory.controller_id) == str(guild.get("id", "")):
+		_send_system_message(sender_id, "%s is now held by %s." % [territory.display_name, guild.get("name", guild.get("id", ""))])
+	else:
+		_send_system_message(sender_id, "Claim staked on %s; it is now contested." % territory.display_name)
+	return true
+
+
+## Command: /war [status]
+## Command: /war declare <faction_a> <faction_b> [territory_id]  (admin)
+## Command: /war end <faction_a> <faction_b>                     (admin)
+## Status is player-readable; declarations stay operator-only until a
+## faction-leadership model exists. The faction war itself is unchanged.
+func _cmd_war(sender_id: String, args: Array) -> bool:
+	var territory_svc = _territory_svc()
+	if territory_svc == null:
+		_send_system_message(sender_id, "Territory service unavailable.")
+		return true
+	var sub: String = str(args[0]).to_lower() if args.size() > 0 else "status"
+	if sub == "status" or sub == "list":
+		var lines: Array = []
+		for territory in territory_svc.get_all_territories():
+			if str(territory.active_war_id) != "":
+				lines.append("%s (%s)" % [territory.display_name, territory.active_war_id])
+		_send_system_message(sender_id, "Active territory wars: " + (", ".join(lines) if not lines.is_empty() else "none"))
+		return true
+	if sub != "declare" and sub != "end":
+		_send_system_message(sender_id, "Usage: /war [status] | declare <a> <b> [territory] | end <a> <b>")
+		return true
+	if not _require_admin(sender_id, "war"):
+		return true
+	var faction_svc = get_node_or_null(NodePath("/root/FactionManager"))
+	if faction_svc == null:
+		_send_system_message(sender_id, "Faction service unavailable.")
+		return true
+	if sub == "declare":
+		if args.size() < 3:
+			_send_system_message(sender_id, "Usage: /war declare <faction_a> <faction_b> [territory_id]")
+			return true
+		var territory_id: String = str(args[3]) if args.size() > 3 else ""
+		var declared: bool = faction_svc.declare_war(str(args[1]), str(args[2]), sender_id, territory_id)
+		_send_system_message(sender_id, "War declared." if declared else "War declaration refused (unknown faction, cooldown, or already at war).")
+		return true
+	if args.size() < 3:
+		_send_system_message(sender_id, "Usage: /war end <faction_a> <faction_b>")
+		return true
+	var ended: bool = faction_svc.end_war(str(args[1]), str(args[2]))
+	_send_system_message(sender_id, "War ended." if ended else "No active war between those factions.")
+	return true
 
 ## Admin gate for spawn-side commands. Sends the denial line; true when
 ## the sender may proceed.

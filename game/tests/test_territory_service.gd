@@ -5,9 +5,12 @@
 ##   2. TerritoryService indexes zones -> territory, and refuses a zone
 ##      claimed by two territories.
 ##   3. The map label reads the controller (Starter Plains -> Human Alliance).
-##   4. A guild claim is gated by MANAGE_GVG.
-##   5. A faction war contests the territory and peace resolves it.
-##   6. FactionData no longer carries the dead controlled_zones array.
+##   4. A guild claim is gated by MANAGE_GVG and `/claim` stakes it.
+##   5. Claims survive `reload()` through DictStore, and clearing the overlay
+##      restores the authored controller.
+##   6. `/war` status is readable; declare/end are admin-only; the territory
+##      contest rides the same FactionManager war.
+##   7. FactionData no longer carries the dead controlled_zones array.
 ##
 ## Run:
 ##   godot --headless --path game --script res://tests/test_territory_service.gd
@@ -45,6 +48,10 @@ func _run() -> void:
 	if ds == null or ts == null:
 		_finish()
 		return
+
+	# Start from the authored state even if a previous run left an overlay.
+	ts.clear_persisted()
+	ts.reload()
 
 	# 1. catalog + refs.
 	var territories: Array = ds.get_all_territories()
@@ -95,52 +102,88 @@ func _run() -> void:
 		zone_label != null and zone_label.text.contains("Starter Plains"))
 	wm.free()
 
-	# 4. guild claim gated by MANAGE_GVG.
+	# 4. guild claim through the player command.
 	var gs = root.get_node_or_null("GuildService")
+	var chat = root.get_node_or_null("ChatService")
 	_check("GuildService autoload present", gs != null)
-	if gs:
+	_check("ChatService autoload present", chat != null)
+	if gs and chat:
 		gs._guilds["guild_test"] = {
 			"id": "guild_test",
+			"name": "Test Guild",
 			"leader_id": "p1",
 			"members": [
 				{"id": "p1", "rank": 0},
 				{"id": "p2", "rank": 3}
 			]
 		}
-		var claimable = TerritoryData.new()
-		claimable.id = "terr_test_claim"
-		claimable.display_name = "Claimable"
-		var no_zones: Array[String] = []
-		claimable.zone_ids = no_zones
-		ts.register_territory(claimable)
-		_check("officer-rank guild master can claim",
-			gs.claim_territory("guild_test", "p1", "terr_test_claim"))
-		_check("claim resolves to the guild",
-			int(ts.get_territory("terr_test_claim").controller) == TerritoryData.Controller.GUILD
-			and str(ts.get_territory("terr_test_claim").controller_id) == "guild_test")
-		_check("recruit cannot claim",
-			not gs.claim_territory("guild_test", "p2", "terr_test_claim"))
+		gs._player_guilds["p1"] = "guild_test"
+		gs._player_guilds["p2"] = "guild_test"
 
-	# 5. war contests and peace resolves.
+		_check("recruit cannot claim through the guild API",
+			not gs.claim_territory("guild_test", "p2", "terr_starter_plains"))
+		_check("`/claim` runs for a guild master",
+			chat._cmd_claim("p1", ["terr_starter_plains"]))
+		starter = ts.for_zone("zone_starter_plains")
+		_check("claim stakes a second claimant", starter.claimants.size() == 2)
+		_check("a 50-influence claim does not unseat a 100-influence holder",
+			str(starter.controller_id) == "faction_human" and starter.is_contested())
+
+		# 5. reboot round-trip: reload rebuilds data then re-applies the overlay.
+		ts.reload()
+		starter = ts.for_zone("zone_starter_plains")
+		_check("claim survives a reload", starter.claimants.size() == 2 and starter.is_contested())
+		ts.clear_persisted("terr_starter_plains")
+		ts.reload()
+		starter = ts.for_zone("zone_starter_plains")
+		_check("clearing the overlay restores the authored controller",
+			str(starter.controller_id) == "faction_human" and not starter.is_contested())
+
+	# 6. war command surface.
 	var fm = root.get_node_or_null("FactionManager")
+	var pm = root.get_node_or_null("PermissionManager")
 	_check("FactionManager autoload present", fm != null)
-	if fm:
-		# WorldService does this during boot; the receipt loads directly.
+	_check("PermissionManager autoload present", pm != null)
+	if fm and pm and chat:
 		fm.load_factions()
-		var declared: bool = fm.declare_war(
-			"faction_human", "faction_akkan", "test_attacker", "terr_starter_plains"
-		)
-		_check("war declaration with a territory succeeds", declared)
-		_check("territory is contested during the war", starter.is_contested())
-		_check("territory records the war id", str(starter.active_war_id) != "")
-		_check("peace ends the contest", fm.end_war("faction_human", "faction_akkan"))
-		_check("territory is no longer contested", not starter.is_contested())
-		_check("strongest claimant keeps control",
-			str(starter.controller_id) == "faction_human")
+		_check("`/war` status is readable by players", chat._cmd_war("p1", []))
+		_check("non-admin `/war declare` is refused",
+			chat._cmd_war("p1", ["declare", "faction_human", "faction_akkan", "terr_starter_plains"])
+			and not fm.is_at_war("faction_human", "faction_akkan"))
 
-	# 6. the dead field is gone.
+		# Grant the test operator a cached ADMIN level, then use the command.
+		pm._validation_cache["admin"] = {
+			"time": Time.get_ticks_msec(),
+			"level": 100
+		}
+		_check("admin `/war declare` runs",
+			chat._cmd_war("admin", ["declare", "faction_human", "faction_akkan", "terr_starter_plains"]))
+		starter = ts.for_zone("zone_starter_plains")
+		_check("war command contests the territory", starter.is_contested())
+		_check("war command records the war id", str(starter.active_war_id) != "")
+
+		# War overlay survives a reload too.
+		ts.reload()
+		starter = ts.for_zone("zone_starter_plains")
+		_check("war survives a reload", str(starter.active_war_id) != "")
+
+		_check("admin `/war end` runs",
+			chat._cmd_war("admin", ["end", "faction_human", "faction_akkan"]))
+		starter = ts.for_zone("zone_starter_plains")
+		_check("peace clears the contest and keeps the strongest claim",
+			not starter.is_contested() and str(starter.controller_id) == "faction_human")
+		pm._validation_cache.erase("admin")
+
+	# 7. the dead field is gone.
 	var faction = ds.get_faction("faction_human")
 	_check("FactionData has no controlled_zones field",
 		faction != null and not ("controlled_zones" in faction))
 
+	# Leave no runtime overlay or fake guild behind.
+	ts.clear_persisted()
+	ts.reload()
+	if gs:
+		gs._guilds.erase("guild_test")
+		gs._player_guilds.erase("p1")
+		gs._player_guilds.erase("p2")
 	_finish()

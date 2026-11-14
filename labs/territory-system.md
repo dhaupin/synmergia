@@ -1,8 +1,9 @@
 # Territory System
 
 > **Status:** ACTIVE (2026-11-14). The schema, service, data, map label,
-> guild claim path and faction-war contest path are shipped. Player-facing
-> war/claim commands and persistence of runtime claims are not.
+> `/claim` guild command, `/war` status + admin declare/end, and the
+> DictStore runtime overlay are shipped. Player-declared faction wars are
+> still gated: factions have no leader model yet.
 
 ## Why an overlay
 
@@ -57,25 +58,40 @@ silently shadowed.
 | System | Path |
 |---|---|
 | Factions | `FactionData.controlled_zones` is gone; the three authored claims moved to `terr_starter_plains`, `terr_dark_highlands`, `terr_nexus_central` |
-| Guilds | `GuildService.claim_territory(guild_id, player_id, territory_id)` gates on `MANAGE_GVG` |
-| Wars | `FactionManager.declare_war(..., territory_id)` contests; `end_war` resolves by influence |
+| Guilds | `GuildService.claim_territory(guild_id, player_id, territory_id)` gates on `MANAGE_GVG`; `/claim [territory_id]` is the player surface (bare uses the current zone) |
+| Wars | `FactionManager.declare_war(..., territory_id)` contests; `end_war` resolves by influence. `/war` lists status for everyone; `/war declare|end` is admin-only |
 | Map | `WorldMap._on_zone_loaded` shows `zone_label` in the zone banner |
 | Hordes / bosses / events | They keep their `zone_id` anchor; `for_zone` resolves the territory for rewards, defense or notifications. No duplicated ownership field |
+| Persistence | `TerritoryService` saves controller, claimants and `active_war_id` under `territory:state:<id>`; `reload()` re-applies the overlay over the immutable authored copy |
 | Data gates | `test_territory_service` validates refs and exercises every consumer; `test_data_naming_lint` rejects undeclared `controlled_zones` |
+
+## Commands
+
+| Command | Who | Result |
+|---|---|---|
+| `/claim [territory_id]` | guild member with `MANAGE_GVG` | stakes a claim; a 50-influence claim marks a 100-influence holder contested but does not unseat it |
+| `/war` / `/war status` | everyone | lists territories with a live `active_war_id` |
+| `/war declare <a> <b> [territory_id]` | admin | `FactionManager.declare_war`; the territory becomes the stake |
+| `/war end <a> <b>` | admin | ends the war and resolves every contested territory by influence |
+
+`TerritoryService.clear_persisted(id)` resets one territory's runtime
+overlay; `clear_persisted()` resets all of them. Authored data is never
+mutated: registration deep-copies the `DataService` resource.
 
 ## Current limits
 
-- Runtime claims/wars are in memory, like `FactionManager._active_wars`.
-  A reboot returns to the authored controller. Persist through
-  `DictStore` before player-run claims become authoritative.
-- There is no player-facing `/claim` or `/war` command yet; the service and
-  permission path exist, the command surface does not.
+- Player-declared **faction** wars are not open yet: factions have no
+  leader/election model, so `/war declare` is admin-only. Guild `/claim` is
+  the player-facing control verb.
+- A guild claim sets influence 50 against a typical authored holder's 100;
+  it contests the territory but cannot flip the controller until a capture
+  rule raises influence. That is deliberate, not a missing check.
 - `horde_ids` / `boss_ids` / `event_ids` are validated links, not mechanics.
   Do not invent a capture rule without a content decision.
 
 ## Receipts
 
-- `game/tests/test_territory_service.gd` - 24 checks: catalog refs, unique
-  zone index, map label, guild permission, war contest/resolution, dead
-  faction field.
+- `game/tests/test_territory_service.gd` - 31 checks: catalog refs, unique
+  zone index, map label, guild permission, `/claim`, DictStore reload,
+  `/war` status/deny/declare/end, dead faction field.
 - `scripts/godot_test_runner.sh` - both tests are in `DEFAULT_SET`.

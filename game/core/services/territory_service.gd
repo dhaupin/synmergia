@@ -10,6 +10,11 @@
 extends Node
 
 const TerritoryData = preload("res://core/schemas/territory_data.gd")
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
+
+## Runtime state survives a reboot: the authored controller is the base
+## state, and a saved overlay re-applies claims/wars on top of it.
+const _kv_prefix := "territory:state:"
 
 var _territories: Dictionary = {}   # territory_id -> TerritoryData
 var _zone_index: Dictionary = {}    # zone_id -> territory_id
@@ -33,6 +38,7 @@ func reload() -> void:
 		data_service.load_territories()
 	for territory in data_service.get_all_territories():
 		register_territory(territory)
+	_load_runtime_state()
 
 
 ## Register one territory. A zone may not belong to two territories; the
@@ -51,7 +57,10 @@ func register_territory(territory) -> bool:
 			return false
 	for zone_id in territory.zone_ids:
 		_zone_index[str(zone_id)] = tid
-	_territories[tid] = territory
+	# DataService caches resources. Keep the authored catalog immutable and
+	# mutate a deep copy; otherwise a reload reads back the already-claimed
+	# object and the "authored controller" is gone for the process lifetime.
+	_territories[tid] = territory.duplicate(true)
 	return true
 
 
@@ -237,7 +246,57 @@ func _controller_name(territory) -> String:
 
 
 func _emit(territory) -> void:
+	_persist(territory)
 	territory_changed.emit(str(territory.id), territory.to_context())
+
+
+## Drop the persisted overlay (all territories, or one id). Tests use this
+## to leave no runtime state behind; operators can use it to reset a shard.
+func clear_persisted(territory_id: String = "") -> void:
+	var store := DictStore.new()
+	if territory_id != "":
+		store.erase(_kv_prefix + territory_id)
+		return
+	for key in store.all_keys():
+		if str(key).begins_with(_kv_prefix):
+			store.erase(str(key))
+
+
+func _persist(territory) -> void:
+	var store := DictStore.new()
+	store.set_kv(_kv_prefix + str(territory.id), {
+		"controller": int(territory.controller),
+		"controller_id": str(territory.controller_id),
+		"claimants": territory.claimants.duplicate(true),
+		"active_war_id": str(territory.active_war_id)
+	})
+
+
+## Apply the saved overlay after the authored data has loaded. Unknown ids
+## are ignored (a deleted territory leaves no phantom), and the stored claim
+## array is rebuilt as Array[Dictionary] before assignment.
+func _load_runtime_state() -> void:
+	var store := DictStore.new()
+	for key in store.all_keys():
+		var ks: String = str(key)
+		if not ks.begins_with(_kv_prefix):
+			continue
+		var territory = _territories.get(ks.substr(_kv_prefix.length()))
+		if territory == null:
+			continue
+		var data = store.get_kv(ks, {})
+		if not data is Dictionary:
+			continue
+		var kind: int = int(data.get("controller", TerritoryData.Controller.NONE))
+		if kind >= TerritoryData.Controller.NONE and kind <= TerritoryData.Controller.GUILD:
+			territory.controller = kind
+		territory.controller_id = str(data.get("controller_id", ""))
+		territory.active_war_id = str(data.get("active_war_id", ""))
+		var claims: Array[Dictionary] = []
+		for claim in data.get("claimants", []):
+			if claim is Dictionary:
+				claims.append(claim)
+		territory.claimants = claims
 
 
 func _data_service():

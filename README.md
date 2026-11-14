@@ -56,8 +56,8 @@ This is the sandbox economy you remember from Ultima Online, rebuilt for a moder
 Risk and reward in constant tension. Synmergia offers **configurable PvP across zones**:
 
 - **Full loot in PvP zones** — drop everything on death, fight for glory and gear
-- **Territory ownership** — factions and guilds hold zones; territories can be contested in faction wars
-- **Player-run guild wars (planned)** — the command surface and persistence for player-declared wars are the next PvP layer
+- **Territory ownership** — factions and guilds hold zones; `/claim` stakes a guild claim, and territory control persists across restarts
+- **Faction wars (operator-run)** — `/war declare|end` is admin-gated until factions have a leader model; player-declared wars are the next PvP layer
 - **Faction battles** — join species or ideological factions, shape the world's future
 - **Arena combat** — organized PvP with balanced rulesets
 - **Death has weight** — no zerg rushing, no consequence-free ganking
