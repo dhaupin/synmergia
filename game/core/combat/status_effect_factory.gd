@@ -41,6 +41,9 @@ const MULT_EXPORT := {
         "attack_speed": "attack_speed_multiplier",
         "haste": "attack_speed_multiplier",
         "movement_speed": "movement_speed_multiplier",
+        # The support lanes' reach verbs. The authored key IS the StatId key.
+        "effect_duration_mult": "effect_duration_mult_mod",
+        "effect_power_mult": "effect_power_mult_mod",
 }
 
 ## StatusEffectData.StatType name -> runtime flat modifier export (regen,
@@ -50,6 +53,7 @@ const FLAT_EXPORT := {
         "mana_regen": "mana_regen_mod",
         "damage_reduction": "damage_reduction",
         "damage_reflect": "damage_reflect",
+        "cooldown_reduction": "cooldown_reduction_mod",
 }
 
 ## StatusEffectData.ControlType name -> runtime crowd-control fields.

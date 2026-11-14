@@ -6,9 +6,12 @@
 script = ExtResource("1")
 id = "buff_overcharge"
 display_name = "Overcharged"
-description = "Attack and cast speed dramatically increased."
+description = "Attack and cast speed dramatically increased. Cooldowns run shorter, mana recovers faster, and effects linger longer."
 category = 0
 effect_type = 0
 duration = 10.0
+speed_type = "haste"
+speed_percent = 25.0
 stat_modifiers = {"strength": 10}
+stat_multipliers = {"cooldown_reduction": 0.25, "mana_regen": 8.0, "effect_duration_mult": 0.25}
 show_in_buff_bar = true

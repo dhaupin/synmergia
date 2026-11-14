@@ -252,14 +252,27 @@ func _apply_skill_effects(skill: Skill, caster, target) -> void:
 	if skill.is_dot:
 		skill.applyDoT(caster, target)
 
-	# Apply CC effects
-	if skill.crowd_control_type != "":
-		skill.applyCrowdControl(caster, target, Vector3.ZERO)
+	# A banded CONTROL cast fans its ring out ONCE (on the first landed hit),
+	# so every hostile in reach is covered exactly once and a dodged swing
+	# covers nobody. A banded GUARD already ran at cast (ally-support does not
+	# wait on a hit), so the sweep must not re-apply its buffs.
+	var banded_control: bool = skill.scope_bands and skill.control_aoe and skill._has_control_payload()
+	if banded_control:
+		if not skill._banded_fx_done:
+			skill.apply_banded_control(caster, target, Vector3.ZERO)
+			skill._banded_fx_done = true
+	elif not skill.has_guard_payload():
+		# Apply CC effects
+		if skill.crowd_control_type != "":
+			skill.applyCrowdControl(caster, target, Vector3.ZERO)
+		# A taunt on a hitbox cast locks aggro off a landed hit.
+		if skill.taunt_targets:
+			skill.applyTaunt(caster)
 
-	# Apply authored buff/debuff status effects on the landed hit (the
-	# hitbox family defers them here so a miss lands nothing).
-	if not skill.status_effects.is_empty():
-		skill.applyStatusEffects(caster, target)
+		# Apply authored buff/debuff status effects on the landed hit (the
+		# hitbox family defers them here so a miss lands nothing).
+		if not skill.status_effects.is_empty():
+			skill.applyStatusEffects(caster, target)
 
 	# Apply movement effects (caster-side)
 	if skill.teleport_distance > 0:

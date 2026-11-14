@@ -18,6 +18,7 @@ aoe_radius = 10.0
 effects = [{"type": "buff", "effect_id": "buff_immortal_form", "duration": 6.0}, {"type": "debuff", "effect_id": "root_common", "duration": 6.0}]
 required_level = 10
 required_class = "akkan_bulwark"
+scope_bands = true
 upgradable = false
 upgrade_tiers = [
 {

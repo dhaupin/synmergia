@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "human_guardian_guardian_aura"
 display_name = "Guardian Aura"
-description = "A steady aura that shields every nearby ally."
+description = "A steady aura that shields every nearby ally. Self-only at first; from the epic band it covers the whole party, uncapped at the top tiers."
 icon_path = ""
 skill_type = 0
 target_type = 2
@@ -19,6 +19,7 @@ aoe_radius = 8.0
 effects = [{"type": "buff", "effect_id": "buff_group_shield", "duration": 10.0}]
 required_level = 15
 required_class = "human_guardian"
+guard_band = true
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",

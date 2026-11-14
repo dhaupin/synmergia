@@ -35,6 +35,10 @@ const MULT_KEYS: Array = [
         "armor_multiplier",
         "movement_speed_multiplier",
         "attack_speed_multiplier",
+        # The support lanes' two reach verbs. DD LENGTHENS (effect_duration_mult);
+        # Bender AMPLIFIES (effect_power_mult). Both are deltas on 1.0.
+        "effect_duration_mult",
+        "effect_power_mult",
 ]
 
 ## Additive combat deltas. Plain floats, base 0.0.
@@ -42,11 +46,13 @@ const MULT_KEYS: Array = [
 ##   damage_reflect    fraction of damage dealt back to the attacker (0.0..1.0)
 ##   health_regen      flat HP per second
 ##   mana_regen        flat MP per second
+##   cooldown_reduction fraction shaved off every cooldown (0.0..0.5)
 const FLAT_KEYS: Array = [
         "damage_reduction",
         "damage_reflect",
         "health_regen",
         "mana_regen",
+        "cooldown_reduction",
 ]
 
 const MODIFIER: Array = MULT_KEYS + FLAT_KEYS
@@ -72,12 +78,20 @@ const DEFAULTS: Dictionary = {
         "damage_reflect": 0.0,
         "health_regen": 0.0,
         "mana_regen": 0.0,
+        "cooldown_reduction": 0.0,
+        "effect_duration_mult": 1.0,
+        "effect_power_mult": 1.0,
 }
 
 ## Ceilings the pipeline clamps to, so authored data cannot make a body
 ## unkillable or a reflect loop unbounded.
 const MAX_DAMAGE_REDUCTION: float = 0.90
 const MAX_DAMAGE_REFLECT: float = 1.00
+## Cooldowns may be shaved by at most half; a longer buff cannot zero them.
+const MAX_COOLDOWN_REDUCTION: float = 0.50
+## Support reach caps, so an amplifier can never double a heal or a buff.
+const MAX_EFFECT_DURATION_MULT: float = 2.0
+const MAX_EFFECT_POWER_MULT: float = 2.0
 
 ## The damage school a reflected hit carries. The pipeline skips reflect
 ## for this school, which is what breaks a reflect ping-pong between two
@@ -122,4 +136,16 @@ static func clamp_fraction(key: String, value: float) -> float:
                 return clampf(value, 0.0, MAX_DAMAGE_REDUCTION)
         if key == "damage_reflect":
                 return clampf(value, 0.0, MAX_DAMAGE_REFLECT)
+        if key == "cooldown_reduction":
+                return clampf(value, 0.0, MAX_COOLDOWN_REDUCTION)
+        return value
+
+
+## Clamp a multiplicative delta key (1.0 base) into its safe band. An unknown
+## key passes through untouched, so the helper is safe on any stat name.
+static func clamp_multiplier(key: String, value: float) -> float:
+        if key == "effect_duration_mult":
+                return clampf(value, 0.0, MAX_EFFECT_DURATION_MULT)
+        if key == "effect_power_mult":
+                return clampf(value, 0.0, MAX_EFFECT_POWER_MULT)
         return value

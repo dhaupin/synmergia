@@ -233,6 +233,12 @@ func _apply_skill_upgrade_deltas(schema, _entity) -> Skill:
 		skill.stamina_cost *= deltas["cost_mult"]
 	if deltas.has("cast_time_mult"):
 		skill.cast_time *= deltas["cast_time_mult"]
+	# The two support goodies the upgrade table authors. Read here (they were
+	# accumulated in get_upgrade_deltas but no consumer existed).
+	if deltas.has("effect_duration_mult"):
+		skill.upgrade_effect_duration_mult = float(deltas["effect_duration_mult"])
+	if deltas.has("effect_strength_mult"):
+		skill.upgrade_effect_strength_mult = float(deltas["effect_strength_mult"])
 	if deltas.has("charge_mult") and skill.charge_time_max > 0:
 		skill.charge_time_max *= deltas["charge_mult"]
 	if deltas.has("max_targets_mult") and skill.targeted_aoe_max_targets > 0:

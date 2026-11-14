@@ -19,6 +19,7 @@ aoe_radius = 0.0
 effects = [{"type": "damage", "value": 24}, {"type": "debuff", "effect_id": "stun_common", "duration": 1.5}]
 required_level = 10
 required_class = "akkan_bulwark"
+scope_bands = true
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
