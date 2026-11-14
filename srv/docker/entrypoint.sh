@@ -37,6 +37,31 @@ _start_state_bridges() {
     log "pg-bridge pid=$PG_BRIDGE_PID  redis-bridge pid=$REDIS_BRIDGE_PID"
 }
 
+# ── Julia multi-iso orchestrator sidecar ───────────────────────────────────
+# The engine's MultiIsoService mirrors the entity roster into this sidecar
+# (register -> query_spatial/intersect). It is the stdlib-only server
+# (server_lite.jl) on 127.0.0.1:8090 -- deliberately NOT 8080/8081, which
+# are pg-bridge/redis-bridge. Fails soft: if julia is absent or the sidecar
+# dies, the engine degrades to empty results (no boot failure).
+_start_julia_bridge() {
+    local script="/workspace/project/srv/julia-bridge/server_lite.jl"
+    if ! command -v julia >/dev/null 2>&1; then
+        log "julia not on PATH -- multi-iso orchestrator disabled (engine degrades to empty)"
+        return 0
+    fi
+    if [[ ! -f "$script" ]]; then
+        log "server_lite.jl not found at $script -- multi-iso orchestrator disabled"
+        return 0
+    fi
+    log "Starting julia multi-iso orchestrator (server_lite.jl on 127.0.0.1:8090)..."
+    julia --startup-file=no --compile=min \
+        --project=/workspace/project/srv/julia-bridge "$script" --port 8090 \
+        >/tmp/julia-bridge.log 2>&1 &
+    JULIA_BRIDGE_PID=$!
+    sleep 1
+    log "julia-bridge pid=$JULIA_BRIDGE_PID"
+}
+
 # ── Template nginx.conf ────────────────────────────────────────────────────
 # Expand the upstream server list. GODOT_UPSTREAM may be a single
 # host:port (single-container) or a comma/space-separated list of shard
@@ -177,6 +202,10 @@ if [[ "$START_MODE" == "dev" ]]; then
     _setup_nginx
     nginx -g 'daemon off;' &
 
+    # Julia multi-iso orchestrator (mirrors the entity roster into the
+    # multi-axis index; fails soft when julia is absent)
+    _start_julia_bridge
+
     # Godot (with GUI rendering to Xvfb, software OpenGL)
     log "Starting Godot (DISPLAY=:99, software OpenGL)..."
     sleep 2
@@ -208,6 +237,7 @@ if [[ "$START_MODE" == "prod" ]]; then
     # Start pg-bridge and redis-bridge sidecars as background processes.
     # These are Python services already installed in the Docker image.
     _start_state_bridges
+    _start_julia_bridge
 
     # NOAA Kp sidecar: feeds the CosmicService flywheel with real
     # planetary K-index (solar wind -> weather). Fails soft: the game
@@ -264,6 +294,7 @@ fi
 if [[ "$START_MODE" == "coordinator" ]]; then
     log "Mode: COORDINATOR — Godot headless (registry + bus; no game port)"
     _start_state_bridges
+    _start_julia_bridge
     godot --headless --path /workspace/project/game &
     log "Coordinator running (no game port; role=${START_MODE})"
     log "PID: $!"
@@ -298,6 +329,7 @@ if [[ "$START_MODE" == "headless" ]]; then
     # bridges up before Godot boots so the engine can reach postgres/redis
     # (or the sqlite/inmemory fallbacks when unset).
     _start_state_bridges
+    _start_julia_bridge
 
     godot --headless --path /workspace/project/game &
 

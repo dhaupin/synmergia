@@ -5,9 +5,11 @@ Julia multi-iso orchestrator sidecar. Sibling of `srv/pg-bridge/` and
 service the game reaches over HTTP, never by import path.
 
 Client: `MultiIsoService` (game/core/services/multi_iso_service.gd)
-talks to `http://localhost:8080` (dev) or `http://julia:8080`
+talks to `http://localhost:8090` (dev) or `http://julia:8090`
 (docker-compose service name) to register entities and run
-multi-axis intersection queries.
+multi-axis intersection queries. Port 8090 is deliberate: 8080/8081 are
+pg-bridge/redis-bridge. `MULTI_ISO_URL` (or `JULIA_BRIDGE_URL`) overrides
+the URL at boot.
 
 ## Run
 
@@ -16,6 +18,13 @@ multi-axis intersection queries.
 
 Deps are stdlib + HTTP.jl + JSON.jl (see Project.toml). The Godot
 Dockerfile installs Julia; the service runs as a sidecar container.
+
+**Started by the container.** `srv/docker/entrypoint.sh` starts the
+stdlib-only `server_lite.jl` on `127.0.0.1:8090` in every server mode
+(dev/prod/headless/coordinator) via `_start_julia_bridge`, so the
+engine's `MultiIsoService` (autoload) reaches a live orchestrator and
+mirrors the entity roster into it. Fails soft: no julia on PATH -> the
+engine degrades to empty results, no boot failure.
 
 ## server_lite.jl — the RUNNABLE server (stdlib-only)
 
@@ -27,7 +36,7 @@ could never be exercised. `server_lite.jl` is the stdlib-only sibling:
 the SAME HTTP API on `Sockets` + `jsonlite.jl` + a small HTTP/1.1 loop,
 no registered packages. It boots anywhere Julia boots.
 
-    julia --startup-file=no --compile=min --project=. server_lite.jl [--port 8080]
+    julia --startup-file=no --compile=min --project=. server_lite.jl [--port 8090]
 
 `--compile=min` is REQUIRED on this Julia build: its default optimizer
 MISCOMPILES the request loop to a segfault (the same class of codegen
@@ -36,7 +45,7 @@ runs the interpreter path and is stable. The two codegen traps found
 while porting are recorded in `jsonlite.jl`.
 
 Endpoints are identical to `server.jl`; `MultiIsoService` points at the
-same `http://localhost:8080`. The receipt
+same `http://localhost:8090`. The receipt
 `game/tests/test_julia_orchestrator_live.gd` boots this server, drives
 `MultiIsoService` through a real register -> query -> unregister cycle,
 and asserts the results.

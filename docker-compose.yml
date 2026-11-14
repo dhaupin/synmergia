@@ -67,6 +67,10 @@ services:
       - REDIS_BACKEND=${REDIS_BACKEND:-inmemory}
       - PG_BRIDGE_URL=${PG_BRIDGE_URL:-http://127.0.0.1:8080}
       - REDIS_BRIDGE_URL=${REDIS_BRIDGE_URL:-http://127.0.0.1:8081}
+      # Multi-iso orchestrator (srv/julia-bridge/server_lite.jl). The
+      # entrypoint starts it on 127.0.0.1:8090; the engine's MultiIsoService
+      # reads MULTI_ISO_URL. Unset -> the engine uses its export default.
+      - MULTI_ISO_URL=${MULTI_ISO_URL:-http://127.0.0.1:8090}
       # ── Shard identity (shard mesh) ─────────────────────────────────────────
       # Unset -> shard_1 / Alpha (the single-node default). A mesh sets a
       # unique SHARD_ID per container; ShardManager reads these at boot.

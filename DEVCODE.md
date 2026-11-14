@@ -28,6 +28,26 @@ stop: the mechanics of actually RUNNING things.
 - **systemctl, julia, release tools NOT needed** for the code-side dev
   loop (Julia is a sidecar only; skip it during code-only repair rounds).
 
+### Multi-iso orchestrator (Julia sidecar)
+
+`srv/julia-bridge/` is a non-Godot HTTP service the engine reaches over
+the network, exactly like the pg/redis bridges. `MultiIsoService` (autoload)
+mirrors the entity roster into it and runs multi-axis intersection queries.
+In a container the entrypoint starts the stdlib-only `server_lite.jl` on
+`127.0.0.1:8090` automatically (dev/prod/headless/coordinator); to run it
+by hand:
+
+```bash
+julia --startup-file=no --compile=min --project=srv/julia-bridge \
+      srv/julia-bridge/server_lite.jl --port 8090 &
+MULTI_ISO_URL=http://127.0.0.1:8090 godot --path game
+```
+
+Port 8090 (NOT 8080/8081, which are pg-bridge/redis-bridge). Fails soft:
+no julia -> the engine degrades to empty results. Receipt
+`game/tests/test_julia_orchestrator_live.gd` boots its own sidecar and
+drives the real register -> query -> unregister cycle.
+
 ### Running as a shard (multi-container)
 
 The image runs a dev env and a single server out of the box. To run a

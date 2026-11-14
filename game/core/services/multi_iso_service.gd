@@ -35,8 +35,11 @@ extends Node
 const IcosahedralScript = preload("res://core/frame/math/icosahedral.gd")
 
 ## Julia server URL (docker-compose service name)
-@export var julia_server_url: String = "http://julia:8080"
-@export var local_server_url: String = "http://localhost:8080"
+@export var julia_server_url: String = "http://julia:8090"
+## Dev default: the sidecar the container entrypoint starts on the local host
+## (server_lite.jl). Port 8090 is deliberate -- 8080/8081 are pg-bridge and
+## redis-bridge; the old 8080 default made MultiIsoService talk to pg-bridge.
+@export var local_server_url: String = "http://localhost:8090"
 @export var use_localhost: bool = true  # Toggle for dev vs prod
 ## Master switch: when false the service never touches the network and
 ## every query returns empty. Set false in tests that must not egress.
@@ -57,6 +60,7 @@ var _bound: bool = false
 var _warned_unreachable: bool = false
 
 func _ready() -> void:
+	_apply_env_overrides()
 	_http_request = HTTPRequest.new()
 	add_child(_http_request)
 	_http_request.request_completed.connect(_on_request_completed)
@@ -67,6 +71,19 @@ func _ready() -> void:
 	_health_request.request_completed.connect(_on_health_completed)
 	GameLog.info("MultiIsoService: Ready -- Julia server: %s" % _get_server_url())
 	call_deferred("_boot")
+
+## Environment overrides (the repo's bridge-URL convention): the container
+## entrypoint exports MULTI_ISO_URL / JULIA_BRIDGE_URL so the sidecar's host
+## + port are deploy-configurable without editing the scene. An empty value
+## leaves the export default.
+func _apply_env_overrides() -> void:
+	var url := OS.get_environment("MULTI_ISO_URL").strip_edges()
+	if url.is_empty():
+		url = OS.get_environment("JULIA_BRIDGE_URL").strip_edges()
+	if not url.is_empty():
+		local_server_url = url
+		julia_server_url = url
+
 
 func _boot() -> void:
 	_bind_entity_service()

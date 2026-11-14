@@ -14,6 +14,7 @@
 ## legs still run).
 ##
 ## Legs:
+##   0. The MULTI_ISO_URL env seam sets the server URL at boot.
 ##   1. server_lite.jl boots and answers /health on a private port.
 ##   2. A fresh MultiIsoService pointed at it reports healthy.
 ##   3. register_entity -> query_spatial finds it at the vertex.
@@ -54,6 +55,7 @@ class FakeBody:
 func _initialize() -> void:
 	print("--- JULIA ORCHESTRATOR LIVE ---")
 	await process_frame
+	await _test_env_override_contract()
 	_test_disabled_contract()
 	var live: bool = _boot_sidecar()
 	if live:
@@ -72,6 +74,23 @@ func _ok(msg: String) -> void:
 func _fail(msg: String) -> void:
 	_failed += 1
 	printerr("  [FAIL] ", msg)
+
+
+## Contract leg (always runs): the MULTI_ISO_URL env seam sets the server
+## URL at boot, so a container can point the service at the sidecar's port.
+func _test_env_override_contract() -> void:
+	var script: GDScript = load(SVC_PATH)
+	OS.set_environment("MULTI_ISO_URL", "http://127.0.0.1:65535")
+	var svc: Node = script.new()
+	root.add_child(svc)
+	await process_frame
+	if svc.local_server_url == "http://127.0.0.1:65535" and svc.julia_server_url == "http://127.0.0.1:65535":
+		_ok("MULTI_ISO_URL env override sets the server URL at boot")
+	else:
+		_fail("env override ignored: local=%s" % svc.local_server_url)
+	root.remove_child(svc)
+	svc.free()
+	OS.set_environment("MULTI_ISO_URL", "")
 
 
 ## Contract leg (always runs): a disabled service never touches the net.
@@ -151,6 +170,9 @@ func _health(url: String) -> bool:
 
 func _test_live_cycle() -> void:
 	var script: GDScript = load(SVC_PATH)
+	# Pin the URL through the env seam so an ambient MULTI_ISO_URL in the
+	# CI container cannot redirect the receipt away from its own sidecar.
+	OS.set_environment("MULTI_ISO_URL", URL)
 	_svc = script.new()
 	_svc.use_localhost = true
 	_svc.local_server_url = URL
