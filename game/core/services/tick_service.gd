@@ -684,16 +684,21 @@ func _regen_entities() -> void:
 		# regen skips those instead of erroring on a missing field.
 		var has_health: bool = "current_health" in entity and "max_health" in entity
 		var has_mana: bool = "current_mana" in entity and "max_mana" in entity
-		if has_health and entity.current_health < entity.max_health:
-			var h_acc: float = float(_regen_health_acc.get(eid, 0.0)) + float(entity.max_health) * REGEN_HEALTH_PCT_PER_SEC * dt
+		# Flat authored regen (StatId health_regen/mana_regen, e.g. a
+		# "Regeneration" buff) rides the same accumulator as the percentage
+		# baseline, so a body with both heals at the sum.
+		var flat_hp: float = float(entity.stats.get("health_regen", 0.0)) if ("stats" in entity) else 0.0
+		var flat_mp: float = float(entity.stats.get("mana_regen", 0.0)) if ("stats" in entity) else 0.0
+		if has_health and (entity.current_health < entity.max_health or flat_hp != 0.0):
+			var h_acc: float = float(_regen_health_acc.get(eid, 0.0)) + (float(entity.max_health) * REGEN_HEALTH_PCT_PER_SEC + flat_hp) * dt
 			while h_acc >= 1.0:
 				h_acc -= 1.0
 				entity.heal(1)
 			_regen_health_acc[eid] = h_acc
 		else:
 			_regen_health_acc.erase(eid)
-		if has_mana and entity.current_mana < entity.max_mana:
-			var m_acc: float = float(_regen_mana_acc.get(eid, 0.0)) + float(entity.max_mana) * REGEN_MANA_PCT_PER_SEC * dt
+		if has_mana and (entity.current_mana < entity.max_mana or flat_mp != 0.0):
+			var m_acc: float = float(_regen_mana_acc.get(eid, 0.0)) + (float(entity.max_mana) * REGEN_MANA_PCT_PER_SEC + flat_mp) * dt
 			while m_acc >= 1.0:
 				m_acc -= 1.0
 				entity.current_mana = mini(entity.max_mana, entity.current_mana + 1)

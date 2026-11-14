@@ -171,6 +171,7 @@ test_tick_n017_cleanup
 test_tick_phase2_systems
 test_combat_stack_live
 test_status_effect_tres
+test_stat_modifiers
 test_globe_player_players_group
 test_globe_concord_loop
 test_character_select_zone

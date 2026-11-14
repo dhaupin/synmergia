@@ -14,14 +14,19 @@ enum ResourceType {
 enum Role {
 		GM = 0,         # Reserved. Never via .tres. Admin-only, guarded at login.
 		TANK = 1,       # Bulwark, Guardian, Warden
-		DD = 2,         # Attacker, Warrior, Exploiter
+		DD = 2,         # Attacker, Warrior, Exploiter (warrior-style melee)
 		MAGE = 3,       # Rune, Sorcerer, Psion
-		RANGER = 4,     # Stalker, Marksman, Tracker (stealth/ranged)
+		ROGUE = 4,      # Stalker, Marksman, Tracker (stealth/ranged)
 		BENDER = 5,     # Seer, Temporalist, Overclocker (utility/buff)
-		HEALER = 6,
-		DPS_MELEE = 7,   # legacy alias
-		DPS_RANGED = 8,  # legacy alias      # Shaman, Cleric, Conduit (restoration)
+		HEALER = 6,     # Shaman, Cleric, Conduit (restoration)
+		DPS_MELEE = 7,  # legacy alias
+		DPS_RANGED = 8, # legacy alias
 	}
+
+## Legacy spelling: the ranger trio was role 4 under the old name RANGER
+## before it was retitled ROGUE to match the PRD archetype table. Kept as
+## an alias so older call sites and tests read the same rung.
+const RANGER: int = Role.ROGUE
 
 @export var id: String = ""
 @export var display_name: String = "Warrior"

@@ -6,9 +6,10 @@
 script = ExtResource("1")
 id = "buff_defensive_stance"
 display_name = "Defensive Stance"
-description = "Damage taken reduced."
+description = "A braced guard removes 20% of incoming damage."
 category = 0
 effect_type = 0
+damage_reduction = 0.20
 duration = 15.0
 max_stacks = 1
 can_refresh = true

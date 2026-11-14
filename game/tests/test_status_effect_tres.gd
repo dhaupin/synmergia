@@ -159,4 +159,35 @@ func _run() -> void:
                         _assert(ac.is_taunted(), "casting the taunt force-locks the mob")
                         _assert(ac.get_highest_threat_target() == taunter, "the taunter is the mob's target after the taunt")
 
+        # --- 10. Skill-level CC effect entries gate the body --------------------
+        # An authored "stun"/"root"/"slow" entry flattens into crowd_control_type
+        # and applyCrowdControl builds the runtime effect; the gating flags are
+        # what make it bite. Before the fix the builders set neither the
+        # can_move/can_cast flags nor a slow multiplier, so a skill-authored
+        # stun did not stun and a slow did not slow.
+        var warp = ds.get_skill("human_time_warp")
+        _assert(warp != null, "human_time_warp schema loads")
+        var warp_sk = CombatSkill.from_schema(warp)
+        _assert(warp_sk.crowd_control_type == "slow", "the authored slow entry sets crowd_control_type")
+        _assert(is_equal_approx(warp_sk.crowd_control_slow_percent, 0.2), "the slow's value (20) reads as a 0.2 penalty")
+
+        var slow_fx = warp_sk.create_slow_effect(caster)
+        _assert(slow_fx.allows_movement(), "a slow still permits movement")
+        _assert(is_equal_approx(slow_fx.movement_speed_multiplier, -0.2), "the slow carries its -20% movement delta")
+
+        var stun_fx = warp_sk.create_stun_effect(caster)
+        _assert(not stun_fx.allows_movement() and not stun_fx.allows_casting() and not stun_fx.allows_attacking(), "a built stun gates move/cast/attack")
+
+        var root_fx2 = warp_sk.create_root_effect(caster)
+        _assert(not root_fx2.allows_movement() and root_fx2.allows_casting(), "a built root gates movement only")
+
+        # End-to-end: a stun built from a skill blocks the victim's cast gate.
+        var held := _entity()
+        held.apply_status_effect(stun_fx)
+        var held_blocked := false
+        for effect in held.status_effects:
+                if effect.has_method("allows_casting") and not effect.allows_casting():
+                        held_blocked = true
+        _assert(held_blocked, "a skill-built stun blocks the victim's casting on the live store")
+
         print("--- STATUS EFFECT TRES: %d passed, %d failed ---" % [_pass, _fail])

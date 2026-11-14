@@ -6,9 +6,10 @@
 script = ExtResource("1")
 id = "buff_reflect"
 display_name = "Reflective Barrier"
-description = "Hardens the barrier against incoming blows."
+description = "Raises a barrier that reflects 30% of melee damage back to attackers."
 category = 0
 effect_type = 0
+damage_reflect = 0.30
 duration = 8.0
 stat_modifiers = {"vitality": 10}
 show_in_buff_bar = true

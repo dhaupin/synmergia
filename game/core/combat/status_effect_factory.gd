@@ -17,6 +17,7 @@ class_name StatusEffectFactory
 
 const StatusEffect = preload("res://core/entities/status_effect.gd")
 const StatusEffectDataScript = preload("res://core/schemas/status_effect_data.gd")
+const StatId = preload("res://core/schemas/stat_id.gd")
 
 ## StatusEffectData.StatType name -> runtime stat export on StatusEffect.
 const STAT_EXPORT := {
@@ -35,9 +36,19 @@ const MULT_EXPORT := {
         "spell_power": "damage_multiplier",
         "defense": "defense_multiplier",
         "resistance": "defense_multiplier",
+        "armor": "armor_multiplier",
         "attack_speed": "attack_speed_multiplier",
         "haste": "attack_speed_multiplier",
         "movement_speed": "movement_speed_multiplier",
+}
+
+## StatusEffectData.StatType name -> runtime flat modifier export (regen,
+## mitigation). Read by the damage/regen pipeline off the entity stats block.
+const FLAT_EXPORT := {
+        "health_regen": "health_regen_mod",
+        "mana_regen": "mana_regen_mod",
+        "damage_reduction": "damage_reduction",
+        "damage_reflect": "damage_reflect",
 }
 
 ## StatusEffectData.ControlType name -> runtime crowd-control fields.
@@ -90,10 +101,27 @@ static func from_data(data, duration_override: float = 0.0) -> StatusEffect:
                         fx.set(STAT_EXPORT[key], int(val))
                 elif MULT_EXPORT.has(key):
                         fx.set(MULT_EXPORT[key], val)
+                elif FLAT_EXPORT.has(key):
+                        fx.set(FLAT_EXPORT[key], val)
         for stat2 in data.stat_multipliers:
                 var key2 := str(stat2)
                 if MULT_EXPORT.has(key2):
                         fx.set(MULT_EXPORT[key2], float(data.stat_multipliers[stat2]))
+                elif FLAT_EXPORT.has(key2):
+                        fx.set(FLAT_EXPORT[key2], float(data.stat_multipliers[stat2]))
+
+        # First-class mitigation payloads: authored on the data's own fields,
+        # not inside stat_modifiers. Clamped so authored data can never make a
+        # body unkillable (immune_all is the one true immunity path).
+        if float(data.damage_reduction) != 0.0:
+                fx.damage_reduction = clampf(float(data.damage_reduction), 0.0, StatId.MAX_DAMAGE_REDUCTION)
+        if float(data.damage_reflect) != 0.0:
+                fx.damage_reflect = clampf(float(data.damage_reflect), 0.0, StatId.MAX_DAMAGE_REFLECT)
+        # Flat per-second regen payloads (positive heals, negative suppresses).
+        if float(data.health_regen) != 0.0:
+                fx.health_regen_mod = float(data.health_regen)
+        if float(data.mana_regen) != 0.0:
+                fx.mana_regen_mod = float(data.mana_regen)
 
         _apply_speed(fx, data)
 

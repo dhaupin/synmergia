@@ -3,6 +3,10 @@
 extends Node3D
 class_name Entity
 
+## Canonical stat vocabulary (the keys in `stats` below and the
+## mitigation/reflect keys the damage pipeline reads).
+const StatId = preload("res://core/schemas/stat_id.gd")
+
 signal health_changed(current: int, maximum: int)
 signal mana_changed(current: int, maximum: int)
 signal stamina_changed(current: float, maximum: float)
@@ -72,7 +76,12 @@ var stats: Dictionary = {
 	"damage_multiplier": 1.0,
 	"defense_multiplier": 1.0,
 	"armor_multiplier": 1.0,
-	"movement_speed_multiplier": 1.0
+	"movement_speed_multiplier": 1.0,
+	"attack_speed_multiplier": 1.0,
+	"damage_reduction": 0.0,
+	"damage_reflect": 0.0,
+	"health_regen": 0.0,
+	"mana_regen": 0.0
 }
 
 # Resources
@@ -248,10 +257,31 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 	if hub and hub.has_signal("damage_dealt"):
 		hub.emit_signal("damage_dealt", source, self, damage, damage_type, is_crit)
 
+	# Reflect a fraction of the landed hit back to the attacker. Skipped for
+	# the reflected school itself, which is what stops two barriers bouncing
+	# the same hit forever.
+	if damage_type != StatId.REFLECT_SCHOOL:
+		_apply_damage_reflect(source, damage)
+
 	if current_health <= 0:
 		die(source)
 
 	return damage
+
+## Deal `fraction` of `damage` back to `source`. Silent no-op when the
+## source is gone, is this same body, or carries no reflect target surface
+## -- the same degradation law as the rest of the combat seams.
+func _apply_damage_reflect(source, damage: int) -> void:
+	if source == null or source == self or damage <= 0:
+		return
+	var fraction: float = clampf(float(stats.get("damage_reflect", 0.0)), 0.0, StatId.MAX_DAMAGE_REFLECT)
+	if fraction <= 0.0:
+		return
+	var back: int = int(float(damage) * fraction)
+	if back <= 0 or not is_instance_valid(source):
+		return
+	if source.has_method("take_damage"):
+		source.take_damage(back, self, StatId.REFLECT_SCHOOL)
 
 ## True when any active status effect carries is_invincible.
 func _is_invincible() -> bool:
@@ -302,10 +332,16 @@ func _calculate_damage_received(amount: int, damage_type: String = "physical") -
 		defense = float(get_defense())
 	# Status-effect defense multiplier (defense-buff deltas on a 1.0 base).
 	defense *= float(stats.get("defense_multiplier", 1.0))
-	if defense <= 0.0:
+	var reduction: float = defense / (defense + 100.0) if defense > 0.0 else 0.0
+	# A flat authored damage_reduction fraction stacks on top of the
+	# defense curve, clamped so a stacked barrier can never reach immunity
+	# (immortal_form's immune_all is the one true immunity path). Read even
+	# when the defense curve is zero, so a bare body still honors it.
+	var flat: float = clampf(float(stats.get("damage_reduction", 0.0)), 0.0, StatId.MAX_DAMAGE_REDUCTION)
+	var total: float = reduction + flat * (1.0 - reduction)
+	if total <= 0.0:
 		return amount
-	var reduction: float = defense / (defense + 100.0)
-	return maxi(1, int(float(amount) * (1.0 - reduction)))
+	return maxi(1, int(float(amount) * (1.0 - total)))
 
 ## MANA
 
