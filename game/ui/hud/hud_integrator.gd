@@ -401,7 +401,7 @@ func _bind_player_wallet_feedback() -> void:
 			player = lp
 	if player == null:
 		return
-	# The node wallet (kills, ground loot, dwelling spends). It
+	# The node wallet (kills, ground loot, housing spends). It
 	# carries the running TOTAL, so seed the seen-value to stay quiet
 	# through hydration and speak only in real deltas. Per-leg guards:
 	# a rebind must not skip the component legs below. The globe body

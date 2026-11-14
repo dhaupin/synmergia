@@ -371,11 +371,11 @@ func _run() -> void:
 		if not icon_missing.is_empty():
 			print("    icon residue: " + "; ".join(icon_missing.slice(0, 5)))
 
-	# I. THE ACCESSORY + DWELLING FAMILIES (the two the first pass left
+	# I. THE ACCESSORY + FURNISHING FAMILIES (the two the first pass left
 	# out of the catalog, which is how a chair with an empty category and
 	# two phantom dismantle ids survived). Accessories carry a real
-	# accessory_type and stack 1; dwellings are placeable, carry a real
-	# dwelling_category, and every dismantle return resolves.
+	# accessory_type and stack 1; furnishings are placeable, carry a real
+	# furnishing_category, and every dismantle return resolves.
 	var accbad: Array = []
 	var accdir := DirAccess.open("res://data/accessories")
 	if accdir == null:
@@ -409,42 +409,42 @@ func _run() -> void:
 	if not accbad.is_empty():
 		print("    accessory defects: " + "; ".join(accbad.slice(0, 6)))
 
-	var dwelbad: Array = []
-	var dwelcount := 0
-	var dweldir := DirAccess.open("res://data/dwellings")
-	if dweldir == null:
-		dwelbad.append("data/dwellings missing")
+	var furnbad: Array = []
+	var furncount := 0
+	var furndir := DirAccess.open("res://data/furnishings")
+	if furndir == null:
+		furnbad.append("data/furnishings missing")
 	else:
-		dweldir.list_dir_begin()
-		var dfn2 := dweldir.get_next()
+		furndir.list_dir_begin()
+		var dfn2 := furndir.get_next()
 		while dfn2 != "":
 			if dfn2.ends_with(".tres"):
-				dwelcount += 1
-				var dres = load("res://data/dwellings/" + dfn2)
+				furncount += 1
+				var dres = load("res://data/furnishings/" + dfn2)
 				if dres == null:
-					dwelbad.append("load failed: " + dfn2)
+					furnbad.append("load failed: " + dfn2)
 				else:
 					var did: String = str(dres.id)
 					if did != dfn2.trim_suffix(".tres"):
-						dwelbad.append("%s filename mismatch" % did)
-					if not did.begins_with("dwel_"):
-						dwelbad.append("%s not dwel_" % did)
+						furnbad.append("%s filename mismatch" % did)
+					if not did.begins_with("furn_"):
+						furnbad.append("%s not furn_" % did)
 					if dres.display_name.is_empty() or dres.description.is_empty():
-						dwelbad.append("%s unauthored words" % did)
+						furnbad.append("%s unauthored words" % did)
 					if not bool(dres.is_placeable):
-						dwelbad.append("%s not placeable" % did)
-					if str(dres.dwelling_category).is_empty():
-						dwelbad.append("%s empty dwelling_category" % did)
+						furnbad.append("%s not placeable" % did)
+					if str(dres.furnishing_category).is_empty():
+						furnbad.append("%s empty furnishing_category" % did)
 					for ret in dres.dismantle_returns:
 						var rid: String = str(ret.get("id", ""))
 						if rid.is_empty() or ds.get_item(rid) == null:
-							dwelbad.append("%s phantom dismantle %s" % [did, rid])
+							furnbad.append("%s phantom dismantle %s" % [did, rid])
 						if int(ret.get("amount", 0)) <= 0:
-							dwelbad.append("%s dismantle %s zero amount" % [did, rid])
-				dfn2 = dweldir.get_next()
-	_check("dwelling family integrity (%d dwellings: placeable/category/dismantle)" % dwelcount,
-		dwelbad.is_empty())
-	if not dwelbad.is_empty():
-		print("    dwelling defects: " + "; ".join(dwelbad.slice(0, 6)))
+							furnbad.append("%s dismantle %s zero amount" % [did, rid])
+				dfn2 = furndir.get_next()
+	_check("furnishing family integrity (%d furnishings: placeable/category/dismantle)" % furncount,
+		furnbad.is_empty())
+	if not furnbad.is_empty():
+		print("    furnishing defects: " + "; ".join(furnbad.slice(0, 6)))
 
 	_finish()

@@ -874,7 +874,7 @@ func _run() -> void:
 
 	# --- Model/scene path integrity across ALL data files ---
 	var bad_model_paths: Array = []
-	for data_dir in ["data/npc", "data/enemies", "data/species", "data/mounts", "data/vehicles", "data/dwellings", "data/houses", "data/gateways", "data/classes"]:
+	for data_dir in ["data/npc", "data/enemies", "data/species", "data/mounts", "data/vehicles", "data/furnishings", "data/houses", "data/gateways", "data/classes"]:
 		var mdir := DirAccess.open("res://" + data_dir)
 		if mdir == null:
 			continue

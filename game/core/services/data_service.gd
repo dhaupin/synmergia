@@ -16,7 +16,7 @@ const Faction = preload("res://core/schemas/faction.gd")
 const ZoneData = preload("res://core/schemas/zone_data.gd")
 const TerritoryData = preload("res://core/schemas/territory_data.gd")
 const EventData = preload("res://core/schemas/event_data.gd")
-const DwellingData = preload("res://core/schemas/dwelling_data.gd")
+const FurnishingData = preload("res://core/schemas/furnishing_data.gd")
 const NPCData = preload("res://core/schemas/npc_data.gd")
 const StatusEffectData = preload("res://core/schemas/status_effect_data.gd")
 const QuestData = preload("res://core/schemas/quest_data.gd")
@@ -55,7 +55,7 @@ var _signs: Dictionary = {}
 var _acts: Dictionary = {}
 var _mysteries: Dictionary = {}
 var _events: Dictionary = {}
-var _dwellings: Dictionary = {}
+var _furnishings: Dictionary = {}
 ## id -> HouseData (data/houses/, the plot STRUCTURE tiers).
 var _houses: Dictionary = {}
 ## Named places (the atlas). Identity only -- travel law lives in
@@ -95,7 +95,7 @@ func load_all_data() -> void:
 	load_zones()
 	load_territories()
 	load_events()
-	load_dwellings()
+	load_furnishings()
 	load_houses()
 	load_landmarks()
 	load_npcs()
@@ -229,24 +229,24 @@ func load_events() -> void:
 	_events = _scan_directory(_data_path + "events", "event")
 	GameLog.info("DataService: Loaded %d events" % _events.size())
 
-## Load dwellings from data/dwellings/. Item-scripted dwellings (the
-	# placeable furniture: chairs, fireplaces, craft stations) MERGE into
-	# _items like accessories do -- the purse carries them as plain
-	# Items, so placeable stations are bought/held/crafted goods. Pure
-	# DwellingData entries stay dwelling-only.
-func load_dwellings() -> void:
-	var dwelling_paths := _scan_directory(_data_path + "dwellings", "dwelling")
-	_dwellings = dwelling_paths
-	var dwelling_items := 0
-	for id in dwelling_paths:
-		var dw = dwelling_paths[id]
-		if dw != null and dw.get_script() != null and dw is Item:
-			_items.merge({str(id): dw})
-			dwelling_items += 1
-	GameLog.info("DataService: Loaded %d dwellings (%d purse-carried items)" % [_dwellings.size(), dwelling_items])
+## Load furnishings from data/furnishings/. Item-scripted furnishings (the
+## placeable furniture: chairs, fireplaces, craft stations) MERGE into
+## _items like accessories do -- the purse carries them as plain
+## Items, so placeable stations are bought/held/crafted goods. Pure
+## FurnishingData entries stay furnishing-only.
+func load_furnishings() -> void:
+	var furnishing_paths := _scan_directory(_data_path + "furnishings", "furnishing")
+	_furnishings = furnishing_paths
+	var furnishing_items := 0
+	for id in furnishing_paths:
+		var furn = furnishing_paths[id]
+		if furn != null and furn.get_script() != null and furn is Item:
+			_items.merge({str(id): furn})
+			furnishing_items += 1
+	GameLog.info("DataService: Loaded %d furnishings (%d purse-carried items)" % [_furnishings.size(), furnishing_items])
 
 ## Load house STRUCTURE tiers from data/houses/ (the plot buildings
-## DwellingService.build_house raises). Unlike dwellings these are pure
+## HousingService.build_house raises). Unlike furnishings these are pure
 ## HouseData resources, never merged into _items.
 func load_houses() -> void:
 	_houses = _scan_directory(_data_path + "houses", "house")
@@ -616,10 +616,10 @@ func get_event(id: String) -> EventData:
 	GameLog.warn("DataService: Event not found: " + id)
 	return null
 
-func get_dwelling(id: String) -> Resource:
-	if _dwellings.has(id):
-		return _dwellings.get(id)
-	GameLog.warn("DataService: Dwelling not found: " + id)
+func get_furnishing(id: String) -> Resource:
+	if _furnishings.has(id):
+		return _furnishings.get(id)
+	GameLog.warn("DataService: Furnishing not found: " + id)
 	return null
 
 func get_house(id: String) -> Resource:
@@ -751,8 +751,8 @@ func get_all_territories() -> Array:
 func get_all_events() -> Array:
 	return _events.values()
 
-func get_all_dwellings() -> Array:
-	return _dwellings.values()
+func get_all_furnishings() -> Array:
+	return _furnishings.values()
 
 func get_all_npcs() -> Array:
 	return _npcs.values()
@@ -796,7 +796,7 @@ func reload_all() -> void:
 	_zones.clear()
 	_territories.clear()
 	_events.clear()
-	_dwellings.clear()
+	_furnishings.clear()
 	_npcs.clear()
 	_status_effects.clear()
 	_quests.clear()

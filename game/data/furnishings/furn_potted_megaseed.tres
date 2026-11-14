@@ -4,39 +4,39 @@
 
 [resource]
 script = ExtResource("1")
-id = "dwel_lantern_post"
-display_name = "Lantern Post"
-description = "A timber post topped with an amber glass lamp, burning oil through the night. Throws a warm pool of light over your plot."
-icon_path = "res://icons/dwellings/lantern_post.png"
+id = "furn_potted_megaseed"
+display_name = "Potted Megaseed"
+description = "A megaseed sprout in a gear-cog planter, curling a slow green shoot toward the light. Decoration with a grower's patience."
+icon_path = "res://icons/furnishings/potted_megaseed.png"
 item_category = 7
 rarity = 0
 equip_slot = 0
 stack_size = 1
-sell_price = 200
-buy_price = 4000
+sell_price = 60
+buy_price = 1200
 required_level = 0
-dwelling_category = "lighting"
-dwelling_size = Vector3(1, 3, 1)
+furnishing_category = "decoration"
+furnishing_size = Vector3(1, 1, 1)
 is_placeable = true
 placement_zones = ["housing_zone_1", "housing_zone_2"]
 is_interactable = true
-interaction_type = "light_fire"
-interaction_radius = 1.0
-provides_function = "ambient_light"
+interaction_type = "tend"
+interaction_radius = 0.8
+provides_function = ""
 function_capacity = 0
-tax_modifier = 0.03
-maintenance_cost = 5.0
+tax_modifier = 0.0
+maintenance_cost = 1.0
 decay_time_days = 0.0
 allow_guild_access = true
 allow_friends_access = true
 allow_public_view = true
 dyeable = false
 dismantle_returns = [{
-"amount": 3,
-"id": "res_timber",
+"amount": 2,
+"id": "res_hemp_cord",
 "type": "resource"
 }, {
 "amount": 1,
-"id": "res_copper_ingot",
+"id": "res_gloam_spore",
 "type": "resource"
 }]

@@ -15,7 +15,7 @@ const DATA = godotData as unknown as Record<string, Raw>;
 const RARITY = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Mythic'];
 const ITEM_CATEGORY = [
   'Weapon', 'Armor', 'Accessory', 'Consumable', 'Resource',
-  'Gem', 'Event', 'Dwelling', 'Misc', 'Skill Book',
+  'Gem', 'Event', 'Furnishing', 'Misc', 'Skill Book',
 ];
 const WEAPON_TYPE = [
   'None', 'Sword', 'Axe', 'Mace', 'Dagger', 'Bow',
@@ -348,7 +348,7 @@ export function buildCodex(): CodexCategory[] {
   itemLike('items', 'Items', 'Coins, seals, quest tokens, and everything else.', (v) => itemCategoryLabel(v.item_category));
   itemLike('resources', 'Resources', 'Ores, fibers, petals — the raw stock the world gathers.', (v) => itemCategoryLabel(v.item_category));
   itemLike('consumables', 'Consumables', 'Potions, elixirs, and the things you drink once.', (v) => itemCategoryLabel(v.item_category));
-  itemLike('dwellings', 'Dwellings', 'Placeable structures: fireplaces, anvils, and the like.', (v) => itemCategoryLabel(v.item_category));
+  itemLike('furnishings', 'Furnishings', 'Placeable furnishings: fireplaces, anvils, and the like.', (v) => itemCategoryLabel(v.item_category));
 
   // Recipes
   categories.push({

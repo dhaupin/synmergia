@@ -1170,10 +1170,10 @@ func _build_portal_visuals(portal: Node3D) -> void:
 
 ## PLANAR-RETIREMENT STEP 3: the demo housing plot, ported from
 ## world_playable._setup_housing -- registers the purchasable plot with
-## DwellingService so /buyplot, /placeguard and /placeankh have
+## HousingService so /buyplot, /placeguard and /placeankh have
 ## something to act on.
 func _build_globe_housing() -> void:
-	var dw = get_node_or_null("/root/DwellingService")
+	var dw = get_node_or_null("/root/HousingService")
 	if dw == null or not dw.has_method("register_plot"):
 		return
 	var center: Vector3 = TerrainGenRef.SPAWN_CENTER

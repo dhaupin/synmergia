@@ -252,9 +252,9 @@ func _register_default_commands() -> void:
 	register_command(Command.new("stats", _cmd_stats, "Show service statistics", "stats"))
 
 	# Data census (the loaded catalog: counts + the enumerable catalogs the
-	# gameplay paths reach only by id -- currencies, dwellings, recipes,
+	# gameplay paths reach only by id -- currencies, furnishings, recipes,
 	# layer profiles).
-	register_command(Command.new("data", _cmd_data, "Data catalog census", "data [counts|currencies|dwellings|recipes|layers]"))
+	register_command(Command.new("data", _cmd_data, "Data catalog census", "data [counts|currencies|furnishings|recipes|layers]"))
 
 	# Config
 	register_command(Command.new("config", _cmd_config, "View/modify config", "config [key] [value]"))
@@ -631,8 +631,8 @@ func _cmd_data(args: String, executor_id: String) -> CommandResult:
 			output += "[color=cyan]  %-16s %d[/color]\n" % ["total", total]
 		"currencies":
 			output = _enumerate_catalog(ds, "get_all_currencies", "Currencies")
-		"dwellings":
-			output = _enumerate_catalog(ds, "get_all_dwellings", "Dwellings")
+		"furnishings":
+			output = _enumerate_catalog(ds, "get_all_furnishings", "Furnishings")
 		"recipes":
 			output = _enumerate_catalog(ds, "get_all_recipes", "Recipes")
 		"layers", "layer_profiles":
@@ -646,7 +646,7 @@ func _cmd_data(args: String, executor_id: String) -> CommandResult:
 				output += "  %s\n" % str(pid)
 			output += "[color=cyan]  %d profiles[/color]\n" % pids.size()
 		_:
-			return CommandResult.new(false, "", "Usage: data [counts|currencies|dwellings|recipes|layers]")
+			return CommandResult.new(false, "", "Usage: data [counts|currencies|furnishings|recipes|layers]")
 
 	return CommandResult.new(true, output, "")
 
