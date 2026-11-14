@@ -2,18 +2,30 @@
  * ssr.config.js — prerender config (prestruct law).
  *
  * `path` values become dist/<path>/index.html + sitemap entries after
- * `npm run build`. Keeping the route list HERE (not in code) is the
- * prestruct contract: adding a page is a config change, and the
- * prerender script renders every entry even if the router crashes —
- * pages without meta stay clean of stale tags.
+ * `prestruct build`. Keeping the route list HERE (not in code) is the
+ * prestruct contract: adding a page is a config change.
  */
 export default {
   siteUrl: 'https://synmergia.creadev.org',
   siteName: 'Synmergia',
   author: 'dhaupin',
   tagline: 'A free and open source spherical-world MMORPG',
-  ogImage: 'https://synmergia.creadev.org/og-image.png', // 1200x630 card (scripts/gen_site_branding.py)
-  // appLayoutPath: '/src/AppLayout.tsx', // prerender default already matches
+  ogImage: {
+    url: 'https://synmergia.creadev.org/og-image.png', // 1200x630 card (scripts/gen_site_branding.py)
+    width: 1200,
+    height: 630,
+    alt: 'Synmergia — a free and open source spherical-world MMORPG',
+  },
+  appLayoutPath: '/src/AppLayout.tsx', // prestruct defaults to .jsx; this site is TSX
+
+  // Admin gate: prestruct 1.5.1 has no per-route noindex switch, so the
+  // postBuild hook adds the robots directive and drops restricted URLs from
+  // the generated sitemap after prerendering.
+  runHooks: true,
+  hooks: {
+    postBuild: ['node scripts/postbuild-noindex.mjs'],
+  },
+  llms: false,
 
   routes: [
     {
@@ -106,10 +118,9 @@ export default {
           'Plain-language terms for the free, open-source Synmergia project and its website.',
       },
     },
-    // Admin: restricted operator tooling. noindex is enforced in the
-    // prerender script for any path starting with /admin — listed here
-    // only so the gate page itself is rendered in dist/admin/ (waLL
-    // page, never the dashboard).
+    // Admin: restricted operator tooling. noindex and sitemap removal are
+    // enforced by scripts/postbuild-noindex.mjs after prestruct prerenders
+    // the route; keep noindex: true here as the source of truth.
     {
       path: '/admin',
       priority: '0.1',

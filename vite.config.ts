@@ -73,6 +73,13 @@ function copyGodotWebToDist(): Plugin {
     name: 'copy-godot-web-to-dist',
     apply: 'build',
     closeBundle() {
+      // prestruct's audit walks every .html under dist/ and expects the
+      // pre-rendered site pages, not the raw Godot shell. Defer that copy
+      // until scripts/prestruct-build.mjs has finished the prerender/audit.
+      if (process.env.PRESTRUCT_BUILD === '1') {
+        console.log('[copy-godot-web] prestruct build: deferring /game/ copy until after prerender/audit');
+        return;
+      }
       // The Godot WASM client lives in web/ (index.html + game.js +
       // game.pck + workers). Vite only copies public/ into dist/, so
       // production deploys lost the engine unless this runs. Ship the

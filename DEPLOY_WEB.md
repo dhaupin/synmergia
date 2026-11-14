@@ -33,10 +33,11 @@ Layout law:
   URL still resolves on dev/preview for old bookmarks — never link
   to it from new code.
 - `src/` is the site (Vite + React + Tailwind v4 tokens, prerendered
-  by prestruct at build time: `npm run build` = `vite build` +
-  `scripts/prerender.js`, see `ssr.config.js` for the route list).
+  by the published `prestruct` package at build time: `npm run build`
+  = `sync:data` + `tsc` + `prestruct build` + the deferred `/game/`
+  copy; see `ssr.config.js` for the route list).
 
-Stack: Vite 7 · React 19 · react-router-dom 6 · Tailwind v4
+Stack: Vite 6 · React 18 · react-router-dom 6 · Tailwind v4
 (Bolete-style token architecture, dark Nocturne first) · prestruct
 prerender · Cloudflare Pages.
 
@@ -355,7 +356,7 @@ Notes:
 ```bash
 bun install
 bun run dev        # site at :3000, /game/ served from web/ by the middleware
-bun run build      # site + prerender (5 routes) into dist/
+bun run build      # site + prerender (10 routes) into dist/
 bun run preview    # serve dist/ as the host would (headers included)
 ```
 
@@ -380,7 +381,7 @@ prod.
 | Truth line says `dev` | pack built outside CI | run `web-ci.yml` workflow (dispatch) or set the hash manually |
 | Gate always rejects | env var missing → hash is '' | set it in Pages env + **redeploy** |
 | Pack never updates | hash file cached | confirm `/game/game.pck.hash` returns `no-cache` |
-| 404 on `/play` | `dist/play/index.html` missing | prerenderer failed → push again; it fails open as SPA |
+| 404 on `/play` | `dist/play/index.html` missing | prestruct prerender failed — fix the route error and rerun; the build fails closed |
 
 ---
 

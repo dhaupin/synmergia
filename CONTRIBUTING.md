@@ -66,7 +66,7 @@ The website checks:
 
 ```bash
 npm run lint      # tsc --noEmit
-npm run build     # type-check + vite build + prerender
+npm run build     # type-check + prestruct build (prerender)
 ```
 
 **Tests are the arbiter.** A change is not done until the relevant probes

@@ -19,6 +19,7 @@
         "@types/react-dom": "^18.3.5",
         "@vitejs/plugin-react": "^4.3.4",
         "gamestruct": "github:dhaupin/gamestruct#447a0e4ae7aaaa3f338b56300dbb55481cdb2e14",
+        "prestruct": "^1.5.1",
         "tailwindcss": "^4.3.5",
         "tsx": "^4.23.13",
         "typescript": "^7.0.2",
@@ -366,6 +367,8 @@
     "picomatch": ["picomatch@4.0.7", "", {}, "sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA=="],
 
     "postcss": ["postcss@8.5.28", "", { "dependencies": { "nanoid": "^3.3.18", "picocolors": "^1.1.1", "source-map-js": "^1.2.1" } }, "sha512-RRuzqDtt5Y9h3quz5hWhK+TPnsmVs6WwSU6LkJMeY4HstUEDuYTG8UJSdawMRzmzAtV+KEoG8N3Qg2qLy5vM/A=="],
+
+    "prestruct": ["prestruct@1.5.1", "", { "peerDependencies": { "react": ">=18 <20", "react-dom": ">=18 <20", "react-router-dom": ">=6 <8", "vite": ">=5 <9" }, "bin": { "prestruct": "bin/cli.mjs" } }, "sha512-pGhQLYyQxLGXszB+PtW1I335Ew6sAvz6B0OajiAi2mKrBfowde6X0/ZxxfNS8e67TN3R+mbjW0FqbDP7pAc8Xg=="],
 
     "react": ["react@18.3.1", "", { "dependencies": { "loose-envify": "^1.1.0" } }, "sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ=="],
 
