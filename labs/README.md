@@ -54,6 +54,7 @@ questions live.
 | [`prd-web.md`](./prd-web.md) | ACTIVE | Web client, portal, admin |
 | [`prd-quests.md`](./prd-quests.md) | ACTIVE | Quests and achievements |
 | [`prd-social-instances.md`](./prd-social-instances.md) | ACTIVE | Social layer around instanced rooms |
+| [`prd-matchmaking.md`](./prd-matchmaking.md) | ACTIVE | The fifth service: bout queues, party blocks, gate entry and the QoS seam |
 | [`prd-duel.md`](./prd-duel.md) | ACTIVE | Consensual 1v1: open-world honor duel and instanced lobby handshake |
 | [`prd-elimination.md`](./prd-elimination.md) | ACTIVE | Haven Coliseum: one life, last team standing |
 | [`prd-tdm.md`](./prd-tdm.md) | ACTIVE | Haven Sandpit: respawns, spawn shield, first to 20 kills |

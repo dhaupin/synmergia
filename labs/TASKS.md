@@ -78,6 +78,11 @@ environment/CI-only until proven otherwise.
 
 ## RECENT SESSIONS (verbatim, in log order -- newest block at top)
 
+## 2026-11-14 -- matchmaking docs coverage: index + gate receipts
+- SESSION CONTEXT: the PvP/matchmaking wiring round (`084b0acf`) added the fifth-service PRD and the gate wiring. The new PRD was the only top-level lab doc missing from the README index.
+- DOCS: `labs/prd-matchmaking.md` is now in the product table next to the four mode PRDs. No prose changed. The docs link gate remains green.
+- WIRING VERIFIED: `probe_lobby_service` PASS (6s) and `probe_bout_host` PASS (5s) against the current tree; no code changes were needed.
+- NEXT: the PRD verdict census and the `world-building-*` consolidation remain the docs-round queue.
 
 ## 2026-11-17 -- mesh player routing: the shard roster is fed (Lane A, staging, no PRs)
 - SESSION CONTEXT: prior session nuked; owner asked to survey the codebase and pick a lane-A (high-level systems) target, then push (no PR yet). Lane A = `game/core/**`, `game/adapters/**`, `labs/prd-*.md`.
