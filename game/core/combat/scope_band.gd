@@ -15,8 +15,8 @@
 ##
 ## Pure and autoload-free (const-preloaded like CombatMath / CcImmunity) so
 ## script-mode probes resolve it without a scene tree.
-class_name ScopeBand
 extends RefCounted
+class_name ScopeBand
 
 ## Scope a reach can cross. LOCAL never leaves the current world root; the
 ## higher rungs name the boundary a mythic-tier verb may step over.

@@ -122,8 +122,19 @@ func _bind_zone_signals() -> void:
 
 func _on_zone_loaded(zone_data) -> void:
 	sync_landmark_markers()
-	if zone_data and "name" in zone_data:
-		set_zone_name(zone_data.name)
+	if zone_data:
+		var zone_name: String = str(zone_data.display_name) if "display_name" in zone_data else "Zone"
+		var zone_id: String = str(zone_data.id) if "id" in zone_data else ""
+		var territory_service = _territory_service()
+		if territory_service and zone_id != "":
+			zone_name = territory_service.zone_label(zone_id, zone_name)
+		set_zone_name(zone_name)
+
+func _territory_service():
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null or tree.root == null:
+		return null
+	return tree.root.get_node_or_null(NodePath("TerritoryService"))
 
 func _setup_ui() -> void:
 	name = "WorldMap"

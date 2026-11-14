@@ -79,6 +79,7 @@ always, for every prefixed family.
 | `npc/` | `npc_` | `npc_blacksmith_village` |
 | `zones/` | `zone_` | `zone_starter_plains` |
 | `factions/` | `faction_` | `faction_human` |
+| `territories/` | `terr_` | `terr_starter_plains` |
 | `currencies/` | `currency_` | `currency_gold` |
 | `mounts/` | `mount_` | `mount_plains_runner` |
 | `vehicles/` | `veh_` | `veh_haven_ferry` |
@@ -121,6 +122,7 @@ written in the **same order** the schema exports them.
 | `enemies/` | `enemy_data.gd` |
 | `zones/` | `zone_data.gd` |
 | `factions/` | `faction.gd` |
+| `territories/` | `territory_data.gd` |
 | `currencies/` | `currency_data.gd` |
 | `mounts/`, `gliders/` | `mount_data.gd` |
 | `vehicles/` | `vehicle_data.gd` |
@@ -193,8 +195,9 @@ set a non-zero `weapon_type`.
 Armor types (`ArmorType`): `0 NONE, 1 CLOTH, 2 LEATHER, 3 MAIL, 4 PLATE`.
 An armor must set a non-zero `armor_type`.
 
-Rarity (`Rarity`): `0 COMMON, 1 UNCOMMON, 2 RARE, 3 EPIC, 4 LEGENDARY,
-5 MYTHIC`.
+Rarity (`Rarity`, sourced from `GameTier`): `0 COMMON, 1 RARE, 2 EPIC,
+3 LEGENDARY, 4 MYTHIC`. `UNCOMMON` is retired (2026-11-14) and the ladder
+is five rungs everywhere -- skills, items, titles, achievements.
 
 Purse law for items: `sell_price >= 0`, `buy_price >= 0`, and when
 `buy_price > 0` then `sell_price < buy_price`. A `0 / 0` purse is legal

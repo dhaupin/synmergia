@@ -8,6 +8,7 @@ that were abandoned, or approaches that were never implemented.
 
 | Path | What it is |
 | --- | --- |
+| `prd/prd-spatial-geometry.md` | Superseded geometry slice; merged into `../prd-geometry.md`. |
 | `prd/prd-planar-retirement.md` | Completed PRD. The planar world is retired and its gameplay setups now live on the globe; history only. |
 | `audit/gap-analysis-2026-08-31.md` | Gap analysis from before the vertical slice. |
 | `audit/m3-initial-world-audit.md` | 2026-09-05 code-state snapshot ("where we are today" at the time). |

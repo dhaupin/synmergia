@@ -2,12 +2,12 @@ name: Web PCK & Validation CI
 
 on:
   push:
-    branches: [main]
+    branches: [staging, main]
     paths:
       - 'game/**'
       - '.github/workflows/web-ci.yml'
   pull_request:
-    branches: [main]
+    branches: [staging, main]
     paths:
       - 'game/**'
       - '.github/workflows/web-ci.yml'

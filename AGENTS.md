@@ -443,6 +443,7 @@ exist.
 | `RespawnService` | Player respawn logic |
 | `DeathFeatures` | Death screen, corpse, recovery options |
 | `FactionManager` | Faction relationships and PvP modes |
+| `TerritoryService` | Zone-group ownership, claims, war contests (`data/territories/`) |
 | **Account & login** | |
 | `AccountService` | Account creation, password reset |
 | `LoginService` | Login + character selection |
@@ -1162,6 +1163,10 @@ the file existed ONLY in the sandbox when the disk filled, and
   and running `git push` normally is the whole job. (Do NOT use
   `--no-verify` to get past a hook — if a hook fails, fix the cause;
   see the Git LFS note below.)
+- **The repo is public (since 2026-11-14).** Actions minutes are free, so
+  the old "staging saves the bill" rationale is gone; the staging-first flow
+  stays because staging is the integration/review branch, and `main` is
+  promoted from it.
 
 ### Bound the logs
 
@@ -1260,12 +1265,12 @@ engine binary is provisioned by `scripts/setup-dev.sh`, not by LFS.
   the runner's DEFAULT_SET, so CI never ran them. When you add a test,
   register it in `scripts/godot_test_runner.sh` DEFAULT_SET or it is dead
   weight.
-- **CI does NOT gate staging.** `.github/workflows/web-ci.yml` and
-  `web-lockfile-guard.yml` both trigger on `pull_request: branches: [main]`
-  only -- a PR into `staging` runs **no** Godot test workflow. Cloudflare
-  Pages may post a preview check (only when web-affecting paths change).
-  So the gate for a staging PR is a manual `DEFAULT_SET` run on the branch,
-  not a green check. Do not wait on Actions for a staging PR.
+- **CI gates staging (updated 2026-11-14).** `godot-ci.yml` runs the
+  `DEFAULT_SET` on PRs to `staging`/`main` and on staging pushes;
+  `docs-ci.yml` checks relative Markdown links; `web-ci.yml` now includes
+  `staging` in its triggers. The local runner is still the faster loop and
+  the place to reproduce a red check, but a staging PR now has a real
+  Godot + docs gate.
 - **Known pre-existing failures** on clean staging: `probe_riding` and
   `probe_planet_rebase_20km` (plus historically `probe_world_lattice`).
   A full run is ~154 passed / 2 failed; those two are the floor.

@@ -1,5 +1,9 @@
 # 3D & Modeling Pipeline (Blender -> Godot)
 
+> **See also:** [`prd-art-pipeline.md`](./prd-art-pipeline.md) - Lane D, the
+> asset-generation lane that consumes this pipeline law. This doc owns the
+> toolchain/import law; Lane D owns the per-suite generation adapters.
+
 > **Status:** PROVEN 2026-09-25 -- blacksmith NPC generated, exported,
 > imported, animated, and probed end-to-end in this repo. Screenshot:
 > `art/screenshots/npc_blacksmith_village.png`. Install blender once

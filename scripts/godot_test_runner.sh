@@ -152,6 +152,8 @@ test_canon_bosses
 test_house_catalog
 test_landmark_catalog
 test_map_landmark_wiring
+test_territory_service
+test_presolve_props
 test_zenith_capstone
 test_item_use
 test_a11y_service

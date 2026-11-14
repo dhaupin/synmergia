@@ -80,7 +80,7 @@ Two distinct addressing stacks, both LIVE:
 
 | System | State | Verdict |
 |--------|-------|---------|
-| `srv/julia-bridge/presolve.jl` | Facet 2 LANDED: `core/world/presolve_props.gd` consumes the validated maps and `globe_world` calls `_install_presolve_props()` at boot; `TerrainGen.install_presolve` is the writer. | **DONE** (2026-11-14 update -- no longer an unconsumed artifact). |
+| `srv/julia-bridge/presolve.jl` | Parity oracle for `test_julia_parity` (frame math). Its prop sibling `prop_presolve.jl` emits `data/presolve/props_main.txt`, consumed at boot by `PresolveProps` -> `TerrainGen.install_presolve`. | **KEEP** (oracle); prop presolve **DONE** (2026-11-14). |
 | `core/services/multi_iso_service.gd` | Autoload, `enabled=true`; degrades to empty when no sidecar answers. Its one real consumer is `EntityService.entity_registered`. | **KEEP** -- now live and wired (this round). |
 | `RedisShardBus` / `RedisStore` | Fully implemented (43 methods) but the dev path defaults to memory; nothing sets `SHARD_BUS_BACKEND=redis`. | **MIGRATE** (Facet 4): wire into dev so the cross-process bus runs. |
 
@@ -119,7 +119,7 @@ endpoint remains in `game/`:
 | `srv/pg-bridge` | `adapters/persistence/postgres_store.gd` via `PG_BRIDGE_URL` | KEEP |
 | `srv/redis-bridge` | `adapters/cache/redis_store.gd` via `REDIS_BRIDGE_URL`; shard bus opt-in (`SHARD_BUS_BACKEND=redis`) | KEEP (dev default still memory -- documented, not dead) |
 | `srv/webhook-bridge` | `core/economy/webhook_transport.gd` + `network_manager.gd` poller | KEEP |
-| `srv/julia-bridge` | `core/services/multi_iso_service.gd` (autoload, `enabled=true`) | KEEP; `presolve.jl` is the unconsumed artifact (PORT) |
+| `srv/julia-bridge` | `core/services/multi_iso_service.gd` (autoload, `enabled=true`) | KEEP; prop presolve artifacts are consumed at boot, `presolve.jl` is a test oracle |
 | `srv/backup` | deployment scripts/docs, not game code | KEEP |
 
 Also verified comment-only (no live symbol references anywhere in `game/*.gd`):

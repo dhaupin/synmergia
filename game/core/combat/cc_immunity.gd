@@ -10,8 +10,8 @@
 ## Lives apart from status_effect.gd on purpose: that file preloads entity.gd,
 ## so referencing StatusEffect from entity.gd would be a preload cycle. Both
 ## sides preload this leaf instead.
-class_name CcImmunity
 extends RefCounted
+class_name CcImmunity
 
 ## Canonical control tags. A `cc_tag` on an incoming effect names one of
 ## these; an `immune_tags` entry on a carrier refuses one.

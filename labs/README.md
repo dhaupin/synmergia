@@ -47,6 +47,10 @@ questions live.
 | --- | --- | --- |
 | [`prd.md`](./prd.md) | ACTIVE | Product spec, progression, game-wide laws |
 | [`prd-world.md`](./prd-world.md) | ACTIVE | World topology and player experience |
+| [`prd-guild.md`](./prd-guild.md) | ACTIVE | Guilds: ranks, bank, alliances, territory claims, persistence gaps |
+| [`prd-factions.md`](./prd-factions.md) | ACTIVE | Authored factions, reputation, war lifecycle, territory stakes |
+| [`territory-system.md`](./territory-system.md) | ACTIVE | Territory ownership: schema, service, guild/war wiring, limits |
+| [`prd-housing.md`](./prd-housing.md) | ACTIVE | Housing plots, house tiers, guards, ankhs, stations, persistence gaps |
 | [`prd-web.md`](./prd-web.md) | ACTIVE | Web client, portal, admin |
 | [`prd-quests.md`](./prd-quests.md) | ACTIVE | Quests and achievements |
 | [`prd-social-instances.md`](./prd-social-instances.md) | ACTIVE | Social layer around instanced rooms |
@@ -65,7 +69,7 @@ questions live.
 | [`art-direction.md`](./art-direction.md) | ACTIVE | Style bible |
 | [`data-authoring-baseline.md`](./data-authoring-baseline.md) | ACTIVE | How `.tres` content is authored and gated |
 | [`prd-openhands-canvas.md`](./prd-openhands-canvas.md) | ACTIVE | Parallel agent lanes and their conventions |
-| [`OSS-AUDIT.md`](./OSS-AUDIT.md) | REFERENCE | MIT-readiness audit |
+| [`OSS-AUDIT.md`](./OSS-AUDIT.md) | REFERENCE | Open-source launch audit + post-public hardening |
 | [`AGENTS_LOG.md`](./AGENTS_LOG.md) | REFERENCE | Archived AGENTS.md round logs (91 entries, 2026-10-28 .. 2026-11-16); history, not current law |
 | [`jolt-playground/`](./jolt-playground/README.md) | REFERENCE | Jolt Physics evaluation plan; point-in-time |
 | [`polyglot-ffi/`](./polyglot-ffi/README.md) | REFERENCE | Polyglot FFI port plan (cherry-picked from vant) |
@@ -92,7 +96,7 @@ claim against the code before citing it as current.
 [`prd-login-seed-chain`](./prd-login-seed-chain.md) · [`prd-manifest-backup`](./prd-manifest-backup.md) ·
 [`prd-state-schema`](./prd-state-schema.md) · [`prd-t3-substrate`](./prd-t3-substrate.md) ·
 [`prd-scope-engine`](./prd-scope-engine.md) · [`prd-geometry`](./prd-geometry.md) ·
-[`prd-spatial-geometry`](./prd-spatial-geometry.md) · [`prd-world-layers`](./prd-world-layers.md) ·
+[`prd-world-layers`](./prd-world-layers.md) ·
 [`prd-multiworld`](./prd-multiworld.md) · [`prd-spherical-mvp`](./prd-spherical-mvp.md) ·
 [`prd-underworld`](./prd-underworld.md) · [`prd-ward-gate`](./prd-ward-gate.md) ·
 [`prd-mounts`](./prd-mounts.md) · [`prd-crafting`](./prd-crafting.md) ·
@@ -155,9 +159,11 @@ Proposed passes, cheapest first. Nothing here is started unless noted.
 1. **DONE 2026-11-14 — `TASKS.md` condensation.** 10,337 -> 1,015 lines:
    digest + 68 recent sessions, 163 older sections verbatim in
    `TASKS_ARCHIVE.md`. Next condensation when the file passes ~2.5k lines.
-2. **`prd-geometry` + `prd-spatial-geometry`** — two docs, one subject (the
-   Vant fragmenter port), 375 + 199 lines. Merge into one, keep the addressing
-   verdicts. Editorial; not yet done.
+2. **DONE 2026-11-14 — `prd-geometry` + `prd-spatial-geometry`.** The
+   spatial doc was a subset of the canonical one (both fragmenters, bit
+   layout, service wiring); it is archived at
+   `archive/prd/prd-spatial-geometry.md` and `prd-geometry.md` is the single
+   source of truth. 375 + 199 -> 376 lines.
 3. **`prd-art-pipeline` + `prd-3d-pipeline`** — overlapping asset-pipeline
    docs, 88 + 198 lines. One lane document with two sections. Not yet done.
 4. **`prd-dialogue` + `story-dialogue-creative-voice`** — 633 + 219 lines; the

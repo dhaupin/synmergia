@@ -1614,18 +1614,6 @@ func _run() -> void:
 	else:
 		_fail("Phantom species home_zone refs: %s" % ", ".join(bad_home_zones))
 
-	# --- Faction controlled_zones must name real zones ---
-	var bad_ctrl_zones: Array = []
-	for fb in faction_ids:
-		var fctxt := _file_text("data/factions", fb)
-		for cz in _string_array_field(fctxt, "controlled_zones"):
-			if not zone_id_set.has(cz):
-				bad_ctrl_zones.append("%s -> %s" % [str(faction_ids[fb]), cz])
-	if bad_ctrl_zones.is_empty():
-		_ok("Faction controlled_zones refs all resolve")
-	else:
-		_fail("Phantom faction controlled_zones refs: %s" % ", ".join(bad_ctrl_zones))
-
 	# --- Faction relations must name real factions, symmetrically ---
 	# A relation to a faction that does not exist (elf_faction/dwarf_faction were
 	# both phantoms) can never resolve; and a one-sided relation makes

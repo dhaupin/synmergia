@@ -686,26 +686,30 @@ See `core/services/vendor_service.gd`, `core/services/trade_service.gd`.
 
 ## 8. Player Housing
 
-> **In Progress:** Placement, customization, functionality.
+> **Status: PARTIAL (2026-11-14).** The plot purchase, three house tiers,
+> house guard, personal ankh and functional station commands ship. Housing
+> is runtime-only: plots reset on restart. See
+> [`prd-housing.md`](./prd-housing.md) for the canonical contract and gaps.
 
 ### 8.1 Housing Features
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Placement System** | Choose plot in designated zones | P1 |
-| **House Types** | Small, medium, large, mansion | P1 |
-| **Interior Customization** | Furniture, decorations, trophies | P1 |
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Placement System** | Buy the demo plot with `/buyplot`; one plot per player | ✅ Service, one scene-registered plot |
+| **House Types** | Claim / Cottage / Hall from `data/houses/` | ✅ Three tiers; no mansion |
+| **Interior Customization** | Furniture, decorations, trophies | P1 — no general furniture placement |
 | **Exterior Customization** | House skin, garden, mounts displayed | P1 |
 | **Storage** | Additional chest space at home | P1 |
-| **Crafting Stations** | Functional workbenches at home | P1 |
+| **Crafting Stations** | Functional workbenches at home | ✅ `/placestation` consumes the item |
 | **Teleport Home** | Easy recall to house | P1 |
-| **Guild Houses** | Shared guild housing | P2 |
+| **Guild Houses** | Shared guild housing | P2 — `PlacementAccess` seam only |
 
 ### 8.2 Housing Open Questions
 
 - [ ] Instanced vs shared world housing?
 - [ ] Housing demolition/relocation?
 - [ ] Housing permissions (friends, guild)?
+- [ ] Persist plots and placed objects, or keep housing session-scoped?
 
 ---
 
@@ -721,7 +725,7 @@ See `core/services/vendor_service.gd`, `core/services/trade_service.gd`.
 | **Contested Zones** | PvP enabled, no full loot | ✅ Implemented |
 | **PvP Zones** | Full loot enabled | ✅ Implemented |
 | **Arena/PvP Battlegrounds** | Structured PvP content | P1 |
-| **Guild War System** | Declare war, territory control | P1 |
+| **Guild War System** | Declare war, territory control | P1 — territory claims ship; guild wars do not |
 
 ### 9.2 Full Loot Mechanics
 
@@ -793,11 +797,13 @@ See `core/services/friends_service.gd` and `ui/social/friends_list.gd`.
 | **Guild Ranks** | Customizable roles/permissions | ✅ Implemented |
 | **Guild Bank** | Shared storage | ✅ Implemented |
 | **Guild Chat** | Guild-only chat | ✅ Implemented |
-| **Guild Wars** | Declare on other guilds | ✅ Implemented |
+| **Territory Claims** | `/claim` under `MANAGE_GVG`; a 50-influence claim contests but does not unseat a 100-influence holder | ✅ Implemented |
+| **Guild Wars** | Declare on other guilds | P1 — no guild war record yet |
 | **Guild Upgrades** | Guild hall, buffs, perks | P1 |
-| **Alliance** | Multiple guilds allied | P2 |
+| **Alliance** | Multiple guilds allied | ✅ Service-level; UI polish P2 |
 
-See `core/services/guild_service.gd` and `ui/social/guild_ui.gd`.
+See `core/services/guild_service.gd` and `ui/social/guild_ui.gd`. Canonical:
+[`prd-guild.md`](./prd-guild.md).
 
 ### 10.5 Achievements
 
@@ -819,13 +825,14 @@ See `core/services/achievement_service.gd` and `ui/social/achievement_ui.gd`.
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| **Faction Reputation** | Player standing with each faction | ✅ Implemented |
-| **War Declarations** | Declare war on enemy factions | ✅ Implemented |
-| **Guild Alliances** | Guilds can ally with factions | ✅ Implemented |
-| **War Cooldowns** | 24-hour cooldown between war declarations | ✅ Implemented |
-| **War Costs** | 10,000 gold to declare war | ✅ Implemented |
+| **Faction Reputation** | Player standing with each faction | ✅ Runtime (persistence gap) |
+| **War Declarations** | Admin-gated `/war declare`; player faction leadership pending | 🟡 Admin-only |
+| **Guild Alliances** | Guilds can ally with factions | ✅ Service-level |
+| **War Cooldowns** | 24-hour cooldown between war declarations | ✅ Runtime |
+| **War Costs** | 10,000 gold constant exists; no purse is charged yet | ❌ Not enforced |
 
-See `core/services/faction_manager.gd`.
+See `core/services/faction_manager.gd`. Canonical:
+[`prd-factions.md`](./prd-factions.md).
 
 ### 10.8 Death System
 

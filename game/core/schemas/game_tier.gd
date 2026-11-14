@@ -18,8 +18,8 @@
 ##   epic      purple
 ##   legendary orange
 ##   mythic    red
-class_name GameTier
 extends RefCounted
+class_name GameTier
 
 ## Rung names, low to high. Index i is tier value i.
 const NAMES: Array = ["common", "rare", "epic", "legendary", "mythic"]

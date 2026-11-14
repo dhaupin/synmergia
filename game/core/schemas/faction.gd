@@ -58,8 +58,8 @@ enum {
 @export var is_joinable: bool = true
 @export var is_default: bool = false  # Player starts in this faction
 
-# Territory (zone IDs this faction controls)
-@export var controlled_zones: Array[String] = []
+# Territory control lives in TerritoryData (data/territories/) and
+# TerritoryService; this schema intentionally carries no zone list.
 
 # War/cooldown timers
 var _war_timers: Dictionary = {}  # faction_id: timestamp when war can end
@@ -115,6 +115,5 @@ func get_info() -> Dictionary:
 		"type": FactionType.keys()[faction_type],
 		"pvp_rule": PvPRule.keys()[pvp_rule],
 		"peaceful_until_level": peaceful_until_level,
-		"relations_count": relations.size(),
-		"controlled_zones": controlled_zones
+		"relations_count": relations.size()
 	}

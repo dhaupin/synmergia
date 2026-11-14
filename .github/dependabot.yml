@@ -1,0 +1,28 @@
+version: 2
+# Version updates only. Dependabot security updates are a repo setting and
+# still need enabling in Settings -> Code security (see labs/OSS-AUDIT.md §7).
+updates:
+  - package-ecosystem: "bun"
+    directory: "/"
+    target-branch: "staging"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 4
+    groups:
+      bun-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "staging"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    target-branch: "staging"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 2

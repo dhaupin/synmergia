@@ -10,6 +10,24 @@ not a promise — re-verify anything marked done after a big merge.
 
 Legend: `[x]` done · `[~]` partial / needs a decision · `[ ]` open · `[!]` blocker
 
+## Status (2026-11-14 — the repo is public)
+
+The flip happened: **`dhaupin/synmergia` is a public GitHub repository**
+(MIT detected by GitHub, description + topics set). This audit is no longer
+a pre-launch gate; it is the **post-public hardening tracker**. What that
+changes:
+
+- The four launch blockers below are closed; the remaining open items are
+  operational hardening, not conditions on being public.
+- **`labs/` disclosure is decided by reality:** it ships in the public tree
+  (live `TASKS.md` 221 KB, `TASKS_ARCHIVE.md` 1.09 MB, `AGENTS_LOG.md` 428 KB).
+  The radical-transparency path was taken; anything sensitive found later
+  must be **rotated**, not just deleted, because history is public.
+- Verified on the public repo (2026-11-14): secret scanning, push
+  protection and Dependabot security updates are all **disabled**. Version
+  updates are now configured in-repo (`.github/dependabot.yml`); the security
+  updates and dependency-review settings remain the live gaps in §2/§7.
+
 ---
 
 ## Progress (2026-11-11 — the build-out round)
@@ -37,10 +55,10 @@ receipt):
   key. `scripts/cairn_recover.sh` sets `VANT_ALLOW_FILENAME_PW=true`.
 - **§8 partially DONE:** site `/opensource` links the new docs; README
   links the repo + contributing path.
-- **Still open (owner decisions / ops, not blockers):** wasm/pck weight
-  (§4) — LFS vs release artifacts; `labs/` disclosure posture (§5);
-  Dependabot + branch protection + secret scanning (§7); GitHub repo
-  description/topics/social preview (§8). These are recorded, not done.
+- **Post-public state (2026-11-14):** the repo is public. Description and
+  topics are set, and `labs/` ships as-is. Still open: wasm/pck weight
+  (§4), Dependabot + branch protection + secret scanning/push protection
+  (verified disabled, §7), social preview (§8).
 
 ---
 
@@ -91,7 +109,8 @@ receipt):
 - [x] **The `/play` and `/admin` password hashes are not committed.** The
       gate compares against `VITE_*_PASSWORD_SHA` build-time env; no
       plaintext or hash is in the tree.
-- [ ] **Run a dedicated scanner anyway before flipping public.** (Still open.) Add
+- [ ] **Run a dedicated scanner on the now-public tree.** (Still open; GitHub
+      secret scanning + push protection are disabled on the repo as of 2026-11-14.)
       `gitleaks` / `trufflehog` (or GitHub's push-protection + secret
       scanning) as a one-time sweep, not just grep. Grep misses encodings.
       Enable **GitHub secret scanning + push protection** on the repo.
@@ -174,15 +193,14 @@ compatible license or a written grant.
 
 ## 5. Internal / operational information disclosure
 
-Going public publishes **all docs and history**, including operational
+Going public published **all docs and history**, including operational
 detail you may not want strangers reading.
 
-- [ ] **Review `labs/` before publish.** It is a large internal design +
-      session-log corpus (`TASKS.md` alone is ~770 KB) that names infra,
-      accounts, deploy steps, and people. Decide: publish as-is (radical
-      transparency — fits the "built in the open" voice), publish a curated
-      subset, or keep `labs/` private. If published, scan for anything you
-      would not say in public.
+- [x] **`labs/` disclosure — RESOLVED by going public (2026-11-14).** It
+      ships as-is: the live board (221 KB) plus the verbatim archive
+      (1.09 MB) and agent log (428 KB). The radical-transparency path was
+      chosen; future sensitive finds must be rotated, not merely deleted.
+
 - [ ] **Scrub or accept production identifiers.** Tracked docs name
       `synmergia.creadev.org`, `play.synmergia.com`, R2 bucket bindings,
       Cloudflare Pages project names, and the deploy/rotate procedure
@@ -233,13 +251,20 @@ files are the difference.
       Make sure the *server* is the authority (it is, per the architecture)
       and that nothing client-side is trusted. This is a design audit, not
       a doc.
-- [ ] **Dependency + supply-chain automation.** Enable Dependabot (or
-      Renovate), `npm audit` in CI, and GitHub's dependency review. An
-      open repo attracts dependency-confusion and typo-squatting attempts.
-- [ ] **Branch protection on `main`.** Require PR review + passing CI
-      before merge once the repo is public (you currently push direct to
-      `staging`/`main` — fine pre-launch, not for a public repo).
-- [ ] **Secret scanning + push protection** enabled (repeat of §2, but it
+- [x] **Dependency + supply-chain automation (version updates).**
+      `.github/dependabot.yml` covers Bun (`bun.lock`), GitHub Actions and
+      Docker against `staging`. Still ops-only: enable Dependabot **security**
+      updates and dependency review in repo settings, and add `bun audit` to
+      CI. An open repo attracts dependency-confusion and typo-squatting
+      attempts.
+- [x] **PR gates for `staging` and `main`.** `godot-ci.yml` runs the
+      default Godot set, `docs-ci.yml` checks relative Markdown links, and
+      `web-ci.yml` now includes staging. Remaining ops: branch protection
+      still allows direct pushes; turn it on once the new checks have run
+      green on a PR.
+
+- [ ] **Secret scanning + push protection** enabled (repeat of §2; verified
+      DISABLED on the public repo 2026-11-14).
       belongs in the operational checklist too).
 - [ ] **Confirm CI does not leak.** Artifacts, logs, and PR builds must not
       expose secrets or internal endpoints to fork PRs.
@@ -250,9 +275,10 @@ files are the difference.
 
 ## 8. Release metadata & presentation (first impression)
 
-- [ ] **Repo description + topics on GitHub.** One line ("Browser-first
-      spherical-world MMORPG — MIT") + topics (`godot`, `mmorpg`,
-      `gdscript`, `webassembly`, `open-source`).
+- [x] **Repo description + topics — DONE (verified 2026-11-14).** Description
+      set; 11 topics including `godot`, `mmorpg`, `gdscript`, `mit-license`,
+      `oss`.
+
 - [ ] **Social preview image.** Use the existing OG card
       (`public/og-image.png`).
 - [ ] **README top**: a one-line pitch, a screenshot/GIF, a "Play now"
@@ -269,9 +295,9 @@ files are the difference.
 
 ---
 
-## The short version — blockers before flipping public
+## The short version — launch blockers (all closed)
 
-If you do nothing else, these four are the ones that matter:
+The four that mattered:
 
 1. **[x] Godot license notice** shipped with the web export (§3) —
    DONE (`web/LICENSE.godot.txt`).
@@ -282,8 +308,9 @@ If you do nothing else, these four are the ones that matter:
 4. **[x] Asset license sweep + explicit carve-out** (§3) — DONE
    (`CREDITS.md` + `TRADEMARK.md`).
 
-Everything else is polish, but the repo weight (§4), the `labs/` disclosure
-decision (§5), and branch protection (§7) are the next tier.
+Everything else is hardening. **Post-public tier (still open):** repo weight
+(§4), branch protection + secret scanning (§7), social preview (§8). The
+`labs/` question is moot — it ships with the public repo (§5).
 
 ---
 
@@ -297,6 +324,6 @@ Resolved 2026-11-11:
 - **Contributions:** DCO-style `Signed-off-by` requested (no CLA).
 
 Still open:
-- Is `labs/` public, curated, or private? (The repo currently publishes it.)
+- `labs/` is public (the repo is public); keep as-is or curate later.
 - Does the wasm/pck stay tracked, or move to LFS / release artifacts?
 - Dependabot + branch protection + secret scanning (§7) — ops posture.

@@ -19,8 +19,8 @@
 ##   MODIFIER  floats layered on a base -- MULT_KEYS on 1.0, the rest on 0.0
 ## A modifier key in MULT_KEYS is a DELTA added to the 1.0 base (a +20%
 ## haste is authored as 0.2), matching StatusEffect._apply_combat_modifiers.
-class_name StatId
 extends RefCounted
+class_name StatId
 
 ## The six primaries. Flat integers, base 10, raised by allocation.
 const PRIMARY: Array = [

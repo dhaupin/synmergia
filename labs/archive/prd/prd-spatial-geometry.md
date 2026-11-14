@@ -1,5 +1,11 @@
 # PRD: Spatial Geometry Fragmenter (Vant  ->  Synmergia)
 
+> **MERGED AND ARCHIVED 2026-11-14.** This was the spatial-only slice of the
+> geometry port. [`prd-geometry.md`](../../prd-geometry.md) is now the single
+> canonical doc: it carries both fragmenters, the bit-layout/addressing
+> verdicts and the acceptance criteria. Kept for history only.
+
+
 > **For:** geometry layer implementation
 > **Phase:** 4 (per `world-building-arch.md` sec. 11.4, sec. 14, sec. 16)
 > **Depends on:** `prd-geometry.md` (data fragmenter), `game/core/frame/math/nsc9.gd`, `game/core/frame/math/icosahedral.gd`
@@ -22,9 +28,9 @@ The spatial geometry fragmenter decomposes discrete spatial cells (icosahedral f
 - **Deterministic:** same input  ->  same output, always
 
 **Spec refs:**
-- [`world-building-arch.md`](./world-building-arch.md) sec. 16 (Geometric addressing)
-- [`world-building-arch.md`](./world-building-arch.md) sec. 13 Component map
-- [`prd-geometry.md`](./prd-geometry.md) (data fragmenter baseline)
+- [`world-building-arch.md`](../../world-building-arch.md) sec. 16 (Geometric addressing)
+- [`world-building-arch.md`](../../world-building-arch.md) sec. 13 Component map
+- [`prd-geometry.md`](../../prd-geometry.md) (data fragmenter baseline)
 
 ## 2. Goals
 
