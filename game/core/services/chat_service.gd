@@ -1172,10 +1172,29 @@ func _mesh_report() -> String:
 		ids.sort()
 		lines.append("  registry: %d shard(s) -- %s" % [
 			ids.size(), ", ".join(ids) if not ids.is_empty() else "(none)"])
+		lines.append("  " + _mesh_player_line(coord, ids))
 
 	var bus := _mesh_bus_line()
 	lines.append("  " + bus)
 	return "\n".join(lines)
+
+## The player-roster line: per-shard live player counts from the
+## coordinator's roster (the leg GameManager feeds on join/leave). Read-only;
+## reports total + the busiest shards. Falls back honestly when the roster
+## API is absent.
+func _mesh_player_line(coord, ids: Array) -> String:
+	if not coord.has_method("get_shard_info"):
+		return "players: (roster unavailable)"
+	var total := 0
+	var parts: Array = []
+	for sid in ids:
+		var info: Dictionary = coord.get_shard_info(String(sid))
+		var n := int(info.get("player_count", 0))
+		total += n
+		parts.append("%s=%d" % [String(sid), n])
+	if parts.is_empty():
+		return "players: 0 online"
+	return "players: %d online (%s)" % [total, ", ".join(parts)]
 
 ## The bus line: the default bus id from CoordinatorService's registry.
 func _mesh_bus_line() -> String:

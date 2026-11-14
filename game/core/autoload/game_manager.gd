@@ -355,12 +355,58 @@ func _initialize_world_services() -> void:
 func _on_player_joined(player, _metadata: SpawnMetadata) -> void:
 	if ShardManager:
 		ShardManager.player_connected()
+	# The mesh registry's player truth: assign this player to THIS shard so
+	# the coordinator's roster (per-shard player_count, get_online_players,
+	# cross-shard routing) tracks real logins. Idempotent per player.
+	_assign_player_to_mesh(player)
 	if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Player joined: %s" % player.display_name)
 
 func _on_player_left(player, _metadata: SpawnMetadata) -> void:
 	if ShardManager:
 		ShardManager.player_disconnected()
+	_release_player_from_mesh(player)
 	if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Player left: %s" % player.display_name)
+
+## The mesh player-routing seam (labs/prd-shard-mesh.md). CoordinatorService
+## owns the roster; it just needs to be told who is here. Guarded so a
+## missing coordinator (script-mode probes) is a silent no-op -- the join/leave
+## leg already runs well past autoload order.
+func _assign_player_to_mesh(player) -> void:
+	var coord = get_node_or_null("/root/CoordinatorService")
+	if coord == null or not coord.has_method("assign_player_to_shard"):
+		return
+	var pid := _mesh_player_id(player)
+	if pid.is_empty():
+		return
+	coord.assign_player_to_shard(pid, _mesh_local_shard_id())
+
+func _release_player_from_mesh(player) -> void:
+	var coord = get_node_or_null("/root/CoordinatorService")
+	if coord == null or not coord.has_method("remove_player_from_shard"):
+		return
+	var pid := _mesh_player_id(player)
+	if pid.is_empty():
+		return
+	coord.remove_player_from_shard(pid)
+
+## A stable player id for the mesh: the body's entity_id (the character id
+## the globe stamps before registration). Falls back to display_name so a
+## probe body without an entity_id still routes.
+func _mesh_player_id(player) -> String:
+	if player == null or not is_instance_valid(player):
+		return ""
+	if "entity_id" in player and str(player.get("entity_id")) != "":
+		return str(player.get("entity_id"))
+	if "display_name" in player:
+		return str(player.get("display_name"))
+	return ""
+
+## The shard THIS process serves. ShardManager owns the id; MeshRole is the
+## env-only fallback for a coordinator-less boot.
+func _mesh_local_shard_id() -> String:
+	if ShardManager:
+		return ShardManager.shard_id
+	return "shard_1"
 
 var _world_initialized := false
 

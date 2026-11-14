@@ -367,14 +367,57 @@ removes content.
 
 **Mesh visibility.** `/mesh` (admin-only) reports the container's mesh
 identity read-only: role + self id (`MeshRole`), the shard registry
-(`CoordinatorService.get_all_shard_ids()`), and the active bus
-(`get_default_bus_id()` / `get_display_name()`). No writes.
+(`CoordinatorService.get_all_shard_ids()`), the live per-shard player
+roster (see Phase 3.3), and the active bus (`get_default_bus_id()` /
+`get_display_name()`). No writes.
 
 **Two honesty rules, both enforced by the receipt:**
 
 1. **Uniform by default.** Absent a disable every pack is enabled.
 2. **Local, never shared.** A disable is a *read* on one process; the
    receipt resolves a second shard and proves it stays uniform.
+
+### Phase 3.3 -- Player routing is fed (SHIPPED)
+
+**The roster was a wall.** `CoordinatorService` owns the mesh's player
+truth -- `assign_player_to_shard` / `remove_player_from_shard` /
+`update_player_presence`, the `_player_shard_map` + `_player_presence`
+books, the per-shard `player_count`, `get_online_players()`, and the
+`player_shard_changed` signal -- but `assign_player_to_shard` was
+documented *"called on login/character select"* with **zero callers**
+(its only reference was its own `player_migration` echo). Every
+per-shard count sat frozen at 0 and `get_online_players()` was always
+empty, however many players were in-world.
+
+Shipped:
+
+- **The join/leave seam is wired.** `GameManager._on_player_joined` /
+  `_on_player_left` (the handlers for `EntityService.player_joined` /
+  `player_left`, the one real spawn/despawn voice) now call
+  `CoordinatorService.assign_player_to_shard(pid, this_shard)` and
+  `remove_player_from_shard(pid)`. The player id is the body's
+  `entity_id` (the character id the globe stamps before registration),
+  with a `display_name` fallback; the shard id is `ShardManager.shard_id`.
+  Guarded so a coordinator-less boot (script-mode probes) is a silent
+  no-op.
+- **`assign_player_to_shard` is idempotent.** It only moves the counts on
+  a first assignment or a real shard *move*; a repeat assignment to the
+  SAME shard refreshes presence but does NOT re-count (a latent
+  double-count bug: every login call used to add one to the same shard's
+  count).
+- **The roster has a consumer.** `/mesh` gained a `players:` line --
+  `players: N online (shard_1=…, shard_2=…)` -- built from
+  `get_shard_info()` per registered shard. It reads the roster the join
+  leg now keeps live; a coordinator without the roster API degrades
+  honestly ("roster unavailable").
+
+Receipt: `game/tests/test_mesh_player_routing.gd` (11 legs) drives the
+REAL `EntityService.player_joined` / `player_left` seam (registering a
+player body with an id override) and asserts: the join populates map +
+presence + count; a repeat assign does not double-count; a move emits
+`player_shard_changed` and shifts both counts; the leave clears map +
+presence + count; and the `/mesh` report renders the live per-shard
+count.
 
 ## 5. Out of scope (this note)
 

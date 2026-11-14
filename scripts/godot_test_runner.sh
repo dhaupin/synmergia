@@ -269,6 +269,7 @@ test_shard_tuning
 test_shard_tuning_admin
 test_content_packs
 test_mesh_command
+test_mesh_player_routing
 probe_arena_instance
 probe_arena_trigger
 probe_lobby_service
