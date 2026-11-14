@@ -13,7 +13,7 @@ const ITEM_ICONS: Dictionary = {
 	4: "%s/items/resource.png" % BASE,     # RESOURCE
 	5: "%s/items/gem.png" % BASE,         # GEM
 	6: "%s/items/event.png" % BASE,       # EVENT
-	7: "%s/items/dwelling.png" % BASE,    # DWELLING
+	7: "%s/items/furnishing.png" % BASE,    # FURNISHING
 	8: "%s/items/skill_book.png" % BASE,  # SKILL_BOOK
 	9: "%s/items/misc.png" % BASE,        # MISC
 }

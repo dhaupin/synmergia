@@ -1,4 +1,4 @@
-## DwellingService - plots, purchase, and placement of guards/ankhs.
+## HousingService - plots, purchase, and placement of guards/ankhs.
 ##
 ## Housing + guards were built to share interfaces on purpose:
 ## PlacementAccess (core/schemas/placement_access.gd) is the single
@@ -14,7 +14,7 @@
 ## same guard/ankh rules follow automatically.
 ##
 ## Commands: /buyplot, /placeguard, /placeankh, /plotinfo, /buildhouse
-## (wired in ChatService; this service exposes handle_dwelling_command).
+## (wired in ChatService; this service exposes handle_housing_command).
 ## House TIERS (/buildhouse [tier]) are data: data/houses/*.tres read
 ## through DataService.get_house, so a new tier ships as a .tres.
 extends Node
@@ -26,7 +26,7 @@ const SpawnMetadataScript = preload("res://core/events/spawn_metadata.gd")
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 const ANKH_SCRIPT_PATH := "res://core/schemas/ankh.gd"  # runtime load (class_name Ankh)
 
-## Placeable stations: the FUNCTIONAL dwellings whose provides_function
+## Placeable stations: the FUNCTIONAL furnishings whose provides_function
 ## is the station law. One door, mirroring NPCData.get_crafting_station:
 ## "blacksmith" = the smithy UI (repair), "crafting_forge"/
 ## "crafting_workbench"/"crafting_alchemy" = RecipeData.Station ids.
@@ -60,7 +60,7 @@ const STATION_FUNCTIONS: Dictionary = {
 }
 
 func _ready() -> void:
-	GameLog.info("DwellingService ready")
+	GameLog.info("HousingService ready")
 
 ## ------------------------------------------------------------------
 ## SERVICE RESOLUTION (lazy; test seams)
@@ -163,7 +163,7 @@ func purchase_plot(player, plot_id: String) -> Dictionary:
 	if plot.has("access") and plot["access"] != null:
 		plot["access"].owner_id = pid
 	plot_purchased.emit(pid, plot_id, price)
-	GameLog.info("DwellingService: %s purchased plot %s for %d gold" % [pid, plot_id, price])
+	GameLog.info("HousingService: %s purchased plot %s for %d gold" % [pid, plot_id, price])
 	return {"ok": true, "plot": plot}
 
 ## ------------------------------------------------------------------
@@ -213,7 +213,7 @@ func place_house_guard(player, plot_id: String, guard_name: String = "House Guar
 		plot["guard_id"] = data.id
 		_register_with_entity_service(guard, plot["zone_id"])
 		object_placed.emit(pid, plot_id, "guard", data.id)
-		GameLog.info("DwellingService: %s placed house guard on plot %s" % [pid, plot_id])
+		GameLog.info("HousingService: %s placed house guard on plot %s" % [pid, plot_id])
 		return guard
 	guard.queue_free()
 	return null
@@ -242,14 +242,14 @@ func place_personal_ankh(player, plot_id: String):
 	if _spawn_at(ankh, plot):
 		plot["ankh_id"] = ankh_id
 		object_placed.emit(pid, plot_id, "ankh", ankh_id)
-		GameLog.info("DwellingService: %s placed personal ankh on plot %s" % [pid, plot_id])
+		GameLog.info("HousingService: %s placed personal ankh on plot %s" % [pid, plot_id])
 		return ankh
 	ankh.queue_free()
 	return null
 
 ## Place a CRAFT/BUILD station (anvil, forge, workbench, cauldron) on
-## an owned plot. dwelling_id is a FUNCTIONAL DwellingData id from
-## data/dwellings/. Two station kinds exist:
+## an owned plot. furnishing_id is a FUNCTIONAL FurnishingData id from
+## data/furnishings/. Two station kinds exist:
 ##   "blacksmith"          -> the repair station (opens BlacksmithUI)
 ##   "crafting_*"          -> a RecipeData.Station (opens WorkbenchUI
 ##                            at STATION_FUNCTIONS[function])
@@ -258,7 +258,7 @@ func place_personal_ankh(player, plot_id: String):
 ## under stations[function], and the interaction law lives in the data
 ## (is_interactable + interaction_type). Access is STAMPED with the
 ## plot's PlacementAccess like every other placed object.
-func place_station(player, plot_id: String, dwelling_id: String) -> Dictionary:
+func place_station(player, plot_id: String, furnishing_id: String) -> Dictionary:
 	if player == null or not ("entity_id" in player):
 		return {"ok": false, "reason": "invalid_player"}
 	var pid := str(player.entity_id)
@@ -268,14 +268,14 @@ func place_station(player, plot_id: String, dwelling_id: String) -> Dictionary:
 	if str(plot["owner_id"]) != pid:
 		return {"ok": false, "reason": "not_owner"}
 	var ds = _svc("DataService")
-	# The station law reads the ITEM catalog: placeable dwellings are
-	# Item-scripted .tres (merged into _items by load_dwellings), and
-	# get_item is the one door that resolves them (get_dwelling's pure
-	# DwellingData registry never carries these).
-	var dwelling = ds.get_item(dwelling_id) if ds != null and ds.has_method("get_item") else null
-	if dwelling == null or not bool(dwelling.get("is_placeable")):
-		return {"ok": false, "reason": "unknown_dwelling"}
-	var function := str(dwelling.get("provides_function"))
+	# The station law reads the ITEM catalog: placeable furnishings are
+	# Item-scripted .tres (merged into _items by load_furnishings), and
+	# get_item is the one door that resolves them (get_furnishing's pure
+	# FurnishingData registry never carries these).
+	var furnishing = ds.get_item(furnishing_id) if ds != null and ds.has_method("get_item") else null
+	if furnishing == null or not bool(furnishing.get("is_placeable")):
+		return {"ok": false, "reason": "unknown_furnishing"}
+	var function := str(furnishing.get("provides_function"))
 	if function != "blacksmith" and not STATION_FUNCTIONS.has(function):
 		return {"ok": false, "reason": "not_a_station"}
 	if not plot.has("stations") or plot["stations"] == null:
@@ -283,34 +283,34 @@ func place_station(player, plot_id: String, dwelling_id: String) -> Dictionary:
 	var stations: Dictionary = plot["stations"]
 	if stations.has(function):
 		return {"ok": false, "reason": "station_slot_taken"}
-	# The citizen's purse pays IN GOODS, not gold: consume ONE dwelling
+	# The citizen's purse pays IN GOODS, not gold: consume ONE furnishing
 	# item from the bag (all-or-nothing; duplicates never eat).
 	var inv_svc = _svc("InventoryService")
 	var bag = inv_svc.get_inventory(pid) if inv_svc != null and inv_svc.has_method("get_inventory") else null
 	if bag == null or not bag.has_method("remove_item_by_id"):
 		return {"ok": false, "reason": "no_inventory"}
-	if not bag.remove_item_by_id(dwelling_id, 1):
+	if not bag.remove_item_by_id(furnishing_id, 1):
 		return {"ok": false, "reason": "item_not_in_bag"}
 
 	# Place a visual anchor node at the plot (the station's world
 	# body). Geometry is a plain pedestal box; the craft/repair UI
 	# opens from the player's interaction with THIS node.
-	var station_node := _build_station_node(dwelling_id, function, stations.size())
+	var station_node := _build_station_node(furnishing_id, function, stations.size())
 	if not _spawn_at(station_node, plot):
 		station_node.queue_free()
 		# Refund: the purse never loses the thing.
-		var refund_item = ds.get_item(dwelling_id) if ds != null and ds.has_method("get_item") else null
+		var refund_item = ds.get_item(furnishing_id) if ds != null and ds.has_method("get_item") else null
 		if refund_item != null and bag.has_method("add_item"):
 			bag.add_item(refund_item, 1)
 		return {"ok": false, "reason": "spawn_failed"}
 	stations[function] = {
-		"dwelling_id": dwelling_id,
+		"furnishing_id": furnishing_id,
 		"node_id": station_node.name,
 	}
 	if plot.has("access") and plot["access"] != null:
 		station_node.set_meta("placement_access", plot["access"])
-	object_placed.emit(pid, plot_id, "station", dwelling_id)
-	GameLog.info("DwellingService: %s placed %s (%s) on plot %s" % [pid, dwelling_id, function, plot_id])
+	object_placed.emit(pid, plot_id, "station", furnishing_id)
+	GameLog.info("HousingService: %s placed %s (%s) on plot %s" % [pid, furnishing_id, function, plot_id])
 	return {"ok": true, "station": stations[function], "function": function}
 
 ## The station law read for a PLOT: which stations have been placed
@@ -324,7 +324,7 @@ func get_plot_stations(plot_id: String) -> Dictionary:
 	return out
 
 ## Remove a placed station from YOUR plot: frees the node, clears the
-## slot, and REFUNDS the dwelling item to the bag (a placed thing is
+## slot, and REFUNDS the furnishing item to the bag (a placed thing is
 ## yours to take back -- unlike the guard, who was paid in gold).
 func remove_station(player, plot_id: String, function: String) -> Dictionary:
 	if player == null or not ("entity_id" in player):
@@ -346,17 +346,17 @@ func remove_station(player, plot_id: String, function: String) -> Dictionary:
 		if node != null and is_instance_valid(node):
 			node.queue_free()
 	stations.erase(function)
-	# Refund the dwelling item (placed from the PURSE in Item shape,
+	# Refund the furnishing item (placed from the PURSE in Item shape,
 	# so it returns in Item shape through get_item).
 	var ds = _svc("DataService")
 	var inv_svc2 = _svc("InventoryService")
 	var bag2 = inv_svc2.get_inventory(pid) if inv_svc2 != null and inv_svc2.has_method("get_inventory") else null
-	var dwelling_id := str(entry.get("dwelling_id", ""))
-	var as_item = ds.get_item(dwelling_id) if ds != null and ds.has_method("get_item") else null
+	var furnishing_id := str(entry.get("furnishing_id", ""))
+	var as_item = ds.get_item(furnishing_id) if ds != null and ds.has_method("get_item") else null
 	if bag2 != null and as_item != null and bag2.has_method("add_item"):
 		bag2.add_item(as_item, 1)
-	object_removed.emit(pid, plot_id, "station", dwelling_id)
-	GameLog.info("DwellingService: %s removed station %s from plot %s" % [pid, function, plot_id])
+	object_removed.emit(pid, plot_id, "station", furnishing_id)
+	GameLog.info("HousingService: %s removed station %s from plot %s" % [pid, function, plot_id])
 	return {"ok": true}
 
 ## The placed station's world node: a simple pedestal; visuals upgrade
@@ -366,10 +366,10 @@ func remove_station(player, plot_id: String, function: String) -> Dictionary:
 ## remove_station can find it after a save/reload. Each extra station
 ## offsets 1.5 m on X from the plot center so two stations in one hall
 ## never coincide (the nearest-node law would tie) and never overlap.
-func _build_station_node(dwelling_id: String, function: String, slot_index: int = 0) -> StaticBody3D:
+func _build_station_node(furnishing_id: String, function: String, slot_index: int = 0) -> StaticBody3D:
 	var node := StaticBody3D.new()
 	node.name = "station_%s_%d" % [function, Time.get_ticks_msec()]
-	node.set_meta("dwelling_id", dwelling_id)
+	node.set_meta("furnishing_id", furnishing_id)
 	node.set_meta("provides_function", function)
 	node.add_to_group("placed_stations")
 	node.position = Vector3(float(slot_index) * 1.5, 0, 0)
@@ -393,7 +393,7 @@ func _build_station_node(dwelling_id: String, function: String, slot_index: int 
 ## The E-key resolve: the nearest placed station within interaction
 ## radius of the player (the node's own item data carries the radius
 ## law; default 1.5 m matches every .tres). Returns {ok, node,
-## function, dwelling_id, interaction_type} or {ok: false} -- the ONE
+## function, furnishing_id, interaction_type} or {ok: false} -- the ONE
 ## resolving door for `_use_nearby_station` in the player body, so
 ## the walk-up-and-press law never re-derives from position guesses
 ## or a second meta read.
@@ -406,10 +406,10 @@ func resolve_nearby_station(player, max_radius: float = -1.0) -> Dictionary:
 	for node in get_tree().get_nodes_in_group("placed_stations"):
 		if not is_instance_valid(node) or not (node is Node3D):
 			continue
-		# Radius law from the node's own dwelling data (the .tres truth).
-		var dwelling_id := str(node.get_meta("dwelling_id", ""))
+		# Radius law from the node's own furnishing data (the .tres truth).
+		var furnishing_id := str(node.get_meta("furnishing_id", ""))
 		var ds = _svc("DataService")
-		var item = ds.get_item(dwelling_id) if ds != null and ds.has_method("get_item") else null
+		var item = ds.get_item(furnishing_id) if ds != null and ds.has_method("get_item") else null
 		var radius := 1.5
 		if item != null:
 			# Typed Item: one-arg Object.get + null-coalesce (the
@@ -429,7 +429,7 @@ func resolve_nearby_station(player, max_radius: float = -1.0) -> Dictionary:
 		"ok": true,
 		"node": best,
 		"function": str(best.get_meta("provides_function", "")),
-		"dwelling_id": str(best.get_meta("dwelling_id", "")),
+		"furnishing_id": str(best.get_meta("furnishing_id", "")),
 		"interaction_type": "craft",  # refined below by the caller if needed
 	}
 
@@ -478,7 +478,7 @@ func _spend_gold(player, amount: int) -> bool:
 ## CHAT COMMANDS (/buyplot /placeguard /placeankh /plotinfo)
 ## ------------------------------------------------------------------
 
-func handle_dwelling_command(sender_id: String, command: String, args: Array) -> bool:
+func handle_housing_command(sender_id: String, command: String, args: Array) -> bool:
 	var es = _svc("EntityService")
 	var player = es.get_entity(sender_id) if es != null and es.has_method("get_entity") else null
 	if player == null:
@@ -527,7 +527,7 @@ func handle_dwelling_command(sender_id: String, command: String, args: Array) ->
 		_:
 			return false
 
-## /placestation <dwelling_id>: place a FUNCTIONAL dwelling (anvil,
+## /placestation <furnishing_id>: place a FUNCTIONAL furnishing (anvil,
 ## forge, workbench, cauldron) on YOUR plot. The item is consumed from
 ## the purse; the interaction then opens the craft/repair UI at that
 ## station (same gate as an NPC bench).
@@ -537,19 +537,19 @@ func _cmd_place_station(sender_id: String, player, pos: Vector3, args: Array) ->
 		_notify(sender_id, "You must stand on your own plot.")
 		return true
 	if args.is_empty() or str(args[0]).strip_edges().is_empty():
-		_notify(sender_id, "Usage: placestation <dwelling_id>")
+		_notify(sender_id, "Usage: placestation <furnishing_id>")
 		return true
-	var dwelling_id := str(args[0]).strip_edges()
-	var result := place_station(player, str(plot["id"]), dwelling_id)
+	var furnishing_id := str(args[0]).strip_edges()
+	var result := place_station(player, str(plot["id"]), furnishing_id)
 	if result.get("ok", false):
-		_notify(sender_id, "%s placed. %s your hall now hosts it." % [dwelling_id, str(result.get("function", ""))])
+		_notify(sender_id, "%s placed. %s your hall now hosts it." % [furnishing_id, str(result.get("function", ""))])
 	else:
 		var why := str(result.get("reason", "failed"))
 		var friendly: Dictionary = {
-			"unknown_dwelling": "No such dwelling: %s" % dwelling_id,
-			"not_a_station": "%s is not a functional station." % dwelling_id,
+			"unknown_furnishing": "No such furnishing: %s" % furnishing_id,
+			"not_a_station": "%s is not a functional station." % furnishing_id,
 			"station_slot_taken": "This plot already hosts that kind of station.",
-			"item_not_in_bag": "You are not carrying a %s." % dwelling_id,
+			"item_not_in_bag": "You are not carrying a %s." % furnishing_id,
 		}
 		_notify(sender_id, str(friendly.get(why, "Place failed: %s." % why)))
 	return true
@@ -616,7 +616,7 @@ func _cmd_dismiss_guard(sender_id: String, player, pos: Vector3) -> bool:
 	plot["guard_id"] = ""
 	object_removed.emit(sender_id, str(plot["id"]), "guard", guard_id)
 	_notify(sender_id, "House guard dismissed.")
-	GameLog.info("DwellingService: %s dismissed house guard %s on plot %s" % [sender_id, guard_id, str(plot["id"])])
+	GameLog.info("HousingService: %s dismissed house guard %s on plot %s" % [sender_id, guard_id, str(plot["id"])])
 	return true
 
 ## ------------------------------------------------------------------
@@ -652,7 +652,7 @@ func build_house(player, plot_id: String, house_id: String = DEFAULT_HOUSE_ID) -
 	plot["house_id"] = house.name
 	plot["house_tier"] = house_id
 	house_built.emit(pid, plot_id, house.name)
-	GameLog.info("DwellingService: %s built %s on plot %s (%d gold)" % [pid, house_id, plot_id, cost])
+	GameLog.info("HousingService: %s built %s on plot %s (%d gold)" % [pid, house_id, plot_id, cost])
 	return {"ok": true, "house_id": house.name, "tier": house_id}
 
 
@@ -786,7 +786,7 @@ func _cmd_build_house(sender_id: String, player, pos: Vector3, args: Array = [])
 func _notify(player_id: String, message: String) -> void:
 	var ns = _svc("NotificationService")
 	if ns != null and ns.has_method("notify"):
-		ns.notify(NotifKind.AUTO_ACTION, message, "DwellingService",
-			"dwelling:%s:%s" % [player_id, message.hash()], {}, player_id)
+		ns.notify(NotifKind.AUTO_ACTION, message, "HousingService",
+			"housing:%s:%s" % [player_id, message.hash()], {}, player_id)
 	else:
-		GameLog.info("DwellingService [%s]: %s" % [player_id, message])
+		GameLog.info("HousingService [%s]: %s" % [player_id, message])

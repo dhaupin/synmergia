@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "akkan_spirit_bolt"
 display_name = "Spirit Bolt"
-description = "Channels ancestral energy into a damaging bolt. Solid damage for solo play."
+description = "Channels ancestral energy into a bolt that damages a foe and mends the nearest ally. The healer's first mend, banded from the epic tier up."
 skill_type = 5
 target_type = 0
 mana_cost = 18
@@ -14,9 +14,10 @@ cooldown = 2.5
 cast_time = 0.4
 animation_duration = 0.4
 range = 22.0
-effects = [{"type": "damage", "value": 22}]
+effects = [{"type": "damage", "value": 22}, {"type": "heal", "value": 15}]
 required_level = 1
 required_class = "akkan_shaman"
+scope_bands = true
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",

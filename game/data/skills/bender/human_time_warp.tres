@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "human_time_warp"
 display_name = "Time Warp"
-description = "Bends the moments around you, hurrying your own strikes and slowing the enemy's next swing."
+description = "Bends the moments around you, hurrying your own strikes, slowing the enemy's next swing, and folding you a short step through time. The bender's first blink, banded to cross scopes at the top tiers."
 skill_type = 0
 target_type = 2
 mana_cost = 20
@@ -15,9 +15,10 @@ cast_time = 0.0
 animation_duration = 0.3
 range = 0.0
 aoe_radius = 8.0
-effects = [{"type": "buff", "effect_id": "buff_time_warp_haste", "duration": 6.0}, {"type": "slow", "effect_id": "debuff_time_warp_slow", "duration": 3.0, "value": 20}]
+effects = [{"type": "buff", "effect_id": "buff_time_warp_haste", "duration": 6.0}, {"type": "slow", "effect_id": "debuff_time_warp_slow", "duration": 3.0, "value": 20}, {"type": "teleport", "value": 15.0}]
 required_level = 1
 required_class = "human_temporalist"
+required_role = 5
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",

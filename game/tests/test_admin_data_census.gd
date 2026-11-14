@@ -1,11 +1,11 @@
 ## Receipt: the admin data census -- the dormant DataService catalog
 ## accessors reach a real surface.
 ##
-## `get_counts()`, `get_all_currencies()`, `get_all_dwellings()`,
+## `get_counts()`, `get_all_currencies()`, `get_all_furnishings()`,
 ## `get_all_recipes()` and `get_layer_profiles()` were declared but had
 ## ZERO callers: the loaded catalog could not be inspected at runtime,
 ## and the four catalogs a gameplay path reaches only BY ID (a currency,
-## a dwelling, a recipe, a layer profile) had no enumerable door.
+## a furnishing, a recipe, a layer profile) had no enumerable door.
 ##
 ## The AdminShell `data` command is that door. This receipt drives the
 ## REAL shell: every leg resolves through the live DataService, and the
@@ -74,7 +74,7 @@ func _run() -> void:
 
 	# --- the four formerly-dormant catalogs enumerate -----------------
 	for leg in [["currencies", "get_all_currencies", "currency_gold"],
-			["dwellings", "get_all_dwellings", ""],
+			["furnishings", "get_all_furnishings", ""],
 			["recipes", "get_all_recipes", "recipe_iron_ingot"],
 			["layers", "get_layer_profiles", "physics_layers_main"]]:
 		var sub: String = leg[0]

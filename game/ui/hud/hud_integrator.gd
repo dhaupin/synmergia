@@ -401,7 +401,7 @@ func _bind_player_wallet_feedback() -> void:
 			player = lp
 	if player == null:
 		return
-	# The node wallet (kills, ground loot, dwelling spends). It
+	# The node wallet (kills, ground loot, housing spends). It
 	# carries the running TOTAL, so seed the seen-value to stay quiet
 	# through hydration and speak only in real deltas. Per-leg guards:
 	# a rebind must not skip the component legs below. The globe body
@@ -827,6 +827,13 @@ func _on_action_executed(action_id: String, target_id: String, result: Dictionar
 	# lobby panel (TargetingManager returns action=open_lobby).
 	if action_id == "check_lobby" or str(result.get("action", "")) == "open_lobby":
 		if _mm and _mm.has_method("open_menu"):
+			# A gate result carries its zone; focus the Bouts tab before
+			# opening so the stone's mode is the panel's landing state.
+			var zone_id: String = str(result.get("zone_id", ""))
+			if zone_id != "":
+				var lobby_panel = _mm.get_panel_node("lobby")
+				if lobby_panel != null and lobby_panel.has_method("focus_zone"):
+					lobby_panel.focus_zone(zone_id)
 			_mm.open_menu("lobby")
 		return
 

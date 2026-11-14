@@ -1,6 +1,6 @@
 # PRD - Housing and Plots
 
-> **Status:** ACTIVE (2026-11-14). Canonical for `DwellingService`, player
+> **Status:** ACTIVE (2026-11-14). Canonical for `HousingService`, player
 > housing plots, house tiers, house guards, personal ankhs and placed
 > stations. Territory ownership is a different layer:
 > [`territory-system.md`](./territory-system.md). Guild organization:
@@ -14,14 +14,19 @@ priced in gold, and held by one player. A territory groups zones and can be
 claimed by a guild or contested in a faction war. Do not model plots as
 `TerritoryData`, and do not let `/claim` touch a plot.
 
+Naming is deliberate: **housing** owns plots, houses, guards, ankhs and
+stations (`HousingService`). The placeable `.tres` family is
+**furnishings** (`data/furnishings/`, `furn_*`, `FurnishingData`). Do not
+use "dwelling" for either concept.
+
 The current build is a real service with a narrow, chat-driven surface. It is
 not yet a persistent housing system, and it is not the full `prd.md` feature
 list.
 
 ## As-built surface
 
-`game/core/services/dwelling_service.gd` is the authority. Autoload name is
-`DwellingService`; it has no `class_name`.
+`game/core/services/housing_service.gd` is the authority. Autoload name is
+`HousingService`; it has no `class_name`.
 
 | Capability | Entry point | Notes |
 |---|---|---|
@@ -31,8 +36,8 @@ list.
 | Build a house | `build_house(player, plot_id, house_id)` | One house per plot; reads `HouseData` |
 | Place a guard | `place_house_guard(player, plot_id, name)` | 250,000 gold; one guard per plot |
 | Place an ankh | `place_personal_ankh(player, plot_id)` | 100,000 gold; one ankh per plot |
-| Place a station | `place_station(player, plot_id, dwelling_id)` | Consumes one placeable dwelling item; one slot per function |
-| Remove a station | `remove_station(player, plot_id, function)` | Refunds the dwelling item |
+| Place a station | `place_station(player, plot_id, furnishing_id)` | Consumes one placeable furnishing item; one slot per function |
+| Remove a station | `remove_station(player, plot_id, function)` | Refunds the furnishing item |
 | Plot status | `get_plot_stations` | Returns `{function: true}` for the plot |
 | Station resolve | `resolve_nearby_station(player)` | Nearest placed station within its data radius |
 
@@ -51,11 +56,11 @@ scene edit or a new registration call.
 | `/placeguard [name]` | Places the personal house guard on the owned plot |
 | `/placeankh` | Places the personal respawn ankh on the owned plot |
 | `/dismissguard` | Frees the guard slot; no gold refund |
-| `/placestation <dwelling_id>` | Consumes a functional dwelling item and places its station |
+| `/placestation <furnishing_id>` | Consumes a functional furnishing item and places its station |
 | `/removestation` | Removes the first placed station and refunds the item |
 
 All commands are routed through `ChatService` into
-`DwellingService.handle_dwelling_command`. The service resolves the nearest
+`HousingService.handle_housing_command`. The service resolves the nearest
 owned plot from the sender's current position; there is no housing UI and no
 per-plot permission command.
 
@@ -87,7 +92,7 @@ consume it.
 ## Placement access
 
 `game/core/schemas/placement_access.gd` is the one ownership-scope vocabulary
-shared by guards, ankhs, dwellings and future guild/faction halls:
+shared by guards, ankhs, furnishings and future guild/faction halls:
 
 | Scope | Who passes |
 |---|---|
@@ -128,7 +133,7 @@ no removal command for the ankh yet).
 
 ## Stations and furniture
 
-`data/dwellings/` has eleven placeable item resources. The station law only
+`data/furnishings/` has eleven placeable item resources. The station law only
 accepts functional ones:
 
 | `provides_function` | Station |
@@ -145,14 +150,14 @@ node and refunds the item. This is the functional-station arm of the crafting
 law; the interaction opens the same `CraftingService.craft` gate an NPC bench
 uses.
 
-Decorative Hearth Kit items (`dwel_fireplace_stone`, `dwel_wooden_chair`,
-`dwel_plank_bed`, `dwel_bookshelf`, `dwel_potted_megaseed`,
-`dwel_coat_rack`, `dwel_lantern_post`) resolve as data and are checked by
+Decorative Hearth Kit items (`furn_fireplace_stone`, `furn_wooden_chair`,
+`furn_plank_bed`, `furn_bookshelf`, `furn_potted_megaseed`,
+`furn_coat_rack`, `furn_lantern_post`) resolve as data and are checked by
 `test_house_catalog`, but they are **not placeable** through `place_station`:
 their `provides_function` is blank or non-station (`lore_library`,
 `ambient_light`, `home_bind`). There is no general furniture-placement path.
 
-`DwellingData.maintenance_cost` and `Item.maintenance_cost` exist but have no
+`FurnishingData.maintenance_cost` and `Item.maintenance_cost` exist but have no
 reader; no housing upkeep is charged today.
 
 ## Persistence and authority
@@ -206,6 +211,38 @@ teleport home, storage, guild houses or relocation. Those are not shipped.
 - `prd-monetization.md` sec. 19's deed move, clock door, hallmark and
   chartered homestead are a designed overlay, not current behavior. This
   document is the base they must build on.
+
+## Natural next steps (sequence, not design)
+
+Housing is not being designed further here. If the next implementer picks it
+up, this is the dependency order the current service implies; each step still
+needs the product decision listed under Open decisions.
+
+1. **Give plots a durable identity.** Choose the plot catalog shape (authored
+   data or scene/world-builder registration) and give every plot a stable id
+   and zone. The service already accepts `register_plot`; the missing piece is
+   a boot identity that does not depend on one scene's demo call.
+2. **Persist the plot record.** Store the owner, house tier, guard, ankh and
+   station slots through the adapter layer, restore them before scene
+   registration rehydrates the plot, and save on every mutation. A restart
+   must not duplicate or erase a plot. Do not put plot ownership on
+   `TerritoryData`.
+3. **Decide the door law.** Either enforce `PlacementAccess` on the house
+   structure or explicitly make plot ownership the only entry rule. Do this
+   before interiors, guild halls or shared furnishings are added.
+4. **Expose the stable surface.** Chat commands work today; add a housing
+   panel or command help only after the plot record and access rule are
+   settled. A UI on top of a session-only plot would hide the persistence gap.
+5. **Resolve the decorative-furniture promise.** Either add a general
+   placement path for the Hearth Kit items or remove the claim that they are
+   placeable. Functional stations remain a separate arm.
+6. **Then take ownership policy.** Sale, relocation, abandonment, demolition,
+   refunds and guild halls are one ownership-policy pass, not drive-by edits
+   to the plot service.
+
+Keep `HousingService` the single housing authority while doing this. The
+service is already runtime-only and narrow; the next step is durability and
+identity, not a broad rewrite.
 
 ## Open decisions
 

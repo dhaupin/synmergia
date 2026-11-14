@@ -4,35 +4,35 @@
 
 [resource]
 script = ExtResource("1")
-id = "dwel_coat_rack"
-display_name = "Root Coat Rack"
-description = "A coat rack trained from a polite root, holding a traveler's cloak and a spare satchel. Vanity storage for the well-dressed homesteader."
-icon_path = "res://icons/dwellings/coat_rack_root.png"
+id = "furn_bookshelf"
+display_name = "Salvage Bookshelf"
+description = "Shelves of mixed salvage board holding a codex's worth of loose leaves. Interact to read your collected lore at home."
+icon_path = "res://icons/furnishings/bookshelf_salvage.png"
 item_category = 7
 rarity = 0
 equip_slot = 0
 stack_size = 1
-sell_price = 40
-buy_price = 800
+sell_price = 300
+buy_price = 6000
 required_level = 0
-dwelling_category = "furniture"
-dwelling_size = Vector3(1, 2, 1)
+furnishing_category = "storage"
+furnishing_size = Vector3(2, 3, 1)
 is_placeable = true
 placement_zones = ["housing_zone_1", "housing_zone_2"]
 is_interactable = true
-interaction_type = "hang"
-interaction_radius = 0.8
-provides_function = ""
+interaction_type = "read"
+interaction_radius = 1.0
+provides_function = "lore_library"
 function_capacity = 0
-tax_modifier = 0.0
-maintenance_cost = 1.0
+tax_modifier = 0.02
+maintenance_cost = 3.0
 decay_time_days = 0.0
 allow_guild_access = true
 allow_friends_access = true
-allow_public_view = false
+allow_public_view = true
 dyeable = true
 dismantle_returns = [{
-"amount": 2,
+"amount": 6,
 "id": "res_timber",
 "type": "resource"
 }]

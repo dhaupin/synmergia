@@ -1,13 +1,13 @@
-# Player Housing & Dwellings (Gemini brief pack)
+# Player Housing & Furnishings (Gemini brief pack)
 
 > **Goal:** house exteriors by tier and the construction grammar that
 > makes them feel like one system. Interiors are partially canon
-> (the Dwelling interior, sec. 8.10); this pack covers the outside,
+> (the Furnishing interior, sec. 8.10); this pack covers the outside,
 > the tiers, and the placeable-furniture feel.
 >
-> **Canon anchors:** `game/data/dwellings/` items are placeable
+> **Canon anchors:** `game/data/furnishings/` items are placeable
 > furniture (Stone Fireplace, Wooden Chair -- `is_placeable`,
-> `dwelling_category` lighting/furniture); DwellingService handles
+> `furnishing_category` lighting/furniture); HousingService handles
 > plots; the canon interior (cot, workbench Conduit, root coat hook)
 > sets the lifestyle. The inn (sec. 8.10) is the communal ceiling of
 > what housing aspires to.

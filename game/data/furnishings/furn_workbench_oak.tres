@@ -4,37 +4,33 @@
 
 [resource]
 script = ExtResource("1")
-id = "dwel_cauldron_brew"
-display_name = "Brew Cauldron"
-description = "A squat cauldron over a low flame. The alchemy station awaits its recipes; placing it now prepares your hall for them."
-icon_path = "res://icons/dwellings/cauldron_brew.png"
+id = "furn_workbench_oak"
+display_name = "Oak Workbench"
+description = "A sturdy carpenter's bench for your hall. Sew kites and tinker trinkets at home. Interact once placed to open the craft table at the WORKBENCH."
+icon_path = "res://icons/furnishings/workbench_oak.png"
 item_category = 7
 rarity = 1
 equip_slot = 0
 stack_size = 1
-sell_price = 700
-buy_price = 14000
+sell_price = 900
+buy_price = 18000
 required_level = 0
-dwelling_category = "functional"
+furnishing_category = "functional"
 is_placeable = true
 is_interactable = true
 interaction_type = "craft"
 interaction_radius = 1.5
-provides_function = "crafting_alchemy"
+provides_function = "crafting_workbench"
 function_capacity = 0
-tax_modifier = 0.05
-maintenance_cost = 8.0
+tax_modifier = 0.06
+maintenance_cost = 10.0
 decay_time_days = 0.0
 allow_guild_access = true
 allow_friends_access = true
 allow_public_view = true
 dyeable = false
 dismantle_returns = [{
-"amount": 10,
-"id": "res_stone",
-"type": "resource"
-}, {
-"amount": 3,
-"id": "res_iron_ore",
+"amount": 4,
+"id": "res_timber",
 "type": "resource"
 }]

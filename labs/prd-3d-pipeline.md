@@ -25,7 +25,7 @@
 1. **Source `.blend` files live outside `game/`** (e.g. `art/src/`),
    versioned with the repo. Only exported `.glb` enters `game/models/`.
 2. **Naming mirrors the data id conventions**: `mount_plains_runner.glb`,
-   `npc_village_elder.glb`, `dwel_fireplace_stone.glb`. A model file
+   `npc_village_elder.glb`, `furn_fireplace_stone.glb`. A model file
    name resolves to its data id with zero mapping code.
 3. **The .glb filename IS the model registry** -- there is no separate
    model-descriptor schema. `model_path`/`scene_path` fields on data

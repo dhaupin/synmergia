@@ -4,10 +4,10 @@
 
 [resource]
 script = ExtResource("1")
-id = "dwel_wooden_chair"
+id = "furn_wooden_chair"
 display_name = "Wooden Chair"
 description = "A simple wooden chair. Perfect for any dining room."
-icon_path = "res://icons/dwellings/chair_wood.png"
+icon_path = "res://icons/furnishings/chair_wood.png"
 item_category = 7
 rarity = 0
 equip_slot = 0
@@ -16,8 +16,8 @@ cooldown = 0.0
 duration = 0.0
 model_path = ""
 color = Color(0.6, 0.4, 0.2, 1)
-dwelling_category = "furniture"
-dwelling_size = Vector3(1, 1, 1)
+furnishing_category = "furniture"
+furnishing_size = Vector3(1, 1, 1)
 is_placeable = true
 placement_zones = ["housing_zone_1", "housing_zone_2"]
 is_interactable = true

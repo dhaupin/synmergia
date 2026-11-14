@@ -17,6 +17,7 @@ range = 3.0
 effects = [{"type": "damage", "value": 18}, {"type": "debuff", "effect_id": "root_common", "duration": 2.0}]
 required_level = 1
 required_class = "synthetic_warden"
+scope_bands = true
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",

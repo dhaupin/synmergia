@@ -1,9 +1,9 @@
-## DwellingData - Housing/dwelling item definition
+## FurnishingData - Housing/furnishing item definition
 ## Defines placeable items for player housing
 extends Resource
-class_name DwellingData
+class_name FurnishingData
 
-enum DwellingCategory {
+enum FurnishingCategory {
 	FURNITURE,      # Tables, chairs, beds, benches
 	DECORATION,     # Paintings, statues, plants, rugs
 	LIGHTING,       # Torches, candles, chandeliers, lanterns
@@ -32,11 +32,11 @@ enum OwnershipModel {
 }
 
 @export var id: String = ""
-@export var display_name: String = "Dwelling Item"
+@export var display_name: String = "Furnishing Item"
 @export var description: String = ""
 
 # Category
-@export var dwelling_category: DwellingCategory = DwellingCategory.MISC
+@export var furnishing_category: FurnishingCategory = FurnishingCategory.MISC
 @export var icon_path: String = ""
 
 # Visual
@@ -125,7 +125,7 @@ func get_info() -> Dictionary:
 		"id": id,
 		"name": display_name,
 		"description": description,
-		"category": DwellingCategory.keys()[dwelling_category],
+		"category": FurnishingCategory.keys()[furnishing_category],
 		"grid_size": grid_size,
 		"can_rotate": can_rotate,
 		"dyeable": dyeable,

@@ -738,7 +738,7 @@ consumers read exactly one form.
 | Mysteries | `mystery_` prefix | `mystery_the_first_vault` | filename == id; answers are DERIVED (never stored) -- SKY_CODE re-derives SignService.get_ancient_code(answer_day), OBSERVATION_TALLY from the live sign catalog; reward titles must exist in data/titles |
 | Daily sky quest | `quest_watch_the_sky` | `quest_watch_the_sky.tres` | RECORD_INSIGHT objective targets the literal `sky_insight`; reset keys off SignService.current_day_index() |
 | Ancient doors | bare id on the node | `AncientDoor` (entities/ancient_door.gd) | no .tres (door state is SignService unlock history) |
-| Dwellings | `dwel_` prefix | `dwel_fireplace_stone` | filename == id |
+| Furnishings | `furn_` prefix | `furn_fireplace_stone` | filename == id |
 | Currencies | `currency_` prefix | `currency_gold` | filename == id |
 | Mounts | `mount_` prefix | `mount_plains_runner` | filename == id |
 | Vehicles | `veh_` prefix | `veh_haven_ferry` | filename == id |
@@ -779,8 +779,8 @@ sheet (`labs/prompts/gemini_housing.md` sec. 1). Fields: `tier`, `cost`,
 `footprint`, `wall_height`, `door_width`, `roof_pitch`, `wall_color`,
 `roof_color`, `features[]`. Loaded by `DataService.load_houses()` (pure
 `_houses` registry, never merged into `_items`) and read by
-`DwellingService.build_house` via `get_house`. NOT hardcoded: a new tier
-ships as a `.tres`. `HOUSE_COST` in `DwellingService` is only the
+`HousingService.build_house` via `get_house`. NOT hardcoded: a new tier
+ships as a `.tres`. `HOUSE_COST` in `HousingService` is only the
 fallback when DataService has no such tier.
 
 ### Item
@@ -793,6 +793,46 @@ Three admin-only classes hidden from normal character selection:
 - All have `role = 0` (Role.GM)
 
 GM visibility: `[GM]` prefix in chat, gold name color, "GAME MASTER" badge in tooltip (no emoji; see the no-UTF-8 rule).
+
+### Skill scope bands (`ScopeBand`)
+A skill's reach is folded from the band tables in `core/combat/scope_band.gd`
+(one source of truth), keyed by upgrade level. Opt in per verb:
+- `scope_bands = true` -- the HEAL verb. Also gates the banded CONTROL fan-out
+  (an AoE stun/slow/taunt hits every hostile in reach once a landed hit lands).
+- `guard_band = true` -- the GUARD verb (shields/armor). Runs at cast, fans to
+  allies from the epic band up. Separate from `scope_bands` so a self
+  damage-buff is never fanned to the party.
+- `rally_band = true` -- the RALLY verb (the DD's Charge: damage / cooldown /
+  mana-regen buffs). Runs at cast like a guard, fans to the party from the epic
+  band up, and its band's `duration_mult` lengthens the buffs (DD's reach verb).
+  A rally also sunders the enemy ring with its `debuff` payload, in one cast.
+The tank's identity is control/guard, so its control skills carry
+`scope_bands` and its party-shield auras carry `guard_band`. The DD's rally and
+the Bender's amplify are class-agnostic verbs of the Concord (like
+`general_shield` for the guard), so they are authored under `data/skills/general/`
+and every class carries them (`general_rally`, `general_amplify`).
+
+### Support-lane reach stats (`StatId`)
+Two stat keys carry the support lanes' verbs, read off the caster's stat block
+at cast and clamped by `StatId`:
+- `effect_duration_mult` -- DD LENGTHENS. A delta on 1.0 (`0.25` = +25%) that
+  scales every authored entry duration and the skill's own CC/shield duration.
+- `effect_power_mult` -- Bender AMPLIFIES. A delta on 1.0 that scales outgoing
+  heal and shield magnitudes and buff stat magnitudes.
+- `cooldown_reduction` -- a flat fraction (`0.25` = 25% faster) applied at the
+  one cooldown set point in `Skill.execute` (`remaining_cooldown = cooldown *
+  (1 - cdr)`), clamped to `MAX_COOLDOWN_REDUCTION` so it never reaches zero.
+A buff can grant any of these: author them in a `StatusEffectData`'s
+`stat_multipliers` (`effect_duration_mult`, `effect_power_mult`,
+`cooldown_reduction`), and `StatusEffectFactory` maps them onto the runtime stat
+block. The authored key IS the `StatId` key, so the data vocabulary and the stat
+vocabulary are one.
+
+### The starter law
+A class's FIRST `starting_skills` entry carries the family identity verb,
+read off the class `role`: TANK=control, BENDER=teleport, HEALER=heal,
+DD/MAGE/ROGUE=damage. Enforced by `test_data_naming_lint.gd`; a new class
+cannot ship a starter that ignores its lane.
 
 ---
 
@@ -1237,6 +1277,32 @@ engine binary is provisioned by `scripts/setup-dev.sh`, not by LFS.
   the sandbox wipes). A `/tmp/synmergia` symlink points at it for
   compatibility. Godot 4.7.2 at `~/godot-bin/godot`; run tests with
   `GODOT_BIN=~/godot-bin/godot scripts/godot_test_runner.sh`.
+
+### Flake + five-rung rarity parity (learned 2026-12-01)
+
+- **`test_globe_input_parity` was flaky by design, not by timing.** Its
+  attack leg can KILL the spawned dummy, and the later Tab leg asserted that
+  `target_next` re-acquires a target -- but a dead enemy is not targetable and
+  the `enemies` group is empty, so the leg passed only when the camera raycast
+  happened to hit an unrelated registered prop (an NPC/ankh in view). Fix: the
+  Tab leg spawns its OWN live dummy (high HP so the prior leg's still-live
+  attack hitbox cannot one-shot it). A test that "passes on a lucky ray" is the
+  flake -- instrument the failing assertion's world state before assuming
+  timing.
+- **`RARITY_COLORS` is `GameTier.COLORS`, keyed `legendary` -- NOT
+  `rarity_legendary`.** `combat_log.gd` read `...RARITY_COLORS.rarity_legendary`
+  / `...COLORS.rarity_legendary`; the throw aborted `_build_ui` mid-way, leaving
+  `_rich_label` null and every later entry erroring `clear on a null value`. A
+  UI script error that surfaces as "clear on a null value" usually means an
+  earlier line in the same `_build_ui` threw.
+- **The five-rung scale is game-wide: common/rare/epic/legendary/mythic**
+  (`GameTier.NAMES`; `uncommon` retired). `ScopeBand` band tables are keyed by
+  upgrade LEVEL (0 = base, 1..5 = the five rungs), so they are already
+  canonical. Watch the WEB side: `src/lib/codex.ts` `RARITY` and
+  `src/types.ts` `ItemRarity` still listed six rungs (with `Uncommon`), so
+  `rarityLabel(i)` -- which indexes the game's int -- shifted every item/title
+  label by one (epic -> "Rare"). Any "mirror the GDScript enums, by index" map
+  on the web side must be re-checked whenever a game enum changes size.
 
 ### Quest objective bridges + CI triggers (learned 2026-11-29)
 

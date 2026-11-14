@@ -116,7 +116,7 @@ are categorized:
   bans, mutes, security_log, anticheat_events,
   auto_responses, transfers, respawn_points, death_log,
   metrics, entities, world_state, world_events, shards,
-  servers, game_data, matchmaking_queue, dialogues,
+  servers, game_data, dialogues,
   agent_connectors, agent_actions, player_settings,
   npc_offerings, container_configs, target_schemas,
   species
@@ -127,6 +127,10 @@ are categorized:
   active_wars, active_revives, active_waypoints,
   active_trades, active_locks, active_dialogue,
   anti_cheat_profiles, connected_agents
+
+`matchmaking_queue` is a dormant `backend_factory` label for
+`MatchmakingQoS`; the live bout queue is session-only in `LobbyService`,
+not an adapter store.
 
 ## Wire protocol (for sidecar implementers)
 

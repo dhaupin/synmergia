@@ -1,14 +1,14 @@
 # probe_placeable_stations - S16.9 placed-crafting law (cradle + hall).
 #
 # prd-crafting.md + prd-mounts.md checked by law:
-#   A. The four FUNCTIONAL dwellings are data truth (anvil/forge/
+#   A. The four FUNCTIONAL furnishings are data truth (anvil/forge/
 #      workbench/cauldron), each carrying provides_function and a
 #      dismantle_returns refund bill.
-#   B. The station law: DwellingService.STATION_FUNCTIONS maps a placed
+#   B. The station law: HousingService.STATION_FUNCTIONS maps a placed
 #      function to the SAME RecipeData.Station ids NPCData uses; the
 #      anvil is the "blacksmith" repair station (the smithy UI reads).
 #   C. Placement is the PLOT LAW: owner-only, one station per function
-#      per plot, paid in GOODS (the purse loses the dwelling item,
+#      per plot, paid in GOODS (the purse loses the furnishing item,
 #      not gold) -- and the placed plot station CRAFTS EXACTLY like an
 #      NPC's bench: the WorkbenchUI opened at a placed station's
 #      RecipeData.Station executes CraftingService.craft; the world
@@ -16,9 +16,9 @@
 #   D. The mount law survives the placed bench: a kite crafted at a
 #      PLACED workbench rides the RideService ledger -- never the bag.
 #   E. Removal refunds through the same purse law (bag regains the
-#      dwelling item, plot loses the slot, the node is gone).
+#      furnishing item, plot loses the slot, the node is gone).
 #   F. THE WALK-UP LAW: E near a placed node resolves through
-#      DwellingService.resolve_nearby_station (the one door) and
+#      HousingService.resolve_nearby_station (the one door) and
 #      the player body's _use_nearby_placed_station opens the right UI
 #      at the station's law -- out-of-range refuses; in-range opens;
 #      a placed anvil routes to the SMITHY UI, not the craft table.
@@ -57,13 +57,13 @@ func _initialize() -> void:
 
 func _run() -> void:
 	var ds = root.get_node_or_null("/root/DataService")
-	var dwell_svc = root.get_node_or_null("/root/DwellingService")
+	var housing_svc = root.get_node_or_null("/root/HousingService")
 	var inv_svc = root.get_node_or_null("/root/InventoryService")
 	var cs = root.get_node_or_null("/root/CraftingService")
 	var ride = root.get_node_or_null("/root/RideService")
-	_check("autoloads present (ds/dwelling/inv/craft/ride)", \
-		ds != null and dwell_svc != null and inv_svc != null and cs != null and ride != null)
-	if ds == null or dwell_svc == null:
+	_check("autoloads present (ds/housing/inv/craft/ride)", \
+		ds != null and housing_svc != null and inv_svc != null and cs != null and ride != null)
+	if ds == null or housing_svc == null:
 		push_error("PLACED STATIONS PROBE FAILED (services missing)")
 		return
 	var InvComp = load("res://core/components/inventory_component.gd")
@@ -71,18 +71,18 @@ func _run() -> void:
 
 	# ---- A. The four stations are data truth --------------------------
 	var stations_data := {
-		"dwel_anvil_iron": "blacksmith",
-		"dwel_forge_coal": "crafting_forge",
-		"dwel_workbench_oak": "crafting_workbench",
-		"dwel_cauldron_brew": "crafting_alchemy",
+		"furn_anvil_iron": "blacksmith",
+		"furn_forge_coal": "crafting_forge",
+		"furn_workbench_oak": "crafting_workbench",
+		"furn_cauldron_brew": "crafting_alchemy",
 	}
 	var parse_ok := true
 	for sid in stations_data:
-		var dw = ds.get_dwelling(str(sid))
+		var dw = ds.get_furnishing(str(sid))
 		if dw == null or str(dw.get("provides_function")) != str(stations_data[sid]):
 			parse_ok = false
-	_check("4 FUNCTIONAL dwellings parse with the right provides_function", parse_ok)
-	var anvil = ds.get_dwelling("dwel_anvil_iron")
+	_check("4 FUNCTIONAL furnishings parse with the right provides_function", parse_ok)
+	var anvil = ds.get_furnishing("furn_anvil_iron")
 	var bill = anvil.get("dismantle_returns") if anvil != null else null
 	_check("the anvil's refund bill resolves (data truth items)", \
 		bill is Array and bill.size() == 2 \
@@ -90,14 +90,14 @@ func _run() -> void:
 
 	# ---- B. The station law mirrors the NPC door ----------------------
 	_check("placed-station law maps forge/workbench/alchemy to RecipeData.Station", \
-		int(dwell_svc.STATION_FUNCTIONS.get("crafting_forge", -2)) == RecipeDataScript.Station.FORGE \
-		and int(dwell_svc.STATION_FUNCTIONS.get("crafting_workbench", -3)) == RecipeDataScript.Station.WORKBENCH \
-		and int(dwell_svc.STATION_FUNCTIONS.get("crafting_alchemy", -4)) == RecipeDataScript.Station.ALCHEMY)
+		int(housing_svc.STATION_FUNCTIONS.get("crafting_forge", -2)) == RecipeDataScript.Station.FORGE \
+		and int(housing_svc.STATION_FUNCTIONS.get("crafting_workbench", -3)) == RecipeDataScript.Station.WORKBENCH \
+		and int(housing_svc.STATION_FUNCTIONS.get("crafting_alchemy", -4)) == RecipeDataScript.Station.ALCHEMY)
 
 	# ---- C. Placement + the plot law ----------------------------------
 	# A test plot owned by the placer.
-	dwell_svc.register_test_plot("probe_plot_craft", "housing_zone_1", "hall_owner")
-	var owner_ok: bool = dwell_svc.get_plot("probe_plot_craft").get("owner_id", "") == "hall_owner"
+	housing_svc.register_test_plot("probe_plot_craft", "housing_zone_1", "hall_owner")
+	var owner_ok: bool = housing_svc.get_plot("probe_plot_craft").get("owner_id", "") == "hall_owner"
 	_check("test plot registers owned (test seam)", owner_ok)
 
 	# The placer stub: place_station duck-types `entity_id` on the
@@ -110,33 +110,33 @@ func _run() -> void:
 	var bag = InvComp.new()
 	bag.set_owner_id("hall_owner")
 	inv_svc.register_inventory("hall_owner", bag)
-	var empty_first: Dictionary = dwell_svc.place_station(placer, "probe_plot_craft", "dwel_workbench_oak")
-	_check("placing with NO dwelling item in the purse refuses whole (item_not_in_bag)", \
+	var empty_first: Dictionary = housing_svc.place_station(placer, "probe_plot_craft", "furn_workbench_oak")
+	_check("placing with NO furnishing item in the purse refuses whole (item_not_in_bag)", \
 		not bool(empty_first.get("ok")) and str(empty_first.get("reason")) == "item_not_in_bag" \
-		and dwell_svc.get_plot_stations("probe_plot_craft").is_empty())
+		and housing_svc.get_plot_stations("probe_plot_craft").is_empty())
 
-	# One tres item = one place. A DwellingData is not an Item: the
+	# One tres item = one place. A FurnishingData is not an Item: the
 	# purse carries it as an Item catalog copy (data/ naming law, one
 	# id one file). Fund it, place, and verify the bag lost it.
-	var wb_item = ds.get_item("dwel_workbench_oak")
-	_check("the dwelling is ALSO an Item catalog good (placeable, purse-carried)", wb_item != null)
+	var wb_item = ds.get_item("furn_workbench_oak")
+	_check("the furnishing is ALSO an Item catalog good (placeable, purse-carried)", wb_item != null)
 	if wb_item != null:
 		bag.add_item(wb_item, 1)
-	var placed: Dictionary = dwell_svc.place_station(placer, "probe_plot_craft", "dwel_workbench_oak")
+	var placed: Dictionary = housing_svc.place_station(placer, "probe_plot_craft", "furn_workbench_oak")
 	_check("placing the workbench succeeds and stamps the plot slot", \
 		bool(placed.get("ok")) and str(placed.get("function")) == "crafting_workbench" \
-		and dwell_svc.get_plot_stations("probe_plot_craft").has("crafting_workbench"))
-	_check("the purse PAID IN GOODS (bag lost the dwelling item)", _count_id(bag, "dwel_workbench_oak") == 0)
+		and housing_svc.get_plot_stations("probe_plot_craft").has("crafting_workbench"))
+	_check("the purse PAID IN GOODS (bag lost the furnishing item)", _count_id(bag, "furn_workbench_oak") == 0)
 
 	# One per function per plot.
-	var second: Dictionary = dwell_svc.place_station(placer, "probe_plot_craft", "dwel_workbench_oak")
+	var second: Dictionary = housing_svc.place_station(placer, "probe_plot_craft", "furn_workbench_oak")
 	_check("a second workbench on the same plot refuses (station_slot_taken)", \
 		not bool(second.get("ok")) and str(second.get("reason")) == "station_slot_taken")
 
-	# A NON-station dwelling (the fireplace) refuses: only FUNCTIONAL
+	# A NON-station furnishing (the fireplace) refuses: only FUNCTIONAL
 	# craft/repair stations are placeable through this law.
-	var not_station: Dictionary = dwell_svc.place_station(placer, "probe_plot_craft", "dwel_fireplace_stone")
-	_check("a non-station dwelling refuses placement (not_a_station)", \
+	var not_station: Dictionary = housing_svc.place_station(placer, "probe_plot_craft", "furn_fireplace_stone")
+	_check("a non-station furnishing refuses placement (not_a_station)", \
 		not bool(not_station.get("ok")) and str(not_station.get("reason")) == "not_a_station")
 
 	# ---- C2. THE PARITY LAW: placed bench == NPC bench -----------------
@@ -191,14 +191,14 @@ func _run() -> void:
 	_check("the placed-bench craft wrote provenance (actor = hall_owner)", delta_ok)
 
 	# ---- E. removal refunds through the same purse law ----------------
-	var removed: Dictionary = dwell_svc.remove_station(placer, "probe_plot_craft", "crafting_workbench")
-	_check("taking the station back refunds the dwelling item to the bag", \
-		bool(removed.get("ok")) and _count_id(bag, "dwel_workbench_oak") == 1 \
-		and not dwell_svc.get_plot_stations("probe_plot_craft").has("crafting_workbench"))
+	var removed: Dictionary = housing_svc.remove_station(placer, "probe_plot_craft", "crafting_workbench")
+	_check("taking the station back refunds the furnishing item to the bag", \
+		bool(removed.get("ok")) and _count_id(bag, "furn_workbench_oak") == 1 \
+		and not housing_svc.get_plot_stations("probe_plot_craft").has("crafting_workbench"))
 
 	# ---- F. the WALK-UP law: E resolves the nearest placed node -------
 	var upc = root.get_node_or_null("/root/PlayerManager")
-	PlayerBodyScript = load("res://entities/player/player_base.gd")
+	PlayerBodyScript = load("res://entities/globe_player.gd")
 	var walker = PlayerBodyScript.new()
 	walker.entity_id = "hall_owner"
 	walker.is_local_player = true
@@ -213,25 +213,25 @@ func _run() -> void:
 
 	# Re-place the workbench (E removed it above) exactly at the plot;
 	# fund its item again first.
-	bag.add_item(ds.get_item("dwel_workbench_oak"), 1)
-	var placed2: Dictionary = dwell_svc.place_station(placer, "probe_plot_craft", "dwel_workbench_oak")
+	bag.add_item(ds.get_item("furn_workbench_oak"), 1)
+	var placed2: Dictionary = housing_svc.place_station(placer, "probe_plot_craft", "furn_workbench_oak")
 	_check("re-place after refund succeeds (slot free again)", bool(placed2.get("ok")))
 	var station_node = _find_station_by_name(str(placed2.get("station", {}).get("node_id", "")))
 	_check("the placed node joins the placed_stations group", \
 		station_node != null and station_node.is_in_group("placed_stations"))
 
 	# Walk the player somewhere FAR from the plot: E must refuse.
-	var far = dwell_svc.get_plot("probe_plot_craft")["center"] + Vector3(40, 0, 0)
+	var far = housing_svc.get_plot("probe_plot_craft")["center"] + Vector3(40, 0, 0)
 	walker.global_position = far
-	var miss: Dictionary = dwell_svc.resolve_nearby_station(walker)
+	var miss: Dictionary = housing_svc.resolve_nearby_station(walker)
 	_check("E far from any placed station resolves nothing (no phantom bench)", not bool(miss.get("ok")))
 	var opened_far: bool = walker._use_nearby_placed_station()
 	_check("the E-key path far away opens NO bench", not opened_far)
 
 	# Walk onto the plot: E resolves the node and the bench opens at
 	# the WORKBENCH station (station law, proximity-resolved).
-	walker.global_position = dwell_svc.get_plot("probe_plot_craft")["center"]
-	var hit: Dictionary = dwell_svc.resolve_nearby_station(walker)
+	walker.global_position = housing_svc.get_plot("probe_plot_craft")["center"]
+	var hit: Dictionary = housing_svc.resolve_nearby_station(walker)
 	_check("E in range resolves the placed node with its function", \
 		bool(hit.get("ok")) and str(hit.get("function")) == "crafting_workbench")
 	var opened: bool = walker._use_nearby_placed_station()
@@ -243,16 +243,16 @@ func _run() -> void:
 	# The BLACKSMITH routing: place the anvil next to the workbench,
 	# stand nearer the anvil, and E must open the SMITHY (repair UI),
 	# not the craft table.
-	bag.add_item(ds.get_item("dwel_anvil_iron"), 1)
-	var anvil_placed: Dictionary = dwell_svc.place_station(placer, "probe_plot_craft", "dwel_anvil_iron")
+	bag.add_item(ds.get_item("furn_anvil_iron"), 1)
+	var anvil_placed: Dictionary = housing_svc.place_station(placer, "probe_plot_craft", "furn_anvil_iron")
 	_check("the anvil places on its own function slot (repair + craft co-exist)", \
-		bool(anvil_placed.get("ok")) and dwell_svc.get_plot_stations("probe_plot_craft").has("blacksmith"))
+		bool(anvil_placed.get("ok")) and housing_svc.get_plot_stations("probe_plot_craft").has("blacksmith"))
 	var anvil_node = _find_station_by_name(str(anvil_placed.get("station", {}).get("node_id", "")))
 	if station_node != null and anvil_node != null:
 		# Stand half a meter from the anvil, two from the workbench:
 		# nearest-node law picks the ANVIL.
 		walker.global_position = (anvil_node as Node3D).global_position + Vector3(0.5, 0, 0)
-		var smith_hit: Dictionary = dwell_svc.resolve_nearby_station(walker)
+		var smith_hit: Dictionary = housing_svc.resolve_nearby_station(walker)
 		_check("standing at the anvil resolves the repair station", \
 			bool(smith_hit.get("ok")) and str(smith_hit.get("function")) == "blacksmith")
 		var smith_opened: bool = walker._use_nearby_placed_station()

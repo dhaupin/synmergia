@@ -7,8 +7,8 @@ CONTEXT
 
 GOAL (audit, docs-only unless the naming lint finds a real defect)
 Produce a content-audit report labs/lane-smoke/lane-C-content-audit.md answering, with file:line evidence:
-1. Which game/data/** resources are referenced ONLY by the retired planar path or by nothing at all (orphan/dead content). Grep for each id across game/ and report the consumers found (or none). Focus on: data/quests, data/npcs, data/npc_offerings, data/dialogues, data/zones, data/dwellings, data/loot_tables.
-2. Which live globe systems READ each data family (e.g. which service loads data/quests, which builds data/dwellings). One line per family: the loader + the file:line.
+1. Which game/data/** resources are referenced ONLY by the retired planar path or by nothing at all (orphan/dead content). Grep for each id across game/ and report the consumers found (or none). Focus on: data/quests, data/npcs, data/npc_offerings, data/dialogues, data/zones, data/furnishings, data/loot_tables.
+2. Which live globe systems READ each data family (e.g. which service loads data/quests, which builds data/furnishings). One line per family: the loader + the file:line.
 3. Any id that a data file REFERENCES but that does not resolve (a dangling cross-file reference) -- list each with the referencing file.
 4. Run `godot --headless --path game --script res://tests/test_data_naming_lint.gd` (after the import step below) and report the exact pass count. If it is NOT 27/0, that is a REAL defect: report the failing line.
 

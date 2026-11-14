@@ -11,7 +11,7 @@ enum ItemCategory {
 	RESOURCE,     # Crafting materials, gathering
 	GEM,          # Socketable gems, crafting ingredient
 	EVENT,        # Limited time event items
-	DWELLING,     # Housing items, furniture, decorations
+	FURNISHING,     # Housing items, furniture, decorations
 	MISC,          # Everything else (quest items, vanity, garbage loot)
 	SKILL_BOOK    # Skill book: consumes to upgrade a skill
 }
@@ -182,17 +182,17 @@ enum EquipSlot {
 @export var model_path: String = ""
 @export var color: Color = Color.WHITE
 
-# Dwelling/Housing specific
-@export var dwelling_category: String = ""  # furniture, decoration, lighting, storage, functional, etc.
-@export var dwelling_size: Vector3 = Vector3.ONE  # Size in housing grid units
+# Furnishing/Housing specific
+@export var furnishing_category: String = ""  # furniture, decoration, lighting, storage, functional, etc.
+@export var furnishing_size: Vector3 = Vector3.ONE  # Size in housing grid units
 @export var is_placeable: bool = false
 @export var placement_zones: Array[String] = []  # Where it can be placed
 
-# PLACEABLE STATION law (the functional arm of dwelling placement):
+# PLACEABLE STATION law (the functional arm of furnishing placement):
 # interaction + the provided function, readable by the placement
 # service and the interaction resolver. "blacksmith" = the repair
 # station; "crafting_forge"/"crafting_workbench"/"crafting_alchemy" =
-# a RecipeData.Station host (DwellingService.STATION_FUNCTIONS maps
+# a RecipeData.Station host (HousingService.STATION_FUNCTIONS maps
 # them; NPCData.get_crafting_station is the NPC arm).
 @export var is_interactable: bool = false
 @export var interaction_type: String = ""  # "craft", "blacksmith", "open_chest", "sit", "light_fire"...
@@ -413,8 +413,8 @@ func to_dict() -> Dictionary:
 		"duration": duration,
 		"model_path": model_path,
 		"color": color,
-		"dwelling_category": dwelling_category,
-		"dwelling_size": dwelling_size,
+		"furnishing_category": furnishing_category,
+		"furnishing_size": furnishing_size,
 		"is_placeable": is_placeable,
 		"placement_zones": placement_zones,
 		"event_id": event_id,
@@ -476,8 +476,8 @@ static func from_dict(data: Dictionary) -> Item:
 	item.duration = float(data.get("duration", 0.0))
 	item.model_path = data.get("model_path", "")
 	item.color = data.get("color", Color.WHITE)
-	item.dwelling_category = data.get("dwelling_category", "")
-	item.dwelling_size = data.get("dwelling_size", Vector3.ONE)
+	item.furnishing_category = data.get("furnishing_category", "")
+	item.furnishing_size = data.get("furnishing_size", Vector3.ONE)
 	item.is_placeable = data.get("is_placeable", false)
 	item.placement_zones = data.get("placement_zones", [])
 	item.event_id = data.get("event_id", "")

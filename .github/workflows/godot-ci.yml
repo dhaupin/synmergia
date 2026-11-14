@@ -28,7 +28,7 @@ jobs:
     env:
       GODOT_VERSION: '4.7.2'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install runtime libs
         run: |
           sudo apt-get update

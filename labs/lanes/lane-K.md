@@ -36,7 +36,7 @@ already references:
    filename == id, item_category = 4 (RESOURCE), stack_size 100.
 2. game/data/items/  -- misc goods + quest tokens. id prefix `item_` (misc)
    or `item_quest_` (quest items, set is_quest_item = true and a resolvable
-   quest_id). item_category 7 (MISC) / 8 (DWELLING) as fits.
+   quest_id). item_category 7 (FURNISHING) as fits.
 3. game/data/consumables/  -- potions / elixirs / teas tied to EXISTING
    resources (mooncap, moonpetal, kelp fiber, herbs). id prefix `potion_`
    or a bare name (elixir_ironblood, tea_mooncap_steep already exist -- do

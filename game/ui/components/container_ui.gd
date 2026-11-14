@@ -4,7 +4,7 @@
 ## history note) and no endpoint ever emitted it. Both halves are live
 ## now: SlotService.open_container emits, and THIS panel consumes.
 ## MenuManager mounts it as the "container" registry row; any storage
-## surface opened through the service (vault doors, dwelling chests,
+## surface opened through the service (vault doors, furnishing chests,
 ## mount packs, loot bags) feeds a real UI instead of a silent emit.
 ## Read-only this round: render the store, one row per item -- the
 ## move/swap wiring is the next consumer round. Shell law: the panel

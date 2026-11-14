@@ -47,9 +47,9 @@ signal bound_to(player, ankh: Ankh)
 @export var required_guild_rank: int = 0
 @export var required_quest_ids: Array[String] = []
 
-# Ownership scoping -- shared vocabulary with guards and dwellings
+# Ownership scoping -- shared vocabulary with guards and furnishings
 # (PlacementAccess). When set and scope != WORLD, evaluate() gates
-# binding on top of the type checks below. DwellingService stamps this
+# binding on top of the type checks below. HousingService stamps this
 # on plot-placed ankhs (house/guild-hall respawn points).
 @export var access: Resource
 

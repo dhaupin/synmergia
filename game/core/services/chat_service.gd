@@ -512,17 +512,17 @@ func _handle_command(sender_id: String, channel: Channel, command: String, targe
 		"lootrule":
 			return _cmd_loot_rule(sender_id, args)
 		"buyplot":
-			return _cmd_dwelling(sender_id, "buyplot", args)
+			return _cmd_housing(sender_id, "buyplot", args)
 		"placeguard":
-			return _cmd_dwelling(sender_id, "placeguard", args)
+			return _cmd_housing(sender_id, "placeguard", args)
 		"placeankh":
-			return _cmd_dwelling(sender_id, "placeankh", args)
+			return _cmd_housing(sender_id, "placeankh", args)
 		"dismissguard":
-			return _cmd_dwelling(sender_id, "dismissguard", args)
+			return _cmd_housing(sender_id, "dismissguard", args)
 		"buildhouse":
-			return _cmd_dwelling(sender_id, "buildhouse", args)
+			return _cmd_housing(sender_id, "buildhouse", args)
 		"plotinfo":
-			return _cmd_dwelling(sender_id, "plotinfo", args)
+			return _cmd_housing(sender_id, "plotinfo", args)
 		"horde":
 			return _cmd_horde(sender_id, args)
 		"weather-event":
@@ -1172,10 +1172,29 @@ func _mesh_report() -> String:
 		ids.sort()
 		lines.append("  registry: %d shard(s) -- %s" % [
 			ids.size(), ", ".join(ids) if not ids.is_empty() else "(none)"])
+		lines.append("  " + _mesh_player_line(coord, ids))
 
 	var bus := _mesh_bus_line()
 	lines.append("  " + bus)
 	return "\n".join(lines)
+
+## The player-roster line: per-shard live player counts from the
+## coordinator's roster (the leg GameManager feeds on join/leave). Read-only;
+## reports total + the busiest shards. Falls back honestly when the roster
+## API is absent.
+func _mesh_player_line(coord, ids: Array) -> String:
+	if not coord.has_method("get_shard_info"):
+		return "players: (roster unavailable)"
+	var total := 0
+	var parts: Array = []
+	for sid in ids:
+		var info: Dictionary = coord.get_shard_info(String(sid))
+		var n := int(info.get("player_count", 0))
+		total += n
+		parts.append("%s=%d" % [String(sid), n])
+	if parts.is_empty():
+		return "players: 0 online"
+	return "players: %d online (%s)" % [total, ", ".join(parts)]
 
 ## The bus line: the default bus id from CoordinatorService's registry.
 func _mesh_bus_line() -> String:
@@ -1336,11 +1355,11 @@ func _cmd_horde(sender_id: String, args: Array) -> bool:
 	return false
 
 ## Command: /buyplot /placeguard /placeankh /dismissguard /buildhouse /plotinfo
-## DwellingService is registered after ChatService: lazy resolution.
-func _cmd_dwelling(sender_id: String, command: String, args: Array) -> bool:
-	var ds = get_node_or_null(NodePath("/root/DwellingService"))
-	if ds != null and ds.has_method("handle_dwelling_command"):
-		return ds.handle_dwelling_command(sender_id, command, args)
+## HousingService is registered after ChatService: lazy resolution.
+func _cmd_housing(sender_id: String, command: String, args: Array) -> bool:
+	var ds = get_node_or_null(NodePath("/root/HousingService"))
+	if ds != null and ds.has_method("handle_housing_command"):
+		return ds.handle_housing_command(sender_id, command, args)
 	return false
 
 ## Command: /lootrule <ffa|round|leader|master>

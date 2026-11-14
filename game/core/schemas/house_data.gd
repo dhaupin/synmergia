@@ -5,7 +5,7 @@
 ##   COTTAGE  - a one-room timber cottage with a moss sedum roof.
 ##   HALL     - a two-story home built against a half-buried machine hull.
 ##
-## The tier is DATA, not code: DwellingService.build_house reads a
+## The tier is DATA, not code: HousingService.build_house reads a
 ## HouseData and stamps the plot's house_id from it. Cost, footprint, wall
 ## height, door width and roof pitch all live here so a new tier ships as
 ## a .tres, never a service edit. Geometry is still built procedurally

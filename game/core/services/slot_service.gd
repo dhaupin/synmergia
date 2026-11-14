@@ -133,7 +133,7 @@ func init_container(owner_id: String, container_type: int, instance_id: String =
 
 ## THE OPEN ENDPOINT: container_opened had zero emitters (no
 ## open-container endpoint anywhere). Who opens a storage surface
-## (vault door, dwelling chest, mount pack, loot bag) calls here; the
+## (vault door, furnishing chest, mount pack, loot bag) calls here; the
 ## store materializes from the data-driven config and the signal
 ## announces it. MenuManager's ContainerUI listens on container_opened
 ## and renders the store (the consumer the signal was declared for).

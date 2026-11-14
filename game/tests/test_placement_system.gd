@@ -1,7 +1,7 @@
 ## Placement + housing integration tests.
 ## Covers the shared ownership-scope interface (PlacementAccess) as used
 ## by ankhs (bind gating), guards (personal-mode targeting), and
-## DwellingService (plots, purchase, placement costs/ownership).
+## HousingService (plots, purchase, placement costs/ownership).
 ## Test scripts must load() services at runtime -- parse-time preloads
 ## of autoload-referencing scripts poison script-mode compilation.
 extends SceneTree
@@ -11,7 +11,7 @@ var _failed := 0
 
 var _pa: GDScript = null
 var _ankh: GDScript = null
-var _dwelling: GDScript = null
+var _housing: GDScript = null
 var _guard_data: GDScript = null
 var _guard_ai: GDScript = null
 var _guard: GDScript = null
@@ -21,7 +21,7 @@ func _initialize() -> void:
 	await process_frame
 	_pa = load("res://core/schemas/placement_access.gd")
 	_ankh = load("res://core/schemas/ankh.gd")
-	_dwelling = load("res://core/services/dwelling_service.gd")
+	_housing = load("res://core/services/housing_service.gd")
 	_guard_data = load("res://core/schemas/guard_data.gd")
 	_guard_ai = load("res://core/ai/guard_ai.gd")
 	_guard = load("res://entities/guard.gd")
@@ -141,16 +141,16 @@ func _test_ankh_faction_check_uses_faction_id() -> void:
 	_free(ankh)
 
 
-# --- DwellingService: plots + purchase --------------------------------------
+# --- HousingService: plots + purchase --------------------------------------
 
-func _mk_dwelling() -> Node:
-	var svc = _dwelling.new()
+func _mk_housing() -> Node:
+	var svc = _housing.new()
 	root.add_child(svc)
 	return svc
 
 
 func _test_plot_registration_and_lookup() -> void:
-	var svc = _mk_dwelling()
+	var svc = _mk_housing()
 	svc.register_plot("plot_a", "test_zone", Vector3(0, 0, 0), 10.0, 50000)
 	svc.register_plot("plot_b", "test_zone", Vector3(100, 0, 100), 10.0, 60000)
 	_assert(not svc.get_plot("plot_a").is_empty(), "registered plot is retrievable")
@@ -168,7 +168,7 @@ func _test_plot_registration_and_lookup() -> void:
 
 
 func _test_plot_purchase_flows() -> void:
-	var svc = _mk_dwelling()
+	var svc = _mk_housing()
 	svc.register_plot("plot_p", "test_zone", Vector3.ZERO, 10.0, 50000)
 	var rich = _mk_player("buyer", {"gold": 60000})
 	var poor = _mk_player("pauper", {"gold": 100})
@@ -198,7 +198,7 @@ func _test_plot_purchase_flows() -> void:
 
 
 func _test_placement_costs_and_ownership() -> void:
-	var svc = _mk_dwelling()
+	var svc = _mk_housing()
 	svc.register_test_plot("plot_own", "test_zone", "owner_x")
 	var outsider = _mk_player("not_owner", {"gold": 999999})
 	# 400000 = 250k guard + 100k ankh + 50k headroom.
@@ -211,7 +211,7 @@ func _test_placement_costs_and_ownership() -> void:
 
 	var g2 = svc.place_house_guard(owner_p, "plot_own")
 	_assert(g2 != null, "owner places house guard")
-	_assert(int(owner_p.gold) == 400000 - _dwelling.HOUSE_GUARD_COST, "guard costs 250000 gold")
+	_assert(int(owner_p.gold) == 400000 - _housing.HOUSE_GUARD_COST, "guard costs 250000 gold")
 	var g3 = svc.place_house_guard(owner_p, "plot_own")
 	_assert(g3 == null, "second guard denied (one per plot)")
 	_assert(str(svc.get_plot("plot_own")["guard_id"]) != "", "guard id recorded on plot")
@@ -228,7 +228,7 @@ func _test_placement_costs_and_ownership() -> void:
 
 
 func _test_placed_guard_is_personal_and_friendly_to_owner() -> void:
-	var svc = _mk_dwelling()
+	var svc = _mk_housing()
 	svc.register_test_plot("plot_g", "test_zone", "home_owner")
 	var owner_p = _mk_player("home_owner", {"gold": 300000})
 	var guard = svc.place_house_guard(owner_p, "plot_g")
@@ -247,7 +247,7 @@ func _test_placed_guard_is_personal_and_friendly_to_owner() -> void:
 
 
 func _test_placed_ankh_scope_stamped() -> void:
-	var svc = _mk_dwelling()
+	var svc = _mk_housing()
 	svc.register_test_plot("plot_a2", "test_zone", "ankh_owner")
 	var owner_p = _mk_player("ankh_owner", {"gold": 200000})
 	var ankh = svc.place_personal_ankh(owner_p, "plot_a2")

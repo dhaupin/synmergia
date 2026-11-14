@@ -110,6 +110,30 @@ func _run() -> void:
 		feed.size() == 1 and int(feed[0].get("level", 0)) == 5 and bool(feed[0].get("consent_fill", false)) == false)
 	_check("leave_queue removes the block", lobby.leave_queue("probe_small") and lobby.queue_for("probe_small") == "")
 
+	# Party auto-resolve: a member's queue call carries the whole roster
+	# as one block even when the caller does not pass party_id.
+	var party_svc = root.get_node_or_null("PartyService")
+	if party_svc != null:
+		var queue_party: String = party_svc.create_party("queue_party_leader")
+		party_svc.invite_player("queue_party_leader", "queue_party_mate")
+		party_svc.accept_invite("queue_party_mate")
+		# create_party spends the party token; clear it so the join under
+		# test exercises the block, not the rate limit.
+		var qos_party = root.get_node_or_null("QoSService")
+		if qos_party != null and "_rate_limit_buckets" in qos_party:
+			(qos_party._rate_limit_buckets as Dictionary).erase("queue_party_leader")
+		_check("party queue: leader joins without explicit party_id", \
+			lobby.join_queue("queue_party_leader", 20, "zone_arena_coliseum", false))
+		var party_feed: Array = lobby.queue_snapshot("zone_arena_coliseum")
+		var party_row: Dictionary = {}
+		for row in party_feed:
+			if str(row.get("leader", "")) == "queue_party_leader":
+				party_row = row
+		_check("party queue: roster rides one atomic block", \
+			int(party_row.get("size", 0)) == 2 and str(party_row.get("party_id", "")) == queue_party)
+		_check("party queue: member leave removes the block", \
+			lobby.leave_queue("queue_party_mate") and lobby.queue_for("queue_party_leader") == "")
+
 	# ---- D. Duels: handshake, decline, expiry -------------------------
 	var cid: String = lobby.challenge_duel("duelist_one", "duelist_two", "zone_arena_sandpit")
 	_check("duel challenge issues an id", cid != "")

@@ -15,6 +15,7 @@ func _hub_emit(sig_name: String, args: Array) -> void:
 const StatusEffect = preload("res://core/entities/status_effect.gd")
 const CcImmunity = preload("res://core/combat/cc_immunity.gd")
 const ScopeBand = preload("res://core/combat/scope_band.gd")
+const StatId = preload("res://core/schemas/stat_id.gd")
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const SkillSchema = preload("res://core/schemas/skill.gd")
 # The data -> runtime status-effect join (a skill's effect_id names a
@@ -159,11 +160,42 @@ var upgrade_level: int = 0
 var upgrade_unlocks: Array = []
 # Scope bands: a heal becomes a friendly AoE from epic up; a teleport reaches
 # further and eventually crosses scopes at mythic (ScopeBand owns the tables).
+# The same opt-in also bands a GUARD (ally shield aura) and a CONTROL (AoE
+# stun/taunt), so every "reach" verb rides one canonical flow.
 @export var heal_aoe: bool = false
 @export var heal_aoe_radius: float = 0.0
 @export var heal_max_targets: int = 1  # 0 = unlimited
 @export var teleport_scope: int = 0     # ScopeBand.LOCAL..PLANET
-@export var scope_bands: bool = false   # opt in: a heal grows into an AoE at epic+
+@export var guard_aoe: bool = false
+@export var guard_radius: float = 0.0
+@export var guard_max_targets: int = 1  # 0 = unlimited
+@export var guard_duration_mult: float = 1.0
+@export var control_aoe: bool = false
+@export var control_radius: float = 0.0
+@export var control_max_targets: int = 1  # 0 = unlimited
+@export var control_duration_mult: float = 1.0
+@export var scope_bands: bool = false   # opt in: fold the ScopeBand tables for this tier
+## Opt in to the GUARD band (separate from scope_bands so a self buff is never
+## fanned to the party): the shield pool + authored buffs cover allies as the
+## tier climbs -- the tank's Hold.
+@export var guard_band: bool = false
+@export var rally_aoe: bool = false
+@export var rally_radius: float = 0.0
+@export var rally_max_targets: int = 1  # 0 = unlimited
+@export var rally_duration_mult: float = 1.0
+## Opt in to the RALLY band (the DD's Charge): fan this skill's buffs to the
+## party as the tier climbs, lengthening them by the band. Its own opt-in so a
+## mend or a hold is never fanned by a rally.
+@export var rally_band: bool = false
+## Tier goodies from the upgrade table (authored but previously inert):
+## effect_duration_mult lengthens this cast's effects, effect_strength_mult
+## amplifies them. Folded into _duration_scale / _power_scale.
+var upgrade_effect_duration_mult: float = 1.0
+var upgrade_effect_strength_mult: float = 1.0
+## Per-cast latch: the hitbox sweep fans a banded control over the ring ONCE
+## (on the first landed hit), then stops re-sweeping for the rest of the cast.
+## A fresh Skill instance is duplicated per cast, so the latch resets itself.
+var _banded_fx_done: bool = false
 
 # Heals
 @export var heal_amount: int = 0
@@ -219,6 +251,8 @@ static func from_schema(s: SkillSchema) -> Skill:
 	sk.required_class = s.required_class
 	sk.required_role = int(s.required_role)
 	sk.scope_bands = bool(s.scope_bands)
+	sk.guard_band = bool(s.guard_band)
+	sk.rally_band = bool(s.rally_band)
 	sk.required_stance = s.required_stance
 	sk.schema = s
 	# Flatten effect dictionaries into runtime fields. THIS is the one effect
@@ -363,6 +397,9 @@ func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO, def
 		"damage_dealt": 0,
 		"heal_amount": 0,
 		"heal_targets": 0,
+		"guard_targets": 0,
+		"control_targets": 0,
+		"rally_targets": 0,
 		"effects_applied": [],
 		"targets_hit": []
 	}
@@ -371,8 +408,9 @@ func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO, def
 	if not consume_resources(caster):
 		return result
 
-	# Start cooldown
-	remaining_cooldown = cooldown
+	# Start cooldown. The caster's cooldown reduction (a DD goodie) shaves
+	# every cooldown at this one point; clamped so it can never reach zero.
+	remaining_cooldown = cooldown * (1.0 - _cooldown_reduction_of(caster))
 
 	# Calculate damage
 	if damage > 0:
@@ -420,19 +458,41 @@ func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO, def
 		else:
 			caster.apply_status_effect(hot)
 
-	# Apply crowd control (deferred on hitbox casts: landed hits only)
-	if crowd_control_type != "" and not defer_target_effects:
-		applyCrowdControl(caster, target, ground_position)
+	# Apply crowd control (deferred on hitbox casts: landed hits only). When
+	# the control verb is banded, the sweep owns the ring AND the CC debuff
+	# entries (an AoE stun must hit every hostile in reach, not one target).
+	var banded_control := scope_bands and control_aoe and _has_control_payload()
+	if (crowd_control_type != "" or taunt_targets) and not defer_target_effects:
+		if banded_control:
+			result.control_targets = apply_banded_control(caster, target, ground_position)
+		else:
+			applyCrowdControl(caster, target, ground_position)
 
-	# Apply authored buff/debuff status effects. Buffs land on the caster
-	# (self) or the ally target; debuffs land on the enemy target. On a
-	# hitbox cast the sweep owns them (landed hits only) -- same defer law
-	# as DoT/CC, so a self-buff still applies at cast (target == null).
-	if not status_effects.is_empty() and (not defer_target_effects or target == null):
-		applyStatusEffects(caster, target)
+	# Authored BUFFS are self/ally effects. A hitbox cast defers them to the
+	# sweep (landed hits only, unless there is no target -- a self-buff still
+	# lands at cast). The guard band owns them when it fans them to the party
+	# (apply_banded_guard below), so they are not applied twice.
+	if not status_effects.is_empty() and not has_guard_payload() and not has_rally_payload() and (not defer_target_effects or target == null):
+		apply_buff_entries(caster, target)
+	# Authored DEBUFFS are offense: a hitbox cast defers them to the sweep
+	# (landed hits only), and a banded control fans them to the whole ring.
+	# The rally owns its own debuff fan-out (apply_banded_rally sunders the
+	# enemy ring), so a rally skill never double-applies its debuff here.
+	if not status_effects.is_empty() and not defer_target_effects and not banded_control and not has_rally_payload():
+		apply_debuff_entries(caster, target)
 
-	# Apply other effects
-	if grants_shield > 0:
+	# The guard (shield pool + authored buffs) fans to allies when the guard
+	# band is on, else the shield pool lands on the caster alone. A guard is
+	# ally-support, not offense, so it never waits on a landed hit -- it lands
+	# the moment the skill is cast (a tank alone still shields the party).
+	# The rally (the DD's Charge) fans the buffs to the party, lengthened by
+	# the band. Like a guard it is ally-support, so it lands at cast.
+	if has_rally_payload():
+		result.rally_targets = apply_banded_rally(caster, target)
+
+	if has_guard_payload():
+		result.guard_targets = apply_banded_guard(caster, target, grants_shield)
+	elif grants_shield > 0:
 		applyShield(caster)
 
 	if grants_invincibility:
@@ -446,7 +506,7 @@ func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO, def
 	if cleanses and not defer_target_effects:
 		applyCleanse(caster)
 
-	if taunt_targets and not defer_target_effects:
+	if taunt_targets and not defer_target_effects and not banded_control:
 		applyTaunt(caster)
 
 	if teleport_distance > 0 and not defer_target_effects:
@@ -515,6 +575,10 @@ func calculate_healing(caster) -> int:
 	# Apply caster's healing power (WIS-based)
 	base_heal += caster.get_healing_power()
 
+	# A Bender's AMPLIFY stat raises every outgoing heal (the healer's lane
+	# partner). Clamped, so a buff can never double a mend.
+	base_heal = int(float(base_heal) * _power_scale(caster))
+
 	# Daily Class Blessing (prd-psy.md section 8): the blessed class
 	# heals +20% for the day. Duck-typed + late-resolved so script-mode
 	# tests and bare Entities (never blessed) pass through clean.
@@ -547,20 +611,78 @@ func applyCrowdControl(caster, target, _ground_position: Vector3) -> void:
 ## target, a debuff on the enemy target. An unknown effect_id degrades to a
 ## quiet no-op (the lint gate is what keeps refs honest, not a cast crash).
 func applyStatusEffects(caster, target) -> void:
+	apply_buff_entries(caster, target)
+	apply_debuff_entries(caster, target)
+
+## Apply the authored BUFF entries to one body (the caster by default, or the
+## ally target). Split out so the banded guard sweep can reuse it per ally --
+## one buff vocabulary, two callers.
+func apply_buff_entries(caster, target) -> void:
+	var body = target if (target != null and target.has_method("apply_status_effect")) else caster
+	_apply_entries_of_kind(body, caster, "buff")
+
+## Apply the authored DEBUFF entries to the enemy target. Debuffs are offense
+## and never ride a guard sweep.
+func apply_debuff_entries(caster, target) -> void:
+	if target == null or not target.has_method("apply_status_effect"):
+		return
+	_apply_entries_of_kind(target, caster, "debuff")
+
+func _apply_entries_of_kind(body, caster, kind: String, duration_mult: float = 1.0) -> void:
+	if body == null or not body.has_method("apply_status_effect"):
+		return
 	for entry in status_effects:
-		var kind := str(entry.get("type", ""))
-		var fx := StatusEffectFactory.from_id(str(entry.get("effect_id", "")), float(entry.get("duration", 0.0)))
+		if str(entry.get("type", "")) != kind:
+			continue
+		var entry_dur := float(entry.get("duration", 0.0)) * maxf(duration_mult, 0.0) * _duration_scale(caster)
+		var fx := StatusEffectFactory.from_id(str(entry.get("effect_id", "")), entry_dur)
 		if fx == null:
 			continue
+		fx.source = caster
 		if kind == "buff":
-			var body = target if (target != null and target.has_method("apply_status_effect")) else caster
-			if body != null and body.has_method("apply_status_effect"):
-				fx.source = caster
-				body.apply_status_effect(fx)
-		elif kind == "debuff":
-			if target != null and target.has_method("apply_status_effect"):
-				fx.source = caster
-				target.apply_status_effect(fx)
+			_scale_effect_power(fx, _power_scale(caster))
+		body.apply_status_effect(fx)
+
+## True when this skill carries a guard payload AND opts into the guard band
+## (a shield pool or authored buffs, fanned to allies). A skill that only
+## opts into scope_bands (a heal) is not a guard.
+func has_guard_payload() -> bool:
+	if not guard_band:
+		return false
+	if grants_shield > 0:
+		return true
+	for entry in status_effects:
+		if str(entry.get("type", "")) == "buff":
+			return true
+	return false
+
+## True when this skill carries ANY control payload: a typed CC (stun/root/
+## slow) or an authored control entry (stun_common/slow_common/taunt). This is
+## the set the banded control sweep fans out, and the set a hitbox cast defers
+## to the sweep.
+func _has_control_payload() -> bool:
+	return crowd_control_type != "" or _has_cc_entry() or taunt_targets
+
+## True when this skill's authored debuff entries include a control (stun /
+## root / slow / taunt) -- the CC set the banded control sweep fans out to
+## every hostile in reach.
+func _has_cc_entry() -> bool:
+	for entry in status_effects:
+		if str(entry.get("type", "")) != "debuff":
+			continue
+		if is_control_effect_id(str(entry.get("effect_id", ""))):
+			return true
+	return false
+
+## The one control vocabulary: does this authored effect_id name a control?
+## Shared by from_schema (taunt flag) and the banded control sweep so the
+## definition lives once.
+static func is_control_effect_id(effect_id: String) -> bool:
+	var id := effect_id.to_lower()
+	return (id.begins_with("stun") or id.begins_with("root") or id.begins_with("slow")
+		or id.begins_with("debuff_taunt") or id.begins_with("buff_aggro_horn")
+		or id.begins_with("debuff_aggro_horn") or id.begins_with("knockback")
+		or id.begins_with("debuff_silence") or id.begins_with("debuff_fear"))
 
 func applyShield(caster) -> void:
 	if grants_shield <= 0 or caster == null or not caster.has_method("apply_status_effect"):
@@ -571,7 +693,7 @@ func applyShield(caster) -> void:
 	fx.effect_type = StatusEffect.EffectType.BUFF
 	fx.tick_behavior = StatusEffect.TickBehavior.DURATION
 	fx.duration = shield_duration
-	fx.shield_amount = grants_shield
+	fx.shield_amount = int(float(grants_shield) * _power_scale(caster))
 	fx.source = caster
 	caster.apply_status_effect(fx)
 
@@ -580,12 +702,16 @@ func applyShield(caster) -> void:
 ## entry rides along on the status stack for the buff-bar icon. Silent
 ## no-op when EntityService is unavailable (parse-time) or nothing is in
 ## range -- same degradation law as _generate_heal_threat.
-func applyTaunt(caster) -> void:
+func applyTaunt(caster, duration_mult: float = 1.0) -> void:
 	var es = _entity_service()
 	if es == null or caster == null or not ("global_position" in caster):
 		return
 	var radius := aoe_radius if aoe_radius > 0.0 else 8.0
-	var duration_ms := int(maxf(taunt_duration, 0.0) * 1000.0)
+	# A banded taunt reaches as far as its control ring, so the aggro sweep and
+	# the debuff fan-out never disagree on who is pulled.
+	if control_radius > 0.0:
+		radius = maxf(radius, control_radius)
+	var duration_ms := int(maxf(taunt_duration, 0.0) * maxf(duration_mult, 0.0) * 1000.0)
 	for enemy in EntityInterest.query_interest(caster.global_position, radius, [caster]):
 		if not is_instance_valid(enemy):
 			continue
@@ -659,20 +785,53 @@ func applyCleanse(caster) -> void:
 ## current upgrade_level. Idempotent (it SETS, never accumulates), so it is
 ## safe to call after the academy deltas land. A heal that authors its own
 ## larger aoe_radius keeps it; the band only ever widens reach.
+##
+## Each verb folds only for a skill that actually carries it, so a taunt never
+## inherits a heal's radius and a heal never inherits a stun's ring. Adding a
+## new verb means one table in ScopeBand and one branch here -- the callers do
+## not change.
 func apply_scope_bands() -> void:
 	# Heal banding is opt-in (scope_bands): only a heal authored as a banded
-	# mend grows into an AoE. A lifesteal/drain rider stays single-target.
-	if scope_bands:
+	# mend grows into a friendly AoE. A lifesteal/drain rider stays single.
+	if scope_bands and heal_amount > 0:
 		var hb: Dictionary = ScopeBand.heal_band(upgrade_level)
 		heal_aoe = bool(hb.get("aoe", false))
 		heal_max_targets = int(hb.get("max_targets", 1))
 		heal_aoe_radius = maxf(float(hb.get("radius", 0.0)), aoe_radius)
 		if heal_aoe and heal_aoe_radius > aoe_radius:
 			aoe_radius = heal_aoe_radius
-	elif aoe_radius > 0.0:
-		# An authored ring is inherently an AoE heal, so it must not inherit
+	elif heal_amount > 0 and aoe_radius > 0.0:
+		# An authored ring is inherently an AoE mend, so it must not inherit
 		# the single-target cap (1). Uncapped unless a band says otherwise.
 		heal_max_targets = 0
+	# Control: only a skill that actually controls (a CC type or a stun/root/
+	# slow/taunt entry) fans a ring. The radius also feeds aoe_radius so a
+	# HITBOX control (combat_system's sweep reads aoe_radius) matches a
+	# non-hitbox one.
+	if scope_bands and (crowd_control_type != "" or _has_cc_entry()):
+		var cb: Dictionary = ScopeBand.control_band(upgrade_level)
+		control_aoe = bool(cb.get("aoe", false))
+		control_max_targets = int(cb.get("max_targets", 1))
+		control_radius = float(cb.get("radius", 0.0))
+		control_duration_mult = float(cb.get("duration_mult", 1.0))
+		if control_aoe and control_radius > aoe_radius:
+			aoe_radius = control_radius
+	# Guard: the ally shield aura widens and covers the party as it climbs. A
+	# separate opt-in (guard_band) so a self damage buff is never fanned out.
+	if guard_band and has_guard_payload():
+		var gb: Dictionary = ScopeBand.guard_band(upgrade_level)
+		guard_aoe = bool(gb.get("aoe", false))
+		guard_max_targets = int(gb.get("max_targets", 1))
+		guard_radius = float(gb.get("radius", 0.0))
+		guard_duration_mult = float(gb.get("duration_mult", 1.0))
+	# Rally: the DD's party buff widens and lengthens as it climbs, the same
+	# ladder as the mend and the hold. Its own opt-in (rally_band).
+	if rally_band:
+		var rb: Dictionary = ScopeBand.rally_band(upgrade_level)
+		rally_aoe = bool(rb.get("aoe", false))
+		rally_max_targets = int(rb.get("max_targets", 1))
+		rally_radius = float(rb.get("radius", 0.0))
+		rally_duration_mult = float(rb.get("duration_mult", 1.0))
 	# A teleport bands by nature; the reach climbs and eventually crosses
 	# scopes. At base (0) the skill's own authored distance governs.
 	if teleport_distance > 0.0:
@@ -730,6 +889,206 @@ func apply_banded_heal(caster, target, amount: int) -> int:
 		caster.heal(amount)
 		healed = 1
 	return healed
+
+## Guard the caster (and, from the epic band up, every friendly in reach) with
+## the skill's guard payload: the shield pool (grants_shield) plus every
+## authored buff entry (a fortify/reflect aura). Returns the number of bodies
+## guarded. The shield rides a StatusEffect whose duration is scaled by the
+## guard band; the buffs keep their authored durations.
+func apply_banded_guard(caster, target, amount: int) -> int:
+	if caster == null or not caster.has_method("apply_status_effect"):
+		return 0
+	var dur := maxf(shield_duration, 0.0) * maxf(guard_duration_mult, 1.0)
+	var radius := maxf(guard_radius, aoe_radius)
+	# The named ally target (if any) plus the friendly ring; self always leads.
+	var bodies: Array = [caster]
+	var seen := {caster.get_instance_id(): true}
+	if target != null and target != caster and _is_friendly(caster, target):
+		bodies.append(target)
+		seen[target.get_instance_id()] = true
+	if guard_aoe:
+		for body in EntityInterest.query_interest(caster.global_position, radius, [caster]):
+			if seen.has(body.get_instance_id()):
+				continue
+			if not _is_friendly(caster, body):
+				continue
+			seen[body.get_instance_id()] = true
+			bodies.append(body)
+	var cap := guard_max_targets if guard_aoe else 1
+	var guarded := 0
+	for body in bodies:
+		if cap > 0 and guarded >= cap:
+			break
+		if not is_instance_valid(body) or not body.has_method("apply_status_effect"):
+			continue
+		if amount > 0:
+			var fx := StatusEffect.new()
+			fx.effect_id = skill_id + "_guard"
+			fx.effect_name = skill_name + " Guard"
+			fx.effect_type = StatusEffect.EffectType.BUFF
+			fx.tick_behavior = StatusEffect.TickBehavior.DURATION
+			fx.duration = dur
+			fx.shield_amount = int(float(amount) * _power_scale(caster))
+			fx.source = caster
+			body.apply_status_effect(fx)
+		# The authored buff payload (a fortify/reflect aura) lands on each body
+		# in the guard set, not just the caster, its duration scaled by the band.
+		_apply_entries_of_kind(body, caster, "buff", guard_duration_mult)
+		guarded += 1
+	return guarded
+
+## Apply crowd control to the named target (and, from the rare band up, every
+## hostile in reach). Returns the number of bodies controlled. A single-target
+## control keeps the old shape: only the named target is affected.
+func apply_banded_control(caster, target, ground_position: Vector3) -> int:
+	if crowd_control_type == "" and not taunt_targets:
+		return 0
+	var radius := maxf(control_radius, aoe_radius)
+	var bodies: Array = []
+	var seen := {}
+	if target != null and target.has_method("apply_status_effect"):
+		bodies.append(target)
+		seen[target.get_instance_id()] = true
+	if control_aoe:
+		for body in EntityInterest.query_interest(caster.global_position, radius, [caster]):
+			if seen.has(body.get_instance_id()):
+				continue
+			if not is_instance_valid(body):
+				continue
+			# Control only lands on hostiles (an AoE stun must never freeze allies).
+			if "entity_type" in body and body.entity_type != Entity.EntityType.ENEMY:
+				continue
+			seen[body.get_instance_id()] = true
+			bodies.append(body)
+	var cap := control_max_targets if control_aoe else 1
+	var controlled := 0
+	for body in bodies:
+		if cap > 0 and controlled >= cap:
+			break
+		if not is_instance_valid(body) or not body.has_method("apply_status_effect"):
+			continue
+		if crowd_control_type != "":
+			var cc_fx = null
+			match crowd_control_type:
+				"stun":
+					cc_fx = create_stun_effect(caster)
+				"root":
+					cc_fx = create_root_effect(caster)
+				"slow":
+					cc_fx = create_slow_effect(caster)
+			if cc_fx != null:
+				# The band lengthens the control as it widens.
+				cc_fx.duration = cc_fx.duration * maxf(control_duration_mult, 0.0)
+				body.apply_status_effect(cc_fx)
+		# The authored debuff entries (stun_common, slow_common, taunt...) ride
+		# the same fan-out so every hostile in the ring gets the full control.
+		_apply_entries_of_kind(body, caster, "debuff", control_duration_mult)
+		controlled += 1
+	if taunt_targets:
+		applyTaunt(caster, control_duration_mult)
+	return controlled
+
+## --- The support lanes' goodies ---------------------------------------
+## DD LENGTHENS (effect_duration_mult); Bender AMPLIFIES (effect_power_mult);
+## and a buff can shorten cooldowns (cooldown_reduction). These read the
+## caster's stat block, clamped, so an amplifier can never zero a cooldown or
+## double a heal. A caster with no stat block passes through at 1.0 / 0.0.
+
+## Scale an outgoing effect duration by the caster's LENGTHEN stat (DD).
+func _duration_scale(caster) -> float:
+	return clampf(_stat_of(caster, "effect_duration_mult", 1.0) * upgrade_effect_duration_mult, 0.0, StatId.MAX_EFFECT_DURATION_MULT)
+
+## Scale an outgoing heal/shield magnitude by the caster's AMPLIFY stat (Bender).
+func _power_scale(caster) -> float:
+	return clampf(_stat_of(caster, "effect_power_mult", 1.0) * upgrade_effect_strength_mult, 0.0, StatId.MAX_EFFECT_POWER_MULT)
+
+## The caster's cooldown-reduction fraction, clamped (read at the one
+## cooldown set point in execute()).
+func _cooldown_reduction_of(caster) -> float:
+	return clampf(_stat_of(caster, "cooldown_reduction", 0.0), 0.0, StatId.MAX_COOLDOWN_REDUCTION)
+
+## Multiply every numeric magnitude on a built status effect by `mult` (the
+## Bender's AMPLIFY). One field list, so a new magnitude field is added here
+## once. A `mult` of 1.0 is a no-op, so a non-amplified cast is untouched.
+func _scale_effect_power(fx, mult: float) -> void:
+	if fx == null or is_equal_approx(mult, 1.0):
+		return
+	for field in ["strength_mod", "agility_mod", "intelligence_mod", "vitality_mod",
+			"endurance_mod", "wisdom_mod", "damage_multiplier", "defense_multiplier",
+			"armor_multiplier", "attack_speed_multiplier", "movement_speed_multiplier",
+			"health_regen_mod", "mana_regen_mod", "damage_reduction", "damage_reflect",
+			"shield_amount", "tick_heal"]:
+		if field in fx:
+			var v = fx.get(field)
+			if v is int:
+				fx.set(field, int(round(float(v) * mult)))
+			else:
+				fx.set(field, float(v) * mult)
+
+func _stat_of(body, key: String, fallback: float) -> float:
+	if body != null and "stats" in body:
+		return float(body.stats.get(key, fallback))
+	return fallback
+
+## Fan this skill's buffs to the party (the DD's Charge), lengthened by the
+## rally band. Returns the number of bodies rallied. Modeled on the guard
+## fan-out: self always leads, the named ally joins, then the friendly ring
+## once the band grants AoE. Only buff entries ride a rally (a debuff is
+## offense and lands separately, off a landed hit).
+func apply_banded_rally(caster, target) -> int:
+	if caster == null or not caster.has_method("apply_status_effect"):
+		return 0
+	var bodies: Array = [caster]
+	var seen := {caster.get_instance_id(): true}
+	if target != null and target != caster and _is_friendly(caster, target):
+		bodies.append(target)
+		seen[target.get_instance_id()] = true
+	if rally_aoe:
+		var radius := maxf(rally_radius, aoe_radius)
+		for body in EntityInterest.query_interest(caster.global_position, radius, [caster]):
+			if seen.has(body.get_instance_id()):
+				continue
+			if not _is_friendly(caster, body):
+				continue
+			seen[body.get_instance_id()] = true
+			bodies.append(body)
+	var cap := rally_max_targets if rally_aoe else 1
+	var rallied := 0
+	for body in bodies:
+		if cap > 0 and rallied >= cap:
+			break
+		if not is_instance_valid(body) or not body.has_method("apply_status_effect"):
+			continue
+		_apply_entries_of_kind(body, caster, "buff", rally_duration_mult)
+		rallied += 1
+	# The rally also sunders the enemy ring (its debuff payload) -- the DD's
+	# Charge, the same one cast the tank's battle cry taunts on. Guarded so a
+	# rally with no debuff entry stays a pure party buff.
+	if _has_debuff_entry():
+		var er := maxf(rally_radius, aoe_radius)
+		for body in EntityInterest.query_interest(caster.global_position, er, [caster]):
+			if not is_instance_valid(body):
+				continue
+			if "entity_type" in body and body.entity_type != Entity.EntityType.ENEMY:
+				continue
+			_apply_entries_of_kind(body, caster, "debuff", rally_duration_mult)
+	return rallied
+
+## True when this skill carries a buff payload and opts into the rally band.
+func has_rally_payload() -> bool:
+	if not rally_band:
+		return false
+	for entry in status_effects:
+		if str(entry.get("type", "")) == "buff":
+			return true
+	return false
+
+## True when this skill authors a debuff entry (the rally's Sunder payload).
+func _has_debuff_entry() -> bool:
+	for entry in status_effects:
+		if str(entry.get("type", "")) == "debuff":
+			return true
+	return false
 
 ## A body the caster's banded heal may mend: not hostile, and the same
 ## relation as the caster when both declare one.

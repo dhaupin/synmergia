@@ -4,10 +4,10 @@
 
 [resource]
 script = ExtResource("1")
-id = "dwel_plank_bed"
+id = "furn_plank_bed"
 display_name = "Plank Bed"
 description = "A plank bed with a rolled wool blanket. Set your home bind-point here; sleep to pass the night and wake at the Hearth."
-icon_path = "res://icons/dwellings/bed_plank.png"
+icon_path = "res://icons/furnishings/bed_plank.png"
 item_category = 7
 rarity = 0
 equip_slot = 0
@@ -15,8 +15,8 @@ stack_size = 1
 sell_price = 400
 buy_price = 8000
 required_level = 0
-dwelling_category = "furniture"
-dwelling_size = Vector3(2, 1, 3)
+furnishing_category = "furniture"
+furnishing_size = Vector3(2, 1, 3)
 is_placeable = true
 placement_zones = ["housing_zone_1", "housing_zone_2"]
 is_interactable = true

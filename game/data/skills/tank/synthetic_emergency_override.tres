@@ -18,6 +18,7 @@ aoe_radius = 25.0
 effects = [{"type": "buff", "effect_id": "buff_emergency_override", "duration": 5.0}, {"type": "debuff", "effect_id": "debuff_aggro_horn", "duration": 5.0}]
 required_level = 10
 required_class = "synthetic_warden"
+scope_bands = true
 upgradable = false
 upgrade_tiers = [
 {

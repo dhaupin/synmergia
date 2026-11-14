@@ -93,7 +93,7 @@ enum GuardDuty {
 @export var greeting_text: String = "Move along, citizen."
 
 ## Ownership scope (PlacementAccess -- the shared vocabulary with
-## ankhs and dwellings). PERSONAL guards stamp this with the owner;
+## ankhs and furnishings). PERSONAL guards stamp this with the owner;
 ## GuardAI uses it for allowed-entry checks around the guarded spot.
 @export var access: Resource
 

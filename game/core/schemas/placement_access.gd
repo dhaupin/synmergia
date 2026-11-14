@@ -1,7 +1,7 @@
-## PlacementAccess - ownership scope shared by guards, ankhs, dwellings.
+## PlacementAccess - ownership scope shared by guards, ankhs, furnishings.
 ##
 ## ONE vocabulary for "who may use/enter/interact with a placed thing"
-## across every placement-ish system: house guards (DwellingService),
+## across every placement-ish system: house guards (HousingService),
 ## guild-hall ankhs, faction-hall doors, plot entry rules. Systems embed
 ## an instance and call evaluate() / can_access() instead of each
 ## re-implementing owner/guild/faction/allow-list logic.

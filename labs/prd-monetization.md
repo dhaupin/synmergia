@@ -775,7 +775,7 @@ to a real authored TitleData. Zero new systems.
 > EARNED housing gets its first deed move FREE, the PAID door carries a +20% move
 > cost, and a catalog signature piece (the special hearth) carries a small luck damp
 > — the §16 chartered shape, verbatim. Rails verified before the write:
-> `DwellingService` stands (plot 50k / house 750k / guard 250k / ankh 100k — ALL
+> `HousingService` stands (plot 50k / house 750k / guard 250k / ankh 100k — ALL
 > priced in gold, with placed stations hosting the real `CraftingService.craft` gate),
 > §11 already names housing furniture among its carriers, and the almanac owns the
 > world's clock. The deed move is NEW furniture authored in this section — nothing
@@ -844,7 +844,7 @@ fires nothing.
 
 **Implementation seat (a build round):** the clock door SKU + catalog kit SKUs ride
 the webhook-provider seam (§9's shape); sink rows carry toll fields (§10's
-stamping); the deed move rides `DwellingService` as a relocation command reading
+stamping); the deed move rides `HousingService` as a relocation command reading
 the account ledger's deed/bought stamps for the FREE/+20% legs; hallmark fields on
 furniture item cards (provenance reuses the purse stamps); the deed bookshelf and
 front-door plate read the SAME account ledger through the deed plate's readers
@@ -1137,7 +1137,7 @@ roots, the rake + Gladnight sink rows, the made-bout board.
 ## 27. The Consecrated Ankh (spitball #15, 2026-11-05)
 
 The owner's easy win, the house's oldest seat: the ANKH item already exists --
-DwellingService prices it gold (100k) and the sec 19 homestead rails carry the
+HousingService prices it gold (100k) and the sec 19 homestead rails carry the
 placement. What never existed is the BLESSING: a plain ankh is an inert device.
 This section authors it: resurrection at your own house, the death screen's third
 door, and the clocks are the toll.
@@ -1155,7 +1155,7 @@ or BOUGHT -- never both at once, never a subscription.
 
 THE EARN -- THE DEDICATION: after achieving a house, the clergy opens a
 dedication chain -- a couple of weeks of earned deeds (the sec 16 week-per-tier
-shape) gated on the actual DwellingService dwelling record, not a receipt,
+shape) gated on the actual HousingService housing record, not a receipt,
 riding the real quest rails. The earned blessing runs the FASTER clock: house
 respawn every FOUR HOURS.
 
@@ -1167,11 +1167,11 @@ Nobody buys a better ceiling; they buy today.
 
 **Provenance and cooldown.** ONE blessing per homestead, PERMANENT (a purchase,
 never a lease, purchases-permanent law), stamped in the account ledger through
-the tx roots as EARNED (4h) or BOUGHT (6h) beside the dwelling record -- provenance
+the tx roots as EARNED (4h) or BOUGHT (6h) beside the housing record -- provenance
 reused, the sec 10 purse law. The cooldown is ONE keyed book per account
 (CooldownService's book, NOT the central roll-time modifier -- this is a clock,
 never a die); it starts at use and prints concrete remaining time at the death
-screen. The blessing is keyed to the DWELLING, not the plot: a sec 19 deed move
+screen. The blessing is keyed to the HOMESTEAD, not the plot: a sec 19 deed move
 carries the blessing intact (the earned blessing moves free the first time; a
 chartered homestead's move toll applies as authored already -- the blessing
 never re-bills).
@@ -1185,8 +1185,8 @@ floor -- the ankh is a THIRD door, never a toll-gated only door).
 
 IMPLEMENTATION SEAT (build round): the door-routing on RespawnService's
 death-screen reader (ownership + ankh-placed + the blessing, read from
-DwellingService), the cooldown book on the account ledger via the tx roots, the
-dedication quest chain on the quest .tres rails gating the dwelling record, one
+HousingService), the cooldown book on the account ledger via the tx roots, the
+dedication quest chain on the quest .tres rails gating the housing record, one
 webhook SKU + a new sink row (BLESS family, the no-fake-sinks law: ship the
 grant leg with the row), the blessing field on the ledger's provenance print,
 and the death-screen line + a11y remaining-time text.

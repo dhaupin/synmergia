@@ -244,15 +244,15 @@ func _lobby_service():
 
 ## The stone's queue: level read duck-typed off the body (player
 ## entities carry it; probes may not).
-func _enqueue_at_stone(body: Node3D) -> void:
+func _enqueue_at_stone(body: Node3D) -> bool:
 	var svc = _lobby_service()
 	if svc == null:
-		return
+		return false
 	var level: int = int(body.get("level")) if "level" in body else 1
 	var ok: bool = svc.join_queue(str(body.entity_id), level, zone_id, true, stone_position_for(body))
 	var notif = _notification_service()
 	if notif == null:
-		return
+		return ok
 	if ok:
 		notif.notify(
 			NotifKind.ZONE_CHANGED,
@@ -268,7 +268,9 @@ func _enqueue_at_stone(body: Node3D) -> void:
 			"ArenaGateway",
 			"stone_queue_dup:%s" % str(body.entity_id),
 			{},
-			str(body.entity_id))
+			str(body.entity_id)
+		)
+	return ok
 
 func _notification_service():
 	var ml := Engine.get_main_loop()
@@ -284,10 +286,18 @@ func attempt_queue(entity: Node3D) -> Dictionary:
 	if entity == null or not ("entity_id" in entity):
 		return {"success": false, "message": "No fighter to queue"}
 	var eid: String = str(entity.entity_id)
-	if _entered.has(eid):
+	# _entered is only the walk-in dedupe. The queue's own reverse index is
+	# the truth: a player who left while still standing in the volume must
+	# be able to queue again from the action menu.
+	var svc = _lobby_service()
+	if svc != null and svc.has_method("queue_for") and str(svc.queue_for(eid)) != "":
 		return {"success": false, "message": "Already queued -- open the Lobby to check."}
-	_enqueue_at_stone(entity)
-	return {"success": true, "message": "Queued at the stone.", "zone_id": zone_id}
+	var ok: bool = _enqueue_at_stone(entity)
+	return {
+		"success": ok,
+		"message": "Queued at the stone." if ok else "The stone refused the queue. Try again.",
+		"zone_id": zone_id,
+	}
 
 ## Party members of this entity (empty = solo). PartyService owns the
 ## roster; read-only here. Any failure degrades to a solo join.

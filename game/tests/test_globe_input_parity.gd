@@ -103,12 +103,35 @@ func _run() -> void:
 			"(%d -> %d)" % [hp_before, hp_after])
 
 	# --- Tab (target_next) re-targets through the fan-out -----------------
+	# The attack leg above may have KILLED the dummy, and a dead enemy is no
+	# targetable -- so spawn a live one first. Otherwise this leg only passes
+	# when the camera raycast happens to hit an unrelated registered prop
+	# (an NPC/ankh in view), which is what made default-set flake. The dummy
+	# gets a large health pool so the previous leg's still-live attack hitbox
+	# cannot one-shot it out from under this leg.
+	var dummy2: Node = load("res://entities/enemy.gd").new()
+	dummy2.display_name = "ParityDummy2"
+	dummy2.starting_health = 99999
+	dummy2.starting_level = 1
+	globe.add_child(dummy2)
+	await process_frame
+	es.register_entity(dummy2)
+	var dummy2_id: String = str(dummy2.get("entity_id"))
+	dummy2.global_position = player.global_position + Vector3(0, 0, -1.2)
+	tm.register_targetable(dummy2_id, "enemy", dummy2,
+			dummy2.display_name, dummy2.global_position, dummy2.entity_type)
+	await physics_frame
 	player.clear_target()
 	await physics_frame
 	_ok("clear_target dropped the target", not tm.has_target())
 	im.player_input.emit("target_next", true)
 	await physics_frame
 	_ok("Tab routed through player_input re-acquired a target", tm.has_target())
+	# Retire the second dummy so the later legs stay isolated.
+	tm.unregister_targetable(dummy2_id)
+	if is_instance_valid(dummy2):
+		dummy2.queue_free()
+	await process_frame
 
 	# --- F1 (target_self) through the fan-out -----------------------------
 	im.player_input.emit("target_self", true)

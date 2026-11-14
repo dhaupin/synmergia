@@ -230,7 +230,7 @@ pipeline for the content on top of it:
    ring range). Climate, biome, hydrology, roads, and scatter all
    read it. See `prd-terrain.md`.
 2. **Common building blocks.** A library of authored primitives --
-   walls, floors, conduits, ruins, props (DwellingData items double
+   walls, floors, conduits, ruins, props (FurnishingData items double
    as world-scale pieces). Rules assemble them: settlements grow
    along roads, roads follow terrain, conduits follow old-world
    lines from the story PRD. The starter village + capitol monolith

@@ -4,10 +4,10 @@
 
 [resource]
 script = ExtResource("1")
-id = "dwel_forge_coal"
+id = "furn_forge_coal"
 display_name = "Coal Forge"
 description = "A house forge fed by charcoal bellows. Smelts ore and hammers ingots at home, failure roll and all. Interact once placed to open the craft table at the FORGE."
-icon_path = "res://icons/dwellings/forge_coal.png"
+icon_path = "res://icons/furnishings/forge_coal.png"
 item_category = 7
 rarity = 2
 equip_slot = 0
@@ -15,7 +15,7 @@ stack_size = 1
 sell_price = 1800
 buy_price = 36000
 required_level = 0
-dwelling_category = "functional"
+furnishing_category = "functional"
 is_placeable = true
 is_interactable = true
 interaction_type = "craft"
