@@ -5,6 +5,8 @@ import {
   useLocation,
 } from 'react-router-dom';
 import { useEffect } from 'react';
+import { mountIslands } from 'prestruct/islands';
+import { islands } from './AppIslands';
 
 import SiteLayout from './components/SiteLayout';
 import LanderPage from './pages/LanderPage';
@@ -28,6 +30,11 @@ function ScrollToTop() {
     if (typeof window !== 'undefined') {
       window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
     }
+    // Scan after every route change, including the first client render.
+    // mountIslands is idempotent (WeakSet), so this is safe alongside the
+    // post-unlock scan in PlayPage.
+    const t = setTimeout(() => mountIslands(islands), 0);
+    return () => clearTimeout(t);
   }, [location.pathname]);
   return null;
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Lock } from 'lucide-react';
 import { sha256, AttemptLimiter, unlockSession, rememberUnlock } from '../lib/gate';
 
@@ -23,11 +23,17 @@ interface GateScreenProps {
 // capped at 5 minutes — enough to exhaust a restless human's patience
 // long before the WAF rule (the real wall) even matters.
 export default function GateScreen({ sessionKey, gateHash, envVarName, headline, blurb, children }: GateScreenProps) {
-  const [unlocked, setUnlocked] = useState(() => gateHash !== '' && unlockSession(sessionKey));
+  // Start locked on both server and client so hydration is deterministic;
+  // sessionStorage is read after mount (it is browser-only state).
+  const [unlocked, setUnlocked] = useState(false);
   const [attempt, setAttempt] = useState('');
   const [error, setError] = useState('');
   const [limiter] = useState(() => new AttemptLimiter());
   const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (gateHash !== '' && unlockSession(sessionKey)) setUnlocked(true);
+  }, [gateHash, sessionKey]);
 
   const tryUnlock = () => {
     const wait = limiter.cooldownSeconds();
