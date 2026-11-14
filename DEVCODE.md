@@ -51,6 +51,25 @@ above gets the Redis bus automatically; `SHARD_BUS_BACKEND=memory`
 forces the process-local bus. A failed Redis connect falls back to
 memory rather than failing the boot.
 
+To exercise the Redis bus on ONE dev box (no Docker, no `redis-server`
+-- the sidecar's default `InMemoryBackend` is stdlib-only), start the
+redis-bridge and point the engine at it:
+
+```bash
+python3 srv/redis-bridge/main.py &          # listens on 127.0.0.1:8081
+SHARD_BUS_BACKEND=redis \
+REDIS_BRIDGE_URL=http://127.0.0.1:8081 \
+godot --path game
+```
+
+`npm run preview:with-bridges` starts both bridges for you. The
+receipt `game/tests/test_redis_shard_bus.gd` proves the path end to end
+(it spawns its own sidecar and drives a TRUE cross-process round-trip:
+one godot process subscribes and exits, another drains the message that
+survived it). The `mesh` profile's real deploy uses the Redis-backed
+sidecar (`REDIS_BACKEND=redis`, `redis` service) -- same engine env,
+only the sidecar's backend differs.
+
 The edge transport (Phase 2) picks the server transport from
 `EDGE_TRANSPORT`: `enet` (default -- the raw UDP server, unchanged) or
 `websocket` (aliases `ws`/`wss`), which lets nginx front the shard over

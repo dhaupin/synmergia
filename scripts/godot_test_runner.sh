@@ -248,6 +248,7 @@ test_instance_contract
 test_shard_mesh_identity
 test_adapter_http_transport
 test_shard_bus
+test_redis_shard_bus
 test_edge_transport
 test_shard_mesh_topology
 test_shard_tuning
