@@ -390,7 +390,7 @@ by manual duels and solo matchmaking; the fill flag bridges them.
 Locked S11 decisions (owner, 2026-09-28, second round -- the lobby
 conversation):
 1. **The lobby is CANONICAL.** One panel (LobbyUI, L key; Bouts /
-   Duels / LFG tabs) over one engine (LobbyService). Open-world play
+   Duels / LFG / People tabs) over one engine (LobbyService). Open-world play
    is first class: grinding crews, horde raids, dungeon delves, and
    hunting parties advertise through the same LFG book as arena
    queues -- the lobby ties PartyService, duels, matchmaking, and

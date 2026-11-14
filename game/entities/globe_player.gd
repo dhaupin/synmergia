@@ -1921,7 +1921,7 @@ func _on_context_action(action_id: String, target_id: String) -> void:
 			_handle_ankh_action("bind", target_id)
 		"ankh_info":
 			_handle_ankh_action("info", target_id)
-		"queue_bout", "leave_bout_queue":
+		"view_gate", "queue_bout", "leave_bout_queue":
 			# Bout stones: one implementation shared with the HUD menu.
 			var tm := _tm()
 			if tm != null and tm.has_method("execute_action_on"):

@@ -30,7 +30,7 @@ const DUEL_TIMEOUT_SECONDS: float = 60.0
 
 signal queued(player_id: String, zone_id: String)
 signal dequeued(player_id: String, zone_id: String, reason: String)
-signal bout_assembled(zone_id: String, instance_id: String, team_a: Array, team_b: Array)
+signal bout_assembled(zone_id: String, instance_id: String, team_a: Array, team_b: Array, stones: Dictionary)
 signal duel_challenged(challenge_id: String, from_id: String, to_id: String)
 signal duel_resolved(challenge_id: String, accepted: bool)
 signal lfg_posted(post_id: String)
@@ -77,11 +77,13 @@ func _ready() -> void:
 
 # ---- 1. Bout queues ----------------------------------------------------
 
-## Queue one player (or their whole party, when party_id is set).
+## Queue one player and, when they belong to a party, the whole roster.
 ## level drives band matchmaking; consent_fill lets matchmaking use
 ## this entry to top up the OPPOSING team (fill-to-parity); origin
 ## stone is the round-trip address (bout end + AFK kicks land there).
-## Returns false when already queued elsewhere (leave first).
+## party_id is optional: when omitted, PartyService resolves the caller's
+## party so every entry point (stone, lobby, future scripts) gets the same
+## atomic block. Returns false when already queued elsewhere (leave first).
 ## QoS: queue churn is rate-limited (the "party" bucket) so a
 ## spamming client cannot hammer the lobby books.
 func join_queue(player_id: String, level: int, zone_id: String, consent_fill: bool = true, origin_stone: Vector3 = Vector3.ZERO, party_id: String = "") -> bool:
@@ -90,6 +92,8 @@ func join_queue(player_id: String, level: int, zone_id: String, consent_fill: bo
 		return false
 	if _player_zone.has(player_id):
 		return false
+	if party_id == "":
+		party_id = party_id_for(player_id)
 	var member_ids: Array = [player_id]
 	if party_id != "" and PartyService != null:
 		var members: Array = PartyService.get_party_members(party_id)
@@ -116,6 +120,15 @@ func join_queue(player_id: String, level: int, zone_id: String, consent_fill: bo
 	queued.emit(player_id, zone_id)
 	GameLog.info("LobbyService: %s queued for %s (party=%s, lvl=%d)" % [player_id, zone_id, party_id, level])
 	return true
+
+
+## The party id a player belongs to, or "" for solo. PartyService owns
+## the roster; keeping resolution here keeps every queue caller honest.
+func party_id_for(player_id: String) -> String:
+	if PartyService == null or player_id == "":
+		return ""
+	var party: Dictionary = PartyService.get_player_party(player_id)
+	return str(party.get("id", ""))
 
 
 func leave_queue(player_id: String) -> bool:
@@ -149,6 +162,7 @@ func queue_snapshot(zone_id: String) -> Array:
 		out.append({
 			"leader": str(block.get("player_ids", [""])[0]),
 			"size": block.get("player_ids", []).size(),
+			"party_id": str(block.get("party_id", "")),
 			"level": int(block.get("level", 1)),
 			"waited_seconds": Time.get_unix_time_from_system() - float(block.get("joined_at", 0.0)),
 			"consent_fill": bool(block.get("consent_fill", true)),

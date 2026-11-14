@@ -339,15 +339,21 @@ func is_shard_online(shard_id: String) -> bool:
 func get_shard_for_player(player_id: String) -> String:
 	return _player_shard_map.get(player_id, "")
 
-## Assign a player to a shard (called on login/character select)
+## Assign a player to a shard (called on login/character select).
+## Idempotent: a repeat assignment to the SAME shard refreshes presence but
+## does NOT re-count, so the per-shard player_count is a live roster, not a
+## running tally of every login call. Only a first assignment or a real
+## shard move moves the counts (and a move emits player_shard_changed + the
+## cross-shard migration event).
 func assign_player_to_shard(player_id: String, shard_id: String) -> void:
 	var old_shard: String = _player_shard_map.get(player_id, "")
+	var moved: bool = old_shard != "" and old_shard != shard_id
 	_player_shard_map[player_id] = shard_id
 	_player_presence[player_id] = {
 		"shard_id": shard_id,
 		"last_seen": Time.get_unix_time_from_system()
 	}
-	if old_shard != "" and old_shard != shard_id:
+	if moved:
 		player_shard_changed.emit(player_id, old_shard, shard_id)
 		emit_cross_shard_event(
 			"player_migration",
@@ -355,10 +361,12 @@ func assign_player_to_shard(player_id: String, shard_id: String) -> void:
 			{"player_id": player_id, "target_shard": shard_id},
 			_get_hlc_timestamp()
 		)
-	if _shards.has(shard_id):
+	# A first assignment or a move into a new shard adds one; a repeat
+	# assignment to the same shard is a no-op (the double-count bug).
+	if old_shard != shard_id and _shards.has(shard_id):
 		_shards[shard_id].player_count += 1
 		update_shard_info(shard_id, _shards[shard_id].player_count)
-	if old_shard != "" and old_shard != shard_id and _shards.has(old_shard):
+	if moved and _shards.has(old_shard):
 		var old_count: int = _shards[old_shard].player_count
 		_shards[old_shard].player_count = max(0, old_count - 1)
 		update_shard_info(old_shard, _shards[old_shard].player_count)

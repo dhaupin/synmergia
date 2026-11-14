@@ -1,11 +1,15 @@
-## QoSService - Quality of Service for fair matchmaking
-## Handles latency compensation, throttling, and connection quality
+## MatchmakingQoS - dormant latency/QoS prototype (NOT the queue).
+## Handles latency buckets, jitter, packet-loss classification and
+## connection-quality reports.
+##
+## Status: not autoloaded and no live caller. LobbyService is the
+## canonical queue and assembler; QoSService is the canonical rate
+## limiter. This script stays compiling for the scope-stack receipt
+## until the latency seam is decided (labs/prd-matchmaking.md).
 ##
 ## Audit round 20: `extends` must precede everything but comments (the
-## parser reads it first). It previously sat AFTER two const preloads,
-## which is a parse error -- the script never compiled, so class_name
-## MatchmakingQoS never registered even though backend_factory.gd maps
-## "matchmaking_queue" to it by that name.
+## parser reads it first). The old order was a parse error, which is
+## why the class_name never registered before that fix.
 extends Node
 class_name MatchmakingQoS
 
@@ -62,7 +66,7 @@ func _ready() -> void:
 	_rules_engine = RulesEngine.new()
 	_create_scopes()
 	_register_rules()
-	GameLog.info("QoSService: Quality of Service initialized")
+	GameLog.info("MatchmakingQoS: latency prototype initialized (dormant)")
 	_load_state()
 
 func _create_scopes() -> void:
@@ -113,7 +117,7 @@ func register_connection(player_id: String, estimated_latency: int = 100) -> voi
 	# Create player scope (child of instance scope)
 	_player_scopes[player_id] = ScopeScript.new("player_" + player_id, _instance_scope, "", {})
 	_persist_player_qos(player_id)
-	GameLog.info("QoSService: Registered %s (latency: %dms)" % [player_id, estimated_latency])
+	GameLog.info("MatchmakingQoS: Registered %s (latency: %dms)" % [player_id, estimated_latency])
 
 ## Unregister player
 func unregister_connection(player_id: String) -> void:
@@ -182,7 +186,7 @@ func update_latency(player_id: String, latency_ms: int, packet_loss: float = 0.0
 				"Connection quality: %s (latency %dms, loss %.0f%%)" % [
 					ConnectionQuality.keys()[new_quality], latency_ms, packet_loss * 100.0
 				],
-				"QoSService",
+				"MatchmakingQoS",
 				"qos:quality:%s:%d" % [player_id, Time.get_ticks_msec() / 1000],
 				{
 					"player_id": player_id,
@@ -290,7 +294,7 @@ func get_poor_quality_players() -> Array:
 ## Throttle a player
 func throttle_player(player_id: String, reason: String, duration_ms: int = 5000) -> void:
 	throttled.emit(player_id, reason)
-	GameLog.warn("QoSService: Throttled %s: %s" % [player_id, reason])
+	GameLog.warn("MatchmakingQoS: Throttled %s: %s" % [player_id, reason])
 	# Frame notification: THROTTLED maps to WARNING + NORMAL (per
 	# _priority_for_kind). The dedupe key includes the player and the
 	# second-resolution bucket so repeated throttles within the same
@@ -299,7 +303,7 @@ func throttle_player(player_id: String, reason: String, duration_ms: int = 5000)
 		NotificationService.notify(
 			NotifKind.THROTTLED,
 			"You're casting too fast. %s" % reason,
-			"QoSService",
+			"MatchmakingQoS",
 			"qos:throttle:%s:%d" % [player_id, Time.get_ticks_msec() / 1000],
 			{
 				"player_id": player_id,
