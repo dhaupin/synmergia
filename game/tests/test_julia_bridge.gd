@@ -5,7 +5,8 @@ extends SceneTree
 ##
 ## The bridge is best-effort: with no sidecar running every leg must
 ## degrade to an empty result and never crash. The LIVE legs run only
-## when a server answers /health on localhost:8080, so this receipt is
+## when a server answers /health on the service's local URL
+## (localhost:8090 by default; MULTI_ISO_URL overrides), so this receipt is
 ## green in CI (no Julia) and proves the real loop on a dev box (Julia
 ## up). Run:
 ##   godot --headless --path . --script res://tests/test_julia_bridge.gd
@@ -74,7 +75,7 @@ func _run() -> void:
 	# 5. LIVE legs: only when a server answers /health.
 	var healthy: bool = await svc.is_healthy()
 	if not healthy:
-		print("[SKIP] no Julia sidecar on localhost:8080 -- live legs skipped")
+		print("[SKIP] no Julia sidecar on %s -- live legs skipped" % svc.local_server_url)
 		_report()
 		return
 	_ok("Julia sidecar reachable (live legs running)")
