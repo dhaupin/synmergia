@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "human_holy_light"
 display_name = "Holy Light"
-description = "Channels divine energy to heal a single ally. Strong single-target heal."
+description = "Channels divine energy to mend an ally. Single-target at first; from the epic band it becomes a ring that mends every nearby ally, uncapped at the top tiers."
 skill_type = 5
 target_type = 3
 mana_cost = 25
@@ -17,6 +17,7 @@ range = 25.0
 effects = [{"type": "heal", "value": 40}]
 required_level = 1
 required_class = "human_cleric"
+scope_bands = true
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",

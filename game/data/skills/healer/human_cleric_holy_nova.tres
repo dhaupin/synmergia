@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "human_cleric_holy_nova"
 display_name = "Holy Nova"
-description = "A ring of holy light that burns foes and mends allies."
+description = "A ring of holy light that burns foes and mends allies; the mend grows into an uncapped friendly ring at the top tiers."
 icon_path = ""
 skill_type = 0
 target_type = 1
@@ -19,6 +19,7 @@ aoe_radius = 6.0
 effects = [{"type": "damage", "value": 28}, {"type": "heal", "value": 20}]
 required_level = 10
 required_class = "human_cleric"
+scope_bands = true
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",

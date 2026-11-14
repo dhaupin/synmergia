@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "human_prayer_of_mending"
 display_name = "Prayer of Mending"
-description = "A prayer that heals the target and bounces to nearby allies."
+description = "A prayer that mends the target and, from the epic band up, every nearby ally as well (uncapped at the top tiers)."
 skill_type = 5
 target_type = 0
 mana_cost = 35
@@ -18,6 +18,7 @@ aoe_radius = 0.0
 effects = [{"type": "heal", "value": 50}]
 required_level = 10
 required_class = "human_cleric"
+scope_bands = true
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",

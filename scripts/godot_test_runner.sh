@@ -146,6 +146,7 @@ test_quest_swim_bridge
 test_quest_glide_bridge
 test_quest_craft_bridge
 test_general_skills
+test_scope_bands
 test_item_catalog
 test_canon_bosses
 test_house_catalog

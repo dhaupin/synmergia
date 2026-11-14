@@ -247,6 +247,11 @@ func _apply_skill_upgrade_deltas(schema, _entity) -> Skill:
 	# Cache upgrade level
 	skill.upgrade_level = upgrade_level
 
+	# Fold the scope bands (heal AoE at epic+, teleport reach/scope at
+	# mythic) for this level. Sets runtime fields; idempotent.
+	if skill.has_method("apply_scope_bands"):
+		skill.apply_scope_bands()
+
 	# Scale effect values in the effects array (schema's execute() reads effects[i].value)
 	for i in range(skill.effects.size()):
 		var eff: Dictionary = skill.effects[i]

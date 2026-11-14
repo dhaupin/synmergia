@@ -66,6 +66,10 @@ enum TargetType {
 ## sets this instead of naming one class, so all three family classes qualify.
 @export var required_role: int = -1
 @export var required_stance: String = ""
+## Opt in to scope bands: a heal grows into a friendly AoE from the epic
+## band up (ScopeBand). Off by default so a lifesteal/drain rider never
+## silently becomes a party heal -- banding a heal is a deliberate identity.
+@export var scope_bands: bool = false
 
 # Visual/Audio
 @export var vfx_cast: String = ""

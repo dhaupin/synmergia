@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "synthetic_conduit_restore"
 display_name = "Restore"
-description = "Channels stored power into a burst of healing."
+description = "Channels stored power into a burst of healing; from the epic band it floods every nearby ally (uncapped at the top tiers)."
 icon_path = ""
 skill_type = 0
 target_type = 3
@@ -19,6 +19,7 @@ aoe_radius = 0.0
 effects = [{"type": "heal", "value": 50}]
 required_level = 10
 required_class = "synthetic_conduit"
+scope_bands = true
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",

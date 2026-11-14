@@ -14,6 +14,7 @@ func _hub_emit(sig_name: String, args: Array) -> void:
 
 const StatusEffect = preload("res://core/entities/status_effect.gd")
 const CcImmunity = preload("res://core/combat/cc_immunity.gd")
+const ScopeBand = preload("res://core/combat/scope_band.gd")
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const SkillSchema = preload("res://core/schemas/skill.gd")
 # The data -> runtime status-effect join (a skill's effect_id names a
@@ -156,6 +157,13 @@ enum TargetType {
 # Skill Academy upgrade state
 var upgrade_level: int = 0
 var upgrade_unlocks: Array = []
+# Scope bands: a heal becomes a friendly AoE from epic up; a teleport reaches
+# further and eventually crosses scopes at mythic (ScopeBand owns the tables).
+@export var heal_aoe: bool = false
+@export var heal_aoe_radius: float = 0.0
+@export var heal_max_targets: int = 1  # 0 = unlimited
+@export var teleport_scope: int = 0     # ScopeBand.LOCAL..PLANET
+@export var scope_bands: bool = false   # opt in: a heal grows into an AoE at epic+
 
 # Heals
 @export var heal_amount: int = 0
@@ -210,6 +218,7 @@ static func from_schema(s: SkillSchema) -> Skill:
 	sk.required_level = s.required_level
 	sk.required_class = s.required_class
 	sk.required_role = int(s.required_role)
+	sk.scope_bands = bool(s.scope_bands)
 	sk.required_stance = s.required_stance
 	sk.schema = s
 	# Flatten effect dictionaries into runtime fields. THIS is the one effect
@@ -352,6 +361,8 @@ func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO, def
 	var result := {
 		"success": false,
 		"damage_dealt": 0,
+		"heal_amount": 0,
+		"heal_targets": 0,
 		"effects_applied": [],
 		"targets_hit": []
 	}
@@ -380,15 +391,12 @@ func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO, def
 				result.targets_hit.append(target)
 				_hub_emit("hit_resolved", [caster, target, _last_hit_result, self, actual_damage])
 
-	# Apply healing
+	# Apply healing. From the epic band up the heal is a friendly AoE
+	# (apply_banded_heal sweeps allies; single-target keeps the old shape).
 	if heal_amount > 0:
 		var actual_heal := calculate_healing(caster)
 		result.heal_amount = actual_heal
-
-		if target:
-			target.heal(actual_heal)
-		else:
-			caster.heal(actual_heal)
+		result.heal_targets = apply_banded_heal(caster, target, actual_heal)
 
 		# Heal threat: healing in combat draws enemy attention. Notify
 		# every nearby enemy in combat so their tables add threat on the
@@ -646,6 +654,90 @@ func applyCleanse(caster) -> void:
 	var aura: Node = caster.get_node_or_null("AuraComponent") if caster is Node else null
 	if aura != null and aura.has_method("cleanse"):
 		aura.cleanse(caster)
+
+## Fold the ScopeBand tables into this skill's runtime fields for its
+## current upgrade_level. Idempotent (it SETS, never accumulates), so it is
+## safe to call after the academy deltas land. A heal that authors its own
+## larger aoe_radius keeps it; the band only ever widens reach.
+func apply_scope_bands() -> void:
+	# Heal banding is opt-in (scope_bands): only a heal authored as a banded
+	# mend grows into an AoE. A lifesteal/drain rider stays single-target.
+	if scope_bands:
+		var hb: Dictionary = ScopeBand.heal_band(upgrade_level)
+		heal_aoe = bool(hb.get("aoe", false))
+		heal_max_targets = int(hb.get("max_targets", 1))
+		heal_aoe_radius = maxf(float(hb.get("radius", 0.0)), aoe_radius)
+		if heal_aoe and heal_aoe_radius > aoe_radius:
+			aoe_radius = heal_aoe_radius
+	elif aoe_radius > 0.0:
+		# An authored ring is inherently an AoE heal, so it must not inherit
+		# the single-target cap (1). Uncapped unless a band says otherwise.
+		heal_max_targets = 0
+	# A teleport bands by nature; the reach climbs and eventually crosses
+	# scopes. At base (0) the skill's own authored distance governs.
+	if teleport_distance > 0.0:
+		var tb: Dictionary = ScopeBand.teleport_band(upgrade_level)
+		teleport_scope = int(tb.get("scope", ScopeBand.LOCAL))
+		var band_range := float(tb.get("range_m", 0.0))
+		if band_range > 0.0:
+			teleport_distance = maxf(teleport_distance, band_range)
+
+## Heal the caster (and, from the epic band up, every friendly in reach).
+## Returns the number of bodies healed. A single-target heal keeps the old
+## behaviour: the named target if any, else the caster.
+func apply_banded_heal(caster, target, amount: int) -> int:
+	if amount <= 0 or caster == null:
+		return 0
+	# A heal is an AoE when the band grants it (opt-in, epic+) OR the skill
+	# authors its own aoe_radius (a nova/redistribute is inherently a ring).
+	var is_aoe := heal_aoe or aoe_radius > 0.0
+	if not is_aoe:
+		var single = target if target != null else caster
+		if single != null and single.has_method("heal"):
+			single.heal(amount)
+			return 1
+		return 0
+	# Friendly AoE: sweep the band radius around the caster. Enemies are never
+	# mended, and the cap (0 = unlimited) trims the sweep.
+	var radius := maxf(heal_aoe_radius, aoe_radius)
+	var origin: Vector3 = caster.global_position
+	var healed := 0
+	var candidates: Array = []
+	var seen := {}
+	if target != null and target.has_method("heal"):
+		candidates.append(target)
+		seen[target.get_instance_id()] = true
+	for body in EntityInterest.query_interest(origin, radius, [caster]):
+		if not _is_friendly(caster, body):
+			continue
+		if seen.has(body.get_instance_id()):
+			continue
+		seen[body.get_instance_id()] = true
+		candidates.append(body)
+	for body in candidates:
+		if heal_max_targets > 0 and healed >= heal_max_targets:
+			break
+		if not is_instance_valid(body) or not body.has_method("heal"):
+			continue
+		body.heal(amount)
+		healed += 1
+	if healed == 0 and caster.has_method("heal"):
+		caster.heal(amount)
+		healed = 1
+	return healed
+
+## A body the caster's banded heal may mend: not hostile, and the same
+## relation as the caster when both declare one.
+static func _is_friendly(caster, body) -> bool:
+	if body == caster or not is_instance_valid(body):
+		return true
+	var c_rel = caster.get("relation") if "relation" in caster else null
+	var b_rel = body.get("relation") if "relation" in body else null
+	if b_rel != null and int(b_rel) == 1:  # Entity.Relation.HOSTILE
+		return false
+	if c_rel != null and b_rel != null:
+		return int(c_rel) == int(b_rel)
+	return true
 
 func create_stun_effect(_caster) -> StatusEffect:
 	var effect := StatusEffect.new()

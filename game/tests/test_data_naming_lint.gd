@@ -1870,4 +1870,58 @@ func _run() -> void:
 	else:
 		_fail("Teleport skills outside the Bender role: %s" % ", ".join(bad_tp))
 
+	# --- A description that promises a multi-ally mend must band ---
+	# The scope bands turn a heal into a friendly AoE from the epic tier up,
+	# but only for a skill that opts in (scope_bands = true). A heal whose text
+	# promises "every nearby ally" without the opt-in is the same lie as a
+	# teleport with no role gate: the tooltip outruns the payload.
+	var band_claims := ["every nearby ally", "every ally", "all nearby allies", "all allies"]
+	var bad_band: Array = []
+	var band_root := DirAccess.open("res://data/skills")
+	if band_root != null:
+		band_root.list_dir_begin()
+		var band_sub := band_root.get_next()
+		while band_sub != "":
+			var band_dir_name := band_sub
+			band_sub = band_root.get_next()
+			if band_dir_name == "" or band_dir_name.begins_with("."):
+				continue
+			var band_dir := DirAccess.open("res://data/skills/%s" % band_dir_name)
+			if band_dir == null:
+				continue
+			band_dir.list_dir_begin()
+			var band_f := band_dir.get_next()
+			while band_f != "":
+				if band_f.ends_with(".tres"):
+					var band_txt := FileAccess.get_file_as_string("res://data/skills/%s/%s" % [band_dir_name, band_f])
+					var band_id := ""
+					var band_desc := ""
+					var band_opts := false
+					var band_heals := false
+					for line in band_txt.split("\n"):
+						var bl := line.strip_edges()
+						if bl.begins_with("id = \"") and band_id == "":
+							band_id = bl.trim_prefix("id = \"").trim_suffix("\"")
+						elif bl.begins_with("description = \""):
+							band_desc = bl.to_lower()
+						elif bl == "scope_bands = true":
+							band_opts = true
+						elif bl.begins_with("aoe_radius = "):
+							# An authored ring is inherently an AoE heal.
+							var av := bl.trim_prefix("aoe_radius = ").to_float()
+							if av > 0.0:
+								band_opts = true
+						elif bl.begins_with("effects = ") and bl.to_lower().contains("\"type\": \"heal\""):
+							band_heals = true
+					if band_heals:
+						for phrase in band_claims:
+							if band_desc.contains(phrase) and not band_opts:
+								bad_band.append("%s ('%s')" % [band_id, phrase])
+								break
+				band_f = band_dir.get_next()
+	if bad_band.is_empty():
+		_ok("Skills: every multi-ally mend claim opts into scope bands")
+	else:
+		_fail("Heals promising a multi-ally mend without scope_bands = true: %s" % ", ".join(bad_band))
+
 	_finish()
