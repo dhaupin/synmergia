@@ -12,8 +12,8 @@
 ##
 ## The two schemas are separate on purpose (data is authored; runtime is
 ## behaviour), so the mapping is explicit rather than a duck-typed copy.
-class_name StatusEffectFactory
 extends RefCounted
+class_name StatusEffectFactory
 
 const StatusEffect = preload("res://core/entities/status_effect.gd")
 const StatusEffectDataScript = preload("res://core/schemas/status_effect_data.gd")

@@ -117,7 +117,7 @@ func _run() -> void:
 	if not mat_missing.is_empty():
 		print("    missing armor types: " + str(mat_missing))
 
-        # A. COVERAGE -- every AccessoryType 1..5 (ring/necklace/bracelet/cloak/belt).
+	# A. COVERAGE -- every AccessoryType 1..5 (ring/necklace/bracelet/cloak/belt).
 	var at_seen: Dictionary = {}
 	for c in z_acc:
 		at_seen[int(c.accessory_type)] = true

@@ -240,6 +240,10 @@ test_julia_bridge
 test_julia_parity
 test_julia_terrain
 test_julia_prop_batch
+test_julia_presolve
+test_julia_orchestrator_live
+test_multi_iso_vertex
+test_presolve_props
 probe_terrain_climate
 probe_ground_law_audit
 probe_clipmap

@@ -29,6 +29,11 @@
 ##   var nearby := await MultiIsoService.query_spatial_faction(vertex, faction_id)
 extends Node
 
+## The icosahedral vertex law (nearest vertex to a planet-radial
+## direction) -- the SAME law EntityService uses for its NSC-9 spatial
+## axis, so the orchestrator's spatial bucket agrees with the frame's.
+const IcosahedralScript = preload("res://core/frame/math/icosahedral.gd")
+
 ## Julia server URL (docker-compose service name)
 @export var julia_server_url: String = "http://julia:8080"
 @export var local_server_url: String = "http://localhost:8080"
@@ -79,6 +84,7 @@ func _bind_entity_service() -> void:
 	EntityService.entity_unregistered.connect(_on_entity_unregistered)
 	_bound = true
 	GameLog.info("MultiIsoService: bound to EntityService (entity roster mirrored)")
+
 
 ## Static accessor for the running autoload (null when not registered).
 static func instance() -> Node:
@@ -230,17 +236,84 @@ func _on_health_completed(_result: int, response_code: int, _headers: PackedStri
 
 ## ---- EntityService hooks (the real consumer) ----
 
+## Resolve the entity's REAL spatial vertex (0-11) from its world
+## position: the nearest icosahedral vertex to the planet-radial
+## direction. Falls back to the faction/team cluster bucket ONLY when
+## the entity carries no usable position (a bare in-memory node). The
+## orchestrator's spatial axis is the whole point of the multi-iso
+## index, so feeding it a fabricated vertex (the old team_id/faction
+## hash) made every spatial query a lie.
+func _vertex_for_entity(entity) -> int:
+	var dir: Vector3 = _planet_dir(entity)
+	if dir.length_squared() > 0.000001:
+		return _nearest_vertex(dir)
+	if "team_id" in entity and int(entity.team_id) != 0:
+		return absi(int(entity.team_id)) % 12
+	if "faction_id" in entity and str(entity.faction_id) != "":
+		return absi(hash(str(entity.faction_id))) % 12
+	return 0
+
+
+## Index (0-11) of the unit icosahedron vertex nearest `dir`. Reads the
+## static VERTICES const, so no instance is needed (nearest_vertex on
+## icosahedral.gd is an instance method).
+func _nearest_vertex(dir: Vector3) -> int:
+	var d: Vector3 = dir.normalized()
+	var best: int = 0
+	var best_dot: float = -2.0
+	var verts: PackedVector3Array = IcosahedralScript.VERTICES
+	for i in range(verts.size()):
+		var dot: float = d.dot(verts[i].normalized())
+		if dot > best_dot:
+			best_dot = dot
+			best = i
+	return best
+
+
+## The entity's planet-radial unit direction, or Vector3.ZERO when the
+## position is unavailable. Uses planet_center when the body carries it
+## (the globe frame); otherwise the world origin is the center.
+func _planet_dir(entity) -> Vector3:
+	var pos: Vector3 = _entity_position(entity)
+	if pos == Vector3.ZERO:
+		return Vector3.ZERO
+	var center := Vector3.ZERO
+	if "planet_center" in entity and entity.planet_center is Vector3:
+		center = entity.planet_center
+	var rel: Vector3 = pos - center
+	if rel.length_squared() < 0.000001:
+		return Vector3.ZERO
+	return rel.normalized()
+
+
+## Safe position read: global_position throws outside the tree; fall
+## back to the local `position` property, then Vector3.ZERO.
+func _entity_position(entity) -> Vector3:
+	if entity is Node3D and entity.is_inside_tree():
+		return entity.global_position
+	if "position" in entity and entity.position is Vector3:
+		return entity.position
+	return Vector3.ZERO
+
+
+## The entity's faction bucket (0-99). An authored faction_id (a
+## string) hashes stably; a numeric Faction/relation enum falls through.
+func _faction_for_entity(entity) -> int:
+	if "faction_id" in entity:
+		var fid = entity.faction_id
+		if fid is int:
+			return absi(int(fid)) % 100
+		if str(fid) != "":
+			return absi(hash(str(fid))) % 100
+	if "relation" in entity and entity.relation is int:
+		return absi(int(entity.relation)) % 100
+	return 0
+
+
 func _on_entity_registered(entity, _metadata) -> void:
 	if not enabled or entity == null or not ("entity_id" in entity):
 		return
-	var vertex := 0
-	var faction := 0
-	if "team_id" in entity and entity.team_id != 0:
-		vertex = abs(entity.team_id) % 12
-	if "faction_id" in entity and str(entity.faction_id) != "":
-		faction = abs(hash(str(entity.faction_id))) % 100
-		vertex = abs(hash(str(entity.faction_id))) % 12
-	register_entity(str(entity.entity_id), vertex, faction)
+	register_entity(str(entity.entity_id), _vertex_for_entity(entity), _faction_for_entity(entity))
 
 func _on_entity_unregistered(entity, _metadata) -> void:
 	if not enabled or entity == null or not ("entity_id" in entity):
