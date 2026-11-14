@@ -14,7 +14,8 @@
 ## an enemy silently drop nothing.
 extends SceneTree
 
-const TIERS: Array = ["common", "rare", "epic", "legendary", "mythic"]
+const SkillTier = preload("res://core/schemas/skill_tier.gd")
+const TIERS: Array = SkillTier.TIER_NAMES
 
 var _checks: int = 0
 var _fails: int = 0

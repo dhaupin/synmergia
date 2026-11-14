@@ -526,15 +526,45 @@ Players unlock and upgrade skills via the Skill Academy:
 
 | Feature | Description |
 |---------|-------------|
-| **Upgradable Skills** | 6 skills per class, 5 upgrade tiers (common → mythic) |
-| **Signature Skills** | 3 non-upgradable abilities; unlock 1 at level 10 |
+| **Upgradable Skills** | Every non-signature skill of a class is upgradable (6-12 per class today) |
+| **Signature Skills** | 3 non-upgradable abilities per class; unlock 1 at level 10 |
+| **Upgrade Tiers** | 5 rungs: common → rare → epic → legendary → mythic |
 | **First Signature** | FREE |
 | **Subsequent Changes** | 1000 gold |
 | **Skill Points** | 30 + (level × 2) points total |
-| **Upgrade Cost** | 1 skill point + 4 books of matching tier |
+| **Upgrade Cost** | 1 skill point + 4 books of the matching tier |
 | **Respec Cost** | 500 gold base + 20 gold per point spent |
 
-See `core/services/skill_academy_service.gd` and `ui/components/skill_academy_ui.gd`.
+#### The upgrade law
+
+- **Tiers.** The ladder is five rungs, `common` → `mythic`, mapped to
+  upgrade levels 1-5. It lives in ONE place:
+  `core/schemas/skill_tier.gd` (`SkillTier`). Every consumer —
+  `SkillAcademyService`, `DataService`, `GroundLootService`,
+  `SkillBook`, `SkillAcademyUI`, `CharacterStatsUI` — reads it. Do not
+  re-declare the array.
+- **Books.** A book id is `book_<skill_id>_<tier>`. Reaching tier N
+  consumes **4 books of tier N** plus **1 skill point**. Books are
+  runtime-generated items (`SkillBook.create`), never authored `.tres`;
+  `GroundLootService` expands a `book_…` loot id through
+  `SkillAcademyService.create_book`.
+- **Upgradable gate.** A book exists ONLY for an upgradable skill. A
+  signature is `upgradable = false`, so `book_<signature>_<tier>`
+  resolves to nothing on both the academy and loot paths.
+- **Stat gate.** Each rung carries a stat-total threshold
+  (0/30/60/90/120 for common…mythic) in `SkillTier.TIER_STAT_THRESHOLD`.
+  No authored skill sets `min_stat` today, so the gate is currently
+  inert — it is real code, not a stub.
+
+#### Tier names are NOT item rarity
+
+`SkillTier` (5 rungs, book-gated) is a different ladder from
+`Item.Rarity` (6 rungs — it adds `UNCOMMON` — roll-gated, and shared
+with achievements and titles). They share a few names and a colour
+vocabulary, nothing else. Do not feed one into the other.
+
+See `core/services/skill_academy_service.gd`, `core/schemas/skill_tier.gd`,
+and `ui/components/skill_academy_ui.gd`.
 
 ### 6.4 Leveling & Progression
 

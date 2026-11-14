@@ -15,6 +15,8 @@
 ## AFTER InventoryService/LootService (its _ready only touches EventHub).
 extends Node
 
+const SkillTier = preload("res://core/schemas/skill_tier.gd")
+
 const Item = preload("res://core/schemas/item.gd")
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
@@ -186,7 +188,7 @@ func _resolve_items(items: Array) -> Array:
 func _expand_skill_book(item_id: String) -> Item:
 	var body := item_id.trim_prefix("book_")
 	var tier := "common"
-	for t in ["common", "rare", "epic", "legendary", "mythic"]:
+	for t in SkillTier.TIER_NAMES:
 		if body.ends_with("_" + t):
 			tier = t
 			body = body.trim_suffix("_" + t)
