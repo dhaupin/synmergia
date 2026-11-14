@@ -50,6 +50,7 @@ questions live.
 | [`prd-guild.md`](./prd-guild.md) | ACTIVE | Guilds: ranks, bank, alliances, territory claims, persistence gaps |
 | [`prd-factions.md`](./prd-factions.md) | ACTIVE | Authored factions, reputation, war lifecycle, territory stakes |
 | [`territory-system.md`](./territory-system.md) | ACTIVE | Territory ownership: schema, service, guild/war wiring, limits |
+| [`prd-housing.md`](./prd-housing.md) | ACTIVE | Housing plots, house tiers, guards, ankhs, stations, persistence gaps |
 | [`prd-web.md`](./prd-web.md) | ACTIVE | Web client, portal, admin |
 | [`prd-quests.md`](./prd-quests.md) | ACTIVE | Quests and achievements |
 | [`prd-social-instances.md`](./prd-social-instances.md) | ACTIVE | Social layer around instanced rooms |

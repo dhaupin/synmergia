@@ -5,7 +5,9 @@
 > DictStore runtime overlay are shipped. Player-declared faction wars are
 > still gated: factions have no leader model yet. Guild organization is
 > specified in [`prd-guild.md`](./prd-guild.md); faction politics in
-> [`prd-factions.md`](./prd-factions.md).
+> [`prd-factions.md`](./prd-factions.md). Player housing plots are a
+> separate ownership layer ([`prd-housing.md`](./prd-housing.md)); a plot
+> is not a `TerritoryData` and `/claim` must not touch one.
 
 ## Why an overlay
 

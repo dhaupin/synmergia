@@ -780,6 +780,9 @@ to a real authored TitleData. Zero new systems.
 > §11 already names housing furniture among its carriers, and the almanac owns the
 > world's clock. The deed move is NEW furniture authored in this section — nothing
 > relocates a homestead today — with its pricing born inside the toll law.
+> The base service and its current gaps are in
+> [`prd-housing.md`](./prd-housing.md); this section is the paid/economy
+> overlay, not the shipped housing build.
 
 **THE THREE SEATS (owner amendments folded in):**
 - **Seat 1, the front door — TWO DOORS, ONE COTTAGE.** the deed ladder's flagship

@@ -686,26 +686,30 @@ See `core/services/vendor_service.gd`, `core/services/trade_service.gd`.
 
 ## 8. Player Housing
 
-> **In Progress:** Placement, customization, functionality.
+> **Status: PARTIAL (2026-11-14).** The plot purchase, three house tiers,
+> house guard, personal ankh and functional station commands ship. Housing
+> is runtime-only: plots reset on restart. See
+> [`prd-housing.md`](./prd-housing.md) for the canonical contract and gaps.
 
 ### 8.1 Housing Features
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Placement System** | Choose plot in designated zones | P1 |
-| **House Types** | Small, medium, large, mansion | P1 |
-| **Interior Customization** | Furniture, decorations, trophies | P1 |
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Placement System** | Buy the demo plot with `/buyplot`; one plot per player | ✅ Service, one scene-registered plot |
+| **House Types** | Claim / Cottage / Hall from `data/houses/` | ✅ Three tiers; no mansion |
+| **Interior Customization** | Furniture, decorations, trophies | P1 — no general furniture placement |
 | **Exterior Customization** | House skin, garden, mounts displayed | P1 |
 | **Storage** | Additional chest space at home | P1 |
-| **Crafting Stations** | Functional workbenches at home | P1 |
+| **Crafting Stations** | Functional workbenches at home | ✅ `/placestation` consumes the item |
 | **Teleport Home** | Easy recall to house | P1 |
-| **Guild Houses** | Shared guild housing | P2 |
+| **Guild Houses** | Shared guild housing | P2 — `PlacementAccess` seam only |
 
 ### 8.2 Housing Open Questions
 
 - [ ] Instanced vs shared world housing?
 - [ ] Housing demolition/relocation?
 - [ ] Housing permissions (friends, guild)?
+- [ ] Persist plots and placed objects, or keep housing session-scoped?
 
 ---
 
