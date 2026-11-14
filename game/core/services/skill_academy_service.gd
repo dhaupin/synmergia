@@ -9,16 +9,16 @@ const SkillBook = preload("res://core/schemas/skill_book.gd")
 const InventoryComponent = preload("res://core/components/inventory_component.gd")
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const SkillSchema = preload("res://core/schemas/skill.gd")
-const SkillTier = preload("res://core/schemas/skill_tier.gd")
+const GameTier = preload("res://core/schemas/game_tier.gd")
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 # Singleton
 static var instance: SkillAcademyService
 
-## The canonical ladder lives in core/schemas/skill_tier.gd. These aliases
+## The canonical ladder lives in core/schemas/game_tier.gd. These aliases
 ## stay for callers that read them off the service.
-const TIER_NAMES: Array = SkillTier.TIER_NAMES
-const TIER_TO_LEVEL: Dictionary = SkillTier.TIER_LEVELS
-const BOOKS_PER_UPGRADE: int = SkillTier.BOOKS_PER_UPGRADE
+const TIER_NAMES: Array = GameTier.NAMES
+const TIER_TO_LEVEL: Dictionary = GameTier.LEVELS
+const BOOKS_PER_UPGRADE: int = GameTier.BOOKS_PER_UPGRADE
 
 ## Gold price for a common-tier skill book at the academy vendor
 const COMMON_BOOK_PRICE: int = 100
@@ -88,10 +88,10 @@ func create_book(skill_id: String, tier: String) -> SkillBook:
 
 	var schema: SkillSchema = entry.get("schema")
 	var display_name: String = entry.get("display_name", "Unknown Skill")
-	if not SkillTier.is_valid(tier):
+	if not GameTier.is_valid(tier):
 		GameLog.warn("SkillAcademyService: unknown book tier '%s' for %s" % [tier, skill_id])
 		return null
-	var upgrade_level: int = SkillTier.level_of(tier)
+	var upgrade_level: int = GameTier.level_of(tier)
 
 	return SkillBook.create(skill_id, upgrade_level, display_name)
 
@@ -131,16 +131,43 @@ func purchase_book(player_id: String, skill_id: String, gold: int) -> Dictionary
 ## STAT REQUIREMENT CHECKS
 ## ============================================================================
 
+## The stat a tier gate falls back to when the skill authors no `min_stat`:
+## the character's primary focal stat. This is what makes the gate live --
+## before, a blank `min_stat` meant "never gate", so no tier ever checked a
+## stat. An explicit `min_stat` on the tier still wins.
+func _gate_stat_for(skill_data: CharacterData) -> String:
+	if skill_data == null:
+		return ""
+	var cls = skill_data.class_data
+	if cls == null:
+		cls = CharacterData.load_class(skill_data.class_id)
+	if cls == null:
+		return ""
+	if cls.focal_stat_1 != "":
+		return cls.focal_stat_1
+	return cls.focal_stat_2
+
+## Resolve a tier's stat gate: the stat to check and the total required.
+## `min_stat` / `min_stat_value` on the tier win; otherwise the stat is the
+## character's focal stat and the value is the canonical GameTier rung
+## (common 0 / rare 30 / epic 60 / legendary 90 / mythic 120).
+func _tier_gate(tier: Dictionary, skill_data: CharacterData) -> Dictionary:
+	var required_stat: String = tier.get("min_stat", "")
+	if required_stat == "":
+		required_stat = _gate_stat_for(skill_data)
+	var value: int = int(tier.get("min_stat_value", GameTier.threshold(tier.get("tier", ""))))
+	return {"stat": required_stat, "value": value}
+
 ## Check if player meets stat requirement for an upgrade tier
 func _check_stat_requirement(schema: SkillSchema, tier: Dictionary, skill_data: CharacterData) -> Dictionary:
-	var required_stat: String = tier.get("min_stat", "")
-	var required_value: int = tier.get("min_stat_value", 0)
+	var gate := _tier_gate(tier, skill_data)
+	var required_stat: String = gate["stat"]
+	var required_value: int = gate["value"]
 
-	# No stat required
-	if required_stat == "" or required_value == 0:
+	# No stat to check (or a free tier, value 0) -> nothing gates this rung.
+	if required_stat == "" or required_value <= 0:
 		return {"meets_requirement": true}
 
-	# Get player's stat value (base + allocated)
 	var player_stat_value: int = skill_data.get_stat_total(required_stat)
 
 	return {
@@ -388,10 +415,11 @@ func preview_stat_respec(skill_data: CharacterData) -> Dictionary:
 			if tier_level > current_level:
 				continue  # Not currently at this tier
 
-			var required_stat: String = tier.get("min_stat", "")
-			var required_value: int = tier.get("min_stat_value", 0)
+			var gate := _tier_gate(tier, skill_data)
+			var required_stat: String = gate["stat"]
+			var required_value: int = gate["value"]
 
-			if required_stat == "" or required_value == 0:
+			if required_stat == "" or required_value <= 0:
 				continue
 
 			# If we reset all allocated points, what's the base stat?

@@ -8,7 +8,7 @@
 ##     them DISAGREED on the stat thresholds: both UIs said
 ##     0/30/60/90/120 while skill.gd's own `upgrade_tiers` deltas said
 ##     30/60/90/120/150 -- an off-by-one that only stayed invisible
-##     because every `min_stat` was blank. core/schemas/skill_tier.gd is
+##     because every `min_stat` was blank. core/schemas/game_tier.gd is
 ##     now the single source; every consumer reads it.
 ##
 ##  2. `get_signature_schema` read `_catalog`, which holds UPGRADABLE
@@ -24,7 +24,7 @@
 ## Run: godot --headless --path game --script res://tests/test_skill_tier_parity.gd
 extends SceneTree
 
-const SkillTier = preload("res://core/schemas/skill_tier.gd")
+const GameTier = preload("res://core/schemas/game_tier.gd")
 
 var _passed: int = 0
 var _failed: int = 0
@@ -55,25 +55,27 @@ func _run() -> void:
 	await process_frame
 
 	# --- 1. The canonical ladder ----------------------------------------
-	_check(SkillTier.TIER_NAMES.size() == 5, "the ladder is FIVE rungs (not the six-rung item rarity)")
-	_check(SkillTier.name_of(1) == "common" and SkillTier.name_of(5) == "mythic",
+	_check(GameTier.NAMES.size() == 5, "the ladder is FIVE rungs (the one game-wide scale)")
+	_check(GameTier.name_of(0) == "common" and GameTier.name_of(4) == "mythic",
 			"the rungs run common -> mythic")
-	_check(SkillTier.level_of("mythic") == 5 and SkillTier.level_of("nonsense") == 0,
+	_check(GameTier.level_of("mythic") == 5 and GameTier.level_of("nonsense") == 0,
 			"level_of round-trips and rejects a non-rung")
-	_check(SkillTier.threshold("common") == 0 and SkillTier.threshold("mythic") == 120,
+	_check(GameTier.value_of("rare") == 1 and GameTier.value_of("nope") == -1,
+			"value_of is 0-based and rejects a non-rung")
+	_check(GameTier.threshold("common") == 0 and GameTier.threshold("mythic") == 120,
 			"the canonical thresholds are 0..120")
 
 	# --- 2. No consumer re-declares the ladder --------------------------
 	# The old inline arrays/dicts are gone; the remaining references are
-	# aliases onto SkillTier. Guard the two aliases that MUST agree.
+	# aliases onto GameTier. Guard the two aliases that MUST agree.
 	var acad = root.get_node_or_null("SkillAcademyService")
 	_check(acad != null, "SkillAcademyService present")
 	if acad != null:
-		_check(acad.TIER_NAMES == SkillTier.TIER_NAMES,
+		_check(acad.TIER_NAMES == GameTier.NAMES,
 				"SkillAcademyService.TIER_NAMES is the canonical array")
-		_check(acad.TIER_TO_LEVEL == SkillTier.TIER_LEVELS,
+		_check(acad.TIER_TO_LEVEL == GameTier.LEVELS,
 				"SkillAcademyService.TIER_TO_LEVEL is the canonical map")
-		_check(acad.BOOKS_PER_UPGRADE == SkillTier.BOOKS_PER_UPGRADE and acad.BOOKS_PER_UPGRADE == 4,
+		_check(acad.BOOKS_PER_UPGRADE == GameTier.BOOKS_PER_UPGRADE and acad.BOOKS_PER_UPGRADE == 4,
 				"four books per upgrade")
 
 	# --- 3. Every consumer produces the SAME book id --------------------
@@ -146,8 +148,97 @@ func _run() -> void:
 			orphan.append(cid)
 	_check(bad_sig.is_empty(), "every class ships exactly 3 signatures (%s)" % ("ok" if bad_sig.is_empty() else ", ".join(bad_sig)))
 	_check(orphan.is_empty(), "no class is all-signature")
+
+	# --- 7b. The class-kit balance law ----------------------------------
+	# Every class ships EXACTLY 10 upgradable class skills (FLOOR == CAP
+	# == 10), so the roster is balanced class-to-class: no one-button
+	# shell, no runaway (akkan_rune once shipped 12; akkan_attacker once
+	# shipped 1).
+	var FLOOR: int = 10
+	var CAP: int = 10
+	var too_thin: Array = []
+	var too_fat: Array = []
+	for cid2 in by_class:
+		if cid2 == "":
+			continue
+		var u2: int = by_class[cid2]["up"]
+		if u2 < FLOOR:
+			too_thin.append("%s=%d" % [cid2, u2])
+		elif u2 > CAP:
+			too_fat.append("%s=%d" % [cid2, u2])
+	_check(too_thin.is_empty(), "every class ships >= %d upgradable skills (%s)" % [FLOOR, "ok" if too_thin.is_empty() else ", ".join(too_thin)])
+	_check(too_fat.is_empty(), "no class exceeds %d upgradable skills (%s)" % [CAP, "ok" if too_fat.is_empty() else ", ".join(too_fat)])
+
+	# Every class skill resolves from its OWN class tree: the ids a class
+	# unlocks must exist and be owned by that class.
+	var tree_bad: Array = []
+	var tree_checked: int = 0
+	for s2 in ds.get_all_skills():
+		if s2 == null or str(s2.required_class) == "":
+			continue
+		if not s2.upgradable:
+			continue
+		var owner_cls = ds.get_character_class(str(s2.required_class))
+		if owner_cls == null:
+			continue
+		tree_checked += 1
+		var reachable: bool = false
+		for lv in owner_cls.skill_tree_unlocks.keys():
+			var ids_at: Array = owner_cls.skill_tree_unlocks[lv]
+			if ids_at.has(str(s2.id)):
+				reachable = true
+				break
+		if not reachable and not owner_cls.starting_skills.has(str(s2.id)):
+			tree_bad.append("%s (%s)" % [str(s2.id), str(s2.required_class)])
+	_check(tree_checked >= 50 and tree_bad.is_empty(),
+			"every upgradable class skill is reachable from its tree (%d checked: %s)" % [tree_checked, "ok" if tree_bad.is_empty() else ", ".join(tree_bad)])
+
 	# The any-class skills are all upgradable (no signature is classless).
 	_check(unclassified == 0 or unclassified == by_class[""]["up"],
 			"the %d any-class skills are all upgradable" % unclassified)
 
+	# --- 8. ONE scale: item/title/achievement rarity IS GameTier ---------
+	# Item.Rarity used to be SIX rungs (an extra `uncommon`). It is now the
+	# same five as everything else, and every authored `rarity` int on disk
+	# must land inside 0..4 or a migrated file was missed.
+	_check(Item.Rarity.size() == GameTier.COUNT,
+			"Item.Rarity is the five-rung scale (no `uncommon`)")
+	var rk: Array = []
+	for k in Item.Rarity.keys():
+		rk.append(str(k).to_lower())
+	_check(rk == GameTier.NAMES,
+			"Item.Rarity keys match GameTier.NAMES exactly (%s)" % str(rk))
+	_check(not Item.Rarity.has("UNCOMMON"),
+			"Item.Rarity has no UNCOMMON rung")
+
+	var offenders: Array = []
+	var scanned: Array = [0]
+	_scan_rarity("res://data", offenders, scanned)
+	_check(offenders.is_empty(),
+			"every authored `rarity` int is a valid GameTier rung (%d scanned)" % scanned[0])
+
 	_finish()
+
+
+## Walk `res://data` and collect any `rarity = N` line whose N is outside
+## 0..4. `acc[0]` counts the lines examined.
+func _scan_rarity(dir_path: String, offenders: Array, acc: Array) -> void:
+	var d := DirAccess.open(dir_path)
+	if d == null:
+		return
+	d.list_dir_begin()
+	var nm := d.get_next()
+	while nm != "":
+		if not nm.begins_with("."):
+			var full := dir_path.path_join(nm)
+			if d.current_is_dir():
+				_scan_rarity(full, offenders, acc)
+			elif nm.ends_with(".tres"):
+				for line in FileAccess.get_file_as_string(full).split("\n"):
+					var lt := line.strip_edges()
+					if lt.begins_with("rarity = "):
+						acc[0] += 1
+						var v := int(lt.trim_prefix("rarity = "))
+						if v < 0 or v > GameTier.MAX_VALUE:
+							offenders.append("%s: %d" % [full, v])
+		nm = d.get_next()

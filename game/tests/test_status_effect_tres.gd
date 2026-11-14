@@ -125,4 +125,38 @@ func _run() -> void:
         var buffed_received: int = soft._calculate_damage_received(100, "physical")
         _assert(buffed_received < base_received, "a defense multiplier reduces incoming damage")
 
+        # --- 9. Taunt skill force-locks enemies via the aggro table -----------
+        # A taunt is aggro control, not a stat debuff: the authored
+        # debuff_taunt entry must drive AggroComponent.taunt, or the whole
+        # tank identity is a silent no-op.
+        var taunt_schema = ds.get_skill("akkan_taunt")
+        _assert(taunt_schema != null, "akkan_taunt schema loads")
+        var taunt_skill = CombatSkill.from_schema(taunt_schema)
+        _assert(taunt_skill.taunt_targets, "a debuff_taunt entry flags the skill as a taunt")
+        _assert(is_equal_approx(taunt_skill.taunt_duration, 4.0), "the authored duration carries to the taunt lock")
+
+        # End-to-end: cast the taunt on a live enemy and prove the aggro lock
+        # takes hold (the engine path, not just the flag).
+        var es2 = root.get_node_or_null("EntityService")
+        if es2 != null:
+                var taunter := _entity()
+                taunter.entity_id = "taunt_caster"
+                var mob: Node = load("res://entities/enemy.gd").new()
+                mob.entity_id = "taunt_mob"
+                root.add_child(mob)
+                await process_frame
+                es2.register_entity(taunter, null, "taunt_caster")
+                es2.register_entity(mob, null, "taunt_mob")
+                var rival := _entity()
+                rival.entity_id = "taunt_rival"
+                es2.register_entity(rival, null, "taunt_rival")
+                var ac = mob.get("aggro_component")
+                _assert(ac != null, "the mob carries an aggro component")
+                if ac != null:
+                        ac.add_threat(rival, 500)
+                        ac._enter_combat(rival)
+                        taunt_skill.execute(taunter, null, taunter.global_position)
+                        _assert(ac.is_taunted(), "casting the taunt force-locks the mob")
+                        _assert(ac.get_highest_threat_target() == taunter, "the taunter is the mob's target after the taunt")
+
         print("--- STATUS EFFECT TRES: %d passed, %d failed ---" % [_pass, _fail])

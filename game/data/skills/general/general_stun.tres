@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "general_stun"
+display_name = "Stun"
+description = "A short, brutal interruption: a blow to the senses that drops a foe where it stands. The second shared verb of the Concord, taught beside Bind."
+icon_path = ""
+skill_type = 1
+target_type = 0
+mana_cost = 20
+cooldown = 25.0
+cast_time = 0.0
+animation_duration = 0.5
+range = 12.0
+aoe_radius = 0.0
+effects = [{"type": "debuff", "effect_id": "stun_common", "duration": 1.5}]
+required_level = 1
+required_class = ""

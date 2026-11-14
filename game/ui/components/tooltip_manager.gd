@@ -2,6 +2,8 @@
 ## Item tooltips, ability tooltips, NPC info tooltips
 extends Control
 class_name TooltipManager
+
+const GameTier = preload("res://core/schemas/game_tier.gd")
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 
 
@@ -285,13 +287,7 @@ func _populate_item_tooltip() -> void:
 	var item_name: String = _data.get("name", "Unknown Item")
 	var rarity: String = _data.get("rarity", "common")
 
-	var rarity_color: Color = Color(0.6, 0.6, 0.6)
-	match rarity.to_lower():
-		"common": rarity_color = Color(0.6, 0.6, 0.6)
-		"uncommon": rarity_color = Color(0.2, 0.9, 0.2)
-		"rare": rarity_color = Color(0.2, 0.6, 1.0)
-		"epic": rarity_color = Color(0.7, 0.3, 1.0)
-		"legendary": rarity_color = Color(1.0, 0.6, 0.1)
+	var rarity_color: Color = GameTier.color(rarity)
 
 	_add_title(item_name, rarity_color)
 

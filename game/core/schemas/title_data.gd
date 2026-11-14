@@ -3,6 +3,8 @@
 extends Resource
 class_name TitleData
 
+const GameTier = preload("res://core/schemas/game_tier.gd")
+
 ## Title categories
 enum Category {
 	COMBAT,       # Combat-related titles
@@ -16,12 +18,13 @@ enum Category {
 }
 
 ## Title rarity (affects display color intensity)
+## The one game-wide five-rung scale (GameTier).
 enum Rarity {
 	COMMON,
-	UNCOMMON,
 	RARE,
 	EPIC,
 	LEGENDARY,
+	MYTHIC,
 }
 
 ## How the title is unlocked
@@ -78,12 +81,6 @@ func has_suffix() -> bool:
 func is_usable() -> bool:
 	return has_prefix() or has_suffix()
 
-## Get rarity color (muted palette, no gold - gold reserved for GM)
+## Get rarity color (the canonical GameTier palette).
 func get_rarity_color() -> Color:
-	match rarity:
-		Rarity.COMMON:    return Color(0.65, 0.65, 0.65)    # gray
-		Rarity.UNCOMMON:  return Color(0.75, 0.60, 0.40)    # bronze
-		Rarity.RARE:      return Color(0.65, 0.70, 0.80)      # silver
-		Rarity.EPIC:      return Color(0.60, 0.50, 0.75)      # purple
-		Rarity.LEGENDARY: return Color(0.45, 0.65, 0.70)      # teal
-		_:                return Color(0.65, 0.65, 0.65)
+	return GameTier.color_of(rarity)

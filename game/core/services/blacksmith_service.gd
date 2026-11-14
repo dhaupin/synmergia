@@ -74,18 +74,15 @@ func calculate_repair_cost(item) -> int:
 		"accessory":
 			cost = int(cost * accessory_multiplier)
 
-	# Apply rarity penalty (higher rarity = more expensive)
-	match item.rarity:
-		"common":
-			pass  # No penalty
-		"uncommon":
-			cost = int(cost * 1.1)
-		"rare":
-			cost = int(cost * 1.25)
-		"epic":
-			cost = int(cost * 1.5)
-		"legendary":
-			cost = int(cost * 2.0)
+	# Apply rarity penalty (higher rarity = more expensive).
+	# item.rarity is an Item.Rarity enum int -- the previous String match
+	# never fired, so every rarity paid the same. Index the enum.
+	match int(item.rarity):
+		0: pass                       # common
+		1: cost = int(cost * 1.25)    # rare
+		2: cost = int(cost * 1.5)     # epic
+		3: cost = int(cost * 2.0)     # legendary
+		4: cost = int(cost * 3.0)     # mythic
 
 	return maxi(1, cost)  # Minimum cost of 1 gold
 
@@ -245,7 +242,7 @@ static func _balance():
 	return _forge_balance
 
 ## The tier of an item: rarity for the forge's scale (COMMON..MYTHIC
-## indices 0..5; the ladder has 5 grades so tiers clamp to 0..4).
+## indices 0..4; the ladder is 5 grades so tiers clamp to 0..4).
 static func _tier_of(item) -> int:
 	if item == null or "rarity" not in item:
 		return 0

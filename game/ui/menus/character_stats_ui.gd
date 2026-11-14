@@ -5,7 +5,7 @@
 extends "res://ui/components/ui_panel.gd"
 class_name CharacterStatsUI
 const CharacterData = preload("res://core/schemas/character_data.gd")
-const SkillTier = preload("res://core/schemas/skill_tier.gd")
+const GameTier = preload("res://core/schemas/game_tier.gd")
 
 ## Runtime autoload lookups (script-mode-safe; the bare identifiers
 ## fail compile when autoloads are absent -- test_islands).
@@ -44,9 +44,9 @@ func show_notification(msg: String, success: bool = true) -> void:
 const HEADER_HEIGHT: int = 40
 const ROW_HEIGHT: int = 32
 
-# Thresholds come from the canonical ladder (core/schemas/skill_tier.gd);
+# Thresholds come from the canonical ladder (core/schemas/game_tier.gd);
 # only the colours below are presentation.
-const TIER_THRESHOLDS: Dictionary = SkillTier.TIER_STAT_THRESHOLD
+const TIER_THRESHOLDS: Dictionary = GameTier.TIER_STAT_THRESHOLD
 
 const TIER_COLORS: Dictionary = {
 	"common": Color(0.6, 0.6, 0.6),    # Gray

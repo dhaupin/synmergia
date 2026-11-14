@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "buff_rune_ward"
 display_name = "Rune Ward"
-description = "Protective rune absorbs damage and reflects some back."
+description = "A protective rune hardens the bearer against harm."
 category = 0
 effect_type = 0
 duration = 10.0

@@ -104,8 +104,15 @@ enum TargetType {
 
 # Defensive
 @export var grants_shield: int = 0
+@export var shield_duration: float = 10.0
 @export var grants_invincibility: bool = false
 @export var invincibility_duration: float = 0.0
+# Utility effects (authored as "revive"/"cleanse" entries).
+@export var is_revive: bool = false
+@export var cleanses: bool = false
+# Aggro control: a taunt force-locks enemies on the caster (AggroComponent.taunt).
+@export var taunt_targets: bool = false
+@export var taunt_duration: float = 4.0
 
 # Utility
 @export var teleport_distance: float = 0.0
@@ -198,7 +205,9 @@ static func from_schema(s: SkillSchema) -> Skill:
 	sk.required_class = s.required_class
 	sk.required_stance = s.required_stance
 	sk.schema = s
-	# Flatten effect dictionaries into runtime fields.
+	# Flatten effect dictionaries into runtime fields. THIS is the one effect
+	# vocabulary for the game: every type an authored .tres may use is handled
+	# here, so an unknown type is a lint-gate miss, never a silent no-op.
 	for effect: Dictionary in s.effects:
 		match str(effect.get("type", "")):
 			"damage":
@@ -213,6 +222,40 @@ static func from_schema(s: SkillSchema) -> Skill:
 				# StatusEffectFactory at cast time (effect_id ->
 				# data/status_effects/*.tres).
 				sk.status_effects.append(effect.duplicate())
+				# A taunt is aggro control, not a stat debuff: flag it so
+				# execute() force-locks enemies (AggroComponent.taunt). The
+				# aggro-horn payloads mean the same thing.
+				var fxid := str(effect.get("effect_id", ""))
+				if fxid == "debuff_taunt" or fxid == "debuff_aggro_horn" or fxid == "buff_aggro_horn":
+					sk.taunt_targets = true
+					sk.taunt_duration = maxf(sk.taunt_duration, float(effect.get("duration", 0.0)))
+			"shield":
+				# A self-shield pool that soaks damage before health
+				# (Entity._absorb_with_shields); it rides the status stack so
+				# it expires on its own clock.
+				sk.grants_shield += int(effect.get("value", 0))
+				sk.shield_duration = maxf(sk.shield_duration, float(effect.get("duration", 0.0)))
+			"damage_over_time":
+				# A ticked debuff on the target (kill credit to the caster).
+				sk.is_dot = true
+				sk.dot_damage += int(effect.get("value", 0))
+				sk.dot_duration = maxf(sk.dot_duration, float(effect.get("duration", 0.0)))
+				if effect.has("tick_interval"):
+					sk.dot_tick_rate = float(effect.get("tick_interval"))
+			"hot":
+				# A ticked heal on the caster or ally target.
+				sk.hot_heal += int(effect.get("value", 0))
+				sk.hot_duration = maxf(sk.hot_duration, float(effect.get("duration", 0.0)))
+				if effect.has("tick_interval"):
+					sk.hot_tick_rate = float(effect.get("tick_interval"))
+			"revive":
+				# Dead-ally resurrection, routed through RespawnService
+				# (applyRevive).
+				sk.is_revive = true
+			"cleanse":
+				# Strips debuffs from the caster/ally target
+				# (AuraComponent.cleanse owns the strip).
+				sk.cleanses = true
 	return sk
 
 func _init() -> void:
@@ -364,6 +407,14 @@ func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO, def
 
 	if is_dot and not defer_target_effects:
 		applyDoT(caster, target)
+	if is_revive and not defer_target_effects:
+		applyRevive(caster, target)
+
+	if cleanses and not defer_target_effects:
+		applyCleanse(caster)
+
+	if taunt_targets and not defer_target_effects:
+		applyTaunt(caster)
 
 	if teleport_distance > 0 and not defer_target_effects:
 		applyTeleport(caster, ground_position)
@@ -479,8 +530,38 @@ func applyStatusEffects(caster, target) -> void:
 				target.apply_status_effect(fx)
 
 func applyShield(caster) -> void:
-	# Create shield buff
-	pass
+	if grants_shield <= 0 or caster == null or not caster.has_method("apply_status_effect"):
+		return
+	var fx := StatusEffect.new()
+	fx.effect_id = skill_id + "_shield"
+	fx.effect_name = skill_name + " Shield"
+	fx.effect_type = StatusEffect.EffectType.BUFF
+	fx.tick_behavior = StatusEffect.TickBehavior.DURATION
+	fx.duration = shield_duration
+	fx.shield_amount = grants_shield
+	fx.source = caster
+	caster.apply_status_effect(fx)
+
+## Force every enemy near the caster to target it (tank grab). The aggro
+## table owns the lock (AggroComponent.taunt); the authored debuff_taunt
+## entry rides along on the status stack for the buff-bar icon. Silent
+## no-op when EntityService is unavailable (parse-time) or nothing is in
+## range -- same degradation law as _generate_heal_threat.
+func applyTaunt(caster) -> void:
+	var es = _entity_service()
+	if es == null or caster == null or not ("global_position" in caster):
+		return
+	var radius := aoe_radius if aoe_radius > 0.0 else 8.0
+	var duration_ms := int(maxf(taunt_duration, 0.0) * 1000.0)
+	for enemy in EntityInterest.query_interest(caster.global_position, radius, [caster]):
+		if not is_instance_valid(enemy):
+			continue
+		# Only enemies hold an aggro table worth locking.
+		if "entity_type" in enemy and enemy.entity_type != Entity.EntityType.ENEMY:
+			continue
+		var ac = enemy.get("aggro_component")
+		if ac != null and ac.has_method("taunt"):
+			ac.taunt(caster, duration_ms)
 
 func applyInvincibility(caster) -> void:
 	# Create invincibility buff
@@ -521,6 +602,25 @@ func applyTeleport(caster, ground_position: Vector3) -> void:
 		var forward: Vector3 = -caster.global_transform.basis.z
 		forward.y = 0
 		caster.global_position += forward * teleport_distance
+
+func applyRevive(caster, target) -> void:
+	if not is_revive or target == null or caster == null:
+		return
+	var ml: Variant = Engine.get_main_loop()
+	if not (ml is SceneTree) or (ml as SceneTree).root == null:
+		return
+	var respawn_svc := (ml as SceneTree).root.get_node_or_null("RespawnService")
+	if respawn_svc != null and respawn_svc.has_method("start_revival"):
+		respawn_svc.start_revival(caster, target, "open_world")
+
+## Strip the caster's debuffs (AuraComponent.cleanse owns the strip; a body
+## without an aura component has nothing to strip).
+func applyCleanse(caster) -> void:
+	if not cleanses or caster == null:
+		return
+	var aura: Node = caster.get_node_or_null("AuraComponent") if caster is Node else null
+	if aura != null and aura.has_method("cleanse"):
+		aura.cleanse(caster)
 
 func create_stun_effect(_caster) -> StatusEffect:
 	var effect := StatusEffect.new()

@@ -48,8 +48,8 @@ max_items_dropped = 2
 level = 1
 rarity_weights = {
 "COMMON": 1.0,
-"UNCOMMON": 0.5,
 "RARE": 0.2,
 "EPIC": 0.05,
-"LEGENDARY": 0.01
+"LEGENDARY": 0.01,
+"MYTHIC": 0.002
 }

@@ -60,25 +60,16 @@ const HIGH_CONTRAST_COLORS := {
 	"focus_bg": Color(0, 0, 0, 1),
 }
 
-const RARITY_COLORS := {
-	"rarity_common": Color(0.6, 0.6, 0.6),
-	"rarity_rare": Color(0.3, 0.7, 1.0),
-	"rarity_epic": Color(0.8, 0.3, 1.0),
-	"rarity_legendary": Color(1.0, 0.8, 0.2),
-	"rarity_mythic": Color(1.0, 0.4, 0.1),
-}
+const GameTier = preload("res://core/schemas/game_tier.gd")
+
+## Tier colours are THE canonical GameTier palette, keyed by rung name.
+const RARITY_COLORS := GameTier.COLORS
 
 ## Skill Academy specific
 const SKILL_COLORS := {
 	"available_points": Color(0.3, 1.0, 0.5),  # Bright green for available
 	"focal": Color(0.8, 0.8, 1.0),              # Light blue for focal indicator
 	"tier_label": Color(0.6, 0.6, 0.6),          # Gray for tier labels
-	# Stat tier colors (for skill academy stat bars)
-	"tier_common": Color(0.6, 0.6, 0.6),
-	"tier_rare": Color(0.3, 0.7, 1.0),
-	"tier_epic": Color(0.8, 0.3, 1.0),
-	"tier_legendary": Color(1.0, 0.6, 0.1),
-	"tier_mythic": Color(1.0, 0.2, 0.2),
 }
 
 ## Tooltip specific
@@ -130,22 +121,16 @@ static func create_button_style(normal_bg: Color = Color(0.15, 0.15, 0.2),
 ## ============================================================================
 
 static func get_rarity_color(rarity: String) -> Color:
-	match rarity.to_lower():
-		"common": return RARITY_COLORS.rarity_common
-		"rare", "uncommon": return RARITY_COLORS.rarity_rare
-		"epic": return RARITY_COLORS.rarity_epic
-		"legendary": return RARITY_COLORS.rarity_legendary
-		"mythic": return RARITY_COLORS.rarity_mythic
-		_: return COLORS.text_primary
+	# `uncommon` is retired; map any legacy spelling onto the 5-rung scale.
+	if rarity.to_lower() == "uncommon":
+		return GameTier.color("common")
+	return GameTier.color(rarity) if GameTier.is_valid(rarity) else COLORS.text_primary
 
 static func get_rarity_display_name(rarity: String) -> String:
-	match rarity.to_lower():
-		"common": return "Common"
-		"rare", "uncommon": return "Rare"
-		"epic": return "Epic"
-		"legendary": return "Legendary"
-		"mythic": return "Mythic"
-		_: return rarity
+	if rarity.to_lower() == "uncommon":
+		return "Common"
+	var v := GameTier.value_of(rarity)
+	return GameTier.display(v) if v >= 0 else rarity
 
 
 ## The primary call-to-action style (play-test round 8): Synmergia

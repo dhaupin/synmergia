@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "buff_immortal_form"
 display_name = "Immortal Form"
-description = "Massively reduced damage taken."
+description = "Immune to all damage while the form holds."
 category = 0
 effect_type = 0
 duration = 6.0

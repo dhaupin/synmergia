@@ -50,9 +50,11 @@ enum AccessoryType {
 	## MovementProfile owns speed, orthogonal or soup)
 }
 
+## The one game-wide five-rung scale (GameTier). No `uncommon` -- that
+## rung was removed so items, skills, titles, and achievements all use
+## the same common/rare/epic/legendary/mythic ladder.
 enum Rarity {
 	COMMON,
-	UNCOMMON,
 	RARE,
 	EPIC,
 	LEGENDARY,
@@ -266,22 +268,9 @@ func get_total_stats() -> Dictionary:
 func get_total_weight() -> float:
 	return weight * current_stack
 
-## Get rarity color for UI
+## Get rarity color for UI (the canonical GameTier palette).
 func get_rarity_color() -> Color:
-	match rarity:
-		Rarity.COMMON:
-			return Color.WHITE
-		Rarity.UNCOMMON:
-			return Color.GREEN
-		Rarity.RARE:
-			return Color.BLUE
-		Rarity.EPIC:
-			return Color(0.8, 0.2, 1.0)  # Purple
-		Rarity.LEGENDARY:
-			return Color(1.0, 0.6, 0.0)  # Orange
-		Rarity.MYTHIC:
-			return Color(1.0, 0.0, 0.5)  # Magenta
-	return Color.WHITE
+	return GameTier.color_of(rarity)
 
 ## Create a copy with quantity
 func create_instance(quantity: int = 1) -> Item:

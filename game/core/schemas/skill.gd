@@ -102,19 +102,13 @@ enum TargetType {
 ##     { "type": "hot", "ticks": int, "heal_mult": float }
 ##     { "type": "chain", "max_targets": int, "damage_mult": float }
 ##     { "type": "armor_pierce", "percent": float }
-## Stat thresholds for upgrade tiers (30-point intervals)
-## min_stat: which stat is required (e.g., "intelligence", "strength")
-## min_stat_value: minimum stat value needed (30=common, 60=rare, 90=epic, 120=legendary, 150=mythic)
-const STAT_TIER_THRESHOLDS: Dictionary = {
-	"common": {"min_stat_value": 30},
-	"rare": {"min_stat_value": 60},
-	"epic": {"min_stat_value": 90},
-	"legendary": {"min_stat_value": 120},
-	"mythic": {"min_stat_value": 150}
-}
+## Stat thresholds for upgrade tiers live in GameTier.TIER_STAT_THRESHOLD
+## (0/30/60/90/120 for common..mythic). The gating STAT is authored in
+## `min_stat` per skill; when it is blank the academy gates the tier on the
+## character's primary focal stat.
 
 @export var upgrade_tiers: Array[Dictionary] = [
-	{"level": 1, "books_required": 4, "tier": "common", "min_stat": "", "min_stat_value": 30,
+	{"level": 1, "books_required": 4, "tier": "common", "min_stat": "", "min_stat_value": 0,
 		"delta": {
 			"damage_mult": 1.12, "heal_mult": 1.12, "range_mult": 1.05,
 			"cooldown_mult": 0.95, "cast_time_mult": 1.05, "aoe_mult": 1.03,
@@ -122,7 +116,7 @@ const STAT_TIER_THRESHOLDS: Dictionary = {
 			"cost_mult": 0.97, "charge_mult": 1.05, "max_targets_mult": 1.0
 		},
 		"unlocks": []},
-	{"level": 2, "books_required": 4, "tier": "rare", "min_stat": "", "min_stat_value": 60,
+	{"level": 2, "books_required": 4, "tier": "rare", "min_stat": "", "min_stat_value": 30,
 		"delta": {
 			"damage_mult": 1.24, "heal_mult": 1.24, "range_mult": 1.10,
 			"cooldown_mult": 0.90, "cast_time_mult": 1.10, "aoe_mult": 1.06,
@@ -130,7 +124,7 @@ const STAT_TIER_THRESHOLDS: Dictionary = {
 			"cost_mult": 0.94, "charge_mult": 1.10, "max_targets_mult": 1.0
 		},
 		"unlocks": []},
-	{"level": 3, "books_required": 4, "tier": "epic", "min_stat": "", "min_stat_value": 90,
+	{"level": 3, "books_required": 4, "tier": "epic", "min_stat": "", "min_stat_value": 60,
 		"delta": {
 			"damage_mult": 1.36, "heal_mult": 1.36, "range_mult": 1.15,
 			"cooldown_mult": 0.85, "cast_time_mult": 1.15, "aoe_mult": 1.09,
@@ -138,7 +132,7 @@ const STAT_TIER_THRESHOLDS: Dictionary = {
 			"cost_mult": 0.91, "charge_mult": 1.15, "max_targets_mult": 1.0
 		},
 		"unlocks": []},
-	{"level": 4, "books_required": 4, "tier": "legendary", "min_stat": "", "min_stat_value": 120,
+	{"level": 4, "books_required": 4, "tier": "legendary", "min_stat": "", "min_stat_value": 90,
 		"delta": {
 			"damage_mult": 1.48, "heal_mult": 1.48, "range_mult": 1.20,
 			"cooldown_mult": 0.80, "cast_time_mult": 1.20, "aoe_mult": 1.12,
@@ -146,7 +140,7 @@ const STAT_TIER_THRESHOLDS: Dictionary = {
 			"cost_mult": 0.88, "charge_mult": 1.20, "max_targets_mult": 1.0
 		},
 		"unlocks": []},
-	{"level": 5, "books_required": 4, "tier": "mythic", "min_stat": "", "min_stat_value": 150,
+	{"level": 5, "books_required": 4, "tier": "mythic", "min_stat": "", "min_stat_value": 120,
 		"delta": {
 			"damage_mult": 1.60, "heal_mult": 1.60, "range_mult": 1.25,
 			"cooldown_mult": 0.75, "cast_time_mult": 1.25, "aoe_mult": 1.15,
@@ -176,179 +170,10 @@ func can_cast(caster: Node) -> bool:
 		return false
 	return true
 
-## Execute the skill
-func execute(caster, target= null, ground_pos: Vector3 = Vector3.ZERO) -> Dictionary:
-	var result := {
-		"success": false,
-		"damage_dealt": 0,
-		"effects_applied": [],
-		"targets_hit": []
-	}
-
-	if not can_cast(caster):
-		return result
-
-	# Consume resources
-	_consume_resources(caster)
-
-	# Start cooldown
-	remaining_cooldown = cooldown
-
-	# Apply effects
-	_apply_effects(caster, target, ground_pos, result)
-
-	result["success"] = true
-	return result
-
-func _consume_resources(caster) -> void:
-	# Duck-typed: casters (the player body, Entity, test stubs) carry
-	# different subsets of the resource fields; only deduct what exists.
-	if mana_cost > 0 and "current_mana" in caster:
-		caster.current_mana -= mana_cost
-	if stamina_cost > 0 and "current_stamina" in caster:
-		caster.current_stamina -= stamina_cost
-	if health_cost > 0 and "current_health" in caster:
-		caster.current_health -= health_cost
-
-func _apply_effects(caster, target, ground_pos: Vector3, result: Dictionary) -> void:
-	for effect in effects:
-		match effect.get("type", ""):
-			"damage":
-				var dmg: int = int(effect.get("value", 0))
-				if target:
-					target.take_damage(dmg, caster)
-					result["targets_hit"].append(target)
-					result["damage_dealt"] += dmg
-			"heal":
-				var amount: int = int(effect.get("value", 0))
-				if caster:
-					caster.heal(amount)
-			"revive":
-				# Handle revive effect
-				var success: bool = _apply_revive(caster, target, effect, result)
-				if success:
-					result["targets_hit"].append(target)
-			"buff":
-				_apply_status_effect(caster, target, effect, true)
-			"debuff":
-				_apply_status_effect(caster, target, effect, false)
-
-## Resolve an authored buff/debuff entry through StatusEffectFactory (the
-## data -> runtime join) and apply it: a buff on the caster or ally target,
-## a debuff on the target. Unknown effect_id is a quiet no-op.
-func _apply_status_effect(caster, target, effect: Dictionary, is_buff: bool) -> void:
-	var fx = StatusEffectFactory.from_id(str(effect.get("effect_id", "")), float(effect.get("duration", 0.0)))
-	if fx == null:
-		return
-	var body = caster
-	if not is_buff or (target != null and target.has_method("apply_status_effect")):
-		body = target
-	if body != null and body.has_method("apply_status_effect"):
-		fx.source = caster
-		body.apply_status_effect(fx)
-
-## Apply revive effect
-func _apply_revive(caster, target, effect: Dictionary, result: Dictionary) -> bool:
-	if not target or not caster:
-		return false
-
-	# Check if target is actually dead
-	if not target.health_component or not target.health_component.is_dead():
-		result["failure_reason"] = "Target is not dead"
-		return false
-
-	# Check range if specified
-	if range > 0:
-		var distance: float = caster.global_position.distance_to(target.global_position)
-		if distance > range:
-			result["failure_reason"] = "Target out of range"
-			return false
-
-	# Use RespawnService to perform the revive
-	var context: String = effect.get("context", "open_world")
-	# Script-mode-safe lookup: --script tests don't pre-load autoloads, so
-	# a bare RespawnService identifier is a COMPILE error that cascades
-	# through every preload of this file (combat/skill.gd, hitbox skills,
-	# the whole combat pipeline). Resolve via the tree instead.
-	var respawn_svc: Node = null
-	var ml: Variant = Engine.get_main_loop()
-	if ml is SceneTree and (ml as SceneTree).root != null:
-		respawn_svc = (ml as SceneTree).root.get_node_or_null("RespawnService")
-	if respawn_svc != null:
-		# Start the revival process
-		var success: bool = respawn_svc.start_revival(caster, target, context)
-		if success:
-			result["revive_started"] = true
-			return true
-		else:
-			result["failure_reason"] = "Revive failed (abuse detection or restrictions)"
-			return false
-
-	# Fallback if no RespawnService
-	result["failure_reason"] = "Revive system not available"
-	return false
-
-func _physics_process(delta: float) -> void:
-	if remaining_cooldown > 0:
-		remaining_cooldown = max(0, remaining_cooldown - delta)
-
-func get_cooldown_remaining() -> float:
-	return remaining_cooldown
-
-## Find dead allies within range (for revive skills)
-static func find_dead_allies(caster, max_range: float) -> Array:
-	var dead_allies: Array = []
-
-	if not caster or not caster.health_component:
-		return dead_allies
-
-	var caster_pos: Vector3 = caster.global_position
-
-	# Get all entities in range from EntityService
-	var nearby_entities := []
-
-	for entity in nearby_entities:
-		# Skip self
-		if entity == caster:
-			continue
-
-		# Check if it's a dead ally (same team/faction, dead)
-		if entity.health_component and entity.health_component.is_dead():
-			# Check if ally (same team or friendly)
-			if _is_ally(caster, entity):
-				dead_allies.append(entity)
-
-	return dead_allies
-
-## Check if two entities are allies. Uses the `in` operator for property
-## probes: Object.has() does not exist in Godot 4, and hitbox StaticBody3D
-## children end up here via combat scans.
-static func _is_ally(entity_a, entity_b) -> bool:
-	# Same entity
-	if entity_a == entity_b:
-		return true
-
-	# Check party
-	if "party_id" in entity_a and "party_id" in entity_b:
-		if entity_a.party_id != "" and entity_a.party_id == entity_b.party_id:
-			return true
-
-	# Check guild
-	if "guild_id" in entity_a and "guild_id" in entity_b:
-		if entity_a.guild_id != "" and entity_a.guild_id == entity_b.guild_id:
-			return true
-
-	# Check faction (friendly)
-	if "faction_id" in entity_a and "faction_id" in entity_b:
-		if entity_a.faction_id == entity_b.faction_id:
-			return true
-
-	# Check team (for PvP)
-	if "team_id" in entity_a and "team_id" in entity_b:
-		if entity_a.team_id == entity_b.team_id:
-			return true
-
-	return false
+## NOTE: this schema is DATA ONLY. The runtime combat engine lives in
+## core/combat/skill.gd (Skill.from_schema -> execute) and is the single
+## effect vocabulary; the old execute()/_apply_effects() executor that
+## lived here was a dead, disagreeing second engine and was removed.
 
 func get_info() -> Dictionary:
 	return {

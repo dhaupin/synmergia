@@ -5,7 +5,7 @@ extends Node
 
 
 const SkillBook = preload("res://core/schemas/skill_book.gd")
-const SkillTier = preload("res://core/schemas/skill_tier.gd")
+const GameTier = preload("res://core/schemas/game_tier.gd")
 const ActProfile = preload("res://core/schemas/act_profile.gd")
 const MysteryData = preload("res://core/schemas/mystery_data.gd")
 const Item = preload("res://core/schemas/item.gd")
@@ -850,9 +850,9 @@ func _create_skill_book_from_id(item_id: String) -> Item:
 		return null
 	var tier_str := parts[parts.size() - 1]
 	var skill_id := "_".join(parts.slice(1, parts.size() - 1))
-	if not SkillTier.is_valid(tier_str):
+	if not GameTier.is_valid(tier_str):
 		return null
-	var upgrade_level: int = SkillTier.level_of(tier_str)
+	var upgrade_level: int = GameTier.level_of(tier_str)
 
 	# Mirror SkillAcademyService's catalog gate: a book only exists for an
 	# UPGRADABLE skill, so a signature id resolves to no item at all.
