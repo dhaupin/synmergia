@@ -83,6 +83,24 @@ func _run() -> void:
         else:
                 _fail("the mythic teleport scope is %s, expected planet" % ScopeBand.scope_name(ScopeBand.teleport_scope(5)))
 
+        # --- 2b. The blast band: single-target -> hostile AoE at epic ---
+        if not ScopeBand.blast_is_aoe(0) and not ScopeBand.blast_is_aoe(2):
+                _ok("a blast is single-target through the rare band (levels 0-2)")
+        else:
+                _fail("a blast went AoE before the epic band")
+        if ScopeBand.blast_is_aoe(3) and ScopeBand.blast_is_aoe(5):
+                _ok("a blast is a hostile AoE from the epic band up (levels 3-5)")
+        else:
+                _fail("the epic band did not turn the blast into an AoE")
+        if ScopeBand.blast_max_targets(2) == 1 and ScopeBand.blast_max_targets(3) == 4 and ScopeBand.blast_max_targets(5) == 0:
+                _ok("the blast cap is 1 -> 4 (epic) -> unlimited (mythic)")
+        else:
+                _fail("the blast target cap is wrong: rare=%d epic=%d mythic=%d" % [ScopeBand.blast_max_targets(2), ScopeBand.blast_max_targets(3), ScopeBand.blast_max_targets(5)])
+        if ScopeBand.blast_radius(3) > 0.0 and ScopeBand.blast_radius(5) > ScopeBand.blast_radius(3):
+                _ok("the blast AoE radius widens with the band (epic %.0f -> mythic %.0f)" % [ScopeBand.blast_radius(3), ScopeBand.blast_radius(5)])
+        else:
+                _fail("the blast AoE radius did not widen across bands")
+
         # --- 3. Skill wiring: apply_scope_bands folds the tables in ---
         var ds = root.get_node_or_null("DataService")
         if ds == null:
@@ -121,6 +139,58 @@ func _run() -> void:
                         _ok("phase_shift at the mythic band reaches %.0f m across PLANET scope" % blink.teleport_distance)
                 else:
                         _fail("phase_shift at mythic is %.0f m / scope %s" % [blink.teleport_distance, ScopeBand.scope_name(blink.teleport_scope)])
+
+        # --- 3b. The blast fold on a real mage skill ---
+        # synthetic_system_nuke is a single-target nuke in data; the band is what
+        # turns it into a hostile ring. At rare it must stay single-target (cap 1),
+        # at epic it fans (cap 4), and its band radius feeds aoe_radius so the
+        # hitbox sweep and the band agree on the ring.
+        var nuke_schema = ds.get_skill("synthetic_system_nuke")
+        if nuke_schema == null:
+                _fail("synthetic_system_nuke did not load")
+        else:
+                var nuke_rare = CombatSkill.from_schema(nuke_schema)
+                nuke_rare.upgrade_level = 2
+                nuke_rare.apply_scope_bands()
+                if not nuke_rare.blast_aoe and nuke_rare.blast_max_targets == 1:
+                        _ok("system_nuke at the rare band stays single-target (cap 1)")
+                else:
+                        _fail("system_nuke went AoE at the rare band (aoe=%s cap=%d)" % [nuke_rare.blast_aoe, nuke_rare.blast_max_targets])
+                var nuke_epic = CombatSkill.from_schema(nuke_schema)
+                nuke_epic.upgrade_level = 3
+                nuke_epic.apply_scope_bands()
+                if nuke_epic.blast_aoe and nuke_epic.blast_max_targets == 4 and nuke_epic.aoe_radius > 0.0:
+                        _ok("system_nuke at the epic band is a capped hostile AoE (cap 4, r=%.0f)" % nuke_epic.aoe_radius)
+                else:
+                        _fail("system_nuke at epic did not fan (aoe=%s cap=%d r=%.1f)" % [nuke_epic.blast_aoe, nuke_epic.blast_max_targets, nuke_epic.aoe_radius])
+                var nuke_mythic = CombatSkill.from_schema(nuke_schema)
+                nuke_mythic.upgrade_level = 5
+                nuke_mythic.apply_scope_bands()
+                if nuke_mythic.blast_aoe and nuke_mythic.blast_max_targets == 0:
+                        _ok("system_nuke at the mythic band lifts its cap to unlimited")
+                else:
+                        _fail("system_nuke at mythic is still capped (cap=%d)" % nuke_mythic.blast_max_targets)
+                # A mage skill that authors its own ring (fireball) must never be
+                # capped DOWN to the single-target rung by the band.
+                var fb_schema = ds.get_skill("human_sorcerer_fireball")
+                if fb_schema != null:
+                        var fb = CombatSkill.from_schema(fb_schema)
+                        fb.upgrade_level = 0
+                        fb.apply_scope_bands()
+                        if fb.blast_max_targets == 0:
+                                _ok("an authored-ring blast (fireball) is never capped down by the band")
+                        else:
+                                _fail("fireball was capped to %d by the band" % fb.blast_max_targets)
+                # Banding is opt-in: an un-opted nuke never fans, even at the top.
+                var plain_nuke = CombatSkill.new()
+                plain_nuke.skill_id = "test_plain_nuke"
+                plain_nuke.damage = 40
+                plain_nuke.upgrade_level = 5
+                plain_nuke.apply_scope_bands()
+                if not plain_nuke.blast_aoe and plain_nuke.blast_max_targets == 1:
+                        _ok("a nuke with blast_band off stays single-target even at the top band")
+                else:
+                        _fail("an un-opted nuke fanned (aoe=%s cap=%d)" % [plain_nuke.blast_aoe, plain_nuke.blast_max_targets])
 
         # --- 4. LIVE banded heal over the real EntityService sweep ---
         # No globe boot: EntityService is an autoload, and the sweep only
@@ -471,6 +541,86 @@ func _run() -> void:
         else:
                 _fail("power amplification did not apply (%d -> %d)" % [base_heal, amp_heal])
         caster.stats["effect_power_mult"] = 1.0
+
+        # --- 17. LIVE blast sweep: the banded cap trims a real hitbox ring ---
+        # The blast fan-out is the CombatSystem hitbox sweep (not a per-verb
+        # helper), so the cap must be proven against the real sweep: a banded
+        # epic nuke (cap 4) with FIVE hostiles in the ring must damage exactly 4,
+        # and the same cast with blast_band off (uncapped) must damage all 5.
+        var cs := root.get_node_or_null("CombatSystem")
+        if cs == null:
+                _fail("CombatSystem autoload missing")
+        else:
+                var sweep_origin: Vector3 = Vector3(2000, 0, 2000)
+                var blast_caster: Node = EntityScript.new()
+                blast_caster.display_name = "BlastCaster"
+                blast_caster.entity_type = 1  # PLAYER
+                blast_caster.relation = 0
+                blast_caster.team_id = 1
+                root.add_child(blast_caster)
+                blast_caster.global_position = sweep_origin
+                blast_caster.current_health = blast_caster.max_health
+                es.register_entity(blast_caster)
+
+                var ring: Array = []
+                for i in range(5):
+                        var e: Node = EntityScript.new()
+                        e.display_name = "BlastFoe%d" % i
+                        e.entity_type = 2  # ENEMY
+                        e.relation = 1
+                        e.team_id = 2
+                        root.add_child(e)
+                        e.global_position = sweep_origin + Vector3(1.0 + float(i), 0, 0)
+                        e.current_health = 200
+                        es.register_entity(e)
+                        ring.append(e)
+                await physics_frame
+
+                var epic_blast = CombatSkill.new()
+                epic_blast.skill_id = "test_blast_epic"
+                epic_blast.skill_name = "Test Blast Epic"
+                epic_blast.damage = 30
+                epic_blast.hitbox_size = 2.0
+                epic_blast.animation_duration = 1.0  # hitbox lives 0.5s: survives the wait
+                epic_blast.blast_band = true
+                epic_blast.upgrade_level = 3  # epic: cap 4, r=8
+                epic_blast.apply_scope_bands()
+                # Create the hitbox exactly like the attack state does, then let
+                # _physics_process sweep it. Hold the HitboxData reference: the
+                # sweep erases it from the array on expiry, but hit_entities is
+                # appended for every SWEPT body (before the damage roll), so its
+                # size is the deterministic count the cap governs -- no RNG.
+                cs.create_hitbox(blast_caster, epic_blast, null, Vector3.ZERO)
+                var epic_hb = cs.active_hitboxes[cs.active_hitboxes.size() - 1]
+                for _i in range(10):
+                        await physics_frame
+                        if cs.active_hitboxes.is_empty():
+                                break
+                if epic_hb.hit_entities.size() == 4:
+                        _ok("the epic blast cap trims the ring to 4 of 5 hostiles")
+                else:
+                        _fail("the epic blast swept %d of 5 hostiles (expected cap 4)" % epic_hb.hit_entities.size())
+
+                # Same ring, band off: uncapped, all 5 are swept.
+                var plain_blast = CombatSkill.new()
+                plain_blast.skill_id = "test_blast_plain"
+                plain_blast.skill_name = "Test Blast Plain"
+                plain_blast.damage = 30
+                plain_blast.hitbox_size = 2.0
+                plain_blast.animation_duration = 1.0
+                plain_blast.aoe_radius = 8.0  # authored ring, no band
+                plain_blast.upgrade_level = 3
+                plain_blast.apply_scope_bands()
+                cs.create_hitbox(blast_caster, plain_blast, null, Vector3.ZERO)
+                var plain_hb = cs.active_hitboxes[cs.active_hitboxes.size() - 1]
+                for _i in range(10):
+                        await physics_frame
+                        if cs.active_hitboxes.is_empty():
+                                break
+                if plain_hb.hit_entities.size() == 5:
+                        _ok("an unbanded authored ring sweeps all 5 hostiles (uncapped)")
+                else:
+                        _fail("an unbanded ring swept %d of 5 hostiles (expected 5)" % plain_hb.hit_entities.size())
 
         _finish()
 

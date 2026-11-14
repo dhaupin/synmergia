@@ -18,6 +18,7 @@ max_targets = 3
 effects = [{"type": "damage", "value": 18}, {"type": "debuff", "effect_id": "slow_common", "duration": 3.0}]
 required_level = 10
 required_class = "akkan_rune"
+blast_band = true
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",

@@ -806,8 +806,16 @@ A skill's reach is folded from the band tables in `core/combat/scope_band.gd`
   mana-regen buffs). Runs at cast like a guard, fans to the party from the epic
   band up, and its band's `duration_mult` lengthens the buffs (DD's reach verb).
   A rally also sunders the enemy ring with its `debuff` payload, in one cast.
+- `blast_band = true` -- the BLAST verb (the mage's nuke: a `damage` skill). The
+  fan-out is the CombatSystem HITBOX SWEEP (`create_hitbox` reads the band's
+  `max_targets` into `HitboxData.max_hits`), not a per-verb helper: single-target
+  through rare, a hostile ring from epic (cap 4), uncapped from legendary up. A
+  skill that authors its own `aoe_radius` (Fireball, Frost Nova) is already a ring
+  and is never capped down by the band. Only a skill that deals direct `damage`
+  bands, so a ward/DoT authored with the flag set stays single-target.
 The tank's identity is control/guard, so its control skills carry
-`scope_bands` and its party-shield auras carry `guard_band`. The DD's rally and
+`scope_bands` and its party-shield auras carry `guard_band`; the mage's identity
+is the blast, so its damage skills carry `blast_band`. The DD's rally and
 the Bender's amplify are class-agnostic verbs of the Concord (like
 `general_shield` for the guard), so they are authored under `data/skills/general/`
 and every class carries them (`general_rally`, `general_amplify`).

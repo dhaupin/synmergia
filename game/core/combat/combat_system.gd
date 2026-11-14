@@ -36,6 +36,10 @@ class HitboxData:
 	var duration: float
 	var team_id: int = 0
 	var hit_entities: Array[String] = []  # Entity IDs already hit
+	## Cap on bodies this hitbox may hit (0 = unlimited). A banded blast sets
+	## it from the band so the mage's AoE is capped at epic and uncapped from
+	## legendary up; every other hitbox leaves it 0 (the sweep's old behaviour).
+	var max_hits: int = 0
 
 func _physics_process(_delta: float) -> void:
 	_process_hitboxes(_delta)
@@ -127,6 +131,11 @@ func create_hitbox(caster: Node, skill: Skill, target: Node, ground_position: Ve
 			hitbox.hit_entities.append(str(node.entity_id))
 	hitbox.start_time = Time.get_ticks_msec() / 1000.0
 	hitbox.duration = skill.animation_duration * 0.5  # Hitbox active for half animation
+	# A banded blast carries the band's target cap (1 at base/rare, 4 at epic,
+	# 0/unlimited from legendary up). The cap applies at EVERY tier so the band's
+	# promise -- single-target until epic -- actually holds; an unbanded hitbox
+	# leaves it 0 and keeps the sweep's old uncapped behaviour.
+	hitbox.max_hits = skill.blast_max_targets if (skill.blast_band and skill.damage > 0) else 0
 
 	# Calculate hitbox position
 	if skill.is_ground_targeted and ground_position != Vector3.ZERO:
@@ -155,6 +164,11 @@ func _process_hitboxes(_delta: float) -> void:
 		var hit_entities := get_entities_in_hitbox(hitbox)
 
 		for entity in hit_entities:
+			# A banded blast caps its ring: once the hit count reaches the band's
+			# target cap, stop (0 = unlimited, the sweep's default). hit_entities
+			# is seeded with the primary target, so the cap counts it.
+			if hitbox.max_hits > 0 and hitbox.hit_entities.size() >= hitbox.max_hits:
+				break
 			# Check if already hit
 			if entity.entity_id in hitbox.hit_entities:
 				continue

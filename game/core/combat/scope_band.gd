@@ -9,10 +9,10 @@
 ## (0 = base, 1..5 = the GameTier rungs).
 ##
 ## This is the canonical reach vocabulary. A new skill does not invent its own
-## scaling: it declares which verb it rides (heal / guard / control / teleport),
-## opts in with `scope_bands`, and Skill.apply_scope_bands folds the matching
-## table for its current tier. Adding a future verb means adding one table here
-## plus one `case` in Skill.apply_scope_bands -- nothing else changes.
+## scaling: it declares which verb it rides (heal / guard / control / teleport /
+## rally / blast), opts in with `scope_bands`, and Skill.apply_scope_bands folds
+## the matching table for its current tier. Adding a future verb means adding one
+## table here plus one `case` in Skill.apply_scope_bands -- nothing else changes.
 ##
 ## The owner's laws:
 ##   * heal bands go AoE at epic and lose their target cap at the top.
@@ -20,6 +20,8 @@
 ##     (instance -> world -> planet) at mythic.
 ##   * guard bands widen the aura and lift the ally cap (the tank's Hold).
 ##   * control bands widen the AoE stun/taunt and lengthen it (the tank's grab).
+##   * blast bands turn a single-target nuke into a hostile AoE at epic and lift
+##     its cap at the top (the mage's blast).
 ## A class identity (Bender blinks, healer mends, tank holds) is enforced
 ## separately by required_role; this file only answers "how far does this tier
 ## reach".
@@ -49,6 +51,7 @@ const VERB_GUARD: String = "guard"
 const VERB_CONTROL: String = "control"
 const VERB_TELEPORT: String = "teleport"
 const VERB_RALLY: String = "rally"
+const VERB_BLAST: String = "blast"
 
 ## --- Heal bands ---------------------------------------------------------
 ## A heal is single-target at base/rare and a friendly AoE from epic up
@@ -121,6 +124,24 @@ const TELEPORT_BANDS: Array[Dictionary] = [
         {"range_m": 50000.0, "scope": PLANET},   # 5 mythic (cross-scope)
 ]
 
+## --- Blast bands (the mage's nuke) --------------------------------------
+## A blast is the mage's offensive payoff verb: a single-target nuke that fans
+## into a hostile AoE from the epic band up -- the SAME rung every other verb's
+## AoE comes online, so a mage's blast and a healer's mend widen together. The
+## reach mirrors the heal ladder (the offensive twin of the mend), but the cap
+## follows the offensive/control shape rather than the heal's: capped at epic,
+## uncapped from legendary up, so the mage does not out-clear the tank's grab
+## on the rung both come online. `radius` is the sweep when the skill authors
+## none; `max_targets` 0 means NO cap.
+const BLAST_BANDS: Array[Dictionary] = [
+        {"aoe": false, "radius": 0.0, "max_targets": 1},     # 0 base
+        {"aoe": false, "radius": 0.0, "max_targets": 1},     # 1 common
+        {"aoe": false, "radius": 0.0, "max_targets": 1},     # 2 rare
+        {"aoe": true, "radius": 8.0, "max_targets": 4},      # 3 epic
+        {"aoe": true, "radius": 14.0, "max_targets": 0},     # 4 legendary
+        {"aoe": true, "radius": 24.0, "max_targets": 0},     # 5 mythic
+]
+
 ## The table for a verb family. Unknown verbs fall back to the control table
 ## (the most conservative reach) so a typo degrades to base, never to nothing.
 static func table_for(verb: String) -> Array:
@@ -133,6 +154,8 @@ static func table_for(verb: String) -> Array:
                         return TELEPORT_BANDS
                 VERB_RALLY:
                         return RALLY_BANDS
+                VERB_BLAST:
+                        return BLAST_BANDS
                 _:
                         return CONTROL_BANDS
 
@@ -164,8 +187,12 @@ static func teleport_band(upgrade_level: int) -> Dictionary:
 static func rally_band(upgrade_level: int) -> Dictionary:
         return RALLY_BANDS[_level(upgrade_level)]
 
+## The blast band at an upgrade level. Always a valid dictionary.
+static func blast_band(upgrade_level: int) -> Dictionary:
+        return BLAST_BANDS[_level(upgrade_level)]
+
 ## True when a verb at this level sweeps a ring (epic-and-up for heal/guard/
-## rally, common-and-up for control).
+## rally/blast, common-and-up for control).
 static func is_aoe(verb: String, upgrade_level: int) -> bool:
         return bool(band_for(verb, upgrade_level).get("aoe", false))
 
@@ -220,6 +247,18 @@ static func control_radius(upgrade_level: int) -> float:
 ## The CC-duration multiplier a control band grants.
 static func control_duration_mult(upgrade_level: int) -> float:
         return float(control_band(upgrade_level).get("duration_mult", 1.0))
+
+## True when a blast at this level sweeps hostiles (epic and up).
+static func blast_is_aoe(upgrade_level: int) -> bool:
+        return is_aoe(VERB_BLAST, upgrade_level)
+
+## The hostile cap for a blast at this level; 0 means unlimited.
+static func blast_max_targets(upgrade_level: int) -> int:
+        return max_targets(VERB_BLAST, upgrade_level)
+
+## The sweep radius a blast band grants (the skill's own larger aoe_radius wins).
+static func blast_radius(upgrade_level: int) -> float:
+        return radius(VERB_BLAST, upgrade_level)
 
 ## The metre reach of a teleport at this level (0 at base: the skill's own
 ## authored value governs there).

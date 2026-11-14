@@ -2086,6 +2086,57 @@ func _run() -> void:
 	else:
 		_fail("Rallies promising a party-wide charge without rally_band = true: %s" % ", ".join(bad_rally))
 
+	# --- The blast law: a damage skill whose description promises a hostile
+	# RING must opt into the blast band (or author its own aoe_radius). Same
+	# shape as the rally law above, one for the mage's verb -- the tooltip must
+	# never outrun the payload.
+	var blast_claims := ["hostile ring", "ring of foes", "ring of enemies",
+		"blast ring", "hostile blast", "bursts into a hostile"]
+	var bad_blast: Array = []
+	var bl_root := DirAccess.open("res://data/skills")
+	if bl_root != null:
+		bl_root.list_dir_begin()
+		var bl_sub := bl_root.get_next()
+		while bl_sub != "":
+			var bl_dir_name := bl_sub
+			bl_sub = bl_root.get_next()
+			if bl_dir_name == "" or bl_dir_name.begins_with("."):
+				continue
+			var bl_dir := DirAccess.open("res://data/skills/%s" % bl_dir_name)
+			if bl_dir == null:
+				continue
+			bl_dir.list_dir_begin()
+			var bl_f := bl_dir.get_next()
+			while bl_f != "":
+				if bl_f.ends_with(".tres"):
+					var bl_txt := FileAccess.get_file_as_string("res://data/skills/%s/%s" % [bl_dir_name, bl_f])
+					var bl_id := ""
+					var bl_desc := ""
+					var bl_opts := false
+					var bl_aoe := 0.0
+					for line in bl_txt.split("\n"):
+						var bll := line.strip_edges()
+						if bll.begins_with("id = \"") and bl_id == "":
+							bl_id = bll.trim_prefix("id = \"").trim_suffix("\"")
+						elif bll.begins_with("description = \""):
+							bl_desc = bll.to_lower()
+						elif bll == "blast_band = true":
+							bl_opts = true
+						elif bll.begins_with("aoe_radius = "):
+							bl_aoe = bll.trim_prefix("aoe_radius = ").to_float()
+					var bl_fx := _bracket_block(bl_txt, "effects").to_lower()
+					var bl_damages := bl_fx.contains("\"type\": \"damage\"")
+					if bl_damages and bl_aoe <= 0.0 and not bl_opts:
+						for phrase in blast_claims:
+							if bl_desc.contains(phrase):
+								bad_blast.append("%s ('%s')" % [bl_id, phrase])
+								break
+				bl_f = bl_dir.get_next()
+	if bad_blast.is_empty():
+		_ok("Skills: every hostile-ring blast claim opts into the blast band")
+	else:
+		_fail("Blasts promising a hostile ring without aoe_radius/blast_band: %s" % ", ".join(bad_blast))
+
 	# --- The shared-verb law: the DD's rally and the Bender's amplify are
 	# class-agnostic verbs of the Concord (like general_shield for the guard),
 	# so every class carries them. Authored under data/skills/general/.

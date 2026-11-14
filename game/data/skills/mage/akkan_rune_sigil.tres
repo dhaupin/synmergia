@@ -18,6 +18,7 @@ aoe_radius = 0.0
 effects = [{"type": "damage", "value": 35}]
 required_level = 10
 required_class = "akkan_rune"
+blast_band = true
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
