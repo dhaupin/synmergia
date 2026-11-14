@@ -13,6 +13,8 @@ class_name Species
 @export var default_skin_color: Color = Color.WHITE
 
 # Base stat modifiers (compared to base 10)
+## Flat deltas on StatId's six primaries (a species raises or lowers the
+## base 10). Applied by Entity.apply_species; an unknown key is inert.
 @export var stat_modifiers: Dictionary = {
 	"strength": 0,
 	"agility": 0,

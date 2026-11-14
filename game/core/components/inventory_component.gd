@@ -7,6 +7,7 @@ const Item = preload("res://core/schemas/item.gd")
 # in _get_item_owner() needs Entity's class_name registered at parse
 # time, so preload it here.
 const Entity = preload("res://core/entities/entity.gd")
+const StatId = preload("res://core/schemas/stat_id.gd")
 
 
 signal item_added(item: Item, slot: int)
@@ -630,11 +631,19 @@ func _apply_equipment_stats() -> void:
 	for stat_name in equipment_stats:
 		touched[stat_name] = true
 	for stat_name in touched:
-		var prev: int = int(_applied_equipment_stats.get(stat_name, 0))
-		var now: int = int(equipment_stats.get(stat_name, 0))
-		var delta: int = now - prev
-		if delta != 0:
-			entity.set_stat(stat_name, entity.get_stat(stat_name) + delta)
+		var prev: float = float(_applied_equipment_stats.get(stat_name, 0.0))
+		var now: float = float(equipment_stats.get(stat_name, 0.0))
+		var delta: float = now - prev
+		if delta == 0.0:
+			continue
+		# Primaries are flat ints on the get_stat/set_stat pair (the player
+		# and Entity share that surface). Combat modifiers (damage_reduction,
+		# multipliers, regen) are floats the pair would truncate, so they land
+		# straight on the stats block.
+		if StatId.is_primary(stat_name):
+			entity.set_stat(stat_name, entity.get_stat(stat_name) + int(delta))
+		elif "stats" in entity:
+			entity.stats[stat_name] = float(entity.stats.get(stat_name, 0.0)) + delta
 	_applied_equipment_stats = equipment_stats.duplicate()
 
 # ============ WEIGHT / ENCUMBRANCE ============

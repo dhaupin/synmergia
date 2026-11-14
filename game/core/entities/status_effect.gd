@@ -95,13 +95,19 @@ signal tick_occurred(entity, amount: int, tick_type: String)
 @export var endurance_mod: int = 0
 @export var wisdom_mod: int = 0
 
-# Combat modifiers (multipliers)
+# Combat modifiers (multipliers; deltas on a 1.0 base)
 @export var damage_multiplier: float = 0.0
 @export var defense_multiplier: float = 0.0
+@export var armor_multiplier: float = 0.0
 @export var attack_speed_multiplier: float = 0.0
 @export var movement_speed_multiplier: float = 0.0
 @export var health_regen_mod: float = 0.0
 @export var mana_regen_mod: float = 0.0
+# Mitigation payloads (flat deltas on a 0.0 base). damage_reduction trims
+# incoming damage; damage_reflect sends a fraction of it back to the
+# attacker. Both read by the entity/health-component damage pipeline.
+@export var damage_reduction: float = 0.0
+@export var damage_reflect: float = 0.0
 
 # Tick-based effects (DOTs/HoTs)
 @export var tick_damage: int = 0
@@ -254,6 +260,16 @@ func _apply_combat_modifiers(adding: bool) -> void:
 		entity.stats.defense_multiplier += sign * defense_multiplier * current_stacks
 	if movement_speed_multiplier != 0 and "movement_speed_multiplier" in entity.stats:
 		entity.stats.movement_speed_multiplier += sign * movement_speed_multiplier * current_stacks
+	if armor_multiplier != 0 and "armor_multiplier" in entity.stats:
+		entity.stats.armor_multiplier += sign * armor_multiplier * current_stacks
+	if damage_reduction != 0 and "damage_reduction" in entity.stats:
+		entity.stats.damage_reduction += sign * damage_reduction * current_stacks
+	if damage_reflect != 0 and "damage_reflect" in entity.stats:
+		entity.stats.damage_reflect += sign * damage_reflect * current_stacks
+	if health_regen_mod != 0 and "health_regen" in entity.stats:
+		entity.stats.health_regen += sign * health_regen_mod * current_stacks
+	if mana_regen_mod != 0 and "mana_regen" in entity.stats:
+		entity.stats.mana_regen += sign * mana_regen_mod * current_stacks
 
 func _start_duration_timer() -> void:
 	if duration <= 0:

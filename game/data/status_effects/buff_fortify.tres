@@ -6,9 +6,10 @@
 script = ExtResource("1")
 id = "buff_fortify"
 display_name = "Fortified"
-description = "Armor and resistance significantly increased."
+description = "Armor and resistance rise; 15% of incoming damage is turned aside."
 category = 0
 effect_type = 0
+damage_reduction = 0.15
 duration = 10.0
 stat_modifiers = {"vitality": 15}
 show_in_buff_bar = true

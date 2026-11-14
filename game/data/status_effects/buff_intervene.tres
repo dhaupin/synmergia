@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "buff_intervene"
 display_name = "Intervened"
-description = "A portion of damage is being absorbed for you."
+description = "Hardened against incoming damage."
 category = 0
 effect_type = 0
 duration = 5.0

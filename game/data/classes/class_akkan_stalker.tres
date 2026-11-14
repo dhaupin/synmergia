@@ -8,7 +8,7 @@ id = "akkan_stalker"
 display_name = "Stalker"
 description = "Akkan stealth damage dealer. Ambush tactics."
 icon_path = "res://ui/icons/classes/akkan_stalker.png"
-role = 2
+role = 4
 resource_type = 1
 base_stats = {
 "strength": 14,

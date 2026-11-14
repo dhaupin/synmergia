@@ -54,6 +54,9 @@ enum StatType {
 	CRIT_MULTIPLIER,
 	HASTE,
 	MOVEMENT_SPEED,
+	ARMOR_MULTIPLIER,
+	DAMAGE_REDUCTION,
+	DAMAGE_REFLECT,
 	ALL_STATS,
 }
 
@@ -97,6 +100,17 @@ enum StealthType {
 
 # Shield (damage absorbed before health; consumed by StatusEffect.absorb_damage)
 @export var shield_amount: int = 0           # Absorb this much damage while active
+
+# Mitigation payloads (read by the entity/health-component damage pipeline).
+# A fraction of the incoming hit: 0.25 = 25%. Clamped at the pipeline, so
+# authored data cannot make a body unkillable (that is immune_all's job).
+@export var damage_reduction: float = 0.0    # Fraction of incoming damage removed
+@export var damage_reflect: float = 0.0      # Fraction dealt back to the attacker
+
+# Flat regeneration per second (read by TickService._regen_entities). Negative
+# values suppress regen (e.g. debuff_regen_mitigate).
+@export var health_regen: float = 0.0
+@export var mana_regen: float = 0.0
 
 # Immunity Settings (for IMMUNITY type)
 @export var immune_stun: bool = false

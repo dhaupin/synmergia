@@ -8,7 +8,7 @@ id = "human_marksman"
 display_name = "Marksman"
 description = "Human ranged damage dealer. Precise shots from afar."
 icon_path = "res://ui/icons/classes/human_marksman.png"
-role = 2
+role = 4
 resource_type = 1
 base_stats = {
 "strength": 14,
