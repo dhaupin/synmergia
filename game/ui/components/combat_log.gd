@@ -131,7 +131,7 @@ func _setup_ui() -> void:
 	_create_filter_button("System", EntryType.SYSTEM, UIStyles.COLORS.info)
 	_create_filter_button("Loot", EntryType.LOOT, UIStyles.COLORS.accent_gold)
 	_create_filter_button("Quest", EntryType.QUEST, UIStyles.COLORS.warning)
-	_create_filter_button("Achievement", EntryType.ACHIEVEMENT, UIStyles.RARITY_COLORS.rarity_legendary)
+	_create_filter_button("Achievement", EntryType.ACHIEVEMENT, UIStyles.RARITY_COLORS.legendary)
 	_create_filter_button("Guild", EntryType.GUILD, UIStyles.COLORS.info)
 	_create_filter_button("Trade", EntryType.TRADE, UIStyles.COLORS.success)
 
@@ -247,7 +247,7 @@ func log_quest(message: String) -> void:
 func log_achievement(name: String) -> void:
 	if not UIStyles:
 		return
-	var color: String = UIStyles.COLORS.rarity_legendary.to_html()
+	var color: String = UIStyles.RARITY_COLORS.legendary.to_html()
 	var text := "[color=%s][Achievement] %s[/color]" % [color, _esc(name)]
 	_add_entry(text, EntryType.ACHIEVEMENT)
 	_show_achievement_popup(name)

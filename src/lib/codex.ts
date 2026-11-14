@@ -12,7 +12,7 @@ const DATA = godotData as unknown as Record<string, Raw>;
 
 // ---- enum label maps (mirror the GDScript enums, by index) ----
 
-const RARITY = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Mythic'];
+const RARITY = ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic'];
 const ITEM_CATEGORY = [
   'Weapon', 'Armor', 'Accessory', 'Consumable', 'Resource',
   'Gem', 'Event', 'Furnishing', 'Misc', 'Skill Book',
