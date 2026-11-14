@@ -21,8 +21,8 @@ const T3Script = preload("res://core/frame/kv/t3.gd")
 const Nsc9BridgeScript = preload("res://core/frame/geometry/nsc9_bridge.gd")
 # NSC-9 math utilities (pure function for axis/encoding).
 const Nsc9Script = preload("res://core/frame/math/nsc9.gd")
-# Seed chain (frame primitive): canonical seed derivation (world-building.md
-# sec. 18.8 Phase 0 item: seed field on all entity types).
+# Seed chain (frame primitive): canonical seed derivation (labs/world-building.md
+# sec. 1.7: seed field on all entity types).
 const SeedChainScript = preload("res://core/frame/kv/seed_chain.gd")
 const _kv_prefix := "entity:"
 var _entities: Dictionary = {}       # entity_id ->
@@ -226,7 +226,7 @@ func register_entity(entity, metadata: SpawnMetadata = null, id_override: String
 		# Note: NSC-9 code can be stored in metadata for later retrieval
 		metadata.nsc9_code = nsc9_code
 
-	# Assign the per-entity seed (world-building.md sec. 18.8). Derived
+	# Assign the per-entity seed (labs/world-building.md sec. 1.7). Derived
 	# deterministically from the owning player's frame seed (or the entity
 	# id when no frame exists) through the canonical seed chain.
 	if "seed" in entity:
@@ -262,7 +262,7 @@ func register_entity(entity, metadata: SpawnMetadata = null, id_override: String
 		entity.display_name, entity_id, metadata.get_spawn_type_string()])
 	return entity_id
 
-## Derive the deterministic per-entity seed (world-building.md sec. 18.8:
+## Derive the deterministic per-entity seed (labs/world-building.md sec. 1.7:
 ## "Add seed column / field to all entity types"). The seed-chain stack is
 ## [frame_seed]; with no owning player frame the entity_id bytes stand in
 ## for the frame seed so derivation stays deterministic across logins.

@@ -318,11 +318,13 @@ pipeline for the content on top of it:
   their planet-level context (coast, harbor, waypoint hop).
 - `prd-geometry.md` remains the addressing authority; this doc adds
   the land/ocean/instance topology on top of it.
-- `world-building.md` (the original 150 km2 plan) is **historical**:
-  its "capital at the geographic center" is superseded --
-  **Nexus Central is on the coast**, the village is inland ~1 km
-  with a road to the capital, and the mountain range is behind the
-  village. Its "one continent" claim is superseded by the authored
-  set + emergent continents in section 1.
+- [`world-building.md`](./world-building.md) is now the current world
+  index. The original 150 km2 plan is archived at
+  [`archive/world-building-plan-2026-09-17.md`](./archive/world-building-plan-2026-09-17.md)
+  and is **historical**: its "capital at the geographic center" is
+  superseded -- **Nexus Central is on the coast**, the village is inland
+  ~1 km with a road to the capital, and the mountain range is behind the
+  village. Its "one continent" claim is superseded by the authored set +
+  emergent continents in section 1.
 - `prd-terrain.md` is the ground-law authority; this doc is the
   topology intent on top of it.

@@ -1,357 +1,279 @@
-# Synmergia — Spherical World & Navigation PRD
+# Spherical World & Navigation — Current Reference
 
-> **Status:** Draft — 2026-09-06
-> **Updated:** 2026-09-27 — implementation picked up in
-> [prd-spherical-mvp.md](prd-spherical-mvp.md): wave checkboxes (S1-S4),
-> locked decisions, and the crash pickup protocol live there.
-> **Updated:** 2026-09-07 to align with world-building.md
-> **Sources:** [`world-building.md`](./world-building.md), [`world-building-arch.md`](./world-building-arch.md)
-> **Purpose:** Design for spherical planet map and navigation systems
-
----
-
-## 1. Overview
-
-Synmergia uses an **icosahedral** geometric addressing layer on top of a
-spherical planet. This document outlines:
-
-1. **Spherical Coordinates** — How position is stored and calculated on a sphere
-2. **Icosahedral Mesh** — The address space for spherical worlds
-3. **Navigation Systems** — How map/minimap/compass work on a sphere
-4. **Zone System** — How zones map to spherical regions
-5. **Implementation Gaps** — What needs to be built
-
-**Key reference from world-building.md:**
-- World coordinates are integer meters in a fixed unit
-- Shape: "planar" | "spherical" in world config
-- Chunk size: ~64m edge length for spherical
+> **Status:** ACTIVE REFERENCE (2026-11-14). This replaces the 2026-09-06
+> draft. The spherical world is shipped: the code and its probes are the
+> truth, and this page records the conventions they use.
+>
+> **Execution record:** [`prd-spherical-mvp.md`](./prd-spherical-mvp.md)
+> (waves, locked decisions, pickup protocol).
+> **Topology:** [`prd-world.md`](./prd-world.md).
+> **Addressing:** [`prd-geometry.md`](./prd-geometry.md).
+> **Math:** `game/core/frame/math/spherical.gd` (cited as §8 formulas and §9
+> constants).
 
 ---
 
-## 2. Spherical World Design (per world-building.md)
+## 1. What is live
 
-### 2.1 Coordinate System
+- **One sphere, 20 km radius for v1.** The live world is spherical; the
+  clipmap renders the ground and the walk surface samples the analytic
+  terrain law.
+- **Positions are Vector3 metres.** Latitude and longitude are derived for
+  navigation, maps, and authored data, not stored as the primary position.
+- **Gravity is radial on the globe.** It is quarantined to the spherical
+  ground path. Instances (arena, duel, dungeon) keep planar AABB geometry and
+  vanilla -Y gravity.
+- **Navigation primitives ship:** haversine distance, initial geodesic
+  bearing, great-circle interpolation, spherical/cartesian conversion,
+  compass bearing, waypoints, world map, and minimap.
 
-**World Coordinate (W):**
-```
-Position: Vector3(x, y, z) in integer meters
-- Shape-agnostic, fixed unit system
-- Internal representation doesn't change between planar/spherical
-```
+| Surface | Code |
+| --- | --- |
+| Spherical math | `game/core/frame/math/spherical.gd` |
+| Icosahedral addressing | `game/core/frame/math/icosahedral.gd`, `nsc9.gd` |
+| Globe / clipmap | `game/scenes/worlds/globe_world.tscn`, `globe_clipmap.gd` |
+| Compass | `game/ui/components/compass.gd` |
+| World map / minimap | `game/ui/components/world_map.gd`, `minimap.gd` |
+| Waypoints | `game/core/services/waypoint_service.gd` |
 
-**Spherical projection:**
-```
-Quantize(W, chunk_size_m) on icosahedral mesh
-→ Triangular cell on subdivided icosahedron
-```
+---
 
-### 2.2 Icosahedral Mesh (per world-building.md §3.5)
+## 2. Coordinate convention
 
-The icosahedron IS the address space:
-- **20 triangular faces** base
-- **Subdivision level** = chunk size (~64m edge for Earth-sized planet)
-- Each face subdivided into triangular cells
-- Vertex = address `(face_id, u, v)` or `(x_cell, y_cell, z_cell)`
+### 2.1 Units and storage
 
-```
-Earth-sized planet (radius 6,371 km):
-- Edge length: ~62m per subdivision level
-- One icosahedron subdivision = one chunk
+World positions are `Vector3(x, y, z)` in integer metres. `y` is the north
+pole axis. Altitude is metres above the mean sphere; a position length of
+`PLANET_RADIUS_METERS + alt` is the radius at that point.
 
-Game-scale planet (radius 100 km, surface area 125,663 km²):
-- ~500,000 chunks at 1-subdivision level
-- ~125,000 chunks at 2-subdivision level
-```
+### 2.2 Latitude and longitude
 
-### 2.3 Planet Parameters (from world-building.md)
+- Latitude: `-90` (south pole) to `+90` (north pole), degrees.
+- Longitude: `-180` to `+180`, degrees; `0` is the prime meridian.
+- Lat/lon are derived from the position for navigation and authored anchors.
+  They are not a second source of truth.
 
-| Parameter | Value | Notes |
-|-----------|-------|-------|
-| Planet Radius | 6,371 km (Earth) or 100 km (game-scale) | Configurable |
-| Chunk Size | ~64m edge length | Tunable per world |
-| Starting Continent | Northern hemisphere | Future expansion |
-| Vertical Axis | `y` (planar) or `z_cell` (spherical with face_id) | See §3.7 |
+### 2.3 Axis convention
 
-### 2.4 NSC-9 + Icosahedral (from world-building.md §6)
+`+Y` points at the north pole. At `lat = 0, lon = 0` the position is
+`(R, 0, 0)`; increasing longitude rotates toward `+Z`. The icosahedral
+projection uses the same convention.
 
-The geometric addressing layer combines:
-- **NSC-9:** Integer lattice system for addressing
-- **Icosahedral:** Triangular mesh for spherical projection
-- **Quasicrystal:** Future Penrose tiling support
-
-```
-World → (face_id, u, v) → NSC-9 cell
-                         ↓
-                   Spherical projection
-```
-
-**Geo-cache:** Spatial index on Redis using NSC-9 + icosahedral cells
-- ~5 bytes per key × 50,000 cached regions
-- Fast spatial queries for nearby entities
-
-### 2.5 Coordinate Conversion
+### 2.4 Conversions
 
 ```gdscript
-# Spherical to Cartesian
-func spherical_to_cartesian(lat: float, lon: float, alt: float) -> Vector3:
-    var r := PLANET_RADIUS + alt
-    var phi := deg_to_rad(90 - lat)  # polar angle
+# Spherical (degrees + altitude above surface) -> Cartesian metres.
+func spherical_to_cartesian(lat: float, lon: float, alt: float = 0.0,
+        radius: float = PLANET_RADIUS_METERS) -> Vector3:
+    var r := radius + alt
+    var phi := deg_to_rad(90.0 - lat)   # polar angle from +Y
     var theta := deg_to_rad(lon)
-    
     return Vector3(
         r * sin(phi) * cos(theta),
         r * cos(phi),
         r * sin(phi) * sin(theta)
     )
 
-# Cartesian to Spherical
-func cartesian_to_spherical(pos: Vector3) -> Dictionary:
+# Cartesian metres -> Vector2(lat, lon) degrees. Altitude is projected out.
+func cartesian_to_spherical(pos: Vector3,
+        radius: float = PLANET_RADIUS_METERS) -> Vector2:
     var r := pos.length()
-    var lat := rad_to_deg(acos(pos.y / r)) - 90
+    if r < 0.0000001:
+        return Vector2.ZERO
+    var lat := 90.0 - rad_to_deg(acos(clampf(pos.y / r, -1.0, 1.0)))
     var lon := rad_to_deg(atan2(pos.z, pos.x))
-    var alt := r - PLANET_RADIUS
-    return {"lat": lat, "lon": lon, "alt": alt}
+    return Vector2(lat, lon)
 ```
 
+### 2.5 Convention summary
+
+`phi = 90 - lat` (polar angle), `theta = lon`, `+Y` is the north pole axis.
+This is the convention `spherical.gd` implements and the icosahedral
+projection expects. The `radius` parameter defaults to the v1 planet radius;
+`Earth` values are only for known-answer tests.
+
 ---
 
-## 3. Navigation Systems
+## 3. Navigation
 
-### 3.1 Compass on a Sphere
+### 3.1 Distance
 
-**Current:** Flat bearing (0-360° relative to player's facing)
+`Spherical.haversine(lat1, lon1, lat2, lon2)` returns metres along the
+great-circle surface. It accepts an optional radius; the default is the v1
+planet. Distances are shape-gated: spherical worlds measure great-circle,
+planar instances keep Euclidean distance.
 
-**Spherical:**
-- **True North** always points to geographic north pole
-- Compass needle always points north
-- Distance calculated as great-circle distance
-- Bearing calculated as geodesic (great-circle) bearing
+### 3.2 Bearing
 
-```gdscript
-# Great-circle distance
-func haversine_distance(pos1: Vector3, pos2: Vector3) -> float:
-    var r := PLANET_RADIUS
-    var d := pos1.normalized().dot(pos2.normalized())
-    return r * acos(clamp(d, -1.0, 1.0))
+`Spherical.geodesic_bearing` returns the initial bearing in degrees,
+`0 = north`, `90 = east`, normalized to `[0, 360)`. Coincident points return
+`0`. The compass reads true north, not a magnetic model.
 
-# Geodesic bearing
-func geodesic_bearing(from: Vector3, to: Vector3) -> float:
-    var n_from := from.normalized()
-    var n_to := to.normalized()
-    var east := Vector3.UP.cross(n_from).normalized()
-    var north := n_from.cross(east)
-    return rad_to_deg(atan2(east.dot(n_to), north.dot(n_to)))
+### 3.3 Great-circle path
+
+`Spherical.great_circle_intermediate` returns `Vector2(lat, lon)` at fraction
+`f` along the great circle. It is used for curved waypoint guides and map
+paths. Antipodal paths are degenerate; `f = 0` or a near-zero angular
+distance returns the first point.
+
+### 3.4 Waypoints
+
+`WaypointService` stores world positions and displays great-circle distance
+and bearing on spherical worlds. The compass and minimap consume the same
+bearing law. Waypoint activation and routing are service concerns, not a
+separate spherical coordinate system.
+
+### 3.5 Map and minimap
+
+The map surfaces are `ui/components/world_map.gd` and `minimap.gd`. The map
+is north-up and uses the shared `lat_lon_to_uv` projection for authored
+landmarks. Local zoom may treat curvature as negligible; regional and global
+views use the sphere projection rather than a flat world image.
+
+---
+
+## 4. Zones and instances
+
+- Open-world zones are contiguous geographic regions. Zone boundaries are
+  data lines used for rules (PvP mode, level gates, spawn ownership, quest
+  credit), not loading screens.
+- Movement between distant places is explicit: waypoint gateways, ferries,
+  and instance portals.
+- Arenas, duels, and dungeons are separate planar scopes. They do not use the
+  icosahedral mesh or radial gravity. See `core/schemas/instance_contract.gd`
+  and [`prd-world.md`](./prd-world.md) §2c.
+
+---
+
+## 5. Implementation status
+
+| System | Status | Receipt / code |
+| --- | --- | --- |
+| Haversine, bearing, intermediate point, conversions | SHIPPED | `core/frame/math/spherical.gd`; `test_spherical.gd` |
+| Icosahedral addressing + NSC-9 | SHIPPED | `core/frame/math/icosahedral.gd`, `nsc9.gd`; probes |
+| Streamed globe / clipmap ground | SHIPPED | `globe_world.tscn`, `globe_clipmap.gd`; `probe_globe_world.gd` |
+| Radial gravity and curved walk | SHIPPED | globe body path; spherical MVP S3 |
+| True-north compass and great-circle waypoints | SHIPPED | `compass.gd`, `waypoint_service.gd` |
+| World map / minimap | SHIPPED | `world_map.gd`, `minimap.gd`; wiring receipt |
+| Polar caps | SHIPPED (v12) | `probe_polar_caps.gd` |
+| Planet-wide flyover rendering | OPEN | see [`prd-terrain.md`](./prd-terrain.md) §6 |
+| Floating islands | DESIGNED, NOT BUILT | see [`prd-terrain.md`](./prd-terrain.md) §6 |
+
+The legacy icosahedral terrain streamer is deleted. The clipmap is the sole
+renderer; `globe_world.terrain_render` is a compatibility read that warns and
+falls back to `clipmap`.
+
+---
+
+## 6. Historical gaps (pre-globe snapshot)
+
+The original §6 checklist was written before the globe shipped. It is kept
+only as history; §5 is the current status. The retired list included
+"icosahedral mesh implementation", "NSC-9 integration", "globe view", and
+"full spherical collision/physics" as open items. All four shipped in the
+spherical MVP and the globe rounds. Do not re-open them from this section.
+
+---
+
+## 7. Feature matrix
+
+| System | Current state |
+| --- | --- |
+| Position storage | `Vector3` metres; lat/lon derived |
+| Distance | Haversine on spherical worlds; Euclidean in planar instances |
+| Compass bearing | Geodesic, true north |
+| Minimap zoom | Local flat approximation; regional/global sphere projection |
+| World map | North-up map using shared lat/lon projection |
+| Waypoints | Great-circle distance and bearing |
+| Zone transitions | Seamless open world; explicit gateways/portals for jumps and instances |
+| North indicator | True north |
+
+---
+
+## 8. Key formulas
+
+These are the formulas `spherical.gd` implements. Angles are radians in the
+math; inputs and outputs are degrees at the API boundary.
+
+### 8.1 Haversine distance
+
 ```
-
-### 3.2 Minimap on a Sphere
-
-**Current Issues:**
-- Uses flat grid projection
-- Doesn't account for curvature at world scale
-- Zoom levels work for flat, need rethinking for sphere
-
-**Requirements:**
-- Local area zoom (10m-1km): Can use flat projection (curvature negligible)
-- Regional zoom (10km+): Need equirectangular or Mercator projection
-- Continental: Need curved map UI or globe view
-
-**Proposed Zones:**
-| Zoom Level | Radius | Projection |
-|------------|--------|------------|
-| Micro | 50m | Flat (negligible curvature) |
-| Local | 500m | Flat with compass correction |
-| Regional | 5km | Equirectangular |
-| Continental | 50km+ | Globe or Mercator |
-
-**Integration with NSC-9:**
-- Use NSC-9 cells for spatial queries
-- Redis geo-cache for nearby entity lookups
-- LOD-aware marker culling
-
-### 3.3 World Map
-
-**Current:** Pan/zoom on flat image
-
-**Spherical World Map:**
-- Option A: 2D equirectangular projection (like real world maps)
-- Option B: 3D globe that player can rotate
-- Option C: Hybrid (2D with "globe" button)
-
-**Per world-building.md:**
-- World config: `shape: "planar" | "spherical"`
-- Spherical: `spatial_partition: [lat_min, lon_min, lat_max, lon_max]`
-- T3 state tree stores zone boundaries
-
----
-
-## 4. Zone System for Spherical World
-
-### 4.1 Zone Definitions
-
-```gdscript
-class Zone:
-    var zone_id: String
-    var bounds: SphereRegion  # lat/lon bounds
-    var altitude_range: Vector2  # min/max altitude
-    var zone_type: ZoneType  # continent, ocean, mountain, etc.
-    var display_name: String
-
-class SphereRegion:
-    var lat_min: float  # -90 to 90
-    var lat_max: float
-    var lon_min: float  # -180 to 180
-    var lon_max: float
-```
-
-### 4.2 Zone Transitions
-
-Players transition zones based on:
-1. **Geographic bounds** — Entering new lat/lon area
-2. **Altitude** — Entering mountain/ocean zones
-3. **Instance** — Dungeon portals, instanced areas
-
----
-
-## 5. Waypoint System on Sphere
-
-### 5.1 Current Features
-
-- Create/delete waypoints at position
-- Distance display
-- Active waypoint tracking
-- Quest waypoints
-
-### 5.2 Spherical Enhancements Needed
-
-| Feature | Implementation |
-|---------|----------------|
-| **Great-circle path** | Show curved line on minimap for distant waypoints |
-| **Polar distance** | Haversine formula for accurate distances near poles |
-| **North indicator** | Always show true north, not magnetic |
-| **Altitude display** | Show if waypoint is significantly above/below player |
-| **Zone boundary warning** | Alert when waypoint is in different zone |
-
-### 5.3 Compass Behavior at Poles
-
-**Problem:** At geographic north/south pole, longitude is undefined.
-
-**Solution:**
-```gdscript
-func get_compass_direction_at_pole(player_pos: Vector3, waypoint: Vector3) -> String:
-    var is_north_pole := player_pos.y > (PLANET_RADIUS * 0.99)
-    var is_south_pole := player_pos.y < -(PLANET_RADIUS * 0.99)
-    
-    if is_north_pole:
-        return "South" if waypoint.y < 0 else "North"
-    if is_south_pole:
-        return "North" if waypoint.y > 0 else "South"
-    
-    return normal_compass_direction(player_pos, waypoint)
-```
-
----
-
-## 6. Current Gaps & TODO
-
-> **HISTORICAL (2026-09-27).** This gaps list is the pre-globe design
-> snapshot. The spherical era has since SHIPPED: the icosahedral mesh
-> and NSC-9 addressing live in `core/frame/math/` (probe-pinned), the
-> streamed globe is the live world, `world_moon.tres` + `cosmic_service`
-> carry the moon/orbital layer, and `ui/components/world_map.gd` +
-> `minimap.gd` are the map surfaces. Read `prd-spherical-mvp.md` for the
-> execution record and `prd-world.md` v2 for topology truth; the boxes
-> below are kept for design history only.
-
-### 6.1 Immediate (Phase 1)
-
-- [x] Implement haversine distance function
-  (`core/frame/math/spherical.gd`, done 2026-09-27 per
-  prd-spherical-mvp.md S1)
-- [x] Compass: Add true-north bearing calculation
-  (`Spherical.geodesic_bearing` + `WaypointService.get_bearing_to_active`;
-  planar north = -Z per compass.gd convention)
-- [x] Waypoint: Update distance calc to haversine
-  (shape-gated: spherical worlds measure great-circle, planar
-  worlds keep euclidean)
-- [x] NSC-9 cell calculation for position→cell mapping
-  (Icosahedral position_to_cell + neighbors proven live on the
-  walkable globe prototype, probe_globe_world.gd 12/12)
-
-### 6.2 Medium Term (Phase 2)
-
-- [ ] Icosahedral mesh implementation (see `game/core/frame/`)
-- [ ] NSC-9 integration with position system
-- [ ] Regional map zoom with projection correction
-- [ ] Globe view for world map
-- [ ] Zone boundary transition handling (per world config)
-- [ ] Redis geo-cache for spatial queries
-
-### 6.3 Future (Phase 3)
-
-- [ ] Full spherical collision/physics
-- [ ] Atmosphere/fog at horizon
-- [ ] Multi-icosahedron worlds (multiple planets)
-- [ ] Orbital mechanics for moons (if any)
-
----
-
-## 7. Feature Matrix
-
-| System | Flat World | Spherical World | Status |
-|--------|------------|----------------|--------|
-| Position storage | Vector3 | Vector3 (on sphere) or lat/lon | ⚠️ Needs conversion |
-| Distance calc | `distance()` | Haversine | ⚠️ TODO |
-| Compass bearing | Euler angle | Geodesic bearing | ⚠️ TODO |
-| Minimap zoom | Linear | Curvature-aware | ⚠️ TODO |
-| World map | Flat image | 2D projection or globe | ⚠️ TODO |
-| Waypoints | Flat distance | Great-circle | ⚠️ TODO |
-| Zone transitions | Grid-based | Geographic bounds | ⚠️ TODO |
-| North indicator | Player-relative | True north | ⚠️ TODO |
-
----
-
-## 8. Key Formulas
-
-### 8.1 Haversine Distance
-```
-a = sin²(Δlat/2) + cos(lat1) * cos(lat2) * sin²(Δlon/2)
-c = 2 * atan2(√a, √(1-a))
+phi1, phi2 = lat1, lat2 in radians
+dphi = phi2 - phi1
+dlmb = lon2 - lon1 in radians
+a = sin²(dphi/2) + cos(phi1) * cos(phi2) * sin²(dlmb/2)
+c = 2 * atan2(sqrt(a), sqrt(1 - a))
 d = R * c
 ```
 
-### 8.2 Geodesic Bearing
+### 8.2 Initial geodesic bearing
+
 ```
-θ = atan2(sin(Δlon) * cos(lat2), 
-           cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(Δlon))
+y = sin(dlmb) * cos(phi2)
+x = cos(phi1) * sin(phi2) - sin(phi1) * cos(phi2) * cos(dlmb)
+theta = atan2(y, x)
+bearing = degrees(theta) normalized to [0, 360)
 ```
 
-### 8.3 Intermediate Point
-For waypoint pathfinding:
+### 8.3 Intermediate point
+
 ```
-a = sin((1-f)/2) / sin(f/2)
-b = sin(f/2) / sin(f)
-x = a * cos(lat1) * cos(lon1*2) + b * cos(lat2) * cos(lon2)
+d = angular distance between the points (radians)
+A = sin((1 - f) * d) / sin(d)
+B = sin(f * d) / sin(d)
+x = A * cos(phi1) * cos(lmb1) + B * cos(phi2) * cos(lmb2)
+y = A * cos(phi1) * sin(lmb1) + B * cos(phi2) * sin(lmb2)
+z = A * sin(phi1) + B * sin(phi2)
+lat = atan2(z, sqrt(x² + y²))
+lon = atan2(y, x)
 ```
+
+The old draft's §8.3 printed a malformed planar interpolation. The form
+above is the spherical one the code uses.
 
 ---
 
 ## 9. Constants
 
 ```gdscript
-const PLANET_RADIUS_METERS: float = 6371000.0
-const PLANET_CIRCUMFERENCE_METERS: float = 40075000.0
-const DEGREE_LAT_TO_METERS: float = 111320.0
-const DEGREE_LON_AT_EQUATOR: float = 111320.0
-const DEGREE_LON_AT_LAT(lat): float = 111320.0 * cos(lat)
+const PLANET_RADIUS_METERS: float = 20000.0       # v1 game planet
+const EARTH_RADIUS_METERS: float = 6371000.0      # known-answer tests only
+
+# Derived at the v1 radius:
+# circumference          = TAU * R          = 125,663.706 m
+# metres per degree lat  = R * PI / 180     = 349.066 m
+# metres per degree lon  = 349.066 * cos(lat)
 ```
+
+`111,320 m/degree` is an Earth constant. It is not the game's scale and must
+not be used for v1 distances. The old draft's `PLANET_CIRCUMFERENCE_METERS`
+(40,075 km) and `DEGREE_LAT_TO_METERS` (111,320 m) were Earth values; they are
+retired.
+
+For a different radius, derive the values from `R`; do not copy the v1
+constants into a world with another radius. `Spherical.haversine` and the
+conversion functions accept a `radius` argument for that reason.
 
 ---
 
-## 10. Open Questions
+## 10. Decisions (resolved)
 
-- [ ] Do we store position as Vector3 or lat/lon in DB?
-- [ ] Is equator the prime meridian reference?
-- [ ] Do we support arbitrary rotation (not north-up)?
-- [ ] Multiple planets or single planet?
-- [ ] Wrap-around at ±180° longitude?
-- [ ] Seamless zones or loading screens?
+| Question | Decision |
+| --- | --- |
+| Store position as Vector3 or lat/lon? | `Vector3` metres is primary; lat/lon is derived. |
+| Prime meridian? | `lon = 0` at the `+X` axis. |
+| Map orientation? | North-up. |
+| Multiple planets? | One live planet plus the moon as a separate world scene. |
+| Wrap at ±180°? | Trigonometry handles it; no special longitude wrap branch. |
+| Seamless zones or loading screens? | Seamless on the open world; explicit gateways/portals for jumps and instances. |
+| Planet radius? | 20 km for v1. |
+
+---
+
+## 11. Sources
+
+- [`prd-spherical-mvp.md`](./prd-spherical-mvp.md) — execution record and locked decisions.
+- [`prd-world.md`](./prd-world.md) — planet topology and zone law.
+- [`prd-geometry.md`](./prd-geometry.md) — NSC-9 and icosahedral addressing.
+- [`prd-terrain.md`](./prd-terrain.md) — ground law and open build items.
+- `game/core/frame/math/spherical.gd` — the canonical math.

@@ -1,37 +1,34 @@
 # World-Building Tick: a single tick, end-to-end
 
-> **Status:** DESIGN ONLY — Not implemented. This document describes the settled tick model design (Q1-Q4) for future implementation. Current codebase has NO tick loop, NO flywheel service, NO coordinator integration.
+> **Status:** IMPLEMENTED CORE — verified against `game/core/services/tick_service.gd`
+> on 2026-11-14. `TickService` is a live autoload and runs phases 1-5 every
+> adaptive heartbeat. This status covers the tick loop and those phases;
+> sections describing postmortem tooling, embedded hot data, or later
+> anticheat wiring are design notes, not claims that they ship. Phase 6 (the
+> old planar Markov chunk prefetch) is
+> **retired**; predictive prefetch now lives in `PropLayer.enable_prefetch()`.
 >
-> **Scope:** The design space for a single server
-> tick. The 6 phases. The flywheel (shard-level
-> + per-player). The postmortem use case. The
-> "embed data when hot" idea. The anticheat
-> pipeline. The monitorability commitment.
+> **Scope:** The design and implementation record for a single server tick:
+> the six phases, the shard and per-player flywheels, the postmortem use case,
+> embedded data, the anticheat pipeline, and the monitorability commitment.
+> Where this document and `tick_service.gd` disagree, the code wins.
 >
 > **Companion docs:**
-> - `world-building.md` §9 — the plan's tick model
-> - `world-building-research.md` §9 — adaptive tick
->   rate
-> - `world-building-risks.md` — N001 (tick rate),
->   N022 (re-root cost), R001 (HTML5 perf)
-> - `world-building-arch.md` §10 — the tick as
->   data flow through the substrate
-> - `archive/audit/m3-initial-world-audit.md` — 2026-09-05 state snapshot (archived)
+> - `world-building.md` — the current world index
+> - `archive/world-building-plan-2026-09-17.md` §9 — the original tick plan
+> - `world-building-research.md` §9 — adaptive tick research
+> - `world-building-risks.md` — N001, N014, N022, R001
+> - `world-building-arch.md` §10 — the tick as data flow through the substrate
+> - `archive/audit/m3-initial-world-audit.md` — 2026-09-05 state snapshot
 >
 > **Date opened:** 2026-09-05
-> **Last updated:** 2026-09-16 (design settled, implementation deferred)
+> **Last updated:** 2026-11-14 (status corrected to match `TickService`)
 >
-> **⚠️ IMPLEMENTATION STATUS DISCLAIMER**
->
-> This document describes the **authoritative design** for the server tick model (Q1-Q4 decisions settled). However, **none of this is implemented** in the current codebase:
-> - No tick loop service exists
-> - No FlywheelService exists (shard-level or per-player)
-> - No coordinator HLC events
-> - No T3.diff() integration into tick
-> - No async persistence from tick
-> - No Markov predictor
->
-> Current architecture: Single Godot process with all autoloads running frame-by-frame. Tick-aligned batching, state re-rooting, and diff emission are Phase 5+ work.
+> **Implementation note:** this doc was written as a design before the loop
+> existed. It is kept because the phase boundaries, budgets, and flywheel
+> reasoning still describe the live system. Do not read the old "not
+> implemented" banner as current: phases 1-5 run today, and phase 6 is
+> deliberately absent.
 
 ---
 
@@ -40,7 +37,7 @@
 What does a single 50ms tick do, in what order, with
 what guarantees?
 
-The plan compresses this to:
+The archived plan compressed this to:
 > Tick loop (read state → step world → diff → emit)
 
 But the compression hides the interesting choices:
@@ -146,7 +143,11 @@ you can see, tune, and alert on.
 
 ## 4. The 6-phase tick structure
 
-## Phase 1-6: DESIGN ONLY - Not implemented
+### Phase 1-6: the live pipeline
+
+> **Implemented in `TickService`.** Phases 1-5 run every tick. Phase 6 is
+> retired; the phase table and the Phase 6 note below record that.
+
 
 | # | Phase | Budget | What it does | Sync/async |
 |---|---|---|---|---|
@@ -154,8 +155,8 @@ you can see, tune, and alert on.
 | 2 | **World step** | 25ms | Apply queued inputs in deterministic order. Step mob AI, decay, regen. Pull coordinator HLC events. | sync |
 | 3 | **State re-root + diff** | 10ms | Compute new root hash. Compute diff vs. previous root. | sync |
 | 4 | **Diff emit** | 8ms | For each client, compute AOI diff, apply LOD, LZ4, send. Tick-alignment check (N014). | sync |
-| 5 | **Persistence** | async | Snapshot state tree root to Postgres (N017). Update Redis tick cache, LRU (N013). Update materialized intersections. | async |
-| 6 | **Predicted prefetch** | async | Markov predictor (N021). LOD-promote predicted chunks. Generation pass on those chunks. | async |
+| 5 | **Persistence** | async | Durable root snapshot + latest pointers (N017). Update Redis tick cache, LRU (N013). | async |
+| 6 | **Predicted prefetch** | — | **RETIRED.** Moved to `PropLayer.enable_prefetch()` over PropChunk cells; not a tick phase. | — |
 
 Total sync: 48ms. Total budget: 50ms. 2ms slack.
 
@@ -216,27 +217,29 @@ The 25ms tick budget includes only the 4 sync phases.
 Phase 5 runs after the tick has emitted and runs into
 the next tick.
 
-This is where the existing persistence work lives:
-- Postgres snapshot (N017 — TBD, see risks doc)
-- Redis tick cache
-- Redis LRU (N013)
-- Materialized intersection cache
+This is where the persistence work lives:
+- Durable root snapshot + latest pointers (N017, implemented)
+- Redis tick cache (N013, implemented)
+- Redis LRU touch (N013, implemented)
+
+`TickService` does not update a materialized intersection cache today; that
+older bullet was design, not implementation.
 
 The **flywheel snapshot** (see §5) is one more Redis
 op, fired on trigger, not per tick. Costs nothing on
 the hot path.
 
-### Phase 6 — Predicted prefetch (async)
+### Phase 6 — Predicted prefetch (RETIRED)
 
-The Markov predictor (N021) estimates where each
-player will be in 1s. Chunks the player is predicted
-to enter are LOD-promoted. The procedural generator
-runs on those chunks in the background.
+The old phase 6 was a planar Markov predictor over the `floor(pos/100)` chunk
+grid. It promoted predicted chunks into `LODManager` and ran the procedural
+generator there. That address space no longer exists: the clipmap streams the
+ground, and `PropLayer` owns chunked props.
 
-If the prediction is right (N021 target: >70%), the
-player experiences no LOD transition (the chunk is
-already at L0 when they arrive). If wrong, the chunk
-promotes on demand and the player sees a brief pop.
+The idea moved to the canonical read side: `PropLayer.enable_prefetch()`
+warms the predicted `PropChunk` cell the viewer is heading into
+(`frame/srv/markov.gd`). It is not a tick phase and does not mutate the
+authoritative state tree. Do not reintroduce a tick-side chunk prefetcher.
 
 ---
 
@@ -939,15 +942,15 @@ load, player behavior, NPC AI, etc.
 
 | Looking for | Where |
 |---|---|
-| The plan's tick model | `world-building.md` §9 |
+| The plan's tick model | `archive/world-building-plan-2026-09-17.md` §9 |
 | Adaptive tick research | `world-building-research.md` §9 |
 | Tick rate (N001) | `world-building-risks.md` §3.1 |
 | Re-root cost (N022) | `world-building-risks.md` §3.5 |
 | HTML5 perf risk (R001) | `world-building-risks.md` §1.1 |
-| Diff wire format | `world-building.md` §11.6 |
-| State tree | `world-building.md` §5 |
-| Cross-shard HLC | `world-building.md` §16.5 |
-| LOD prediction | `world-building.md` §14 |
+| Diff wire format | `archive/world-building-plan-2026-09-17.md` §11.6 |
+| State tree | `archive/world-building-plan-2026-09-17.md` §5 |
+| Cross-shard HLC | `archive/world-building-plan-2026-09-17.md` §16.5 |
+| LOD prediction | `archive/world-building-plan-2026-09-17.md` §14 |
 | Monitorability commitment | this doc §5.6 |
 | Per-player flywheel | this doc §9 |
 | Per-shard flywheel | this doc §5 |
@@ -959,22 +962,21 @@ load, player behavior, NPC AI, etc.
 - Sections: 10 (5 new since the first version:
   §5.6 monitorability commitment, §8 settled
   design, §9 per-player flywheel, plus renumbering).
-- Length: ~950 lines.
-- Status: design intent (Q1-Q4 settled 2026-09-05;
-  awaiting commitment to plan §9 + risks doc
-  D-numbers).
+- Length: ~1,000 lines (kept as the design record).
+- Status: IMPLEMENTED (verified 2026-11-14). `TickService`
+  runs phases 1-5; phase 6 is retired.
 - Settled: Q1 (defer + flywheel awareness), Q2
   (adaptive heartbeat), Q3 (everything monitorable),
   Q4 (per-shard AND per-player).
-- New: per-player flywheel as anticheat / security
-  instrumentation. Maps to existing
-  SecurityService / AutoResponseService / AppFirewall.
-- Next: when plan §9 is updated, fold the
-  settled-design content into the plan; add
-  D-numbers to `world-building-risks.md` for
-  the adaptive heartbeat, the defer-with-
-  flywheel policy, and the monitorability
-  commitment.
+- Implemented: five-phase live pipeline (phase 6 retired), 50/100/200 ms
+  heartbeat, flywheel, N014 alignment, N017 root
+  retention, cross-shard HLC pull, state-tree re-root
+  and diff emit, async persistence, and per-player
+  flywheel in `FlywheelService`.
+- Retired: phase 6 planar Markov chunk prefetch.
+  `PropLayer.enable_prefetch()` owns prediction now.
+- Next: keep this doc aligned with `tick_service.gd`.
+  No implementation gate remains.
 
 ---
 

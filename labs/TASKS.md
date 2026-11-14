@@ -62,7 +62,7 @@ environment/CI-only until proven otherwise.
   still prints a `STREAMER_MS` label. None are in the runner.
 - **Terminology:** ~75 prose mentions of "streamer" across game code; fix the
   ones in lines you touch, per `legacy-inventory.md` sec A.
-- **Docs round (in progress, branch `docs/labs-purge`):** labs index rewritten;
+- **Docs round (in progress, branch `docs/world-building-consolidation`):** labs index rewritten;
   `prd-planar-retirement` + `m3-initial-world-audit` archived; this file
   condensed; the eight lore docs now carry verified STATUS blocks from the
   fiction pass, and three Chronicle mysteries were authored from the lore
@@ -71,12 +71,21 @@ environment/CI-only until proven otherwise.
   lint gate; wired into `world_map` + `minimap`, 13-check wiring receipt;
   spec in `prd-world.md` sec. 2.1). `AGENTS.md` compacted (91 dated round logs -> `labs/AGENTS_LOG.md`,
   verbatim; 481 KB -> 59 KB) and the root README's class/LOD/terrain/
-  service claims corrected. Next: the PRD verdict census and the
-  `world-building-*` consolidation.
-- **World-building series:** ~11.4k lines; `-arch` and `-tick` are cited by code
-  and stay authoritative; the rest needs a keep/archive decision.
+  service claims corrected. The `world-building-*` consolidation is
+  done (2026-11-14). Next: the PRD verdict census.
+- **World-building series:** DONE 2026-11-14. Original plan archived; current
+  index + corrected tick/spherical references + explicit REFERENCE banners for
+  risks/research. `-arch` and `-tick` remain authoritative.
 
 ## RECENT SESSIONS (verbatim, in log order -- newest block at top)
+
+## 2026-11-14 -- world-building consolidation: current law, archive, two false statuses
+- SESSION CONTEXT: docs round after matchmaking coverage; owner flagged that the world-building series mixes fiction with retired systems.
+- VERIFIED: `TickService` is a live autoload running phases 1-5; phase 6 is retired to `PropLayer.enable_prefetch()`. `FlywheelService` is live. `spherical.gd` uses a 20 km radius, not Earth's 6,371 km.
+- ARCHIVED: `labs/world-building.md` (5,035 lines) -> `labs/archive/world-building-plan-2026-09-17.md`, with a banner. New `labs/world-building.md` is a current index: one 20 km sphere, authored + emergent land, seamless zones, planar-only instances, tick authority, retired-claims table, old-section map.
+- CORRECTED: `-tick` status is IMPLEMENTED and phase 6 is retired; `-spherical` rewritten to the live 20 km constants/formulas and current navigation status; `-risks`/`-research` are explicit REFERENCE records with old-plan refs pointing at the archive; `-arch` is ACTIVE and its rules-engine phase note is current.
+- PROPAGATED: `prd.md` section 4 now matches `prd-world.md` v2 (coast capital, authored set, no 150 km2 one-continent claim); old-plan refs in `prd-db`, `prd-seed-schema`, `prd-state-schema`, and `prd-world` retargeted; code comments now cite the current seed law; root/labs/archive READMEs updated.
+- NEXT: PRD verdict census. No push.
 
 ## 2026-11-14 -- matchmaking docs coverage: index + gate receipts
 - SESSION CONTEXT: the PvP/matchmaking wiring round (`084b0acf`) added the fifth-service PRD and the gate wiring. The new PRD was the only top-level lab doc missing from the README index.

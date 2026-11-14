@@ -219,7 +219,7 @@ per [SECURITY.md](./SECURITY.md).
 |---|---|
 | [📄 Product Spec](./labs/prd.md) | Full design document — gameplay, systems, architecture |
 | [🏗️ Architecture](./labs/world-building-arch.md) | Technical deep-dive — frame, services, sync |
-| [🗺️ World Design](./labs/world-building.md) | World, zones, procedural generation |
+| [🗺️ World Design](./labs/world-building.md) | Current world index; topology, terrain, retired claims |
 | [🤖 Developer Notes](./AGENTS.md) | Code conventions, patterns, and tips for contributors |
 | [🛠️ Contributing](./CONTRIBUTING.md) | Setup, conventions, tests, and the pull request process |
 | [🧰 Dev Environment](./DEVCODE.md) | Rebuilding the dev loop from the repo alone |

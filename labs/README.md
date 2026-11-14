@@ -113,17 +113,18 @@ claim against the code before citing it as current.
 
 | Doc | Status | Settles |
 | --- | --- | --- |
+| [`world-building.md`](./world-building.md) | ACTIVE | Current world index: authority map, retired claims, archive pointer |
 | [`world-building-arch.md`](./world-building-arch.md) | ACTIVE | Systems architecture; cited by code as the frame reference |
-| [`world-building-tick.md`](./world-building-tick.md) | ACTIVE | The tick end to end; cited by `tick_service.gd` |
-| [`world-building.md`](./world-building.md) | REFERENCE | The original world/netcode/persistence plan; cited by code for section numbers |
-| [`world-building-risks.md`](./world-building-risks.md) | REFERENCE | Risk register, decisions, numbers, glossary |
-| [`world-building-research.md`](./world-building-research.md) | REFERENCE | Research notes and discarded angles |
-| [`world-building-spherical.md`](./world-building-spherical.md) | REFERENCE | Spherical planet and navigation specifics |
+| [`world-building-tick.md`](./world-building-tick.md) | ACTIVE | The live tick end to end; phases 1-5 implemented, phase 6 retired |
+| [`world-building-risks.md`](./world-building-risks.md) | REFERENCE | Decision/risk register; D029-D033 and N014 still cited by code |
+| [`world-building-research.md`](./world-building-research.md) | REFERENCE | Research record: adopted threads and discarded angles; not normative |
+| [`world-building-spherical.md`](./world-building-spherical.md) | ACTIVE | Current spherical math, constants, and navigation reference |
 
-This series is the largest single body of prose in the repo (~11.4k lines) and
-the most likely home of superseded design. It has not yet had a consolidation
-pass; treat older sections as history, and prefer `prd-clipmap.md` for anything
-terrain-shaped.
+The series was consolidated on 2026-11-14. The 5,035-line 2026-09 plan is
+archived at [`archive/world-building-plan-2026-09-17.md`](./archive/world-building-plan-2026-09-17.md);
+the live series is ~6.5k lines. `world-building.md` is now the entry point and
+records what was retired. The spherical reference was corrected to the 20 km
+planet and its live 20 km constants.
 
 ## Lore and voice
 
@@ -173,11 +174,13 @@ Proposed passes, cheapest first. Nothing here is started unless noted.
    docs, 88 + 198 lines. One lane document with two sections. Not yet done.
 4. **`prd-dialogue` + `story-dialogue-creative-voice`** — 633 + 219 lines; the
    second is a working note inside the first's subject. Not yet done.
-5. **`world-building` series** — 11.4k lines total. VERDICT 2026-11-14:
-   `-research` (1,737 lines) CANNOT be archived as-is -- it is cited by
-   `prd.md`, `world-building.md`, `-tick`, `-risks` and by
-   `game/core/frame/math/penrose.gd` sec 1. Keeping `-arch` + `-tick` ACTIVE
-   is confirmed; any future fold must repoint those citations first.
+5. **DONE 2026-11-14 — `world-building` series.** The 5,035-line 2026-09
+   plan is archived at `archive/world-building-plan-2026-09-17.md`; the new
+   `world-building.md` is a current index with a retired-claims table and an
+   old-section map. `-tick` status corrected to IMPLEMENTED (phase 6 retired);
+   `-spherical` rewritten to the live 20 km constants; `-risks` and
+   `-research` are explicit REFERENCE records. `-arch` + `-tick` stay ACTIVE.
+   Old-plan citations that remain point at the archive deliberately.
 6. **Agent-law trio** (`prd-agent-play` 517, `prd-agent-law` 89,
    `prd-accessibility` 187) — check for duplicated law before merging; these
    may be three genuinely different concerns. Not yet done.

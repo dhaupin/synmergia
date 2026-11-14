@@ -533,7 +533,7 @@ re-run.
 
 ## 4b. Redis Cache Schema
 
-Per world-building.md §12:
+Per the persistence design in this doc:
 - **Tick cache:** Current game state for fast reads
 - **Materialized intersections:** `(vertex, faction, time_bucket)` entries
 - **Session state:** Online players, active connections
@@ -546,7 +546,7 @@ Per world-building.md §12:
 session:{account_id} → {token, expires_at, server_id}
 online_player:{character_id} → {server_id, shard_id, zone_id}
 
-# Spatial (Geo-cache per world-building.md)
+# Spatial (NSC-9 geo-cache; see prd-geometry.md)
 geo:nsc9:{cell_x}:{cell_y}:{cell_z} → [entity_ids]
 geo:zone:{zone_id} → {lat_min, lon_min, lat_max, lon_max}
 
@@ -704,8 +704,8 @@ truth in Postgres, a hot copy in Redis (with TTL), and a
 process-local copy in memory. The convention is: **write
 through the persistence adapter**, **read from cache or
 memory**, **invalidate the cache when persistence changes**.
-This is the "read = lookup, write = command" pattern from
-`world-building.md` §1.4.
+This is the "read = lookup, write = command" pattern used by the
+adapter layer (see section 6).
 
 ---
 

@@ -2,7 +2,7 @@
 
 > **Status (2026-09-16):** This PRD is the product spec.
 > Technical architecture details are in `/labs/` (source of truth):
-> `world-building.md` (full stack design), `world-building-arch.md`
+> `world-building.md` (current world index), `world-building-arch.md`
 > (systems architecture), `world-building-tick.md` (tick model),
 > `world-building-risks.md` (risks), and the PRD specs (`prd-*.md`).
 > The frame (T3 substrate + scope engine + rules engine) is
@@ -48,7 +48,7 @@ This PRD is the product spec. The technical architecture is in
 - [`DEPLOY.md`](../DEPLOY.md) — Docker deployment, production setup, and operations
 
 **World-building docs** (world + network + persistence design):
-- [`world-building.md`](./world-building.md) — full stack design
+- [`world-building.md`](./world-building.md) — current world index (the original full-stack plan is archived)
 - [`world-building-arch.md`](./world-building-arch.md) — systems architecture
 - [`world-building-tick.md`](./world-building-tick.md) — server tick model
 - [`world-building-risks.md`](./world-building-risks.md) — risks and mitigations
@@ -268,44 +268,37 @@ See `core/entities/status_effect.gd`, `core/components/aura_component.gd`, `core
 
 ## 4. World & Exploration
 
-> **Spherical planet** — The world is a sphere (planet radius 20km for v1).
-> One continent (~150 km²) contains all initial content. The rest is ocean.
-> Dungeons and some islands are instances. See [`world-building.md`](./world-building.md) §3.9 for the v1 world spec.
+> **Spherical planet** — one sphere, 20 km radius for v1. The starter
+> continent is an authored homeland around spawn (lat 0 / lon 0): the capital
+> sits on its coast, the starter village is inland, and a mountain lake, ferry
+> island, Sun Pans atoll, polar caps, and emergent continents complete the
+> planet. The rest is ocean. Dungeons and arenas are planar instances. See
+> [`prd-world.md`](./prd-world.md) §1-2 and
+> [`prd-terrain.md`](./prd-terrain.md) for the current law.
 
 ### 4.1 World Structure
 
-**V1 World (Dev/Alpha/Beta) — ✅ Implemented:**
+**V1 world — shipped:**
 
-| Feature | Description |
-|---------|-------------|
-| **Planet** | Spherical, radius 20km, surface ~5,000 km² |
-| **Continent** | ~150 km², centered on planet |
-| **Capital City** | At geographic center of continent, new players start here |
-| **Ocean** | Covers the rest of the planet (future boat/ship mechanics) |
-| **Instances** | Dungeons, PvP arena island, capital interior areas |
+| Feature | Current truth |
+|---------|---------------|
+| **Planet** | Spherical, radius 20 km, surface ~5,026 km² |
+| **Starter continent** | Authored homeland dome around spawn (~0.70 rad / ~14 km reach); not a 150 km² painted continent |
+| **Capital** | Nexus Central on the coast at the boot cove; harbor district and a large monolith |
+| **Starter village** | Inland ~1 km from the coast, connected to the capital by a road |
+| **Ring range** | Inland mountain range ~5-15 km from spawn, behind the village |
+| **Mountain lake** | Authored inland bowl held above sea level by the hydrology law |
+| **Ferry island** | Real player island ~10.5 km offshore, reached by ferry; not a dev sandbox |
+| **Sun Pans** | Authored desert atoll on face 12, reached by the long-haul ferry |
+| **Poles** | Two authored ice/snow caps (v12), resolving TUNDRA/ALPINE |
+| **Emergent continents** | Additional far land from the noise field; real ground, no content placed yet |
+| **Ocean** | Connective tissue; ferries and vessels are the long-haul transport |
+| **Instances** | Dungeons, arenas, duels, and bouts are separate planar scopes |
+| **Moon** | Separate world scene for dev/test content; the old dev island is retired |
 
-**V1 Biome Layout** (within ~5km radius of capital):
-
-| Direction | Biome | Content |
-|-----------|-------|---------|
-| **North** | Forest | Tutorial zone, starter mobs |
-| **East** | Plains + Farmland | Starter quests, low-level mobs |
-| **South** | Lake + River | Fishing, water mobs |
-| **West** | Mountain Ridge | Mining, mid-level mobs |
-| **Coastline** | Harbor | Capital harbor district, fishing village, shipwright |
-
-**Near Capital:**
-- Dungeon entrance ~3km north (instance portal test)
-- PvP arena on small island ~6km offshore (instance portal test)
-
-**Future Scaling:**
-| Version | Planet Radius | Landmass |
-|---------|--------------|----------|
-| v1 (dev) | 20 km | 150 km² |
-| v2 (soft launch) | 100 km | ~3,000 km² |
-| v3 (full launch) | 1,000+ km | Full planet |
-
-See [`world-building.md`](./world-building.md) §3.9–3.12 for full world architecture.
+Planet scale beyond v1 is not locked. A larger radius needs floating origin
+and planet-wide visible rendering; those are open build items in
+[`prd-terrain.md`](./prd-terrain.md) §6, not shipped features.
 
 ### 4.2 Terrain Types
 
@@ -356,7 +349,7 @@ See `core/services/world_service.gd`.
 
 ### 4.6 Zone & Instancing Model — ✅ Implemented
 
-> **Full spec:** See [`world-building.md`](./world-building.md) §8 for zone model,
+> **Full spec:** See [`prd-world.md`](./prd-world.md) §2 for the zone model,
 > gateway transitions, and instance lifecycle.
 
 | Concept | Description |
@@ -365,7 +358,7 @@ See `core/services/world_service.gd`.
 | **Region** | Geographic zone within a seed |
 | **Gateway** | Portal between regions or into instances |
 | **Instance** | Ephemeral per-group content (dungeons, arenas) |
-| **Zone Transition** | Player movement through gateways triggers loading |
+| **Zone Transition** | Seamless inside the open world; gateways/portals handle jumps and instances |
 
 **Instance types:**
 - `open + instance` — Per-group, derived from `(parent_seed, instance_id)`
@@ -1024,7 +1017,7 @@ See [`world-building-arch.md`](./world-building-arch.md) for the full frame arch
 | **State Diff** | Server sends root hash + diff, not full state. Bandwidth = O(diff size), not O(state size). | P0 |
 | **P2P Entity Sync (optional)** | Nearby players gossip via hash-set reconciliation. Reduces server load. The "assimilation" piece. | P2 |
 
-See [`world-building.md`](./world-building.md) §10 for the full transport design.
+See [`world-building-tick.md`](./world-building-tick.md) §4 for the tick and diff emit, and `game/core/services/network_manager.gd` for the transport implementation.
 
 ### 12.5 Database Design — ✅ Implemented via Adapter Layer
 
@@ -1343,7 +1336,7 @@ Implementation per PRD specs in `/labs/prd-*.md`:
 ### Phase 7: Browser Deployment + Polish
 - [ ] Godot HTML5/wasm browser build
 - [ ] WebSocket transport
-  - See [`world-building.md`](./world-building.md) §10
+  - See [`world-building-tick.md`](./world-building-tick.md) §4
 - [ ] Frame extraction (optional, per viability)
 - [ ] Optimization pass
 - [ ] Bug fixes
@@ -1373,8 +1366,8 @@ Implementation per PRD specs in `/labs/prd-*.md`:
 6. ~~**Architecture:**~~ → ✅ T3 substrate + scope engine + rules engine (per `world-building-arch.md`)
 7. ~~**Networking:**~~ → ✅ WebSocket for browser + agent compatibility
 8. ~~**Networking serialization:**~~ → ✅ `var_to_bytes` / `bytes_to_var` (Godot 4.x idiom)
-9. ~~**World Shape:**~~ → ✅ Spherical planet (radius 20km v1), icosahedral mesh (per `world-building.md` §3)
-10. ~~**World Size:**~~ → ✅ ~150 km² continent, rest ocean, capital at center
+9. ~~**World Shape:**~~ → ✅ Spherical planet (radius 20km v1), icosahedral mesh (per [`prd-world.md`](./prd-world.md) §1 and [`prd-geometry.md`](./prd-geometry.md))
+10. ~~**World Size:**~~ → ✅ Authored starter continent + ferry island + lake + atoll + polar caps + emergent continents; capital on the coast
 11. ~~**Zone Transitions:**~~ → ✅ Dungeons/instances via portal, open world seamless
 
 ### Open
