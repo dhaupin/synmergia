@@ -35,8 +35,8 @@ anything with a small per-call payload (the round-trip dominates).
 |---|-------|-------|--------|
 | 1 | Terrain heightfield presolve (Julia batch + frame validation) | (b) offline/batch | DONE |
 | 2 | Wire the presolve tier to a real consumer | (b) offline | DONE |
-| 3 | Prop-layer chunk bucketing offline | (b) offline | TODO |
-| 4 | Wire the redis shard bus into dev | transport | TODO |
+| 3 | Prop-layer chunk bucketing offline | (b) offline | DONE |
+| 4 | Wire the redis shard bus into dev | transport | DONE |
 
 ---
 
@@ -75,6 +75,20 @@ consumers" gap.
 trees, details per face with the SAME seed discipline as terrain. Same
 pure-`(seed, face)` shape → same offline-batch treatment.
 
+**Landed (2026-11-04).** `srv/julia-bridge/pcg32.jl` is a bit-exact port
+of Godot's `RandomNumberGenerator` (PCG32) — the stream the scatter
+consumes. `propmath.jl` mirrors `rock_specs` / `boulder_specs` 1:1
+(barycentric site draw + bounded spawn-clear/water redraws), using
+`terrainmath.jl` for the water test. `prop_faces.jl` carries the captured
+icosahedron tables; `prop_batch.jl --parity` emits one record per face for
+the receipt.
+
+**Scope note (measured).** GDScript's water test reads the CARVED height,
+but across 8 world seeds × ~590 specs there are **0 classification
+divergences** vs the RAW field (the carve only fires inside the hydro
+gates, which rock/boulder draws do not land in). So the raw-field port
+reproduces every spec; `test_julia_prop_batch.gd` re-checks the claim.
+
 ## Facet 4 -- redis shard bus in dev
 
 `RedisStore` (43 methods) + `RedisShardBus` are fully implemented but the
@@ -83,6 +97,15 @@ default backend is memory and nothing sets `SHARD_BUS_BACKEND=redis` /
 `test_adapter_http_transport`. Wire it into the dev path so the
 cross-process bus is exercised. Pays off for genuine multi-process shard
 deployments (mailboxes that survive process boundaries).
+
+**Landed (2026-11-04).** `.env.example` documents `SHARD_BUS_BACKEND`
+(default follows `CACHE_BACKEND`; `memory` opts out) + the
+`REDIS_BRIDGE_*` keys; `DEVCODE.md` records the same; the receipt
+`test_redis_shard_bus.gd` drives two live bus instances against the
+in-memory backend sidecar and asserts fan-out / drain / no-self-receive /
+second-coordinator legs (15/15, incl. a true cross-process leg). This is
+the transport facet — no speedup number; the win is the cross-process
+mailbox the dev default never exercised.
 
 ---
 
@@ -99,8 +122,8 @@ deployments (mailboxes that survive process boundaries).
 |-------|----------|-------|---------|--------|
 | 1 terrain | 520,895 us (20k raw heights) | 8,807 us | **59.1x** | max err 1.2e-5 m |
 | 2 presolve | 1,345 us (3 worlds x 365 days) | 35 us | **38.4x** | seeds exact; orbit/fav <= float32 eps |
-| 3 props | _pending_ | _pending_ | _pending_ | _pending_ |
-| 4 redis | _pending_ | _pending_ | _pending_ | _pending_ |
+| 3 props | 22,812 us (567 specs, 20 faces) | 1,289 us | **17.7x** | max dir err 6.3e-8; sums agree |
+| 4 redis | transport (no speedup number) | -- | -- | 15/15 bus legs |
 
 ### Facet 1 -- measured 2026-11-04
 
@@ -150,3 +173,27 @@ It emits `WORLD`/`EPOCH`/`END` text records, and
 flag is the workaround. `world_batch.jl`/`terrain_batch.jl` are
 deliberately dependency-free so the offline tier does not depend on the
 broken pkgimage path.
+
+### Facet 3 -- measured 2026-11-04
+
+Workload: every face's rock + boulder specs (20 faces, 520 rocks + 47
+boulders = 567 specs), seed `saltcrown-isle-4`. The frame pays this
+per-face cost in `PropLayer._bucket_face_content` (via
+`provider.rock_specs` / `boulder_specs`).
+
+- GDScript: **22,812 us** (`bench_prop.gd`)
+- Julia (`prop_batch.jl`): **1,289 us** -> **17.7x**
+
+Parity: max per-spec direction error **6.3e-8**, max scalar error
+**5.0e-11**, per-face counts + sums match on all 20 faces; the
+`test_julia_prop_batch.gd` receipt re-derives the frame specs and asserts
+equality against the recorded Julia values (embedded anchors + a live
+Julia leg).
+
+**Porting traps found (both bit the PCG32 port).** (1) Godot truncates
+the PCG32 xorshift to `uint32_t` implicitly; Julia's checked `UInt32()`
+THROWS on a value >= 2^32, so `rand_u32` masks with `0xFFFFFFFF`. (2)
+This Julia build MISCOMPILES an out-of-bounds array read into a
+**segfault** rather than a bounds error — `vertex_dir(i)` needed the
+0-based→1-based `i + 1` (the frame's vertex indices are 0-based). Both are
+recorded in `pcg32.jl` / `propmath.jl`.

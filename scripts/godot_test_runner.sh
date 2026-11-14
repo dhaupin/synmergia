@@ -239,6 +239,7 @@ probe_terrain_backend
 test_julia_bridge
 test_julia_parity
 test_julia_terrain
+test_julia_prop_batch
 probe_terrain_climate
 probe_ground_law_audit
 probe_clipmap
