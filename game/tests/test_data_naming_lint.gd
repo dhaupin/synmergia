@@ -1967,6 +1967,78 @@ func _run() -> void:
 	else:
 		_fail("Heals promising a multi-ally mend without scope_bands = true: %s" % ", ".join(bad_band))
 
+	# --- A description that promises a ring of control, or a party-wide
+	# guard, must author a ring or opt into the matching band. Same law as
+	# the mend claim above, once for each of the tank's verbs.
+	var ctrl_claims := ["nearby enemies", "nearby foes", "all nearby enemies",
+		"all nearby foes", "every nearby foe", "every nearby enemy",
+		"enemies within range", "enemies in a cone", "all enemies inside",
+		"nearby systems", "every mind nearby", "every foe nearby"]
+	var guard_claims := ["nearby allies", "all nearby allies", "all allies",
+		"every nearby ally", "all party members", "nearby party members"]
+	var bad_ctrl: Array = []
+	var bad_guard: Array = []
+	var cg_root := DirAccess.open("res://data/skills")
+	if cg_root != null:
+		cg_root.list_dir_begin()
+		var cg_sub := cg_root.get_next()
+		while cg_sub != "":
+			var cg_dir_name := cg_sub
+			cg_sub = cg_root.get_next()
+			if cg_dir_name == "" or cg_dir_name.begins_with("."):
+				continue
+			var cg_dir := DirAccess.open("res://data/skills/%s" % cg_dir_name)
+			if cg_dir == null:
+				continue
+			cg_dir.list_dir_begin()
+			var cg_f := cg_dir.get_next()
+			while cg_f != "":
+				if cg_f.ends_with(".tres"):
+					var cg_txt := FileAccess.get_file_as_string("res://data/skills/%s/%s" % [cg_dir_name, cg_f])
+					var cg_id := ""
+					var cg_desc := ""
+					var cg_aoe := 0.0
+					var cg_scope := false
+					var cg_guard := false
+					for line in cg_txt.split("\n"):
+						var cl := line.strip_edges()
+						if cl.begins_with("id = \"") and cg_id == "":
+							cg_id = cl.trim_prefix("id = \"").trim_suffix("\"")
+						elif cl.begins_with("description = \""):
+							cg_desc = cl.to_lower()
+						elif cl.begins_with("aoe_radius = "):
+							cg_aoe = cl.trim_prefix("aoe_radius = ").to_float()
+						elif cl == "scope_bands = true":
+							cg_scope = true
+						elif cl == "guard_band = true":
+							cg_guard = true
+					var cg_fx := _bracket_block(cg_txt, "effects").to_lower()
+					var cg_has_ctrl := false
+					for k in ["stun", "root", "slow", "taunt", "silence", "fear", "knockback"]:
+						if cg_fx.contains(k):
+							cg_has_ctrl = true
+							break
+					var cg_has_guard := cg_fx.contains("\"type\": \"shield\"") or cg_fx.contains("\"type\": \"buff\"")
+					if cg_has_ctrl and not (cg_scope or cg_aoe > 0.0):
+						for phrase in ctrl_claims:
+							if cg_desc.contains(phrase):
+								bad_ctrl.append("%s ('%s')" % [cg_id, phrase])
+								break
+					if cg_has_guard and not (cg_guard or cg_aoe > 0.0):
+						for phrase in guard_claims:
+							if cg_desc.contains(phrase):
+								bad_guard.append("%s ('%s')" % [cg_id, phrase])
+								break
+				cg_f = cg_dir.get_next()
+	if bad_ctrl.is_empty():
+		_ok("Skills: every multi-enemy control claim authors a ring or bands")
+	else:
+		_fail("Control promising a ring without aoe_radius/scope_bands: %s" % ", ".join(bad_ctrl))
+	if bad_guard.is_empty():
+		_ok("Skills: every multi-ally guard claim authors a ring or bands")
+	else:
+		_fail("Guards promising a party-wide shield without aoe_radius/guard_band: %s" % ", ".join(bad_guard))
+
 	# --- The starter law: every family's FIRST skill carries its verb ---
 	# Healer gets the mend, bender the blink, tank the grab (control). The
 	# damage lanes (DD/MAGE/ROGUE) carry damage. The same law for every
