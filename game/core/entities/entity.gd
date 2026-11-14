@@ -6,6 +6,7 @@ class_name Entity
 ## Canonical stat vocabulary (the keys in `stats` below and the
 ## mitigation/reflect keys the damage pipeline reads).
 const StatId = preload("res://core/schemas/stat_id.gd")
+const CcImmunity = preload("res://core/combat/cc_immunity.gd")
 
 signal health_changed(current: int, maximum: int)
 signal mana_changed(current: int, maximum: int)
@@ -406,6 +407,13 @@ func get_spell_resist() -> int:
 
 func apply_status_effect(effect) -> void:
 	if effect.is_expired():
+		return
+	# Immunity gate: a body carrying a ward that refuses this control refuses
+	# the effect outright -- it never enters the stack, so the stun/root/slow
+	# cannot gate movement or casting. This is the one choke point every CC
+	# path (skill, aura, item, factory) funnels through, so the refusal holds
+	# for all of them.
+	if CcImmunity.body_is_immune_to(self, str(effect.get("cc_tag"))):
 		return
 	status_effects.append(effect)
 	effect.apply(self)

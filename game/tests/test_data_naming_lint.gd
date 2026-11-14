@@ -1699,10 +1699,17 @@ func _run() -> void:
 	# no immunity. Capability is read from the skill's own effects[] entries
 	# plus the payload of every status effect it references, so an indirect
 	# buff ({"effect_id": "buff_rune_ward"}) still counts.
+	# [pattern, required capability, label]. Patterns are regex so "immune to
+	# all slow" and "immune to slow" both satisfy the slow rule. A claim needs
+	# the matching payload anywhere in the skill's own effects or a referenced
+	# status effect.
 	var claim_rules := [
-		["absorb", "shield"],
-		["reflect", "reflect"],
-		["immune to all damage", "immune"],
+		["absorb", "shield", "absorb"],
+		["reflect", "reflect", "reflect"],
+		["immune to all damage", "immune_all", "immune to all damage"],
+		["immune to (all )?(stun|stuns)", "immune_stun", "immune to stun"],
+		["immune to (all )?(slow|slows)", "immune_slow", "immune to slow"],
+		["immune to (all )?(root|roots)", "immune_root", "immune to root"],
 	]
 	var effect_caps := {}
 	var se_dir := DirAccess.open("res://data/status_effects")
@@ -1730,7 +1737,12 @@ func _run() -> void:
 				if m_reflect != null and float(m_reflect.get_string(1)) > 0.0:
 					caps.append("reflect")
 				if se_txt.contains("immune_all = true"):
-					caps.append("immune")
+					caps.append("immune_all")
+				# Per-tag immunity payloads, so a ward that refuses one specific
+				# control (immune_stun) satisfies a matching "immune to stun" claim.
+				for tag in ["stun", "slow", "root", "silence", "fear", "knockback"]:
+					if se_txt.contains("immune_%s = true" % tag):
+						caps.append("immune_%s" % tag)
 				effect_caps[se_id] = caps
 			se_f = se_dir.get_next()
 	var lying: Array = []
@@ -1769,8 +1781,10 @@ func _run() -> void:
 						if sk_effects.contains("\"effect_id\": \"%s\"" % cap_ref):
 							sk_caps.append_array(effect_caps[cap_ref])
 					for rule in claim_rules:
-						if sk_desc.contains(rule[0]) and not sk_caps.has(rule[1]):
-							lying.append("%s claims '%s' with no %s payload" % [sk_id, rule[0], rule[1]])
+						var re_claim := RegEx.new()
+						re_claim.compile(str(rule[0]))
+						if re_claim.search(sk_desc) != null and not sk_caps.has(rule[1]):
+							lying.append("%s claims '%s' with no %s payload" % [sk_id, rule[2], rule[1]])
 				sk_f = sk_dir.get_next()
 	if lying.is_empty():
 		_ok("Skills: no description promises behavior the payload lacks")

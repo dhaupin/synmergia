@@ -6,10 +6,12 @@
 script = ExtResource("1")
 id = "buff_time_anchor"
 display_name = "Time Anchored"
-description = "Immune to all slow and speed effects."
+description = "Immune to slow and root effects; movement hastened."
 category = 0
 effect_type = 0
 duration = 12.0
 speed_type = "haste"
 speed_percent = 15.0
+immune_slow = true
+immune_root = true
 show_in_buff_bar = true
