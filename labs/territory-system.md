@@ -3,7 +3,9 @@
 > **Status:** ACTIVE (2026-11-14). The schema, service, data, map label,
 > `/claim` guild command, `/war` status + admin declare/end, and the
 > DictStore runtime overlay are shipped. Player-declared faction wars are
-> still gated: factions have no leader model yet.
+> still gated: factions have no leader model yet. Guild organization is
+> specified in [`prd-guild.md`](./prd-guild.md); faction politics in
+> [`prd-factions.md`](./prd-factions.md).
 
 ## Why an overlay
 
