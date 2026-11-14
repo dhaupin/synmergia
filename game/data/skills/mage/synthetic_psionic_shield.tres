@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "synthetic_psionic_shield"
 display_name = "Psionic Shield"
-description = "Creates a psionic barrier that absorbs damage and reflects some back."
+description = "Creates a psionic barrier that absorbs incoming damage."
 skill_type = 1
 target_type = 1
 mana_cost = 30

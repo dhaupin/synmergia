@@ -3,6 +3,7 @@
 extends Node
 class_name HealthComponent
 const Item = preload("res://core/schemas/item.gd")
+const StatId = preload("res://core/schemas/stat_id.gd")
 const Corpse = preload("res://scenes/entities/corpse.gd")
 
 func _party() -> Node:
@@ -133,6 +134,14 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 		mitigated = int(float(mitigated) * float(entity.stats.get("defense_multiplier", 1.0)))
 	var actual_damage: int = max(1, amount - mitigated)
 
+	# Flat authored damage_reduction stacks on the armor subtraction, clamped
+	# so a stacked barrier can never reach immunity (immortal_form's
+	# immune_all is the one true immunity path, handled above).
+	if entity != null and "stats" in entity:
+		var flat: float = clampf(float(entity.stats.get("damage_reduction", 0.0)), 0.0, StatId.MAX_DAMAGE_REDUCTION)
+		if flat > 0.0:
+			actual_damage = maxi(1, int(float(actual_damage) * (1.0 - flat)))
+
 	current_health = max(0, current_health - actual_damage)
 	health_changed.emit(current_health, max_health, -actual_damage)
 
@@ -140,10 +149,32 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 	var hub := _hub()
 	if hub: hub.emit_signal("damage_dealt", source, get_parent(), actual_damage, damage_type, is_crit)
 
+	# Reflect a fraction of the landed hit back to the attacker (skipped for
+	# the reflected school itself, which breaks a two-barrier ping-pong).
+	if damage_type != StatId.REFLECT_SCHOOL:
+		_apply_damage_reflect(entity, source, actual_damage)
+
 	if current_health <= 0:
 		die(source)
 
 	return actual_damage
+
+## Deal `fraction` of `damage` back to `source`. Mirror of
+## Entity._apply_damage_reflect: the player body is not an Entity, so its
+## reflect reads the same stats key through the same clamp.
+func _apply_damage_reflect(entity, source, damage: int) -> void:
+	if entity == null or source == null or source == entity or damage <= 0:
+		return
+	if not ("stats" in entity):
+		return
+	var fraction: float = clampf(float(entity.stats.get("damage_reflect", 0.0)), 0.0, StatId.MAX_DAMAGE_REFLECT)
+	if fraction <= 0.0:
+		return
+	var back: int = int(float(damage) * fraction)
+	if back <= 0 or not is_instance_valid(source):
+		return
+	if source.has_method("take_damage"):
+		source.take_damage(back, entity, StatId.REFLECT_SCHOOL)
 
 ## Heal
 func heal(amount: int, source: Entity = null) -> int:

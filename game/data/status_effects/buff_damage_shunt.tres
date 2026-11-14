@@ -6,9 +6,10 @@
 script = ExtResource("1")
 id = "buff_damage_shunt"
 display_name = "Damage Shunt"
-description = "Incoming damage is redistributed to shields."
+description = "Redistributes 25% of incoming damage into the shield lattice."
 category = 0
 effect_type = 0
+damage_reduction = 0.25
 duration = 8.0
 stat_modifiers = {"vitality": 12}
 show_in_buff_bar = true

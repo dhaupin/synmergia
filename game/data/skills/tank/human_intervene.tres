@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "human_intervene"
 display_name = "Intervene"
-description = "Dashes to an ally and absorbs a portion of the damage they would take for a short time."
+description = "Dashes to an ally and hardens them against incoming damage for a short time."
 skill_type = 0
 target_type = 3
 mana_cost = 25

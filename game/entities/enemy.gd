@@ -394,6 +394,22 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 		if defense > 0.0:
 			var reduction: float = defense / (defense + 100.0)
 			applied = maxi(1, int(float(amount) * (1.0 - reduction)))
+	# Status-effect payloads on the enemy body (this path pokes the health
+	# component directly, so Entity.take_damage's reads never run): an active
+	# shield pool soaks first, then a flat authored damage_reduction trims
+	# what remains. Clamped so a stacked barrier can never reach immunity.
+	if "status_effects" in self:
+		for effect in status_effects:
+			if applied <= 0:
+				break
+			if effect.has_method("absorb_damage"):
+				applied = effect.absorb_damage(applied)
+		if applied <= 0:
+			return 0
+	if "stats" in self:
+		var flat: float = clampf(float(stats.get("damage_reduction", 0.0)), 0.0, StatId.MAX_DAMAGE_REDUCTION)
+		if flat > 0.0:
+			applied = maxi(1, int(float(applied) * (1.0 - flat)))
 	if health_component:
 		# No _is_dead poke here: health_component.die() owns the dead flag
 		# and early-returns when it is already set -- setting it first used
@@ -446,7 +462,27 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 	if _ai and is_combatant:
 		_ai.on_damaged(source)
 
+	# Reflect a fraction of the landed hit back to the attacker (skipped for
+	# the reflected school itself, which breaks a two-barrier ping-pong).
+	# Mirror of Entity._apply_damage_reflect.
+	if damage_type != StatId.REFLECT_SCHOOL and applied > 0:
+		_apply_damage_reflect(source, applied)
+
 	return amount
+
+## Deal a fraction of `damage` back to `source`; silent no-op when the
+## source is gone, is this same enemy, or carries no reflect surface.
+func _apply_damage_reflect(source, damage: int) -> void:
+	if source == null or source == self or damage <= 0 or not ("stats" in self):
+		return
+	var fraction: float = clampf(float(stats.get("damage_reflect", 0.0)), 0.0, StatId.MAX_DAMAGE_REFLECT)
+	if fraction <= 0.0:
+		return
+	var back: int = int(float(damage) * fraction)
+	if back <= 0 or not is_instance_valid(source):
+		return
+	if source.has_method("take_damage"):
+		source.take_damage(back, self, StatId.REFLECT_SCHOOL)
 
 ## A valid damager: live in-tree Node with a combatant id. Deliberately
 ## duck-typed so the player body (not an Entity subclass) qualifies.

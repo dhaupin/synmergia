@@ -6,9 +6,10 @@
 script = ExtResource("1")
 id = "buff_mana_surge"
 display_name = "Mana Surge"
-description = "Mana regeneration dramatically increased."
+description = "Mana floods back at +14 per second while the surge holds."
 category = 0
 effect_type = 0
+mana_regen = 14.0
 duration = 10.0
 stat_modifiers = {"intelligence": 15}
 show_in_buff_bar = true

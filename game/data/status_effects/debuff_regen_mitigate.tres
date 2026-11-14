@@ -6,9 +6,11 @@
 script = ExtResource("1")
 id = "debuff_regen_mitigate"
 display_name = "Regeneration Mitigated"
-description = "Health and mana regeneration are suppressed."
+description = "Health and mana regeneration are suppressed for the duration."
 category = 1
 effect_type = 4
+mana_regen = -8.0
+health_regen = -12.0
 duration = 10.0
-stat_modifiers = {"vitality": -10}
+stat_modifiers = {}
 show_in_buff_bar = true

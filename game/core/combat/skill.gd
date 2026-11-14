@@ -95,6 +95,9 @@ enum TargetType {
 @export var crowd_control_type: String = ""  # stun, root, slow, etc.
 @export var crowd_control_duration: float = 0.0
 @export var crowd_control_strength: float = 1.0
+# Movement penalty for a "slow" CC, as a fraction (0.3 == -30%). Authored on the
+# effect entry's "value"; the default matches slow_common's -30%.
+@export var crowd_control_slow_percent: float = 0.3
 
 # Authored status effects (the schema's buff/debuff entries, kept whole so
 # they resolve through StatusEffectFactory at cast time instead of being
@@ -217,6 +220,11 @@ static func from_schema(s: SkillSchema) -> Skill:
 			"stun", "root", "slow":
 				sk.crowd_control_type = str(effect.get("type", ""))
 				sk.crowd_control_duration = float(effect.get("duration", 0.0))
+				# A slow's authored "value" is its percent penalty
+				# (20 == -20%); keep the magnitude so the runtime effect
+				# can actually slow the body.
+				if effect.has("value"):
+					sk.crowd_control_slow_percent = clampf(absf(float(effect.get("value"))) / 100.0, 0.0, 1.0)
 			"buff", "debuff":
 				# Keep the authored entry whole; it resolves through
 				# StatusEffectFactory at cast time (effect_id ->
@@ -626,7 +634,14 @@ func create_stun_effect(_caster) -> StatusEffect:
 	var effect := StatusEffect.new()
 	effect.effect_name = "Stunned"
 	effect.effect_type = StatusEffect.EffectType.DEBUFF
+	effect.effect_category = StatusEffect.EffectCategory.STUN
 	effect.duration = crowd_control_duration
+	# The gating flags ARE the stun: Skill.can_cast reads allows_casting and
+	# globe_player._can_move reads allows_movement, so without these the
+	# authored "stun" was an inert buff-bar icon.
+	effect.can_move = false
+	effect.can_cast = false
+	effect.can_attack = false
 	# DURATION behavior: the effect's own timer + the tick janitor own
 	# expiry. Without it (INSTANT default) nothing ever advances or
 	# sweeps the CC -- a stun would stick forever.
@@ -637,7 +652,9 @@ func create_root_effect(_caster) -> StatusEffect:
 	var effect := StatusEffect.new()
 	effect.effect_name = "Rooted"
 	effect.effect_type = StatusEffect.EffectType.DEBUFF
+	effect.effect_category = StatusEffect.EffectCategory.STUN
 	effect.duration = crowd_control_duration
+	effect.can_move = false
 	# DURATION behavior: the effect's own timer + the tick janitor own
 	# expiry. Without it (INSTANT default) nothing ever advances or
 	# sweeps the CC -- a stun would stick forever.
@@ -648,7 +665,11 @@ func create_slow_effect(_caster) -> StatusEffect:
 	var effect := StatusEffect.new()
 	effect.effect_name = "Slowed"
 	effect.effect_type = StatusEffect.EffectType.DEBUFF
+	effect.effect_category = StatusEffect.EffectCategory.STUN
 	effect.duration = crowd_control_duration
+	# A slow is a movement penalty, not a hold: the runtime multiplier field
+	# is an additive delta on a 1.0 base (StatusEffect._apply_combat_modifiers).
+	effect.movement_speed_multiplier = -crowd_control_slow_percent
 	# DURATION behavior: the effect's own timer + the tick janitor own
 	# expiry. Without it (INSTANT default) nothing ever advances or
 	# sweeps the CC -- a stun would stick forever.

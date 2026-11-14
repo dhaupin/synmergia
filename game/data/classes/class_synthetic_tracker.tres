@@ -8,7 +8,7 @@ id = "synthetic_tracker"
 display_name = "Tracker"
 description = "Synthetic ranged damage dealer. Fires from the shadows."
 icon_path = "res://ui/icons/classes/synthetic_tracker.png"
-role = 2
+role = 4
 resource_type = 1
 base_stats = {
 "strength": 14,

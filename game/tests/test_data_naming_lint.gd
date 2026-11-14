@@ -1692,4 +1692,88 @@ func _run() -> void:
 	else:
 		_fail("Event data violations: %s" % ", ".join(bad_events))
 
+	# --- Skill descriptions must not promise behavior the payload lacks ---
+	# A player reads the description, not the effects[] array. When the two
+	# disagree the skill is a lie in the tooltip: "absorbs damage" on a skill
+	# with no shield, "reflects" with no reflect, "immune to all damage" with
+	# no immunity. Capability is read from the skill's own effects[] entries
+	# plus the payload of every status effect it references, so an indirect
+	# buff ({"effect_id": "buff_rune_ward"}) still counts.
+	var claim_rules := [
+		["absorb", "shield"],
+		["reflect", "reflect"],
+		["immune to all damage", "immune"],
+	]
+	var effect_caps := {}
+	var se_dir := DirAccess.open("res://data/status_effects")
+	if se_dir != null:
+		se_dir.list_dir_begin()
+		var se_f := se_dir.get_next()
+		while se_f != "":
+			if se_f.ends_with(".tres"):
+				var se_txt := FileAccess.get_file_as_string("res://data/status_effects/%s" % se_f)
+				var se_id := ""
+				for line in se_txt.split("\n"):
+					var st := line.strip_edges()
+					if st.begins_with("id = \""):
+						se_id = st.trim_prefix("id = \"").trim_suffix("\"")
+						break
+				var caps: Array = []
+				var re_shield := RegEx.new()
+				re_shield.compile("(?m)^shield_amount = ([0-9.]+)")
+				var m_shield := re_shield.search(se_txt)
+				if m_shield != null and float(m_shield.get_string(1)) > 0.0:
+					caps.append("shield")
+				var re_reflect := RegEx.new()
+				re_reflect.compile("(?m)^damage_reflect = ([0-9.]+)")
+				var m_reflect := re_reflect.search(se_txt)
+				if m_reflect != null and float(m_reflect.get_string(1)) > 0.0:
+					caps.append("reflect")
+				if se_txt.contains("immune_all = true"):
+					caps.append("immune")
+				effect_caps[se_id] = caps
+			se_f = se_dir.get_next()
+	var lying: Array = []
+	var skill_root2 := DirAccess.open("res://data/skills")
+	if skill_root2 != null:
+		skill_root2.list_dir_begin()
+		var sk_sub := skill_root2.get_next()
+		while sk_sub != "":
+			var sub3 := sk_sub
+			sk_sub = skill_root2.get_next()
+			if sub3 == "" or sub3.begins_with("."):
+				continue
+			var sk_dir := DirAccess.open("res://data/skills/%s" % sub3)
+			if sk_dir == null:
+				continue
+			sk_dir.list_dir_begin()
+			var sk_f := sk_dir.get_next()
+			while sk_f != "":
+				if sk_f.ends_with(".tres"):
+					var sk_txt := FileAccess.get_file_as_string("res://data/skills/%s/%s" % [sub3, sk_f])
+					var sk_id := ""
+					var sk_desc := ""
+					var sk_effects := ""
+					for line in sk_txt.split("\n"):
+						var lt := line.strip_edges()
+						if lt.begins_with("id = \"") and sk_id == "":
+							sk_id = lt.trim_prefix("id = \"").trim_suffix("\"")
+						elif lt.begins_with("description = \""):
+							sk_desc = lt.to_lower()
+						elif lt.begins_with("effects = "):
+							sk_effects = lt.to_lower()
+					var sk_caps: Array = []
+					if sk_effects.contains("\"type\": \"shield\"") or sk_effects.contains("\"type\":\"shield\""):
+						sk_caps.append("shield")
+					for cap_ref in effect_caps:
+						if sk_effects.contains("\"effect_id\": \"%s\"" % cap_ref):
+							sk_caps.append_array(effect_caps[cap_ref])
+					for rule in claim_rules:
+						if sk_desc.contains(rule[0]) and not sk_caps.has(rule[1]):
+							lying.append("%s claims '%s' with no %s payload" % [sk_id, rule[0], rule[1]])
+				sk_f = sk_dir.get_next()
+	if lying.is_empty():
+		_ok("Skills: no description promises behavior the payload lacks")
+	else:
+		_fail("Skill descriptions overclaim: %s" % ", ".join(lying))
 	_finish()
