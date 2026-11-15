@@ -41,4 +41,6 @@ The world is not only seen. Every actionable node also has a name, a focus posit
 
 The reusable frame lives in `game/core/frame/`: the state tree, scope engine, rules engine, spatial geometry, and the clipmap addressing that the world, client, and spatial index all share. The game consumes those primitives; it does not fork them.
 
+[The frame]({{ '/build/frame/' | relative_url }}) page covers what is reusable today, what stays game-side, and the current packaging boundary. The short version: the code is real and MIT-licensed, but there is no standalone install yet.
+
 For the current deep design notes, see [the frame architecture](https://github.com/dhaupin/synmergia/blob/main/labs/world-building-arch.md) and [the spherical world reference](https://github.com/dhaupin/synmergia/blob/main/labs/world-building-spherical.md) in `labs/`. Those graduate into this portal as they stabilize.

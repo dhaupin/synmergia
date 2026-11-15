@@ -29,6 +29,8 @@ Synmergia is MIT-licensed and developed in the open. The engine, server, data, w
 | `docs/` | This Jekyll docs portal |
 | `scripts/` | Setup, test, build, data-sync, and generation tooling |
 
+The reusable core is `game/core/frame/`. Read [The frame]({{ '/build/frame/' | relative_url }}) before treating it as a package: it is in-repo and tested, but there is no standalone install yet.
+
 ## The stack
 
 - **Godot 4.7.2 + GDScript** for the game, exported to the browser as WebAssembly.

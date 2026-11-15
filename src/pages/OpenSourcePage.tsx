@@ -20,6 +20,11 @@ const DOCS: { label: string; href: string; body: string }[] = [
     body: 'the one-tree model for human accessibility and agent endpoints, with gamestruct as the carrier.',
   },
   {
+    label: 'The frame',
+    href: 'https://docs.creadev.org/synmergia/build/frame/',
+    body: 'the reusable core: what is real today, what stays game-side, and why there is no install package yet.',
+  },
+  {
     label: 'Contributing',
     href: `${REPO}/blob/main/CONTRIBUTING.md`,
     body: 'how to set up, the conventions, the tests, and how to open a pull request.',

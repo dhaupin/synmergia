@@ -18,7 +18,7 @@ The words that mean something specific in this repository. When a page uses one 
 | **Authoritative server** | The server owns world state. Clients send input; they do not decide outcomes. |
 | **Clipmap** | The sole terrain renderer. Terrain is drawn in rings around the player, with detail falling off toward the horizon. |
 | **Codex** | The website's browsable read of `game/data`, generated through `src/data/godot_data.json`. It is not a separate content store. |
-| **Frame** | The reusable core under `game/core/frame/`: spatial geometry, the state tree, the scope engine, the rules engine, and related primitives. |
+| **Frame** | The reusable core under `game/core/frame/`: spatial geometry, the state tree, the scope engine, the rules engine, and related primitives. It is in-repo today, not a standalone package; see [The frame]({{ '/build/frame/' | relative_url }}). |
 | **gamestruct** | The shared accessibility and agent contract: a semantic tree, four primitives, human and agent lanes, HTTP and MCP bindings, and adapters. Synmergia pins it as the common carrier. |
 | **MCP** | Model Context Protocol. gamestruct projects the agent lane into MCP JSON-RPC (`initialize`, `tools/list`, `tools/call`); the Synmergia door itself does not serve MCP. |
 | **Multi-iso orchestrator** | The sidecar that provides indexed spatial queries for the world. |

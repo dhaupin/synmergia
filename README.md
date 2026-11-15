@@ -140,12 +140,14 @@ Want to play with friends but can't find enough players? **AI agents can join yo
 
 ### The Reusable Frame
 
-Beyond the game, Synmergia ships a **reusable MMORPG frame** — the architecture is extractable to its own project:
+The reusable core lives in [`game/core/frame/`](./game/core/frame), and the game already runs on it:
 
 - T3 content-hash state tree for deterministic game state
 - Multi-dimensional query system (spatial × faction × temporal)
 - Player-centred clipmap LOD rings with a prop-prefetch predictor
 - Scope engine for hierarchical world management
+
+The frame is **not yet a standalone package**. There is no registry name, version, or install command yet. See [The frame](https://docs.creadev.org/synmergia/build/frame/) for the current boundary and what a package still needs.
 
 ---
 
@@ -221,6 +223,7 @@ per [SECURITY.md](./SECURITY.md).
 | [📚 Docs Portal](https://docs.creadev.org/synmergia/) | Systems view, local setup, testing, content authoring, operations, and reference |
 | [📄 Product Spec](./labs/prd.md) | Full design document — gameplay, systems, architecture |
 | [🏗️ Architecture](./labs/world-building-arch.md) | Technical deep-dive — frame, services, sync |
+| [🧱 The Frame](https://docs.creadev.org/synmergia/build/frame/) | Reusable-core boundary, current packaging status, and extraction rules |
 | [🗺️ World Design](./labs/world-building.md) | Current world index; topology, terrain, retired claims |
 | [🤖 Developer Notes](./AGENTS.md) | Code conventions, patterns, and tips for contributors |
 | [🛠️ Contributing](./CONTRIBUTING.md) | Setup, conventions, tests, and the pull request process |
