@@ -1304,6 +1304,37 @@ engine binary is provisioned by `scripts/setup-dev.sh`, not by LFS.
   label by one (epic -> "Rare"). Any "mirror the GDScript enums, by index" map
   on the web side must be re-checked whenever a game enum changes size.
 
+### The five-rung ladder: one source, and a guard that keeps it that way (learned 2026-10-28)
+
+- **A re-inlined rung ladder is the recurring parity bug.** `GameTier` is the
+  one scale (common/rare/epic/legendary/mythic), but consumers kept copying it.
+  Two shipped defects in one sweep: `notification_service.notify_item_loot`
+  stopped its `match rarity` at `legendary`, so a mythic drop got no prefix and
+  only HIGH priority; `notification_toast.show_loot` carried its own rarity
+  palette whose `legendary`/`mythic` colours disagreed with `GameTier.COLORS`,
+  so a loot toast did not match the inventory border. Fix the re-inline by
+  reading the canonical map (`GameTier.COLORS`, `GameTier.color(name)`), never
+  by copying the literals.
+- **`test_skill_tier_parity` now scans for the drift.** It walks every shipped
+  `.gd` for a dict literal keyed by rung names and fails if the dict omits a
+  rung or paints a colour that disagrees with `GameTier.COLORS` (0.02 epsilon).
+  A positive control (a temp dict missing `mythic`) makes it fail as intended.
+  It reports "0 scanned" when nothing re-inlines -- which is the goal, not a
+  broken check.
+- **`ui_styles.get_rarity_color`/`get_rarity_display_name` keep an `uncommon`
+  shim on purpose.** Legacy saves can carry the retired spelling; the shim maps
+  it onto `common`. Do NOT "clean up" those `"uncommon"` checks -- they are a
+  migration door, not stale data.
+- **The generated fleet packs drift silently.** `scripts/gen_fleet_packs.mjs`
+  derives `packs/public/*/main.mjs` from the runner's `DEFAULT_SET`. The
+  checked-in packs were stale (they named `test_world_chunks`, a test that no
+  longer ships). When you touch `DEFAULT_SET`, run
+  `node scripts/gen_fleet_packs.mjs`; it is idempotent. A pack naming a test the
+  runner does not carry is the exact violation packstruct exists to refuse.
+- **Register new tests in `DEFAULT_SET` or they are dead weight.** `test_attack_speed`
+  and `test_crit_system` shipped but were not in the runner block, so CI never
+  ran them. Add the name, then regenerate the packs.
+
 ### Quest objective bridges + CI triggers (learned 2026-11-29)
 
 - **Objective types and their bridges.** `quest_data.gd` `ObjectiveType`

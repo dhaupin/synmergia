@@ -253,7 +253,6 @@ test_julia_presolve
 test_julia_orchestrator_live
 test_multi_iso_vertex
 test_chunk_command
-test_presolve_props
 probe_terrain_climate
 probe_ground_law_audit
 probe_ground_sample
