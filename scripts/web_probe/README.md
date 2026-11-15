@@ -16,7 +16,7 @@ entity entries).
 | File | What it does |
 |------|--------------|
 | `probe_boot.js` | Boot smoke: serves `web/`, launches chromium, waits for canvas + cross-origin isolation + the Godot banner. Exit 0 = the engine booted. |
-| `probe_a11y.js` | Full journey: Start -> Guest -> Create New -> species -> class -> Enter World (each hop verified by log marks), pause/resume, then the in-world entity step (spawn-dependent, reported not hard-failed). |
+| `probe_a11y.js` | Full journey: Start -> register (email-bound) -> lobby -> Create New -> species -> class -> Enter World (each hop verified by log marks), a pixel check that the world + terrain DRAW, pause/resume, then the in-world entity step (spawn-dependent, reported not hard-failed). |
 | `probe_mount_journey.js` | The mount journey (R47): guest -> world -> menu bar -> the Mounts stable -> BUY the starter (lawful: role-0 starter kit 500g, the 150g level-1 Meadow Pacer) -> summon -> gallop -> air-tap demount. Oracles are RideService's GameLog audit marks PLUS batching-proof a11y label transitions (Buy -> Ride -> Dismiss -> Ride). |
 
 ## Setup
@@ -49,25 +49,30 @@ entity entries).
 | `PROBE_CHROME` | playwright browser cache | chromium binary to launch |
 | `PROBE_PORT` | 8134 (boot: 8123) | local static server port |
 | `PROBE_WEB` | `<cwd>/web` | export directory to serve |
+| `PROBE_OUT` | `/tmp` | directory for screenshots + the console dump on failure |
 
 ## What PASS means
 
 - **boot**: canvas created + `window.crossOriginIsolated` +
   `Godot Engine v` banner in the console.
 - **a11y journey**: every hop verified by the game's own marks
-  (`Click: StartButton`, `Click: GuestButton`, `Linked new character`,
-  world registration) plus zero SCRIPT ERROR / pageerror lines; the
-  `[A11Y]` stream announced the actions that were clicked. The entity
-  step reports whether `kind=entity` entries ("Attack <name>") were
-  announced and activates one if so; the damage path itself is pinned
-  by `game/tests/test_a11y_service.gd` with hard assertions.
+  (`Game state changed: ...`, `Linked new character`, world
+  registration) plus zero SCRIPT ERROR / pageerror lines; the
+  `[A11Y]` stream announced the actions that were clicked; and the
+  world frame's GROUND band is not flat dark (the world + terrain
+  actually drew). The entity step reports whether `kind=entity`
+  entries ("Attack <name>") were announced and activates one if so;
+  the damage path itself is pinned by `game/tests/test_a11y_service.gd`
+  with hard assertions.
 
 ## Known sandbox limitation
 
-At 2-4 fps software GL the world-registration mark can land outside the
-wait window (wasm stdout batching); screenshots in `/tmp/syn_a1_*.png`
-and `/tmp/syn_wasm*.png` are the forensics. On a GPU-capable machine
-the same commands complete the full journey.
+At 2-4 fps software GL the first world frames are still black while
+the clipmap bakes; `probe_a11y.js` polls (up to ~180s) until the frame
+is no longer flat dark rather than trusting a fixed sleep. If it still
+reports `RENDER-FAIL`, screenshots in `$PROBE_OUT/syn_a1_*.png` and the
+console dump `$PROBE_OUT/syn_a1_console.txt` are the forensics. On a
+GPU-capable machine the same commands complete far faster.
 
 `scripts/serve_web.py` is the repo's manual static server (same COOP/
 COEP headers) for browsing the export by hand.

@@ -44,16 +44,33 @@ var _last_sig: String = ""
 
 func _emit_if_changed() -> void:
 	var snap := snapshot()
-	var labels: Array = []
-	for entry in snap:
-		labels.append(String(entry["action"]))
-	var sig := ",".join(labels)
+	var sig := _snapshot_signature(snap)
 	if sig == _last_sig:
 		return
 	_last_sig = sig
 	for entry in snap:
 		print("[A11Y] ", JSON.stringify(entry))
 	focusables_changed.emit()
+
+
+## The announcement signature. It MUST fold every field an agent or screen
+## reader acts on -- label, disabled state, and value -- not the label alone.
+## A control that only becomes ACTIONABLE (a Play button enabling once a
+## class is chosen) or whose value changes is a real state change the lane
+## has to announce; a label-only signature stayed silent for those, so a
+## listener that trusts the [A11Y] stream never learned the button unlocked
+## (found by the web journey probe: class selected -> Enter World enabled,
+## zero new [A11Y] lines).
+static func _snapshot_signature(snap: Array) -> String:
+	var parts: Array = []
+	for entry in snap:
+		parts.append("%s|%s|%s|%s" % [
+			String(entry.get("id", "")),
+			String(entry.get("action", "")),
+			"1" if bool(entry.get("disabled", false)) else "0",
+			str(entry.get("value", "")),
+		])
+	return ",".join(parts)
 
 
 func _notification(what: int) -> void:
@@ -238,11 +255,18 @@ func _append_world_entries(out: Array) -> void:
 		e.erase("_dist")
 		out.append(e)
 	# Announce world actions when their SET changes (same signature law
-	# as the UI announcements).
-	var labels: Array = []
+	# as the UI announcements). Fold disabled too -- an entity that becomes
+	# actionable is a real change. NOT `detail`: it carries live distance
+	# ("12m away"), so folding it would re-announce every frame the player
+	# moves.
+	var parts: Array = []
 	for e in entries:
-		labels.append(String(e["action"]))
-	var sig := ",".join(labels)
+		parts.append("%s|%s|%s" % [
+			String(e["id"]),
+			String(e["action"]),
+			"1" if bool(e.get("disabled", false)) else "0",
+		])
+	var sig := ",".join(parts)
 	if sig != _world_sig:
 		_world_sig = sig
 		for e in entries:
