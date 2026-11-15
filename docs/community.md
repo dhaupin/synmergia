@@ -20,7 +20,7 @@ Synmergia is built in the open. The player-facing world and the source tree are 
 | [Rules](https://synmergia.creadev.org/rules) | How to play in good faith |
 | [Open Source](https://synmergia.creadev.org/opensource) | Why the project is open and who it is for |
 
-The player-facing wiki and Fandom live with the website, not in these docs. The Codex is generated from the game data; it is the canonical browse surface.
+Player-facing lore, rules, and the Codex live with the website, not in these docs. The Codex is generated from the game data; it is the canonical browse surface.
 
 ## Build and report
 

@@ -7,7 +7,7 @@ description: How Synmergia works, how it is built, and how to run a world of you
 
 # Synmergia Docs
 
-<p class="lede">How the world works, how it is built, and how to run your own. The player-facing codex, lore, rules, guides, and community wiki stay on the main website.</p>
+<p class="lede">How the world works, how it is built, and how to run your own. The player-facing Codex, lore, and rules stay on the main website.</p>
 
 <div class="doors">
   <a class="door" href="{{ '/world/' | relative_url }}">
@@ -59,7 +59,7 @@ the shipped surface and the verification gate.
 
 | Home | What it is |
 |---|---|
-| [synmergia.creadev.org](https://synmergia.creadev.org/) | The player surface: Play, Codex, Lore, Rules, Experiences, future guides, and Fandom/community wiki |
+| [synmergia.creadev.org](https://synmergia.creadev.org/) | The player surface: Play, Codex, Lore, Rules, and Experiences |
 | These docs | The systems view, build and contribution paths, content authoring, operations, reference, and the access and agent contract |
 | [labs/](https://github.com/dhaupin/synmergia/tree/main/labs) | In-flight PRDs, design history, session logs, and lane briefs - the workshop, not published truth |
 | [GitHub](https://github.com/dhaupin/synmergia) | The source, issues, pull requests, and release history |
