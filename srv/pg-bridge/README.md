@@ -1,5 +1,7 @@
 # pg-bridge
 
+> Part of the [srv sidecar and operations index](../README.md).
+
 HTTP-to-PostgreSQL/SQLite sidecar. Mirrors `srv/redis-bridge/` — same
 shape, same stdlib-only default backend, lazy psycopg2 import for prod.
 

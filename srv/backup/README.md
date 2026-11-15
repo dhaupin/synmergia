@@ -1,5 +1,7 @@
 # WorldManifest Backup & Disaster Recovery (D031)
 
+> Part of the [srv sidecar and operations index](../README.md).
+
 This service manages disaster recovery for the Synmergia `WorldManifest`, the authoritative storage for all locked seeds and world-level configuration.
 
 ## Storage Architecture (3 Tiers)

@@ -4,8 +4,9 @@
 # Include game/ (the Godot project)
 !game/
 
-# Include srv/ (deployment configs)
+# Include srv/ (deployment configs), but never bake TLS private material
 !srv/
+srv/certs/
 
 # Include Docker files
 !Dockerfile

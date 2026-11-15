@@ -4,7 +4,7 @@
 > Pages) and the **raw game client** (`web/` → served at `/game/`).
 > For the Docker game server (Godot headless + bridges + Postgres),
 > see the main [DEPLOY.md](./DEPLOY.md) — this guide complements it.
-> **Last updated:** 2026-10-19
+> **Last updated:** 2026-11-15
 
 ---
 
@@ -78,9 +78,9 @@ First production deploy is live off this exact recipe.
 
 4. **Deploy**. First deploy must be triggered from the dashboard
    ("Create deployment"); later pushes to `main` auto-deploy.
-5. **WAF rate rules** (post-deploy, dashboard → Security → WAF):
-   add the two gate rate-limit rules from **§5 below** — locking the
-   door before anyone finds it is cheaper than reacting.
+5. **WAF rate rules (optional).** The paid WAF is deliberately off
+   today — see §5. If it is turned on later, the paste-ready rules are
+   there; nothing else in the deploy changes.
 
 Why this is safe to build on a free CI: the heavy artifact (the
 46 MB wasm bundle) is committed in-repo (`web/`), so a Pages build
@@ -175,8 +175,9 @@ Plumbing (all committed):
 - `vite.config.ts` copy plugin — files over the cap are excluded from
   `dist/game/` (logged + noted in `dist/game/_oversize.txt`), so the
   validation error cannot recur as the project grows. **game.pck does
-  NOT hit this cap today** (5.8 MB), so it still ships in the bundle
-  and R2 is sourced from CI/local, not from the vite build.
+  NOT hit this cap today** (the tracked pack is currently well below
+  25 MiB), so it still ships in the bundle and R2 is sourced from
+  CI/local, not from the vite build.
 
 Also filed as the known alternative (not chosen): Godot's
 size-optimized Web export template could shrink the wasm under 25 MiB
@@ -189,8 +190,8 @@ R2 object first, then the bundled `dist/game/game.pck` copy (warm
 standby — a cold bucket can never 404 the whole client). The pack is
 content-addressed by its `?v=<sha256>` which still ships as the tiny
 tracked `game.pck.hash`, so the cache law is unchanged. Why migrate
-now: CI commit-backs were growing the repo ~6 MB per content change,
-and the pack will cross 25 MiB someday — this decouples it.
+now: CI commit-backs were growing the repo by several MB per content
+change, and the pack will cross 25 MiB someday — this decouples it.
 
 ### CORS: not needed for this architecture
 
@@ -202,7 +203,7 @@ policy belongs on the bucket; leave the dashboard CORS field empty
 likewise only governs cross-origin subresources, and these are same-
 origin.
 
-### Custom domain
+### Access gates (`/play` and `/admin`)
 
 Both gated routes share one mechanism (`src/lib/gate.ts` +
 `src/components/GateScreen.tsx`): a password field whose sha256 is
@@ -240,12 +241,14 @@ brute-force is theoretically possible. Layered reality:
 
 1. This client gate = friction against casual lookers and lazy
    scripts (does its job for a pre-launch teaser).
-2. **The real wall is the Cloudflare WAF rate rule** (§5) — it stops
-   the brute-forcer that actually tries 10k requests.
+2. **The free layers** (§5) are the client cooldown and the in-Function
+   per-IP limiter; they stop casual brute force and bandwidth bleeds,
+   not a determined attacker. A paid Cloudflare WAF rate rule is
+   optional.
 3. The bridge/admin data itself is protected server-side: the
-   pG/Redis bridges must **bind to loopback** inside the game-server
-   container (they do, per the main DEPLOY.md) and are only reachable
-   through the Pages proxy where CORS + origin checks apply.
+   pg/Redis bridges are **not published by Compose** and are reachable
+   only inside the game-server network (per the main DEPLOY.md); the
+   browser never talks to them directly.
 
 If/when admin needs a real boundary, the upgrade path is Cloudflare
 Access (Zero Trust) in front of `/admin*` — no app code change
@@ -345,7 +348,7 @@ Notes:
    Function proxy to the game server's bridge endpoints. Not urgent
    until the dashboard wants live state.
 2. **Commit-back trim** — game.pck is mirrored to R2 by CI AND still
-   committed back to the repo (~6 MB per content change). Once the
+   committed back to the repo on every content change. Once the
    R2 path has soak time, consider dropping the commit-back and
    making R2 the only home (requires the CI secrets to stay present).
 
@@ -387,5 +390,7 @@ prod.
 
 **See also:** [README.md](./README.md) (product + architecture) ·
 [DEPLOY.md](./DEPLOY.md) (server) · [DEPLOY-GPU.md](./DEPLOY-GPU.md) (3D pipeline) ·
+[DEVCODE.md](./DEVCODE.md) (dev environment) ·
+[srv/README.md](./srv/README.md) (sidecars and operations) ·
 [CONTRIBUTING.md](./CONTRIBUTING.md) (setup, tests, PRs) · [CREDITS.md](./CREDITS.md)
 (fonts, engine, third-party licenses) · [LICENSE](./LICENSE).

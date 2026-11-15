@@ -30,8 +30,9 @@ stop: the mechanics of actually RUNNING things.
 
 ### Multi-iso orchestrator (Julia sidecar)
 
-`srv/julia-bridge/` is a non-Godot HTTP service the engine reaches over
-the network, exactly like the pg/redis bridges. `MultiIsoService` (autoload)
+[`srv/julia-bridge/`](./srv/julia-bridge/README.md) is a non-Godot HTTP
+service the engine reaches over the network, exactly like the pg/redis
+bridges. `MultiIsoService` (autoload)
 mirrors the entity roster into it and runs multi-axis intersection queries.
 In a container the entrypoint starts the stdlib-only `server_lite.jl` on
 `127.0.0.1:8090` automatically (dev/prod/headless/coordinator); to run it
@@ -222,5 +223,6 @@ Recovery order:
 **See also:** [README.md](./README.md) (product + architecture) ·
 [AGENTS.md](./AGENTS.md) (code conventions) · [CONTRIBUTING.md](./CONTRIBUTING.md)
 (setup, tests, PRs) · [DEPLOY.md](./DEPLOY.md) (server) ·
-[DEPLOY_WEB.md](./DEPLOY_WEB.md) (web) · [CREDITS.md](./CREDITS.md) ·
-[LICENSE](./LICENSE).
+[DEPLOY_WEB.md](./DEPLOY_WEB.md) (web) · [DEPLOY-GPU.md](./DEPLOY-GPU.md) (assets) ·
+[labs/prd-db.md](./labs/prd-db.md) (storage) · [srv/README.md](./srv/README.md)
+(sidecars + operations) · [CREDITS.md](./CREDITS.md) · [LICENSE](./LICENSE).

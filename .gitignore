@@ -70,3 +70,6 @@ tools/
 __pycache__/
 *.pyc
 *.pyo
+
+# TLS private material (certbot writes here; never commit)
+srv/certs/

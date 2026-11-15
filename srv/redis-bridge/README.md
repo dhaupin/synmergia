@@ -1,5 +1,7 @@
 # redis-bridge
 
+> Part of the [srv sidecar and operations index](../README.md).
+
 HTTP-to-Redis sidecar. Mirrors `srv/pg-bridge/` — same shape, same
 stdlib-only default backend, lazy redis import for prod.
 
