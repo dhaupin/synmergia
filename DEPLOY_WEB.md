@@ -83,7 +83,7 @@ First production deploy is live off this exact recipe.
    there; nothing else in the deploy changes.
 
 Why this is safe to build on a free CI: the heavy artifact (the
-46 MB wasm bundle) is committed in-repo (`web/`), so a Pages build
+~38.8 MB / 37 MiB wasm bundle) is committed in-repo (`web/`), so a Pages build
 just copies files — no Godot, no Emscripten. The GitHub Actions
 workflow (`web-ci.yml`) only re-packs content builds; wasm rebuilds
 are deliberate events.
@@ -99,7 +99,7 @@ headers arrive with the domain automatically.
 Cloudflare Pages caps a Pages site at **25 MiB per file** — no plan
 override exists, and Workers static assets cap identically (Pages
 limits doc: developers.cloudflare.com/pages/platform/limits). Our
-Godot engine binary (`web/game.wasm`, ~38 MB) cannot ship in the
+Godot engine binary (`web/game.wasm`, ~38.8 MB) cannot ship in the
 bundle, so the 2026-10-19 deploy died at asset validation:
 
 ```
@@ -160,7 +160,7 @@ Verify after deploy:
 
 ```bash
 curl -sI https://<site>/game/game.wasm | head
-# 200, Content-Type: application/wasm, ~38 MB Content-Length
+# 200, Content-Type: application/wasm, ~38.8 MB Content-Length
 ```
 
 Plumbing (all committed):

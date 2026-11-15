@@ -4,11 +4,13 @@
 
 This service manages disaster recovery for the Synmergia `WorldManifest`, the authoritative storage for all locked seeds and world-level configuration.
 
-## Storage Architecture (3 Tiers)
+## Storage model
 
-1. **Postgres (Primary)**: Always-on operational store (`world_manifest` table) replicated to a read replica.
-2. **S3 Hot Tier (Daily Snapshot)**: Compressed `.json.gz` with cryptographic SHA-256 checksums, generated daily at 03:00 UTC.
-3. **Cold Tier (Glacier, 30-Day Retention)**: Snapshots older than 7 days are transitioned to cold storage. Purged after 30 days.
+The scripts implement the snapshot, restore, and hot-tier staging path. They do not provision the database, a read replica, S3, or a Glacier lifecycle; those are deployment-specific.
+
+1. **Postgres (primary)** — `world_manifest` in the operational database. A read replica is not created by the default Compose stack.
+2. **Hot tier** — compressed `.json.gz` + SHA-256. `upload.sh` writes to `S3_BUCKET_HOT` when AWS credentials are present; otherwise it uses the local `srv/backup/s3_hot/` replica.
+3. **Cold tier / 30-day retention** — local `s3_hot` snapshots older than 7 days move to `srv/backup/s3_cold/`; entries older than 30 days are purged. On AWS, wire bucket lifecycle rules for Glacier/expiration; `cold_tier.sh` and `purge.sh` currently log the S3 path only.
 
 ## Cron Schedule
 
@@ -36,6 +38,8 @@ This service manages disaster recovery for the Synmergia `WorldManifest`, the au
 ./srv/backup/manifest.sh --status
 ```
 
+> **Production check:** `backup.sh` expects a reachable Postgres. If it cannot connect and `TEST_MANIFEST_DATA` is unset, it writes a placeholder template and still exits 0. That is a test fixture, not a backup; verify the snapshot contents before relying on it.
+
 ## Limitations
 
-Restoring from a snapshot dated <date> loses all player state created before that date. This is the price of the recursive seed-state model. Per-player backups (preserved across manifest loss) are a v2 feature.
+Restoring from a snapshot dated <date> rewinds the world to that point; player state created or changed after that date is lost unless separately backed up. This is the price of the recursive seed-state model. Per-player backups (preserved across manifest loss) are a v2 feature.

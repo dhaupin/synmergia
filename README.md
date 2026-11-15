@@ -22,7 +22,7 @@ React/Vite/Tailwind app deployed on Cloudflare Pages.
 
 | Pillar | In the current code |
 |---|---|
-| **Combat** | 21 authored classes across 6 archetypes, 3 species, a skill academy, buffs/debuffs, arena combat, and open-world PvP |
+| **Combat** | 21 class resources: 18 playable classes across 6 archetypes and 3 species, plus 3 GM-only classes; a skill academy, buffs/debuffs, arena combat, and open-world PvP |
 | **World** | 20 km spherical planet, clipmap terrain, procedural props and resources, player housing, and timed world bosses |
 | **Economy** | Gathering, blacksmithing and crafting, direct player trading, and a black-market sink; a player-run market/auction is not shipped yet |
 | **Social** | Guilds with ranks and permissions, parties and raids, friends/ignore, chat, territory claims, and community governance |

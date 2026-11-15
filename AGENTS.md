@@ -1341,7 +1341,8 @@ engine binary is provisioned by `scripts/setup-dev.sh`, not by LFS.
   Godot + docs gate.
 - **Known pre-existing failures** on clean staging: `probe_riding` and
   `probe_planet_rebase_20km` (plus historically `probe_world_lattice`).
-  A full run is ~154 passed / 2 failed; those two are the floor.
+  The default set is not fully green: those two are the known floor, and
+  the total test count grows as tests land.
 - **Achievement triggers are the same dead-counter class.**
   `AchievementService.track/unlock_event` are keyed by a string
   `target_type` declared in `game/data/achievements/*.tres` and fed only

@@ -144,21 +144,21 @@ reads it through `ShardTuning` at boot (and re-applies on the param's
 `param_applied`), so a running shard's numbers flip without a reboot.
 Absent an override every shard runs the uniform curve.
 
-## 2. Golden-path commands (from `game/`)
+## 2. Golden-path commands
 
 ```bash
-# single probe (the only reliable unit-test idiom in this repo)
-cd game && godot --headless --path . --script res://tests/probe_crafting.gd
+# single probe (fastest isolated loop; run against the game project)
+(cd game && godot --headless --path . --script res://tests/probe_crafting.gd)
 
-# full default regression set (concurrent when it helps, serial when faster)
-sh ./scripts/godot_test_runner.sh            # from repo root
+# full default regression set (from the repo root; concurrent when it helps, serial when faster)
+sh ./scripts/godot_test_runner.sh
 sh ./scripts/godot_test_runner.sh probe_crafting probe_stream_flow_100m  # named
 sh ./scripts/godot_test_runner.sh --all      # every test_*.gd (tests/ + core/frame/), parallel
 sh ./scripts/godot_test_runner.sh --all -j 8 # more workers (capped at 2x cores / RAM)
 sh ./scripts/godot_test_runner.sh --resume /tmp/led  # carry a killed run on
 
-# charset lint
-godot --headless --path . --script res://tests/lint/test_lint_charset.gd
+# charset lint (from the repo root)
+godot --headless --path game --script res://tests/lint/test_lint_charset.gd
 ```
 
 Non-zero exit = failure. Ignore benign `WARNING: 14 ObjectDB instances
@@ -209,7 +209,7 @@ Recovery order:
 2. `sh ./scripts/setup-dev.sh` — rebuilds Godot 4.7.2, Node 20, bun and
    the system libraries from the repo alone (add `--with-templates`
    / `--with-blender` / `--with-web-probe` for the optional pieces).
-3. `cd game && sh ./scripts/godot_test_runner.sh probe_startup_flow` —
+3. `sh ./scripts/godot_test_runner.sh probe_startup_flow` (from the repo root) —
    this one boots the whole autoload tree end-to-end; if it passes, the
    soil's good and everything else is recoverable from code + TASKS.md.
 4. Read `labs/TASKS.md` tail for recent history/lore; read

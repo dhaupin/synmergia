@@ -37,7 +37,7 @@
 ### Prerequisites
 - Docker & Docker Compose v2
 - 4GB RAM minimum (8GB recommended)
-- Ports 80, 443, 6080, 9000 available
+- Ports 80/443 for nginx, 6080/5900 for the dev VNC viewer, and 9000 only if exposing the raw game port
 
 ### Start Development Server
 
@@ -114,6 +114,8 @@ docker compose --profile prod restart synmergia
 | noVNC | 6080 | Browser VNC (dev only) | dev |
 | PostgreSQL | 5432 | Persistent storage | dev, prod |
 | Redis | 6379 | Cache, sessions | dev, prod |
+| certbot | - | Certificate renewal loop | certbot |
+| certbot-init | - | One-shot first certificate issuance | certbot |
 
 ### Container Modes
 
@@ -277,7 +279,9 @@ chmod 600 .env
 sudo ufw allow 22/tcp    # SSH
 sudo ufw allow 80/tcp     # HTTP
 sudo ufw allow 443/tcp    # HTTPS
-sudo ufw allow 9000/tcp   # Godot (restrict in production)
+# Optional: only for native clients that connect to the raw game port.
+# The default nginx front does not need this open.
+sudo ufw allow 9000/tcp
 sudo ufw enable
 ```
 
@@ -322,12 +326,12 @@ sudo cat > /etc/systemd/system/synmergia.service << 'EOF'
 Description=Synmergia MMORPG Server
 Requires=docker.service
 After=network-online.target docker.service
-Wants=postgresql.service redis.service
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-WorkingDirectory=/path/to/synmergia  # Change to your installation path
+# Change this to your installation path.
+WorkingDirectory=/path/to/synmergia
 ExecStartPre=-/usr/bin/docker compose -f /path/to/synmergia/docker-compose.yml stop
 ExecStart=/usr/bin/docker compose --profile prod up -d
 ExecStop=/usr/bin/docker compose --profile prod down
@@ -740,20 +744,21 @@ docker compose start
 Add to crontab:
 
 ```bash
-# Daily database backup at 3 AM (use -T for non-interactive)
-0 3 * * * docker compose exec -T postgres pg_dump -U synmergia synmergia | gzip > /backups/synmergia_$(date +\%Y\%m\%d).sql.gz
+# Daily database backup at 3 AM (use -T for non-interactive).
+# Replace /path/to/synmergia with the checkout path; ensure /backups exists.
+0 3 * * * cd /path/to/synmergia && docker compose exec -T postgres pg_dump -U synmergia synmergia | gzip > /backups/synmergia_$(date +\%Y\%m\%d).sql.gz
 
 # Keep last 7 days
 0 4 * * * find /backups -name "synmergia_*.sql.gz" -mtime +7 -delete
 ```
 
-### WorldManifest Disaster Recovery (3-Tier Seed Storage)
+### WorldManifest Disaster Recovery
 
-The Synmergia `WorldManifest` contains the authoritative root seeds and world-level configuration. It uses a dedicated 3-tier disaster recovery architecture managed by scripts in `srv/backup/`:
+The Synmergia `WorldManifest` contains the authoritative root seeds and world-level configuration. The repo ships snapshot/restore and optional hot-tier upload scripts in `srv/backup/`. The default Compose stack does not provision a read replica, an S3 bucket, or a Glacier lifecycle; those are operator-managed.
 
-1. **Tier 1 (Operational)**: PostgreSQL `world_manifest` table with read replica.
-2. **Tier 2 (Hot Tier)**: Daily `.json.gz` snapshots with SHA-256 checksums uploaded to S3 at `03:00 UTC`.
-3. **Tier 3 (Cold Tier)**: Snapshots older than 7 days migrated to cold storage / Glacier; 30-day retention purge.
+1. **Operational** — the `world_manifest` table in the primary Postgres database.
+2. **Hot tier** — daily `.json.gz` snapshot + SHA-256. `upload.sh` writes to `S3_BUCKET_HOT` when AWS credentials are configured; otherwise it stages under `srv/backup/s3_hot/`.
+3. **Cold tier / retention** — local staging moves snapshots older than 7 days to `srv/backup/s3_cold/` and purges them after 30 days. On AWS, configure bucket lifecycle rules (Glacier/expiration); `cold_tier.sh` and `purge.sh` currently log the S3 path only until that wiring lands.
 
 #### Commands
 
@@ -768,7 +773,11 @@ The Synmergia `WorldManifest` contains the authoritative root seeds and world-le
 ./srv/backup/manifest.sh --restore --from 2026-09-15
 ```
 
-> **Disaster Recovery Note:** Restoring WorldManifest from a snapshot rewinds the world seed-state tree to that date. All player state created prior to that date will be restored to that snapshot's state. See `srv/backup/README.md` for full details.
+> **Backup precondition:** `backup.sh` expects a reachable Postgres. If it cannot connect and `TEST_MANIFEST_DATA` is unset, it writes a placeholder template and still exits 0; that is not a production backup. Verify the snapshot contents before treating it as recoverable.
+
+> **Disaster Recovery Note:** Restoring WorldManifest from a snapshot rewinds the world seed-state tree to that date. All player state created or changed **after** that date is lost unless separately backed up; the snapshot state is what returns. See `srv/backup/README.md` for full details.
+>
+> **Scheduling:** `srv/backup/README.md` has the cron example; the backup scripts do not install it for you.
 
 ---
 

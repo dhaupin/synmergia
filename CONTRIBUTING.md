@@ -103,8 +103,9 @@ long-form style guide. The short version:
    gameplay or balance change, say what a player will notice.
 5. **Be patient and kind.** This is a small crew; reviews may take a bit.
 
-CI runs the website build and lint. Game-side changes are verified by the
-probe suite; run it locally before pushing so CI is not your first signal.
+CI runs the website build and lint, the Godot default regression set, and the
+relative-Markdown link gate. Game-side changes are still verified by the probe
+suite; run it locally before pushing so CI is not your first signal.
 
 ### Commit messages
 
