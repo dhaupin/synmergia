@@ -2,13 +2,13 @@
 ##
 ## Exercised through the dir seam (no repo mutation): a temp dir with
 ## runtime-generated PNGs proves the drop-in contract, then the SHIPPED
-## pack in assets/branding/ is verified directly.
+## pack in data/brand/ is verified directly.
 ##
 ## Run: cd game && godot --headless --path . --script res://tests/test_branding.gd
 extends SceneTree
 
 const BrandScript = preload("res://core/utils/branding.gd")
-const SHIP_DIR := "res://assets/branding/"
+const SHIP_DIR := "res://data/brand/"
 
 var _fails := 0
 var _asserts := 0
@@ -63,7 +63,7 @@ func _test_drop_in_pickup() -> void:
 
 
 func _test_shipped_pack() -> void:
-	# The real pack in assets/branding/ (user-uploaded, imported).
+	# The real pack in data/brand/ (user-uploaded, imported).
 	_ok("shipped: has_pack", BrandScript.has_pack(SHIP_DIR))
 	_ok("shipped: emblem", BrandScript.emblem(SHIP_DIR) != null)
 	_ok("shipped: emblem_small", BrandScript.emblem_small(SHIP_DIR) != null)

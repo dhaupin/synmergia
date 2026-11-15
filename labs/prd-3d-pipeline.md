@@ -1,12 +1,14 @@
 # 3D & Modeling Pipeline (Blender -> Godot)
 
 > **See also:** [`prd-art-pipeline.md`](./prd-art-pipeline.md) - Lane D, the
-> asset-generation lane that consumes this pipeline law. This doc owns the
-> toolchain/import law; Lane D owns the per-suite generation adapters.
+> asset-generation lane that consumes this pipeline law;
+> [`prd-models.md`](./prd-models.md) - the `ModelData` schema and prototype
+> retirement. This doc owns the toolchain/import law; Lane D owns the
+> per-suite generation adapters.
 
 > **Status:** PROVEN 2026-09-25 -- blacksmith NPC generated, exported,
 > imported, animated, and probed end-to-end in this repo. Screenshot:
-> `game/assets/art/screenshots/npc_blacksmith_village.png`. Install blender once
+> `game/data/art/screenshots/npc_blacksmith_village.png`. Install blender once
 > with `sudo apt-get update && sudo apt-get install -y blender`, then
 > verify: `sh ./scripts/blender_smoke_test.sh`.
 
@@ -22,23 +24,23 @@
 
 ## 2. Asset flow rules
 
-1. **Source `.blend` files live under `game/assets/art/src/`**, hidden from
-   Godot by `game/assets/art/.gdignore`, and versioned with the repo. Only
-   exported `.glb` enters `game/models/`.
+1. **Source `.blend` files live under `game/data/art/src/`**, hidden from
+   Godot by `game/data/art/.gdignore`, and versioned with the repo. Only
+   exported `.glb` enters `game/data/models/`.
 2. **Naming mirrors the data id conventions**: `mount_plains_runner.glb`,
    `npc_village_elder.glb`, `furn_fireplace_stone.glb`. A model file
    name resolves to its data id with zero mapping code.
-3. **The .glb filename IS the model registry** -- there is no separate
-   model-descriptor schema. `model_path`/`scene_path` fields on data
-   resources stay EMPTY until the real file exists in `game/models/`;
-   the naming lint fails any data file pointing at a phantom path
-   (this killed 14 historical phantom refs in one sweep).
-3. **Pivot + scale law:** all props exported with origin at the base,
+3. **The .glb filename is the model id; the `ModelData` record is the
+   descriptor** (`game/data/models/<family>/<id>.tres`). Actor data uses
+   `model_id`; `model_path`/`scene_path` do not hardcode a GLB path. The
+   naming lint still fails a record that resolves to a phantom asset. See
+   `labs/prd-models.md`.
+4. **Pivot + scale law:** all props exported with origin at the base,
    +Y up, 1 unit = 1 meter. Mounts/vehicles pivot at saddle/driver
    seat. Breaking this law breaks housing grid placement.
-4. **Textures:** packed into the .glb for props (2k max), external for
+5. **Textures:** packed into the .glb for props (2k max), external for
    hero assets. No .blend-embedded images.
-5. **Rigs:** skeleton per creature family (biped, quadruped, bird,
+6. **Rigs:** skeleton per creature family (biped, quadruped, bird,
    fish) shared across members so animations swap by skeleton id.
 
 ## 3. Movement-flow (animation) conventions
@@ -54,7 +56,7 @@
 ## 4. Procgen assembly contract
 
 Procgen never invents meshes; it composes the block vocabulary
-(`game/models/blocks/`) with placement rules and drops authored
+(`game/data/models/blocks/`) with placement rules and drops authored
 anchors (whole-city .glb) on top. Every assembled result must be
 seed-reproducible (prd-world.md sec 3.4). An AI-assisted layout
 generator, if adopted, emits the same block vocabulary -- indistinguishable
@@ -72,7 +74,7 @@ CI rotation once Blender lands on the build image.
 The whole flow is committed; any agent can reproduce it:
 
 ```bash
-# 1. generate the model (writes straight into game/models/npcs/)
+# 1. generate the model (writes straight into game/data/models/npcs/)
 blender --background --factory-startup --python scripts/gen_blacksmith_model.py
 # 2. verify in-engine (3 probes + movement profiles test)
 sh ./scripts/godot_test_runner.sh

@@ -45,11 +45,11 @@ func _init() -> void:
 	var prov_src := FileAccess.open("res://scenes/worlds/terrain_provider.gd", FileAccess.READ).get_as_text()
 	_ok = _check("provider: the skin lane derives through TerrainGen.splat_skin_from", prov_src.contains("TerrainGen.splat_skin_from"))
 	# THE FIVE SKINS exist and the shader samples all five.
-	var tex_dir := "res://assets/textures/terrain/"
+	var tex_dir := "res://data/textures/terrain/"
 	for t in ["grass", "dirt", "rock", "sand", "snow"]:
 		var tex: Texture2D = load(tex_dir + t + ".png")
 		_ok = _check("skin '%s' loads at 256px" % t, tex != null and tex.get_size() == Vector2(256, 256))
-	var shader_src := FileAccess.open("res://assets/shaders/terrain_splat.gdshader", FileAccess.READ).get_as_text()
+	var shader_src := FileAccess.open("res://data/shaders/terrain_splat.gdshader", FileAccess.READ).get_as_text()
 	for t in ["tex_grass", "tex_dirt", "tex_rock", "tex_sand", "tex_snow"]:
 		_ok = _check("shader samples '%s'" % t, shader_src.contains(t))
 	_ok = _check("shader does not re-decide biomes (weights only from COLOR/UV2)",

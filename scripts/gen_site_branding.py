@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate the site's brand-derived assets from the game's logo pack.
 
-The shipped logos live in game/assets/branding/ (the same 4-up pack the
+The shipped logos live in game/data/brand/ (the same 4-up pack the
 engine uses via res://core/utils/branding.gd). The website needs the
 derivative shapes a browser/OG consumer wants -- a favicon, an
 apple-touch-icon, and a social card -- which are NOT the raw game art.
@@ -10,8 +10,8 @@ the pack (re-run after the logos change; the math is idempotent).
 
 Inputs (copied to public/branding/ by the build, or read from the game
 tree directly):
-  game/assets/branding/logo-synmergia-emblem.png        (the large star)
-  game/assets/branding/logo-synmergia-wordmark.png      (the wordmark)
+  game/data/brand/logo-synmergia-emblem.png        (the large star)
+  game/data/brand/logo-synmergia-wordmark.png      (the wordmark)
 
 Outputs (public/):
   favicon.ico              multi-size 16/32/48 (browsers, tabs)

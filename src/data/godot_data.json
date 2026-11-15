@@ -1,5 +1,5 @@
 {
-  "lastSyncedAt": "2026-11-14T23:44:36.286Z",
+  "lastSyncedAt": "2026-11-15T07:23:29.414Z",
   "counts": {
     "classes": 39,
     "weapons": 82,
@@ -331,6 +331,9 @@
       "base_attack_power": 12,
       "attack_power_per_level": 2,
       "base_spell_power": 5,
+      "crit_chance_bonus": 0.1,
+      "crit_damage_bonus": 0.15,
+      "attack_speed_bonus": 0.15,
       "spell_power_per_level": 1,
       "starting_skills": [
         "akkan_pounce"
@@ -630,6 +633,9 @@
       "base_attack_power": 12,
       "attack_power_per_level": 2,
       "base_spell_power": 5,
+      "crit_chance_bonus": 0.1,
+      "crit_damage_bonus": 0.15,
+      "attack_speed_bonus": 0.15,
       "spell_power_per_level": 1,
       "starting_skills": [
         "human_ambush"
@@ -1051,6 +1057,9 @@
       "base_attack_power": 12,
       "attack_power_per_level": 2,
       "base_spell_power": 5,
+      "crit_chance_bonus": 0.1,
+      "crit_damage_bonus": 0.15,
+      "attack_speed_bonus": 0.15,
       "spell_power_per_level": 1,
       "starting_skills": [
         "synthetic_ping_scan"
@@ -1417,6 +1426,9 @@
       "base_attack_power": 12,
       "attack_power_per_level": 2,
       "base_spell_power": 5,
+      "crit_chance_bonus": 0.1,
+      "crit_damage_bonus": 0.15,
+      "attack_speed_bonus": 0.15,
       "spell_power_per_level": 1,
       "starting_skills": [
         "akkan_pounce"
@@ -1575,6 +1587,9 @@
       "base_attack_power": 12,
       "attack_power_per_level": 2,
       "base_spell_power": 5,
+      "crit_chance_bonus": 0.1,
+      "crit_damage_bonus": 0.15,
+      "attack_speed_bonus": 0.15,
       "spell_power_per_level": 1,
       "starting_skills": [
         "human_ambush"
@@ -2004,6 +2019,9 @@
       "base_attack_power": 12,
       "attack_power_per_level": 2,
       "base_spell_power": 5,
+      "crit_chance_bonus": 0.1,
+      "crit_damage_bonus": 0.15,
+      "attack_speed_bonus": 0.15,
       "spell_power_per_level": 1,
       "starting_skills": [
         "synthetic_ping_scan"
@@ -6771,7 +6789,7 @@
       "xp_reward": 55,
       "skills": [],
       "hitbox_profile_id": "hitbox_humanoid",
-      "model_path": "res://models/enemies/enemy_bandit.glb",
+      "model_path": "res://data/models/enemies/enemy_bandit.glb",
       "icon_path": "",
       "scale": 1,
       "animation_set": "humanoid",
@@ -6905,6 +6923,8 @@
       "spell_power": 90,
       "armor": 120,
       "resistance": 40,
+      "crit_chance": 0.2,
+      "crit_damage": 0.5,
       "attack_range": 3,
       "attack_speed": 0.6,
       "move_speed": 3,
@@ -7310,6 +7330,8 @@
       "spell_power": 15,
       "armor": 54,
       "resistance": 26,
+      "crit_chance": 0.12,
+      "crit_damage": 0.25,
       "attack_range": 2.5,
       "attack_speed": 1.25,
       "move_speed": 4.2,
@@ -7361,6 +7383,8 @@
       "spell_power": 20,
       "armor": 22,
       "resistance": 12,
+      "crit_chance": 0.12,
+      "crit_damage": 0.25,
       "attack_range": 2.5,
       "attack_speed": 1.5,
       "move_speed": 5,
@@ -7412,6 +7436,8 @@
       "spell_power": 92,
       "armor": 48,
       "resistance": 40,
+      "crit_chance": 0.12,
+      "crit_damage": 0.25,
       "attack_range": 2.5,
       "attack_speed": 1.1,
       "move_speed": 3.8,
@@ -7515,6 +7541,8 @@
       "spell_power": 0,
       "armor": 150,
       "resistance": 150,
+      "crit_chance": 0.2,
+      "crit_damage": 0.5,
       "attack_range": 3.5,
       "attack_speed": 0.4,
       "move_speed": 1.2,
@@ -7563,6 +7591,8 @@
       "spell_power": 8,
       "armor": 34,
       "resistance": 10,
+      "crit_chance": 0.12,
+      "crit_damage": 0.25,
       "attack_range": 2.5,
       "attack_speed": 0.7,
       "move_speed": 3.4,
@@ -7716,6 +7746,8 @@
       "spell_power": 48,
       "armor": 34,
       "resistance": 24,
+      "crit_chance": 0.12,
+      "crit_damage": 0.25,
       "attack_range": 3,
       "attack_speed": 1.15,
       "move_speed": 6.2,
@@ -7785,7 +7817,7 @@
       "xp_reward": 15,
       "skills": [],
       "hitbox_profile_id": "hitbox_blob",
-      "model_path": "res://models/enemies/enemy_slime.glb",
+      "model_path": "res://data/models/enemies/enemy_slime.glb",
       "icon_path": "res://icons/enemies/slime.png",
       "scale": 1,
       "animation_set": "slime",
@@ -7816,6 +7848,8 @@
       "spell_power": 120,
       "armor": 96,
       "resistance": 62,
+      "crit_chance": 0.2,
+      "crit_damage": 0.5,
       "attack_range": 4,
       "attack_speed": 0.7,
       "move_speed": 3.2,
@@ -7887,7 +7921,7 @@
       "skills": [],
       "movement_profile_id": "",
       "hitbox_profile_id": "",
-      "model_path": "res://models/enemies/enemy_thistle_boar.glb",
+      "model_path": "res://data/models/enemies/enemy_thistle_boar.glb",
       "icon_path": "",
       "scale": 1.1,
       "animation_set": "troll",
@@ -7918,6 +7952,8 @@
       "spell_power": 104,
       "armor": 52,
       "resistance": 44,
+      "crit_chance": 0.12,
+      "crit_damage": 0.25,
       "attack_range": 2.5,
       "attack_speed": 0.9,
       "move_speed": 4,
@@ -8039,7 +8075,7 @@
       "xp_reward": 0,
       "skills": [],
       "hitbox_profile_id": "hitbox_dummy",
-      "model_path": "res://models/enemies/enemy_training_dummy.glb",
+      "model_path": "res://data/models/enemies/enemy_training_dummy.glb",
       "icon_path": "",
       "scale": 1,
       "animation_set": "",
@@ -8070,6 +8106,8 @@
       "spell_power": 140,
       "armor": 75,
       "resistance": 65,
+      "crit_chance": 0.2,
+      "crit_damage": 0.5,
       "attack_range": 12,
       "attack_speed": 0.8,
       "move_speed": 3,
@@ -8119,6 +8157,8 @@
       "spell_power": 0,
       "armor": 40,
       "resistance": 15,
+      "crit_chance": 0.12,
+      "crit_damage": 0.25,
       "attack_range": 3,
       "attack_speed": 0.6,
       "move_speed": 2.8,
@@ -8219,6 +8259,8 @@
       "spell_power": 200,
       "armor": 100,
       "resistance": 80,
+      "crit_chance": 0.2,
+      "crit_damage": 0.5,
       "attack_range": 40,
       "attack_speed": 0.5,
       "move_speed": 3.5,
@@ -8287,7 +8329,7 @@
       "skills": [],
       "movement_profile_id": "movement_quadruped",
       "hitbox_profile_id": "hitbox_beast_medium",
-      "model_path": "res://models/enemies/enemy_wolf.glb",
+      "model_path": "res://data/models/enemies/enemy_wolf.glb",
       "icon_path": "",
       "scale": 1.2,
       "animation_set": "wolf",
@@ -12463,6 +12505,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "akkan_exploding_rune",
       "display_name": "Exploding Rune",
       "description": "Plants a volatile rune at the target location. After a brief delay it detonates violently.",
@@ -12491,6 +12534,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "akkan_rune_chain",
       "display_name": "Rune Chain",
       "description": "Chains arcane runes between up to 3 enemies, dealing damage to each and slowing them.",
@@ -12524,6 +12568,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "akkan_rune_human_sig",
       "display_name": "Ancestral Runes",
       "description": "SIGNATURE Akkan Mage technique through human rune mastery. A powerful rune-enhanced arcane attack.",
@@ -12551,6 +12596,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "akkan_rune_sig",
       "display_name": "Rune Mastery",
       "description": "SIGNATURE Akkan Mage technique. Channels void energy into devastating rune-based attacks that pierce magical barriers.",
@@ -12578,6 +12624,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "akkan_rune_sigil",
       "display_name": "Rune Sigil",
       "description": "Places a rune sigil that detonates for area damage.",
@@ -12606,6 +12653,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "akkan_rune_strike",
       "display_name": "Rune Strike",
       "description": "Inscribes a rune into the ground that detonates on contact with a foe, dealing rune damage. The rune's first blast, single-target at first; from the epic band it fans into a hostile ring, uncapped at the top tiers.",
@@ -12634,6 +12682,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "akkan_rune_synthetic_sig",
       "display_name": "System Rune",
       "description": "SIGNATURE Akkan Mage technique through synthetic rune integration. Channels void runes into a system-level attack.",
@@ -12688,6 +12737,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "akkan_rune_tremor",
       "display_name": "Rune Tremor",
       "description": "Detonates a lattice of inscribed runes beneath the target, sending a shockwave through the ground that damages and staggers every enemy caught in it.",
@@ -12721,6 +12771,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "akkan_rune_void_bolt",
       "display_name": "Void Bolt",
       "description": "Channels Akkan void energy into a bolt of destruction.",
@@ -12776,6 +12827,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "akkan_sorcerer_human_sig",
       "display_name": "Void Arcane",
       "description": "SIGNATURE Human Sorcerer technique through Akkan void energy. Channels Akkan void into a devastating arcane attack.",
@@ -12803,6 +12855,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "akkan_sorcerer_synthetic_sig",
       "display_name": "Void Cascade",
       "description": "SIGNATURE Synthetic Sorcerer technique through Akkan void energy. Channels Akkan void into a cascading arcane attack.",
@@ -12830,6 +12883,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "akkan_void_flay",
       "display_name": "Void Flay",
       "description": "A sustained void attack dealing damage over time.",
@@ -12885,6 +12939,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "human_arcane_aura",
       "display_name": "Arcane Aura",
       "description": "Creates an aura of arcane energy that damages nearby enemies.",
@@ -12940,6 +12995,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "human_arcane_bolt",
       "display_name": "Arcane Bolt",
       "description": "Fires a bolt of pure arcane energy. Single-target at first; from the epic band the bolt bursts into a hostile ring, uncapped at the top tiers.",
@@ -12968,6 +13024,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "human_arcane_explosion",
       "display_name": "Arcane Explosion",
       "description": "Detonates stored arcane energy for massive damage.",
@@ -13052,6 +13109,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "human_sorcerer_arcane_missiles",
       "display_name": "Arcane Missiles",
       "description": "Three darts of raw arcane, each unerring.",
@@ -13081,6 +13139,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "human_sorcerer_fireball",
       "display_name": "Fireball",
       "description": "A roiling sphere of flame that bursts and clings.",
@@ -13115,6 +13174,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "human_sorcerer_frost_nova",
       "display_name": "Frost Nova",
       "description": "A bloom of frost that roots every foe in place.",
@@ -13149,6 +13209,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "human_sorcerer_human_sig",
       "display_name": "Arcane Surge",
       "description": "SIGNATURE Human Sorcerer technique. A devastating arcane blast that bypasses magical resistance.",
@@ -13205,6 +13266,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "human_sorcerer_synthetic_sig",
       "display_name": "System Breach",
       "description": "SIGNATURE Synthetic Sorcerer technique through human precision. A devastating system-level arcane attack.",
@@ -13261,6 +13323,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "synthetic_psion_mind_flay",
       "display_name": "Mind Flay",
       "description": "Grinds at a mind, doing damage that will not stop.",
@@ -13319,6 +13382,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "synthetic_psion_psychic_scream",
       "display_name": "Psychic Scream",
       "description": "A shriek of will that stuns every mind nearby.",
@@ -13353,6 +13417,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "synthetic_psion_synthetic_sig",
       "display_name": "System Corruption",
       "description": "SIGNATURE Synthetic Sorcerer technique. A devastating system-level arcane attack that corrupts target data.",
@@ -13407,6 +13472,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "synthetic_sorcerer_human_sig",
       "display_name": "Adaptive Corruption",
       "description": "SIGNATURE Human Sorcerer technique through synthetic adaptability. Adapts corruption to exploit the target's weaknesses.",
@@ -13467,6 +13533,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "synthetic_system_bolt",
       "display_name": "System Bolt",
       "description": "Fires a corrupted data bolt that damages the target's systems. Single-target at first; from the epic band the bolt bursts into a hostile ring, uncapped at the top tiers.",
@@ -13495,6 +13562,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "synthetic_system_nuke",
       "display_name": "System Nuke",
       "description": "Initiates a system-level attack that deals massive damage.",
@@ -13523,6 +13591,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "synthetic_system_override",
       "display_name": "System Override",
       "description": "Attempts to override the target's systems, dealing damage and silencing them.",
@@ -13556,6 +13625,7 @@
       "script": {
         "_extResource": "1"
       },
+      "damage_type": "magical",
       "id": "synthetic_system_spam",
       "display_name": "System Spam",
       "description": "Spams the target with corrupted data packets, dealing damage over time.",

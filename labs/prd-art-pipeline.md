@@ -5,6 +5,7 @@
 > that need their per-suite bodies filled on a real GPU box.
 >
 > **Law it obeys:** `labs/prd-3d-pipeline.md` (the pipeline law),
+> `labs/prd-models.md` (the ModelData schema + prototype boundary),
 > `DEPLOY-GPU.md` (the GPU surface + artifact contract), and the locked
 > decisions in `labs/prd-spherical-mvp.md` sec 2.5/2.6 (no resource
 > packs; Blender MCP NOT adopted).
@@ -12,7 +13,7 @@
 ## 1. What Lane D is
 
 Lane D is the asset lane: it turns a reference (concept art, a prompt, a
-description) into a shipped `.glb` (or texture) in `game/models/`, and it
+description) into a shipped `.glb` (or texture) in `game/data/models/`, and it
 runs for a LONG time -- model generation and Blender batch exports are
 minutes-to-hours. That unbounded runtime is exactly why it is its own
 lane: it must never block the code lanes (A/B/C).
@@ -36,8 +37,8 @@ Provisioning + the artifact contract live in `DEPLOY-GPU.md`. Summary:
   re-run `scripts/gpu/setup_gpu_env.sh` each session.
 - **Later: RunPod / Vast / Lambda / cloud** -- same script, same contract.
   The script IS the interface.
-- **Artifacts** flow `game/assets/art/src/` (references, tracked) -> GPU -> `game/assets/art/out/`
-  (scratch, gitignored) -> `game/models/<data_id>.glb` (tracked).
+- **Artifacts** flow `game/data/art/src/` (references, tracked) -> GPU -> `game/data/art/out/`
+  (scratch, gitignored) -> `game/data/models/<data_id>.glb` (tracked).
 
 ## 4. The suites (what to reach for)
 
@@ -58,9 +59,9 @@ SHIPPED (works today, no GPU needed to verify):
 - `scripts/gpu/gen_from_image.py` -- the generation helper. **The
   `--normalize` path is fully implemented and verified**: it scales a
   mesh to a target height, drops it to base-at-origin, centers X/Z, and
-  writes `game/models/<name>.glb`. (Verified: a 3 m mesh floating at
+  writes `game/data/models/<name>.glb`. (Verified: a 3 m mesh floating at
   Y=5, off-center -> exactly 1.2 m tall, base at 0, centered.)
-- `game/assets/art/src/` (tracked) + `game/assets/art/out/` (gitignored).
+- `game/data/art/src/` (tracked) + `game/data/art/out/` (gitignored).
 
 HOOKS (need a real GPU box to fill in):
 - The suite adapters in `gen_from_image.py` (`_suite_triposr` etc.) call

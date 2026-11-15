@@ -157,9 +157,9 @@ print_contract() {
     cat <<'EOF'
 
 ---------------------------- ARTIFACT CONTRACT ----------------------------
-  source:  game/assets/art/src/        (.blend, reference images)   -- versioned
-  scratch: game/assets/art/out/        (.glb + textures from GPU)   -- may be pruned
-  land:    game/models/<data_id>.glb                    -- filename == data id
+  source:  game/data/art/src/        (.blend, reference images)   -- versioned
+  scratch: game/data/art/out/        (.glb + textures from GPU)   -- may be pruned
+  land:    game/data/models/<data_id>.glb                    -- filename == data id
   law:     origin at base, +Y up, 1 unit = 1 meter
   verify:  sh ./scripts/blender_smoke_test.sh  (CPU) + naming lint + probe
   NEVER:   commit a .blend into game/, or point a .tres at a phantom .glb

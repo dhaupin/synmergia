@@ -1,7 +1,7 @@
 [gd_scene load_steps=6 format=3 uid="uid://blacksmith_village_01"]
 
 [ext_resource type="Script" path="res://core/entities/npc_entity.gd" id="1"]
-[ext_resource type="PackedScene" path="res://models/npcs/npc_blacksmith_village.glb" id="2"]
+[ext_resource type="PackedScene" path="res://data/models/npcs/npc_blacksmith_village.glb" id="2"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 height = 2.0

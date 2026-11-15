@@ -142,7 +142,7 @@ in [CREDITS.md](./CREDITS.md).
 | `game/` | the Godot project (the game itself) |
 | `src/` | the website (React + Vite + Tailwind) |
 | `web/` | the raw engine shell served at `/game/` |
-| `game/data/` | all game content (`.tres` resources) |
+| `game/data/` | canonical content: gameplay `.tres`, models, art, brand, textures, shaders |
 | `labs/` | design docs and PRDs |
 | `scripts/` | build, test, and generation scripts |
 

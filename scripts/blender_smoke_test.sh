@@ -31,8 +31,8 @@ fi
 echo "[smoke]     exported $(du -h "${OUT_GLB}" | cut -f1)"
 
 echo "[smoke] 2/3 copying into godot project..."
-mkdir -p "${ROOT_DIR}/game/models/blocks"
-cp "${OUT_GLB}" "${ROOT_DIR}/game/models/blocks/block_ref_cube.glb"
+mkdir -p "${ROOT_DIR}/game/data/models/blocks"
+cp "${OUT_GLB}" "${ROOT_DIR}/game/data/models/blocks/block_ref_cube.glb"
 
 echo "[smoke] 3/3 loading via headless godot..."
 cd "${ROOT_DIR}/game"
@@ -45,7 +45,7 @@ if grep -qE "SCRIPT ERROR|Parse Error|Failed to load" /tmp/godot_import.log; the
 	exit 1
 fi
 
-if [ -f "res://models/blocks/block_ref_cube.glb" ] || [ -f "${ROOT_DIR}/game/models/blocks/block_ref_cube.glb" ]; then
+if [ -f "res://data/models/blocks/block_ref_cube.glb" ] || [ -f "${ROOT_DIR}/game/data/models/blocks/block_ref_cube.glb" ]; then
 	echo "[smoke] PASS: blender -> glb -> godot pipeline healthy"
 else
 	echo "[smoke] FAIL: glb not present after import"

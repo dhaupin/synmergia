@@ -141,12 +141,14 @@ lanes land. That is the merge point, not a lane's job.
 
 ### Lane D -- Modeling / assets / art (Blender + gen pipelines)
 
-- **Owns:** `game/assets/art/**` (source `.blend`, textures, renders),
-  `game/models/**` (exported `.glb`), `scripts/gen_*_model.py`,
+- **Owns:** `game/data/art/**` (source `.blend`, textures, renders),
+  `game/data/models/**` (exported `.glb`), `scripts/gen_*_model.py`,
   `scripts/gen_icons.py`, `scripts/blender_*.sh`, and a new
-  `labs/prd-art-pipeline.md`. Reads `labs/prd-3d-pipeline.md` as law.
+  `labs/prd-art-pipeline.md`. Reads `labs/prd-3d-pipeline.md` and
+  `labs/prd-models.md` as law; the existing model GLBs are a prototype
+  pass, not the target schema.
 - **Workspace:** source, scratch, and rendered references live under
-  `game/assets/art/**`; `game/models/**` is the exported `.glb` registry,
+  `game/data/art/**`; `game/data/models/**` is the exported `.glb` registry,
   not a second source tree.
 - **Work:** author/generate 3D models (NPCs, enemies, mounts, props,
   dwellings), UV/rig/texture work, icon and texture generation, and
@@ -157,7 +159,7 @@ lanes land. That is the merge point, not a lane's job.
   pipeline is PROVEN (`labs/prd-3d-pipeline.md` sec 1 + sec 6);
   `scripts/gen_blacksmith_model.py` / `gen_wolf_model.py` /
   `gen_icons.py` are the working recipes; `scripts/blender_smoke_test.sh`
-  proves the chain. `game/models/**` is the `.glb` registry (filename ==
+  proves the chain. `game/data/models/**` is the `.glb` registry (filename ==
   data id).
 - **Lane D obeys the locked decisions** (`labs/prd-spherical-mvp.md` sec
   2): (5) no resource packs -- the `.glb` naming registry + pck flow
@@ -176,14 +178,14 @@ lanes land. That is the merge point, not a lane's job.
   but it is a SEPARATE compute surface: the lane would push inputs out
   and pull `.glb`/textures back. Treat it as a tool a lane *calls*, not
   a lane by itself, and keep the artifacts flowing through the repo
-  (`game/assets/art/src/` -> `game/models/`) so the pipeline law still holds. Before
+  (`game/data/art/src/` -> `game/data/models/`) so the pipeline law still holds. Before
   wiring it, confirm the owner wants that external hop (it leaves the
   sandbox).
 - **Why D is separate:** it is the only lane whose tasks are
   unbounded-time and resource-heavy (GPU/CPU, large binaries). Running
   it beside A/B/C means a 40-minute Blender batch never stalls the
-  code lanes, and vice versa. It also rarely collides on files: `game/assets/art/`
-  and `game/models/` are disjoint from every code lane.
+  code lanes, and vice versa. It also rarely collides on files: `game/data/art/`
+  and `game/data/models/` are disjoint from every code lane.
 
 ## Cost honesty
 

@@ -2,7 +2,7 @@
 #
 # Reuses each generator's own build pipeline (single source of truth
 # for the look), adds a light rig + camera, and renders PNGs for the
-# repo (game/assets/art/screenshots/). Cycles on CPU: EEVEE/Workbench need a
+# repo (game/data/art/screenshots/). Cycles on CPU: EEVEE/Workbench need a
 # display and die with "Unable to open a display" headless.
 #
 # Usage:
@@ -10,8 +10,8 @@
 #   model: blacksmith (default) | wolf
 #
 # Defaults:
-#   blacksmith -> game/assets/art/screenshots/npc_blacksmith_village.png
-#   wolf       -> game/assets/art/screenshots/enemy_wolf.png
+#   blacksmith -> game/data/art/screenshots/npc_blacksmith_village.png
+#   wolf       -> game/data/art/screenshots/enemy_wolf.png
 
 import bpy
 import math
@@ -28,9 +28,9 @@ def _parse_args():
         rest = argv[argv.index("--") + 1:]
     model = rest[0] if rest else "blacksmith"
     out = rest[1] if len(rest) > 1 else {
-        "blacksmith": "game/assets/art/screenshots/npc_blacksmith_village.png",
-        "wolf": "game/assets/art/screenshots/enemy_wolf.png",
-    }.get(model, "game/assets/art/screenshots/%s.png" % model)
+        "blacksmith": "game/data/art/screenshots/npc_blacksmith_village.png",
+        "wolf": "game/data/art/screenshots/enemy_wolf.png",
+    }.get(model, "game/data/art/screenshots/%s.png" % model)
     return model, out
 
 

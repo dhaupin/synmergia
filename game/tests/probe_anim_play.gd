@@ -9,7 +9,7 @@ extends SceneTree
 ## under the matching node name before play/seek resolves anything.
 
 func _init() -> void:
-	var scene: PackedScene = load("res://models/npcs/npc_blacksmith_village.glb")
+	var scene: PackedScene = load("res://data/models/npcs/npc_blacksmith_village.glb")
 	if scene == null:
 		push_error("FAIL: glb did not load")
 		quit(1)

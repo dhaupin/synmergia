@@ -14,7 +14,7 @@
 # 1.067s at 30fps). stdlib only; run AFTER the generator.
 #
 # Usage: python3 scripts/fix_clip_ranges.py [path/to/model.glb]
-# Default path: game/models/npcs/npc_blacksmith_village.glb
+# Default path: game/data/models/npcs/npc_blacksmith_village.glb
 
 import json
 import struct
@@ -66,7 +66,7 @@ def write_glb(path, js, bin_data):
 
 def main():
     path = sys.argv[1] if len(sys.argv) > 1 else \
-        "game/models/npcs/npc_blacksmith_village.glb"
+        "game/data/models/npcs/npc_blacksmith_village.glb"
     js, bin_data = read_glb(path)
     changed = 0
     for anim in js.get("animations", []):

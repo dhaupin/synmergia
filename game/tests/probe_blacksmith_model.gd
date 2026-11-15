@@ -5,7 +5,7 @@ extends SceneTree
 
 func _init() -> void:
 	var ok := true
-	var scene: PackedScene = load("res://models/npcs/npc_blacksmith_village.glb")
+	var scene: PackedScene = load("res://data/models/npcs/npc_blacksmith_village.glb")
 	if scene == null:
 		push_error("FAIL: glb did not load")
 		quit(1)

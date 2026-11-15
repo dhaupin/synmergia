@@ -134,7 +134,7 @@ surface.
 - **Vertex height = `TerrainGen.terrain_height(dir)`**, so the drawn
   surface near the player IS the law (L1-L4 keep it affordable).
 - **Vertex color = `TerrainGen.splat_skin`**, riding the SAME shared splat
-  shader the streamer used (`assets/shaders/terrain_splat.gdshader`), so
+  shader the streamer used (`data/shaders/terrain_splat.gdshader`), so
   the look is unchanged.
 - **The whole-planet horizon**: a coarse static sphere mesh sampled from
   the same law once at boot (the current `GlobeShell` visual, re-enabled

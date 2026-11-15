@@ -186,7 +186,7 @@ defined in `labs/prd-openhands-canvas.md` and is independent of this
 arc -- different files, different receipts. The Colab integration
 (candidate suites: TRELLIS, Hunyuan3D-2, TripoSR, InstantMesh for
 image-to-3D; Hunyuan3D-2 / Stable Fast 3D / DreamGaussian for textured
-meshes) is scoped there; artifacts flow `art/src/` -> `game/models/`.
+meshes) is scoped there; artifacts flow `art/src/` -> `game/data/models/`.
 
 ---
 

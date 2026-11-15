@@ -46,7 +46,7 @@ All game art, models, audio, and branding are original to Synmergia and
 generated or authored in-repo, so they fall under the project's MIT
 license unless noted otherwise:
 
-- **3D models** (`game/models/`) are produced by deterministic Python
+- **3D models** (`game/data/models/`) are produced by deterministic Python
   generators in `scripts/` (`gen_wolf_model.py`, `gen_bandit_model.py`,
   `gen_blacksmith_model.py`, `gen_slime_model.py`,
   `gen_thistle_boar_model.py`, `gen_training_dummy_model.py`).
@@ -56,7 +56,7 @@ license unless noted otherwise:
 - **Branding and site art** (`public/branding/`, `public/og-image.png`,
   favicons) derive from the in-repo logo pack via
   `scripts/gen_site_branding.py` and `scripts/gen_icons.py`.
-- **Model screenshots** (`game/assets/art/screenshots/`) are rendered from the in-repo Blender models; gameplay screenshots land in `game/captures/screenshots/`.
+- **Model screenshots** (`game/data/art/screenshots/`) are rendered from the in-repo Blender models; gameplay screenshots land in `game/captures/screenshots/`.
 
 The **Synmergia name and logo** are covered by [TRADEMARK.md](./TRADEMARK.md)
 — the MIT license covers the code and assets, not the brand.

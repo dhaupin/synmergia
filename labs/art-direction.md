@@ -7,7 +7,7 @@
 >
 > **Source of truth:** the Gemini world-building session concept set
 > (26 sheets, Sep 2026, Drive: "Synmergia Concept Art (Shared)") plus
-> the shipped logo pack in `game/assets/branding/`. Palette hexes
+> the shipped logo pack in `game/data/brand/`. Palette hexes
 > below are measured from the set (pixel analysis), not eyeballed.
 >
 > **Round 2 (2026-09-25):** 23 renders from the `labs/prompts/` packs

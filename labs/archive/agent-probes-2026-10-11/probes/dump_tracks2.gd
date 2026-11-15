@@ -1,6 +1,6 @@
 extends SceneTree
 func _init() -> void:
-	var scene: PackedScene = load("res://models/npcs/npc_blacksmith_village.glb")
+	var scene: PackedScene = load("res://data/models/npcs/npc_blacksmith_village.glb")
 	var inst := scene.instantiate()
 	var ap := _find_ap(inst)
 	var anim: Animation = ap.get_animation("walk")

@@ -726,7 +726,7 @@ var nearby := EntityService.get_entities_in_radius(
 │   ├── entities/                  # Concrete entity types (enemy, character, ...)
 │   ├── scenes/                    # .tscn scenes (world, NPCs)
 │   ├── connectors/                # AI agent connectors (discord, webhook, ...)
-│   ├── data/                      # .tres resources (static data)
+│   ├── data/                      # canonical content: .tres, models, art, brand, textures, shaders
 │   ├── ui/                        # User interface (panels, dialogs, HUD)
 │   └── tests/
 │       ├── adapters/              # Adapter layer tests (unit + integration)
@@ -745,6 +745,10 @@ var nearby := EntityService.get_entities_in_radius(
 
 The Godot project root is `game/`. The `labs/` directory is outside
 the project so it doesn't taint the stable build with experimental work.
+
+`game/data/` is the canonical content root (gameplay `.tres`, models, art,
+brand, textures, shaders). `game/assets/` and `game/models/` are retired; do
+not recreate them. The target model schema is `labs/prd-models.md`.
 
 `game/adapters/` is the **only** directory that services should use
 for persistence. See `labs/prd-db.md` for the full spec.

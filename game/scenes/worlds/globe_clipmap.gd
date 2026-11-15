@@ -114,7 +114,7 @@ var _build_jobs: Array = []
 ## labs/prd-ground-sample.md). One ground_sample per vertex feeds both
 ## _memo_height and _memo_color.
 
-const _skin_shader = preload("res://assets/shaders/terrain_splat.gdshader")
+const _skin_shader = preload("res://data/shaders/terrain_splat.gdshader")
 var _skin_mat: ShaderMaterial = null
 
 ## The standing-water sheet material (surface 1 on a ring/cap mesh) and the

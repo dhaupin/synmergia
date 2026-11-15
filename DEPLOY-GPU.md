@@ -36,9 +36,9 @@ Whatever GPU box you use, the output must enter the repo the SAME way.
 This is the law from `labs/prd-3d-pipeline.md` sec 2; the GPU surface
 does not get to change it:
 
-1. **Source files live under `game/assets/art/src/`**: the tree is hidden from Godot by `game/assets/art/.gdignore` and holds `.blend`,
+1. **Source files live under `game/data/art/src/`**: the tree is hidden from Godot by `game/data/art/.gdignore` and holds `.blend`,
    source textures, and reference images. Versioned with the repo.
-2. **Only exported `.glb` enters `game/models/`** — never a `.blend`,
+2. **Only exported `.glb` enters `game/data/models/`** — never a `.blend`,
    never a raw `.obj`/`.fbx`/`.ply`.
 3. **The `.glb` filename IS the registry entry** — it must equal the
    data id (`npc_village_elder.glb`, `mount_plains_runner.glb`). No
@@ -89,12 +89,12 @@ before renting anything.
         |                                |
         v                                v
   +-------------+   GPU: image-to-3D  +--------------+
-  | game/assets/art/src/    | ------------------> | game/assets/art/out/     |
+  | game/data/art/src/    | ------------------> | game/data/art/out/     |
   | (refs)      |   (TRELLIS/Hunyuan) | (.glb + tex) |
   +-------------+                     +------+-------+
                                              |  download / git
                                              v
-                                     game/models/<id>.glb
+                                     game/data/models/<id>.glb
                                              |
                                              v
                         blender_smoke_test.sh + naming lint + in-engine probe
@@ -102,13 +102,13 @@ before renting anything.
 
 Steps:
 
-1. **Author the reference** (an image or a text prompt) into `game/assets/art/src/`.
+1. **Author the reference** (an image or a text prompt) into `game/data/art/src/`.
 2. **Provision** the Colab env: run `scripts/gpu/setup_gpu_env.sh`
    (sec 3.3).
 3. **Generate**: run the chosen suite on the reference -> a `.glb`
-   (+ textures) into `game/assets/art/out/` on the GPU box.
-4. **Bring it back**: download to the sandbox (or commit `game/assets/art/out/` to a
-   scratch branch). Land the final `.glb` in `game/models/<data_id>.glb`.
+   (+ textures) into `game/data/art/out/` on the GPU box.
+4. **Bring it back**: download to the sandbox (or commit `game/data/art/out/` to a
+   scratch branch). Land the final `.glb` in `game/data/models/<data_id>.glb`.
 5. **Verify on CPU**: `sh ./scripts/blender_smoke_test.sh`, then the
    naming lint, then the in-engine probe. Fix the pivot/scale/naming
    here if the generator got it wrong (sec 2).
@@ -166,10 +166,10 @@ os.environ["HF_TOKEN"] = userdata.get("HF_TOKEN")  # gated model downloads
 
 # Cell 3 — generate (example shape; the suite's own API goes here)
 !python scripts/gpu/gen_from_image.py --suite trellis \
-    --image game/assets/art/src/concept_wolf.png --out game/assets/art/out/wolf.glb
+    --image game/data/art/src/concept_wolf.png --out game/data/art/out/wolf.glb
 
 # Cell 4 — fetch the artifact back to the sandbox, then verify on CPU
-#   (download game/assets/art/out/wolf.glb -> game/models/enemy_wolf.glb,
+#   (download game/data/art/out/wolf.glb -> game/data/models/enemy_wolf.glb,
 #    then: sh ./scripts/blender_smoke_test.sh + naming lint + probe)
 ```
 
@@ -195,8 +195,8 @@ why Colab comes first — it proves the contract with zero spend.
 - **Hugging Face token** (gated model weights): store as a Colab Secret /
   provider secret; read via env; never commit it. The repo's `.gitignore`
   should ignore any local `.env` and large scratch output.
-- **`game/assets/art/out/` is scratch** — the final `.glb` lands in `game/models/`;
-  `game/assets/art/out/` may be gitignored or pruned. Keep the repo lean.
+- **`game/data/art/out/` is scratch** — the final `.glb` lands in `game/data/models/`;
+  `game/data/art/out/` may be gitignored or pruned. Keep the repo lean.
 - **Large binaries**: prefer `.glb` under a few MB; if a hero asset is
   large, note it — this repo deliberately avoids Git LFS (see
   `AGENTS.md` "No Git LFS — and why").

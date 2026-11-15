@@ -125,7 +125,7 @@ compatible license or a written grant.
 
 - [x] **Audio is generated in-repo.** `game/audio/*.wav` come from
       `scripts/gen_*_audio.py`. You own them.
-- [x] **3D models are generated in-repo.** `game/models/*.glb` come from
+- [x] **3D models are generated in-repo.** `game/data/models/*.glb` come from
       `scripts/gen_*_model.py`. You own them.
 - [x] **`gamestruct` (build dep) is MIT.** Pinned to a `dhaupin/gamestruct`
       commit. Compatible.
@@ -142,7 +142,7 @@ compatible license or a written grant.
       Juan Linietsky, Ariel Manzur and contributors` line) and link it
       from the game shell / README. Same for any other vendored runtime.
 - [x] **Enumerate every remaining asset and record provenance.** DONE: `CREDITS.md`. Screenshots
-      (`game/assets/art/screenshots/`), icons, `public/branding/*`, any hand-authored
+      (`game/data/art/screenshots/`), icons, `public/branding/*`, any hand-authored
       PNG/SVG/WAV/GLB not produced by a gen script. For each: who made it,
       under what license, and is it yours to MIT. Put the answer in a
       `CREDITS.md` / `THIRD_PARTY_NOTICES.md`.

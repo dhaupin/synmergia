@@ -35,6 +35,7 @@ questions live.
 ## Status legend
 
 - **ACTIVE** — living spec; edit it when the law changes.
+- **DESIGN** — target contract; not implemented yet.
 - **TRACKER** — running list of work or migration; update in place.
 - **REFERENCE** — decision record or point-in-time snapshot. Do not "refresh"
   casually; superseding it is a deliberate act.
@@ -81,6 +82,7 @@ questions live.
 | [`prd-perf-bridges.md`](./prd-perf-bridges.md) | ACTIVE | Julia / Redis bridge facets and their ledgers |
 | [`prd-3d-pipeline.md`](./prd-3d-pipeline.md) | ACTIVE | Blender to Godot asset pipeline |
 | [`prd-art-pipeline.md`](./prd-art-pipeline.md) | ACTIVE | Art lane: models, textures, generation |
+| [`prd-models.md`](./prd-models.md) | DESIGN | ModelData schema, `game/data` catalog, prototype retirement |
 | [`art-direction.md`](./art-direction.md) | ACTIVE | Style bible |
 | [`data-authoring-baseline.md`](./data-authoring-baseline.md) | ACTIVE | How `.tres` content is authored and gated |
 | [`prd-openhands-canvas.md`](./prd-openhands-canvas.md) | REFERENCE | Parallel agent lanes and their conventions |

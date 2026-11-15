@@ -1,12 +1,12 @@
 ## Branding asset loader (static helper, preload-only -- no class_name,
-## no autoload). The logo pack lives in assets/branding/; the shipped
+## no autoload). The logo pack lives in data/brand/; the shipped
 ## pack uses the logo-synmergia-* filenames below. Every lookup is
 ## runtime load() with existence checks: a missing file returns null
 ## and callers fall back to text, so the game never breaks over
 ## cosmetics and partial packs are fine.
 extends RefCounted
 
-const DIR := "res://assets/branding/"
+const DIR := "res://data/brand/"
 
 
 static func _tex(file_name: String, dir: String = DIR) -> Texture2D:

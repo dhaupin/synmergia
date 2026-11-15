@@ -1,7 +1,7 @@
 extends SceneTree
 
 func _init() -> void:
-	var scene: PackedScene = load("res://models/npcs/npc_blacksmith_village.glb")
+	var scene: PackedScene = load("res://data/models/npcs/npc_blacksmith_village.glb")
 	var inst := scene.instantiate()
 	root.add_child(inst)
 	var skel: Skeleton3D = _find_skel(inst)

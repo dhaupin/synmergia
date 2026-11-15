@@ -8,7 +8,7 @@ extends SceneTree
 ## DataService autoload, which attaches after _init.
 
 func _initialize() -> void:
-        var scene: PackedScene = load("res://models/enemies/enemy_slime.glb")
+        var scene: PackedScene = load("res://data/models/enemies/enemy_slime.glb")
         if scene == null:
                 push_error("FAIL: slime glb did not load")
                 quit(1)
@@ -89,7 +89,7 @@ func _initialize() -> void:
                 quit(1)
                 return
         var mp = slime.get("model_path")
-        if mp == null or str(mp) != "res://models/enemies/enemy_slime.glb":
+        if mp == null or str(mp) != "res://data/models/enemies/enemy_slime.glb":
                 push_error("FAIL: slime model_path not wired: %s" % str(mp))
                 quit(1)
                 return
