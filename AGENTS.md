@@ -896,8 +896,12 @@ vocabulary are one.
 ### The starter law
 A class's FIRST `starting_skills` entry carries the family identity verb,
 read off the class `role`: TANK=control, BENDER=teleport, HEALER=heal,
-DD/MAGE/ROGUE=damage. Enforced by `test_data_naming_lint.gd`; a new class
-cannot ship a starter that ignores its lane.
+DD/MAGE/ROGUE=damage. The role -> verb map is
+`CharacterClass.IDENTITY_VERB_BY_ROLE` (with `identity_verb(role)` as the
+accessor) -- the SCHEMA owns the mapping, and `test_data_naming_lint.gd` loads
+it and asserts every class's first starter carries its role's verb. Enforced by
+`test_data_naming_lint.gd`; a new class cannot ship a starter that ignores its
+lane. Do NOT re-inline the map in a consumer -- read the const.
 
 ---
 
