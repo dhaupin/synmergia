@@ -44,17 +44,13 @@ func show_notification(msg: String, success: bool = true) -> void:
 const HEADER_HEIGHT: int = 40
 const ROW_HEIGHT: int = 32
 
-# Thresholds come from the canonical ladder (core/schemas/game_tier.gd);
-# only the colours below are presentation.
+# Thresholds and colours both come from the canonical ladder
+# (core/schemas/game_tier.gd) -- nothing tier-shaped is re-authored here.
 const TIER_THRESHOLDS: Dictionary = GameTier.TIER_STAT_THRESHOLD
 
-const TIER_COLORS: Dictionary = {
-	"common": Color(0.6, 0.6, 0.6),    # Gray
-	"rare": Color(0.3, 0.7, 1.0),       # Blue
-	"epic": Color(0.8, 0.3, 1.0),       # Purple
-	"legendary": Color(1.0, 0.6, 0.1),  # Orange
-	"mythic": Color(1.0, 0.2, 0.2)     # Red
-}
+## The canonical palette -- the same colours the inventory border and the
+## loot toast use, so a stat tier reads the same colour everywhere.
+const TIER_COLORS: Dictionary = GameTier.COLORS
 
 
 var _stat_rows: Dictionary = {}
