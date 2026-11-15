@@ -139,6 +139,32 @@ func _run() -> void:
 			has_late = true
 	_assert(has_late, "late-arriving actionable appears in the next snapshot")
 
+	# R38: the announcement signature must fold DISABLED, not just the label.
+	# A Play button that ENABLES when a class is chosen is a real state
+	# change; a label-only signature stayed silent for it, so a listener
+	# trusting the [A11Y] stream never learned the button unlocked (found by
+	# the web journey probe: species -> class, "Enter World" enabled, zero
+	# new [A11Y] lines).
+	var state_fired := {"n": 0}
+	svc.focusables_changed.connect(func(): state_fired["n"] += 1)
+	var enable_btn := Button.new()
+	enable_btn.name = "EnableProbe"
+	enable_btn.text = "Enter World"
+	enable_btn.disabled = true
+	root.add_child(enable_btn)
+	await create_timer(2.5).timeout
+	var n_before: int = state_fired["n"]
+	enable_btn.disabled = false
+	await create_timer(2.5).timeout
+	_assert(state_fired["n"] > n_before, "a disabled-only change re-announces (the signature folds state, not label alone)")
+	var enabled_seen := false
+	for e in svc.snapshot():
+		if String(e["action"]) == "Enter World" and bool(e["disabled"]) == false:
+			enabled_seen = true
+	_assert(enabled_seen, "the enabled state is visible in the snapshot after the flip")
+	enable_btn.queue_free()
+	await process_frame
+
 	panel.queue_free()
 	loading_layer.queue_free()
 	await process_frame

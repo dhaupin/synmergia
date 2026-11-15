@@ -43,7 +43,7 @@ free.
 Every interactable Control gets, at construction time:
 
 - `accessibility_name` -- the action from the USER's side, imperative,
-  English: "Play as Guest", "Enter World", "Attack the Wolf".
+  English: "Create account and enter", "Enter World", "Attack the Wolf".
 - `accessibility_description` -- the consequence, one clause:
   "Creates a temporary account and opens the character lobby".
 - `focus_mode = FOCUS_ALL` -- every actionable is keyboard-reachable,
@@ -134,9 +134,10 @@ for a later round once the UI half is proven.
 1. **A11yService + menu annotations** -- the service, then the five
    menu scenes (main_menu, login, lobby, character_select, settings)
    annotated with name/description/focus. Probe: playwright boots,
-   pulls snapshot, clicks Guest by ACTION name, lands in lobby. This
-   is the R33 probe, rewritten against the contract instead of pixel
-   guesses and one-off dumps.
+   pulls snapshot, registers an email-bound account by ACTION name,
+   lands in lobby. This is the R33 probe, rewritten against the
+   contract instead of pixel guesses and one-off dumps (guest play
+   retired; the journey now registers).
 2. **HUD + in-game surfaces** -- HUD widgets, target frame, dialogs,
    pause. Probe: enter world via snapshot-driven clicks; pause; resume.
 3. **In-world entity actions** -- the InteractionLayer bridge (sec 6).
@@ -176,7 +177,7 @@ for a later round once the UI half is proven.
 
 ## 10. Success criteria
 
-1. An agent (or the R33 probe) can boot -> guest -> create character ->
+1. An agent (or the web probe) can boot -> register -> create character ->
    enter world -> pause using ONLY A11yService snapshot data, zero
    hardcoded coordinates, zero per-scene debug prints.
 2. A keyboard-only human can do the same (TAB order reaches every
