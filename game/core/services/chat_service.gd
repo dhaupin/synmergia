@@ -33,6 +33,10 @@ const MeshRole = preload("res://core/mesh/mesh_role.gd")
 # /chunk report reads the multi-iso index by the EXACT cell a client
 # derives, tying the spatial index to the canonical layer.
 const PropChunk = preload("res://core/frame/geometry/prop_chunk.gd")
+# The gameplay consumer of that chunk axis (prd-perf-bridges.md
+# Facet 5): /nearby answers "who is in my canonical cell" from the
+# index AND the local physics truth.
+const ChunkInterest = preload("res://core/services/chunk_interest.gd")
 
 ## Runtime autoload lookups (script-mode-safe; the bare identifiers
 ## fail compile when autoloads are absent -- test_islands).
@@ -181,6 +185,11 @@ func _ready() -> void:
 	# _load_chat_state/_persist_* pair sat unwritten (the ignore list
 	# evaporated every reboot). Load it once at boot.
 	_load_chat_state()
+
+	# Phase 3.4: the coordinator's registry/event signals had emitters
+	# but zero listeners (the mesh activity an operator wants to watch
+	# went nowhere). Bind them to the ledger + the leave alert.
+	_bind_mesh_signals()
 
 ## Open a whisper chat with a target player
 func open_whisper(target_id: String) -> void:
@@ -539,6 +548,8 @@ func _handle_command(sender_id: String, channel: Channel, command: String, targe
 			return _cmd_mesh(sender_id, args)
 		"chunk":
 			return _cmd_chunk(sender_id, args)
+		"nearby":
+			return _cmd_nearby(sender_id, args)
 		"claim":
 			return _cmd_claim(sender_id, args)
 		"war":
@@ -1176,6 +1187,7 @@ func _mesh_report() -> String:
 
 	var bus := _mesh_bus_line()
 	lines.append("  " + bus)
+	lines.append("  " + _mesh_activity_line())
 	return "\n".join(lines)
 
 ## The player-roster line: per-shard live player counts from the
@@ -1218,6 +1230,76 @@ func _mesh_bus_line() -> String:
 	return "bus: %s%s" % [
 		bus_id if bus_id != "" else "(none)",
 		" (%s)" % transport if transport != "" else ""]
+
+## === Mesh signal consumers (Phase 3.4, labs/prd-shard-mesh.md) ===
+## CoordinatorService's shard_registered / shard_unregistered /
+## cross_shard_event_emitted had emitters but NO listeners, so the
+## mesh's own activity (a shard joining, a shard leaving, a cross-shard
+## event routing) was invisible. This ledger is the consumer: the
+## operator's /mesh report gains a "recent" line, and a shard LEAVING
+## the mesh (the one event an operator must not miss -- a crash or a
+## partition) raises an admin alert. Joins and events are routine, so
+## they log + ledger only (no boot-time alert noise).
+const _MESH_LEDGER_CAP: int = 12
+var _mesh_activity: Array = []  # newest-first: {ts, kind, shard_id, detail}
+var _mesh_signals_bound: bool = false
+
+func _bind_mesh_signals() -> void:
+	if _mesh_signals_bound:
+		return
+	var coord = get_node_or_null(NodePath("/root/CoordinatorService"))
+	if coord == null:
+		return
+	if coord.has_signal("shard_registered"):
+		coord.shard_registered.connect(_on_mesh_shard_registered)
+	if coord.has_signal("shard_unregistered"):
+		coord.shard_unregistered.connect(_on_mesh_shard_unregistered)
+	if coord.has_signal("cross_shard_event_emitted"):
+		coord.cross_shard_event_emitted.connect(_on_mesh_cross_shard_event)
+	_mesh_signals_bound = true
+
+func _on_mesh_shard_registered(shard_id: String, info: Dictionary) -> void:
+	_mesh_ledger_push("registered", shard_id, str(info.get("name", "")))
+
+func _on_mesh_shard_unregistered(shard_id: String) -> void:
+	_mesh_ledger_push("unregistered", shard_id, "")
+	# A shard LEAVING the mesh is the one registry event an operator
+	# must see live (a crash or a partition). ADMIN_ALERT has a 0
+	# dedupe window, so it never collapses.
+	var ns = get_node_or_null(NodePath("/root/NotificationService"))
+	if ns != null and ns.has_method("notify"):
+		ns.notify(
+			NotifKind.ADMIN_ALERT,
+			"[mesh] shard %s left the mesh" % shard_id,
+			"ChatService",
+			"mesh_shard_left:%s" % shard_id,
+			{"shard_id": shard_id},
+			"admins")
+
+func _on_mesh_cross_shard_event(event: Dictionary) -> void:
+	var etype := str(event.get("event_type", "event"))
+	_mesh_ledger_push("event:" + etype, str(event.get("source_shard", "")), "")
+
+func _mesh_ledger_push(kind: String, shard_id: String, detail: String) -> void:
+	_mesh_activity.push_front({
+		"ts": Time.get_unix_time_from_system(),
+		"kind": kind,
+		"shard_id": shard_id,
+		"detail": detail,
+	})
+	while _mesh_activity.size() > _MESH_LEDGER_CAP:
+		_mesh_activity.pop_back()
+
+## The recent-activity line: newest-first, bounded, read-only.
+func _mesh_activity_line() -> String:
+	if _mesh_activity.is_empty():
+		return "recent: (no mesh activity this session)"
+	var parts: Array = []
+	for entry in _mesh_activity:
+		var label: String = str(entry.get("kind", ""))
+		var sid: String = str(entry.get("shard_id", ""))
+		parts.append("%s@%s" % [label, sid] if sid != "" else label)
+	return "recent: %s" % ", ".join(parts)
 
 ## Command: /chunk -- the canonical clipmap cell report. Admin-only (it
 ## reaches the live multi-iso index). Resolves the sender's planet-radial
@@ -1264,6 +1346,55 @@ func _chunk_report(sender_id: String) -> void:
 		lines.append("  index: %d entit%s in this chunk -- %s" % [
 			ids.size(), "y" if ids.size() == 1 else "ies",
 			", ".join(ids) if not ids.is_empty() else "(none)"])
+	_send_system_message(sender_id, "\n".join(lines))
+
+## Command: /nearby -- who is in your CANONICAL clipmap cell.
+## The gameplay consumer of the multi-iso index's chunk axis
+## (labs/prd-perf-bridges.md Facet 5; the documented next multi-round
+## item). Unlike the admin /chunk dump, this is a player-facing read:
+## it resolves the sender's canonical PropChunk cell, reads the index
+## (server-side roster, spans processes), and cross-checks the LOCAL
+## physics truth (EntityInterest scoped to the cell). It names local
+## players the sender can already see and reports the index as a COUNT
+## (remote ids are never dumped to a non-admin). Degrades honestly when
+## the index is unavailable. Permission: any player.
+func _cmd_nearby(sender_id: String, _args: Array) -> bool:
+	_nearby_report.call_deferred(sender_id)
+	return true
+
+func _nearby_report(sender_id: String) -> void:
+	var es := _entity_svc()
+	var body = es.get_entity(sender_id) if es != null and es.has_method("get_entity") else null
+	if body == null:
+		_send_system_message(sender_id, "[nearby] no body for sender -- cannot resolve a cell.")
+		return
+	var key: int = ChunkInterest.canonical_chunk_of(body)
+	if key < 0:
+		_send_system_message(sender_id, "[nearby] no position -- cannot resolve a cell.")
+		return
+	var face: int = PropChunk.face_of(key)
+	var cell: Vector2i = PropChunk.cell_of(key)
+	var lines: Array = ["[nearby] canonical cell %d (face %d, cell %d,%d):" % [key, face, cell.x, cell.y]]
+
+	# Local physics truth (always available): the players the world knows.
+	var local_players: Array = ChunkInterest.local_players_in_cell(body)
+	var local_names: Array = []
+	for p in local_players:
+		if is_instance_valid(p) and "entity_id" in p:
+			local_names.append(str(p.entity_id))
+	local_names.sort()
+	lines.append("  local: %d player%s%s" % [
+		local_names.size(), "" if local_names.size() == 1 else "s",
+		" -- " + ", ".join(local_names) if not local_names.is_empty() else ""])
+
+	# The index answer (best-effort): the server-side roster in this cell.
+	var index: Dictionary = await ChunkInterest.query_index_cell(key)
+	if not bool(index.get("available", false)):
+		lines.append("  index: (multi-iso index unavailable)")
+	else:
+		var ids: Array = index.get("ids", [])
+		lines.append("  index: %d entit%s in this cell" % [
+			ids.size(), "y" if ids.size() == 1 else "ies"])
 	_send_system_message(sender_id, "\n".join(lines))
 
 ## Safe world-position read for a body (global_position throws outside the

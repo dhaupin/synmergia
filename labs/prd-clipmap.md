@@ -624,6 +624,15 @@ canonical cell + its occupants -- the index's read side, live and
 speaking the canonical layer's addressing (`labs/prd-perf-bridges.md`
 Facet 5).
 
+**Landed (2026-11-17): a gameplay consumer.** The chunk read is wired
+into gameplay interest through `ChunkInterest`
+(`game/core/services/chunk_interest.gd`) and the player-facing `/nearby`
+command: a body's canonical cell is derived with the SAME
+`PropChunk.chunk_for_dir`, the index answer (server-side roster) is
+reconciled against the local `EntityInterest` physics truth scoped to
+the cell's angular radius, and the index degrades honestly when the
+sidecar is down. Receipt: `game/tests/test_chunk_nearby.gd`.
+
 ## 13. Build plan (parallelisable across the existing lanes)
 
 The work splits cleanly along the existing subagent-lane pattern

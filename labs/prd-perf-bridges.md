@@ -138,6 +138,18 @@ and it speaks the canonical layer's addressing, so the index answers
 "who is in THIS cell" (player-independent, deterministic, the same cell
 every client derives) instead of only "who is in this twelfth".
 
+**Landed (2026-11-17): the chunk query has a gameplay consumer.** The
+index's chunk read was wired into gameplay interest: `ChunkInterest`
+(`game/core/services/chunk_interest.gd`, the `EntityInterest` static
+pattern) resolves a body's canonical `PropChunk` cell and reads the
+index (`query_index_cell`), cross-checking the LOCAL physics truth
+(`local_players_in_cell`, `EntityInterest` scoped to the cell's angular
+radius). The player-facing `/nearby` chat command is the reader: it
+reports the canonical cell (key + face + cell), the local players the
+world knows, and the index COUNT in that cell -- degrades honestly when
+the sidecar is down. This closes the "next multi-round item" (the read
+side was receipts-only). Receipt: `game/tests/test_chunk_nearby.gd`.
+
 ---
 
 ## Receipts (one per facet, committed alongside)
@@ -148,6 +160,7 @@ every client derives) instead of only "who is in this twelfth".
 - `game/tests/test_redis_shard_bus.gd` — bus round-trip (Facet 4)
 - `game/tests/test_julia_orchestrator_live.gd` — live cycle + chunk axis (Facet 5)
 - `game/tests/test_chunk_command.gd` — the `/chunk` reader (Facet 5)
+- `game/tests/test_chunk_nearby.gd` — the `/nearby` gameplay consumer (Facet 5)
 
 ## Measurement ledger (fill as each facet lands)
 

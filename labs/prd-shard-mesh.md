@@ -419,6 +419,37 @@ presence + count; a repeat assign does not double-count; a move emits
 presence + count; and the `/mesh` report renders the live per-shard
 count.
 
+### Phase 3.4 -- The registry signals get their consumer (SHIPPED)
+
+**The registry talked to no one.** `CoordinatorService` emitted
+`shard_registered` / `shard_unregistered` / `cross_shard_event_emitted`
+from the register, unregister, and event-routing legs, but **every one of
+the three had zero listeners** -- a shard joining, a shard leaving, a
+cross-shard event routing all happened invisibly. The mesh's own
+activity had no consumer.
+
+Shipped (hosted on `ChatService`, which already owns the `/mesh`
+operator surface):
+
+- **The activity ledger.** `ChatService` binds all three coordinator
+  signals at boot (`_bind_mesh_signals`, once-guarded, absent-service
+  safe) into a bounded newest-first ledger (`_MESH_LEDGER_CAP = 12`).
+- **The leave alert.** A shard LEAVING the mesh is the one registry
+  event an operator must not miss (a crash or a partition), so
+  `_on_mesh_shard_unregistered` also raises an `ADMIN_ALERT` toast
+  (`ADMIN_ALERT` has a 0 dedupe window, so it never collapses). Joins
+  and events are routine, so they log + ledger only -- no boot-time
+  alert noise.
+- **The `/mesh` consumer.** The report gained a `recent:` line
+  (newest-first, bounded, read-only) so the operator sees the mesh's own
+  activity alongside role / registry / players / bus.
+
+Receipt: `game/tests/test_mesh_signal_consumers.gd` (12 legs) asserts the
+three signals are bound, a register lands a ledger entry, a cross-shard
+event lands an `event:<type>` entry, an unregister lands an entry AND
+raises the admin alert, `/mesh` renders the recent line, the ledger is
+capped + newest-first, and `/mesh` stays read-only.
+
 ## 5. Out of scope (this note)
 
 - Real HA Postgres/Redis (deployment concern).
