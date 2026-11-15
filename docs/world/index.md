@@ -33,6 +33,10 @@ The Codex is the complete read of the data. This page is the map of the systems;
 - It is not the [Lore](https://synmergia.creadev.org/lore). Story and canon are authored for the website.
 - It is not a player guide. Guides and the community wiki belong on the website.
 
+## The surface is part of the world
+
+The world is not only seen. Every actionable node also has a name, a focus position, and a stable handle, so a screen reader and an agent can read the same surface. Start with [Access and agents]({{ '/access/' | relative_url }}) for the one-tree model, or [Human accessibility]({{ '/access/human/' | relative_url }}) for the engine side.
+
 ## Under the hood
 
 The reusable frame lives in `game/core/frame/`: the state tree, scope engine, rules engine, spatial geometry, and the clipmap addressing that the world, client, and spatial index all share. The game consumes those primitives; it does not fork them.

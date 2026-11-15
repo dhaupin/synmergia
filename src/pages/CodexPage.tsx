@@ -76,7 +76,7 @@ export default function CodexPage() {
         to="/"
         className="inline-flex items-center gap-1.5 text-xs text-ink-soft hover:text-accent transition-colors mb-6"
       >
-        <ArrowLeft className="w-3.5 h-3.5" /> Home
+        <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" /> Home
       </Link>
 
       <header className="mb-8">
@@ -92,13 +92,14 @@ export default function CodexPage() {
       </header>
 
       {/* Category rail */}
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-6" role="group" aria-label="Codex categories">
         {categories.map((c) => {
           const active = c.key === activeCat?.key;
           return (
             <button
               key={c.key}
               onClick={() => selectCategory(c.key)}
+              aria-pressed={active}
               className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                 active
                   ? 'border-accent text-accent bg-accent/10'
@@ -120,17 +121,18 @@ export default function CodexPage() {
         {/* List column */}
         <div>
           <div className="relative mb-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-soft" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-soft" aria-hidden="true" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={`Search ${activeCat?.label.toLowerCase() ?? ''}…`}
-              className="w-full rounded-lg border border-line bg-surface pl-9 pr-3 py-2 text-sm text-ink placeholder:text-ink-soft/70 focus:border-accent focus:outline-none"
+              aria-label={`Search ${activeCat?.label ?? 'the Codex'}`}
+              className="w-full rounded-lg border border-line bg-surface pl-9 pr-3 py-2 text-sm text-ink placeholder:text-ink-soft/70 focus:border-accent"
             />
           </div>
           <div className="rounded-xl border border-line bg-surface/60 overflow-hidden">
-            <ul className="max-h-[32rem] overflow-y-auto divide-y divide-line">
+            <ul className="max-h-[32rem] overflow-y-auto divide-y divide-line" aria-label={activeCat ? `${activeCat.label} entries` : 'Codex entries'}>
               {filtered.length === 0 && (
                 <li className="px-4 py-6 text-sm text-ink-soft text-center">
                   Nothing matches “{query}”.
@@ -142,6 +144,7 @@ export default function CodexPage() {
                   <li key={e.id}>
                     <button
                       onClick={() => setSelectedId(e.id)}
+                      aria-pressed={active}
                       className={`w-full text-left px-4 py-2.5 transition-colors ${
                         active ? 'bg-accent/10' : 'hover:bg-accent/5'
                       }`}
@@ -158,7 +161,7 @@ export default function CodexPage() {
               })}
             </ul>
           </div>
-          <p className="mt-2 text-[11px] text-ink-soft">
+          <p className="mt-2 text-[11px] text-ink-soft" aria-live="polite">
             {filtered.length} {filtered.length === 1 ? 'entry' : 'entries'}
           </p>
         </div>
@@ -169,7 +172,7 @@ export default function CodexPage() {
             <EntryDetail entry={selected} categoryLabel={activeCat?.label ?? ''} />
           ) : (
             <div className="rounded-xl border border-line bg-surface p-8 text-center text-ink-soft">
-              <BookOpen className="w-8 h-8 mx-auto mb-3 opacity-50" />
+              <BookOpen className="w-8 h-8 mx-auto mb-3 opacity-50" aria-hidden="true" />
               <p className="text-sm">Pick an entry to read it.</p>
             </div>
           )}

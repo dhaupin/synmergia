@@ -74,7 +74,36 @@
         }
         a { color: var(--accent); text-decoration: none; }
         a:hover { text-decoration: underline; }
+        a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 3px;
+        }
+        .skip-link {
+            position: fixed;
+            top: -80px;
+            left: 12px;
+            z-index: 2000;
+            padding: 10px 14px;
+            background: var(--accent);
+            color: var(--paper);
+            border-radius: 6px;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .skip-link:focus { top: 10px; text-decoration: none; outline: 2px solid var(--paper); outline-offset: 2px; }
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
         img { max-width: 100%; height: auto; }
+        h1, h2, h3 { scroll-margin-top: calc(var(--header-height) + 14px); }
 
         /* Header */
         .header {
@@ -186,8 +215,10 @@
             letter-spacing: .14em;
             text-transform: uppercase;
             padding: 0 18px 5px;
+            margin: 0;
         }
         .sidebar-nav { list-style: none; padding: 0; margin: 0; }
+        .sidebar-nav a:focus-visible { outline-offset: -2px; }
         .sidebar-nav a {
             display: block;
             padding: 4px 18px;
@@ -380,7 +411,9 @@
             outline: none;
         }
         .search-input::placeholder { color: var(--ink-light); }
+        .search-input:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
         .search-results { max-height: 52vh; overflow-y: auto; }
+        .search-result:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--surface); }
         .search-result {
             display: block;
             padding: 1rem 1.25rem;
@@ -404,6 +437,15 @@
         }
         .search-close:hover { color: var(--ink); }
 
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: .01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: .01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+
         @media (max-width: 760px) {
             .header { padding: 0 14px; }
             .header-link { display: none; }
@@ -423,6 +465,7 @@
     </script>
 </head>
 <body>
+    <a class="skip-link" href="#main-content">Skip to documentation content</a>
     <header class="header">
         <a href="{{ '/' | relative_url }}" class="header-brand">
             <img src="{{ '/assets/logo-synmergia-emblem-small.png' | relative_url }}" alt="" class="brand-logo" aria-hidden="true">
@@ -435,27 +478,27 @@
             <a href="https://github.com/dhaupin/synmergia" class="header-btn" aria-label="GitHub" target="_blank" rel="noopener">
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
             </a>
-            <button class="header-btn search-trigger" id="searchTrigger" aria-label="Search docs">
+            <button class="header-btn search-trigger" id="searchTrigger" aria-label="Search docs" aria-expanded="false" aria-controls="searchModal" aria-keyshortcuts="Control+K Meta+K">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                 <span class="search-key">Ctrl K</span>
             </button>
-            <button type="button" class="header-btn theme-switch" id="themeSwitch" aria-label="Toggle light/dark mode">
+            <button type="button" class="header-btn theme-switch" id="themeSwitch" aria-label="Switch to light mode">
                 <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
                 <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
             </button>
-            <button class="header-btn hamburger" onclick="toggleSidebar()" aria-label="Toggle menu">
+            <button class="header-btn hamburger" id="menuToggle" onclick="toggleSidebar()" aria-label="Open documentation menu" aria-expanded="false" aria-controls="sidebar">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
             </button>
         </div>
     </header>
 
-    <div class="sidebar-overlay" onclick="closeSidebar()"></div>
+    <div class="sidebar-overlay" aria-hidden="true" onclick="closeSidebar()"></div>
 
-    <aside class="sidebar" id="sidebar">
+    <nav class="sidebar" id="sidebar" aria-label="Documentation">
         {% for group in site.data.nav %}
         <div class="sidebar-section">
-            <div class="sidebar-title">{{ group.title }}</div>
-            <ul class="sidebar-nav">
+            <p class="sidebar-title" id="nav-{{ group.title | slugify }}">{{ group.title }}</p>
+            <ul class="sidebar-nav" aria-labelledby="nav-{{ group.title | slugify }}">
                 {% for item in group.items %}
                     {% assign external = false %}
                     {% if item.url contains '://' %}{% assign external = true %}{% endif %}
@@ -466,15 +509,15 @@
                     {% endif %}
                     <li>
                         <a href="{{ item_url }}"
-                            {% if external %} target="_blank" rel="noopener"{% elsif page.url == item.url %} class="active"{% endif %}>{{ item.title }}</a>
+                            {% if external %} target="_blank" rel="noopener"{% elsif page.url == item.url %} class="active" aria-current="page"{% endif %}>{{ item.title }}{% if external %}<span class="sr-only"> (opens in a new tab)</span>{% endif %}</a>
                     </li>
                 {% endfor %}
             </ul>
         </div>
         {% endfor %}
-    </aside>
+    </nav>
 
-    <main class="main">
+    <main class="main" id="main-content" tabindex="-1">
         {{ content }}
 
         <div class="page-meta">
@@ -482,7 +525,7 @@
             <a href="https://github.com/dhaupin/synmergia/issues" target="_blank" rel="noopener">Report a docs issue</a>
         </div>
 
-        <div class="doc-footer">
+        <footer class="doc-footer">
             Synmergia is <a href="https://github.com/dhaupin/synmergia" target="_blank" rel="noopener">open source</a> under the MIT License.
             <a href="https://synmergia.creadev.org/">Website</a> &middot;
             <a href="https://synmergia.creadev.org/play">Play</a> &middot;
@@ -492,32 +535,49 @@
             <a href="https://creadev.org" target="_blank" rel="noopener">Creadev.org</a>
             <br>
             Docs built with Jekyll and freestruct.
-        </div>
+        </footer>
     </main>
 
-    <div class="search-modal" id="searchModal">
+    <div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-labelledby="searchTitle" aria-hidden="true">
         <div class="search-modal-content">
-            <input type="text" class="search-input" id="searchInput" placeholder="Search the docs..." autocomplete="off">
-            <div class="search-results" id="searchResults"></div>
+            <h2 id="searchTitle" class="sr-only">Search the docs</h2>
+            <input type="search" class="search-input" id="searchInput" placeholder="Search the docs..." autocomplete="off" aria-label="Search the docs" aria-controls="searchResults">
+            <div class="search-results" id="searchResults" role="region" aria-label="Search results" aria-live="polite" aria-atomic="false"></div>
         </div>
         <button class="search-close" id="searchClose" aria-label="Close search">x</button>
     </div>
 
     <script>
-        document.getElementById('themeSwitch').addEventListener('click', function () {
+        var themeSwitch = document.getElementById('themeSwitch');
+        var menuToggle = document.getElementById('menuToggle');
+        var sidebar = document.getElementById('sidebar');
+        var sidebarOverlay = document.querySelector('.sidebar-overlay');
+
+        function syncThemeLabel() {
+            var dark = document.documentElement.dataset.theme !== 'light';
+            themeSwitch.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+        }
+        syncThemeLabel();
+        themeSwitch.addEventListener('click', function () {
             var el = document.documentElement;
             var next = el.dataset.theme === 'light' ? 'dark' : 'light';
             el.dataset.theme = next;
             try { localStorage.setItem('synmergia-docs-theme', next); } catch (e) {}
+            syncThemeLabel();
         });
 
         function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
-            document.querySelector('.sidebar-overlay').classList.toggle('open');
+            var open = !sidebar.classList.contains('open');
+            sidebar.classList.toggle('open', open);
+            sidebarOverlay.classList.toggle('open', open);
+            menuToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            menuToggle.setAttribute('aria-label', open ? 'Close documentation menu' : 'Open documentation menu');
         }
         function closeSidebar() {
-            document.getElementById('sidebar').classList.remove('open');
-            document.querySelector('.sidebar-overlay').classList.remove('open');
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('open');
+            menuToggle.setAttribute('aria-expanded', 'false');
+            menuToggle.setAttribute('aria-label', 'Open documentation menu');
         }
 
         var searchTrigger = document.getElementById('searchTrigger');
@@ -526,6 +586,29 @@
         var searchResults = document.getElementById('searchResults');
         var searchClose = document.getElementById('searchClose');
         var pagefindPath = "{{ '/pagefind/pagefind.js' | relative_url }}";
+        var searchReturnFocus = null;
+
+        function openSearch() {
+            if (searchModal.classList.contains('open')) {
+                searchInput.focus();
+                return;
+            }
+            searchReturnFocus = document.activeElement;
+            searchModal.classList.add('open');
+            searchModal.setAttribute('aria-hidden', 'false');
+            searchTrigger.setAttribute('aria-expanded', 'true');
+            searchInput.focus();
+        }
+        function closeSearch() {
+            searchModal.classList.remove('open');
+            searchTrigger.setAttribute('aria-expanded', 'false');
+            var returnTo = (searchReturnFocus && searchReturnFocus !== document.body)
+                ? searchReturnFocus
+                : searchTrigger;
+            if (typeof returnTo.focus === 'function') returnTo.focus();
+            searchReturnFocus = null;
+            searchModal.setAttribute('aria-hidden', 'true');
+        }
 
         async function doSearch(q) {
             if (q.length < 2) { searchResults.innerHTML = ''; return; }
@@ -553,20 +636,37 @@
             }
         }
 
-        searchTrigger.addEventListener('click', function () {
-            searchModal.classList.add('open');
-            searchInput.focus();
-        });
-        searchClose.addEventListener('click', function () { searchModal.classList.remove('open'); });
+        searchTrigger.addEventListener('click', openSearch);
+        searchClose.addEventListener('click', closeSearch);
         searchModal.addEventListener('click', function (e) {
-            if (e.target === searchModal) searchModal.classList.remove('open');
+            if (e.target === searchModal) closeSearch();
         });
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && searchModal.classList.contains('open')) searchModal.classList.remove('open');
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+            if (e.key === 'Escape') {
+                if (searchModal.classList.contains('open')) { closeSearch(); return; }
+                if (sidebar.classList.contains('open')) { closeSidebar(); return; }
+            }
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
                 e.preventDefault();
-                searchModal.classList.add('open');
-                searchInput.focus();
+                openSearch();
+            }
+        });
+        searchModal.addEventListener('keydown', function (e) {
+            if (e.key !== 'Tab') return;
+            var items = Array.prototype.slice.call(
+                searchModal.querySelectorAll('input, button, a[href]')
+            ).filter(function (el) {
+                return !el.disabled && el.getClientRects().length > 0;
+            });
+            if (!items.length) return;
+            var first = items[0];
+            var last = items[items.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
             }
         });
         searchInput.addEventListener('input', function () { doSearch(this.value); });

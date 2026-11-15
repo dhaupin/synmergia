@@ -34,6 +34,7 @@ const NavItem = ({ to, children }: { to: string; children: React.ReactNode }) =>
         className="px-3 py-1.5 rounded-md text-sm transition-colors text-ink-soft hover:text-ink hover:bg-accent/10"
       >
         {children}
+        <span className="sr-only"> (opens in a new tab)</span>
       </a>
     );
   }
@@ -77,6 +78,7 @@ export default function SiteLayout() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <a href="#main" className="skip-link">Skip to content</a>
       <header className="border-b border-line bg-surface/80 backdrop-blur sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <Link to="/" className="flex items-center gap-3 shrink-0" aria-label="Synmergia home">
@@ -99,7 +101,7 @@ export default function SiteLayout() {
           </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-1" aria-label="Primary">
             {NAV.map((n) => (
               <NavItem key={n.to} to={n.to}>
                 {n.label}
@@ -116,13 +118,13 @@ export default function SiteLayout() {
             aria-controls="mobile-nav"
             onClick={() => setMenuOpen((v) => !v)}
           >
-            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {menuOpen ? <X className="w-5 h-5" aria-hidden="true" /> : <Menu className="w-5 h-5" aria-hidden="true" />}
           </button>
         </div>
 
         {/* Mobile nav panel */}
         {menuOpen && (
-          <nav id="mobile-nav" className="md:hidden border-t border-line bg-surface/95">
+          <nav id="mobile-nav" className="md:hidden border-t border-line bg-surface/95" aria-label="Primary">
             <div className="max-w-6xl mx-auto px-4 py-2 flex flex-col">
               {NAV.map((n) =>
                 n.to.startsWith('http') ? (
@@ -134,6 +136,7 @@ export default function SiteLayout() {
                     className="px-3 py-2.5 rounded-md text-sm transition-colors text-ink-soft hover:text-ink hover:bg-accent/5"
                   >
                     {n.label}
+                    <span className="sr-only"> (opens in a new tab)</span>
                   </a>
                 ) : (
                   <NavLink
@@ -154,7 +157,7 @@ export default function SiteLayout() {
         )}
       </header>
 
-      <main className="flex-1">
+      <main id="main" tabIndex={-1} className="flex-1">
         <Outlet />
       </main>
 
@@ -186,7 +189,7 @@ export default function SiteLayout() {
               </a>
             </span>
           </div>
-          <div className="flex items-center gap-4">
+          <nav className="flex items-center gap-4" aria-label="Footer">
             <Link to="/lore" className="hover:text-accent">Lore</Link>
             <Link to="/rules" className="hover:text-accent">Rules</Link>
             <Link to="/opensource" className="hover:text-accent">Open Source</Link>
@@ -201,7 +204,7 @@ export default function SiteLayout() {
             >
               GitHub
             </a>
-          </div>
+          </nav>
         </div>
       </footer>
     </div>

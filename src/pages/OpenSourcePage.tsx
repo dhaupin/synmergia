@@ -15,6 +15,11 @@ const DOCS: { label: string; href: string; body: string }[] = [
     body: 'the systems view, local setup, testing, content authoring, operations, and reference.',
   },
   {
+    label: 'Access and agents',
+    href: 'https://docs.creadev.org/synmergia/access/',
+    body: 'the one-tree model for human accessibility and agent endpoints, with gamestruct as the carrier.',
+  },
+  {
     label: 'Contributing',
     href: `${REPO}/blob/main/CONTRIBUTING.md`,
     body: 'how to set up, the conventions, the tests, and how to open a pull request.',
@@ -217,6 +222,17 @@ export default function OpenSourcePage() {
           The client runs in the browser, the server is authoritative, and the whole
           world is data-driven — which is why a designer, not only an engineer, can
           add a zone, a quest, or a creature without touching the engine.
+        </p>
+        <p className="text-sm text-ink-soft leading-relaxed mt-4">
+          Accessibility is architecture here, not a bolt-on: the same semantic tree
+          serves screen readers and agent clients.{' '}
+          <a
+            href="https://docs.creadev.org/synmergia/access/"
+            className="text-ink font-semibold hover:text-accent"
+          >
+            Read the access model
+          </a>
+          .
         </p>
       </section>
 

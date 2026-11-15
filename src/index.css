@@ -105,6 +105,47 @@ h1, h2, h3, .font-display {
   outline-offset: 2px;
 }
 
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  background: var(--accent);
+  color: var(--paper);
+  font-weight: 700;
+  text-decoration: none;
+}
+.skip-link:focus {
+  position: fixed;
+  left: 0.5rem;
+  top: 0.5rem;
+  z-index: 60;
+  width: auto;
+  height: auto;
+  padding: 0.5rem 0.75rem;
+  overflow: visible;
+  border-radius: 0.375rem;
+}
+.skip-link:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 2px;
+}
+
+:where(h1, h2, h3) {
+  scroll-margin-top: 5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* MMORPG scrollbars, tokenized */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: color-mix(in srgb, var(--surface) 60%, transparent); }

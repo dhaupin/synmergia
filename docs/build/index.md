@@ -15,6 +15,7 @@ Synmergia is MIT-licensed and developed in the open. The engine, server, data, w
 2. [Run the tests]({{ '/build/testing/' | relative_url }}) - the one Godot runner, the web checks, and the docs build.
 3. Read [CONTRIBUTING.md](https://github.com/dhaupin/synmergia/blob/main/CONTRIBUTING.md) for the PR flow and the conventions.
 4. If you are touching GDScript, read [AGENTS.md](https://github.com/dhaupin/synmergia/blob/main/AGENTS.md) first. It carries the autoload, indentation, and test rules.
+5. Read [Access and agents]({{ '/access/' | relative_url }}) before adding a UI control or an agent-facing endpoint. Every new actionable needs a name, a focus position, and a stable handle.
 
 ## Repository map
 

@@ -15,6 +15,17 @@
     - title: The Planet
       url: /world/planet/
 
+- title: Access
+  items:
+    - title: Overview
+      url: /access/
+    - title: Human Accessibility
+      url: /access/human/
+    - title: Agent Access
+      url: /access/agents/
+    - title: gamestruct
+      url: /access/gamestruct/
+
 - title: Build
   items:
     - title: Overview

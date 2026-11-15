@@ -30,6 +30,11 @@ description: How Synmergia works, how it is built, and how to run a world of you
     <strong>Run a world</strong>
     <span>The server, web client, sidecars, backups, and the deployment path.</span>
   </a>
+  <a class="door" href="{{ '/access/' | relative_url }}">
+    <span class="door-kicker">For everyone</span>
+    <strong>Access and agents</strong>
+    <span>One semantic tree for screen readers and MCP clients, carried by gamestruct.</span>
+  </a>
 </div>
 
 ## Start with the world
@@ -41,12 +46,18 @@ Synmergia is a browser-first, persistent 3D world: a spherical planet with playe
 - [Play the early-access build](https://synmergia.creadev.org/play) - the live browser client.
 - [Browse the Codex](https://synmergia.creadev.org/codex) - every class, skill, item, enemy, recipe, and mount, read from the data the server loads.
 
+## Access is part of the architecture
+
+Human accessibility and agent access are not two projects. They are two readings of one semantic tree: native labels and focus order for people, stable handles and an event stream for MCP clients. [Access and agents]({{ '/access/' | relative_url }}) is the published contract, [human accessibility]({{ '/access/human/' | relative_url }}) covers the engine tree and settings, and [gamestruct]({{ '/access/gamestruct/' | relative_url }}) is the shared carrier.
+
+The engine accessibility drill is active. These pages describe the stable surface and point at the PRDs for the in-flight work.
+
 ## What lives where
 
 | Home | What it is |
 |---|---|
 | [synmergia.creadev.org](https://synmergia.creadev.org/) | The player surface: Play, Codex, Lore, Rules, Experiences, future guides, and Fandom/community wiki |
-| These docs | The systems view, build and contribution paths, content authoring, operations, and reference |
+| These docs | The systems view, build and contribution paths, content authoring, operations, reference, and the access and agent contract |
 | [labs/](https://github.com/dhaupin/synmergia/tree/main/labs) | In-flight PRDs, design history, session logs, and lane briefs - the workshop, not published truth |
 | [GitHub](https://github.com/dhaupin/synmergia) | The source, issues, pull requests, and release history |
 
