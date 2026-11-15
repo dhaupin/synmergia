@@ -159,6 +159,39 @@ jobs:
             echo "Pushed refreshed pck as $(git rev-parse --short HEAD)"
           fi
 
+      # Pull the fresh PCK commit back into staging in THIS run, but only
+      # as a fast-forward. This is deliberately not a separate workflow: a
+      # new run would spend Actions minutes just to move a ref, and a
+      # staging push would rebuild the pack. A GITHUB_TOKEN ref update does
+      # not trigger workflows, so this costs no extra Actions run.
+      #
+      # behind_by == 0 means staging is an ancestor of main: the normal
+      # post-promotion state, where main has the fresh PCK and staging has
+      # no unpromoted commits. If staging has moved ahead, skip instead of
+      # merging: its PCK must be rebuilt from its newer content at the next
+      # promotion, not overwritten with main's older pack.
+      - name: Fast-forward staging after a main build
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          behind=$(gh api "repos/${GITHUB_REPOSITORY}/compare/staging...main" --jq '.behind_by')
+          if [ "$behind" != "0" ]; then
+            echo "staging has ${behind} commit(s) not on main; skipping the ff sync (it will sync after the next promotion)."
+            exit 0
+          fi
+          main_sha=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')
+          staging_sha=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/staging" --jq '.object.sha')
+          if [ "$staging_sha" = "$main_sha" ]; then
+            echo "staging already at main (${main_sha:0:7}); nothing to do."
+            exit 0
+          fi
+          echo "Fast-forwarding staging ${staging_sha:0:7} -> ${main_sha:0:7}"
+          gh api --method PATCH "repos/${GITHUB_REPOSITORY}/git/refs/heads/staging" \
+            -f sha="${main_sha}" \
+            -F force=false
+
       # R2 sync: push the fresh engine binary + pack into the bucket
       # Pages Functions serve from (functions/game/*.js, DEPLOY_WEB.md
       # §2 "Oversize assets"). Runs on push-to-main when the token
