@@ -47,6 +47,17 @@ static func query_index_cell(chunk_key: int) -> Dictionary:
 	var iso = _multi_iso()
 	if iso == null or not iso.has_method("query_chunk"):
 		return {"available": false, "ids": []}
+	# A disabled service answers with an empty array, which is
+	# indistinguishable from an empty cell. Report it as unavailable
+	# instead of fabricating a confident zero.
+	if "enabled" in iso and not bool(iso.enabled):
+		return {"available": false, "ids": []}
+	# The sidecar can also be down while the autoload is enabled. Probe
+	# health before trusting the chunk answer; query_chunk() returns []
+	# on transport failure, so without this a down index would look
+	# like an empty cell.
+	if iso.has_method("is_healthy") and not await iso.is_healthy():
+		return {"available": false, "ids": []}
 	var ids: Array = await iso.query_chunk(chunk_key)
 	return {"available": true, "ids": ids}
 

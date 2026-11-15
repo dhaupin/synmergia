@@ -146,7 +146,11 @@ func _run(live: bool) -> void:
 		print("[SKIP] index leg: no sidecar; contract legs only")
 
 	# 6. The index read degrades honestly when the service is unavailable.
-	var off := ChunkInterest.new()
+	# Resolve the autoload even when the sidecar never booted: the
+	# disabled-service leg must test a PRESENT service, not pass merely
+	# because the node is absent.
+	if _svc == null:
+		_svc = root.get_node_or_null("MultiIsoService")
 	var saved_enabled: bool = _svc.enabled if _svc != null else false
 	if _svc != null:
 		_svc.enabled = false
