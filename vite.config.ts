@@ -195,6 +195,16 @@ function serveGodotWeb(): Plugin {
 }
 
 export default defineConfig({
+  // prestruct's prerender runs the app through a Vite SSR server and wraps
+  // <AppLayout /> in a StaticRouter. On react-router 7 (real ESM, react-router
+  // as a real dependency) the default externalization splits the router into
+  // TWO module instances: the prerender's `import('react-router-dom')` and the
+  // SSR registry's copy. StaticRouter's <Router> context lands in one; the
+  // app's useLocation() reads the other -> "useLocation() may be used only in
+  // the context of a <Router> component", 0/10 pages prerendered.
+  // `ssr.noExternal` keeps the router in-process so the registry holds ONE
+  // instance and the context resolves (prestruct#68).
+  ssr: { noExternal: ['react-router-dom', 'react-router'] },
   plugins: [react(), tailwindcss(), bridgeApiPlugin(), serveGodotWeb(), copyGodotWebToDist()],
   server: {
     host: '0.0.0.0',
