@@ -20,7 +20,7 @@
 ## Recent rounds -- moved to `labs/AGENTS_LOG.md`
 
 This file is a stable reference. The dated round logs that used to sit at the
-top (92 entries, 2026-10-28 .. 2026-11-16) now live verbatim in
+top (91 entries, 2026-10-28 .. 2026-11-16) now live verbatim in
 [`labs/AGENTS_LOG.md`](./labs/AGENTS_LOG.md). Read it when you need the WHY
 behind a subsystem; [`labs/TASKS.md`](./labs/TASKS.md) carries the current
 session board.

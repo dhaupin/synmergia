@@ -10,6 +10,7 @@ React/Vite/Tailwind app deployed on Cloudflare Pages.
 
 [Play the early-access build](https://synmergia.creadev.org/play) ·
 [Main site](https://synmergia.creadev.org/) ·
+[Docs](https://docs.creadev.org/synmergia/) ·
 [Product spec](labs/prd.md) ·
 [Contributing](CONTRIBUTING.md)
 
@@ -107,6 +108,7 @@ and the test-runner mechanics.
 
 | | |
 |---|---|
+| [Docs portal](https://docs.creadev.org/synmergia/) | The systems view, build and contribution paths, operations, and the access and agent contract |
 | [Product spec](labs/prd.md) | Gameplay, systems, and product direction |
 | [Architecture](labs/world-building-arch.md) | Frame, services, tick model, and sync |
 | [World design](labs/world-building.md) | Current world index: topology, terrain, retired claims |

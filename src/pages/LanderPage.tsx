@@ -91,7 +91,7 @@ const SYSTEMS = [
   {
     glyph: '⌁',
     title: 'Play in a browser tab',
-    body: 'No download, no launcher, no install. Open the page and you are on the planet in seconds. Free to play, and it runs on the machine you already have.',
+    body: 'No download, no launcher, no install. The client runs in a browser tab; early access is key-gated while launch is finished. It runs on the machine you already have.',
   },
 ];
 
@@ -140,7 +140,8 @@ export default function LanderPage() {
           <p className="mt-2 max-w-2xl mx-auto text-ink-soft text-base sm:text-lg leading-relaxed">
             A free-to-play online world on a hand-built planet: villages full of real
             people, ferries that keep a real schedule, weather that rolls in on its own,
-            and a sky that means something. It all starts the moment you open the page.
+            and a sky that means something. It all starts in the browser, and early
+            access is key-gated while launch is finished.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <Link
@@ -358,7 +359,8 @@ export default function LanderPage() {
             Step onto the planet.
           </h2>
           <p className="text-sm text-ink-soft mb-8">
-            It loads right here in this tab — no download, no launcher. Free to play.
+            The client loads right here in this tab — no download, no launcher.
+            Early access is key-gated; free to play once you are in.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link

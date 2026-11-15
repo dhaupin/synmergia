@@ -97,7 +97,7 @@ questions live.
 | --- | --- | --- |
 | [`prd-clipmap.md`](./prd-clipmap.md) | ACTIVE | The sole terrain renderer: rings, water sheet, road deck, prop layer |
 | [`prd-terrain.md`](./prd-terrain.md) | ACTIVE | Biomes, surface look, hydrology, progression |
-| [`clipmap-fold-survey.md`](./clipmap-fold-survey.md) | TRACKER | What else folds into the provider path; A3/A4 still open |
+| [`clipmap-fold-survey.md`](./clipmap-fold-survey.md) | TRACKER | What else folds into the provider path; A1-A4 and B1 closed, residual streamer prose is cleanup |
 | [`prd-ground-sample.md`](./prd-ground-sample.md) | REFERENCE | Completed ground-law fusion refactor |
 | [`legacy-inventory.md`](./legacy-inventory.md) | TRACKER | Migrate / port / remove census; also the KEEP verdict on isoc addressing |
 

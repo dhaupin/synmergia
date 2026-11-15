@@ -10,6 +10,11 @@ const REPO = 'https://github.com/dhaupin/synmergia';
 
 const DOCS: { label: string; href: string; body: string }[] = [
   {
+    label: 'Docs portal',
+    href: 'https://docs.creadev.org/synmergia/',
+    body: 'the systems view, build path, world reference, and the access and agent contract.',
+  },
+  {
     label: 'Contributing',
     href: `${REPO}/blob/main/CONTRIBUTING.md`,
     body: 'how to set up, the conventions, the tests, and how to open a pull request.',
@@ -71,7 +76,7 @@ const CRAFT: { glyph: string; title: string; body: string }[] = [
 
 const STACK = [
   'Godot 4.7.2 — GDScript, browser-first',
-  'React 19 + Vite + Tailwind (this site)',
+  'React 18 + Vite + Tailwind (this site)',
   'Authoritative server + multi-iso orchestrator',
   'Deterministic world generation from one seed',
   'MIT-licensed, built in the open',
@@ -167,9 +172,9 @@ export default function OpenSourcePage() {
         </h2>
         <ol className="space-y-3 text-sm text-ink-soft leading-relaxed list-decimal pl-5">
           <li>
-            <span className="text-ink font-semibold">Play it first.</span> The best
-            contribution starts with knowing the world. Play a session, then tell us
-            what felt wrong.
+            <span className="text-ink font-semibold">Play it first.</span> If you
+            have an early-access key, the best contribution starts with knowing the
+            world. Play a session, then tell us what felt wrong.
           </li>
           <li>
             <span className="text-ink font-semibold">Read the code.</span> Clone the

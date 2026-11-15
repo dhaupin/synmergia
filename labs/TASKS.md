@@ -55,8 +55,9 @@ environment/CI-only until proven otherwise.
 
 ## OPEN ITEMS
 
-- **Terrain fold:** `clipmap-fold-survey.md` A3 (rename the clipmap's
-  streamer-parity shims) and A4 (`backend_penrose` + chart-LOD: keep or remove).
+- **Terrain fold:** CLOSED. `clipmap-fold-survey.md` A1-A4 and B1 are folded
+  or removed, with the receipts recorded there; residual "streamer" mentions
+  are historical prose, not live work.
 - **Retired probe snapshot:** the old root `dev_temp/` lives at
   `labs/archive/agent-probes-2026-10-11/`; its stale `get("streamer")` calls
   are historical, not live work. Current world receipts live in
@@ -64,18 +65,9 @@ environment/CI-only until proven otherwise.
   `bench_coldboot_wall.gd` still prints a `STREAMER_MS` label.
 - **Terminology:** ~75 prose mentions of "streamer" across game code; fix the
   ones in lines you touch, per `legacy-inventory.md` sec A.
-- **Docs round (in progress, branch `docs/world-building-consolidation`):** labs index rewritten;
-  `prd-planar-retirement` + `m3-initial-world-audit` archived; this file
-  condensed; the eight lore docs now carry verified STATUS blocks from the
-  fiction pass, and three Chronicle mysteries were authored from the lore
-  questions (5 ship; test_mysteries + naming lint green). The landmark
-  atlas also shipped (`landmark_data.gd`, 7 anchors, 19-check receipt,
-  lint gate; wired into `world_map` + `minimap`, 13-check wiring receipt;
-  spec in `prd-world.md` sec. 2.1). `AGENTS.md` compacted (91 dated round logs -> `labs/AGENTS_LOG.md`,
-  verbatim; 481 KB -> 59 KB) and the root README's class/LOD/terrain/
-  service claims corrected. The `world-building-*` consolidation is
-  done (2026-11-14). The PRD verdict census is complete: 53/53 top-level
-  PRDs carry an in-file status block; remaining round work is index/closeout.
+- **Docs round:** SHIPPED on `main`; the portal is live at
+  docs.creadev.org/synmergia. The labs index is consolidated and the lore
+  STATUS blocks are in place; remaining work is maintenance, not a branch.
 - **World-building series:** DONE 2026-11-14. Original plan archived; current
   index + corrected tick/spherical references + explicit REFERENCE banners for
   risks/research. `-arch` and `-tick` remain authoritative.
