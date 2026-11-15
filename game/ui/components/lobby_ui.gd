@@ -46,6 +46,7 @@ var _duel_zone: OptionButton
 var _duel_status: Label
 var _duel_pending: VBoxContainer
 var _recent_list: VBoxContainer
+var _recent_hidden: CheckButton
 var _lfg_note: LineEdit
 var _lfg_min: SpinBox
 var _lfg_max: SpinBox
@@ -235,6 +236,11 @@ func _setup_duels_tab() -> void:
 	recent_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	recent_hint.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
 	duels.add_child(recent_hint)
+	_recent_hidden = CheckButton.new()
+	_recent_hidden.text = "Hide me from other players' rival lists"
+	_recent_hidden.tooltip_text = "Other players will not see you in their recent-rival book. You still keep your own record."
+	_recent_hidden.toggled.connect(_on_recent_hidden_toggled)
+	duels.add_child(_recent_hidden)
 	_recent_list = VBoxContainer.new()
 	_recent_list.add_theme_constant_override("separation", 6)
 	duels.add_child(_recent_list)
@@ -522,7 +528,12 @@ func _refresh_recent(_svc) -> void:
 	_clear_children(_recent_list)
 	var recent = get_node_or_null("/root/RecentPlayersService")
 	if recent == null or _local_id == "":
+		if _recent_hidden != null:
+			_recent_hidden.disabled = true
 		return
+	if _recent_hidden != null:
+		_recent_hidden.disabled = false
+		_recent_hidden.set_pressed_no_signal(recent.is_recent_hidden(_local_id))
 	var entries: Array = recent.list_recent(_local_id, 5)
 	if entries.is_empty():
 		var idle := Label.new()
@@ -559,6 +570,17 @@ func _on_rematch(entry_index: int) -> void:
 		return
 	var cid: String = str(recent.rematch_last(_local_id, entry_index))
 	_duel_status.text = "Rematch sent." if cid != "" else "Rematch blocked (pending duel or throttle)."
+
+
+func _on_recent_hidden_toggled(hidden: bool) -> void:
+	var recent = get_node_or_null("/root/RecentPlayersService")
+	if recent == null or _local_id == "":
+		return
+	recent.set_recent_hidden(_local_id, hidden)
+	var message: String = "You are hidden from other players' rival lists."
+	if not hidden:
+		message = "You are visible in other players' rival lists."
+	_duel_status.text = message
 
 
 func _refresh_lfg(svc) -> void:

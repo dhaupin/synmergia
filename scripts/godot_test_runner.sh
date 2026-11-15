@@ -259,6 +259,7 @@ probe_deep_garden
 probe_instance_props
 probe_sundered_sea
 test_instance_contract
+test_loot_rules
 test_shard_mesh_identity
 test_adapter_http_transport
 test_shard_bus

@@ -22,8 +22,11 @@ const _kv_prefix := "recent_players:"
 var _recent: Dictionary = {}
 var _loaded: Dictionary = {}
 # Privacy opt-out (prd-social-instances.md): hidden players never
-# land in OTHERS' books; they still keep their own record.
+# land in OTHERS' books; they still keep their own record. Persisted
+# through DictStore so the choice survives a relog.
 var _hidden: Dictionary = {}
+var _hidden_loaded: Dictionary = {}
+const _hidden_prefix := "recent_hidden:"
 
 
 func _ready() -> void:
@@ -42,7 +45,7 @@ func record_bout(participants: Array, zone_id: String, mode: int, winner_team: i
 		var others: Array = []
 		for other in participants:
 			var oid: String = str(other)
-			if oid != sid:
+			if oid != sid and not is_recent_hidden(oid):
 				others.append(oid)
 		if others.is_empty():
 			continue
@@ -97,9 +100,16 @@ func rematch_last(player_id: String, entry_index: int = 0) -> String:
 
 func set_recent_hidden(player_id: String, hidden: bool) -> void:
 	_hidden[player_id] = hidden
+	_hidden_loaded[player_id] = true
+	var store := DictStore.new()
+	store.set_kv(_hidden_prefix + player_id, hidden)
 
 
 func is_recent_hidden(player_id: String) -> bool:
+	if not _hidden_loaded.has(player_id):
+		var store := DictStore.new()
+		_hidden[player_id] = bool(store.get_kv(_hidden_prefix + player_id, false))
+		_hidden_loaded[player_id] = true
 	return bool(_hidden.get(player_id, false))
 
 
