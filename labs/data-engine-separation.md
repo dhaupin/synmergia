@@ -67,6 +67,20 @@ These are not extraction targets unless their ownership changes:
 | Village bout props | Hardcoded zone ids/colors and prop batches | LATER: world-content builder, not a service constant |
 | Lobby copy and zone blurbs | `lobby_ui.gd` mode labels | LATER: presentation content, low risk |
 | UI palette | `ui_styles.gd` colors | ENGINE unless a theme selector needs data |
+| Payment SKU catalog | Two provider `SKUS` / `SKU_CATALOG` arrays | **NEXT**: one shared SKU record; providers keep processor mapping |
+| Kill reward curve | XP/gold coefficients, grey spread, scale floor/cap | **NEXT**: balance record; formula stays in the service |
+| Container expansion costs | Two code copies of the tier ladder; `container_configs.tres` says costs are code-fixed | **NEXT**: one data table; remove both duplicates |
+| Sigil sink catalog | Nine `SINKS` rows with prices, grants and copy | **NEXT after design**: resolve the mount source mismatch first |
+| Vault expansion | Slots/step, gold/slot, personal/guild caps | **NEXT**: base values and caps to data; 1.5x formula stays |
+| World content placement | Globe batches/manifest, biome density/palette, arena covers | LATER: world-content schema, not balance |
+| Presentation asset registries | Audio sound maps, icon fallbacks | LATER: asset routing; only if designers add content |
+| Blacksmith repair pricing | Six `@export` defaults plus rarity multipliers | **NEXT**: repair record; forge chance record stays separate |
+| Vendor price multipliers | Location type -> multiplier match; buy/sell fallbacks | **NEXT**: pricing record; per-NPC overrides stay |
+| Revive tuning | Service constants duplicate `GameConfig`; ranges disagree (5 vs 10) | NEEDS DESIGN: one owner, then extract after the drift is resolved |
+| Ferry skiff fare | `DEFAULT_SKIFF_TICKET = 25` | SMALL: route/vehicle record if fares become per-route |
+| Faction war terms | 10k declaration cost, 24h cooldown; cooldown duplicated in `GameConfig` | SMALL: faction balance record; declaration gate stays |
+| Daily blessing tuning | +20% might, +5 levels | SMALL: blessing balance record; earned-day gate stays |
+| Weather event fallback catalog | Built-in `storm_pack` / `aurora_window` dictionaries duplicate `data/weather_events` | **NEXT**: one declared default or a refusal; remove the duplicate |
 
 The ledger is intentionally shallow. Do not promote a row to "do it now" just
 because the value is numeric; the question is ownership, not type.
@@ -178,7 +192,109 @@ rather than granting a free seat. The receipt is
 `game/tests/test_agent_roster.gd`: it resolves the record and walks the
 whole ladder using the authored prices.
 
-## 10. Next-pass rule
+## 10. Ranked candidate queue (not yet extracted)
+
+The 2026-11-15 sweep added these to the ledger so the next pass starts here,
+not from a fresh grep. Rank is value/risk, not a promise to extract all of
+them. The two skill lanes are already issue #102 and are not repeated here.
+
+1. **Payment SKU catalog - NEXT.** The same sigil products are defined twice:
+   `webhook_payment_provider.gd` (`SKUS`) and `manual_payment_provider.gd`
+   (`SKU_CATALOG`). These carry real-money prices, sigil amounts and display
+   names, so drift is a money bug. Move the rows to one typed SKU catalog
+   record; each provider keeps only its processor mapping, checkout state and
+   fulfillment behavior. Receipt: both providers resolve the same rows and
+   still refuse an unknown SKU.
+
+2. **Kill reward curve - NEXT.** `kill_rewards.gd` carries XP/gold per enemy
+   level, per killer level, the grey spread and the scale floor/cap. Its own
+   comment calls it one tunable table. Move those values to a balance record;
+   keep the credit resolution, level-gap formula and grant path in the service.
+   Receipt: resolve the record through `DataService`, compare the computed
+   payout at representative level gaps, and prove a missing record refuses
+   rather than paying zero or guessing.
+
+3. **Container expansion costs - NEXT.** The ladder is duplicated in
+   `container_schema.gd` (`EXPANSION_COSTS`) and
+   `container_config_data.gd` (`DEFAULT_EXPANSION_COSTS`), while
+   `data/containers/container_configs.tres` says expansion costs are fixed in
+   code. Put the tier costs in the existing container config record, remove
+   both code copies, and keep slot limits/expansion behavior in the schema.
+   Receipt: every container type reads the same authored tier ladder and a
+   malformed record fails closed.
+
+4. **Sigil sink catalog - NEXT after design.** `sigil_sink_service.gd`
+   (`SINKS`) owns nine rows with sink ids, prices, grant quantities and flavor
+   copy. The service keeps the debit/grant/refund gates that already exist;
+   the rows belong in data. Do this only after resolving the known mismatch:
+   the catalog prices mounts whose own data marks them `DROP`. One record, not
+   a second code table.
+
+5. **Vault expansion - NEXT.** `vault_service.gd` owns slots per step, gold
+   per slot and the personal/guild caps. Move the base values and caps to a
+   vault balance record; keep the exponential 1.5x curve and the 10M cap in
+   the service because they are algorithm behavior. Receipt: the service
+   computes costs from the record and a missing record refuses expansion.
+
+6. **World content placement - LATER, separate track.** `globe_world.gd`
+   carries enemy/guard/NPC batches, gate/plot placements and the content
+   manifest; `underworld_provider.gd`, `moon_provider.gd` and
+   `terrain_provider.gd` carry biome density/palette tables; `arena_instance.gd`
+   carries cover layouts. This is authored world content, not a balance record.
+   It needs one world-content schema and a record per world/arena; do not fold
+   it into `balance/`. The ledger's village bout props row is a subset.
+
+7. **Presentation asset registries - LATER.** `audio_service.gd` maps sound
+   names to WAV paths; `icon_resolver.gd` maps categories to fallback icons.
+   These are engine asset routing today. Move them only when designers are
+   expected to add or replace sounds/icons without touching code; otherwise
+   they are correctly engine-side.
+
+### Additional finds from the same sweep
+
+- **Blacksmith repair pricing - NEXT.** `blacksmith_service.gd` still owns
+  six `@export` defaults (`base_repair_cost_per_durability`, weapon/armor/
+  accessory multipliers, bulk threshold/discount) and a hardcoded rarity
+  multiplier ladder (1.25/1.5/2/3). The existing `forge_balance.tres` owns the
+  UPGRADE gamble, not repair pricing. Add a repair-pricing record; keep the
+  repair eligibility gate and arithmetic in the service.
+- **Vendor price multipliers - NEXT.** `vendor_service.gd` hardcodes the
+  location ladder (town 1.0, outpost 1.25, village 0.9, dungeon 2.0, capital
+  1.5) and fallback buy/sell multipliers. Item prices and per-NPC
+  `buy_multiplier`/`sell_multiplier` are already data. Move the global pricing
+  table to data; keep the per-offering and per-NPC overrides in their records.
+- **Revive tuning - NEEDS DESIGN.** `respawn_service.gd` and
+  `GameConfig.Respawn` carry overlapping revive constants, and the ranges
+  disagree: the service uses 5.0 while `GameConfig` says 10.0. Pick one owner
+  and one value before extracting. This is a drift bug first, a data slice
+  second.
+- **Ferry skiff fare - SMALL.** `DEFAULT_SKIFF_TICKET = 25` is the only fare
+  value, and the dock UI reads it from the service. Extract only when fares
+  become per-route or per-vehicle; a single constant does not earn a record.
+- **Faction war terms - SMALL.** `WAR_DECLARATION_COST = 10000` and a 24h
+  cooldown; the cooldown is duplicated in `GameConfig`. Move the terms to a
+  faction balance record once faction diplomacy gets a real tuning pass; keep
+  the declaration gate and war state machine in the service.
+- **Daily blessing tuning - SMALL.** `BLESSED_DAMAGE_MULTIPLIER = 1.2` and
+  `BLESSED_LEVEL_BONUS = 5` are the blessing's whole balance. They are
+  candidates only if the sky blessing becomes a designer-tuned system; the
+  earned-day/wheel gate must stay in `SignService`.
+- **Weather event fallback catalog - NEXT.** `weather_event_service.gd`
+  carries `_builtin_storm_pack()` and `_builtin_aurora_window()` dictionaries
+  that duplicate the shipped `data/weather_events/*.tres` rows almost exactly.
+  This is the duplicate fallback catalog the ledger forbids, not a schema
+  default. Decide whether an empty catalog is a hard refusal or one minimal
+  declared default, remove the other copy, and add a missing-data receipt.
+
+`GameConfig` is intentionally not a single extraction target. It is a broad
+runtime configuration surface with protocol, security and gameplay values; a
+future audit should split it by owner, not move the file into one `.tres`.
+
+Still explicitly out of scope: cooldowns and rate limits, the status-effect
+control maps, `StatId`/`GameTier` vocabulary, schema defaults and the UI island
+registry. They are behavior, protocol or routing, not content.
+
+## 11. Next-pass rule
 
 One pass = one domain, one schema, one record, one receipt.
 
