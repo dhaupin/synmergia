@@ -37,6 +37,6 @@ The player-facing wiki and Fandom live with the website, not in these docs. The 
 
 ## How docs change
 
-Docs are part of the repository. If a command, schema, or claim is wrong, open a pull request against `staging` with the correction. Do not treat this portal as a wiki that can drift away from the code.
+Docs are part of the repository. This portal deploys from `main`, so open a pull request against `main` for a page correction. Engine and data changes follow the usual `staging` flow in [CONTRIBUTING.md](https://github.com/dhaupin/synmergia/blob/main/CONTRIBUTING.md). Do not treat this portal as a wiki that can drift away from the code.
 
 For a docs bug, include the page URL and the line that is wrong. For a code bug, include the version, the reproduction, and the expected result.
