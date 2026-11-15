@@ -50,7 +50,10 @@ Synmergia is a browser-first, persistent 3D world: a spherical planet with playe
 
 Human accessibility and agent access are not two projects. They are two readings of one semantic tree: native labels and focus order for people, stable handles and an event stream for MCP clients. [Access and agents]({{ '/access/' | relative_url }}) is the published contract, [human accessibility]({{ '/access/human/' | relative_url }}) covers the engine tree and settings, and [gamestruct]({{ '/access/gamestruct/' | relative_url }}) is the shared carrier.
 
-The engine accessibility drill is active. These pages describe the stable surface and point at the PRDs for the in-flight work.
+The engine accessibility drill merged on `staging`; the open lane is real
+assistive-technology and keyboard verification
+([#101](https://github.com/dhaupin/synmergia/issues/101)). These pages describe
+the shipped surface and the verification gate.
 
 ## What lives where
 

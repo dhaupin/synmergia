@@ -60,7 +60,11 @@ That runs Jekyll, then freestruct with `--strict`. The docs deploy lane also run
 | `docs-ci.yml` | Relative Markdown links across the repository |
 | `docs.yml` | Jekyll, freestruct, pagefind, and the GitHub Pages artifact |
 
-The default Godot set has a known pre-existing floor on clean staging. Check [AGENTS.md](https://github.com/dhaupin/synmergia/blob/main/AGENTS.md) for the current known failures before treating a red default run as your regression.
+The default Godot set is green on current staging. The full `--all` set still
+includes environment-only legs (agent driver, full boot, and the web/UI probes)
+that can fail outside a complete local checkout. Check
+[AGENTS.md](https://github.com/dhaupin/synmergia/blob/main/AGENTS.md) before
+treating one of those as your regression.
 
 ## Before you open a PR
 

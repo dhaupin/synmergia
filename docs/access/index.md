@@ -46,7 +46,7 @@ The tree is not a second UI and the agent lane is not a backdoor. `A11yService` 
 | Local agent door | `AgentDoor` serves the gamestruct wire when `SYN_AGENT=1`; off by default |
 | MCP | A gamestruct binding, hosted by the caller; the door does not hand-roll JSON-RPC |
 | The eyes | `/see` returns a PNG path or URL descriptor; pixels never cross the wire |
-| Engine a11y drill | Active work in the game tree; this section describes the stable contract, not every in-flight branch |
+| Engine a11y drill | Merged on `staging`; real assistive-technology and keyboard verification is the open lane ([#101](https://github.com/dhaupin/synmergia/issues/101)) |
 
 ## The rules
 

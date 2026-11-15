@@ -113,8 +113,13 @@ xvfb-run -a node scripts/web_probe/probe_a11y.js
 
 Read `scripts/web_probe/README.md` first. The login flow changed when guest play retired, so a probe's journey may need the current account path.
 
-## In flight
+## Verification status
 
-The engine accessibility drill is active in the game tree. Treat this page as the published contract and `labs/prd-accessibility.md` as the working design. If a control's label, focus behavior, or snapshot shape changes, ship the docs change with the receipt.
+The engine accessibility drill merged on `staging`; the open lane is real
+assistive-technology and keyboard verification
+([#101](https://github.com/dhaupin/synmergia/issues/101)). Treat this page as
+the published contract and `labs/prd-accessibility.md` as the working design.
+If a control's label, focus behavior, or snapshot shape changes, ship the docs
+change with the receipt.
 
 This page describes the shipped surface. It is not a WCAG certification, and it does not claim native voice control.

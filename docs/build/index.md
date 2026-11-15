@@ -41,7 +41,9 @@ The reusable core is `game/core/frame/`. Read [The frame]({{ '/build/frame/' | r
 
 ## Current docs status
 
-This is the first cut of the portal. The stable, code-backed material is here; the deep architecture notes still live in `labs/` until they are rewritten for this audience. The most useful starting points in the workshop are:
+The portal is published. The stable, code-backed material is here; the deep
+architecture notes still live in `labs/` until they are rewritten for this
+audience. The most useful starting points in the workshop are:
 
 - [Frame architecture](https://github.com/dhaupin/synmergia/blob/main/labs/world-building-arch.md)
 - [Persistence and adapters](https://github.com/dhaupin/synmergia/blob/main/labs/prd-db.md)
