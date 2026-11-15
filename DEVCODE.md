@@ -184,10 +184,11 @@ that's SceneTree teardown hygiene, not a regression.
 
 Probes/calibration writes go under `/tmp/syn_probe_<name>.log` and
 `/tmp/<topic>_<n>.gd`. On a fresh session after any container reset,
-`/tmp` is empty — that's why `dev_temp/probes/` and `dev_temp/logs/`
-exist in this repo: they are the last committed snapshot of ad-hoc
-scripts and probe logs for archaeology, NOT a live test directory.
-Don't add run new probes there going forward; add them to
+`/tmp` is empty — that's why the 2026-10-11 snapshot lives at
+`labs/archive/agent-probes-2026-10-11/`: it is the last committed record
+of ad-hoc scripts for archaeology, NOT a live test directory. The current
+world receipts live in `game/tools/diagnostics/receipts/`.
+Don't add new probes to the archive or a `dev_temp` folder; add them to
 `game/tests/` instead if they turn out to be load-bearing.
 
 ## 5. Known maintenance traps (see TASKS.md for full lore)
@@ -213,7 +214,8 @@ Recovery order:
    this one boots the whole autoload tree end-to-end; if it passes, the
    soil's good and everything else is recoverable from code + TASKS.md.
 4. Read `labs/TASKS.md` tail for recent history/lore; read
-   `dev_temp/probes/` only if a specific prior fix needs re-deriving.
+   `labs/archive/agent-probes-2026-10-11/probes/` only if a specific prior fix
+   needs re-deriving.
 5. The horcrux is at `horcrux/cairn-p_windtheclock2026.svg` — restore
    into vant axolotl to recover agent memory/state (its README spells
    out the exact vant restore command and stack pinning).

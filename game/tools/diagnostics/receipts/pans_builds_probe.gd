@@ -4,7 +4,7 @@
 ##      lane (the ride law placed it),
 ##   3) the almanac's sailing page lists EVERY scheduled ferry (the
 ##      Haven Ferry AND the Pans Runner -- the ferries[0] lesson).
-## Run headless: godot --headless --path . --script res://dev_temp/probes/pans_builds_probe.gd
+## Run headless: godot --headless --path . --script res://tools/diagnostics/receipts/pans_builds_probe.gd
 extends SceneTree
 
 const GLOBE_SCENE := "res://scenes/worlds/globe_world.tscn"

@@ -3,7 +3,7 @@
 ## playable class has signature weapon + armor, the missing enum values are
 ## covered, and the armory offering can actually sell class-locked gear.
 ##
-## Run: cd game && godot --headless --path . --script res://dev_temp/probes/lane_l_load.gd
+## Run: cd game && godot --headless --path . --script res://tools/diagnostics/receipts/lane_l_load.gd
 extends SceneTree
 
 var _checks: int = 0

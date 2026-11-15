@@ -9,7 +9,7 @@
 ##      sleeps);
 ##   4) the boat stays berthed where she was (the lights never move
 ##      the lane).
-## Run headless: godot --headless --path . --script res://dev_temp/probes/harbor_lights_probe.gd
+## Run headless: godot --headless --path . --script res://tools/diagnostics/receipts/harbor_lights_probe.gd
 ## (the builders load AFTER boot -- the parse-time preload poison)
 extends SceneTree
 

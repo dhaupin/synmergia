@@ -8,7 +8,7 @@ extends SceneTree
 ## The Julia side is the float64 oracle; GDScript's frame math runs in
 ## float32 (Vector3), so heights match within float32 precision (the
 ## recorded max error is ~1.2e-5 m). The anchor values below are what
-## `julia --project=. terrain_batch.jl` and the dev_temp probe produced.
+## `julia --project=. terrain_batch.jl` and the archived probe produced.
 ##
 ## Run:
 ##   godot --headless --path . --script res://tests/test_julia_terrain.gd

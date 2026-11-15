@@ -231,14 +231,17 @@ grep the runner DEFAULT_SET and `tests/` first (done -- none reference these).
   3 probes).
 - `game/debug/*.gd` (9 files) -- **RESOLVED 2026-11-14:** moved to
   `game/tools/diagnostics/` (canonical, with a README run guide); the
-  `dev2/` scratch dir was removed and `dev_temp/probes/` stays because its
-  probes are cited receipts. `terrain_gen.gd`'s pointer was repointed.
-- `game/dev2/*.gd` (9 files) + `game/dev_temp/probes/*.gd` (13 files) -- 2,834
-  lines total, all refs=0, not in the runner. These are hand-run diagnostics
-  (prd-clipmap sec 11a step 4 says several were retargeted to `PropLayer`).
-  **Do not blind-delete** -- `dev_temp/probes/wilds_probe.gd` and
-  `cistern_probe.gd` are cited as receipts in AGENTS.md; the rest may still be
-  run by hand. Treat as "keep but out of CI," or archive to `labs/`.
+  `dev2/` scratch dir was removed; the old root probe snapshot is archived at
+  `labs/archive/agent-probes-2026-10-11/`, and the current world receipts live
+  in `game/tools/diagnostics/receipts/`. `terrain_gen.gd`'s pointer was
+  repointed.
+- `game/dev2/*.gd` (9 files) + the 13 world receipts formerly in
+  `game/dev_temp/probes/` -- 2,834 lines total, all refs=0, not in the runner.
+  These are hand-run diagnostics (prd-clipmap sec 11a step 4 says several were
+  retargeted to `PropLayer`). They now live in
+  `game/tools/diagnostics/receipts/`; keep them out of CI and do not
+  blind-delete. `receipts/wilds_probe.gd` and `receipts/cistern_probe.gd` are
+  cited as receipts in AGENTS.md; the rest may still be run by hand.
 
 ### B3. NOT dead -- do not delete (corrected from the earlier survey)
 
@@ -307,7 +310,8 @@ ones sit on disk for deleted sources: `probe_meshcache_ram.gd.uid`,
    shell, not a sheet).
 4. ~~B2~~ **A4 REMOVED 2026-11-13** (`backend_penrose` + the chart-LOD trio +
    4 probes). B2 RESOLVED 2026-11-14: `game/debug/` -> `game/tools/diagnostics/`,
-   `dev2/` removed, `dev_temp/probes/` kept as cited receipts.
+   `dev2/` removed; the world receipts moved to
+   `game/tools/diagnostics/receipts/`.
 5. **B4** (comment sweep) -- cosmetic, do last.
 
 ---
@@ -347,7 +351,7 @@ consumed at boot by `PresolveProps`; `presolve.jl` remains a parity oracle for
 `game/dev2_grade.gd.uid`, and `game/staging_notes_2026_10_14.md` -- the note
 was migrated verbatim into `TASKS_ARCHIVE.md` first. The nine `game/debug/`
 scans were MOVED to `game/tools/diagnostics/` (canonical home + README);
-`game/dev_temp/probes/` stays as cited receipts.
+the current world receipts live in `game/tools/diagnostics/receipts/`.
 
 **Still open (the honest remainder):** the B4 `streamer` comment sweep (79 live
 mentions) and the four editorial merges tracked in `labs/README.md`.

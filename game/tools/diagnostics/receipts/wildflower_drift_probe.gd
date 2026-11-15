@@ -9,7 +9,7 @@
 ##   3) THE LIVE BLOOM: the booted clipmap's detail chain carries
 ##      MORE flowers on a drift face than the v5 sprinkle rate gave
 ##      (the fields actually render), still under the node cap.
-## Run headless: godot --headless --path . --script res://dev_temp/probes/wildflower_drift_probe.gd
+## Run headless: godot --headless --path . --script res://tools/diagnostics/receipts/wildflower_drift_probe.gd
 extends SceneTree
 
 const GLOBE_SCENE := "res://scenes/worlds/globe_world.tscn"

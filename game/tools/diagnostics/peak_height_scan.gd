@@ -1,5 +1,5 @@
 extends SceneTree
-## Throwaway measurement (dev_temp law): how tall are the mountains
+## Throwaway measurement (diagnostics law): how tall are the mountains
 ## this seed actually grows? Coarse direction lattice -> terrain_height,
 ## reporting the top decile. Not a contract probe; deleted-comparand OK.
 ## NOTE: spherical_to_cartesian takes DEGREES for lat/lon; a lattice

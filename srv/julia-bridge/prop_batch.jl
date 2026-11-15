@@ -3,7 +3,7 @@
 # Derives EVERY face's rock + boulder specs in ONE process, so the frame
 # pays a single round-trip (or, offline, zero) instead of deriving each
 # face's PCG32 stream in GDScript. The GDScript bench
-# (`dev_temp/probes/bench_prop.gd`) derives the IDENTICAL set, so the two
+# (`game/tests/bench_prop.gd`) derives the IDENTICAL set, so the two
 # timings are comparable and the two spec vectors cross-check.
 #
 # Usage:

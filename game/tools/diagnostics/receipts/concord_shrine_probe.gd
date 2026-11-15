@@ -13,7 +13,7 @@
 ##      the PropCollider body in-tree -- a proper BoxShape wraps the
 ##      pillar (over 4.5 m tall, the band and dais inside it) -- and
 ##      the sky-cyan band light + halo read real.
-## Run headless: godot --headless --path . --script res://dev_temp/probes/concord_shrine_probe.gd
+## Run headless: godot --headless --path . --script res://tools/diagnostics/receipts/concord_shrine_probe.gd
 extends SceneTree
 
 # SCRIPT-MODE LAW: no const preloads of game scripts -- autoload

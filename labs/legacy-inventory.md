@@ -94,7 +94,7 @@ Two distinct addressing stacks, both LIVE:
 | `game/dev2_grade.gd.uid` | Orphan `.uid` for a source that no longer exists. | **REMOVED 2026-11-14.** |
 | `game/staging_notes_2026_10_14.md` | Stray session note at the game root. | **DONE 2026-11-14:** migrated verbatim into `TASKS_ARCHIVE.md`, file removed. |
 | `game/debug/` (9 scans) | Old general diagnostics, zero code refs. | **MOVED 2026-11-14** to `game/tools/diagnostics/` (canonical, with a README run guide); `.uid` siblings cleared. |
-| `game/dev_temp/probes/` (13) | Receipt-bearing world probes (`wilds_probe`, `cistern_probe`, `render_audit`, ...). | **KEEP** for now: they assert shipped builds and are cited as receipts; not CI, not dead. |
+| `game/tools/diagnostics/receipts/` (13 probes + README) | Receipt-bearing world probes (`wilds_probe`, `cistern_probe`, `render_audit`, ...). | **MOVED 2026-11-15** from `game/dev_temp/probes/`: they assert shipped builds and are cited as receipts; not CI, not dead. |
 
 ---
 
@@ -132,7 +132,8 @@ touching the file, never with a blind rename.
 `dhaupin/gamestruct` is a Node semantic-tree/bridge library (the agent door:
 one tree, human + agent lanes, HTTP/MCP bindings) -- **not** a host for Godot
 probes. Godot diagnostics therefore live in-repo at `game/tools/diagnostics/`
-(general scans) and `game/dev_temp/probes/` (receipt-bearing world probes).
+(general scans) and `game/tools/diagnostics/receipts/` (receipt-bearing world
+probes).
 Do not move `.tscn`/`.tres`-dependent probes out of the Godot project: they
 load `res://` resources and need the engine.
 

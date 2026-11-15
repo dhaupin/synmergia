@@ -3,7 +3,7 @@
 ## carved from probe_terrain_stream.gd, prd-spherical-mvp.md S5/S8)
 ## sharded by icosa-face range so each process fits a wall-clock cap:
 ## boot at 20 km costs ~76 s and one streamed face ~50 s (measured,
-## dev_temp/probes/face_time_diag.gd), so 5 faces + boot ~= 5.5 min.
+## the archived face_time_diag probe), so 5 faces + boot ~= 5.5 min.
 ## Each shard boots its own globe and walks ITS FIVE faces through the
 ## live update() one frame apart: cold spawns, cross-face hot swaps
 ## (demote+promote), the skirt taper, and the prop-holder graft with

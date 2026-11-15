@@ -18,6 +18,7 @@ that were abandoned, or approaches that were never implemented.
 | `captures-session-log.md` | Session logs from old rounds. |
 | `refactor-npc-plan.md` | Abandoned NPC refactor plan. |
 | `quest_guide_npc_stub.gd` | Orphan script kept as a stub reference. |
+| `agent-probes-2026-10-11/` | The former root `dev_temp/` snapshot: historical hand-run probes, not current diagnostics. |
 
 Note: `labs/polyglot-ffi/` and `labs/jolt-playground/` are still at the `labs/`
 root — they are design/experiment folders, not archived work.

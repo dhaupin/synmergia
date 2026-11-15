@@ -11,7 +11,7 @@
 ##      under different salts (ore/mooncap/anchor culture stays
 ##      world-seed pure; the harvest ledger never drifts),
 ##   4) THE LIVE SALT: the booted layer carries a non-zero day salt.
-## Run headless: godot --headless --path . --script res://dev_temp/probes/field2_salt_probe.gd
+## Run headless: godot --headless --path . --script res://tools/diagnostics/receipts/field2_salt_probe.gd
 extends SceneTree
 
 const GLOBE_SCENE := "res://scenes/worlds/globe_world.tscn"

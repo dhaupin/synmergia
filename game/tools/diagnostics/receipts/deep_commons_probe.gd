@@ -13,7 +13,7 @@
 ##      environment receives it;
 ##   5) THE TRAIL + THE BANDS: two trail legs of plates, and the five
 ##      biome bands ride their declarations (counts match the data).
-## Run headless: godot --headless --path . --script res://dev_temp/probes/deep_commons_probe.gd
+## Run headless: godot --headless --path . --script res://tools/diagnostics/receipts/deep_commons_probe.gd
 extends SceneTree
 
 const UNDER_SCENE := "res://scenes/worlds/globe_underworld.tscn"

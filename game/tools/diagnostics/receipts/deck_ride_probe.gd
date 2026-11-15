@@ -6,7 +6,7 @@
 ##      hull delta (same transform, never two truths);
 ##   3) the carried rider holds the "deck_rides" anchor and the
 ##      roster CLEARS it the tick after a step-off.
-## Run headless: godot --headless --path . --script res://dev_temp/probes/deck_ride_probe.gd
+## Run headless: godot --headless --path . --script res://tools/diagnostics/receipts/deck_ride_probe.gd
 ## (the vessel law loads AFTER boot: a parse-time preload is poisoned
 ## by the --script-mode noise classes -- the test_load lesson)
 extends SceneTree

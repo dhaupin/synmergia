@@ -12,7 +12,7 @@
 ##      tops (the one honest exit is the bench, not a fence-hop);
 ##   4) the glow law: cistern_glow(0) > cistern_glow(0.5), and the
 ##      runtime water material's emission sits in the law's band.
-## Run headless: godot --headless --path . --script res://dev_temp/probes/cistern_probe.gd
+## Run headless: godot --headless --path . --script res://tools/diagnostics/receipts/cistern_probe.gd
 extends SceneTree
 
 const UNDER_SCENE := "res://scenes/worlds/globe_underworld.tscn"

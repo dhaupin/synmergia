@@ -8,7 +8,7 @@
 ##   3) THE APRON LAW: no crag walls the two gates or the cistern in;
 ##   4) THE DETERMINISM LAW: a second conjured globe re-derives the
 ##      scatter byte-identical (same seats, same drift).
-## Run headless: godot --headless --path . --script res://dev_temp/probes/wilds_probe.gd
+## Run headless: godot --headless --path . --script res://tools/diagnostics/receipts/wilds_probe.gd
 extends SceneTree
 
 const UNDER_SCENE := "res://scenes/worlds/globe_underworld.tscn"

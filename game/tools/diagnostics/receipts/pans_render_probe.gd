@@ -7,7 +7,7 @@
 ##      PropLayer on the same player position),
 ##   3) drain the prop build queue DURING the drive,
 ##   4) census the pans chunks' built props (ore = the desert detail).
-## Run headless: godot --headless --path . --script res://dev_temp/probes/pans_render_probe.gd
+## Run headless: godot --headless --path . --script res://tools/diagnostics/receipts/pans_render_probe.gd
 extends SceneTree
 
 const GLOBE_SCENE := "res://scenes/worlds/globe_world.tscn"

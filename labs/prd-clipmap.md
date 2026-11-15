@@ -581,9 +581,10 @@ without flora.
   `diag_detail_kinds` census the `PropLayer`, `probe_mesh_surface_enum` /
   `probe_perf_budget` read the clipmap ladder (`ground_meshes()` /
   `build_all()` / `update()`), `probe_world_boot_speed` dropped the
-  streamer-internal PROMOTE leg for the clipmap build, and the `dev_temp` /
-  `dev2` diagnostics (`field2_salt_probe`, `pans_render_probe`,
+  streamer-internal PROMOTE leg for the clipmap build, and the historical
+  `dev_temp` / `dev2` diagnostics (`field2_salt_probe`, `pans_render_probe`,
   `wildflower_drift_probe`, `budget_diag`) were retargeted to `PropLayer`.
+  The world receipts now live in `game/tools/diagnostics/receipts/`.
 - **Step 5 (delete streamer) -- DONE.** `globe_terrain_streamer.gd` (3945
   lines) is deleted; nothing references it. The clipmap is the SOLE terrain
   renderer.

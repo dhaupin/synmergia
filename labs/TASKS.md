@@ -57,9 +57,11 @@ environment/CI-only until proven otherwise.
 
 - **Terrain fold:** `clipmap-fold-survey.md` A3 (rename the clipmap's
   streamer-parity shims) and A4 (`backend_penrose` + chart-LOD: keep or remove).
-- **Stale probes:** the `dev_temp/probes/*.gd` scripts still call
-  `get("streamer")` (the handle is `clipmap` now), and `bench_coldboot_wall.gd`
-  still prints a `STREAMER_MS` label. None are in the runner.
+- **Retired probe snapshot:** the old root `dev_temp/` lives at
+  `labs/archive/agent-probes-2026-10-11/`; its stale `get("streamer")` calls
+  are historical, not live work. Current world receipts live in
+  `game/tools/diagnostics/receipts/`. The live
+  `bench_coldboot_wall.gd` still prints a `STREAMER_MS` label.
 - **Terminology:** ~75 prose mentions of "streamer" across game code; fix the
   ones in lines you touch, per `legacy-inventory.md` sec A.
 - **Docs round (in progress, branch `docs/world-building-consolidation`):** labs index rewritten;

@@ -2,7 +2,7 @@
 ## receipt. Boots the project's autoloads headless, re-runs the
 ## authored-gateway seam (idempotent: known ids skip), and prints the
 ## zone + gateway the pair should expose. Run headless:
-##   godot --headless --path . --script res://dev_temp/probes/pans_pair_probe.gd
+##   godot --headless --path . --script res://tools/diagnostics/receipts/pans_pair_probe.gd
 extends SceneTree
 
 func _init() -> void:

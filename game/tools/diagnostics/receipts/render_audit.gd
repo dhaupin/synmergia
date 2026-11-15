@@ -14,7 +14,7 @@
 ##      the engine actually draws); lights inventoried. Headless has
 ##      no rasterer -- "would draw" is the honest ceiling here, the
 ##      pixel pass stays on-device.
-## Run headless: godot --headless --path . --script res://dev_temp/probes/render_audit.gd
+## Run headless: godot --headless --path . --script res://tools/diagnostics/receipts/render_audit.gd
 extends SceneTree
 
 const GLOBE_SCENE := "res://scenes/worlds/globe_world.tscn"

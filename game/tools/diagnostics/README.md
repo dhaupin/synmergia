@@ -24,6 +24,6 @@ godot --headless --path . --script res://tools/diagnostics/<name>.gd
 | `vista_scan.gd` | 3-D line of sight per bearing from a chosen eye. |
 
 Receipt-bearing world probes that assert a shipped build (for example
-`wilds_probe.gd`, `cistern_probe.gd`, `render_audit.gd`) stay in
-`game/dev_temp/probes/` until their receipt is retired; this directory is the
-canonical home for the general-purpose diagnostics.
+`wilds_probe.gd`, `cistern_probe.gd`, `render_audit.gd`) live in
+[`receipts/`](./receipts/). They are hand-run and not in the test runner; this
+directory remains the canonical home for the general-purpose diagnostics.
