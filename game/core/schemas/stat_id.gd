@@ -106,6 +106,14 @@ const BASE_CRIT_DAMAGE: float = 1.5
 ## on this; it stays here next to the base so the accessors are one formula.
 const CRIT_PER_AGILITY: float = 0.003
 
+## The caster axes' crit contribution per point. A magical skill crits off INT
+## (a mage's crit climbs with the stat its damage scales on); a heal crits off
+## WIS (a healer's crit is restoration power, not damage). Both are the caster
+## twins of CRIT_PER_AGILITY -- a caster's crit is real but leaner per point
+## than a rogue's, and neither is free. CombatMath.crit_axis_for picks the axis.
+const CRIT_PER_INTELLIGENCE: float = 0.005
+const CRIT_PER_WISDOM: float = 0.003
+
 ## --- Attack speed (the rogue / party buff axis) --------------------------
 ## Attack speed is ONE multiplier (base 1.0) that fans out to four effects:
 ## it raises hit rate, shortens cooldowns, speeds DoT/HoT ticks, and only
@@ -179,9 +187,37 @@ static func base_block() -> Dictionary:
 ## fallback all read it, so a buff on `crit_chance` actually lands (the old
 ## per-body accessors hardcoded the base and shadowed the stat block).
 static func crit_chance_of(agility: float, crit_chance_delta: float) -> float:
+        return crit_chance_on_axis("agility", agility, crit_chance_delta)
+
+
+## The crit chance on a named caster AXIS: base + axis_value * the axis rate +
+## the crit_chance delta. A magical skill rides "intelligence", a heal rides
+## "wisdom", a weapon strike rides "agility" (the default). THE one caster-crit
+## formula, so a mage/healer crit and a rogue crit are the same shape with a
+## different per-point rate. An unknown axis falls back to agility.
+static func crit_chance_on_axis(axis: String, axis_value: float,
+                crit_chance_delta: float) -> float:
+        var per_point := CRIT_PER_AGILITY
+        if axis == "intelligence":
+                per_point = CRIT_PER_INTELLIGENCE
+        elif axis == "wisdom":
+                per_point = CRIT_PER_WISDOM
         return clampf(
-                BASE_CRIT_CHANCE + agility * CRIT_PER_AGILITY + crit_chance_delta,
+                BASE_CRIT_CHANCE + axis_value * per_point + crit_chance_delta,
                 0.0, MAX_CRIT_CHANCE)
+
+
+## The primary stat a crit AXIS rides, for a skill's damage school and its kind.
+## A magical skill crits off INT; a heal off WIS; anything else off agility.
+## THE one axis chooser, so the damage path and the heal path cannot disagree
+## about which stat makes a crit climb. `is_heal` wins over the school, because
+## a heal is a heal whatever school its effect carries.
+static func crit_axis_for(damage_type: String, is_heal: bool) -> String:
+        if is_heal:
+                return "wisdom"
+        if damage_type == "magical":
+                return "intelligence"
+        return "agility"
 
 
 ## The crit multiplier a body lands, from the 1.5 base + crit_damage delta.
