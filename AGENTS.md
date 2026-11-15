@@ -44,6 +44,71 @@ Six facts from that log that still shape every round:
   gate by duck-type, so a missing flag is an inert buff-bar icon. A slow is a
   negative `movement_speed_multiplier` delta from the entry's authored `value`.
 
+## The game OS: services + schemas, canonicalized (READ THIS BEFORE A SYSTEM)
+
+Synmergia is not a pile of single-purpose static systems. It is a **game OS**:
+a fluid lattice of **services** (`game/core/services/*.gd`, autoloaded) that
+read **canonical definitions** (schemas in `game/core/schemas/*.gd`, data in
+`game/data/**/*.tres`). The substrate is extractable -- the reusable frame is
+the point, not a byproduct (see `labs/world-building-arch.md`).
+
+Five laws. They are how we keep the OS fluid instead of accruing copies.
+
+1. **Define from schema + data, not from code.** A new system's shape belongs
+   in a `core/schemas/*.gd` `@export` surface and its values in a `.tres`. A
+   service *consumes* a definition; it does not hardcode one. If you are
+   writing a `match`/`if` ladder of literal values, that ladder is a schema
+   asking to exist. `labs/data-authoring-baseline.md` is the authoring
+   contract; `test_data_naming_lint.gd` is the gate.
+2. **One source per concept -- canonicalize, never re-inline.** The recurring
+   bug in this repo is a second copy of a thing that already had a home:
+   `GameTier` (five rungs) re-inlined as a local dict; a stat key spelled by
+   hand instead of `StatId`; `crit_chance` hand-copied in five spawn paths and
+   dropped in three. When you need a value another system already owns, READ
+   it (`GameTier.color(name)`, `StatId.is_valid(key)`,
+   `EnemyData.apply_stats_to(...)`). If no single owner exists yet, make one --
+   do not add a second copy.
+3. **Services are shared, not per-site.** A behavior every caller needs (stat
+   seeding, hit resolution, crit, cooldowns) is one service/helper the callers
+   route through. Copy-paste-per-callsite is how the crit bug happened: five
+   pipelines each remembered the primaries and three forgot the crit identity.
+   When a second caller wants the same logic, extract the helper; the second
+   call site is the signal, not the exception.
+4. **Players, enemies, agents, NPCs are the same bodies.** An enemy uses
+   skills, crit, and cooldowns through the SAME `CombatComponent` / hit table /
+   `StatId` math a player does -- enemies are not a parallel implementation.
+   Author a behavior once, on the shared body, and every actor gets it. This is
+   the reuse rule (3) applied to actors.
+5. **Bands and tiers are the FIVE rungs, always.** common / rare / epic /
+   legendary / mythic, from `GameTier`. A local 4-rung ladder or a private
+   palette is drift, and `test_skill_tier_parity.gd` exists to fail it.
+
+### The current use case: classes within species
+
+Species are **bodies** (`core/schemas/species.gd`: stat deltas, relations,
+hitbox fairness law). Classes are the **verbs** layered on a body
+(`core/schemas/character_class.gd`: role, focal stats, resource type,
+`starting_skills`). A playable identity is a **species x class** pair, and the
+18 classes are distributed across the 3 species -- there is no separate
+"species skill system"; species-skill work is the class layer that already
+exists, authored per species.
+
+- **Identity verbs are canonical and shared.** A class's FIRST
+  `starting_skills` entry carries its family identity verb, read off `role`
+  (TANK=control, BENDER=teleport, HEALER=heal, DD/MAGE/ROGUE=damage). The verb
+  is a property of the LANE, so it is authored once and shared by every class
+  in that lane -- not re-invented per class. Enforced by
+  `test_data_naming_lint.gd` (see "The starter law").
+- **The class field surface is the contract.** `crit_chance_bonus`,
+  `crit_damage_bonus`, `attack_speed_bonus`, `focal_stat_1/2`,
+  `resource_type`, `base_stats`/`stat_growth` are all DATA. A class's identity
+  (a ranger crits harder, a rogue is faster) is authored in the `.tres`, not
+  special-cased in a service. Prefer adding a field + data over a code branch.
+- **When you extend this layer:** put the shape in the schema, the values in
+  the `.tres`, the behavior in one shared service, and the vocabulary in
+  `StatId` / `GameTier`. Then add the test that asserts it on the SPAWNED/
+  built body, not just on the template (see the enemy-seeder note below).
+
 ## READ FIRST
 
 Four things that have caused repeated agent damage in this
