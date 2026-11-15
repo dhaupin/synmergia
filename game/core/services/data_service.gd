@@ -15,6 +15,8 @@ const BlackMarketData = preload("res://core/schemas/black_market_data.gd")
 const StarterKitData = preload("res://core/schemas/starter_kit_data.gd")
 const AcademyBalanceData = preload("res://core/schemas/academy_balance_data.gd")
 const HousingBalanceData = preload("res://core/schemas/housing_balance_data.gd")
+const BoutRewardsData = preload("res://core/schemas/bout_rewards_data.gd")
+const AgentSlotBalanceData = preload("res://core/schemas/agent_slot_balance_data.gd")
 const CharacterClass = preload("res://core/schemas/character_class.gd")
 const Species = preload("res://core/schemas/species.gd")
 const Faction = preload("res://core/schemas/faction.gd")
@@ -250,6 +252,22 @@ func get_housing_balance() -> HousingBalanceData:
 	if record is HousingBalanceData:
 		return record
 	GameLog.warn("DataService: Housing balance record not found")
+	return null
+
+## The bout/trial/royale payout table.
+func get_bout_rewards() -> BoutRewardsData:
+	var record = _balance.get("bout_rewards")
+	if record is BoutRewardsData:
+		return record
+	GameLog.warn("DataService: Bout rewards record not found")
+	return null
+
+## The agent slot sigil ladder.
+func get_agent_slot_balance() -> AgentSlotBalanceData:
+	var record = _balance.get("agent_slots")
+	if record is AgentSlotBalanceData:
+		return record
+	GameLog.warn("DataService: Agent slot balance record not found")
 	return null
 
 ## Load classes from data/classes/

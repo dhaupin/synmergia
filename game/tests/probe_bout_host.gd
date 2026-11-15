@@ -38,6 +38,13 @@ func _run() -> void:
 	if host == null or lobby == null or esvc == null or zm == null:
 		quit(1)
 		return
+	var ds = root.get_node_or_null("DataService")
+	var rewards = ds.get_bout_rewards() if ds != null and ds.has_method("get_bout_rewards") else null
+	_check("bout rewards record resolves", rewards != null and rewards.is_valid())
+	if rewards == null:
+		quit(1)
+		return
+	_check("host resolves the bout rewards record", host._rewards_data() == rewards)
 	zm.load_zones()
 
 	# Two players at their stones (real Node3D stubs in the tree).
@@ -123,9 +130,10 @@ func _run() -> void:
 	await process_frame
 
 	# ---- 6. Payout (duck-typed progression ledger) -----------------------
-	_check("payout landed on the ledger (120 win + 40 consolation)", \
-		int(pm.experience) == xp_before + 160)
-	_check("winner gold landed", int(pm.gold) == gold_before + 25)
+	var expected_xp: int = int(rewards.win_xp) + int(rewards.consolation_xp)
+	_check("payout landed on the ledger (%d win + %d consolation)" % [int(rewards.win_xp), int(rewards.consolation_xp)], \
+		int(pm.experience) == xp_before + expected_xp)
+	_check("winner gold landed (%d)" % int(rewards.win_gold), int(pm.gold) == gold_before + int(rewards.win_gold))
 	_check("host book released", not host.is_hosting(iid))
 	await process_frame
 	_check("room torn down", room_svc.room_by_id(iid) == null)
@@ -156,7 +164,7 @@ func _run() -> void:
 	_check("trial clock caps the bout (draw at -1)", clock_room.is_over())
 	var draw_book: Dictionary = {"room": clock_room, "participants": ["clock_a", "clock_b"], "trial": true}
 	host._pay_draw(draw_book)
-	_check("draw pays consolation, not a win", int(pm.experience) >= 40)
+	_check("draw pays consolation, not a win", int(pm.experience) >= int(rewards.consolation_xp))
 	clock_room.queue_free()
 	await process_frame
 

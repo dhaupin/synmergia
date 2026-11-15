@@ -1,8 +1,8 @@
 # Data / Engine Separation
 
 > **Status:** ACTIVE 2026-11-15. The Fixer board, starter kits, Academy
-> prices and housing economy are extracted; the remaining ledger is a
-> deliberate queue, not a rewrite mandate.
+> prices, housing economy, bout rewards and agent slots are extracted; the
+> remaining ledger is a deliberate queue, not a rewrite mandate.
 >
 > **Law it obeys:** [`data-authoring-baseline.md`](./data-authoring-baseline.md)
 > sec 0 and the core/data boundary in [`AGENTS.md`](../AGENTS.md). This doc is
@@ -59,8 +59,8 @@ These are not extraction targets unless their ownership changes:
 | Starter kits | Role -> item ids and starting gold tables | **EXTRACTED** this pass: `data/balance/starter_kits.tres` |
 | Skill Academy economy | Book price, respec base and per-point costs | **EXTRACTED** this pass: `data/balance/academy_balance.tres` |
 | Housing economy | Plot price, guard/ankh costs, default house tier, no-data house fallback | **EXTRACTED** this pass: `data/balance/housing_balance.tres`; tier costs already data |
-| Bout rewards | Win gold for bout/trial/royale | **NEXT**: bout reward record |
-| Agent slot ladder | Sigil prices per seat | **NEXT**: agent roster balance record |
+| Bout rewards | XP and gold for bout/trial/royale | **EXTRACTED** this pass: `data/balance/bout_rewards.tres` |
+| Agent slot ladder | Sigil prices per seat | **EXTRACTED** this pass: `data/balance/agent_slots.tres` |
 | Scope bands | Six verb band tables in `scope_band.gd` | LATER: combat tuning; extract with a schema when designers own it |
 | Skill special-case ids | `debuff_taunt` / aggro-horn string checks in `skill.gd` | NEEDS DESIGN: replace with authored flags/tags, not a data file |
 | Flywheel weights | Chaos weights and momentum constants | LATER: simulation tuning; frame may keep defaults |
@@ -149,7 +149,36 @@ receipts are `game/tests/test_house_catalog.gd` (data record, tier cost,
 unknown-tier refusal) and `game/tests/test_placement_system.gd` (guard/ankh
 charges read from the record).
 
-## 8. Next-pass rule
+## 8. Fifth slice: bout rewards
+
+`BoutHostService` still owns:
+
+- who wins, draws and loses;
+- the XP/gold grant and the toast copy;
+- trial dummy setup and achievement/quest credit.
+
+`game/data/balance/bout_rewards.tres` owns the win, consolation, trial
+and royale amounts. A missing record refuses every payout instead of
+paying zero or guessing. The receipts are `probe_bout_host.gd` and
+`probe_trial_bout.gd`: both resolve the record through `DataService`,
+assert the host holds that same record, and compute their expected
+payout from it.
+
+## 9. Sixth slice: agent slots
+
+`AgentRoster` still owns:
+
+- the free floor and the design cap;
+- the one-time debit/grant gate and persistence;
+- the refusal reasons.
+
+`game/data/balance/agent_slots.tres` owns the sigil price per paid seat.
+A missing record refuses an unlock with `agent slot pricing unavailable`
+rather than granting a free seat. The receipt is
+`game/tests/test_agent_roster.gd`: it resolves the record and walks the
+whole ladder using the authored prices.
+
+## 10. Next-pass rule
 
 One pass = one domain, one schema, one record, one receipt.
 

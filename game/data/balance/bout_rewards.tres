@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="BoutRewardsData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/bout_rewards_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "bout_rewards"
+win_xp = 120
+win_gold = 25
+consolation_xp = 40
+trial_win_xp = 40
+trial_win_gold = 10
+trial_loss_xp = 15
+royale_win_xp = 250
+royale_win_gold = 60
+royale_survival_xp_per_min = 12
+royale_kill_xp = 25
+royale_consolation_xp = 30
+royale_first_win_xp = 400

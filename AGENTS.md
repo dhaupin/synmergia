@@ -868,8 +868,8 @@ sheet (`labs/prompts/gemini_housing.md` sec. 1). Fields: `tier`, `cost`,
 `roof_color`, `features[]`. Loaded by `DataService.load_houses()` (pure
 `_houses` registry, never merged into `_items`) and read by
 `HousingService.build_house` via `get_house`. NOT hardcoded: a new tier
-ships as a `.tres`. `HOUSE_COST` in `HousingService` is only the
-fallback when DataService has no such tier.
+ships as a `.tres`. An unknown tier is refused; there is no no-data
+fallback house.
 
 ### Item
 - `soulbound`, `bind_on_pickup`, `bind_on_equip`

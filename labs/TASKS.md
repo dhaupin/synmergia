@@ -63,8 +63,10 @@ environment/CI-only until proven otherwise.
   and the ordering/leave-alone list in `data-engine-separation.md` (first
   slices: the Fixer's roll board in `data/balance/black_market.tres`, the
   starter kit tables in `data/balance/starter_kits.tres`, the Academy
-  prices in `data/balance/academy_balance.tres`, and the housing economy
-  in `data/balance/housing_balance.tres`).
+  prices in `data/balance/academy_balance.tres`, the housing economy in
+  `data/balance/housing_balance.tres`, bout rewards in
+  `data/balance/bout_rewards.tres`, and agent slot prices in
+  `data/balance/agent_slots.tres`).
 - **Terrain fold:** CLOSED. `clipmap-fold-survey.md` A1-A4 and B1 are folded
   or removed, with the receipts recorded there; residual "streamer" mentions
   are historical prose, not live work.

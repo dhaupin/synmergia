@@ -36,6 +36,13 @@ func _run() -> void:
 	if host == null or lobby == null or esvc == null or zm == null:
 		quit(1)
 		return
+	var ds = root.get_node_or_null("DataService")
+	var rewards = ds.get_bout_rewards() if ds != null and ds.has_method("get_bout_rewards") else null
+	_check("bout rewards record resolves", rewards != null and rewards.is_valid())
+	if rewards == null:
+		quit(1)
+		return
+	_check("host resolves the bout rewards record", host._rewards_data() == rewards)
 	zm.load_zones()
 	var isvc = root.get_node_or_null("InstanceService")
 	if isvc != null:
@@ -118,11 +125,10 @@ func _run() -> void:
 	# ---- 5. Trial payout + quest + achievement credit --------------------
 	var xp_before: int = int(pm.experience)
 	var gold_before: int = int(pm.gold)
-	# Ledger moved at bout end inside _on_bout_ended; recompute from
-	# the pre-bout baseline (probe saved nothing -- read the deltas by
-	# re-running the grant math: 40 XP + 10 gold for the trial win).
-	_check("trial win payout landed (40 XP + 10 gold)", \
-		int(pm.experience) >= 40 and int(pm.gold) >= 10)
+	# Ledger moved at bout end inside _on_bout_ended; the trial win pays
+	# the amounts authored in the bout rewards record.
+	_check("trial win payout landed (%d XP + %d gold)" % [int(rewards.trial_win_xp), int(rewards.trial_win_gold)], \
+		int(pm.experience) >= int(rewards.trial_win_xp) and int(pm.gold) >= int(rewards.trial_win_gold))
 	xp_before = int(pm.experience)
 	_check("quest credit: KILL 'marshal's dummies' ticked", \
 		_quest_ticked(qs, "trial_rookie", "win_trial"))

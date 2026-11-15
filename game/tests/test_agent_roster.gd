@@ -9,9 +9,10 @@
 ##   2. the 1:1 law: a handle belongs to exactly one account; a second
 ##      attach is refused by name.
 ##   3. the cap (dev floor): the (floor+1)th attach is refused, naming the need.
-##   4. the sigil ladder (PRODUCTION floor): slot 2 is priced 250;
-##      unlock_next_slot debits the ONE purse and grants exactly one slot;
-##      a short purse is refused naming the need and grants nothing.
+##   4. the sigil ladder (PRODUCTION floor): the price comes from the
+##      agent_slots record; unlock_next_slot debits the ONE purse and
+##      grants exactly one slot; a short purse is refused naming the need
+##      and grants nothing.
 ##   5. the ladder ceiling: MAX_SLOTS = 5 (a full party); past it there is
 ##      no priced slot and the unlock is refused by name.
 ##   6. detach frees a slot; the slot count is unchanged (the unlock stays).
@@ -62,6 +63,14 @@ func _run() -> void:
 	_assert(_roster != null, "AgentRoster autoload present")
 	if _roster == null:
 		return _finish()
+	var ds = root.get_node_or_null("DataService")
+	_assert(ds != null and ds.has_method("get_agent_slot_balance"),
+			"DataService exposes the agent slot balance")
+	var ladder: AgentSlotBalanceData = ds.get_agent_slot_balance() if ds != null and ds.has_method("get_agent_slot_balance") else null
+	_assert(ladder != null and ladder.is_valid(), "agent slot balance record is valid")
+	if ladder == null:
+		return _finish()
+	var slot_prices: Dictionary = ladder.slot_prices
 	_driver.set_enabled(true)
 
 	# ---- 1-3: the DEV FLOOR (5 free = a full 6-seat party) -----------
@@ -97,20 +106,22 @@ func _run() -> void:
 	_purse = _purse_for(acct)
 	_assert(_purse != null, "the account has a purse")
 	var price: int = _roster.next_slot_price(acct)
-	_assert(price == 250, "the next slot (2) is priced 250 sigils")
+	var expected_first: int = int(slot_prices.get(2, -1))
+	_assert(price == expected_first, "the next slot (2) is priced %d sigils from data" % expected_first)
 	var short: Dictionary = _roster.unlock_next_slot(acct)
-	_assert(not bool(short.get("ok", true)) and String(short.get("reason", "")).contains("need 250"), "a short purse is refused naming the need")
+	_assert(not bool(short.get("ok", true)) and String(short.get("reason", "")).contains("need %d" % expected_first), "a short purse is refused naming the need")
 	_assert(_roster.effective_slots(acct) == 1, "the refused purchase granted nothing")
-	_purse.add_currency("currency_concord_sigil", 250)
+	_purse.add_currency("currency_concord_sigil", expected_first)
 	var bought: Dictionary = _roster.unlock_next_slot(acct)
 	_assert(bool(bought.get("ok", false)), "the slot unlocks when the purse can pay")
 	_assert(_roster.effective_slots(acct) == 2, "the unlock raised the cap to 2")
 	_assert(int(_purse.get_currency_amount("currency_concord_sigil")) == 0, "the sigils were debited (0 left)")
 
-	# 5. The ladder ceiling (slots 3, 4, 5 at 900 / 2500 / 6000).
-	for step in [[3, 900], [4, 2500], [5, 6000]]:
-		_assert(_roster.next_slot_price(acct) == int(step[1]), "slot %d is priced %d" % [int(step[0]), int(step[1])])
-		_purse.add_currency("currency_concord_sigil", int(step[1]))
+	# 5. The ladder ceiling (slots 3, 4, 5 priced by the record).
+	for slot in [3, 4, 5]:
+		var expected: int = int(slot_prices.get(slot, -1))
+		_assert(_roster.next_slot_price(acct) == expected, "slot %d is priced %d" % [slot, expected])
+		_purse.add_currency("currency_concord_sigil", expected)
 		_roster.unlock_next_slot(acct)
 	_assert(_roster.effective_slots(acct) == 5, "the ladder tops out at MAX_SLOTS (5 = a full party)")
 	_assert(_roster.next_slot_price(acct) == -1, "no priced slot remains")

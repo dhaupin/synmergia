@@ -33,38 +33,34 @@ const ArenaScene = preload("res://scenes/instances/arena_instance.gd")
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 const Contract = preload("res://core/schemas/instance_contract.gd")
 
-## Payout: base XP for the winning team (per member), consolation for
-## losers, plus gold to winners. Zone-scaled base lands later.
-const WIN_XP: int = 120
-const WIN_GOLD: int = 25
-const CONSOLATION_XP: int = 40
-const TRIAL_WIN_XP: int = 40
-const TRIAL_WIN_GOLD: int = 10
-const TRIAL_LOSS_XP: int = 15
+## Payout values are data: data/balance/bout_rewards.tres. The service
+## owns the win/loss gates and the ledger; the record owns the amounts.
 ## Dummy display name (QuestService KILL objectives target display
 ## names -- the lint's credit rule, same as "Wolf" for wolves).
 const TRIAL_DUMMY_NAME: String = "marshal's dummies"
 const TRIAL_DUMMY_COUNT: int = 2
 
-## ---- ROYALE payout shape (owner answers, 2026-09-29) --------------------
-## Placement economy: the Last Light pays, survival pays, kills pay,
-## and dying to the fog still pays the lesson. Anti-fog-squat credit
-## (last standing team takes fog kills) is the room's job; this is
-## the ledger.
-const ROYALE_WIN_XP: int = 250
-const ROYALE_WIN_GOLD: int = 60
-const ROYALE_SURVIVAL_XP_PER_MIN: int = 12
-const ROYALE_KILL_XP: int = 25
-const ROYALE_CONSOLATION_XP: int = 30
-## First Last Light: the title (title_last_light) + the achievement
-## (royale_first_win) carry the marker; the flat bonus makes the
-## FIRST win pay like a small heist.
-const ROYALE_FIRST_WIN_XP: int = 400
-
 # instance_id -> {zone_id, room, participants: Array, started: bool}
 var _hosted: Dictionary = {}
 # Trial id uniquifier (two trials can be born in the same second).
 var _trial_seq: int = 0
+
+const DATA_ID := "bout_rewards"
+var _rewards_cache: BoutRewardsData = null
+
+## Resolve the payout record through DataService. The service owns the
+## gates; the record owns the amounts.
+func _rewards_data() -> BoutRewardsData:
+	if _rewards_cache != null and _rewards_cache.is_valid():
+		return _rewards_cache
+	var ds = _data_service()
+	if ds == null or not ds.has_method("get_bout_rewards"):
+		return null
+	_rewards_cache = ds.get_bout_rewards()
+	if _rewards_cache == null or not _rewards_cache.is_valid():
+		GameLog.warn("BoutHostService: reward record %s is missing or invalid" % DATA_ID)
+		return null
+	return _rewards_cache
 
 
 func _ready() -> void:
@@ -279,6 +275,10 @@ func _pay_royale(winner_team: int, stats: Dictionary, book: Dictionary) -> void:
 	var room = book.get("room")
 	if room == null:
 		return
+	var rewards := _rewards_data()
+	if rewards == null:
+		GameLog.error("BoutHostService: royale payout refused - reward record missing")
+		return
 	var ach = _achievement_service()
 	var elapsed: float = float(stats.get("elapsed_seconds", 0.0))
 	for pid in book.get("participants", []):
@@ -287,21 +287,21 @@ func _pay_royale(winner_team: int, stats: Dictionary, book: Dictionary) -> void:
 		if f == null:
 			continue
 		var kills: int = int(room.kill_counts.get(sid, 0))
-		var survival_xp: int = int(elapsed / 60.0) * ROYALE_SURVIVAL_XP_PER_MIN
+		var survival_xp: int = int(elapsed / 60.0) * rewards.royale_survival_xp_per_min
 		if ach != null:
 			ach.track(sid, "royale_survival", 1)
 			if kills >= 5:
 				ach.track(sid, "royale_kill", kills)
 		if int(f.team) == winner_team:
 			var first: bool = _grant_last_light(sid, ach)
-			var xp: int = ROYALE_WIN_XP + survival_xp + kills * ROYALE_KILL_XP \
-				+ (ROYALE_FIRST_WIN_XP if first else 0)
-			_grant(sid, xp, ROYALE_WIN_GOLD)
+			var xp: int = rewards.royale_win_xp + survival_xp + kills * rewards.royale_kill_xp \
+				+ (rewards.royale_first_win_xp if first else 0)
+			_grant(sid, xp, rewards.royale_win_gold)
 			var crown: String = " LAST LIGHT. The valley remembers." if first \
 				else " Last Light. The valley empties."
-			_toast(sid, "You are the%s (+%d XP, +%d gold)" % [crown, xp, ROYALE_WIN_GOLD], "royale_win:%s" % sid)
+			_toast(sid, "You are the%s (+%d XP, +%d gold)" % [crown, xp, rewards.royale_win_gold], "royale_win:%s" % sid)
 		else:
-			var xp2: int = ROYALE_CONSOLATION_XP + survival_xp + kills * ROYALE_KILL_XP
+			var xp2: int = rewards.royale_consolation_xp + survival_xp + kills * rewards.royale_kill_xp
 			_grant(sid, xp2, 0)
 			_toast(sid, "The fog takes you. You survived %.0f s. (+%d XP)" % [elapsed, xp2], "royale_out:%s" % sid)
 
@@ -325,11 +325,15 @@ func _pay_draw(book: Dictionary) -> void:
 	var room = book.get("room")
 	if room == null:
 		return
+	var rewards := _rewards_data()
+	if rewards == null:
+		GameLog.error("BoutHostService: draw payout refused - reward record missing")
+		return
 	for pid in book.get("participants", []):
 		var sid: String = str(pid)
 		if room._fighters.has(sid):
-			_grant(sid, CONSOLATION_XP, 0)
-			_toast(sid, "The clock ran out. A draw -- the marshal pays the lesson. (+%d XP)" % CONSOLATION_XP, "bout_draw:%s" % sid)
+			_grant(sid, rewards.consolation_xp, 0)
+			_toast(sid, "The clock ran out. A draw -- the marshal pays the lesson. (+%d XP)" % rewards.consolation_xp, "bout_draw:%s" % sid)
 
 
 ## The rival book (owner point 4): every REAL bout (no trial, at
@@ -383,6 +387,10 @@ func _pay_out(winner_team: int, book: Dictionary) -> void:
 	var room = book.get("room")
 	if room == null:
 		return
+	var rewards := _rewards_data()
+	if rewards == null:
+		GameLog.error("BoutHostService: bout payout refused - reward record missing")
+		return
 	var trial: bool = bool(book.get("trial", false))
 	for pid in book.get("participants", []):
 		var sid: String = str(pid)
@@ -391,14 +399,14 @@ func _pay_out(winner_team: int, book: Dictionary) -> void:
 			continue
 		if int(f.team) == winner_team:
 			if trial:
-				_grant(sid, TRIAL_WIN_XP, TRIAL_WIN_GOLD)
-				_toast(sid, "The marshal is satisfied. (+%d XP, +%d gold)" % [TRIAL_WIN_XP, TRIAL_WIN_GOLD], "trial_win:%s" % sid)
+				_grant(sid, rewards.trial_win_xp, rewards.trial_win_gold)
+				_toast(sid, "The marshal is satisfied. (+%d XP, +%d gold)" % [rewards.trial_win_xp, rewards.trial_win_gold], "trial_win:%s" % sid)
 				_credit_trial_win(sid)
 			else:
-				_grant(sid, WIN_XP, WIN_GOLD)
-				_toast(sid, "Victory. The marshal's purse opens. (+%d XP, +%d gold)" % [WIN_XP, WIN_GOLD], "bout_win:%s" % sid)
+				_grant(sid, rewards.win_xp, rewards.win_gold)
+				_toast(sid, "Victory. The marshal's purse opens. (+%d XP, +%d gold)" % [rewards.win_xp, rewards.win_gold], "bout_win:%s" % sid)
 		else:
-			var xp: int = TRIAL_LOSS_XP if trial else CONSOLATION_XP
+			var xp: int = rewards.trial_loss_xp if trial else rewards.consolation_xp
 			_grant(sid, xp, 0)
 			_toast(sid, "The bout is lost. The lesson is paid. (+%d XP)" % xp, "bout_lose:%s" % sid)
 
@@ -454,6 +462,13 @@ func _player_manager():
 	if ml == null or not (ml is SceneTree):
 		return null
 	return (ml as SceneTree).root.get_node_or_null("PlayerManager")
+
+
+func _data_service():
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return null
+	return (ml as SceneTree).root.get_node_or_null("DataService")
 
 
 func _toast(player_id: String, message: String, dedupe_key: String) -> void:

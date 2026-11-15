@@ -41,15 +41,28 @@ const DEV_FREE_SLOTS: int = 5
 ## caps how many may PLAY concurrently.
 const MAX_SLOTS: int = 5
 
-## The slot ladder, slot index (1-based) -> one-time sigil price,
-## steeply progressive (labs/prd-monetization.md sec 43): unlocking all
-## four paid slots is a month or more of ordinary play, or a purchase.
-const SLOT_PRICES := {
-	2: 250,
-	3: 900,
-	4: 2500,
-	5: 6000,
-}
+## The slot prices are data: data/balance/agent_slots.tres. This service
+## owns the free floor, the cap and the debit/grant gate.
+const DATA_ID := "agent_slots"
+var _balance_cache: AgentSlotBalanceData = null
+
+func _balance_data() -> AgentSlotBalanceData:
+	if _balance_cache != null and _balance_cache.is_valid():
+		return _balance_cache
+	var ds = _node("DataService")
+	if ds == null or not ds.has_method("get_agent_slot_balance"):
+		return null
+	_balance_cache = ds.get_agent_slot_balance()
+	if _balance_cache == null or not _balance_cache.is_valid():
+		GameLog.warn("AgentRoster: balance record %s is missing or invalid" % DATA_ID)
+		return null
+	return _balance_cache
+
+func _slot_price(slot: int) -> int:
+	var balance := _balance_data()
+	if balance == null:
+		return -1
+	return int(balance.slot_prices.get(slot, -1))
 
 ## The coordinator is the source of truth for live agent handles.
 const _COORDINATOR := "AgentCoordinator"
@@ -213,7 +226,7 @@ func next_slot_price(account_id: String) -> int:
 	var slot: int = free_floor() + _unlocks.get(account_id, []).size() + 1
 	if slot > MAX_SLOTS:
 		return -1
-	return int(SLOT_PRICES.get(slot, -1))
+	return _slot_price(slot)
 
 ## Unlock the next priced agent slot, debiting Concord Sigils from the ONE
 ## purse. Refuses honestly when there is no priced slot left or the purse is
@@ -224,7 +237,10 @@ func unlock_next_slot(account_id: String) -> Dictionary:
 	var slot: int = free_floor() + _unlocks.get(account_id, []).size() + 1
 	if slot > MAX_SLOTS:
 		return {"ok": false, "reason": "the agent ladder is full (%d slots)" % MAX_SLOTS}
-	var price: int = int(SLOT_PRICES.get(slot, -1))
+	var balance := _balance_data()
+	if balance == null:
+		return {"ok": false, "reason": "agent slot pricing unavailable"}
+	var price: int = int(balance.slot_prices.get(slot, -1))
 	if price < 0:
 		return {"ok": false, "reason": "slot %d is not for sale" % slot}
 	var inv = _inventory_of(account_id)
