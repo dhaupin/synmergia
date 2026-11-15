@@ -141,7 +141,7 @@ lanes land. That is the merge point, not a lane's job.
 
 ### Lane D -- Modeling / assets / art (Blender + gen pipelines)
 
-- **Owns:** `art/**` (source `.blend`, textures, renders),
+- **Owns:** `game/assets/art/**` (source `.blend`, textures, renders),
   `game/models/**` (exported `.glb`), `scripts/gen_*_model.py`,
   `scripts/gen_icons.py`, `scripts/blender_*.sh`, and a new
   `labs/prd-art-pipeline.md`. Reads `labs/prd-3d-pipeline.md` as law.
@@ -173,13 +173,13 @@ lanes land. That is the merge point, not a lane's job.
   but it is a SEPARATE compute surface: the lane would push inputs out
   and pull `.glb`/textures back. Treat it as a tool a lane *calls*, not
   a lane by itself, and keep the artifacts flowing through the repo
-  (`art/src/` -> `game/models/`) so the pipeline law still holds. Before
+  (`game/assets/art/src/` -> `game/models/`) so the pipeline law still holds. Before
   wiring it, confirm the owner wants that external hop (it leaves the
   sandbox).
 - **Why D is separate:** it is the only lane whose tasks are
   unbounded-time and resource-heavy (GPU/CPU, large binaries). Running
   it beside A/B/C means a 40-minute Blender batch never stalls the
-  code lanes, and vice versa. It also rarely collides on files: `art/`
+  code lanes, and vice versa. It also rarely collides on files: `game/assets/art/`
   and `game/models/` are disjoint from every code lane.
 
 ## Cost honesty

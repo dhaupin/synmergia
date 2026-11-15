@@ -36,7 +36,7 @@ Whatever GPU box you use, the output must enter the repo the SAME way.
 This is the law from `labs/prd-3d-pipeline.md` sec 2; the GPU surface
 does not get to change it:
 
-1. **Source files live outside `game/`**: `art/src/` holds `.blend`,
+1. **Source files live under `game/assets/art/src/`**: the tree is hidden from Godot by `game/assets/art/.gdignore` and holds `.blend`,
    source textures, and reference images. Versioned with the repo.
 2. **Only exported `.glb` enters `game/models/`** — never a `.blend`,
    never a raw `.obj`/`.fbx`/`.ply`.
@@ -89,7 +89,7 @@ before renting anything.
         |                                |
         v                                v
   +-------------+   GPU: image-to-3D  +--------------+
-  | art/src/    | ------------------> | art/out/     |
+  | game/assets/art/src/    | ------------------> | game/assets/art/out/     |
   | (refs)      |   (TRELLIS/Hunyuan) | (.glb + tex) |
   +-------------+                     +------+-------+
                                              |  download / git
@@ -102,12 +102,12 @@ before renting anything.
 
 Steps:
 
-1. **Author the reference** (an image or a text prompt) into `art/src/`.
+1. **Author the reference** (an image or a text prompt) into `game/assets/art/src/`.
 2. **Provision** the Colab env: run `scripts/gpu/setup_gpu_env.sh`
    (sec 3.3).
 3. **Generate**: run the chosen suite on the reference -> a `.glb`
-   (+ textures) into `art/out/` on the GPU box.
-4. **Bring it back**: download to the sandbox (or commit `art/out/` to a
+   (+ textures) into `game/assets/art/out/` on the GPU box.
+4. **Bring it back**: download to the sandbox (or commit `game/assets/art/out/` to a
    scratch branch). Land the final `.glb` in `game/models/<data_id>.glb`.
 5. **Verify on CPU**: `sh ./scripts/blender_smoke_test.sh`, then the
    naming lint, then the in-engine probe. Fix the pivot/scale/naming
@@ -166,10 +166,10 @@ os.environ["HF_TOKEN"] = userdata.get("HF_TOKEN")  # gated model downloads
 
 # Cell 3 — generate (example shape; the suite's own API goes here)
 !python scripts/gpu/gen_from_image.py --suite trellis \
-    --image art/src/concept_wolf.png --out art/out/wolf.glb
+    --image game/assets/art/src/concept_wolf.png --out game/assets/art/out/wolf.glb
 
 # Cell 4 — fetch the artifact back to the sandbox, then verify on CPU
-#   (download art/out/wolf.glb -> game/models/enemy_wolf.glb,
+#   (download game/assets/art/out/wolf.glb -> game/models/enemy_wolf.glb,
 #    then: sh ./scripts/blender_smoke_test.sh + naming lint + probe)
 ```
 
@@ -195,8 +195,8 @@ why Colab comes first — it proves the contract with zero spend.
 - **Hugging Face token** (gated model weights): store as a Colab Secret /
   provider secret; read via env; never commit it. The repo's `.gitignore`
   should ignore any local `.env` and large scratch output.
-- **`art/out/` is scratch** — the final `.glb` lands in `game/models/`;
-  `art/out/` may be gitignored or pruned. Keep the repo lean.
+- **`game/assets/art/out/` is scratch** — the final `.glb` lands in `game/models/`;
+  `game/assets/art/out/` may be gitignored or pruned. Keep the repo lean.
 - **Large binaries**: prefer `.glb` under a few MB; if a hero asset is
   large, note it — this repo deliberately avoids Git LFS (see
   `AGENTS.md` "No Git LFS — and why").

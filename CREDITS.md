@@ -56,7 +56,7 @@ license unless noted otherwise:
 - **Branding and site art** (`public/branding/`, `public/og-image.png`,
   favicons) derive from the in-repo logo pack via
   `scripts/gen_site_branding.py` and `scripts/gen_icons.py`.
-- **Screenshots** (`art/screenshots/`) are captured from the game itself.
+- **Model screenshots** (`game/assets/art/screenshots/`) are rendered from the in-repo Blender models; gameplay screenshots land in `game/captures/screenshots/`.
 
 The **Synmergia name and logo** are covered by [TRADEMARK.md](./TRADEMARK.md)
 — the MIT license covers the code and assets, not the brand.

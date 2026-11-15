@@ -5,7 +5,7 @@ Two honest modes:
 
   1. SUITE MODE -- run an image-to-3D suite on a reference image:
        python scripts/gpu/gen_from_image.py --suite triposr \
-           --image art/src/concept_wolf.png --name enemy_wolf --height 1.2
+           --image game/assets/art/src/concept_wolf.png --name enemy_wolf --height 1.2
 
      The suite adapters are thin; each calls the suite's own API. If the
      suite is not installed, the adapter says exactly how to install it
@@ -14,7 +14,7 @@ Two honest modes:
   2. NORMALIZE MODE -- fix an already-generated mesh to the artifact
      contract (this is the part generators get wrong, and it is fully
      implemented here):
-       python scripts/gpu/gen_from_image.py --normalize art/out/raw.glb \
+       python scripts/gpu/gen_from_image.py --normalize game/assets/art/out/raw.glb \
            --name enemy_wolf --height 1.2
 
      Law (DEPLOY-GPU.md sec 2 / labs/prd-3d-pipeline.md sec 2):
@@ -62,7 +62,7 @@ def _suite_triposr(image: Path) -> Path:
     # The suite's own call goes here (model load + image -> mesh export).
     raise RuntimeError(
         "TripoSR adapter is a hook: wire model = TSR.from_pretrained(...) and "
-        "export the mesh to art/out/, then call this script in --normalize mode. "
+        "export the mesh to game/assets/art/out/, then call this script in --normalize mode. "
         "See DEPLOY-GPU.md sec 3.4."
     )
 
@@ -70,7 +70,7 @@ def _suite_triposr(image: Path) -> Path:
 def _suite_instantmesh(image: Path) -> Path:
     raise RuntimeError(
         "InstantMesh not wired. Install per DEPLOY-GPU.md sec 3.4, export a mesh "
-        "to art/out/, then run --normalize."
+        "to game/assets/art/out/, then run --normalize."
     )
 
 
@@ -78,7 +78,7 @@ def _suite_trellis(image: Path) -> Path:
     raise RuntimeError(
         "TRELLIS not wired. Install with "
         "'sh ./scripts/gpu/setup_gpu_env.sh --with-trellis', export a mesh to "
-        "art/out/, then run --normalize. (TRELLIS wants ~16 GB VRAM.)"
+        "game/assets/art/out/, then run --normalize. (TRELLIS wants ~16 GB VRAM.)"
     )
 
 
@@ -86,7 +86,7 @@ def _suite_hunyuan(image: Path) -> Path:
     raise RuntimeError(
         "Hunyuan3D-2 not wired. Install with "
         "'sh ./scripts/gpu/setup_gpu_env.sh --with-hunyuan', export a mesh to "
-        "art/out/, then run --normalize. (Wants ~16-24 GB VRAM.)"
+        "game/assets/art/out/, then run --normalize. (Wants ~16-24 GB VRAM.)"
     )
 
 
@@ -150,7 +150,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Lane D asset generation helper.")
     ap.add_argument("--suite", choices=sorted(SUITES),
                     help="image-to-3D suite to run on --image")
-    ap.add_argument("--image", type=Path, help="reference image (art/src/...)")
+    ap.add_argument("--image", type=Path, help="reference image (game/assets/art/src/...)")
     ap.add_argument("--normalize", type=Path,
                     help="normalize an existing mesh to the artifact contract")
     ap.add_argument("--name", required=True, help="data id (filename == id)")

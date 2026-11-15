@@ -36,7 +36,7 @@ Provisioning + the artifact contract live in `DEPLOY-GPU.md`. Summary:
   re-run `scripts/gpu/setup_gpu_env.sh` each session.
 - **Later: RunPod / Vast / Lambda / cloud** -- same script, same contract.
   The script IS the interface.
-- **Artifacts** flow `art/src/` (references, tracked) -> GPU -> `art/out/`
+- **Artifacts** flow `game/assets/art/src/` (references, tracked) -> GPU -> `game/assets/art/out/`
   (scratch, gitignored) -> `game/models/<data_id>.glb` (tracked).
 
 ## 4. The suites (what to reach for)
@@ -60,7 +60,7 @@ SHIPPED (works today, no GPU needed to verify):
   mesh to a target height, drops it to base-at-origin, centers X/Z, and
   writes `game/models/<name>.glb`. (Verified: a 3 m mesh floating at
   Y=5, off-center -> exactly 1.2 m tall, base at 0, centered.)
-- `art/src/` (tracked) + `art/out/` (gitignored).
+- `game/assets/art/src/` (tracked) + `game/assets/art/out/` (gitignored).
 
 HOOKS (need a real GPU box to fill in):
 - The suite adapters in `gen_from_image.py` (`_suite_triposr` etc.) call

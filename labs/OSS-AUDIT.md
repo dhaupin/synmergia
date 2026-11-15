@@ -142,7 +142,7 @@ compatible license or a written grant.
       Juan Linietsky, Ariel Manzur and contributors` line) and link it
       from the game shell / README. Same for any other vendored runtime.
 - [x] **Enumerate every remaining asset and record provenance.** DONE: `CREDITS.md`. Screenshots
-      (`art/screenshots/`), icons, `public/branding/*`, any hand-authored
+      (`game/assets/art/screenshots/`), icons, `public/branding/*`, any hand-authored
       PNG/SVG/WAV/GLB not produced by a gen script. For each: who made it,
       under what license, and is it yours to MIT. Put the answer in a
       `CREDITS.md` / `THIRD_PARTY_NOTICES.md`.

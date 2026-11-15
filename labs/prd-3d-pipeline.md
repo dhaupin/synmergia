@@ -6,7 +6,7 @@
 
 > **Status:** PROVEN 2026-09-25 -- blacksmith NPC generated, exported,
 > imported, animated, and probed end-to-end in this repo. Screenshot:
-> `art/screenshots/npc_blacksmith_village.png`. Install blender once
+> `game/assets/art/screenshots/npc_blacksmith_village.png`. Install blender once
 > with `sudo apt-get update && sudo apt-get install -y blender`, then
 > verify: `sh ./scripts/blender_smoke_test.sh`.
 
@@ -22,8 +22,9 @@
 
 ## 2. Asset flow rules
 
-1. **Source `.blend` files live outside `game/`** (e.g. `art/src/`),
-   versioned with the repo. Only exported `.glb` enters `game/models/`.
+1. **Source `.blend` files live under `game/assets/art/src/`**, hidden from
+   Godot by `game/assets/art/.gdignore`, and versioned with the repo. Only
+   exported `.glb` enters `game/models/`.
 2. **Naming mirrors the data id conventions**: `mount_plains_runner.glb`,
    `npc_village_elder.glb`, `furn_fireplace_stone.glb`. A model file
    name resolves to its data id with zero mapping code.
