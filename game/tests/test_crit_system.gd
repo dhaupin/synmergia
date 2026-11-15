@@ -115,6 +115,40 @@ func _run() -> void:
 		_assert(float(boss_stats.get("crit_damage", 0.0)) > 0.0,
 			"a boss template authors crit_damage")
 
+	# --- 6b. The SPAWNED entity carries the authored crit ----------------
+	# The bug this pins: five spawn paths each hand-copied the primaries and
+	# three of them dropped the crit identity, so an authored boss crit never
+	# reached the spawned entity (only the template "authored" it, which is all
+	# the old check looked at). One seeder owns the copy now.
+	if boss != null:
+		var boss_body := _entity()
+		boss.apply_stats_to(boss_body)
+		_assert(_approx(float(boss_body.stats.get("crit_chance", 0.0)), boss.crit_chance),
+				"apply_stats_to copies the template's crit_chance onto the body")
+		_assert(_approx(float(boss_body.stats.get("crit_damage", 0.0)), boss.crit_damage),
+				"apply_stats_to copies the template's crit_damage onto the body")
+		_assert(_approx(boss_body.get_crit_chance(),
+				StatId.crit_chance_of(float(boss.agility), boss.crit_chance)),
+				"the seeded body's crit = the StatId formula on the seeded stats")
+
+	# A REAL spawn through the shared pipeline: the entity, not the template,
+	# must carry the crit. Guarded on the autoload so a bare script run still
+	# exercises the seeder assertions above.
+	var ss = root.get_node_or_null("SpawnService")
+	if ss != null and ss.has_method("spawn_boss"):
+		var spawned = ss.spawn_boss("void_lord", Vector3.ZERO, "zone_test", "", [], -1, -1)
+		if spawned != null:
+			_assert(float(spawned.stats.get("crit_chance", 0.0)) > 0.0,
+					"a spawned boss ENTITY carries the authored crit_chance")
+			_assert(float(spawned.stats.get("crit_damage", 0.0)) > 0.0,
+					"a spawned boss ENTITY carries the authored crit_damage")
+			var agility_only := StatId.crit_chance_of(
+					float(spawned.stats.get("agility", 10.0)), 0.0)
+			_assert(spawned.get_crit_chance() > agility_only,
+					"the spawned boss crits ABOVE its agility-only fallback")
+			if is_instance_valid(spawned):
+				spawned.queue_free()
+
 	# --- 7. A ranger class starts with a higher base crit ----------------
 	# The ranger trio authors crit_chance_bonus > 0; a warrior does not.
 	var ranger := load("res://data/classes/class_human_marksman.tres")

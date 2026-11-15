@@ -139,6 +139,35 @@ func get_stats_for_level(lvl_override: int = -1) -> Dictionary:
 		"crit_damage": crit_damage
 	}
 
+## Seed a spawned entity's live `stats` block from this template. THE one
+## stat-copy path: every spawn pipeline (SpawnService.spawn_enemy_direct /
+## spawn_boss / _create_enemy, the horde producer, the globe wildlife
+## spawner) calls this instead of hand-copying the primaries. Before this,
+## five sites each copied their own subset and three of them dropped the
+## crit identity, so an authored boss crit_chance never reached the entity.
+##
+## level_override > 0 scales the primaries (the horde path's behavior, and
+## how spawn_enemy_direct's level-raised spawns are meant to be tougher);
+## otherwise the template's raw primaries are copied, matching the direct /
+## boss / globe paths. crit_chance / crit_damage are a flat authored
+## identity and are never level-scaled.
+func apply_stats_to(entity, level_override: int = -1) -> void:
+	if entity == null or not ("stats" in entity) or not (entity.stats is Dictionary):
+		return
+	var scaled: bool = level_override > 0
+	var primaries: Dictionary = {
+		"strength": strength,
+		"agility": agility,
+		"intelligence": intelligence,
+		"vitality": vitality,
+	}
+	for key in primaries:
+		var base: int = int(primaries[key])
+		entity.stats[key] = get_scaled_stat(base, level_override) if scaled else base
+	entity.stats["crit_chance"] = crit_chance
+	entity.stats["crit_damage"] = crit_damage
+
+
 ## Check if this is a boss
 func is_boss_type() -> bool:
 	return enemy_type == EnemyType.WORLD_BOSS or enemy_type == EnemyType.RAID_BOSS or is_boss

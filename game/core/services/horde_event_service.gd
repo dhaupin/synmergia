@@ -452,13 +452,9 @@ func _produce_mob(h: Dictionary, pos: Vector3, extra_level: int, template_id: St
 	if extra_level > 0:
 		enemy.display_name = "%s [%d]" % [str(template.display_name), enemy.level]
 
-	# Stats: template values scaled by get_scaled_stat when leveling up.
-	enemy.stats["strength"] = template.get_scaled_stat(template.strength, enemy.level)
-	enemy.stats["agility"] = template.get_scaled_stat(template.agility, enemy.level)
-	enemy.stats["intelligence"] = template.get_scaled_stat(template.intelligence, enemy.level)
-	enemy.stats["vitality"] = template.get_scaled_stat(template.vitality, enemy.level)
-	enemy.stats["crit_chance"] = template.crit_chance
-	enemy.stats["crit_damage"] = template.crit_damage
+	# Stats through the one seeder: the primaries scaled to the horde
+	# level, plus the crit identity.
+	template.apply_stats_to(enemy, enemy.level)
 
 	enemy.max_health = template.get_scaled_stat(template.health, enemy.level)
 	enemy.current_health = enemy.max_health
