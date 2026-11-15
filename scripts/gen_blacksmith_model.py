@@ -34,7 +34,7 @@ import model_export_lib
 
 # Final artifact lands IN THE REPO (filename == NPCData id, the model
 # registry per prd-3d-pipeline.md). Intermediates stay in /tmp.
-OUT = os.path.join(_REPO_ROOT, "game", "models", "npcs", "npc_blacksmith_village.glb")
+OUT = os.path.join(_REPO_ROOT, "game", "data", "models", "npcs", "npc_blacksmith_village.glb")
 
 # Palette: soot leather, forge-iron, hammered copper, old-world cloth.
 COL_SOOT = (0.055, 0.05, 0.048, 1.0)

@@ -21,7 +21,7 @@ _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(_REPO_ROOT, "scripts"))
 import model_export_lib
 
-OUT = os.path.join(_REPO_ROOT, "game", "models", "enemies", "enemy_thistle_boar.glb")
+OUT = os.path.join(_REPO_ROOT, "game", "data", "models", "enemies", "enemy_thistle_boar.glb")
 RIG = "rig_thistle_boar"
 
 # Palette: dark bristly brown body, a lighter belly, a thistle

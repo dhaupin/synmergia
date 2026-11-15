@@ -66,7 +66,7 @@ def patch_gltf_exporter_for_blender4():
     op_cls.execute = patched_execute
 
 
-OUT = os.path.join(_REPO_ROOT, "game", "models", "enemies", "enemy_slime.glb")
+OUT = os.path.join(_REPO_ROOT, "game", "data", "models", "enemies", "enemy_slime.glb")
 RIG = "rig_slime"
 
 # Palette: meadow green body, bright jelly crown, near-black eyes with

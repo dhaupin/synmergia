@@ -27,7 +27,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
-BRANDING = ROOT / "game" / "assets" / "branding"
+BRANDING = ROOT / "game" / "data" / "brand"
 PUBLIC = ROOT / "public"
 
 EMBLEM = BRANDING / "logo-synmergia-emblem.png"

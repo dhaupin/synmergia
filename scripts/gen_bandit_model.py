@@ -30,7 +30,7 @@ import model_export_lib
 
 # Final artifact lands IN THE REPO (filename == EnemyData file id, the
 # model registry per prd-3d-pipeline.md). Intermediates stay in /tmp.
-OUT = os.path.join(_REPO_ROOT, "game", "models", "enemies", "enemy_bandit.glb")
+OUT = os.path.join(_REPO_ROOT, "game", "data", "models", "enemies", "enemy_bandit.glb")
 RIG = "rig_bandit"
 
 # Palette: muted brown tunic, dirty grey cloth, worn leather, muted

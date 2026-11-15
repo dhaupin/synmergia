@@ -19,7 +19,7 @@ _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(_REPO_ROOT, "scripts"))
 import model_export_lib
 
-OUT = os.path.join(_REPO_ROOT, "game", "models", "enemies", "enemy_wolf.glb")
+OUT = os.path.join(_REPO_ROOT, "game", "data", "models", "enemies", "enemy_wolf.glb")
 RIG = "rig_wolf"
 
 # Palette: storm-grey coat, pale underbelly, dark muzzle/paws, amber eyes.

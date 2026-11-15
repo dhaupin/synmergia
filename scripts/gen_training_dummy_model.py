@@ -22,7 +22,7 @@ _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Final artifact lands IN THE REPO (filename == EnemyData id, the model
 # registry per prd-3d-pipeline.md).
-OUT = os.path.join(_REPO_ROOT, "game", "models", "enemies", "enemy_training_dummy.glb")
+OUT = os.path.join(_REPO_ROOT, "game", "data", "models", "enemies", "enemy_training_dummy.glb")
 
 # Palette.
 COL_STRAW = (0.78, 0.68, 0.36, 1.0)   # burlap wrap, pale straw yellow
