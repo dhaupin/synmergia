@@ -1,6 +1,6 @@
 # Synmergia — Web Client, Portal & Admin PRD
 
-> **Status:** Draft — 2026-09-14  
+> **Status:** ACTIVE — the WASM client (`/game/`) and portal are shipped; admin dashboard coverage is partial. Status checked 2026-11-14.
 > **Target Engine:** Godot 4.7.2  
 > **Author:** Web Architecture Team  
 > **Purpose:** Master specification for the web delivery architecture, Godot Web/WASM runtime, CI/CD resource conservation strategy, and Web Admin Portal.
@@ -10,7 +10,7 @@
 ## 1. Executive Summary & Goals
 
 Synmergia requires a multi-tiered web presence:
-1. **Official Engine Web Client (`/web`):** The full Godot 4.7.2 client compiled to WebAssembly (WASM) and WebGL2, connecting to the authoritative server over WebSockets.
+1. **Official Engine Web Client (`/game/`; legacy `/web/` is an alias):** The full Godot 4.7.2 client compiled to WebAssembly (WASM) and WebGL2, connecting to the authoritative server over WebSockets.
 2. **Web Portal & Admin Dashboard:** An operations control hub for server shard monitoring, database persistence verification (per `labs/prd-db.md`), security firewall inspection, and GM/moderator tools.
 3. **Instant Browser Companion (2D Canvas):** A zero-download, lightweight interactive 2D client for quick web previews, status checks, and instant gameplay testing without heavy WASM initialization.
 4. **Zero-Waste CI/CD Economy:** A strict build and packaging pipeline designed to minimize GitHub Actions minutes on the free tier (avoiding full Godot headless compilation on routine git commits).
@@ -30,7 +30,7 @@ Synmergia requires a multi-tiered web presence:
                  v                                                                     v
 +------------------------------------+                               +------------------------------------+
 |       Official Godot WASM          |                               |        Admin & Operations Hub      |
-|           (`/web`)                 |                               |                                    |
+|           (`/game/`)               |                               |                                    |
 | - Engine Runtime: game.wasm        |                               | - Shard Concurrency & Health       |
 | - Engine JS:      game.js          |                               | - DB Adapters & Migration Verifier |
 | - Game Package:   game.pck         |                               | - QoS, Firewall & Ban Logs         |

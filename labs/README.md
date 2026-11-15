@@ -9,11 +9,11 @@ the receipts; this directory is where design intent, decisions and open
 questions live.
 
 > **Rule when touching a doc:** if a sentence names a system that no longer
-> exists, fix the sentence in the same edit. Current offenders: the retired
-> terrain renderer (`globe_terrain_streamer`), the planar world
-> (`world_playable`, `player_controller`), `LODManager`, `backend_penrose`,
-> and `SkillTier` (renamed `GameTier`). `legacy-inventory.md` tracks the
-> migration status of each.
+> exists, fix the sentence in the same edit. Watch for the retired terrain
+> renderer (`globe_terrain_streamer`), the planar world (`world_playable`,
+> `player_controller`), `LODManager`, `backend_penrose`, and `SkillTier`
+> (renamed `GameTier`). Historical mentions are allowed only when labelled.
+> `legacy-inventory.md` tracks the migration status of each.
 
 > **Checkpoint 2026-11-14 (labs drift pass).** 133 docs / 3.67 MB audited:
 > every non-archive doc is indexed below (sub-READMEs included), every
@@ -40,6 +40,16 @@ questions live.
   casually; superseding it is a deliberate act.
 - **LORE** — authored world content, canon rather than engineering.
 - **ARCHIVED** — lives in [`archive/`](./archive/README.md); history only.
+
+> **PRD status census (2026-11-14).** All 53 top-level `prd-*.md` files now
+> carry an in-file `> **Status:**` block. 21 had no blockquote status block:
+> they were classified against the code and receipts (SHIPPED, PARTIAL, DESIGN,
+> REFERENCE, ACTIVE MODEL, POSITION PAPER); four plain `Status:` lines were
+> standardized to the same form. Five stale verdicts were corrected (`prd-db`,
+> `prd-web`, `prd-ocean-depths`, `prd-multiworld`, `prd-underworld`);
+> `prd-social-instances` and `prd-shard-mesh` are explicitly PARTIAL. The table
+> Status column is the doc's lifecycle; the in-file block is the implementation
+> verdict.
 
 ## Product and systems
 
@@ -73,7 +83,7 @@ questions live.
 | [`prd-art-pipeline.md`](./prd-art-pipeline.md) | ACTIVE | Art lane: models, textures, generation |
 | [`art-direction.md`](./art-direction.md) | ACTIVE | Style bible |
 | [`data-authoring-baseline.md`](./data-authoring-baseline.md) | ACTIVE | How `.tres` content is authored and gated |
-| [`prd-openhands-canvas.md`](./prd-openhands-canvas.md) | ACTIVE | Parallel agent lanes and their conventions |
+| [`prd-openhands-canvas.md`](./prd-openhands-canvas.md) | REFERENCE | Parallel agent lanes and their conventions |
 | [`OSS-AUDIT.md`](./OSS-AUDIT.md) | REFERENCE | Open-source launch audit + post-public hardening |
 | [`AGENTS_LOG.md`](./AGENTS_LOG.md) | REFERENCE | Archived AGENTS.md round logs (91 entries, 2026-10-28 .. 2026-11-16); history, not current law |
 | [`jolt-playground/`](./jolt-playground/README.md) | REFERENCE | Jolt Physics evaluation plan; point-in-time |
@@ -91,10 +101,11 @@ questions live.
 | [`prd-ground-sample.md`](./prd-ground-sample.md) | REFERENCE | Completed ground-law fusion refactor |
 | [`legacy-inventory.md`](./legacy-inventory.md) | TRACKER | Migrate / port / remove census; also the KEEP verdict on isoc addressing |
 
-## Frame substrate (design PRDs, Sept–Oct)
+## Frame substrate and early systems (Sept–Nov)
 
-Decision records for systems that largely shipped. **REFERENCE**: verify a
-claim against the code before citing it as current.
+Decision records and build logs. Read each doc's in-file status: most are
+SHIPPED/REFERENCE; `prd-multiworld` is PARTIAL and `prd-agent-law` is DESIGN.
+Verify a claim against the code before citing it as current.
 
 [`prd-frame-authority`](./prd-frame-authority.md) · [`prd-open-seed-ttl`](./prd-open-seed-ttl.md) ·
 [`prd-critical-params`](./prd-critical-params.md) · [`prd-seed-schema`](./prd-seed-schema.md) ·

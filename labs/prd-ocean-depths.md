@@ -1,6 +1,6 @@
 # PRD: The Ocean Layer - Swimming, Water, and Vessels (S14)
 
-> **Status:** DESIGN (pre-implementation)
+> **Status:** SHIPPED CORE (S14). The OceanVolume law, swim state, depth bands, currents, ferries, water mounts, and Sundered Sea content ship; see §10 and §12. Owner questions remain in §11.
 > **Law:** `labs/prd-psy.md` (no religion anywhere in this doc), locked
 > decisions in `AGENTS.md`, spherical-world truths in
 > `labs/prd-spherical-mvp.md`.

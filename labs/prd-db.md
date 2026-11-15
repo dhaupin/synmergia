@@ -1,7 +1,9 @@
 # Synmergia — Database & Persistence PRD
 
-> **Status:** Draft — 2026-09-06
-> **Updated:** 2026-09-07 - Full inventory
+> **Status:** ACTIVE — adapter layer shipped. The per-service table below is the
+> 2026-09 snapshot; verify each store against `game/adapters/` before citing it
+> as a current gap.
+> **Updated:** 2026-11-14 - Status checked against the adapter layer
 > **Purpose:** Master list of all database persistence requirements
 
 ---
@@ -21,7 +23,11 @@ and implementation tracking.
 
 ## 2. Services Requiring Persistence
 
-| Service | Status | Postgres | Redis | In-Memory | Adapter | Priority |
+> **Status check 2026-11-14:** the adapter layer and stores are live. The rows
+> below are the 2026-09 survey; "TODO" means the original scope, not a current
+> gap. Verify each store against `game/adapters/` before citing it.
+
+| Service | 2026-09 status | Postgres | Redis | In-Memory | Adapter | Priority |
 |---------|--------|---------|-------|-----------|---------|----------|
 | `AccountService` | ⚠️ TODO | `accounts`, `sessions` | Session tokens | - | `AccountStore` | P0 |
 | `LoginService` | ⚠️ TODO | `accounts`, `sessions` | Session cache | - | `SessionStore` | P0 |
@@ -1127,7 +1133,7 @@ Postgres queries OR Redis commands. GDExtension is a
 transport; in theory it could carry either. The choice
 of transport is independent of the choice of backend.
 
-**Status:** Decision needed before Postgres adapter ships.
+**Status:** DECIDED — the HTTP sidecar (`srv/pg-bridge/`) is the chosen path; `PostgresStore` speaks it. GDExtension remains a Phase 4 option.
 
 Stock Godot 4.7.2 has no native Postgres or Redis client.
 Three options:

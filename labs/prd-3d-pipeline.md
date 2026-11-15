@@ -174,7 +174,7 @@ sphere for blobs. `build_shape()` emits a fresh Godot `Shape3D`;
   `NPCData.hitbox_profile_id` (default hitbox_npc); NPCEntity applies
   it to the scene-authored `CollisionShape3D`.
 - Enemies: `_apply_hitbox_profile()` targets the scene's
-  `StaticBody3D/Hitbox` node first (world_playable renames its inline
+  `StaticBody3D/Hitbox` node first (the live globe renames its inline
   shapes to `Hitbox`), then `Hitbox`, then a bare
   `CollisionShape3D`; only when none exist does it build the
   StaticBody3D/Hitbox pair itself. `EnemyData.scale` multiplies the
@@ -198,5 +198,5 @@ sphere for blobs. `build_shape()` emits a fresh Godot `Shape3D`;
   clamp, species fairness, creature resolution, enemy + player wiring
   through the live world scene).
 - SpawnService.spawn_npc_entity now defers the add_child when called
-  during scene setup (world_playable._ready NPC spawns were being
-  rejected mid-setup and landed half-configured).
+  during scene setup (`globe_world._ready` NPC spawns were being rejected
+  mid-setup and landed half-configured).

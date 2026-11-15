@@ -72,12 +72,26 @@ environment/CI-only until proven otherwise.
   spec in `prd-world.md` sec. 2.1). `AGENTS.md` compacted (91 dated round logs -> `labs/AGENTS_LOG.md`,
   verbatim; 481 KB -> 59 KB) and the root README's class/LOD/terrain/
   service claims corrected. The `world-building-*` consolidation is
-  done (2026-11-14). Next: the PRD verdict census.
+  done (2026-11-14). The PRD verdict census is complete: 53/53 top-level
+  PRDs carry an in-file status block; remaining round work is index/closeout.
 - **World-building series:** DONE 2026-11-14. Original plan archived; current
   index + corrected tick/spherical references + explicit REFERENCE banners for
   risks/research. `-arch` and `-tick` remain authoritative.
 
 ## RECENT SESSIONS (verbatim, in log order -- newest block at top)
+
+## 2026-11-14 -- social privacy closeout + loot-test gate
+- PRIVACY: `RecentPlayersService` now persists the opt-out through DictStore; hidden players are filtered out of OTHER players' entries but still receive their own record (the old host-side skip dropped both). `LobbyUI` Duels tab gained the persisted "Hide me from other players' rival lists" toggle. `probe_recent_players` extended to 15 checks (own record, persistence) and remains in `DEFAULT_SET`.
+- LOOT: `test_loot_rules` was green but missing from `DEFAULT_SET`; added. The engine (FFA/round-robin/leader/master + smart class routing) and `/lootrule` were already shipped; the remaining social open item is a dungeon/raid default policy + consent prompt, not the rule engine.
+- DOCS: `prd-bout-host` no longer calls the trial bout open (it shipped 26/26); `prd-social-instances` now records privacy/spectate as shipped and narrows the loot gap.
+- CHECKS: `probe_recent_players` 15/15, `test_loot_rules` PASS, `probe_round2_ui` PASS (LobbyUI boot), `probe_bout_host` PASS, `probe_trial_bout` PASS, runner `bash -n`. No push.
+
+## 2026-11-14 -- PRD verdict census: 53/53 status blocks, stale verdicts corrected
+- THE ASK: walk the `labs/prd-*.md` set after the world-building consolidation and make each one safe to hand to an implementer.
+- THE CENSUS: 53 top-level PRDs. 21 had no status block. Added verified verdicts: Phase 1 substrate records are SHIPPED/REFERENCE (`t3`, `seed-schema`, `state-schema`, `scope-engine`, `frame-authority`, `login-seed-chain`, `critical-params`, `open-seed-ttl`, `manifest-backup`); feature cores are SHIPPED (`blacksmith`, `crafting`, `gathering`, `bout-host`); `prd-geometry` is SHIPPED PRIMITIVES; `prd-shard-mesh` and `prd-social-instances` are PARTIAL; `prd-agent-law` is DESIGN; `prd-monetization` is ACTIVE MODEL; `prd-industry-labs` is a POSITION PAPER; `prd-openhands-canvas` is REFERENCE; `prd-perf-bridges` is ACTIVE (all five facets DONE).
+- STALE VERDICTS FIXED: `prd-db` Draft -> ACTIVE (adapter layer shipped; 2026-09 TODO table relabelled as a snapshot; pg-bridge is the chosen transport); `prd-web` Draft -> ACTIVE (`/game/` client + portal live, admin partial); `prd-ocean-depths` DESIGN -> SHIPPED CORE; `prd-multiworld` DESIGN -> PARTIAL (S16.5/6 moon work shipped); `prd-underworld` DESIGN -> SHIPPED OFFLINE. `prd-blacksmith`'s six-tier claim corrected to the five-rung GameTier scale.
+- INTERNAL DRIFT FIXED: `prd-spherical-mvp` now says SHIPPED CORE/REFERENCE and records that Wave A made spherical the default; `prd-social-instances` says items 1-4 SHIPPED; active docs no longer point at deleted `world_playable`/`player_controller`; `prd-web` uses the canonical `/game/` path; `prd-db`'s table is explicitly a 2026-09 snapshot.
+- DOCS: `labs/README.md` gains the 53/53 census note, the Frame-substrate section is retitled, and `prd-openhands-canvas` is indexed REFERENCE. Checks: status parser 53/53; docs link gate; `git diff --check`. No push.
 
 ## 2026-11-14 -- world-building consolidation: current law, archive, two false statuses
 - SESSION CONTEXT: docs round after matchmaking coverage; owner flagged that the world-building series mixes fiction with retired systems.

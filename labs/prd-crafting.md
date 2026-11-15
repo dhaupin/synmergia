@@ -1,4 +1,9 @@
 # PRD: Crafting -- making things lawfully
+
+> **Status:** SHIPPED CORE (2026-10-08). `CraftingService`, recipe data, the
+> crafting UI, and placed stations ship; receipts: `probe_crafting`,
+> `probe_crafting_ui`, `probe_placeable_stations`.
+
 (S16.9, 2026-10-08. Third leg of the economy loop beside
 prd-gathering.md (inputs) and prd-blacksmith.md (upgrade).)
 

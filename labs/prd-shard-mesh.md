@@ -1,5 +1,9 @@
 # PRD: Shard Mesh (multi-container deployment)
 
+> **Status:** PARTIAL — Phase 3.3 (single-host mesh registry, topology, edge
+> proxy, content packs, player routing) SHIPPED. Phase 4 (multi-container
+> orchestration + edge shards) is not built.
+
 > **For:** sub-agent implementation
 > **Phase:** 1 -> 4 (per `world-building-arch.md` sec.11)
 > **Depends on:** `prd-db.md` (adapter layer), `world-building-arch.md` sec.11 (deployment topology)

@@ -1,5 +1,10 @@
 # Social layer around instances (owner points 4 + 5, 2026-09-28)
 
+> **Status:** PARTIAL. Recent players/rematch, friend presence, dungeon
+> finder, the shared dungeon front door, scene/spectate, and the persisted
+> recent-players privacy toggle ship. Open: a dungeon/raid default loot
+> policy + consent prompt; `LootRulesService` and `/lootrule` ship.
+
 > Owner point 6: the S12+ parked items (real glider mechanic, ROYALE
 > bounds-shrink, visual scene swap, payout depth) come AFTER this.
 
@@ -78,9 +83,13 @@ must be ALIGNED because both are instances on one lobby:
 - Coverage already in place: invite timeouts (60 s), one-pending
   duel per player, party invite rate limits, AppFirewall recursion
   guards, BBCode escaping rules.
-- Open (recorded, not built): spectate permissions model; recent-
-  players privacy option ("hide me from recent lists"); dungeon/
-  raid loot-mode griefing rules when they share the lobby.
+- Covered: spectate permissions (friend/party only, verified by
+  `probe_scene_swap`), the recent-players privacy toggle (persisted;
+  `probe_recent_players`), and party loot rules (`LootRulesService`,
+  `/lootrule`).
+- Open: a dungeon/raid default loot policy + consent prompt. The engine
+  exists, but a group entering without a party rule still defaults to
+  FFA, so the first looter can take a shared drop.
 
 ## Scene swap + spectate (SHIPPED 2026-09-28)
 
@@ -118,10 +127,10 @@ stranger/none), spectator room book, room-close rescue.
 
 ## Implementation order (when we pick this up)
 
-**STATUS 2026-09-28 (next session): items 1, 2 (partial), 4 SHIPPED.**
+**STATUS 2026-11-14: items 1-4 and the privacy UI SHIPPED; the loot-rule engine SHIPPED; a dungeon/raid default policy + consent prompt remains open.**
 
 - [x] 1. Recent players ring buffer + Rematch -- SHIPPED
-  (RecentPlayersService, LobbyUI Duels tab, probe 12/12).
+  (RecentPlayersService, LobbyUI Duels tab, probe 15/15).
 - [x] 2. Friend presence + actions -- SHIPPED: LobbyService
   get_presence/get_friend_presence join the books (online, zone,
   party+size, queue zone, live bout instance, instance zone);
@@ -149,7 +158,11 @@ stranger/none), spectator room book, room-close rescue.
   of the door (it keys off zone entry). Gloamwood Depths tres got
   instance_time_limit 3600 (1 h dwell cap). probe
   probe_dungeon_front_door 19/19 in DEFAULT_SET.
-- [ ] Spectate permissions model; recent-players privacy UI; loot-
-  mode griefing rules -- open, recorded above.
+- [x] Spectate permissions model (friend/party only; `probe_scene_swap`
+  14/14) and the recent-players privacy UI + persistence (LobbyUI Duels
+  tab; `probe_recent_players`).
+- [ ] Dungeon/raid default loot policy + consent prompt. `LootRulesService`
+  (FFA / round-robin / leader / master + smart class routing) and
+  `/lootrule` ship; sessions default to FFA unless the party chooses.
 
 Original order (for reference):

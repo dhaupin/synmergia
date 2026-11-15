@@ -1,5 +1,9 @@
 # PRD: Login Seed Chain (D029)
 
+> **Status:** SHIPPED (Phase 1) — REFERENCE. `LoginService.build_seed_receipt`
+> and `SeedReceipt` are live; `game/tests/test_seed_receipt.gd` covers the
+> signed receipt.
+
 > **For:** sub-agent implementation
 > **Phase:** 1 (per `world-building-arch.md` §14)
 > **Depends on:** `prd-scope-engine.md` (the per-character stack is built on the scope engine), `prd-seed-schema.md`

@@ -1,5 +1,8 @@
 # PRD: T3 Substrate (Generic Content-Hash Tree)
 
+> **Status:** SHIPPED (Phase 1) — REFERENCE. `game/core/frame/kv/t3.gd` and
+> `game/core/frame/kv/test_t3.gd` are the substrate and its receipt.
+
 > **For:** sub-agent implementation
 > **Phase:** 1 (per `world-building-arch.md` §14)
 > **Depends on:** nothing

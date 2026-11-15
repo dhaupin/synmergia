@@ -1,8 +1,7 @@
 # prd-perf-bridges -- the Julia / Redis / bridge performance round
 
-**Status:** ACTIVE (2026-11-04). Tracker + design for the "where else can
-we leverage Julia, Redis, or any bridge" round. Each facet lands with a
-MEASURED baseline and a MEASURED result; the numbers live in this file.
+> **Status:** ACTIVE (2026-11-04). Tracker + design for the bridge round; all
+> five facets are DONE and the measured numbers live in this file.
 
 **Sibling:** the vant-side report is `dhaupin/vant#379`. The vant Julia
 connector and this repo's `srv/julia-bridge/` are two different

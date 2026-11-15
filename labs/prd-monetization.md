@@ -1,5 +1,9 @@
 # PRD — Monetization & The Server-Cost Ladder
 
+> **Status:** ACTIVE MODEL — payment rails and the sink catalog are SHIPPED
+> (`SigilSinkService`, `test_sigil_sink_catalog`). Prices, server costs, and
+> revenue forecasts are 2026-11 planning numbers, not measured results.
+
 > **Added 2026-11-05 (the funding pitstop round).** Purpose: a complete, honest model of
 > what monetization *exists* in Synmergia today, what it *costs to run the world at scale*,
 > and what the gap requires — so the project can fund its own servers and answer the

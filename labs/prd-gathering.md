@@ -1,4 +1,9 @@
 # PRD: Gathering -- the world's giving law
+
+> **Status:** SHIPPED CORE (2026-10-08). `HarvestService`, seed-derived
+> placement, and the land/depth harvest paths ship; receipts: `probe_harvest`,
+> `probe_prop_layer`, `test_sundered_deep_economy`.
+
 (S16.8, 2026-10-08. Companion to prd-blacksmith.md: ores are the
 blacksmith's food; gathering is where they come from.)
 

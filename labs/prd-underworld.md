@@ -1,6 +1,6 @@
 # PRD: The Underworld - A Planet Inside the Planet (S15)
 
-> **Status:** DESIGN (pre-implementation, OFFLINE to players by design)
+> **Status:** SHIPPED OFFLINE (S15). The 2 km inner globe, biomes, swim, thermals, and interior sky exist; there is no player door by design.
 > **Law:** prd-psy (no religion), spherical truths in prd-spherical-mvp.
 > Owner vision 2026-09-29: "make an underworld mechanism. A planet
 > inside a planet, literally an open world inside. It's similar

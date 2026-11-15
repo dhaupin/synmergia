@@ -1,5 +1,9 @@
 # PRD: SeedSchema Resource
 
+> **Status:** SHIPPED (Phase 1) — REFERENCE. `SeedSchema` is live; receipts:
+> `game/tests/test_seed_schema.gd` and
+> `game/core/frame/kv/test_frame_seed_schema.gd`.
+
 > **For:** sub-agent implementation
 > **Phase:** 1 (per `world-building-arch.md` §14)
 > **Depends on:** `prd-t3-substrate.md` (the substrate stores the schema ref; this schema is one of N)
