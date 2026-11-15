@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "human_sorcerer_frost_nova"
 display_name = "Frost Nova"
 description = "A bloom of frost that roots every foe in place."

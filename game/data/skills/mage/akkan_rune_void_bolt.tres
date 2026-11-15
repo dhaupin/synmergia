@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "akkan_rune_void_bolt"
 display_name = "Void Bolt"
 description = "Channels Akkan void energy into a bolt of destruction."

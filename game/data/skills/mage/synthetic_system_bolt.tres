@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "synthetic_system_bolt"
 display_name = "System Bolt"
 description = "Fires a corrupted data bolt that damages the target's systems."

@@ -77,6 +77,13 @@ const MAX_STAT_VALUE: int = 200
 @export var base_spell_power: int = 5
 @export var spell_power_per_level: int = 1
 
+## The class's base crit-chance bonus (added to the StatId 0.05 base) and
+## crit-damage bonus (added to the 1.5 base). A ranger class authors a
+## positive crit_chance_bonus so its crit identity is a DATA property, not a
+## hardcoded body: a marksman starts with a higher crit than a warrior.
+@export var crit_chance_bonus: float = 0.0
+@export var crit_damage_bonus: float = 0.0
+
 # Starting skills
 @export var starting_skills: Array[String] = []
 @export var skill_tree_unlocks: Dictionary = {

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "synthetic_system_override"
 display_name = "System Override"
 description = "Attempts to override the target's systems, dealing damage and silencing them."

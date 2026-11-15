@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "akkan_rune_chain"
 display_name = "Rune Chain"
 description = "Chains arcane runes between up to 3 enemies, dealing damage to each and slowing them."

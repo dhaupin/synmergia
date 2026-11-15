@@ -254,6 +254,7 @@ static func from_schema(s: SkillSchema) -> Skill:
 	sk.guard_band = bool(s.guard_band)
 	sk.rally_band = bool(s.rally_band)
 	sk.required_stance = s.required_stance
+	sk.damage_type = str(s.damage_type) if str(s.damage_type) != "" else "physical"
 	sk.schema = s
 	# Flatten effect dictionaries into runtime fields. THIS is the one effect
 	# vocabulary for the game: every type an authored .tres may use is handled
@@ -542,6 +543,24 @@ func consume_resources(caster) -> bool:
 var _last_was_crit: bool = false
 var _last_hit_result: Dictionary = {}
 
+## The heal twin of _last_was_crit: set by calculate_healing, read by
+## execute() to stamp the heal event so the HUD can style a crit mend.
+var _last_heal_was_crit: bool = false
+
+## The caster's crit chance / multiplier, duck-typed through the body's own
+## accessors (Entity and the player body both expose get_crit_chance /
+## get_crit_multiplier, which now fold the crit_chance / crit_damage stats).
+## Falls back to the StatId base formula for a bare stub with no accessors.
+func _crit_chance_of(caster) -> float:
+	if caster != null and caster.has_method("get_crit_chance"):
+		return float(caster.get_crit_chance())
+	return StatId.crit_chance_of(_stat_of(caster, "agility", 10.0), _stat_of(caster, "crit_chance", 0.0))
+
+func _crit_multiplier_of(caster) -> float:
+	if caster != null and caster.has_method("get_crit_multiplier"):
+		return float(caster.get_crit_multiplier())
+	return StatId.crit_damage_of(_stat_of(caster, "crit_damage", 0.0))
+
 func calculate_damage(caster, target) -> int:
 	var base_damage := damage
 
@@ -578,6 +597,17 @@ func calculate_healing(caster) -> int:
 	# A Bender's AMPLIFY stat raises every outgoing heal (the healer's lane
 	# partner). Clamped, so a buff can never double a mend.
 	base_heal = int(float(base_heal) * _power_scale(caster))
+
+	# Crit heal: roll the caster's crit table. A crit mend is a BIGGER heal,
+	# not a bigger number on one body -- so a healer (or any class whose kit
+	# is heals, not damage) still gets value from crit. The roll is stashed
+	# on _last_heal_was_crit for the execute() path and the HUD.
+	_last_heal_was_crit = false
+	if base_heal > 0:
+		var heal_crit_chance := _crit_chance_of(caster)
+		if heal_crit_chance > 0.0 and randf() < heal_crit_chance:
+			_last_heal_was_crit = true
+			base_heal = int(float(base_heal) * _crit_multiplier_of(caster))
 
 	# Daily Class Blessing (prd-psy.md section 8): the blessed class
 	# heals +20% for the day. Duck-typed + late-resolved so script-mode

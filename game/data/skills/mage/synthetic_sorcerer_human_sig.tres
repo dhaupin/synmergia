@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "synthetic_sorcerer_human_sig"
 display_name = "Adaptive Corruption"
 description = "SIGNATURE Human Sorcerer technique through synthetic adaptability. Adapts corruption to exploit the target's weaknesses."

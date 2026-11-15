@@ -740,6 +740,8 @@ func spawn_enemy_direct(
 	enemy.stats["agility"] = template.agility
 	enemy.stats["intelligence"] = template.intelligence
 	enemy.stats["vitality"] = template.vitality
+	enemy.stats["crit_chance"] = template.crit_chance
+	enemy.stats["crit_damage"] = template.crit_damage
 	enemy.max_health = template.get_scaled_stat(template.health, enemy.level)
 	enemy.current_health = enemy.max_health
 

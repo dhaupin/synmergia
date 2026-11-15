@@ -457,6 +457,8 @@ func _produce_mob(h: Dictionary, pos: Vector3, extra_level: int, template_id: St
 	enemy.stats["agility"] = template.get_scaled_stat(template.agility, enemy.level)
 	enemy.stats["intelligence"] = template.get_scaled_stat(template.intelligence, enemy.level)
 	enemy.stats["vitality"] = template.get_scaled_stat(template.vitality, enemy.level)
+	enemy.stats["crit_chance"] = template.crit_chance
+	enemy.stats["crit_damage"] = template.crit_damage
 
 	enemy.max_health = template.get_scaled_stat(template.health, enemy.level)
 	enemy.current_health = enemy.max_health

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "akkan_void_flay"
 display_name = "Void Flay"
 description = "A sustained void attack dealing damage over time."

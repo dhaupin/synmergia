@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "akkan_sorcerer_synthetic_sig"
 display_name = "Void Cascade"
 description = "SIGNATURE Synthetic Sorcerer technique through Akkan void energy. Channels Akkan void into a cascading arcane attack."

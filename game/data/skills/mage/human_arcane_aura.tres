@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "human_arcane_aura"
 display_name = "Arcane Aura"
 description = "Creates an aura of arcane energy that damages nearby enemies."

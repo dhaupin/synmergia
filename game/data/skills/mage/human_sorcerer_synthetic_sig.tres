@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "human_sorcerer_synthetic_sig"
 display_name = "System Breach"
 description = "SIGNATURE Synthetic Sorcerer technique through human precision. A devastating system-level arcane attack."

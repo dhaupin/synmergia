@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "synthetic_system_spam"
 display_name = "System Spam"
 description = "Spams the target with corrupted data packets, dealing damage over time."

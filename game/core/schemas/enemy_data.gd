@@ -40,6 +40,13 @@ enum EnemyType {
 @export var armor: int = 5
 @export var resistance: int = 0
 
+## Crit identity. Every enemy extends Entity, so crit already flows through
+## the StatId formula (base + agility); these two author a template-specific
+## bonus on top. A boss authors a high pair so its swings crit hard and often,
+## while a trash mob leaves them at 0 and crits off agility alone.
+@export var crit_chance: float = 0.0
+@export var crit_damage: float = 0.0
+
 # Attack settings
 @export var attack_range: float = 2.0
 @export var attack_speed: float = 1.0  # Attacks per second
@@ -125,7 +132,11 @@ func get_stats_for_level(lvl_override: int = -1) -> Dictionary:
 		"attack_power": get_scaled_damage(lvl_override),
 		"spell_power": get_scaled_stat(spell_power, lvl_override),
 		"armor": get_scaled_stat(armor, lvl_override),
-		"resistance": get_scaled_stat(resistance, lvl_override)
+		"resistance": get_scaled_stat(resistance, lvl_override),
+		# Crit identity: a flat delta (never scaled by level), so a boss's
+		# authored crit is the same whether it spawns at level 1 or 60.
+		"crit_chance": crit_chance,
+		"crit_damage": crit_damage
 	}
 
 ## Check if this is a boss

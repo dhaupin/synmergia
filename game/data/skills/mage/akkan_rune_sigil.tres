@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "akkan_rune_sigil"
 display_name = "Rune Sigil"
 description = "Places a rune sigil that detonates for area damage."

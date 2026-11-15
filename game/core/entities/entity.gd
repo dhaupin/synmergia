@@ -85,7 +85,9 @@ var stats: Dictionary = {
 	"mana_regen": 0.0,
 	"cooldown_reduction": 0.0,
 	"effect_duration_mult": 1.0,
-	"effect_power_mult": 1.0
+	"effect_power_mult": 1.0,
+	"crit_chance": 0.0,
+	"crit_damage": 0.0,
 }
 
 # Resources
@@ -393,10 +395,15 @@ func get_attack_speed() -> float:
 	return 1.0 + (get_stat("agility") * 0.01)
 
 func get_crit_chance() -> float:
-	return 0.05 + (get_stat("agility") * 0.003)
+	# THE crit formula (StatId): base + agility + the crit_chance stat
+	# delta. Reading the stat block here is what lets a crit buff or a
+	# class base actually land -- the old hardcoded body shadowed it.
+	return StatId.crit_chance_of(
+		float(get_stat("agility")), float(stats.get("crit_chance", 0.0)))
 
 func get_crit_multiplier() -> float:
-	return 1.5
+	# The 1.5 base + the crit_damage stat delta (a rogue's climb).
+	return StatId.crit_damage_of(float(stats.get("crit_damage", 0.0)))
 
 func get_armor() -> int:
 	# Physical mitigation: VIT-based

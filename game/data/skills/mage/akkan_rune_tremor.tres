@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "akkan_rune_tremor"
 display_name = "Rune Tremor"
 description = "Detonates a lattice of inscribed runes beneath the target, sending a shockwave through the ground that damages and staggers every enemy caught in it."

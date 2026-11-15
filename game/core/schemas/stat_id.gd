@@ -47,12 +47,20 @@ const MULT_KEYS: Array = [
 ##   health_regen      flat HP per second
 ##   mana_regen        flat MP per second
 ##   cooldown_reduction fraction shaved off every cooldown (0.0..0.5)
+##   crit_chance       fraction added to the crit roll (0.05 base + agility).
+##                     A flat delta so a buff/class base raises the crit rate
+##                     directly, the same shape as cooldown_reduction.
+##   crit_damage       fraction added to the crit multiplier (1.5 base). A
+##                     +0.25 means a crit lands for 1.75x. Flat so the rogue's
+##                     crit-damage climb stacks additively.
 const FLAT_KEYS: Array = [
         "damage_reduction",
         "damage_reflect",
         "health_regen",
         "mana_regen",
         "cooldown_reduction",
+        "crit_chance",
+        "crit_damage",
 ]
 
 const MODIFIER: Array = MULT_KEYS + FLAT_KEYS
@@ -79,9 +87,24 @@ const DEFAULTS: Dictionary = {
         "health_regen": 0.0,
         "mana_regen": 0.0,
         "cooldown_reduction": 0.0,
+        "crit_chance": 0.0,
+        "crit_damage": 0.0,
         "effect_duration_mult": 1.0,
         "effect_power_mult": 1.0,
 }
+
+## The crit roll's baseline chance (before agility and any crit_chance delta).
+## THE one home for it: Entity / the player body / CombatMath all read it here
+## so the three can never drift. A ranger class raises its own crit by seeding
+## a positive crit_chance delta, not by editing this constant.
+const BASE_CRIT_CHANCE: float = 0.05
+
+## The crit multiplier's baseline (1.5x before any crit_damage delta).
+const BASE_CRIT_DAMAGE: float = 1.5
+
+## Agility's contribution to crit chance, per point. The ranger identity leans
+## on this; it stays here next to the base so the accessors are one formula.
+const CRIT_PER_AGILITY: float = 0.003
 
 ## Ceilings the pipeline clamps to, so authored data cannot make a body
 ## unkillable or a reflect loop unbounded.
@@ -89,6 +112,11 @@ const MAX_DAMAGE_REDUCTION: float = 0.90
 const MAX_DAMAGE_REFLECT: float = 1.00
 ## Cooldowns may be shaved by at most half; a longer buff cannot zero them.
 const MAX_COOLDOWN_REDUCTION: float = 0.50
+## Crit chance is capped below 1.0 so a stacked crit buff still misses the
+## crit segment when the defender's avoidance eats the roll; crit damage is
+## capped so a crit cannot one-shot a raid boss.
+const MAX_CRIT_CHANCE: float = 1.00
+const MAX_CRIT_DAMAGE: float = 5.00
 ## Support reach caps, so an amplifier can never double a heal or a buff.
 const MAX_EFFECT_DURATION_MULT: float = 2.0
 const MAX_EFFECT_POWER_MULT: float = 2.0
@@ -130,6 +158,21 @@ static func base_block() -> Dictionary:
         return DEFAULTS.duplicate()
 
 
+## The crit chance a body rolls, from its base + agility + crit_chance delta.
+## THE one formula: Entity.get_crit_chance, the player body, and CombatMath's
+## fallback all read it, so a buff on `crit_chance` actually lands (the old
+## per-body accessors hardcoded the base and shadowed the stat block).
+static func crit_chance_of(agility: float, crit_chance_delta: float) -> float:
+        return clampf(
+                BASE_CRIT_CHANCE + agility * CRIT_PER_AGILITY + crit_chance_delta,
+                0.0, MAX_CRIT_CHANCE)
+
+
+## The crit multiplier a body lands, from the 1.5 base + crit_damage delta.
+static func crit_damage_of(crit_damage_delta: float) -> float:
+        return clampf(BASE_CRIT_DAMAGE + crit_damage_delta, 1.0, MAX_CRIT_DAMAGE)
+
+
 ## Clamp an authored reduction/reflect fraction into its safe band.
 static func clamp_fraction(key: String, value: float) -> float:
         if key == "damage_reduction":
@@ -138,6 +181,10 @@ static func clamp_fraction(key: String, value: float) -> float:
                 return clampf(value, 0.0, MAX_DAMAGE_REFLECT)
         if key == "cooldown_reduction":
                 return clampf(value, 0.0, MAX_COOLDOWN_REDUCTION)
+        if key == "crit_chance":
+                return clampf(value, 0.0, MAX_CRIT_CHANCE)
+        if key == "crit_damage":
+                return clampf(value, 0.0, MAX_CRIT_DAMAGE)
         return value
 
 

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "akkan_rune_synthetic_sig"
 display_name = "System Rune"
 description = "SIGNATURE Akkan Mage technique through synthetic rune integration. Channels void runes into a system-level attack."

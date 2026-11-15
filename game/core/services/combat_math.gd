@@ -3,6 +3,7 @@
 extends Node
 class_name CombatMath
 const Item = preload("res://core/schemas/item.gd")
+const StatId = preload("res://core/schemas/stat_id.gd")
 
 
 ## Hit results
@@ -190,7 +191,7 @@ static func calculate_hit(attacker, defender, skill = null) -> Dictionary:
 		defender_level, defender_ratings.block_rating, has_shield,
 		_stat(defender, "vitality", 10.0))
 
-	var crit_chance := _crit_chance_for(attacker)
+	var crit_chance := _crit_chance_for(attacker, skill)
 	var crit_segment: float = maxf(0.0, 1.0 - (miss_chance + dodge_chance + parry_chance + block_chance))
 	crit_chance = minf(crit_chance, crit_segment)
 
@@ -286,11 +287,14 @@ static func calculate_magic_hit(attacker, defender, spell_school: String = "arca
 		result["hit_result"] = HitResult.MISS
 		return result
 
-	# Spell crit
-	var crit_chance := (_stat(attacker, "intelligence", 10.0) / 200.0)  # ~0.5% per int
-	if randf() < crit_chance:
+	# Spell crit. The INT term stays the caster's identity, but the crit_chance
+	# stat delta is added on top (so a crit buff helps casters too) and the
+	# multiplier rides the body's crit_damage, not a hardcoded 1.5.
+	var crit_chance := (_stat(attacker, "intelligence", 10.0) / 200.0) \
+		+ _stat(attacker, "crit_chance", 0.0)  # ~0.5% per int
+	if randf() < clampf(crit_chance, 0.0, StatId.MAX_CRIT_CHANCE):
 		result["is_crit"] = true
-		result["damage_multiplier"] = 1.5
+		result["damage_multiplier"] = _crit_multiplier_for(attacker)
 
 	# Resistance
 	var resistance: float = 0.0
@@ -365,16 +369,28 @@ static func _blessing_multiplier_for(attacker) -> float:
 	return float(svc.BLESSED_DAMAGE_MULTIPLIER) if svc.is_class_blessed(cid) else 1.0
 
 ## Crit chance off the combatant's own roll when it has one (Entity /
-## the player body get_crit_chance), stat-derived otherwise.
-static func _crit_chance_for(attacker) -> float:
+## the player body get_crit_chance), stat-derived otherwise. Both paths read
+## the crit_chance stat delta through StatId.crit_chance_of, so a crit buff
+## lands on any body (the accessor no longer shadows the stat block).
+##
+## A MAGICAL skill crits off INT, not agility -- the caster's identity -- so
+## a mage's crit climbs with the stat its damage already scales on. The
+## `crit_chance` delta is added on top either way (a crit buff helps a mage
+## too), and `_crit_multiplier_for` supplies the body's crit_damage.
+static func _crit_chance_for(attacker, skill = null) -> float:
+	var delta := _stat(attacker, "crit_chance", 0.0)
+	if skill != null and "damage_type" in skill and str(skill.damage_type) == "magical":
+		return clampf(
+			_stat(attacker, "intelligence", 10.0) / 200.0 + delta,  # ~0.5% per int
+			0.0, StatId.MAX_CRIT_CHANCE)
 	if attacker != null and attacker.has_method("get_crit_chance"):
 		return float(attacker.get_crit_chance())
-	return 0.05 + _stat(attacker, "agility", 10.0) * 0.003
+	return StatId.crit_chance_of(_stat(attacker, "agility", 10.0), delta)
 
 static func _crit_multiplier_for(attacker) -> float:
 	if attacker != null and attacker.has_method("get_crit_multiplier"):
 		return float(attacker.get_crit_multiplier())
-	return 1.5
+	return StatId.crit_damage_of(_stat(attacker, "crit_damage", 0.0))
 
 ## Helper to check if defender has shield equipped. Duck-typed: only
 ## the player body carries an inventory_component; bare Entity / Enemy
