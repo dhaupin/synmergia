@@ -1473,10 +1473,11 @@ engine binary is provisioned by `scripts/setup-dev.sh`, not by LFS.
   `staging` in its triggers. The local runner is still the faster loop and
   the place to reproduce a red check, but a staging PR now has a real
   Godot + docs gate.
-- **Known pre-existing failures** on clean staging: `probe_riding` and
-  `probe_planet_rebase_20km` (plus historically `probe_world_lattice`).
-  The default set is not fully green: those two are the known floor, and
-  the total test count grows as tests land.
+- **The default set is the gate.** It is green on current staging; a red
+  default run is a regression, not a pre-existing floor. The full `--all`
+  set still includes environment-only legs (agent driver, full boot, and
+  web/UI probes); check the latest session notes before treating one as
+  code drift.
 - **Achievement triggers are the same dead-counter class.**
   `AchievementService.track/unlock_event` are keyed by a string
   `target_type` declared in `game/data/achievements/*.tres` and fed only
