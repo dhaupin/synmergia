@@ -1,0 +1,27 @@
+title: Synmergia Docs
+description: How Synmergia works, how it is built, and how to run it.
+url: https://docs.creadev.org
+baseurl: /synmergia
+
+markdown: kramdown
+highlighter: rouge
+permalink: pretty
+
+exclude:
+  - README.md
+  - Gemfile
+  - Gemfile.lock
+  - freestruct.config.yml
+  - .ruby-version
+  - vendor
+  - .jekyll-cache
+  - pagefind
+
+kramdown:
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    default_lang: plaintext
+    css_class: highlight
+  toc_levels: [1, 2, 3]
+  auto_ids: true
+  auto_id_prefix: ''

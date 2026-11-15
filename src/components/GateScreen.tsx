@@ -65,7 +65,7 @@ export default function GateScreen({ sessionKey, gateHash, envVarName, headline,
     <div className="max-w-md mx-auto px-4 py-24">
       <div className="rounded-2xl border border-line bg-surface p-8">
         <div className="w-12 h-12 rounded-full bg-accent/15 text-accent flex items-center justify-center mx-auto mb-4">
-          <Lock className="w-6 h-6" />
+          <Lock className="w-6 h-6" aria-hidden="true" />
         </div>
         <h1 className="font-display text-2xl text-center mb-1">{headline}</h1>
         <p className="text-xs text-ink-soft text-center mb-6">{blurb}</p>
@@ -84,13 +84,15 @@ export default function GateScreen({ sessionKey, gateHash, envVarName, headline,
           onKeyDown={(e) => e.key === 'Enter' && tryUnlock()}
           placeholder="Access key"
           autoComplete="off"
-          className={`w-full bg-paper rounded-lg border px-3 py-2.5 text-sm mb-3 outline-none focus:border-accent transition-colors ${
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? 'gate-error' : undefined}
+          className={`w-full bg-paper rounded-lg border px-3 py-2.5 text-sm mb-3 focus:border-accent transition-colors ${
             error ? 'border-err text-err' : 'border-line'
           }`}
         />
-        {error && <p className="text-xs text-err mb-3">{error}</p>}
+        {error && <p id="gate-error" role="alert" className="text-xs text-err mb-3">{error}</p>}
         {cooldown > 0 && (
-          <p className="text-xs text-accent mb-3">
+          <p role="status" className="text-xs text-accent mb-3">
             Too many attempts — wait {cooldown}s.
           </p>
         )}

@@ -6,7 +6,8 @@ Synmergia is a persistent 3D sandbox: a spherical planet with player housing,
 territory, guilds, action combat, an economy shaped by players, and a world that
 keeps running while you are offline. The client is a WebAssembly build of the Godot
 project; the game server is authoritative; the site around it is a
-React/Vite/Tailwind app deployed on Cloudflare Pages.
+React/Vite/Tailwind app deployed on Cloudflare Pages. The docs portal lives in
+`docs/` and is published at [docs.creadev.org/synmergia](https://docs.creadev.org/synmergia/).
 
 [Play the early-access build](https://synmergia.creadev.org/play) ·
 [Main site](https://synmergia.creadev.org/) ·
@@ -52,7 +53,10 @@ React/Vite/Tailwind app deployed on Cloudflare Pages.
 - **Docker** for the game server and the optional shard mesh.
 
 The reusable frame — T3 content-hash state tree, scope engine, rules engine, and
-clipmap addressing — is deliberately extractable from the game.
+clipmap addressing — is deliberately extractable from the game. It is not yet a
+standalone package: there is no registry name, version, or install command. See
+[The frame](https://docs.creadev.org/synmergia/build/frame/) for the boundary and
+what packaging still needs.
 
 ## AI agents
 

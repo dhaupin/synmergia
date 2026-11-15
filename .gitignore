@@ -34,6 +34,14 @@ dist/
 .vite/
 .prestruct/
 
+# Docs portal build artifacts (Jekyll + freestruct + pagefind)
+docs/_site/
+docs/.jekyll-cache/
+docs/.sass-cache/
+docs/vendor/
+docs/pagefind/
+docs/.jekyll-metadata
+
 # OS
 .DS_Store
 Thumbs.db
