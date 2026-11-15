@@ -36,28 +36,27 @@ static func singleton():
 		_instance = load("res://core/services/black_market_service.gd").new()
 	return _instance
 
-const CURRENCY_ID := "currency_concord_sigil"
 const RATE_LIMIT_ACTION := "black_market_roll"
+const DATA_ID := "black_market"
 
-## The roll board. Each tier reads a REAL LootTable resource; sigils is
-## the honest debit per roll. rarity_boost multiplies every entry's
-## rarity_weight (the depths pull pays UP, not sideways).
-const ROLLS := [
-	{
-		"roll_id": "tide",
-		"label": "Tide Pull",
-		"sigils": 3,
-		"table": "res://data/loot_tables/loot_black_market_tide.tres",
-		"rarity_boost": 1.0,
-	},
-	{
-		"roll_id": "depths",
-		"label": "Depths Pull",
-		"sigils": 12,
-		"table": "res://data/loot_tables/loot_black_market_depths.tres",
-		"rarity_boost": 2.0,
-	},
-]
+## The board record resolves through DataService. The service owns the
+## draw and the ledger; the record owns tiers, prices, currency, and the
+## real LootTable each tier reads. No literal board here.
+var _board_cache: BlackMarketData = null
+
+func _board_data() -> BlackMarketData:
+	if _board_cache != null and _board_cache.is_valid():
+		return _board_cache
+	var ds := _data_svc()
+	if ds == null or not ds.has_method("get_black_market"):
+		return null
+	_board_cache = ds.call("get_black_market") as BlackMarketData
+	if _board_cache == null or not _board_cache.is_valid():
+		var gl = _glog()
+		if gl:
+			gl.error("BlackMarketService: board record %s is missing or invalid" % DATA_ID)
+		return null
+	return _board_cache
 
 ## Fired after an honest completed roll (prize paid, purse debited).
 signal roll_granted(player_id: String, roll_id: String, item_id: String, rarity_name: String)
@@ -65,7 +64,10 @@ signal roll_granted(player_id: String, roll_id: String, item_id: String, rarity_
 ## The board the panel renders (no secrets, just the honest shape).
 func get_roll_options() -> Array:
 	var options: Array = []
-	for roll in ROLLS:
+	var board := _board_data()
+	if board == null:
+		return options
+	for roll in board.rolls:
 		var table = load(str(roll.get("table", "")))
 		if table == null:
 			continue
@@ -83,6 +85,9 @@ func get_roll_options() -> Array:
 ## cause; every grant is audited. The client never supplies weights,
 ## item ids, or amounts.
 func roll_deep(player_id: String, roll_id: String) -> Dictionary:
+	var board := _board_data()
+	if board == null:
+		return {"success": false, "message": "The fixer's board is missing. (no data)"}
 	var row := _row_for(roll_id)
 	if row.is_empty():
 		return {"success": false, "message": "The fixer doesn't offer that pull. (unknown roll tier)"}
@@ -104,15 +109,18 @@ func roll_deep(player_id: String, roll_id: String) -> Dictionary:
 	# Debit first, prize second, refund on any refusal -- the purse
 	# never holds a sigil without the prize leaving the door.
 	var sigils := int(row.get("sigils", 0))
-	if inv.get_currency_amount(CURRENCY_ID) < sigils:
-		return {"success": false, "message": "You need %d Concord Sigils for that pull (you have %d)." % [sigils, inv.get_currency_amount(CURRENCY_ID)]}
-	if not inv.remove_currency(CURRENCY_ID, sigils):
+	var currency_id := str(board.currency_id)
+	if currency_id.is_empty():
+		return {"success": false, "message": "The fixer's board names no currency. (bad data)"}
+	if inv.get_currency_amount(currency_id) < sigils:
+		return {"success": false, "message": "You need %d sigils for that pull (you have %d)." % [sigils, inv.get_currency_amount(currency_id)]}
+	if not inv.remove_currency(currency_id, sigils):
 		return {"success": false, "message": "The ledger refused the debit; the pull stays closed."}
 
 	var draw := _weighted_draw(table, float(row.get("rarity_boost", 1.0)))
 	var granted := _grant_draw(player_id, draw)
 	if granted.is_empty():
-		_refund(inv, sigils, "grant refused")
+		_refund(inv, sigils, "grant refused", currency_id)
 		return {"success": false, "message": str(draw.get("refuse_reason", "The fixer could not deliver the prize; your sigils are back."))}
 
 	var gl = _glog()
@@ -135,10 +143,10 @@ func roll_deep(player_id: String, roll_id: String) -> Dictionary:
 ## ---------------------------------------------------------------------------
 
 func _row_for(roll_id: String) -> Dictionary:
-	for roll in ROLLS:
-		if str(roll.get("roll_id", "")) == roll_id:
-			return roll
-	return {}
+	var board := _board_data()
+	if board == null:
+		return {}
+	return board.get_roll(roll_id)
 
 ## The weighted draw is pure server math: each table entry's
 ## rarity_weight rides the tier boost; the draw carries the entry's
@@ -203,8 +211,8 @@ func _grant_draw(player_id: String, draw: Dictionary) -> Dictionary:
 
 ## The refund leg: the books go back exactly where they left. Any
 ## failure here is a hard error in the audit -- no silent loss ever.
-func _refund(inv, sigils: int, cause: String) -> void:
-	if not inv.add_currency(CURRENCY_ID, sigils):
+func _refund(inv, sigils: int, cause: String, currency_id: String) -> void:
+	if not inv.add_currency(currency_id, sigils):
 		var gl = _glog()
 		if gl:
 			gl.error("BlackMarketService: REFUND FAILED for %d sigils (%s) -- the books owed a player" % [sigils, cause])

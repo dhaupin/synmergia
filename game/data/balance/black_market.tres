@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="BlackMarketData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/black_market_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "black_market"
+currency_id = "currency_concord_sigil"
+rolls = [{
+"roll_id": "tide",
+"label": "Tide Pull",
+"sigils": 3,
+"table": "res://data/loot_tables/loot_black_market_tide.tres",
+"rarity_boost": 1.0
+}, {
+"roll_id": "depths",
+"label": "Depths Pull",
+"sigils": 12,
+"table": "res://data/loot_tables/loot_black_market_depths.tres",
+"rarity_boost": 2.0
+}]

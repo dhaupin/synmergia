@@ -42,6 +42,9 @@ Current extraction:
 - Models, brand, textures, and shaders live under `game/data/` and load from
   `res://data/...`. Every model is a `ModelData` record; actor data uses
   `model_id` and `DataService` resolves the asset (`labs/prd-models.md`).
+- Balance records live under `game/data/balance/`; the service owns the math
+  and reads the record. The running extraction ledger is
+  [`labs/data-engine-separation.md`](./data-engine-separation.md).
 - `game/assets/` and `game/models/` are retired. Do not add a path, generator
   output, or doc reference that recreates them.
 - The repo-root `/data` split is deferred. Until it happens, `game/data` is the
@@ -162,6 +165,7 @@ written in the **same order** the schema exports them.
 | `mounts/`, `gliders/` | `mount_data.gd` |
 | `vehicles/` | `vehicle_data.gd` |
 | `content_packs/` | `content_pack_data.gd` |
+| `balance/` | per-domain balance schemas (`ForgeBalanceData`, `BlackMarketData`) |
 | `hitbox_profiles/` | `hitbox_profile.gd` |
 | `signs/` | `sign_profile.gd` |
 | `acts/` | `act_profile.gd` |

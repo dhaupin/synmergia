@@ -44,6 +44,19 @@ func _run() -> void:
 	if svc == null:
 		return _finish()
 
+	var ds = root.get_node_or_null("DataService")
+	_assert(ds != null and ds.has_method("get_academy_balance"),
+			"DataService exposes the Academy balance record")
+	var prices: AcademyBalanceData = ds.get_academy_balance() if ds != null and ds.has_method("get_academy_balance") else null
+	_assert(prices != null and prices.is_valid(), "Academy balance record is valid")
+	if prices != null:
+		_assert(svc.get_common_book_price() == prices.common_book_price,
+				"service book price comes from the record")
+		_assert(svc.get_respec_cost(10) == prices.skill_respec_base_cost + 10 * prices.skill_respec_gold_per_point,
+				"skill respec cost comes from the record")
+		_assert(svc.get_stat_respec_cost(10) == prices.stat_respec_base_cost + 10 * prices.stat_respec_gold_per_point,
+				"stat respec cost comes from the record")
+
 	var entry = svc.get_catalog_entry("human_charge")
 	_assert(entry != null and not entry.is_empty(), "catalog has upgradable human_charge")
 	var sig = svc.get_catalog_entry("akkan_gravity_well")
@@ -80,7 +93,8 @@ func _run() -> void:
 		inv.add_gold(500 - gold_before)
 	var purchase: Dictionary = svc.purchase_book(pid, "human_charge", int(inv.get_gold()))
 	_assert(purchase.get("success", false), "purchase_book succeeds with gold")
-	_assert(int(purchase.get("cost", 0)) == 100, "common book costs 100 gold")
+	_assert(prices != null and int(purchase.get("cost", 0)) == prices.common_book_price,
+			"purchase cost matches the data record")
 	var bought: Item = purchase.get("book")
 	_assert(bought != null, "purchase returns a book")
 	if bought != null:

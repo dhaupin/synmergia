@@ -192,8 +192,9 @@ const GLOBE_ASCENT_GATE: Array = ["AscentGate", "The Ascent", "underworld", -92.
 ## The dungeon portal (the authored GatewayData the planar scene wires):
 ## (gateway .tres id, bearing_deg, reach_m).
 const GLOBE_DUNGEON_PORTAL: Array = ["dungeon_forest_depths_entrance", 175.0, 12.0]
-## The demo housing plot: (plot id, bearing_deg, reach_m, radius, price).
-const GLOBE_HOUSING_PLOT: Array = ["plot_haven_1", 60.0, 9.0, 10.0, 50000]
+## The demo housing plot: (plot id, bearing_deg, reach_m, radius).
+## Its price comes from data/balance/housing_balance.tres.
+const GLOBE_HOUSING_PLOT: Array = ["plot_haven_1", 60.0, 9.0, 10.0]
 ## The zone every globe-placed entity registers under (the spawn plaza's
 ## zone; matches _register_player's zone entry).
 const GLOBE_ZONE_ID: String = "zone_village_center"
@@ -1179,7 +1180,7 @@ func _build_globe_housing() -> void:
 	var center: Vector3 = TerrainGenRef.SPAWN_CENTER
 	var plot_center: Vector3 = _globe_meter_surface(center, float(GLOBE_HOUSING_PLOT[1]), float(GLOBE_HOUSING_PLOT[2]))
 	dw.register_plot(str(GLOBE_HOUSING_PLOT[0]), GLOBE_ZONE_ID, plot_center, \
-		float(GLOBE_HOUSING_PLOT[3]), int(GLOBE_HOUSING_PLOT[4]))
+		float(GLOBE_HOUSING_PLOT[3]))
 	_log_backend("info", "GlobeWorld: demo plot registered (stand near it, /buyplot)")
 
 

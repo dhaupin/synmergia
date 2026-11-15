@@ -209,16 +209,19 @@ func _test_placement_costs_and_ownership() -> void:
 	var a = svc.place_personal_ankh(outsider, "plot_own")
 	_assert(a == null, "non-owner cannot place personal ankh")
 
+	var guard_cost: int = svc.get_house_guard_cost()
+	var ankh_cost: int = svc.get_personal_ankh_cost()
 	var g2 = svc.place_house_guard(owner_p, "plot_own")
 	_assert(g2 != null, "owner places house guard")
-	_assert(int(owner_p.gold) == 400000 - _housing.HOUSE_GUARD_COST, "guard costs 250000 gold")
+	_assert(int(owner_p.gold) == 400000 - guard_cost, "guard costs %d gold" % guard_cost)
 	var g3 = svc.place_house_guard(owner_p, "plot_own")
 	_assert(g3 == null, "second guard denied (one per plot)")
 	_assert(str(svc.get_plot("plot_own")["guard_id"]) != "", "guard id recorded on plot")
 
 	var a2 = svc.place_personal_ankh(owner_p, "plot_own")
 	_assert(a2 != null, "owner places personal ankh")
-	_assert(int(owner_p.gold) == 50000, "guard + ankh cost exactly 350000 gold")
+	_assert(int(owner_p.gold) == 400000 - guard_cost - ankh_cost,
+		"guard + ankh cost exactly %d gold" % (guard_cost + ankh_cost))
 	_assert(str(svc.get_plot("plot_own")["ankh_id"]) != "", "ankh id recorded on plot")
 	_free(g2)
 	_free(a2)

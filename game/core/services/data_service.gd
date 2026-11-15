@@ -11,6 +11,10 @@ const MysteryData = preload("res://core/schemas/mystery_data.gd")
 const Item = preload("res://core/schemas/item.gd")
 const EnemyData = preload("res://core/schemas/enemy_data.gd")
 const ModelData = preload("res://core/schemas/model_data.gd")
+const BlackMarketData = preload("res://core/schemas/black_market_data.gd")
+const StarterKitData = preload("res://core/schemas/starter_kit_data.gd")
+const AcademyBalanceData = preload("res://core/schemas/academy_balance_data.gd")
+const HousingBalanceData = preload("res://core/schemas/housing_balance_data.gd")
 const CharacterClass = preload("res://core/schemas/character_class.gd")
 const Species = preload("res://core/schemas/species.gd")
 const Faction = preload("res://core/schemas/faction.gd")
@@ -38,6 +42,8 @@ var _misc: Dictionary = {}
 
 var _enemies: Dictionary = {}
 var _models: Dictionary = {}
+## id -> balance record (data/balance/, per-domain schemas).
+var _balance: Dictionary = {}
 var _classes: Dictionary = {}
 var _species: Dictionary = {}
 var _factions: Dictionary = {}
@@ -92,6 +98,7 @@ func load_all_data() -> void:
 	load_items()
 	load_enemies()
 	load_models()
+	load_balance()
 	load_classes()
 	load_species()
 	load_factions()
@@ -206,6 +213,44 @@ func load_enemies() -> void:
 func load_models() -> void:
 	_models = _scan_directory(_data_path + "models", "model")
 	GameLog.info("DataService: Loaded %d models" % _models.size())
+
+## Load balance records from data/balance/. Each record carries its own
+## domain schema; the service consumes the record by id.
+func load_balance() -> void:
+	_balance = _scan_directory(_data_path + "balance", "balance")
+	GameLog.info("DataService: Loaded %d balance records" % _balance.size())
+
+## The Fixer's roll board. The service owns the draw; this record owns tiers.
+func get_black_market() -> BlackMarketData:
+	var record = _balance.get("black_market")
+	if record is BlackMarketData:
+		return record
+	GameLog.warn("DataService: Black market board not found")
+	return null
+
+## The role-keyed new-character grant tables.
+func get_starter_kits() -> StarterKitData:
+	var record = _balance.get("starter_kits")
+	if record is StarterKitData:
+		return record
+	GameLog.warn("DataService: Starter kit tables not found")
+	return null
+
+## The Skill Academy price tables.
+func get_academy_balance() -> AcademyBalanceData:
+	var record = _balance.get("academy_balance")
+	if record is AcademyBalanceData:
+		return record
+	GameLog.warn("DataService: Academy balance record not found")
+	return null
+
+## The housing economy price tables.
+func get_housing_balance() -> HousingBalanceData:
+	var record = _balance.get("housing_balance")
+	if record is HousingBalanceData:
+		return record
+	GameLog.warn("DataService: Housing balance record not found")
+	return null
 
 ## Load classes from data/classes/
 func load_classes() -> void:
@@ -809,6 +854,7 @@ func reload_all() -> void:
 	_misc.clear()
 	_enemies.clear()
 	_models.clear()
+	_balance.clear()
 	_classes.clear()
 	_species.clear()
 	_factions.clear()
@@ -844,6 +890,9 @@ func reload_category(category: String) -> void:
 		"models":
 			_models.clear()
 			load_models()
+		"balance":
+			_balance.clear()
+			load_balance()
 		"classes":
 			_classes.clear()
 			load_classes()
@@ -893,6 +942,7 @@ func get_counts() -> Dictionary:
 		"items": _items.size(),
 		"enemies": _enemies.size(),
 		"models": _models.size(),
+		"balance": _balance.size(),
 		"classes": _classes.size(),
 		"species": _species.size(),
 		"factions": _factions.size(),

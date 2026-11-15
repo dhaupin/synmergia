@@ -59,7 +59,12 @@ environment/CI-only until proven otherwise.
   content root. Schemas, services and behavior stay in `game/core`; definable
   values, paths, catalogs and assets move to `game/data`. Models are
   `ModelData` records under `game/data/models/`; actors use `model_id` and
-  `DataService` resolves the asset. See `data-authoring-baseline.md` sec 0.
+  `DataService` resolves the asset. See `data-authoring-baseline.md` sec 0
+  and the ordering/leave-alone list in `data-engine-separation.md` (first
+  slices: the Fixer's roll board in `data/balance/black_market.tres`, the
+  starter kit tables in `data/balance/starter_kits.tres`, the Academy
+  prices in `data/balance/academy_balance.tres`, and the housing economy
+  in `data/balance/housing_balance.tres`).
 - **Terrain fold:** CLOSED. `clipmap-fold-survey.md` A1-A4 and B1 are folded
   or removed, with the receipts recorded there; residual "streamer" mentions
   are historical prose, not live work.

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="HousingBalanceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/housing_balance_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "housing_balance"
+default_plot_price = 50000
+house_guard_cost = 250000
+personal_ankh_cost = 100000
+default_house_id = "house_cottage"

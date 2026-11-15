@@ -4,29 +4,21 @@ extends Node
 
 static var instance: StarterKitService
 
-## Starter kit definitions by class role
-## Format: role -> [item_id, item_id, ...]
-const STARTER_KITS: Dictionary = {
-	# Warrior/Tank roles get sword + shield
-	0: ["wep_iron_sword"],  # Role 0 = GM (fallback)
-	1: ["wep_iron_sword"],   # Tank
-	2: ["wep_iron_sword"],   # Melee DPS
-	3: ["wep_wooden_bow"],  # Ranged DPS
-	4: [],                   # Healer (no weapon in data yet)
-	5: [],                   # Support
-	6: [],                   # Control
-}
+const DATA_ID := "starter_kits"
+var _kit_cache: StarterKitData = null
 
-## Starting gold by role
-const STARTING_GOLD: Dictionary = {
-	0: 500,
-	1: 200,
-	2: 150,
-	3: 150,
-	4: 100,
-	5: 100,
-	6: 100,
-}
+## Resolve the role-keyed grant tables from DataService. The service owns
+## the fresh-confirm gate and the grant; the record owns the content.
+func _kit_data() -> StarterKitData:
+	if _kit_cache != null and _kit_cache.is_valid():
+		return _kit_cache
+	if DataService == null or not DataService.has_method("get_starter_kits"):
+		return null
+	_kit_cache = DataService.get_starter_kits()
+	if _kit_cache == null or not _kit_cache.is_valid():
+		GameLog.warn("StarterKitService: balance record %s is missing or invalid" % DATA_ID)
+		return null
+	return _kit_cache
 
 signal starter_kit_granted(player_id: String, items: Array)
 
@@ -128,14 +120,19 @@ func grant_starter_kit(player_id: String, character_data) -> void:
 			grant_starter_kit(player_id, character_data)
 		return
 
+	var kit := _kit_data()
+	if kit == null:
+		GameLog.warn("StarterKitService: kit data unavailable for %s" % player_id)
+		return
+
 	_granted_for[player_id] = true
 
 	var role: int = 0
 	if "class_data" in character_data and character_data.class_data:
 		role = character_data.class_data.get("role")
 
-	var item_ids: Array = STARTER_KITS.get(role, STARTER_KITS.get(0, []))
-	var gold: int = STARTING_GOLD.get(role, STARTING_GOLD.get(0, 100))
+	var item_ids: Array = kit.items_for(role)
+	var gold: int = kit.gold_for(role)
 
 	var granted_items: Array = []
 	var failed_items: Array = []

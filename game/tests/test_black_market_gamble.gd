@@ -48,11 +48,20 @@ func _run() -> void:
 	if ds == null or not ds.has_method("get_item"):
 		_fail("DataService.get_item not reachable in script mode")
 		return
-	for option in market.get_roll_options():
+	var board = ds.call("get_black_market")
+	if board == null or not board.is_valid():
+		_fail("the Fixer's board record is missing or invalid")
+		return
+	var options: Array = market.get_roll_options()
+	if options.size() != board.rolls.size():
+		_fail("the service board does not match the data record (%d vs %d)" % [options.size(), board.rolls.size()])
+		return
+	for option in options:
 		if int(option.get("sigils", 0)) <= 0 or int(option.get("pool_size", 0)) <= 0:
 			_fail("a roll option lacks honest sigils or a real pool: %s" % str(option))
 			return
-		var table = load("res://data/loot_tables/loot_black_market_%s.tres" % str(option.get("roll_id")))
+		var row: Dictionary = board.get_roll(str(option.get("roll_id", "")))
+		var table = load(str(row.get("table", "")))
 		if table == null:
 			_fail("pool resource missing for %s" % str(option.get("roll_id")))
 			return
@@ -60,7 +69,7 @@ func _run() -> void:
 			if ds.call("get_item", str(entry.get("item_id", ""))) == null:
 				_fail("pool carries a phantom SKU: " + str(entry.get("item_id")))
 				return
-	print("[OK] both Fixer pools are real: every entry resolves through DataService")
+	print("[OK] both Fixer pools are real and resolve from the data board; every entry resolves through DataService")
 
 	# Wallet-mounted player for the gambles.
 	var pm: Node = root.get_node_or_null("PlayerManager")
@@ -92,7 +101,7 @@ func _run() -> void:
 	if bool(broke.get("success", false)):
 		_fail("a broke player rolled the fixer")
 		return
-	if not str(broke.get("message", "")).contains("need 3 Concord Sigils"):
+	if not str(broke.get("message", "")).contains("need 3 sigils"):
 		_fail("the broke refusal did not name its cause: " + str(broke.get("message")))
 		return
 	if bool(broken.roll_deep("gambler_probe", "phantom_tier").get("success", false)):

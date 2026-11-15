@@ -9,6 +9,7 @@ beside their consumers, outside this content root.
 |---|---|---|
 | `game/data/enemies/`, `items/`, `skills/`, ... | gameplay `.tres` records | `res://data/...` |
 | `game/data/models/` | exported `.glb` models and `ModelData` records | `res://data/models/...` |
+| `game/data/balance/` | per-domain balance records; services own the math | `res://data/balance/...` |
 | `game/data/art/` | source `.blend`, GPU scratch, review renders; `.gdignore` hides it | not loaded |
 | `game/data/brand/` | logos and wordmarks | `res://data/brand/...` |
 | `game/data/shaders/` | shaders | `res://data/shaders/...` |

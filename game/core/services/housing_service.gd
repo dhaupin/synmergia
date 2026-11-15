@@ -8,7 +8,8 @@
 ## same way.
 ##
 ## Flow: register_plot (world builder) -> purchase_plot (player pays)
-## -> place_house_guard / place_personal_ankh (250k / 100k gold).
+## -> place_house_guard / place_personal_ankh. Plot, guard, ankh and
+## default-house choices live in data/balance/housing_balance.tres.
 ## Every placed object lands inside the plot's access scope, so a
 ## guild-owned hall could later re-stamp access.scope = GUILD and the
 ## same guard/ankh rules follow automatically.
@@ -38,15 +39,38 @@ signal object_placed(player_id: String, plot_id: String, object_type: String, ob
 signal object_removed(player_id: String, plot_id: String, object_type: String, object_id: String)
 signal house_built(player_id: String, plot_id: String, house_id: String)
 
-const HOUSE_COST := 750000  # fallback cost when DataService has no house tiers
-## The default house tier (/buildhouse with no arg): the cottage, the
-## middle rung. Tiers live in data/houses/ and are read through
-## DataService.get_house.
-const DEFAULT_HOUSE_ID := "house_cottage"
+const DATA_ID := "housing_balance"
+var _balance_cache: HousingBalanceData = null
 
-const DEFAULT_PLOT_PRICE := 50000
-const HOUSE_GUARD_COST := 250000   # The 250k-gold dream, as requested.
-const PERSONAL_ANKH_COST := 100000
+## Resolve the housing record through DataService. The service owns the
+## gates; the record owns the gold costs and default choices.
+func _balance_data() -> HousingBalanceData:
+	if _balance_cache != null and _balance_cache.is_valid():
+		return _balance_cache
+	var ds = _svc("DataService")
+	if ds == null or not ds.has_method("get_housing_balance"):
+		return null
+	_balance_cache = ds.get_housing_balance()
+	if _balance_cache == null or not _balance_cache.is_valid():
+		GameLog.warn("HousingService: balance record %s is missing or invalid" % DATA_ID)
+		return null
+	return _balance_cache
+
+func get_default_plot_price() -> int:
+	var balance := _balance_data()
+	return balance.default_plot_price if balance != null else -1
+
+func get_house_guard_cost() -> int:
+	var balance := _balance_data()
+	return balance.house_guard_cost if balance != null else -1
+
+func get_personal_ankh_cost() -> int:
+	var balance := _balance_data()
+	return balance.personal_ankh_cost if balance != null else -1
+
+func get_default_house_id() -> String:
+	var balance := _balance_data()
+	return balance.default_house_id if balance != null else ""
 
 var _plots: Dictionary = {}        # plot_id -> Dictionary
 var _test_overrides: Dictionary = {}  # service name -> node (test seams)
@@ -86,13 +110,19 @@ func clear_test_state() -> void:
 
 ## Register a purchasable plot. Call from scene/world builders.
 ## access is a PlacementAccess (defaults to personal-on-purchase).
-func register_plot(plot_id: String, zone_id: String, center: Vector3, radius: float = 12.0, price: int = DEFAULT_PLOT_PRICE) -> Dictionary:
+func register_plot(plot_id: String, zone_id: String, center: Vector3, radius: float = 12.0, price: int = -1) -> Dictionary:
+	var resolved_price := price
+	if resolved_price < 0:
+		resolved_price = get_default_plot_price()
+	if resolved_price < 0:
+		GameLog.warn("HousingService: plot price unavailable; refusing to register %s" % plot_id)
+		return {}
 	var plot := {
 		"id": plot_id,
 		"zone_id": zone_id,
 		"center": center,
 		"radius": radius,
-		"price": price,
+		"price": resolved_price,
 		"owner_id": "",
 		"guard_id": "",
 		"ankh_id": "",
@@ -190,7 +220,11 @@ func _validate_placement(player, plot_id: String, cost: int, kind: String) -> St
 ## The guard is owned by the buyer, friendly to the buyer, hostile
 ## (TRESPASS + ATTACKED) to everyone else near the plot.
 func place_house_guard(player, plot_id: String, guard_name: String = "House Guard"):
-	var reason := _validate_placement(player, plot_id, HOUSE_GUARD_COST, "guard")
+	var cost := get_house_guard_cost()
+	if cost < 0:
+		GameLog.warn("HousingService: guard price unavailable")
+		return null
+	var reason := _validate_placement(player, plot_id, cost, "guard")
 	if reason != "":
 		return null
 	var pid := str(player.entity_id)
@@ -222,7 +256,11 @@ func place_house_guard(player, plot_id: String, guard_name: String = "House Guar
 ## Bind access is stamped with the same PlacementAccess scope, so the
 ## ankh is usable by the owner (and allowed ids) only.
 func place_personal_ankh(player, plot_id: String):
-	var reason := _validate_placement(player, plot_id, PERSONAL_ANKH_COST, "ankh")
+	var cost := get_personal_ankh_cost()
+	if cost < 0:
+		GameLog.warn("HousingService: personal ankh price unavailable")
+		return null
+	var reason := _validate_placement(player, plot_id, cost, "ankh")
 	if reason != "":
 		return null
 	var pid := str(player.entity_id)
@@ -627,9 +665,9 @@ func _cmd_dismiss_guard(sender_id: String, player, pos: Vector3) -> bool:
 ## (front), and a gabled roof, all with StaticBody collision so the player
 ## physically enters and exists inside. Geometry, cost and colors come
 ## from the HouseData tier (data/houses/); the plot's house_id is stamped;
-## one house per plot. house_id defaults to the cottage tier, and falls
-## back to the built-in cost/geometry when DataService is absent (tests).
-func build_house(player, plot_id: String, house_id: String = DEFAULT_HOUSE_ID) -> Dictionary:
+## one house per plot. An empty house_id resolves the record's default tier.
+## An unknown tier is refused; there is no no-data fallback house.
+func build_house(player, plot_id: String, house_id: String = "") -> Dictionary:
 	if player == null or not ("entity_id" in player):
 		return {"ok": false, "reason": "invalid_player"}
 	var pid := str(player.entity_id)
@@ -640,8 +678,13 @@ func build_house(player, plot_id: String, house_id: String = DEFAULT_HOUSE_ID) -
 		return {"ok": false, "reason": "not_owner"}
 	if str(plot.get("house_id", "")) != "":
 		return {"ok": false, "reason": "already_built"}
-	var house_data = _resolve_house_data(house_id)
-	var cost: int = int(house_data.cost) if house_data != null else HOUSE_COST
+	var tier := house_id.strip_edges()
+	if tier.is_empty():
+		tier = get_default_house_id()
+	var house_data = _resolve_house_data(tier)
+	if house_data == null:
+		return {"ok": false, "reason": "unknown_house_tier"}
+	var cost: int = int(house_data.cost)
 	if not _spend_gold(player, cost):
 		return {"ok": false, "reason": "insufficient_gold"}
 
@@ -650,15 +693,14 @@ func build_house(player, plot_id: String, house_id: String = DEFAULT_HOUSE_ID) -
 		house.queue_free()
 		return {"ok": false, "reason": "spawn_failed"}
 	plot["house_id"] = house.name
-	plot["house_tier"] = house_id
+	plot["house_tier"] = tier
 	house_built.emit(pid, plot_id, house.name)
-	GameLog.info("HousingService: %s built %s on plot %s (%d gold)" % [pid, house_id, plot_id, cost])
-	return {"ok": true, "house_id": house.name, "tier": house_id}
+	GameLog.info("HousingService: %s built %s on plot %s (%d gold)" % [pid, tier, plot_id, cost])
+	return {"ok": true, "house_id": house.name, "tier": tier}
 
 
-## The HouseData for a tier id, or null when DataService has no such house
-## (script-mode tests, or an unknown id). Callers fall back to the built-in
-## cottage constants so a plot can always be raised.
+## The HouseData for a tier id, or null when DataService has no such house.
+## Callers refuse the build; there is no built-in fallback tier.
 func _resolve_house_data(house_id: String):
 	var ds = _svc("DataService")
 	if ds == null or not ds.has_method("get_house"):
@@ -666,22 +708,22 @@ func _resolve_house_data(house_id: String):
 	return ds.get_house(house_id)
 
 
-## Construct the structure node from a HouseData tier (or the built-in
-## cottage defaults when data is null). Geometry is parameterized by the
-## tier's footprint / wall_height / door_width / roof_pitch; the cottage
-## tier reproduces the original hand-tuned 6x6x3 numbers exactly.
-func _build_house_node(house_id: String, center: Vector3, data = null) -> StaticBody3D:
+## Construct the structure node from a HouseData tier. Geometry is
+## parameterized by the tier's footprint / wall_height / door_width /
+## roof_pitch; the cottage tier reproduces the original hand-tuned
+## 6x6x3 numbers exactly.
+func _build_house_node(house_id: String, center: Vector3, data: HouseData) -> StaticBody3D:
 	var house := StaticBody3D.new()
 	house.name = "house_%s" % house_id
 
-	var w: float = float(data.footprint.x) if data != null else 6.0
-	var d: float = float(data.footprint.z) if data != null else 6.0
-	var floor_t: float = float(data.footprint.y) if data != null else 0.2
-	var wall_h: float = float(data.wall_height) if data != null else 3.0
-	var door_w: float = float(data.door_width) if data != null else 1.4
-	var pitch: float = float(data.roof_pitch) if data != null else 0.5
-	var wall_col: Color = data.wall_color if data != null else Color(0.55, 0.38, 0.22)
-	var roof_col: Color = data.roof_color if data != null else Color(0.35, 0.2, 0.14)
+	var w: float = float(data.footprint.x)
+	var d: float = float(data.footprint.z)
+	var floor_t: float = float(data.footprint.y)
+	var wall_h: float = float(data.wall_height)
+	var door_w: float = float(data.door_width)
+	var pitch: float = float(data.roof_pitch)
+	var wall_col: Color = data.wall_color
+	var roof_col: Color = data.roof_color
 
 	var wood := StandardMaterial3D.new()
 	wood.albedo_color = wall_col
@@ -764,7 +806,7 @@ func _cmd_build_house(sender_id: String, player, pos: Vector3, args: Array = [])
 	if plot.is_empty() or str(plot["owner_id"]) != sender_id:
 		_notify(sender_id, "You must stand on your own plot to build.")
 		return true
-	var tier := str(args[0]).strip_edges() if not args.is_empty() else DEFAULT_HOUSE_ID
+	var tier := str(args[0]).strip_edges() if not args.is_empty() else get_default_house_id()
 	var result := build_house(player, str(plot["id"]), tier)
 	if result["ok"]:
 		var hd = _resolve_house_data(tier)
@@ -776,7 +818,7 @@ func _cmd_build_house(sender_id: String, player, pos: Vector3, args: Array = [])
 			_notify(sender_id, "You already have a house here.")
 		elif why == "insufficient_gold":
 			var hd2 = _resolve_house_data(tier)
-			var cost: int = int(hd2.cost) if hd2 != null else HOUSE_COST
+			var cost: int = int(hd2.cost) if hd2 != null else 0
 			_notify(sender_id, "Not enough gold (%d needed)." % cost)
 		else:
 			_notify(sender_id, "Build failed: %s." % why)

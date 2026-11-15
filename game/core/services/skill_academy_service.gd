@@ -20,12 +20,25 @@ const TIER_NAMES: Array = GameTier.NAMES
 const TIER_TO_LEVEL: Dictionary = GameTier.LEVELS
 const BOOKS_PER_UPGRADE: int = GameTier.BOOKS_PER_UPGRADE
 
-## Gold price for a common-tier skill book at the academy vendor
-const COMMON_BOOK_PRICE: int = 100
+const DATA_ID := "academy_balance"
+var _balance_cache: AcademyBalanceData = null
 
-## Respec cost: base gold + gold per skill point being refunded
-const RESPEC_BASE_COST: int = 500
-const RESPEC_GOLD_PER_POINT: int = 20
+## Resolve the price record through DataService. The service owns the
+## purchase/respec flow; the record owns the gold costs.
+func _balance_data() -> AcademyBalanceData:
+	if _balance_cache != null and _balance_cache.is_valid():
+		return _balance_cache
+	if DataService == null or not DataService.has_method("get_academy_balance"):
+		return null
+	_balance_cache = DataService.get_academy_balance()
+	if _balance_cache == null or not _balance_cache.is_valid():
+		GameLog.warn("SkillAcademyService: balance record %s is missing or invalid" % DATA_ID)
+		return null
+	return _balance_cache
+
+func get_common_book_price() -> int:
+	var balance := _balance_data()
+	return balance.common_book_price if balance != null else 0
 
 ## In-memory catalog: skill_id -> catalog entry
 var _catalog: Dictionary = {}
@@ -110,7 +123,10 @@ func _inventory_service() -> Node:
 ## Purchase a common-tier book from the academy vendor.
 ## Deducts gold, returns the book item (caller should add to inventory).
 func purchase_book(player_id: String, skill_id: String, gold: int) -> Dictionary:
-	if gold < COMMON_BOOK_PRICE:
+	var price := get_common_book_price()
+	if price <= 0:
+		return {"success": false, "reason": "Academy pricing unavailable"}
+	if gold < price:
 		return {"success": false, "reason": "Not enough gold"}
 	if not _catalog.has(skill_id):
 		return {"success": false, "reason": "Unknown skill"}
@@ -124,7 +140,7 @@ func purchase_book(player_id: String, skill_id: String, gold: int) -> Dictionary
 	return {
 		"success": true,
 		"book": book,
-		"cost": COMMON_BOOK_PRICE
+		"cost": price
 	}
 
 ## ============================================================================
@@ -346,6 +362,8 @@ func respec(
 
 	var refunded: int = skill_data.spent_skill_points
 	var cost: int = get_respec_cost(refunded)
+	if cost < 0:
+		return {"success": false, "reason": "Academy pricing unavailable"}
 	if gold < cost:
 		return {"success": false, "reason": "Not enough gold (need %d)" % cost}
 
@@ -378,20 +396,22 @@ func load_player_data(player_id: String, spent_pts: int, upgrades: Dictionary) -
 func get_respec_cost(spent_points: int) -> int:
 	if spent_points <= 0:
 		return 0
-	return RESPEC_BASE_COST + (spent_points * RESPEC_GOLD_PER_POINT)
+	var balance := _balance_data()
+	if balance == null:
+		return -1
+	return balance.skill_respec_base_cost + (spent_points * balance.skill_respec_gold_per_point)
 
 ## ============================================================================
 ## STAT ALLOCATION RESPEC
 ## ============================================================================
 
-## Cost to respec stats: similar to skill respec
-const STAT_RESPEC_BASE_COST: int = 500
-const STAT_RESPEC_GOLD_PER_POINT: int = 20
-
 func get_stat_respec_cost(points_to_reset: int) -> int:
 	if points_to_reset <= 0:
 		return 0
-	return STAT_RESPEC_BASE_COST + (points_to_reset * STAT_RESPEC_GOLD_PER_POINT)
+	var balance := _balance_data()
+	if balance == null:
+		return -1
+	return balance.stat_respec_base_cost + (points_to_reset * balance.stat_respec_gold_per_point)
 
 ## Preview stat respec - check what skill upgrades would be affected
 func preview_stat_respec(skill_data: CharacterData) -> Dictionary:
@@ -455,6 +475,8 @@ func execute_stat_respec(
 		return {"success": false, "reason": "No stat points to reset"}
 
 	var cost := get_stat_respec_cost(total_points)
+	if cost < 0:
+		return {"success": false, "reason": "Academy pricing unavailable"}
 	if gold < cost:
 		return {"success": false, "reason": "Not enough gold (need %d)" % cost}
 

@@ -316,7 +316,7 @@ func _build_books_tab() -> Control:
 
 	var buy_label := Label.new()
 	buy_label.name = "BuyLabel"
-	buy_label.text = "Buy Common Skill Book (%d gold)" % _skillacademyservice().COMMON_BOOK_PRICE
+	buy_label.text = "Buy Common Skill Book (%d gold)" % _skillacademyservice().get_common_book_price()
 	wrapper.add_child(buy_label)
 
 	var buy_row := HBoxContainer.new()

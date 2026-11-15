@@ -9,9 +9,9 @@
 #   C. THE TIER LADDER: cost climbs with tier (a later tier never costs
 #      less than an earlier one), footprint and wall_height grow too, and
 #      every tier carries at least one structural feature.
-#   D. THE SERVICE READS DATA: HousingService.build_house charges the
-#      tier's cost and stamps plot.house_tier, and an unknown tier falls
-#      back to the built-in cottage constants (never a crash).
+#   D. THE SERVICE READS DATA: HousingService resolves the housing
+#      balance record and charges the tier's cost, and an unknown tier
+#      is refused without charging the player.
 #
 # Receipt-lore: script-mode law -- autoloads resolved from root at
 # runtime; the dir is walked with DirAccess exactly like
@@ -128,6 +128,17 @@ func _run() -> void:
 		var cottage = ds.get_house("house_cottage")
 		_check("DataService.get_house resolves house_cottage", cottage != null)
 		_check("DataService.get_all_houses returns %d" % tiers.size(), ds.get_all_houses().size() == tiers.size())
+		var balance = ds.get_housing_balance()
+		_check("DataService.get_housing_balance resolves a valid record", balance != null and balance.is_valid())
+		if balance != null:
+			_check("default plot price comes from the record",
+				svc.get_default_plot_price() == int(balance.default_plot_price))
+			_check("house guard price comes from the record",
+				svc.get_house_guard_cost() == int(balance.house_guard_cost))
+			_check("personal ankh price comes from the record",
+				svc.get_personal_ankh_cost() == int(balance.personal_ankh_cost))
+			_check("default house tier comes from the record",
+				svc.get_default_house_id() == str(balance.default_house_id))
 
 		var plot: Dictionary = svc.register_test_plot("house_probe_plot", "test_zone", "house_owner")
 		var player = load("res://tests/support/reward_player_stub.gd").new()
@@ -143,7 +154,7 @@ func _run() -> void:
 				int(player.gold) == 2000000 - int(cottage.cost))
 		_check("plot.house_tier stamped from data", str(svc.get_plot("house_probe_plot").get("house_tier", "")) == "house_cottage")
 
-		# Unknown tier: falls back to built-in constants, never crashes.
+		# Unknown tier: refused, never charged, never a fallback house.
 		var plot2: Dictionary = svc.register_test_plot("house_probe_plot2", "test_zone", "house_owner2")
 		var player2 = load("res://tests/support/reward_player_stub.gd").new()
 		player2.entity_id = "house_owner2"
@@ -151,9 +162,9 @@ func _run() -> void:
 		player2.set("gold", 2000000)
 		root_node.add_child(player2)
 		var r2: Dictionary = svc.build_house(player2, "house_probe_plot2", "house_does_not_exist")
-		_check("unknown tier still builds (built-in fallback)", bool(r2.get("ok", false)))
-		_check("unknown tier charges the fallback HOUSE_COST",
-			int(player2.gold) == 2000000 - int(svc.HOUSE_COST))
+		_check("unknown tier is refused",
+			not bool(r2.get("ok", true)) and str(r2.get("reason", "")) == "unknown_house_tier")
+		_check("unknown tier charges nothing", int(player2.gold) == 2000000)
 
 		_finish()
 		return

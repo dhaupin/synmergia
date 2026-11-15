@@ -47,6 +47,30 @@ func _run() -> void:
 		push_error("FAIL: StarterKitService autoload not live in script mode")
 		quit(1)
 		return
+	var ds: Node = root.get_node_or_null("DataService")
+	if ds == null or not ds.has_method("get_starter_kits"):
+		push_error("FAIL: DataService.get_starter_kits not reachable in script mode")
+		quit(1)
+		return
+	var kits = ds.call("get_starter_kits")
+	if kits == null or not kits.is_valid():
+		push_error("FAIL: starter kit data record is missing or invalid")
+		quit(1)
+		return
+	if not kits.items_for(2).has("wep_iron_sword") or kits.gold_for(2) != 150:
+		push_error("FAIL: role 2 starter kit does not match the data record")
+		quit(1)
+		return
+	if kits.gold_for(0) != 500 or not kits.items_for(4).is_empty():
+		push_error("FAIL: role 0/4 starter kit rows drifted from the data record")
+		quit(1)
+		return
+	var service_kits = starter._kit_data()
+	if service_kits == null or not service_kits.is_valid():
+		push_error("FAIL: StarterKitService did not resolve the data record")
+		quit(1)
+		return
+	print("[OK] starter item and gold tables resolve from data")
 	var probe_node: Control = cs_script.new()
 	starter._on_tree_node_added(probe_node)
 	if not probe_node.character_confirmed.is_connected(starter._on_character_confirmed):
