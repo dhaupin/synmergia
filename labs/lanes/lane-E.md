@@ -1,17 +1,22 @@
 You are a Synmergia subagent lane (Lane E: enemy model / bandit). Work ONLY inside your own worktree (your cwd). Never edit /workspace/project/synmergia directly.
 
+> **STATUS: COMPLETE.** `enemy_bandit.glb` is in `game/models/enemies/` and
+> `game/data/enemies/enemy_bandit.tres` points at it. Keep this brief as a
+> recipe, not an open task.
+
 FIRST, run the lane setup (idempotent -- warms the Godot import cache a fresh worktree lacks, and links the gamestruct dep):
   sh labs/lane_setup.sh
 
 CONTEXT
 - Synmergia is a Godot 4.7.2 MMORPG. 3D assets are PROCEDURAL: a Python generator builds the mesh/rig/animations in Blender 4.3.2 and exports a .glb; the game imports it.
 - Pipeline: read labs/prd-3d-pipeline.md (sec 1 + sec 6). The shared export pipeline is scripts/model_export_lib.py.
+- Canonical modeling workspace: source, scratch, and rendered references live under `game/assets/art/`; only the exported `.glb` enters `game/models/`.
 - COPY THE SHAPE OF: scripts/gen_blacksmith_model.py (a HUMANOID with an idle + walk clip). Existing enemy exports to study: scripts/gen_wolf_model.py -> enemy_wolf.glb, scripts/gen_slime_model.py -> enemy_slime.glb.
 - Export command: blender --background --factory-startup --python scripts/gen_bandit_model.py
 - The .glb registry law: game/models/enemies/<id>.glb, filename == the enemy data id.
 
 WHY THIS MATTERS
-- enemy_bandit has model_path = "" today, so it renders as a PLACEHOLDER BOX. This enemy is authored and quest-relevant; a humanoid bandit body makes it read as a person.
+- enemy_bandit had model_path = "" when this brief was written, so it rendered as a PLACEHOLDER BOX. This enemy is authored and quest-relevant; a humanoid bandit body makes it read as a person.
 
 GOAL
 Author enemy_bandit end-to-end.

@@ -1,10 +1,15 @@
 You are a Synmergia subagent lane (Lane D: modeling / assets / art). Work ONLY inside your own worktree (your cwd). Never edit /workspace/project/synmergia directly. This lane legitimately runs long (Blender); that is why it is its own lane.
 
+> **STATUS: COMPLETE.** `enemy_slime.glb` shipped in `game/models/enemies/`
+> and `enemy_slime.tres` points at it. Keep this brief as a recipe, not an
+> open task; check the current catalog before reusing its scope.
+
 CONTEXT
 - Synmergia is a Godot 4.7.2 MMORPG. 3D assets are PROCEDURAL: a Python generator builds the mesh/rig/animations in Blender and exports a .glb; the game imports the .glb. Blender 4.3.2 is on PATH (`blender --version`).
 - The pipeline is PROVEN. Read labs/prd-3d-pipeline.md (esp. sec 1 + sec 6) and DEPLOY-GPU.md sec 2 (the artifact contract).
+- Canonical modeling workspace: source, scratch, and rendered references live under `game/assets/art/`; only the exported `.glb` enters `game/models/`.
 - Working recipes to COPY THE SHAPE OF: scripts/gen_wolf_model.py (a quadruped with a trot cycle) and scripts/gen_blacksmith_model.py. The shared export pipeline is scripts/model_export_lib.py (export-once-per-clip + stdlib merge + NLA slots). Existing exports: game/models/enemies/enemy_wolf.glb, game/models/npcs/npc_blacksmith_village.glb.
-- The .glb registry law: game/models/<family>/<data_id>.glb, filename == data id. A data file sets `model_path = "res://models/<family>/<data_id>.glb"`. Today ONLY enemy_wolf.glb is wired; the other 24 game/data/enemies/*.tres have `model_path = ""` (a placeholder body). Locked decisions: NO resource packs, NO Blender MCP (the python generator + probes stay the path).
+- The .glb registry law: game/models/<family>/<data_id>.glb, filename == data id. A data file sets `model_path = "res://models/<family>/<data_id>.glb"`. At the start of this brief only enemy_wolf.glb was wired; this lane added enemy_slime, and the current catalog also wires the other shipped enemy models. Locked decisions: NO resource packs, NO Blender MCP (the python generator + probes stay the path).
 
 GOAL
 Author ONE new enemy model end-to-end: `enemy_slime`.

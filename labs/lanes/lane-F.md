@@ -1,11 +1,16 @@
 You are a Synmergia subagent lane (Lane F: enemy model / thistle boar). Work ONLY inside your own worktree (your cwd). Never edit /workspace/project/synmergia directly.
 
+> **STATUS: COMPLETE.** `enemy_thistle_boar.glb` is in `game/models/enemies/` and
+> `game/data/enemies/enemy_thistle_boar.tres` points at it. Keep this brief as a
+> recipe, not an open task.
+
 FIRST, run the lane setup (idempotent -- warms the Godot import cache a fresh worktree lacks, and links the gamestruct dep):
   sh labs/lane_setup.sh
 
 CONTEXT
 - Synmergia is a Godot 4.7.2 MMORPG. 3D assets are PROCEDURAL: a Python generator builds the mesh/rig/animations in Blender 4.3.2 and exports a .glb; the game imports it.
 - Pipeline: read labs/prd-3d-pipeline.md (sec 1 + sec 6). The shared export pipeline is scripts/model_export_lib.py.
+- Canonical modeling workspace: source, scratch, and rendered references live under `game/assets/art/`; only the exported `.glb` enters `game/models/`.
 - COPY THE SHAPE OF: scripts/gen_wolf_model.py (a QUADRUPED -- spine chain + 4 legs + a trot cycle). Existing exports to study: enemy_wolf.glb, enemy_slime.glb.
 - Export command: blender --background --factory-startup --python scripts/gen_thistle_boar_model.py
 - The .glb registry law: game/models/enemies/<id>.glb, filename == the enemy data id.

@@ -145,6 +145,9 @@ lanes land. That is the merge point, not a lane's job.
   `game/models/**` (exported `.glb`), `scripts/gen_*_model.py`,
   `scripts/gen_icons.py`, `scripts/blender_*.sh`, and a new
   `labs/prd-art-pipeline.md`. Reads `labs/prd-3d-pipeline.md` as law.
+- **Workspace:** source, scratch, and rendered references live under
+  `game/assets/art/**`; `game/models/**` is the exported `.glb` registry,
+  not a second source tree.
 - **Work:** author/generate 3D models (NPCs, enemies, mounts, props,
   dwellings), UV/rig/texture work, icon and texture generation, and
   long-running batch exports. This is the lane that legitimately runs
