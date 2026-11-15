@@ -80,6 +80,11 @@ enum TargetType {
 ## duration_mult lengthens them (DD's reach verb). Its own opt-in so a healer's
 ## mend or a tank's hold is never fanned by a rally.
 @export var rally_band: bool = false
+## Opt in to the BLAST band: this damage skill fans into a hostile AoE from the
+## epic band up and lifts its target cap at the top (the mage's nuke). Its own
+## opt-in so a plain strike, a DoT rider, or a drain never silently becomes an
+## AoE -- banding a blast is a declared identity, exactly like banding a mend.
+@export var blast_band: bool = false
 
 # Visual/Audio
 @export var vfx_cast: String = ""

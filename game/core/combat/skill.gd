@@ -187,6 +187,13 @@ var upgrade_unlocks: Array = []
 ## party as the tier climbs, lengthening them by the band. Its own opt-in so a
 ## mend or a hold is never fanned by a rally.
 @export var rally_band: bool = false
+@export var blast_aoe: bool = false
+@export var blast_radius: float = 0.0
+@export var blast_max_targets: int = 1  # 0 = unlimited
+## Opt in to the BLAST band (the mage's nuke): fan this damage skill into a
+## hostile AoE from the epic band up, lifting its cap at the top. Its own opt-in
+## so a plain strike, a DoT rider, or a drain never silently becomes an AoE.
+@export var blast_band: bool = false
 ## Tier goodies from the upgrade table (authored but previously inert):
 ## effect_duration_mult lengthens this cast's effects, effect_strength_mult
 ## amplifies them. Folded into _duration_scale / _power_scale.
@@ -253,6 +260,7 @@ static func from_schema(s: SkillSchema) -> Skill:
 	sk.scope_bands = bool(s.scope_bands)
 	sk.guard_band = bool(s.guard_band)
 	sk.rally_band = bool(s.rally_band)
+	sk.blast_band = bool(s.blast_band)
 	sk.required_stance = s.required_stance
 	sk.schema = s
 	# Flatten effect dictionaries into runtime fields. THIS is the one effect
@@ -832,6 +840,25 @@ func apply_scope_bands() -> void:
 		rally_max_targets = int(rb.get("max_targets", 1))
 		rally_radius = float(rb.get("radius", 0.0))
 		rally_duration_mult = float(rb.get("duration_mult", 1.0))
+	# Blast: the mage's nuke fans into a hostile AoE from the epic band up and
+	# lifts its cap at the top. Only a skill that actually deals damage bands, so
+	# a pure buff/ward authored with the flag set stays single-target. The band
+	# radius feeds aoe_radius so the hitbox sweep (which reads aoe_radius) and
+	# the band agree on the ring.
+	#
+	# Unlike the ally verbs, a blast's fan-out is the HITBOX SWEEP (combat_system
+	# reads blast_max_targets), not a per-verb helper -- so the authored-ring
+	# guard the heal fold leaves to apply_banded_heal has to live here: a skill
+	# that authors its own ring (Fireball, Frost Nova) is already an AoE and must
+	# never be capped down to the single-target rung.
+	if blast_band and damage > 0:
+		var authored_ring := aoe_radius > 0.0
+		var bb: Dictionary = ScopeBand.blast_band(upgrade_level)
+		blast_aoe = bool(bb.get("aoe", false))
+		blast_max_targets = 0 if authored_ring else int(bb.get("max_targets", 1))
+		blast_radius = float(bb.get("radius", 0.0))
+		if blast_aoe and blast_radius > aoe_radius:
+			aoe_radius = blast_radius
 	# A teleport bands by nature; the reach climbs and eventually crosses
 	# scopes. At base (0) the skill's own authored distance governs.
 	if teleport_distance > 0.0:

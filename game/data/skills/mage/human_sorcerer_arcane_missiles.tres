@@ -19,6 +19,7 @@ aoe_radius = 0.0
 effects = [{"type": "damage", "value": 33}]
 required_level = 15
 required_class = "human_sorcerer"
+blast_band = true
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
