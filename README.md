@@ -1,252 +1,144 @@
 # Synmergia
 
-**A 3D open-world MMORPG that runs in your browser.**
+**A browser-first, open-world MMORPG built on Godot 4.7.2.**
 
-> **Repo layout (2026-10 wasm-first split):** `game/` is the Godot
-> project (the game itself), `web/` is the raw engine shell (served at
-> `/game/`), and `src/` is the website around it (lander, legal,
-> gated /play + /admin) — built by `npm run build`, prerendered by
-> prestruct, deployed to Cloudflare Pages. See
-> [DEPLOY_WEB.md](./DEPLOY_WEB.md) for the web/site deployment guide
-> and [DEPLOY.md](./DEPLOY.md) for the game-server (Docker) guide.
+Synmergia is a persistent 3D sandbox: a spherical planet with player housing,
+territory, guilds, action combat, an economy shaped by players, and a world that
+keeps running while you are offline. The client is a WebAssembly build of the Godot
+project; the game server is authoritative; the site around it is a
+React/Vite/Tailwind app deployed on Cloudflare Pages.
 
-*Browser-first action combat meets the deepest player-driven economy since Ultima Online. No downloads. No installs. Just play.*
+[Play the early-access build](https://synmergia.creadev.org/play) ·
+[Main site](https://synmergia.creadev.org/) ·
+[Product spec](labs/prd.md) ·
+[Contributing](CONTRIBUTING.md)
 
-```
-    ╔═══════════════════════════════════════════════════════════════╗
-    ║   ⚔️  Browser MMORPG  •  Open World  •  Action Combat   ⚔️ ║
-    ║      RYL2-Style Combat  •  UO Economy  •  Guild Alliances     ║
-    ╚═══════════════════════════════════════════════════════════════╝
-```
+> **Status: pre-launch.** The core world, combat, social, and economy loops are
+> in the code and exercised by the headless test suite. The public `/play` page
+> is gated to early-access key holders while launch is finished. "Planned" below
+> means not shipped yet; it is not a release date.
 
-## What Is Synmergia?
+## What works today
 
-Synmergia is an **open-world multiplayer RPG** built for the browser. Step into a persistent world where your choices shape the economy, your guild forges alliances, and every battle matters. Whether you're gathering resources to craft legendary gear, building your dream house on the frontier, or leading your faction into heated wars — this is your world.
+| Pillar | In the current code |
+|---|---|
+| **Combat** | 21 authored classes across 6 archetypes, 3 species, a skill academy, buffs/debuffs, arena combat, and open-world PvP |
+| **World** | 20 km spherical planet, clipmap terrain, procedural props and resources, player housing, and timed world bosses |
+| **Economy** | Gathering, blacksmithing and crafting, direct player trading, and a black-market sink; a player-run market/auction is not shipped yet |
+| **Social** | Guilds with ranks and permissions, parties and raids, friends/ignore, chat, territory claims, and community governance |
+| **Platform** | Browser WASM client, authoritative Godot server, Docker-based shard mesh, and a React/Vite web portal |
 
-No other browser-based MMORPG offers this combination of deep action combat, player-driven sandbox economy, and true open-world freedom.
+## What is still in progress
 
----
+- A player-run market/auction and deeper crafting professions.
+- More dungeon content and broader dynamic encounters; world bosses already ship.
+- Guild halls, and player-declared faction wars (the current `/war` surface is
+  operator-gated until factions have a leader model).
+- Public launch, onboarding, and live operations.
 
-## Why Players Love Synmergia
+## Technology
 
-### 🎮 Combat That Respects Your Skill
+- **Godot 4.7.2 + GDScript** for the game, exported to the browser as
+  WebAssembly/WebGL2.
+- **Authoritative server** with a content-hash state tree, deterministic seed
+  derivation, and server-owned world state.
+- **Canonical world addressing** through the clipmap's `PropChunk` cells; the
+  same cell is derived by the prop layer, the client, and the spatial index.
+- **Multi-iso orchestrator** sidecar for indexed spatial queries, with a
+  stdlib-only Julia `server_lite.jl` for development and container boot.
+- **React + Vite + Tailwind** for the site, prerendered by `prestruct` and
+  deployed to Cloudflare Pages.
+- **Docker** for the game server and the optional shard mesh.
 
-This isn't a auto-attack-and-wait game. Synmergia features **free-form action combat** inspired by classics like Risk Your Life 2. Every fight is a dance of positioning, timing, and decision-making:
+The reusable frame — T3 content-hash state tree, scope engine, rules engine, and
+clipmap addressing — is deliberately extractable from the game.
 
-- **Dodge, parry, interrupt, and chain skills mid-combat**
-- **Positioning matters** — flanking, terrain advantage, line-of-sight
-- **Skill combos** planned — chain abilities for bonus effects
-- **Hybrid targeting** — aim freely or tab-target nearby enemies
-- **Meaningful death** — lose your gear in PvP zones, respawn with strategy
+## AI agents
 
-### 🏪 Economy That Players Own
+Agents can join the same world as players through the opt-in **AgentDoor**
+(`SYN_AGENT=1`) or the web build's `window.SynmergiaAgent` bridge, using the
+same verbs a player uses. The generic MCP projection is not included in this
+repository; it lives in gamestruct.
 
-Forget auction house bots and NPC vendors setting prices. In Synmergia, **the economy is built by players, for players**:
+## Repository map
 
-- **Resources spawn in the world** — mines, forests, fishing spots scattered across the land
-- **Craft your gear** — blacksmithing with profession tiers, more crafting planned
-- **Player housing** — claim land, build your home, watch it persist
-- **Guild alliances** — ranks, permissions, and alliance play
-- **Legendary gear from players and world bosses** — not loot boxes
+| Path | What lives there |
+|---|---|
+| `game/` | The Godot project: services, world, combat, data, UI, and tests |
+| `src/` | The React/Vite/Tailwind site and its prerender configuration |
+| `web/` | The raw engine shell served at `/game/`, including the built PCK |
+| `srv/` | Bridges, the Julia sidecar, Docker, and deployment configuration |
+| `labs/` | PRDs, architecture notes, world-building docs, and the task board |
+| `scripts/` | Setup, test, build, data-sync, and generation tooling |
 
-This is the sandbox economy you remember from Ultima Online, rebuilt for a modern audience.
+## Quick start
 
-### ⚔️ PvP With Real Stakes
-
-Risk and reward in constant tension. Synmergia offers **configurable PvP across zones**:
-
-- **Full loot in PvP zones** — drop everything on death, fight for glory and gear
-- **Territory ownership** — factions and guilds hold zones; `/claim` stakes a guild claim, and territory control persists across restarts
-- **Faction wars (operator-run)** — `/war declare|end` is admin-gated until factions have a leader model; player-declared wars are the next PvP layer
-- **Faction battles** — join species or ideological factions, shape the world's future
-- **Arena combat** — organized PvP with balanced rulesets
-- **Death has weight** — no zerg rushing, no consequence-free ganking
-
-### 🌐 Play Anywhere, On Any Device
-
-Your adventures shouldn't be chained to a desktop:
-
-- **Browser-first** — play directly in Chrome, Firefox, Safari, Edge
-- **Mobile-ready** — touch controls designed for action combat
-- **Cross-platform** — same world, same players, any device
-- **No downloads** — click, play, immerse yourself instantly
-
-### 🤖 AI Adventurers Welcome
-
-Want to play with friends but can't find enough players? **AI agents can join your world**:
-
-- Connect AI characters (Claude, GPT, Vant) that play alongside humans
-- Agents see the same game state, make the same decisions
-- Fill out guild raids, dungeon groups, and trading posts
-- MCP protocol support for standard AI interfaces
-
----
-
-## Features At A Glance
-
-### Combat & Progression
-- 🎯 **21 authored classes** across 6 archetypes (Tank, DPS, Mage, Rogue, Bender, Healer)
-- 🧬 **3 species** with unique abilities (Akkan, Human, Synthetic)
-- 📚 **Skill academy** with upgradeable abilities and signature skills
-- 🛡️ **Buff/debuff system** with 11 dispel categories (magic, curse, poison, etc.)
-- ⬆️ **Level 1-60** progression with mastery tiers
-
-### World & Exploration
-- 🌍 **Persistent world** — spherical planet architecture (20 km globe, clipmap terrain)
-- 🗺️ **Procedural generation** — terrain, prop scatter, and resource placement in code; dungeons planned
-- 🌅 **Day/night cycle** with dynamic world events
-- 🌲 **Multiple biomes** — forest, plains, mountains, desert, swamp, and more
-- ⚔️ **Dungeons, world bosses, and dynamic encounters** planned
-
-### Economy & Crafting
-- 🔨 **Crafting system** with profession tiers (blacksmithing and more planned)
-- 🏠 **Player housing** — claim land and build your home
-- 🏰 **Guild halls** planned; territory ownership is shipped, player-run guild wars still planned
-- ⛏️ **Resource gathering** and player trading
-- 💰 **Player-driven market** — no auction house bot, prices set by players
-
-### Social & Community
-- ⚔️ **Guilds** with ranks, permissions, and alliance support
-- 👥 **Party and raid** systems with configurable loot rules
-- 👫 **Friends list** with ignore and block features
-- 🗳️ **Community governance** — player voting and moderator progression
-- 💬 **Chat channels** with range-based delivery
-
-### PvP Systems
-- 🗺️ **5 zone PvP modes** (Safe, Species, Faction, Free, Warzone)
-- 💀 **Full loot** in PvP zones — drop your gear on death
-- 🏟️ **Arena combat** with organized rulesets
-- 🎖️ **Faction reputation** and progression
-
----
-
-## The Technology
-
-### Built With Godot 4.7.2
-
-- **Open source** (MIT license) — fork it, mod it, extend it
-- **Browser export** via HTML5/wasm
-- **Cross-platform** — Android, iOS, Windows, macOS, Linux
-- **GDScript** — clean, readable game logic
-
-### Architecture Highlights
-
-- **Authoritative server** — anti-cheat, fair gameplay
-- **Content-hash state tree** — deterministic sync across clients
-- **Multi-iso orchestrator** — efficient spatial queries at scale
-- **90+ service modules** — clean separation of game systems
-- **Entity-component architecture** — flexible, data-driven design
-
-### The Reusable Frame
-
-Beyond the game, Synmergia ships a **reusable MMORPG frame** — the architecture is extractable to its own project:
-
-- T3 content-hash state tree for deterministic game state
-- Multi-dimensional query system (spatial × faction × temporal)
-- Player-centred clipmap LOD rings with a prop-prefetch predictor
-- Scope engine for hierarchical world management
-
----
-
-## Getting Started
-
-### Play Now (When Available)
-
-Synmergia will launch as a **free-to-play browser MMORPG**. Create your account, choose your species and class, and enter the world.
-
-### For Developers
+You need **Godot 4.7.2**, **Node 20+**, **bun** (npm also works), and Python 3
+for a few sidecar scripts.
 
 ```bash
-# Clone the repository
 git clone https://github.com/dhaupin/synmergia.git
 cd synmergia
 
-# Install the dev toolchain (Godot 4.7.2, Node 20, bun, system libs).
-# Add --with-templates / --with-blender / --with-web-probe as needed.
+# Install the base toolchain (add --with-templates, --with-blender,
+# --with-web-probe, or --all as needed).
 sh ./scripts/setup-dev.sh
 
-# Open in Godot 4.7.2
+# Open the game project.
 godot --editor game/
 
-# Or run a headless server
-godot --headless --server --path game/
-
-# Run the tests -- one runner, concurrent when it helps, serial when faster
-sh ./scripts/godot_test_runner.sh            # default regression set
-sh ./scripts/godot_test_runner.sh --all      # every test_*.gd, parallel
+# Run the one headless test runner.
+sh ./scripts/godot_test_runner.sh          # default regression set
+sh ./scripts/godot_test_runner.sh --all    # every test_*.gd
 ```
 
-See [AGENTS.md](./AGENTS.md) for developer conventions and code patterns,
-and [DEVCODE.md](./DEVCODE.md) for the mechanics of running things.
+For the website:
 
-### Contributing
+```bash
+bun install
+npm run dev       # local site
+npm run build     # type-check + prerender
+```
 
-Synmergia is built in the open and contributions are welcome — engine,
-art, world building, testing, or just a good idea. Start with
-[CONTRIBUTING.md](./CONTRIBUTING.md) for setup, conventions, and the pull
-request process. Everyone participating agrees to the
-[Code of Conduct](./CODE_OF_CONDUCT.md). Report security issues privately
-per [SECURITY.md](./SECURITY.md).
-
----
-
-## Project Status
-
-**Current Phase:** Pre-vertical-slice (World Building Phase 1 Complete)
-
-### Implemented (In Code)
-- **World Building Substrate & Canonical Trees (Phase 1)**: T3 Merkle-Patricia trie, HMAC recursive seed derivation (`SeedChain`), discrete spatial geometry (NSC-9 & icosahedral), and deterministic state trees
-- **Frame Authority & Seed Services**: `FrameService` execution isolation (D030), `ShardParameters` immediate/coalesced storage (D033), and `OpenSeedRegistry` 5-minute reconnect TTL (D032)
-- **Disaster Recovery**: 3-tier `WorldManifest` backup pipeline with SHA-256 integrity verification (D031)
-- **Pluggable Storage Adapters**: Multi-backend persistence layer (`DictStore`, `CacheWrapper`, `MemoryWrapper`, `AdapterRegistry`) across 35+ services
-- **Combat & Entity Systems**: Combat math, entity-component system, buff/aura framework with 11 dispel categories
-- **Notification Pipeline**: Typed `NotifKind` pipeline (toast, combat log, admin alerts)
-- **UI Islands & Web Portal**: 19/19 UI tests passing; COOP/COEP web client packaging and administrative portal
-- **Core Social & Account Systems**: Login, account, and character creation flow (21/21 tests); party, guild, friends, trading, factions
-- **Security**: Anti-cheat, rate limiting, and application firewall
-
-### In Development (Phase 2)
-- Multi-scope Rules Engine (`rules_engine.gd`, `rules_schema.gd`)
-- Canonical Definition Tree (`definition_tree.gd`)
-- Full action combat integration (hybrid tab/aim targeting)
-- World content, procedural cells, and client optimization
-
----
+See [DEVCODE.md](DEVCODE.md) for environment details, sidecars, shard mode,
+and the test-runner mechanics.
 
 ## Documentation
 
 | | |
 |---|---|
-| [📄 Product Spec](./labs/prd.md) | Full design document — gameplay, systems, architecture |
-| [🏗️ Architecture](./labs/world-building-arch.md) | Technical deep-dive — frame, services, sync |
-| [🗺️ World Design](./labs/world-building.md) | Current world index; topology, terrain, retired claims |
-| [🤖 Developer Notes](./AGENTS.md) | Code conventions, patterns, and tips for contributors |
-| [🛠️ Contributing](./CONTRIBUTING.md) | Setup, conventions, tests, and the pull request process |
-| [🧰 Dev Environment](./DEVCODE.md) | Rebuilding the dev loop from the repo alone |
-| [🚀 Deployment Guide](./DEPLOY.md) | Docker deployment, production setup, and operations |
-| [🌐 Web Deployment](./DEPLOY_WEB.md) | Website + browser client deployment (Cloudflare) |
-| [🧩 Shard Mesh](./labs/prd-shard-mesh.md) | Multi-container deployment: intent vs reality, transport fork, phased path |
-| [📜 Credits](./CREDITS.md) | Third-party software, fonts, and asset provenance |
-| [🔒 Security Policy](./SECURITY.md) | How to report a vulnerability |
-| [🤝 Code of Conduct](./CODE_OF_CONDUCT.md) | Community standards |
-| [✅ Open Source Audit](./labs/OSS-AUDIT.md) | Launch audit + post-public hardening checklist |
+| [Product spec](labs/prd.md) | Gameplay, systems, and product direction |
+| [Architecture](labs/world-building-arch.md) | Frame, services, tick model, and sync |
+| [World design](labs/world-building.md) | Current world index: topology, terrain, retired claims |
+| [Labs index](labs/README.md) | The PRD and design-doc map |
+| [Developer notes](AGENTS.md) | Code conventions, patterns, and autoload rules |
+| [Contributing](CONTRIBUTING.md) | Setup, conventions, tests, and pull requests |
+| [Dev environment](DEVCODE.md) | Rebuilding the dev loop from the repo alone |
+| [Game-server deployment](DEPLOY.md) | Docker, production, and operations |
+| [Web deployment](DEPLOY_WEB.md) | Website and browser-client deployment |
+| [Shard mesh](labs/prd-shard-mesh.md) | Multi-container topology and phased path |
+| [Open-source audit](labs/OSS-AUDIT.md) | Launch audit and hardening checklist |
+| [Security policy](SECURITY.md) | How to report a vulnerability |
 
----
+## Contributing
+
+Synmergia is built in the open. Start with [CONTRIBUTING.md](CONTRIBUTING.md)
+for the setup, conventions, and pull-request flow; use [AGENTS.md](AGENTS.md)
+before touching GDScript. Everyone participating agrees to the
+[Code of Conduct](CODE_OF_CONDUCT.md).
+
+Security issues should not go in the public tracker; report them privately per
+[SECURITY.md](SECURITY.md).
 
 ## License
 
-Synmergia is open source under the **MIT License** — see [LICENSE](./LICENSE).
+Synmergia is open source under the **MIT License** — see [LICENSE](LICENSE).
 Copyright © 2026 [Creadev.org](https://creadev.org).
 
-- **Code and content** (game, website, data, generated art and audio) are
-  MIT-licensed.
-- **Third-party** software, fonts, and assets are credited in
-  [CREDITS.md](./CREDITS.md) with their own licenses (Godot Engine — MIT;
-  Cinzel and Plus Jakarta Sans — SIL OFL 1.1).
-- **The Synmergia name and logo** are not covered by the code license; see
-  [TRADEMARK.md](./TRADEMARK.md).
+Third-party software, fonts, and assets are credited in [CREDITS.md](CREDITS.md)
+with their own licenses. The Synmergia name and logo are covered separately by
+[TRADEMARK.md](TRADEMARK.md).
 
 ---
 
-*Synmergia — Shape the world. Forge your legacy. Play anywhere.*
-
+*Synmergia — shape the world, forge your legacy, play anywhere.*
