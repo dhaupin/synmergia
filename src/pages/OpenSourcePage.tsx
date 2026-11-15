@@ -10,6 +10,11 @@ const REPO = 'https://github.com/dhaupin/synmergia';
 
 const DOCS: { label: string; href: string; body: string }[] = [
   {
+    label: 'Documentation',
+    href: 'https://docs.creadev.org/synmergia/',
+    body: 'the systems view, local setup, testing, content authoring, operations, and reference.',
+  },
+  {
     label: 'Contributing',
     href: `${REPO}/blob/main/CONTRIBUTING.md`,
     body: 'how to set up, the conventions, the tests, and how to open a pull request.',
@@ -254,12 +259,18 @@ export default function OpenSourcePage() {
         </p>
         <div className="flex flex-wrap items-center gap-3">
           <a
+            href="https://docs.creadev.org/synmergia/"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-accent text-paper font-semibold hover:bg-accent-deep transition-colors shadow"
+          >
+            Read the docs <ArrowRight className="w-4 h-4" />
+          </a>
+          <a
             href={REPO}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-accent text-paper font-semibold hover:bg-accent-deep transition-colors shadow"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-line text-ink hover:border-accent hover:text-accent transition-colors"
           >
-            View the source <ArrowRight className="w-4 h-4" />
+            View the source
           </a>
           <a
             href={`${REPO}/issues`}

@@ -56,6 +56,10 @@ def check_file(path: Path) -> list[str]:
         target = link_target(match.group(1))
         if not target or target.startswith("#"):
             continue
+        # Jekyll/Liquid links are resolved at build time; the built HTML is
+        # checked by freestruct --strict instead.
+        if "{{" in target or "{%" in target:
+            continue
         parsed = urlsplit(target)
         if parsed.scheme or parsed.netloc or target.startswith("/"):
             continue

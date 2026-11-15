@@ -6,8 +6,9 @@
 > project (the game itself), `web/` is the raw engine shell (served at
 > `/game/`), and `src/` is the website around it (lander, legal,
 > gated /play + /admin) — built by `npm run build`, prerendered by
-> prestruct, deployed to Cloudflare Pages. See
-> [DEPLOY_WEB.md](./DEPLOY_WEB.md) for the web/site deployment guide
+> prestruct, deployed to Cloudflare Pages. `docs/` is the Jekyll docs
+> portal published at [docs.creadev.org/synmergia](https://docs.creadev.org/synmergia/).
+> See [DEPLOY_WEB.md](./DEPLOY_WEB.md) for the web/site deployment guide
 > and [DEPLOY.md](./DEPLOY.md) for the game-server (Docker) guide.
 
 *Browser-first action combat meets the deepest player-driven economy since Ultima Online. No downloads. No installs. Just play.*
@@ -217,6 +218,7 @@ per [SECURITY.md](./SECURITY.md).
 
 | | |
 |---|---|
+| [📚 Docs Portal](https://docs.creadev.org/synmergia/) | Systems view, local setup, testing, content authoring, operations, and reference |
 | [📄 Product Spec](./labs/prd.md) | Full design document — gameplay, systems, architecture |
 | [🏗️ Architecture](./labs/world-building-arch.md) | Technical deep-dive — frame, services, sync |
 | [🗺️ World Design](./labs/world-building.md) | Current world index; topology, terrain, retired claims |

@@ -1,0 +1,57 @@
+# Synmergia docs nav. Internal URLs are baseurl-relative; the layout
+# prepends site.baseurl with Jekyll's relative_url filter.
+
+- title: Start
+  items:
+    - title: Docs Home
+      url: /
+    - title: Community
+      url: /community/
+
+- title: World
+  items:
+    - title: Overview
+      url: /world/
+    - title: The Planet
+      url: /world/planet/
+
+- title: Build
+  items:
+    - title: Overview
+      url: /build/
+    - title: Local Setup
+      url: /build/local-setup/
+    - title: Testing
+      url: /build/testing/
+
+- title: Create
+  items:
+    - title: Overview
+      url: /create/
+
+- title: Operate
+  items:
+    - title: Overview
+      url: /operate/
+
+- title: Reference
+  items:
+    - title: Overview
+      url: /reference/
+    - title: Glossary
+      url: /reference/glossary/
+
+- title: Website
+  items:
+    - title: Play Synmergia
+      url: https://synmergia.creadev.org/play
+    - title: Codex
+      url: https://synmergia.creadev.org/codex
+    - title: Lore
+      url: https://synmergia.creadev.org/lore
+    - title: Rules
+      url: https://synmergia.creadev.org/rules
+    - title: Open Source
+      url: https://synmergia.creadev.org/opensource
+    - title: GitHub
+      url: https://github.com/dhaupin/synmergia
