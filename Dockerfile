@@ -124,7 +124,7 @@ RUN mkdir -p /workspace/project/game/captures/screenshots \
 
 # ── Health check ───────────────────────────────────────────────────────────
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost/ > /dev/null 2>&1 \
+    CMD curl -f http://localhost/health > /dev/null 2>&1 \
     || curl -f http://localhost:6080/ > /dev/null 2>&1 \
     || exit 0
 

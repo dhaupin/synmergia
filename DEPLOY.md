@@ -70,10 +70,14 @@ EOF
 chmod 600 .env
 
 # Start the prod profile (nginx is inside the synmergia container).
-docker compose --profile prod up --build -d
+docker compose --profile prod up --build -d --wait
 
-# TLS: the compose certbot service is a renewal loop, not a first-issuance
-# command. See the TLS status in section 4 before exposing this publicly.
+# First certificate: DNS must point at this host and port 80 must be open.
+# `certbot` only renews; `certbot-init` performs first issuance.
+docker compose --profile certbot run --rm certbot-init
+
+# Pick up the new lineage immediately (the app also watches for renewals).
+docker compose --profile prod restart synmergia
 ```
 
 ---
@@ -277,18 +281,35 @@ sudo ufw allow 9000/tcp   # Godot (restrict in production)
 sudo ufw enable
 ```
 
-#### 4. TLS status (read before exposing production)
+#### 4. TLS certificates (Let's Encrypt / certbot)
 
-The Compose stack ships nginx with a self-signed certificate. The
-`certbot` service is a **renewal loop**, not a one-shot first-issuance
-command, and the cert/webroot volumes are not mounted into the
-`synmergia` container today. Do not run
-`docker compose --profile prod run --rm certbot` expecting it to issue a
-certificate.
+Prerequisites:
 
-For now, terminate TLS at a host reverse proxy/load balancer in front of
-the published ports, or wire a deliberate certificate mount and nginx
-config. A first-class in-Compose ACME path is an ops follow-up.
+- `DOMAIN` and `CERT_EMAIL` are set in `.env`.
+- DNS `A`/`AAAA` for `DOMAIN` points at this host.
+- TCP port 80 is reachable from the internet (HTTP-01 challenge).
+
+The stack starts nginx with a self-signed certificate. The `certbot`
+service is the **renewal loop**; `certbot-init` is the one-shot first
+issuance service.
+
+```bash
+# 1. Start nginx and the sidecars; the ACME webroot is live.
+docker compose --profile prod up -d --wait
+
+# 2. Issue the first lineage (safe to rerun; it keeps a valid cert).
+docker compose --profile certbot run --rm certbot-init
+
+# 3. Pick up the new cert immediately. The app's cert watcher also
+#    reloads nginx within a minute after a renewal.
+docker compose --profile prod restart synmergia
+```
+
+`certbot-init` writes the shared `./srv/certs` lineage and the shared
+`nginx-html` webroot. `synmergia` mounts both, and its entrypoint points
+`/etc/nginx/ssl/current` at `live/${DOMAIN}` when the lineage exists.
+The renewal loop runs every six hours; the app watches the cert mtime
+and runs `nginx -s reload` when it changes.
 
 #### 5. Systemd Service (Optional)
 
@@ -351,6 +372,9 @@ docker compose --profile headless up -d
 
 # Specific service
 docker compose --profile dev up -d synmergia
+
+# First Let's Encrypt certificate (after the prod app is running)
+docker compose --profile certbot run --rm certbot-init
 ```
 
 ### Logs
@@ -375,7 +399,8 @@ docker compose logs --tail 100 synmergia
 | `synmergia_synmergia-data` | Game data (`/var/lib/synmergia`) |
 | `synmergia_postgres-data` | PostgreSQL database |
 | `synmergia_redis-data` | Redis cache |
-| `synmergia_nginx-html` | Let's Encrypt webroot |
+| `synmergia_nginx-html` | Shared Let's Encrypt webroot |
+| `./srv/certs` | Host bind containing Let's Encrypt lineages |
 
 To list volumes: `docker volume ls | grep synmergia`
 To inspect a volume: `docker volume inspect synmergia_postgres-data`
@@ -582,30 +607,37 @@ Automatically generated on container build:
 
 Browser will show security warning. Accept to proceed.
 
-### Production (TLS status)
+### Production (Let's Encrypt)
 
-See the TLS status in section 4. The Compose path currently serves a
-self-signed certificate; do not treat
-`docker compose --profile prod run --rm certbot` as a first-issuance
-step. A trusted certificate needs a deliberate reverse proxy or a wired
-certificate mount plus nginx config.
+First issuance uses the one-shot `certbot-init` service; `certbot` only
+renews. See section 4 for the full sequence.
+
+The entrypoint maintains `/etc/nginx/ssl/current`:
+
+- symlink to `/etc/letsencrypt/live/${DOMAIN}` when a valid lineage exists
+- symlink to `/etc/nginx/ssl/selfsigned` otherwise
+
+After a renewal the app watches the lineage's `fullchain.pem` mtime and
+reloads nginx automatically. No host cron or container restart is needed.
 
 ### Manual Certificate Upload
 
-```bash
-# 1. Put the cert + key under srv/certs/.
-# 2. Add a read-only mount to the synmergia service:
-#      ./srv/certs:/etc/letsencrypt:ro
-# 3. The shipped nginx.conf expects the `localhost` directory name:
-#      /etc/letsencrypt/live/localhost/fullchain.pem
-#    Use that name, or update the two ssl_certificate lines in nginx.conf.
+Put the cert and key under the same domain directory and restart once:
 
-srv/certs/
-└── live/
-    └── localhost/
-        ├── fullchain.pem
-        └── privkey.pem
+```bash
+set -a
+. ./.env
+set +a
+mkdir -p "srv/certs/live/${DOMAIN}"
+cp fullchain.pem privkey.pem "srv/certs/live/${DOMAIN}/"
+docker compose --profile prod restart synmergia
 ```
+
+`synmergia` already mounts `./srv/certs:/etc/letsencrypt:ro`; the
+entrypoint switches `/etc/nginx/ssl/current` to that lineage.
+
+`srv/certs/` is gitignored and excluded from the Docker build context;
+never commit the private key.
 
 ---
 
@@ -615,7 +647,7 @@ srv/certs/
 
 | Endpoint | Service | Response |
 |----------|---------|----------|
-| `http://localhost/` | nginx | 200 OK |
+| `http://localhost/` | nginx | Site root (404 if no index) |
 | `http://localhost/health` | nginx | "OK" text |
 | `:5432` | PostgreSQL | pg_isready |
 | `:6379` | Redis | PONG |

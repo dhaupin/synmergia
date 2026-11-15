@@ -73,6 +73,13 @@ sh ./scripts/godot_test_runner.sh
 [backup/README.md](./backup/README.md) documents the WorldManifest three-tier
 backup (Postgres primary, S3 hot tier, cold tier) and its cron schedule.
 
+## TLS
+
+First issuance is the one-shot `certbot-init` service; the `certbot`
+service only renews. The app mounts the shared cert/webroot volumes and
+reloads nginx when the lineage changes. See
+[DEPLOY.md section 4](../DEPLOY.md#4-stagingproduction-setup).
+
 ## See also
 
 - [DEPLOY.md](../DEPLOY.md) — Docker profiles, production setup, operations

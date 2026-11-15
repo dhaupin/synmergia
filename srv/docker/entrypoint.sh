@@ -98,17 +98,57 @@ PYEOF
         log "nginx upstream: $upstream"
     fi
 
-    # SSL certs: prefer Let's Encrypt, fall back to self-signed
-    local le_cert="/etc/letsencrypt/live/localhost/fullchain.pem"
-    if [[ -f "$le_cert" ]]; then
-        log "SSL: using Let's Encrypt certs"
+    # SSL certs: /etc/nginx/ssl/current is a symlink the watcher can
+    # flip without rewriting nginx.conf. It points at the Let's Encrypt
+    # lineage when present, otherwise at the baked self-signed pair.
+    local domain="${DOMAIN:-localhost}"
+    local ssl_root="/etc/nginx/ssl"
+    local le_dir="/etc/letsencrypt/live/${domain}"
+    mkdir -p "${ssl_root}/selfsigned"
+    ln -sfn "${ssl_root}/nginx.crt" "${ssl_root}/selfsigned/fullchain.pem"
+    ln -sfn "${ssl_root}/nginx.key" "${ssl_root}/selfsigned/privkey.pem"
+    rm -f "${ssl_root}/current"
+    if [[ -f "${le_dir}/fullchain.pem" && -f "${le_dir}/privkey.pem" ]]; then
+        ln -s "${le_dir}" "${ssl_root}/current"
+        log "SSL: using Let's Encrypt certs for ${domain}"
     else
-        log "SSL: using self-signed certs"
-        sed -i "s|ssl_certificate /etc/letsencrypt/live/localhost/fullchain.pem;|ssl_certificate /etc/nginx/ssl/nginx.crt;|g" \
-            /etc/nginx/nginx.conf
-        sed -i "s|ssl_certificate_key /etc/letsencrypt/live/localhost/privkey.pem;|ssl_certificate_key /etc/nginx/ssl/nginx.key;|g" \
-            /etc/nginx/nginx.conf
+        ln -s "${ssl_root}/selfsigned" "${ssl_root}/current"
+        log "SSL: using self-signed certs (no cert for ${domain})"
     fi
+}
+
+# Reload nginx when certbot replaces the lineage in the shared
+# /etc/letsencrypt volume. The certbot container cannot signal this
+# container's nginx, so the app watches the cert mtime itself.
+_watch_cert_reload() {
+    local domain="${DOMAIN:-localhost}"
+    local le_dir="/etc/letsencrypt/live/${domain}"
+    local le_cert="${le_dir}/fullchain.pem"
+    local last=""
+    if [[ -f "${le_cert}" ]]; then
+        last="$(stat -Lc %Y "${le_cert}" 2>/dev/null || true)"
+    fi
+    while :; do
+        sleep 60
+        [[ -f "${le_cert}" && -f "${le_dir}/privkey.pem" ]] || continue
+        local mtime
+        mtime="$(stat -Lc %Y "${le_cert}" 2>/dev/null || true)"
+        [[ -n "${mtime}" && "${mtime}" != "${last}" ]] || continue
+        rm -f /etc/nginx/ssl/current
+        ln -s "${le_dir}" /etc/nginx/ssl/current
+        if nginx -t -q 2>/dev/null; then
+            if nginx -s reload; then
+                log "SSL: nginx reloaded for ${domain} certificate"
+                last="${mtime}"
+            else
+                log "SSL: nginx reload failed; will retry"
+            fi
+        else
+            log "SSL: nginx rejected ${domain} certificate; keeping previous config"
+            rm -f /etc/nginx/ssl/current
+            ln -s /etc/nginx/ssl/selfsigned /etc/nginx/ssl/current
+        fi
+    done
 }
 
 # ── TEST MODE ──────────────────────────────────────────────────────────────
@@ -201,6 +241,7 @@ if [[ "$START_MODE" == "dev" ]]; then
     # Nginx
     _setup_nginx
     nginx -g 'daemon off;' &
+    _watch_cert_reload &
 
     # Julia multi-iso orchestrator (mirrors the entity roster into the
     # multi-axis index; fails soft when julia is absent)
@@ -230,7 +271,7 @@ if [[ "$START_MODE" == "dev" ]]; then
 fi
 
 # ── PROD MODE ──────────────────────────────────────────────────────────────
-# nginx + Godot headless + optional certbot.
+# nginx + Godot headless + certbot renewal.
 if [[ "$START_MODE" == "prod" ]]; then
     log "Mode: PROD — starting nginx + Godot headless"
 
@@ -263,6 +304,7 @@ if [[ "$START_MODE" == "prod" ]]; then
     # nginx (HTTP + HTTPS if certs exist)
     _setup_nginx
     nginx -g 'daemon off;' &
+    _watch_cert_reload &
 
     # Godot headless (server auto-starts via START_MODE env var)
     log "Starting Godot (headless)..."
@@ -274,11 +316,11 @@ if [[ "$START_MODE" == "prod" ]]; then
     log "============================================"
     log " HTTP:   http://localhost"
     log " WS:     ws://localhost:${GODOT_PORT:-9000}"
-    log " HTTPS:  https://localhost (self-signed)"
+    log "HTTPS:  https://${DOMAIN:-localhost}"
     log " Mode:   headless (no GUI)"
     log ""
-    log "Optional — get real HTTPS certs:"
-    log "  certbot certonly --nginx -d yourdomain.com"
+    log "First certificate (from the host, after DNS + port 80):"
+    log "  docker compose --profile certbot run --rm certbot-init"
     log "============================================"
     log ""
 
@@ -314,6 +356,7 @@ if [[ "$START_MODE" == "edge" ]]; then
     log "Mode: EDGE — nginx L7 proxy (sticky routing to shards; no game port)"
     _setup_nginx
     nginx -g 'daemon off;' &
+    _watch_cert_reload &
     log "Edge running (upstream=${GODOT_UPSTREAM:-localhost:9000})"
     log "PID: $!"
     tail -f /dev/null
