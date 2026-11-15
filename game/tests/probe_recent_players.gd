@@ -94,12 +94,17 @@ func _run() -> void:
 		})
 	_check("ring buffer capped at 20", recent.list_recent("cap_test").size() == 20)
 	recent.set_recent_hidden("ghost", true)
-	host._record_recent(0, {
-		"zone_id": "zone_arena_coliseum", "room": null, "trial": false,
-		"participants": ["rival_a", "ghost"],
-	}, "ghost_check")
+	recent.record_bout(["rival_a", "ghost"], "zone_arena_coliseum", 0, 0,
+		{"rival_a": 0, "ghost": 1})
 	_check("hidden player never lands in others' books", \
 		(list_has_fighter(recent.list_recent("rival_a"), "ghost")) == false)
+	_check("privacy opt-out is queryable", recent.is_recent_hidden("ghost"))
+	_check("hidden player still keeps their own record", \
+		list_has_fighter(recent.list_recent("ghost"), "rival_a"))
+	var fresh_recent = load("res://core/services/recent_players_service.gd").new()
+	_check("privacy opt-out persists across instances", \
+		fresh_recent.is_recent_hidden("ghost"))
+	fresh_recent.free()
 
 	if _fails == 0:
 		print("RECENT PLAYERS PROBE PASSED (%d checks)" % _checks)

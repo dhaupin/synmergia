@@ -1,5 +1,9 @@
 # PRD: Open Seed TTL (D032)
 
+> **Status:** SHIPPED (Phase 1) — REFERENCE. `OpenSeedRegistry` is live and
+> `game/tests/test_open_seed_ttl.gd` covers the reconnect window and
+> finalization.
+
 > **For:** sub-agent implementation
 > **Phase:** 1 (per `world-building-arch.md` §14)
 > **Depends on:** `prd-scope-engine.md`, `prd-login-seed-chain.md`

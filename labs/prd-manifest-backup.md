@@ -1,5 +1,9 @@
 # PRD: Manifest Backup (D031)
 
+> **Status:** SHIPPED SCRIPTS (Phase 1) — REFERENCE. `srv/backup/` contains
+> backup/restore/upload/cold-tier/purge plus `test_backup.sh`; production S3 and
+> Postgres credentials/cron are deployment concerns, not repo code.
+
 > **For:** sub-agent implementation
 > **Phase:** 1 (per `world-building-arch.md` §14)
 > **Depends on:** Postgres (already in docker-compose), S3 (or equivalent)

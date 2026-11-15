@@ -1,19 +1,25 @@
 # Synmergia -- Systems Architecture
 
-> **The bridge.** This doc sits between the spec
-> ([`world-building.md`](./world-building.md),
-> [`world-building-tick.md`](./world-building-tick.md),
-> [`world-building-risks.md`](./world-building-risks.md)) and the
-> code in `game/`, `game/core/frame/`, and `srv/`. The spec says
-> *what* and *why*; this doc says *how* and *where*. Read the
-> spec first.
-
-> **Updated 2026-09-05:** Initial draft. The frame is the
-> T3 substrate + scope engine + rules engine. The game is the
-> schemas + data + services + UI. The substrate is engine-grade;
-> the schemas are game-grade.
+> **Status:** ACTIVE architecture reference (status checked 2026-11-14).
+> This is the bridge between current law and the code in `game/`,
+> `game/core/frame/`, and `srv/`. It says how and where, not what the world
+> should be.
+>
+> **Current world law:** [`prd-world.md`](./prd-world.md) (topology) and
+> [`prd-terrain.md`](./prd-terrain.md) (ground). The tick is
+> [`world-building-tick.md`](./world-building-tick.md); decisions and risks
+> are [`world-building-risks.md`](./world-building-risks.md). The original
+> 2026-09 plan is archived at
+> [`archive/world-building-plan-2026-09-17.md`](./archive/world-building-plan-2026-09-17.md);
+> do not cite it as current.
+>
+> **Updated 2026-09-05:** initial draft. **Status check 2026-11-14:** the
+> component map and migration roadmap are still the architecture reference;
+> world shape and terrain authority now live in the PRDs above.
 
 ---
+
+
 
 ## 1. What this doc is (and is not)
 
@@ -24,7 +30,7 @@
 - The migration: how the current code maps to the target.
 
 **Is not:**
-- A re-statement of the spec. Read `world-building.md` first.
+- A re-statement of the world law. Read `prd-world.md` and `prd-terrain.md` first.
 - A code review. Read the source.
 
 ---
@@ -282,10 +288,10 @@ Each rule in the rules tree declares its resolution strategy
 per-rule, not per-system. The game developer picks the
 semantics that fit each rule.
 
-> **Phase note:** the rules engine is a **Phase 2** deliverable.
-> Phase 1 is just T3 + scope + the two canonical trees. The
-> rules engine is the second wave; it consolidates the existing
-> 5 services' decision logic.
+> **Phase note:** the rules engine was a **Phase 2** deliverable and is
+> now implemented in `game/core/frame/srv/rules_engine.gd`; the component map
+> and migration roadmap below record its status. This section describes the
+> design that shipped, not pending work.
 
 ---
 

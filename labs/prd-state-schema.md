@@ -1,5 +1,9 @@
 # PRD: StateSchema Resource
 
+> **Status:** SHIPPED (Phase 1) — REFERENCE. `StateSchema` is live; receipts:
+> `game/tests/test_state_schema.gd` and
+> `game/core/frame/kv/test_frame_state_schema.gd`.
+
 > **For:** sub-agent implementation
 > **Phase:** 1 (per `world-building-arch.md` §14)
 > **Depends on:** `prd-t3-substrate.md` (substrate stores the schema ref)
@@ -22,7 +26,7 @@ etc.) and diffs efficiently per D027.
 
 **Spec ref:**
 [`world-building-arch.md`](./world-building-arch.md) §8
-(The state tree), [`world-building.md`](./world-building.md)
+(The state tree), [the archived plan](./archive/world-building-plan-2026-09-17.md)
 §5 (State tree / D027 state-only diff)
 
 ## 2. Goals

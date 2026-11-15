@@ -62,7 +62,7 @@ environment/CI-only until proven otherwise.
   still prints a `STREAMER_MS` label. None are in the runner.
 - **Terminology:** ~75 prose mentions of "streamer" across game code; fix the
   ones in lines you touch, per `legacy-inventory.md` sec A.
-- **Docs round (in progress, branch `docs/labs-purge`):** labs index rewritten;
+- **Docs round (in progress, branch `docs/world-building-consolidation`):** labs index rewritten;
   `prd-planar-retirement` + `m3-initial-world-audit` archived; this file
   condensed; the eight lore docs now carry verified STATUS blocks from the
   fiction pass, and three Chronicle mysteries were authored from the lore
@@ -71,13 +71,41 @@ environment/CI-only until proven otherwise.
   lint gate; wired into `world_map` + `minimap`, 13-check wiring receipt;
   spec in `prd-world.md` sec. 2.1). `AGENTS.md` compacted (91 dated round logs -> `labs/AGENTS_LOG.md`,
   verbatim; 481 KB -> 59 KB) and the root README's class/LOD/terrain/
-  service claims corrected. Next: the PRD verdict census and the
-  `world-building-*` consolidation.
-- **World-building series:** ~11.4k lines; `-arch` and `-tick` are cited by code
-  and stay authoritative; the rest needs a keep/archive decision.
+  service claims corrected. The `world-building-*` consolidation is
+  done (2026-11-14). The PRD verdict census is complete: 53/53 top-level
+  PRDs carry an in-file status block; remaining round work is index/closeout.
+- **World-building series:** DONE 2026-11-14. Original plan archived; current
+  index + corrected tick/spherical references + explicit REFERENCE banners for
+  risks/research. `-arch` and `-tick` remain authoritative.
 
 ## RECENT SESSIONS (verbatim, in log order -- newest block at top)
 
+## 2026-11-14 -- social privacy closeout + loot-test gate
+- PRIVACY: `RecentPlayersService` now persists the opt-out through DictStore; hidden players are filtered out of OTHER players' entries but still receive their own record (the old host-side skip dropped both). `LobbyUI` Duels tab gained the persisted "Hide me from other players' rival lists" toggle. `probe_recent_players` extended to 15 checks (own record, persistence) and remains in `DEFAULT_SET`.
+- LOOT: `test_loot_rules` was green but missing from `DEFAULT_SET`; added. The engine (FFA/round-robin/leader/master + smart class routing) and `/lootrule` were already shipped; the remaining social open item is a dungeon/raid default policy + consent prompt, not the rule engine.
+- DOCS: `prd-bout-host` no longer calls the trial bout open (it shipped 26/26); `prd-social-instances` now records privacy/spectate as shipped and narrows the loot gap.
+- CHECKS: `probe_recent_players` 15/15, `test_loot_rules` PASS, `probe_round2_ui` PASS (LobbyUI boot), `probe_bout_host` PASS, `probe_trial_bout` PASS, runner `bash -n`. No push.
+
+## 2026-11-14 -- PRD verdict census: 53/53 status blocks, stale verdicts corrected
+- THE ASK: walk the `labs/prd-*.md` set after the world-building consolidation and make each one safe to hand to an implementer.
+- THE CENSUS: 53 top-level PRDs. 21 had no status block. Added verified verdicts: Phase 1 substrate records are SHIPPED/REFERENCE (`t3`, `seed-schema`, `state-schema`, `scope-engine`, `frame-authority`, `login-seed-chain`, `critical-params`, `open-seed-ttl`, `manifest-backup`); feature cores are SHIPPED (`blacksmith`, `crafting`, `gathering`, `bout-host`); `prd-geometry` is SHIPPED PRIMITIVES; `prd-shard-mesh` and `prd-social-instances` are PARTIAL; `prd-agent-law` is DESIGN; `prd-monetization` is ACTIVE MODEL; `prd-industry-labs` is a POSITION PAPER; `prd-openhands-canvas` is REFERENCE; `prd-perf-bridges` is ACTIVE (all five facets DONE).
+- STALE VERDICTS FIXED: `prd-db` Draft -> ACTIVE (adapter layer shipped; 2026-09 TODO table relabelled as a snapshot; pg-bridge is the chosen transport); `prd-web` Draft -> ACTIVE (`/game/` client + portal live, admin partial); `prd-ocean-depths` DESIGN -> SHIPPED CORE; `prd-multiworld` DESIGN -> PARTIAL (S16.5/6 moon work shipped); `prd-underworld` DESIGN -> SHIPPED OFFLINE. `prd-blacksmith`'s six-tier claim corrected to the five-rung GameTier scale.
+- INTERNAL DRIFT FIXED: `prd-spherical-mvp` now says SHIPPED CORE/REFERENCE and records that Wave A made spherical the default; `prd-social-instances` says items 1-4 SHIPPED; active docs no longer point at deleted `world_playable`/`player_controller`; `prd-web` uses the canonical `/game/` path; `prd-db`'s table is explicitly a 2026-09 snapshot.
+- DOCS: `labs/README.md` gains the 53/53 census note, the Frame-substrate section is retitled, and `prd-openhands-canvas` is indexed REFERENCE. Checks: status parser 53/53; docs link gate; `git diff --check`. No push.
+
+## 2026-11-14 -- world-building consolidation: current law, archive, two false statuses
+- SESSION CONTEXT: docs round after matchmaking coverage; owner flagged that the world-building series mixes fiction with retired systems.
+- VERIFIED: `TickService` is a live autoload running phases 1-5; phase 6 is retired to `PropLayer.enable_prefetch()`. `FlywheelService` is live. `spherical.gd` uses a 20 km radius, not Earth's 6,371 km.
+- ARCHIVED: `labs/world-building.md` (5,035 lines) -> `labs/archive/world-building-plan-2026-09-17.md`, with a banner. New `labs/world-building.md` is a current index: one 20 km sphere, authored + emergent land, seamless zones, planar-only instances, tick authority, retired-claims table, old-section map.
+- CORRECTED: `-tick` status is IMPLEMENTED and phase 6 is retired; `-spherical` rewritten to the live 20 km constants/formulas and current navigation status; `-risks`/`-research` are explicit REFERENCE records with old-plan refs pointing at the archive; `-arch` is ACTIVE and its rules-engine phase note is current.
+- PROPAGATED: `prd.md` section 4 now matches `prd-world.md` v2 (coast capital, authored set, no 150 km2 one-continent claim); old-plan refs in `prd-db`, `prd-seed-schema`, `prd-state-schema`, and `prd-world` retargeted; code comments now cite the current seed law; root/labs/archive READMEs updated.
+- NEXT: PRD verdict census. No push.
+
+## 2026-11-14 -- matchmaking docs coverage: index + gate receipts
+- SESSION CONTEXT: the PvP/matchmaking wiring round (`084b0acf`) added the fifth-service PRD and the gate wiring. The new PRD was the only top-level lab doc missing from the README index.
+- DOCS: `labs/prd-matchmaking.md` is now in the product table next to the four mode PRDs. No prose changed. The docs link gate remains green.
+- WIRING VERIFIED: `probe_lobby_service` PASS (6s) and `probe_bout_host` PASS (5s) against the current tree; no code changes were needed.
+- NEXT: the PRD verdict census and the `world-building-*` consolidation remain the docs-round queue.
 
 ## 2026-11-17b -- mesh signals get consumers + the Julia chunk query reaches gameplay (branch feat/mesh-signal-consumers -> PR to staging)
 - SESSION CONTEXT: owner is running 3 agents on the repo and asked for a PR to `staging` (NOT a direct push) this round. Continued the two documented leftovers: (1) the remaining unconsumed mesh signals, (2) the "next multi-round item" -- wiring the Julia orchestrator's canonical-chunk query into a gameplay consumer.

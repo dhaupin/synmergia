@@ -1,5 +1,9 @@
 # PRD: Geometry Layer  -  Vant Fragmenter Port + Spatial Fragmenter Integration
 
+> **Status:** SHIPPED PRIMITIVES (Phase 3/4) — REFERENCE. The fragmenter,
+> spatial fragmenter, NSC-9 bridge, and prop chunk are live with co-located
+> tests. Phase 4 edge-shard provider integration remains out of scope.
+
 > **Canonical geometry doc (consolidated 2026-11-14).** Absorbs the former
 > `prd-spatial-geometry.md` (now `archive/prd/`), which was a spatial-only
 > subset of this doc's fragmenter, bit-layout and service-wiring sections.

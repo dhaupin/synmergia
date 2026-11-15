@@ -1,4 +1,10 @@
 # PRD: The Agent Law — behavioral integrity for ALL accounts
+
+> **Status:** DESIGN (pre-implementation). The `AntiCheatService` /
+> `SecurityService` signal spine exists; the behavioral detectors, telemetry
+> envelope, and tribunal described here are not built. This is the design
+> record for that layer.
+
 (S16.6, 2026-10-08. Owner directive, verbatim intent: "agent law
 should extend to all accounts period. It's like a layer on top of
 Anticheat. To catch the bad ones fucking with synmergia. We have an

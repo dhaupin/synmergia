@@ -1,5 +1,8 @@
 # PRD: Scope Engine (Data-Driven Hierarchy)
 
+> **Status:** SHIPPED (Phase 1) — REFERENCE. `Scope` / `ScopeEngine` are live;
+> `game/core/frame/srv/test_scope_engine.gd` covers the hierarchy walk.
+
 > **For:** sub-agent implementation
 > **Phase:** 1 (per `world-building-arch.md` §14)
 > **Depends on:** `prd-t3-substrate.md` (for `walk` semantics), `prd-seed-schema.md` (for hierarchy node identity)

@@ -9,11 +9,11 @@ the receipts; this directory is where design intent, decisions and open
 questions live.
 
 > **Rule when touching a doc:** if a sentence names a system that no longer
-> exists, fix the sentence in the same edit. Current offenders: the retired
-> terrain renderer (`globe_terrain_streamer`), the planar world
-> (`world_playable`, `player_controller`), `LODManager`, `backend_penrose`,
-> and `SkillTier` (renamed `GameTier`). `legacy-inventory.md` tracks the
-> migration status of each.
+> exists, fix the sentence in the same edit. Watch for the retired terrain
+> renderer (`globe_terrain_streamer`), the planar world (`world_playable`,
+> `player_controller`), `LODManager`, `backend_penrose`, and `SkillTier`
+> (renamed `GameTier`). Historical mentions are allowed only when labelled.
+> `legacy-inventory.md` tracks the migration status of each.
 
 > **Checkpoint 2026-11-14 (labs drift pass).** 133 docs / 3.67 MB audited:
 > every non-archive doc is indexed below (sub-READMEs included), every
@@ -41,6 +41,16 @@ questions live.
 - **LORE** — authored world content, canon rather than engineering.
 - **ARCHIVED** — lives in [`archive/`](./archive/README.md); history only.
 
+> **PRD status census (2026-11-14).** All 53 top-level `prd-*.md` files now
+> carry an in-file `> **Status:**` block. 21 had no blockquote status block:
+> they were classified against the code and receipts (SHIPPED, PARTIAL, DESIGN,
+> REFERENCE, ACTIVE MODEL, POSITION PAPER); four plain `Status:` lines were
+> standardized to the same form. Five stale verdicts were corrected (`prd-db`,
+> `prd-web`, `prd-ocean-depths`, `prd-multiworld`, `prd-underworld`);
+> `prd-social-instances` and `prd-shard-mesh` are explicitly PARTIAL. The table
+> Status column is the doc's lifecycle; the in-file block is the implementation
+> verdict.
+
 ## Product and systems
 
 | Doc | Status | Settles |
@@ -54,6 +64,7 @@ questions live.
 | [`prd-web.md`](./prd-web.md) | ACTIVE | Web client, portal, admin |
 | [`prd-quests.md`](./prd-quests.md) | ACTIVE | Quests and achievements |
 | [`prd-social-instances.md`](./prd-social-instances.md) | ACTIVE | Social layer around instanced rooms |
+| [`prd-matchmaking.md`](./prd-matchmaking.md) | ACTIVE | The fifth service: bout queues, party blocks, gate entry and the QoS seam |
 | [`prd-duel.md`](./prd-duel.md) | ACTIVE | Consensual 1v1: open-world honor duel and instanced lobby handshake |
 | [`prd-elimination.md`](./prd-elimination.md) | ACTIVE | Haven Coliseum: one life, last team standing |
 | [`prd-tdm.md`](./prd-tdm.md) | ACTIVE | Haven Sandpit: respawns, spawn shield, first to 20 kills |
@@ -72,7 +83,7 @@ questions live.
 | [`prd-art-pipeline.md`](./prd-art-pipeline.md) | ACTIVE | Art lane: models, textures, generation |
 | [`art-direction.md`](./art-direction.md) | ACTIVE | Style bible |
 | [`data-authoring-baseline.md`](./data-authoring-baseline.md) | ACTIVE | How `.tres` content is authored and gated |
-| [`prd-openhands-canvas.md`](./prd-openhands-canvas.md) | ACTIVE | Parallel agent lanes and their conventions |
+| [`prd-openhands-canvas.md`](./prd-openhands-canvas.md) | REFERENCE | Parallel agent lanes and their conventions |
 | [`OSS-AUDIT.md`](./OSS-AUDIT.md) | REFERENCE | Open-source launch audit + post-public hardening |
 | [`AGENTS_LOG.md`](./AGENTS_LOG.md) | REFERENCE | Archived AGENTS.md round logs (91 entries, 2026-10-28 .. 2026-11-16); history, not current law |
 | [`jolt-playground/`](./jolt-playground/README.md) | REFERENCE | Jolt Physics evaluation plan; point-in-time |
@@ -90,10 +101,11 @@ questions live.
 | [`prd-ground-sample.md`](./prd-ground-sample.md) | REFERENCE | Completed ground-law fusion refactor |
 | [`legacy-inventory.md`](./legacy-inventory.md) | TRACKER | Migrate / port / remove census; also the KEEP verdict on isoc addressing |
 
-## Frame substrate (design PRDs, Sept–Oct)
+## Frame substrate and early systems (Sept–Nov)
 
-Decision records for systems that largely shipped. **REFERENCE**: verify a
-claim against the code before citing it as current.
+Decision records and build logs. Read each doc's in-file status: most are
+SHIPPED/REFERENCE; `prd-multiworld` is PARTIAL and `prd-agent-law` is DESIGN.
+Verify a claim against the code before citing it as current.
 
 [`prd-frame-authority`](./prd-frame-authority.md) · [`prd-open-seed-ttl`](./prd-open-seed-ttl.md) ·
 [`prd-critical-params`](./prd-critical-params.md) · [`prd-seed-schema`](./prd-seed-schema.md) ·
@@ -112,17 +124,18 @@ claim against the code before citing it as current.
 
 | Doc | Status | Settles |
 | --- | --- | --- |
+| [`world-building.md`](./world-building.md) | ACTIVE | Current world index: authority map, retired claims, archive pointer |
 | [`world-building-arch.md`](./world-building-arch.md) | ACTIVE | Systems architecture; cited by code as the frame reference |
-| [`world-building-tick.md`](./world-building-tick.md) | ACTIVE | The tick end to end; cited by `tick_service.gd` |
-| [`world-building.md`](./world-building.md) | REFERENCE | The original world/netcode/persistence plan; cited by code for section numbers |
-| [`world-building-risks.md`](./world-building-risks.md) | REFERENCE | Risk register, decisions, numbers, glossary |
-| [`world-building-research.md`](./world-building-research.md) | REFERENCE | Research notes and discarded angles |
-| [`world-building-spherical.md`](./world-building-spherical.md) | REFERENCE | Spherical planet and navigation specifics |
+| [`world-building-tick.md`](./world-building-tick.md) | ACTIVE | The live tick end to end; phases 1-5 implemented, phase 6 retired |
+| [`world-building-risks.md`](./world-building-risks.md) | REFERENCE | Decision/risk register; D029-D033 and N014 still cited by code |
+| [`world-building-research.md`](./world-building-research.md) | REFERENCE | Research record: adopted threads and discarded angles; not normative |
+| [`world-building-spherical.md`](./world-building-spherical.md) | ACTIVE | Current spherical math, constants, and navigation reference |
 
-This series is the largest single body of prose in the repo (~11.4k lines) and
-the most likely home of superseded design. It has not yet had a consolidation
-pass; treat older sections as history, and prefer `prd-clipmap.md` for anything
-terrain-shaped.
+The series was consolidated on 2026-11-14. The 5,035-line 2026-09 plan is
+archived at [`archive/world-building-plan-2026-09-17.md`](./archive/world-building-plan-2026-09-17.md);
+the live series is ~6.5k lines. `world-building.md` is now the entry point and
+records what was retired. The spherical reference was corrected to the 20 km
+planet and its live 20 km constants.
 
 ## Lore and voice
 
@@ -172,11 +185,13 @@ Proposed passes, cheapest first. Nothing here is started unless noted.
    docs, 88 + 198 lines. One lane document with two sections. Not yet done.
 4. **`prd-dialogue` + `story-dialogue-creative-voice`** — 633 + 219 lines; the
    second is a working note inside the first's subject. Not yet done.
-5. **`world-building` series** — 11.4k lines total. VERDICT 2026-11-14:
-   `-research` (1,737 lines) CANNOT be archived as-is -- it is cited by
-   `prd.md`, `world-building.md`, `-tick`, `-risks` and by
-   `game/core/frame/math/penrose.gd` sec 1. Keeping `-arch` + `-tick` ACTIVE
-   is confirmed; any future fold must repoint those citations first.
+5. **DONE 2026-11-14 — `world-building` series.** The 5,035-line 2026-09
+   plan is archived at `archive/world-building-plan-2026-09-17.md`; the new
+   `world-building.md` is a current index with a retired-claims table and an
+   old-section map. `-tick` status corrected to IMPLEMENTED (phase 6 retired);
+   `-spherical` rewritten to the live 20 km constants; `-risks` and
+   `-research` are explicit REFERENCE records. `-arch` + `-tick` stay ACTIVE.
+   Old-plan citations that remain point at the archive deliberately.
 6. **Agent-law trio** (`prd-agent-play` 517, `prd-agent-law` 89,
    `prd-accessibility` 187) — check for duplicated law before merging; these
    may be three genuinely different concerns. Not yet done.

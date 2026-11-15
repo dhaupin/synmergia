@@ -1,5 +1,9 @@
 # PRD: Frame Seed Authority (D030)
 
+> **Status:** SHIPPED (Phase 1) — REFERENCE. `FrameService` is live and
+> `game/tests/test_frame_authority.gd` covers frame entry/exit and seed
+> lifetime.
+
 > **For:** sub-agent implementation
 > **Phase:** 1 (per `world-building-arch.md` §14)
 > **Depends on:** `prd-scope-engine.md`, `prd-seed-schema.md`

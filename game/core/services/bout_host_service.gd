@@ -355,8 +355,6 @@ func _record_recent(winner_team: int, book: Dictionary, _instance_id: String) ->
 		teams[str(pid)] = int(f.team) if f != null else -1
 	for pid in participants:
 		var sid: String = str(pid)
-		if svc.is_recent_hidden(sid):
-			continue
 		svc.record_bout(participants, str(book.get("zone_id", "")), \
 			int(room._rules.get("mode", 0)), winner_team, teams)
 

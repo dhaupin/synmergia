@@ -1,30 +1,29 @@
 # World-Building Risks, Decisions, Numbers, Glossary
 
-> **Status:** Tracking companion to the trio. The plan
-> (`world-building.md`) commits to a path; this doc tracks
-> the **operating** parts: what we're worried about, what
-> we decided and why, what numbers we claimed and whether
-> we've measured them, and what all the terms mean.
+> **Status:** REFERENCE — decision and risk register (2026-11-14).
+> This is an operating record, not current world law. Decisions D029-D033 and
+> number N014 are still citable and are used by code. The older risks were
+> written against the archived 2026-09 plan; treat them as history unless an
+> entry says it is actively monitored.
 >
-> **Scope:** This is not a design document. It does not
-> argue. It records. Each row in each table is a single
-> decision, risk, number, or term with the surrounding
-> context someone reading the plan in 6 months would need
-> to reconstruct.
+> **Current law:** [`prd-world.md`](./prd-world.md) (topology),
+> [`prd-terrain.md`](./prd-terrain.md) (ground), and
+> [`world-building.md`](./world-building.md) (the index). The original plan is
+> archived at [`archive/world-building-plan-2026-09-17.md`](./archive/world-building-plan-2026-09-17.md).
+> Plan-section references below point there deliberately.
 >
 > **Companion docs:**
-> - `world-building.md` — the plan
-> - `world-building-research.md` — research on §21's
->   experimental angles
-> - `world-building-arch.md` — the systems architecture
->   (frame + game bridge; T3 substrate, scope engine,
->   rules engine, world environment)
-> - `archive/audit/m3-initial-world-audit.md` — where we were at the
->   start
+> - `world-building-arch.md` — systems architecture
+> - `world-building-tick.md` — the live tick and flywheels
+> - `world-building-research.md` — research record
+> - `archive/audit/m3-initial-world-audit.md` — the 2026-09-05 starting point
 >
 > **Date opened:** 2026-09-05
+> **Status checked:** 2026-11-14
 
 ---
+
+
 
 ## How to use this doc
 
@@ -393,6 +392,11 @@ project has the least slack. Plan accordingly.
 
 ## 2. Decision log
 
+> **Current-truth note (2026-11-14):** D029-D033 are still cited by code.
+> D001 and D002 are retained as history and marked superseded below: the
+> planar open world and the single 150 km² continent are retired.
+> Plan-section refs in this section point at the archived plan.
+
 Each decision has:
 - **ID** — `D###` (preserved on update)
 - **Decision** — what we chose
@@ -407,11 +411,11 @@ Each decision has:
 
 ### 2.1 World shape & scale
 
-#### D001 — Spherical for v1, planar supported
+#### D001 — Spherical world for v1 (planar open world retired)
 
 - **Phase:** 1
 - **Decided:** 2026-09-05
-- **Alternatives rejected:**
+- **Alternatives rejected (at the time):**
   - Planar-only v1
   - Spherical-only forever
 - **Reasoning:** Spherical exercises the harder math
@@ -422,10 +426,13 @@ Each decision has:
 - **Trigger to revisit:** if R001 (HTML5 perf) or
   the geometric layer costs more than 5% of client
   frame budget at LOD L0, consider a planar-first v1.
-- **Status:** committed
-- **Superseded by:** —
+- **Status:** SUPERSEDED in part (2026-11-14). Spherical is live; the planar
+  open world is deleted. Planar remains only as the instance contract for
+  arenas, duels, and dungeons.
+- **Superseded by:** `prd-world.md` §2c and
+  `archive/prd/prd-planar-retirement.md`.
 
-#### D002 — v1 is 20 km planet, 150 km² continent
+#### D002 — v1 is a 20 km planet (the 150 km² continent is retired)
 
 - **Phase:** 1
 - **Decided:** 2026-09-05
@@ -433,16 +440,14 @@ Each decision has:
   - 200 km² (the original "200km²" framing in
     `scale-200km2.md`)
   - 40,000 km² full Earth-like
-- **Reasoning:** 200 km² too big for v1; full Earth too
-  big. 20 km planet, 150 km² continent hits the sweet
-  spot of "test all the systems, ship in 6 months,
-  scale later." Scaling is a config change, not a code
-  change. (See plan §3.9, §3.11.)
-- **Trigger to revisit:** if the 150 km² number turns
-  out to be too big for Phase 1 perf targets, shrink
-  to 50 km².
-- **Status:** committed
-- **Superseded by:** —
+- **Reasoning (historical):** 200 km² too big for v1; full Earth too
+  big. The 20 km radius survived; the single 150 km² continent did not.
+  The world is now an authored homeland plus ferry island, lake, atoll,
+  polar caps, and emergent continents. (See plan §3.9, §3.11.)
+- **Trigger to revisit:** none for the 150 km² number; it is retired.
+- **Status:** SUPERSEDED (2026-11-14). 20 km radius is live; the one-continent
+  landmass is retired.
+- **Superseded by:** `prd-world.md` §1 and `prd-terrain.md` §2b.
 
 #### D003 — Open world first, instanced for dungeons/arena
 
@@ -764,6 +769,10 @@ Each decision has:
 
 ### 2.6 Decision summary
 
+> **Status check 2026-11-14:** this summary is historical. D001 (planar open
+> world) and D002 (single 150 km² continent) are superseded; the remaining
+> committed decisions stand unless their own entry says otherwise.
+
 - **Committed:** D001, D002, D003, D004, D005, D006,
   D007, D008, D009, D010, D011, D012, D013, D014,
   D016, D017, D018, D019, D020, D021, D022, D023,
@@ -1052,6 +1061,11 @@ state, from the world to a stick on the ground"
 
 ## 3. Numbers ledger
 
+> **Current-truth note (2026-11-14):** N014 is live and cited by
+> `tick_service.gd`. The old v2/v3 planet sizes, the 150 km² landmass, and
+> the planar 64 m chunk ledger are history. The live planet is 20 km and
+> PropChunk owns scatter addressing.
+
 Each number has:
 - **ID** — `N###`
 - **Claim** — what the plan says
@@ -1133,38 +1147,28 @@ Each number has:
 - **Source:** plan §3.9.
 - **How to measure:** static config; verified by
   reading `data/worlds/v1.tres`.
-- **Current:** 20 km (config).
-- **Status:** target.
-- **Notes:** v1. v2 is 100 km. v3 is 1000+ km.
-  Same code, different config.
+- **Current:** 20 km (live config). `Spherical.PLANET_RADIUS_METERS = 20000.0`.
+- **Status:** measured (v1 live).
+- **Notes:** v1 is 20 km. Larger radii are not committed; they need floating
+  origin and planet-wide rendering, both open in `prd-terrain.md` §6.
 
-#### N005 — v1 landmass
+#### N005 — v1 landmass (SUPERSEDED)
 
-- **Claim:** one continent, 150 km².
-- **Target:** 150 km².
-- **Phase:** 1.
-- **Source:** plan §3.9, §3.11.
-- **How to measure:** static config; verified by
-  reading `data/worlds/v1.tres`.
-- **Current:** 150 km² (config).
-- **Status:** target.
-- **Notes:** the continent is configured by the
-  biome / coastline generator. The "150 km²"
-  is the design target; the actual generated
-  area depends on the generator.
+- **Claim (historical):** one continent, 150 km².
+- **Current truth:** the authored homeland + ferry island + mountain lake +
+  Sun Pans atoll + two polar caps + emergent continents. No single-continent
+  area target.
+- **Status:** SUPERSEDED (2026-11-14).
+- **Superseded by:** `prd-world.md` §1 and `prd-terrain.md` §2b.
 
-#### N006 — Chunk size (planar)
+#### N006 — Chunk size (planar) (SUPERSEDED)
 
-- **Claim:** 64m chunks.
-- **Target:** 64m cube.
-- **Phase:** 1.
-- **Source:** plan §3.10, D004.
-- **How to measure:** static config; verified by
-  chunk address arithmetic.
-- **Current:** 64m (config).
-- **Status:** target.
-- **Notes:** see D004 for the why. Denser chunks
-  (32m) are an option if R003 fires.
+- **Claim (historical):** 64 m cubic chunks on a planar grid.
+- **Current truth:** the open world has no planar chunk grid. The clipmap
+  streams the ground; `PropLayer` uses `prop_chunk.gd` (icosa face +
+  barycentric cell) for scatter.
+- **Status:** SUPERSEDED (2026-11-14).
+- **Superseded by:** `prd-clipmap.md` and `legacy-inventory.md` §B.
 
 #### N007 — Chunk count (v1 planet)
 
@@ -1486,6 +1490,10 @@ Each number has:
   calculated against 50ms tick boundaries).
 
 ### 3.6 Numbers summary
+
+> **Status check 2026-11-14:** this summary is historical. N004 is measured at
+> the live 20 km radius; N005 (single 150 km² landmass) and N006 (planar 64 m
+> chunks) are superseded. The counts below are the 2026-09 snapshot.
 
 - **Total:** 26 numbers.
 - **Targets (unmeasured):** N001, N002, N003, N011,

@@ -1,5 +1,9 @@
 # PRD: SeedSchema Resource
 
+> **Status:** SHIPPED (Phase 1) — REFERENCE. `SeedSchema` is live; receipts:
+> `game/tests/test_seed_schema.gd` and
+> `game/core/frame/kv/test_frame_seed_schema.gd`.
+
 > **For:** sub-agent implementation
 > **Phase:** 1 (per `world-building-arch.md` §14)
 > **Depends on:** `prd-t3-substrate.md` (the substrate stores the schema ref; this schema is one of N)
@@ -23,7 +27,7 @@ the seed schema is the first concrete instance.
 
 **Spec ref:**
 [`world-building-arch.md`](./world-building-arch.md) §7
-(The seed tree), [`world-building.md`](./world-building.md)
+(The seed tree), [the archived plan](./archive/world-building-plan-2026-09-17.md)
 §4 (Recursive seed-state recursion)
 
 ## 2. Goals

@@ -1,4 +1,10 @@
 # PRD: The Blacksmith -- RYL2-blooded upgrade law
+
+> **Status:** SHIPPED CORE (2026-10-08). `BlacksmithService`, the forge UI,
+> and the upgrade/data probes (`probe_forge`, `probe_blacksmith_model`,
+> `probe_placeable_stations`) exist. Read this for the upgrade law; the code is
+> the current truth.
+
 (S16.7, 2026-10-08. Owner directive. Based on RYL2's upgrade process
 -- the owner was there; we borrow the bones, lose the wackiness.)
 
@@ -33,8 +39,8 @@ ledger is the proof.
 ### 2.1 Ore grades (5, parity with the weapon scale)
 
 Ores are Item .tres in data/resources/ (res_ prefix), graded on the
-same scale as weapons. The Item.Rarity enum already carries 6 tiers
-(COMMON..MYTHIC); ores use 5 of them:
+same scale as weapons. The game-wide five-rung scale is
+COMMON, RARE, EPIC, LEGENDARY, MYTHIC; ores use all five:
 
     res_ore_copper    COMMON      low chance, common drops
     res_ore_silver    RARE

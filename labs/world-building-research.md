@@ -1,26 +1,27 @@
 # World-Building Research
 
-> **Status:** Research companion to `world-building.md`. When
-> the implementation pace permits, this is the place to dig
-> into §21's experimental angles. When implementation is
-> blocked on rate limits (or anything else), this is where
-> the thinking happens.
+> **Status:** REFERENCE — research record (2026-11-14). **Not normative.**
+> This file preserves hypotheses, math, prior art, and discarded angles. It is
+> not a commitment and not current world law.
 >
-> **Scope:** Each of the 10 experimental angles from
-> `world-building.md §21` gets a research section here with:
-> hypothesis, math/background, prototype sketch, prior art
-> references, expected cost, trigger-to-adopt, and current
-> status. Plus a cross-angle synthesis at the end: which
-> ideas compose.
+> **Adopted threads are visible in code:** the Penrose/pentagrid experiments,
+> PropChunk prefetch, shard and per-player flywheels, and icosahedral
+> addressing. Everything else is a considered angle, not a shipped system.
+> Sections that assume planar chunks, `LODManager`, the terrain streamer, or
+> per-player tick loops are historical.
 >
-> **Why a separate file:** keeps the main plan stable
-> while research churns. The main plan commits to a path;
-> this file explores alternatives without disturbing the
-> plan. When research concludes (idea is viable, idea is
-> dead, or we don't know yet), the result migrates back
-> into the main plan as a §21 update.
+> **Current law:** [`prd-world.md`](./prd-world.md),
+> [`prd-terrain.md`](./prd-terrain.md),
+> [`world-building-arch.md`](./world-building-arch.md), and
+> [`world-building-tick.md`](./world-building-tick.md). The original plan is
+> archived at [`archive/world-building-plan-2026-09-17.md`](./archive/world-building-plan-2026-09-17.md).
+>
+> **Original scope:** the experimental angles from the 2026-09 plan, with
+> hypothesis, math, prior art, cost, trigger-to-adopt, and status.
 
 ---
+
+
 
 ## Table of Contents
 
@@ -40,7 +41,7 @@
 
 ## 1. Quasicrystal address space (Penrose / Ammann-Beenker)
 
-**Phase assignment** (from `world-building.md §21.1`):
+**Phase assignment** (from `archive/world-building-plan-2026-09-17.md §21.1`):
 Phase 6 — only pursued if icosahedral seams become
 user-noticeable. Currently research-only.
 
@@ -429,7 +430,7 @@ world-map question.
 
 ## 2. Edge shards (world cache layer)
 
-**Phase assignment** (from `world-building.md §21.2`):
+**Phase assignment** (from `archive/world-building-plan-2026-09-17.md §21.2`):
 Phase 4+. Trigger: >5000 active players per shard OR
 >100MB/s outbound per shard.
 
@@ -597,7 +598,7 @@ we have a real player base. Phase 4+ by that point.
 
 ## 3. Adaptive chunk size (LOD-by-content)
 
-**Phase assignment** (from `world-building.md §21.3`):
+**Phase assignment** (from `archive/world-building-plan-2026-09-17.md §21.3`):
 Phase 5+. Trigger: Phase 5 profiling shows 90% of chunks
 are mostly empty.
 
@@ -718,13 +719,13 @@ chunks would save 10-100x on the empty regions.
 
 ## 4. LOD-by-type
 
-**Phase assignment** (from `world-building.md §21.4`):
+**Phase assignment** (from `archive/world-building-plan-2026-09-17.md §21.4`):
 Phase 5+. Trigger: GPU profiling shows we're
 vertex-bound, not draw-call-bound.
 
 ### 4.1 The hypothesis
 
-The LOD pyramid in `world-building.md §14` is one
+The LOD pyramid in `archive/world-building-plan-2026-09-17.md §14` is one
 shape-fits-all: every chunk's L0 is the full mesh, L1
 is a summary, etc. But different content types want
 different LOD shapes:
@@ -841,7 +842,7 @@ doesn't help.
 
 ## 5. Merkle suffix trees for diffs
 
-**Phase assignment** (from `world-building.md §21.5`):
+**Phase assignment** (from `archive/world-building-plan-2026-09-17.md §21.5`):
 Phase 4+. Trigger: diff cost is dominant in profiling.
 
 ### 5.1 The hypothesis
@@ -931,7 +932,7 @@ entities), it likely will.
 
 ## 6. Algebraic effects / lenses for state diffs
 
-**Phase assignment** (from `world-building.md §21.6`):
+**Phase assignment** (from `archive/world-building-plan-2026-09-17.md §21.6`):
 Phase 4+. Trigger: same as §5 (diff cost dominant).
 
 ### 6.1 The hypothesis
@@ -996,7 +997,7 @@ Same as §5 — diff cost is dominant — AND MST didn't get us close enough. Sp
 
 ## 7. Jolt Physics swap-in
 
-**Phase assignment** (from `world-building.md §21.7`):
+**Phase assignment** (from `archive/world-building-plan-2026-09-17.md §21.7`):
 Phase 5+. Trigger: physics is a bottleneck OR we need
 determinism.
 
@@ -1129,7 +1130,7 @@ correctness.
 
 ## 8. Polyglot FFI (GDScript ↔ Julia ↔ C++)
 
-**Phase assignment** (from `world-building.md §21.8`):
+**Phase assignment** (from `archive/world-building-plan-2026-09-17.md §21.8`):
 Phase 4+. Trigger: HTTP bridge latency is a bottleneck.
 
 ### 8.1 The hypothesis
@@ -1254,7 +1255,7 @@ profiling. At that point, switching to Option B
 
 ## 9. Adaptive tick rate (per-player)
 
-**Phase assignment** (from `world-building.md §21.9`):
+**Phase assignment** (from `archive/world-building-plan-2026-09-17.md §21.9`):
 Phase 5+. Trigger: significant CPU spent on AFK players.
 
 ### 9.1 The hypothesis
@@ -1378,7 +1379,7 @@ adaptive tick rate isn't needed.
 
 ## 10. Pure-function-of-state for all gameplay
 
-**Phase assignment** (from `world-building.md §21.10`):
+**Phase assignment** (from `archive/world-building-plan-2026-09-17.md §21.10`):
 Phase 3+ gradual. Aspirational.
 
 ### 10.1 The hypothesis
@@ -1729,7 +1730,7 @@ that addresses the actual bottleneck we measured."
 
 - Sections: 11 (10 angles + 1 synthesis).
 - Length: ~1550 lines.
-- Status: research companion to `world-building.md`.
+- Status: research companion to `archive/world-building-plan-2026-09-17.md`.
 - Next: when implementation pace allows, pick one
   angle (the user's choice) and start prototyping.
 

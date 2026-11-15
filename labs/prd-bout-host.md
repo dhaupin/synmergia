@@ -1,5 +1,10 @@
 # S12 - Bout Host (the instant-gratification keystone)
 
+> **Status:** SHIPPED (2026-09-28). `BoutHostService` runs enqueue -> assembly
+> -> hosted room -> start -> payout -> return home; `probe_bout_host` is 21/21
+> in the DEFAULT_SET. The trial-bout fallback SHIPPED the same day
+> (`probe_trial_bout` 26/26); the earlier parked note below is historical.
+
 > Companion to prd-spherical-mvp.md (S9-S11 built the parts; this
 > closes the loop). Owner framing: 3 systems + lobby + gliding grew
 > large -- S12 is the consolidation: what exists gets a RUNTIME.
@@ -19,7 +24,8 @@ host start -> bridge power normalization -> CombatSystem kill ->
 payout (PlayerManager ledger) -> return home to the stones -> stats
 restored. probe_bout_host 21/21, in DEFAULT_SET (regression guards
 the WHOLE loop now). bout_assembled grew a 5th arg (per-player
-origin stones). Next open item: the trial-bout fallback below.
+origin stones). The trial-bout fallback below shipped the same day (see
+the next update).
 
 Original survey (parts existed, nothing assembled them):
 
@@ -94,8 +100,8 @@ stone touch ALWAYS ends in a fight, and the fight teaches the mode.
   accounting. Never count as real players in any ledger.
 - Reward = the same payout path (reduced), so the lesson pays.
 - Cheap once BoutHostService exists: the host just fabricates the
-  block. Parked until the keystone lands -- flagged here because it
-  is the actual retention answer at low population.
+  block. Originally parked until the keystone landed -- kept here as the
+  design record because it is the retention answer at low population.
 
 **UPDATE, same day: the trial bout SHIPPED.** LobbyService ages
 queue blocks (TRIAL_PATIENCE_SECONDS 45, swept on the 5 s timer) and

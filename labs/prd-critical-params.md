@@ -1,5 +1,8 @@
 # PRD: Shard Parameter Criticality (D033)
 
+> **Status:** SHIPPED (Phase 1) — REFERENCE. `ShardParameters` is live and
+> `game/tests/test_critical_params.gd` covers the critical/non-critical split.
+
 > **For:** sub-agent implementation
 > **Phase:** 1 (per `world-building-arch.md` §14)
 > **Depends on:** `prd-t3-substrate.md` (the params live in the state tree)

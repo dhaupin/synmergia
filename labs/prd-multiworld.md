@@ -1,6 +1,6 @@
 # PRD: Multiworld - Space Travel, Relational Worlds, and the Universe Frame (S16)
 
-> **Status:** DESIGN (pre-implementation)
+> **Status:** PARTIAL. S16.5 transfer windows/almanac and S16.6 moon globe SHIPPED; full inter-world travel and the outer lattice are not. See §7.
 > **Law:** prd-psy (no religion; the sky is machinery, and the
 > machinery is allowed to be mysterious without being divine).
 > Owner vision 2026-09-29: "space travel is required ... Relational
@@ -215,7 +215,7 @@ main world stays clean. Mechanism, in order of authority:
    hatched gate lifts a DEV_ONLY destination to open FOR ITSELF
    (law state 2, prompt "Step through"); OFFLINE worlds (the
    underworld) refuse for everyone -- the hatch cannot open
-   doorless worlds. The placed gate in world_playable opts in.
+   doorless worlds. The placed gate in the live globe opts in.
 3. At transit the hatched gate CONJURES the destination:
    `scenes/worlds/globe_moon.gd` instantiates, registers
    `world_root_moon`, reads its radius from the declaration

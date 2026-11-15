@@ -1,10 +1,12 @@
 # prd-industry-labs.md -- The Industry Call
 
-**Status:** Position paper (owner request: "let's call the bluff on the
-game industry with our unique theorems of reality state/seeds, nested
-invocations, pre-solves races, drift, coalesce, cadence, valves").
-**Every theorem cites shipped code.** The extensions name the seam
-they land on. Nothing here is vapor.
+> **Status:** POSITION PAPER (2026-11-06) — not a build PRD. The theorems cite
+> shipped code; the solar/galaxy extensions are proposals, not committed work.
+
+Owner request: "let's call the bluff on the game industry with our unique
+theorems of reality state/seeds, nested invocations, pre-solves races, drift,
+coalesce, cadence, valves." Every theorem cites shipped code; every extension
+names the seam it lands on.
 
 Owner thesis (the reactor's law): pack as much as we can into math
 payloads, on the smallest infra possible, with the most impact on

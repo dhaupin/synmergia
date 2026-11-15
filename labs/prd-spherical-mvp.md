@@ -1,7 +1,8 @@
 # Spherical World MVP — Execution PRD
 
-> **Status: ACTIVE — night session 2026-09-27.** This is the execution
-> record for "getting an actual world going" (spherical). It ties the
+> **Status:** SHIPPED CORE — REFERENCE (execution record, 2026-09-27/28).
+> This is the execution record for "getting an actual world going"
+> (spherical). It ties the
 > design docs together for implementation and is the **pickup point if
 > a session crashes or blows context.**
 >
@@ -56,7 +57,8 @@ touching the existing playable world.
    float precision is trivial. Floating origin is Phase C work, NOT
    this PRD.
 2. **Map shape is a parameter** (`world-building.md` sec 1.6):
-   `planar | spherical`, default `planar`. No hardcoded shape
+   `planar | spherical`; the S1 default was `planar`, and Wave A later
+   shipped `spherical` as the project default. No hardcoded shape
    anywhere; addressing is `projection_fn(W, world.shape, resolution)`.
 3. **Radial gravity is quarantined to the spherical ground path.**
    Instances (arena/duel/dungeon) stay planar AABB with vanilla -Y
@@ -90,9 +92,10 @@ touching the existing playable world.
       convention cross-check); awaiting commit.
 
 ### S2 — shape parameter + first wiring
-- [x] World shape surfaced as config (default `planar`) without
-      breaking existing planar worlds (`core/frame/math/world_shape.gd`,
-      project setting `synmergia/world/shape`).
+- [x] World shape surfaced as config (default `planar` at the time; the
+      live default is now `spherical`) without breaking the then-existing
+      planar world (`core/frame/math/world_shape.gd`, project setting
+      `synmergia/world/shape`).
 - [x] WaypointService consumes Spherical haversine/bearing for
       distance/bearing when shape is spherical; planar path unchanged
       (shape-gated). NEW: `get_bearing_to_active()` (planar north =
@@ -113,8 +116,9 @@ touching the existing playable world.
       unique colors, pole marker + sun), stage2/3 post-walk (sky
       over sphere; 326 colors; traversal moved player away from
       markers). frame_post_draw awaited before capture.
-- [x] Standalone: NO edits to world_playable.tscn, main menu, or
-      live services beyond S2's shape-gated math.
+- [x] Standalone at the time: NO edits to `world_playable.tscn`, main menu,
+      or live services beyond S2's shape-gated math. The planar world was
+      retired later; see `archive/prd/prd-planar-retirement.md`.
 
 ### S5 — terrain streaming (2026-09-28)
 - [x] `core/frame/math/icosahedral_faces.gd` — the 20 spherical-
@@ -144,11 +148,11 @@ touching the existing playable world.
 
 ### S6 — full-flow spherical world driver (2026-09-28)
 - [x] GameManager `_handle_playing_state` branches on the S2 shape
-      knob: planar (default) -> world_playable.tscn, spherical ->
-      `scenes/worlds/globe_world.tscn`. The parameter is now
-      load-bearing; planar default keeps every existing flow intact.
-- [x] `tests/test_world_shape.gd` (default planar / spherical flip /
-      garbage fallback incl. casing).
+      knob: at the time planar (default) -> `world_playable.tscn`, spherical
+      -> `scenes/worlds/globe_world.tscn`. The planar world was retired later;
+      spherical is now the sole live path.
+- [x] `tests/test_world_shape.gd` (historical planar/spherical flip;
+      Wave A asserts the shipped default is spherical).
 - [x] `tests/globe_driver.gd` -- the REAL flow on the sphere: menu ->
       character select (species/class handlers) -> Play -> GlobeWorld
       via the shape branch; walk via the real input map; HUD panel
@@ -620,7 +624,8 @@ ThermalUpdraft schema):
   caps, exact-not-lerped lift, colliders-vs-provider double
   authority). Determinism test uses refinement ratios.
 - **2026-09-28 (same day, part 2)** — S6 (full-flow driver) DONE:
-  shape knob now picks the world scene (planar default intact);
+  shape knob now picks the world scene (the then-current planar default
+  intact);
   globe_driver walks the real menu->select->Play->globe flow with
   pixel verification (radial err 0.001 m). Regression 22/22.
   Next candidates: chunk geometry follows SeedChain rules

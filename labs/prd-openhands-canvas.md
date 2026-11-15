@@ -1,8 +1,11 @@
 # OpenHands Canvas lanes for Synmergia
 
-Status: working reference (2026-11-06). Supersedes the earlier recon note.
-Answers: what can Canvas do for Synmergia, do subagents actually work, and
-how do we run parallel lanes without spending money we did not intend to.
+> **Status:** REFERENCE (2026-11-06). Verified platform notes for parallel
+> lanes; not product law and not a shipping queue.
+
+This working reference answers: what can Canvas do for Synmergia, do
+subagents actually work, and how do we run parallel lanes without spending
+money we did not intend to. It supersedes the earlier recon note.
 
 ## TL;DR
 
@@ -213,8 +216,8 @@ lane that runs a receipt would fail -- a lane that only reads files does
 not need them.
 
 **The bug Lane B found (confirmed by the parent):** `globe_player.gd` never
-calls `add_to_group("players")`, while the planar `player_controller.gd:452`
-does. `ActionBar._on_player_input()` resolves its caster via
+calls `add_to_group("players")`, while the now-deleted planar
+`player_controller.gd:452` did. `ActionBar._on_player_input()` resolves its caster via
 `get_first_node_in_group("players")` (`action_bar.gd:431`), so on the globe
 that lookup cannot find the local body. Real wiring gap, not a lane
 hallucination.
