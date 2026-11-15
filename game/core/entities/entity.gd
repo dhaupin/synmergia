@@ -392,7 +392,12 @@ func get_healing_power() -> int:
 	return get_stat("wisdom") * 2
 
 func get_attack_speed() -> float:
-	return 1.0 + (get_stat("agility") * 0.01)
+	# THE attack-speed formula (StatId): 1.0 base + agility + the
+	# attack_speed_multiplier stat delta (a haste). Reading the stat block is
+	# what lets a haste buff actually land -- the status-effect field was
+	# declared but never folded into the stats block.
+	var delta := float(stats.get("attack_speed_multiplier", 1.0)) - 1.0
+	return StatId.attack_speed_of(float(get_stat("agility")), delta)
 
 func get_crit_chance() -> float:
 	# THE crit formula (StatId): base + agility + the crit_chance stat

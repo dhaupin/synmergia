@@ -178,6 +178,9 @@ static func calculate_hit(attacker, defender, skill = null) -> Dictionary:
 
 	# --- Segments -----------------------------------------------------
 	var hit_chance := calculate_hit_chance(attacker_level, defender_level, attacker_ratings.hit_rating)
+	# A haste helps you land: fold the attacker's attack-speed bonus into hit
+	# chance before the miss segment is derived from it.
+	hit_chance = clampf(hit_chance + StatId.hit_bonus_for_attack_speed(_attack_speed_for(attacker)), 0.05, 1.0)
 	result["hit_chance"] = hit_chance
 	var miss_chance: float = maxf(0.0, 1.0 - hit_chance)
 
@@ -391,6 +394,15 @@ static func _crit_multiplier_for(attacker) -> float:
 	if attacker != null and attacker.has_method("get_crit_multiplier"):
 		return float(attacker.get_crit_multiplier())
 	return StatId.crit_damage_of(_stat(attacker, "crit_damage", 0.0))
+
+## The attacker's attack-speed multiplier, duck-typed through the body's own
+## get_attack_speed when it has one, else the StatId formula off the raw stat
+## block -- the same two-path read the crit helpers use.
+static func _attack_speed_for(attacker) -> float:
+	if attacker != null and attacker.has_method("get_attack_speed"):
+		return float(attacker.get_attack_speed())
+	var delta := _stat(attacker, "attack_speed_multiplier", 1.0) - 1.0
+	return StatId.attack_speed_of(_stat(attacker, "agility", 10.0), delta)
 
 ## Helper to check if defender has shield equipped. Duck-typed: only
 ## the player body carries an inventory_component; bare Entity / Enemy

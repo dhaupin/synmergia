@@ -94,6 +94,10 @@ var current_health: int = 100
 var current_mana: int = 100
 var max_mana: int = 100
 
+## Guards _apply_class_crit_identity so the class crit/attack-speed bonus folds
+## onto the stat block exactly once per body.
+var _class_identity_applied: bool = false
+
 signal health_changed(current: int, maximum: int, delta: int)
 signal mana_changed(current: int, maximum: int)
 signal player_died(killer)
@@ -517,18 +521,25 @@ func _resolve_class_data():
 	return null
 
 ## Fold the resolved class's crit identity (crit_chance_bonus / crit_damage_bonus)
-## onto the body's stat block, so the ranger's higher base crit is a DATA
-## property of the class, not a hardcoded body. Idempotent: it re-bases the two
-## stat keys from the class each call rather than accumulating, so a re-resolve
-## (character swap, refresh) cannot stack the bonus twice.
+## and attack-speed identity (attack_speed_bonus) onto the body's stat block, so
+## the ranger's higher base crit and faster swing are DATA properties of the
+## class, not a hardcoded body.
+##
+## Applies exactly ONCE per body (guarded by _class_identity_applied) and ADDS
+## onto the 0.0 / 1.0 base, so a later haste or crit buff stacks on top of the
+## class base instead of being clobbered by a re-resolve.
 func _apply_class_crit_identity(class_data) -> void:
-	if class_data == null:
+	if class_data == null or _class_identity_applied:
 		return
+	_class_identity_applied = true
 	var chance := float(class_data.get("crit_chance_bonus")) if "crit_chance_bonus" in class_data else 0.0
 	var damage := float(class_data.get("crit_damage_bonus")) if "crit_damage_bonus" in class_data else 0.0
-	# Re-base (not +=) so repeated resolves are idempotent.
-	stats["crit_chance"] = chance
-	stats["crit_damage"] = damage
+	var haste := float(class_data.get("attack_speed_bonus")) if "attack_speed_bonus" in class_data else 0.0
+	# Add onto the base (crit_chance 0.0, attack_speed_multiplier 1.0) so a
+	# buff applied later rides on top rather than being overwritten.
+	stats["crit_chance"] = float(stats.get("crit_chance", 0.0)) + chance
+	stats["crit_damage"] = float(stats.get("crit_damage", 0.0)) + damage
+	stats["attack_speed_multiplier"] = float(stats.get("attack_speed_multiplier", 1.0)) + haste
 
 ## Populate the skillbar from the character's class data (idempotent). The
 ## class's starting_skills resolve to runtime Skill resources; boot paths

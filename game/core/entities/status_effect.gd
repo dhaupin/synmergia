@@ -287,6 +287,10 @@ func _apply_combat_modifiers(adding: bool) -> void:
 		entity.stats.movement_speed_multiplier += sign * movement_speed_multiplier * current_stacks
 	if armor_multiplier != 0 and "armor_multiplier" in entity.stats:
 		entity.stats.armor_multiplier += sign * armor_multiplier * current_stacks
+	# Attack speed: the haste axis. This field was declared but NEVER folded
+	# into the stat block, so Entity.get_attack_speed could never see a haste.
+	if attack_speed_multiplier != 0 and "attack_speed_multiplier" in entity.stats:
+		entity.stats.attack_speed_multiplier += sign * attack_speed_multiplier * current_stacks
 	if damage_reduction != 0 and "damage_reduction" in entity.stats:
 		entity.stats.damage_reduction += sign * damage_reduction * current_stacks
 	if damage_reflect != 0 and "damage_reflect" in entity.stats:

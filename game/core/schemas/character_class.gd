@@ -84,6 +84,11 @@ const MAX_STAT_VALUE: int = 200
 @export var crit_chance_bonus: float = 0.0
 @export var crit_damage_bonus: float = 0.0
 
+## The class's base attack-speed bonus (a delta on the 1.0 multiplier). The
+## rogue identity leans on this: a rogue class starts faster than a warrior,
+## and that speed fans out to hit rate, cooldowns, and DoT ticks.
+@export var attack_speed_bonus: float = 0.0
+
 # Starting skills
 @export var starting_skills: Array[String] = []
 @export var skill_tree_unlocks: Dictionary = {

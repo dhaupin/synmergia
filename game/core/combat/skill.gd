@@ -450,7 +450,8 @@ func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO, def
 		hot.effect_name = skill_name + " HoT"
 		hot.effect_type = StatusEffect.EffectType.BUFF
 		hot.tick_behavior = StatusEffect.TickBehavior.TICKED
-		hot.tick_interval = hot_tick_rate if hot_tick_rate > 0 else 1.0
+		# A hasted caster's HoT ticks faster, same law as the DoT path.
+		hot.tick_interval = (hot_tick_rate if hot_tick_rate > 0 else 1.0) / StatId.dot_rate_for_attack_speed(_attack_speed_of(caster))
 		hot.duration = hot_duration
 		hot.tick_heal = hot_heal
 
@@ -768,7 +769,9 @@ func applyDoT(caster, target) -> void:
 	dot.effect_type = StatusEffect.EffectType.DEBUFF
 	dot.effect_category = StatusEffect.EffectCategory.POISON
 	dot.tick_behavior = StatusEffect.TickBehavior.TICKED
-	dot.tick_interval = dot_tick_rate if dot_tick_rate > 0 else 1.0
+	# A hasted caster's DoT ticks faster (interval / attack speed), so attack
+	# speed is worth something to the DoT lanes too.
+	dot.tick_interval = (dot_tick_rate if dot_tick_rate > 0 else 1.0) / StatId.dot_rate_for_attack_speed(_attack_speed_of(caster))
 	dot.duration = dot_duration
 	# Self-expire after the tick budget: a TICKED effect with
 	# total_ticks = 0 is infinite by contract, and the tick janitor only
@@ -1033,9 +1036,21 @@ func _power_scale(caster) -> float:
 	return clampf(_stat_of(caster, "effect_power_mult", 1.0) * upgrade_effect_strength_mult, 0.0, StatId.MAX_EFFECT_POWER_MULT)
 
 ## The caster's cooldown-reduction fraction, clamped (read at the one
-## cooldown set point in execute()).
+## cooldown set point in execute()). A haste (attack speed) shortens
+## cooldowns too, so it folds its CDR share in before the clamp.
 func _cooldown_reduction_of(caster) -> float:
-	return clampf(_stat_of(caster, "cooldown_reduction", 0.0), 0.0, StatId.MAX_COOLDOWN_REDUCTION)
+	var cdr := _stat_of(caster, "cooldown_reduction", 0.0)
+	cdr += StatId.cdr_for_attack_speed(_attack_speed_of(caster))
+	return clampf(cdr, 0.0, StatId.MAX_COOLDOWN_REDUCTION)
+
+## The caster's attack-speed multiplier. Duck-typed through the body's own
+## get_attack_speed when it has one (Entity / player), else the StatId
+## formula off the raw stat block, so a bare caster still resolves.
+func _attack_speed_of(caster) -> float:
+	if caster != null and caster.has_method("get_attack_speed"):
+		return float(caster.get_attack_speed())
+	var delta := _stat_of(caster, "attack_speed_multiplier", 1.0) - 1.0
+	return StatId.attack_speed_of(_stat_of(caster, "agility", 10.0), delta)
 
 ## Multiply every numeric magnitude on a built status effect by `mult` (the
 ## Bender's AMPLIFY). One field list, so a new magnitude field is added here

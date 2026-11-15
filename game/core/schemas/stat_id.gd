@@ -106,6 +106,22 @@ const BASE_CRIT_DAMAGE: float = 1.5
 ## on this; it stays here next to the base so the accessors are one formula.
 const CRIT_PER_AGILITY: float = 0.003
 
+## --- Attack speed (the rogue / party buff axis) --------------------------
+## Attack speed is ONE multiplier (base 1.0) that fans out to four effects:
+## it raises hit rate, shortens cooldowns, speeds DoT/HoT ticks, and only
+## SLIGHTLY lifts movement (the rogue's axis is attack speed, not raw speed).
+## These are the one set of coefficients every consumer reads.
+const AGILITY_PER_ATTACK_SPEED: float = 0.01   # +1% attack speed per agility
+const MAX_ATTACK_SPEED_MULT: float = 2.5       # ceiling: haste cannot run away
+## Each +100% attack speed adds this much hit chance (a haste helps you land).
+const HIT_PER_ATTACK_SPEED: float = 0.15
+## Each +100% attack speed shaves this much cooldown (folded into CDR, still
+## under MAX_COOLDOWN_REDUCTION).
+const CDR_PER_ATTACK_SPEED: float = 0.50
+## A haste's movement lift is only this fraction of its attack-speed lift, so
+## a +20% haste is +20% attack speed but +6% movement -- "slightly faster".
+const HASTE_MOVE_FRACTION: float = 0.30
+
 ## Ceilings the pipeline clamps to, so authored data cannot make a body
 ## unkillable or a reflect loop unbounded.
 const MAX_DAMAGE_REDUCTION: float = 0.90
@@ -172,6 +188,31 @@ static func crit_chance_of(agility: float, crit_chance_delta: float) -> float:
 static func crit_damage_of(crit_damage_delta: float) -> float:
         return clampf(BASE_CRIT_DAMAGE + crit_damage_delta, 1.0, MAX_CRIT_DAMAGE)
 
+
+## The attack-speed multiplier a body swings at: the 1.0 base + agility + the
+## attack_speed_multiplier stat delta (a haste). THE one formula, so a haste
+## buff, an agility climb, and a bare stub all resolve the same number.
+static func attack_speed_of(agility: float, attack_speed_delta: float) -> float:
+        return clampf(
+                1.0 + agility * AGILITY_PER_ATTACK_SPEED + attack_speed_delta,
+                0.1, MAX_ATTACK_SPEED_MULT)
+
+
+## The hit-chance bonus a haste grants, on top of the level/rating hit curve.
+static func hit_bonus_for_attack_speed(attack_speed: float) -> float:
+        return maxf(0.0, attack_speed - 1.0) * HIT_PER_ATTACK_SPEED
+
+
+## The extra cooldown reduction a haste grants, folded into the flat CDR the
+## skill path already clamps to MAX_COOLDOWN_REDUCTION.
+static func cdr_for_attack_speed(attack_speed: float) -> float:
+        return maxf(0.0, attack_speed - 1.0) * CDR_PER_ATTACK_SPEED
+
+
+## The DoT/HoT tick-rate multiplier: a haste ticks faster by the same factor
+## (interval is divided by it), capped so a tick cannot run away.
+static func dot_rate_for_attack_speed(attack_speed: float) -> float:
+        return clampf(attack_speed, 0.25, MAX_ATTACK_SPEED_MULT)
 
 ## Clamp an authored reduction/reflect fraction into its safe band.
 static func clamp_fraction(key: String, value: float) -> float:
