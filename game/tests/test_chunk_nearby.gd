@@ -20,8 +20,6 @@
 ## Run: cd game && godot --headless --path . --script res://tests/test_chunk_nearby.gd
 extends SceneTree
 
-const SERVER := "/workspace/project/synmergia/srv/julia-bridge/server_lite.jl"
-const PROJECT := "/workspace/project/synmergia/srv/julia-bridge"
 const ICOSA := "res://core/frame/math/icosahedral.gd"
 const PropChunk = preload("res://core/frame/geometry/prop_chunk.gd")
 const ChunkInterest = preload("res://core/services/chunk_interest.gd")
@@ -178,14 +176,26 @@ func _which(exe: String) -> String:
 	return str(out[0]).strip_edges() if not out.is_empty() else ""
 
 
+## The bridge lives beside the Godot project (game/../srv/julia-bridge).
+## Resolve it from res:// so the live leg works in any checkout, not only
+## the one sandbox path an earlier receipt happened to use.
+func _bridge_dir() -> String:
+	return ProjectSettings.globalize_path("res://").path_join("../srv/julia-bridge").simplify_path()
+
+
+func _server_path() -> String:
+	return _bridge_dir().path_join("server_lite.jl")
+
+
 func _boot_sidecar() -> bool:
 	var julia := _which("julia")
-	if julia.is_empty() or not FileAccess.file_exists(SERVER):
+	var server := _server_path()
+	if julia.is_empty() or not FileAccess.file_exists(server):
 		print("  (no julia sidecar; index leg will skip)")
 		return false
 	_pid = OS.create_process(julia, [
-		"--startup-file=no", "--compile=min", "--project=" + PROJECT,
-		SERVER, "--port", str(PORT)], false)
+		"--startup-file=no", "--compile=min", "--project=" + _bridge_dir(),
+		server, "--port", str(PORT)], false)
 	if _pid <= 0:
 		return false
 	for _i in range(80):
