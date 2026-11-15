@@ -1,0 +1,39 @@
+# Synmergia docs - a thin caller of THE one docs lane (dhaupin/freestruct).
+#
+# The lane owns the runbook: Jekyll, the pinned pagefind install, the
+# freestruct post-build pass, the Pages artifact, and the main-only deploy
+# guard. This file keeps only what is per-repo: the trigger, permissions,
+# concurrency, and the version pins.
+name: Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - '.github/workflows/docs.yml'
+      - 'package.json'
+      - 'bun.lock'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  docs:
+    # Pinned to the lane SHA, never a moving branch. This is the v1.4.1 cut.
+    uses: dhaupin/freestruct/.github/workflows/docs-lane.yml@cd2536b45a88c7342c50147d2f4fcf02ae2467e2
+    with:
+      docs-path: docs
+      output-dir: docs/_site
+      ruby-version: '3.3'
+      node-version: '22'
+      pagefind-version: '1.5.2'
+      freestruct-version: '1.4.1'
+      strict: true

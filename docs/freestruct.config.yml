@@ -1,0 +1,48 @@
+# freestruct config - Synmergia docs (docs.creadev.org/synmergia)
+# Runs post-Jekyll. The docs lane installs the pinned engine and calls
+# `node node_modules/freestruct/bin/freestruct.mjs --strict` from the repo root.
+site:
+  name: Synmergia Docs
+  # Origin only. Page paths carry /synmergia/ through basePath.
+  url: https://docs.creadev.org
+  description: How Synmergia works, how it is built, and how to run your own world.
+
+author:
+  name: Creadev.org
+  url: https://creadev.org
+
+jsonLd:
+  - "@type": Person
+    name: dhaupin
+    url: https://github.com/dhaupin
+    jobTitle: Synmergia maintainer
+
+# Jekyll writes docs/_site. freestruct resolves outputDir against docs/.
+outputDir: _site
+basePath: /synmergia
+
+# Public docs fail on broken internal links.
+linkCheck: true
+
+readingTime: true
+lastModified: true
+
+generateSitemap: true
+generateRobots: true
+generate404: true
+generateFeed: false
+searchIndex: false
+llms: true
+
+breadcrumb: true
+
+og:
+  image:
+    src: https://synmergia.creadev.org/og-image.png
+    width: 1200
+    height: 630
+    alt: Synmergia - a browser-first open world
+  type: article
+
+twitter:
+  card: summary_large_image

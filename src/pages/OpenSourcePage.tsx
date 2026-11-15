@@ -12,7 +12,17 @@ const DOCS: { label: string; href: string; body: string }[] = [
   {
     label: 'Docs portal',
     href: 'https://docs.creadev.org/synmergia/',
-    body: 'the systems view, build path, world reference, and the access and agent contract.',
+    body: 'the systems view, local setup, testing, content authoring, operations, and reference.',
+  },
+  {
+    label: 'Access and agents',
+    href: 'https://docs.creadev.org/synmergia/access/',
+    body: 'the one-tree model for human accessibility and agent endpoints, with gamestruct as the carrier.',
+  },
+  {
+    label: 'The frame',
+    href: 'https://docs.creadev.org/synmergia/build/frame/',
+    body: 'the reusable core: what is real today, what stays game-side, and why there is no install package yet.',
   },
   {
     label: 'Contributing',
@@ -218,6 +228,17 @@ export default function OpenSourcePage() {
           world is data-driven — which is why a designer, not only an engineer, can
           add a zone, a quest, or a creature without touching the engine.
         </p>
+        <p className="text-sm text-ink-soft leading-relaxed mt-4">
+          Accessibility is architecture here, not a bolt-on: the same semantic tree
+          serves screen readers and agent clients.{' '}
+          <a
+            href="https://docs.creadev.org/synmergia/access/"
+            className="text-ink font-semibold hover:text-accent"
+          >
+            Read the access model
+          </a>
+          .
+        </p>
       </section>
 
       {/* Docs & license */}
@@ -259,12 +280,18 @@ export default function OpenSourcePage() {
         </p>
         <div className="flex flex-wrap items-center gap-3">
           <a
+            href="https://docs.creadev.org/synmergia/"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-accent text-paper font-semibold hover:bg-accent-deep transition-colors shadow"
+          >
+            Read the docs <ArrowRight className="w-4 h-4" />
+          </a>
+          <a
             href={REPO}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-accent text-paper font-semibold hover:bg-accent-deep transition-colors shadow"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-line text-ink hover:border-accent hover:text-accent transition-colors"
           >
-            View the source <ArrowRight className="w-4 h-4" />
+            View the source
           </a>
           <a
             href={`${REPO}/issues`}
