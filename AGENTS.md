@@ -1335,6 +1335,32 @@ engine binary is provisioned by `scripts/setup-dev.sh`, not by LFS.
   and `test_crit_system` shipped but were not in the runner block, so CI never
   ran them. Add the name, then regenerate the packs.
 
+### Enemy spawn: one stat seeder (learned 2026-10-28)
+
+- **Crit was authored but did not reach the entity on 3 of 5 spawn paths.**
+  Five pipelines each hand-copied the primaries; only `spawn_enemy_direct` and
+  the horde producer also copied `crit_chance`/`crit_damage`. `spawn_boss`,
+  `_create_enemy` (spawn points) and the globe wildlife spawner dropped the
+  crit identity, so all five crit-authoring bosses spawned with their authored
+  `crit_chance = 0.20` discarded and fell back to agility-only crit (the Void
+  Lord rolled 0.17 instead of 0.28). The crit *system* was fine; the *copy* was
+  not.
+- **`EnemyData.apply_stats_to(entity, level_override)` is THE one stat-copy
+  path.** It seeds the primaries (+ optional level scaling) AND the crit
+  identity. Every spawn pipeline routes through it, so a path cannot "forget" a
+  field -- there is only one path. When you add a spawn route, call this; do NOT
+  hand-copy `stats[...]` from a template.
+- **Scaling differs by path, and the helper preserves it.** `level_override > 0`
+  scales the primaries via `get_scaled_stat` (the horde path's behavior, and how
+  level-raised direct spawns are meant to be tougher); otherwise raw primaries
+  are copied (direct/boss/globe). `crit_chance`/`crit_damage` are a flat
+  authored identity and are never level-scaled.
+- **A test that checks the TEMPLATE is not a test that checks the SPAWN.**
+  `test_crit_system` asserted `boss.get_stats_for_level()` authored crit -- which
+  passed while the spawned entity got none. Assert on the spawned entity (or a
+  live `spawn_boss` through `SpawnService`), not just the template. Negative
+  control: deleting the seeder's crit lines must fail the test.
+
 ### Quest objective bridges + CI triggers (learned 2026-11-29)
 
 - **Objective types and their bridges.** `quest_data.gd` `ObjectiveType`
