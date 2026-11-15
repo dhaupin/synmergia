@@ -123,6 +123,16 @@ exists, authored per species.
   `resource_type`, `base_stats`/`stat_growth` are all DATA. A class's identity
   (a ranger crits harder, a rogue is faster) is authored in the `.tres`, not
   special-cased in a service. Prefer adding a field + data over a code branch.
+- **Crit is one system on three AXES, and every class carries it.**
+  `StatId.crit_axis_for` picks the axis off the skill: a magical skill crits off
+  INT, a heal off WIS, anything else off agility. One formula
+  (`StatId.crit_chance_on_axis`: base + axis_value * rate + the `crit_chance`
+  delta) serves all three, so a mage/healer crit and a rogue crit are the same
+  shape with a different per-point rate. Every playable class authors a positive
+  `crit_chance_bonus` AND `crit_damage_bonus` in its `.tres` (TANK/DD/MAGE/
+  ROGUE/BENDER/HEALER each a lane value); the ranger trio is the highest. A
+  class left at the `0.0` default is a bug -- `test_crit_system` section 8 fails
+  on it. Enforced by `test_crit_system.gd`.
 - **When you extend this layer:** put the shape in the schema, the values in
   the `.tres`, the behavior in one shared service, and the vocabulary in
   `StatId` / `GameTier`. Then add the test that asserts it on the SPAWNED/

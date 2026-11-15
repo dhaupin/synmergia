@@ -373,19 +373,26 @@ static func _blessing_multiplier_for(attacker) -> float:
 
 ## Crit chance off the combatant's own roll when it has one (Entity /
 ## the player body get_crit_chance), stat-derived otherwise. Both paths read
-## the crit_chance stat delta through StatId.crit_chance_of, so a crit buff
-## lands on any body (the accessor no longer shadows the stat block).
+## the crit_chance stat delta through StatId, so a crit buff lands on any body
+## (the accessor no longer shadows the stat block).
 ##
-## A MAGICAL skill crits off INT, not agility -- the caster's identity -- so
-## a mage's crit climbs with the stat its damage already scales on. The
-## `crit_chance` delta is added on top either way (a crit buff helps a mage
-## too), and `_crit_multiplier_for` supplies the body's crit_damage.
+## The crit AXIS is the caster's identity, chosen by StatId.crit_axis_for: a
+## MAGICAL skill crits off INT (a mage's crit climbs with the stat its damage
+## already scales on), a HEAL off WIS (a healer's crit is restoration power),
+## and anything else off agility (the weapon lanes). The `crit_chance` delta is
+## added on top on every axis, so a crit buff helps any class, and
+## `_crit_multiplier_for` supplies the body's crit_damage.
 static func _crit_chance_for(attacker, skill = null) -> float:
 	var delta := _stat(attacker, "crit_chance", 0.0)
-	if skill != null and "damage_type" in skill and str(skill.damage_type) == "magical":
-		return clampf(
-			_stat(attacker, "intelligence", 10.0) / 200.0 + delta,  # ~0.5% per int
-			0.0, StatId.MAX_CRIT_CHANCE)
+	var is_heal: bool = skill != null and "heal_amount" in skill and int(skill.heal_amount) > 0
+	var school: String = "physical"
+	if skill != null and "damage_type" in skill:
+		school = str(skill.damage_type)
+	var axis: String = StatId.crit_axis_for(school, is_heal)
+	# A caster axis (int/wis) derives straight off the stat; the agility axis
+	# prefers the body's own roll so a weapon/class crit buff lands.
+	if axis != "agility":
+		return StatId.crit_chance_on_axis(axis, _stat(attacker, axis, 10.0), delta)
 	if attacker != null and attacker.has_method("get_crit_chance"):
 		return float(attacker.get_crit_chance())
 	return StatId.crit_chance_of(_stat(attacker, "agility", 10.0), delta)

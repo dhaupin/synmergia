@@ -76,11 +76,29 @@ func _run() -> void:
 	magical.damage_type = "magical"
 	var physical := Skill.new()
 	physical.damage_type = "physical"
-	# INT 100 => 100/200 = 0.50; agility path => 0.08. Distinguishable.
+	# THE one axis formula (base + axis_value * rate + delta), same shape on
+	# every axis. INT 100 => 0.05 + 100*0.005 = 0.55; agility 10 => 0.08.
 	var magic_crit: float = CombatMath._crit_chance_for(mage, magical)
 	var phys_crit: float = CombatMath._crit_chance_for(mage, physical)
-	_assert(_approx(magic_crit, 0.50), "magical skill crits off INT (0.5%% per int)")
+	_assert(_approx(magic_crit, 0.05 + 100.0 * StatId.CRIT_PER_INTELLIGENCE),
+		"magical skill crits off INT (base + 0.5%% per int)")
 	_assert(_approx(phys_crit, 0.08), "physical skill crits off agility")
+
+	# A HEAL crits off WIS, not agility/INT -- the healer's own axis. Same body
+	# as the mage, so only the axis differs.
+	mage.stats["wisdom"] = 200
+	var heal_skill := Skill.new()
+	heal_skill.heal_amount = 100
+	var heal_crit: float = CombatMath._crit_chance_for(mage, heal_skill)
+	_assert(_approx(heal_crit, 0.05 + 200.0 * StatId.CRIT_PER_WISDOM),
+		"a heal crits off WIS (base + 0.3%% per wis)")
+	# The chooser is the one home for the axis mapping.
+	_assert(StatId.crit_axis_for("magical", false) == "intelligence",
+		"axis: magical damage -> intelligence")
+	_assert(StatId.crit_axis_for("physical", true) == "wisdom",
+		"axis: a heal -> wisdom whatever the school")
+	_assert(StatId.crit_axis_for("physical", false) == "agility",
+		"axis: physical damage -> agility")
 
 	# --- 4. Crit heal ----------------------------------------------------
 	# A heal skill with a guaranteed-crit caster heals more than without.
@@ -150,7 +168,7 @@ func _run() -> void:
 				spawned.queue_free()
 
 	# --- 7. A ranger class starts with a higher base crit ----------------
-	# The ranger trio authors crit_chance_bonus > 0; a warrior does not.
+	# The ranger trio authors the highest crit_chance_bonus of any lane.
 	var ranger := load("res://data/classes/class_human_marksman.tres")
 	var warrior := load("res://data/classes/class_human_warrior.tres")
 	if ranger != null and warrior != null:
@@ -161,3 +179,34 @@ func _run() -> void:
 		var warrior_crit := StatId.crit_chance_of(10.0, float(warrior.get("crit_chance_bonus")))
 		_assert(ranger_crit > warrior_crit,
 			"a ranger body's crit chance beats a warrior body's")
+
+	# --- 8. EVERY playable class carries a real crit identity ------------
+	# "Every class needs the crit system applied." The ranger trio used to be
+	# the only lanes authoring crit; the other 15 sat at the 0.0/0.0 default,
+	# so a warrior/tank/mage/healer/cleric had no crit identity at all. Each
+	# playable class must now author a positive crit chance AND damage, and the
+	# damage must be a real multiplier bump (not just a cosmetic chance).
+	var cls_dir := DirAccess.open("res://data/classes")
+	var no_crit: Array = []
+	var checked := 0
+	if cls_dir != null:
+		cls_dir.list_dir_begin()
+		var fn := cls_dir.get_next()
+		while fn != "":
+			if fn.ends_with(".tres") and not fn.begins_with("class_gm_"):
+				var cd = load("res://data/classes/%s" % fn)
+				if cd != null:
+					checked += 1
+					var ch := float(cd.get("crit_chance_bonus"))
+					var dm := float(cd.get("crit_damage_bonus"))
+					if ch <= 0.0 or dm <= 0.0:
+						no_crit.append("%s (chance %.3f, dmg %.3f)" % [fn, ch, dm])
+			fn = cls_dir.get_next()
+	_assert(checked == 18, "18 playable classes checked (got %d)" % checked)
+	_assert(no_crit.is_empty(),
+		"every playable class authors crit chance AND damage: %s" % ", ".join(no_crit))
+	# The crit damage is a real multiplier on the 1.5 base, not a no-op.
+	if warrior != null:
+		var w_dmg := StatId.crit_damage_of(float(warrior.get("crit_damage_bonus")))
+		_assert(w_dmg > StatId.BASE_CRIT_DAMAGE,
+			"a warrior's crit_damage_bonus lifts the 1.5 multiplier")
