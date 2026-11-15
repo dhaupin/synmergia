@@ -1,6 +1,6 @@
 ## DeepGardenBinder -- S14.7.3: one world-side listener that joins the
 ## S14.7.2 harvest truth (HarvestService's depletion book) to the
-## S14.7.2 paint (the retired retired streamer's deep_garden groves).
+## S14.7.2 paint (the retired streamer's deep_garden groves).
 ##
 ## THE LAW: an entity registration and its visual half are ONE
 ## placement; the same register call that mints `deep_kelp_<f>_<b>_<k>`

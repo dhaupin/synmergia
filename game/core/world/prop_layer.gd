@@ -51,7 +51,7 @@ const KIND_FERN: int = 10
 ## cluster, not a scattered point. Owned by the world's provider
 ## (`deep_beds()`), grown here so the RENDERER no longer owns the garden.
 const FAMILY_DEEP: int = 4
-## Deep-bed tuning (ported from the retired retired streamer's DEEP_* constants): the
+## Deep-bed tuning (ported from the retired streamer's DEEP_* constants): the
 ## shelf's kelp band + the trench's pearl band, their anchor depths, and
 ## respawn windows.
 const DEEP_KELP_M: float = 38.0
@@ -95,7 +95,7 @@ var _scan_center: Vector3 = Vector3.ZERO
 var _recenter_m: float = 120.0
 var _decor_salt: int = 0
 
-# The shared prop mesh registry (quantized-key dedup, the retired retired streamer's law).
+# The shared prop mesh registry (quantized-key dedup, the retired streamer's law).
 var _mesh_registry: Dictionary = {}
 
 # Rocks + boulders are PER-FACE fixed content (TerrainGen.rock_specs /
@@ -361,7 +361,7 @@ func _derive_trees(key: int, count: int, out: Dictionary) -> void:
 
 
 ## Detail props: a biome-weighted kind per site, placed on the ground.
-## The kind law mirrors the retired retired streamer's tiers (tufts fill the meadow; the
+## The kind law mirrors the retired streamer's tiers (tufts fill the meadow; the
 ## wet bands grow mushrooms + mycelium; the dry bands split brush vs ore;
 ## the shore splits shells vs kelp wrack; the marsh grows cattail; shrub
 ## bands grow bushes).
@@ -462,7 +462,7 @@ func _derive_grass(key: int, count: int, out: Dictionary) -> void:
 	out["grass"] = blades
 
 
-## The detail kind for a biome (mirrors the retired retired streamer's tier ladder).
+## The detail kind for a biome (mirrors the retired streamer's tier ladder).
 func _detail_kind(bid: int, rng: RandomNumberGenerator) -> int:
 	# A world may own the biome->kind law (BiomeBand family dispatch); the
 	# provider returns -2 to defer to this built-in main-world ladder.
@@ -749,7 +749,7 @@ func _build_grass_batch(blades: Array, node: Node3D) -> void:
 
 
 ## The grass-blade cluster: one shared 3-blade mesh, vertex-graded base ->
-## sun-tip (the retired retired streamer's tuft law, taller). One instance per grass site.
+## sun-tip (the retired streamer's tuft law, taller). One instance per grass site.
 func _shared_grass_mesh() -> Mesh:
 	var key: String = "grass_mesh"
 	if _mesh_registry.has(key):
@@ -1405,7 +1405,7 @@ func _register_land_harvest(inst: Dictionary) -> void:
 		dir * (radius_m + float(inst.get("h", 0.0))), 1, respawn)
 
 
-## The bush's yield: the alpine meadow's herb, else iron ore (the retired retired streamer's
+## The bush's yield: the alpine meadow's herb, else iron ore (the retired streamer's
 ## own bush law -- the biome the site stands in decides).
 func _bush_item(bid: int) -> String:
 	if bid == TerrainGen.BiomeId.ALPINE_MEADOW:
@@ -1444,7 +1444,7 @@ func _claim_plant(plant_dirs: Array, d: Vector3, covered: Array) -> int:
 
 ## The stable per-face accumulator the bed seeds read (world-seed only, no
 ## day salt -- anchored culture must survive a re-stream). Reads the SAME
-## face seed bytes the retired retired streamer's authored beds derived from, so the garden
+## face seed bytes the retired streamer's authored beds derived from, so the garden
 ## paint (strand placement + its plant_k shearing) is byte-identical to the
 ## pre-port look.
 func _face_acc(face: int) -> int:

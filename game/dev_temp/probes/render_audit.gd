@@ -255,6 +255,15 @@ func _run() -> void:
 		var OceanService = root.get_node_or_null("OceanService")
 		if QuestService != null and OceanService != null:
 			QuestService.load_player_quests("audit_walker")
+			# quest_cross_the_cistern chains off quest_listen_to_the_deep
+			# (the authored chain gate, enforced since 2026-11-02), so seed the
+			# prerequisite as turned in first -- the same honest seed the runner
+			# receipts use. Accepting the sequel cold is now CORRECTLY refused.
+			QuestService._player_quests["audit_walker"]["quest_listen_to_the_deep"] = {
+				"state": QuestService.QuestData.QuestState.REWARDED,
+				"objectives": [],
+				"data": load("res://data/quests/quest_listen_to_the_deep.tres")
+			}
 			var accepted: bool = QuestService.accept_quest("audit_walker", "quest_cross_the_cistern")
 			ok = _check("the swimming quest accepts on this boot", accepted) and ok
 			# Into the dish; one underworld frame delivers the credit.

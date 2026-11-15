@@ -36,8 +36,8 @@ func _init() -> void:
 	var sea_d: Dictionary = _gen().splat_skin((-spawn).normalized(), seed_b, -40.0, 0.0)
 	_ok = _check("splat_skin: the ocean bed reads sand", sea_d["splat"].a > 0.99)
 	_ok = _check("splat_skin: under-shell faces dim (the wet law leg)", sea_d["aux"].y < 0.6)
-	# THE CLIPMAP consults (text pins) -- the skin lane is the renderer's, the
-	# splat derivation the provider's (the retired retired streamer's twin, retired).
+	# THE CLIPMAP consults (text pins) -- the skin lane is the renderer's,
+	# the splat derivation the provider's.
 	var src := FileAccess.open("res://scenes/worlds/globe_clipmap.gd", FileAccess.READ).get_as_text()
 	_ok = _check("clipmap: the skin lane reads the provider surface sample", src.contains("provider.surface_sample(dir)"))
 	_ok = _check("clipmap: UV2 carries the aux channel", src.contains('st.set_uv2(v["aux"])'))

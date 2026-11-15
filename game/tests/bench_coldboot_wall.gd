@@ -52,7 +52,7 @@ func _run() -> void:
 	# = 1 cold build (the neighbors were on the workers). The boot's
 	# ~60 s of fixed non-mesh cost (villages/HUD/GLBs and the 2-core
 	# worker contention) lives OUTSIDE this number.
-	print("LANE=%s BOOT_WALL_MS=%d STREAMER_MS=%d STEADY_FRAMES=%d STEADY_MS=%d FACES_BOOT=%d FACES_STEADY=%d TRIS=%d" \
+	print("LANE=%s BOOT_WALL_MS=%d MESH_MS=%d STEADY_FRAMES=%d STEADY_MS=%d FACES_BOOT=%d FACES_STEADY=%d TRIS=%d" \
 		% ["ASYNC" if lanes_on else "SYNC", wall, st.last_update_ms, drained, steady_ms, faces_boot, faces_steady, st.triangle_count()])
 	# THE >=4-CORE PROJECTION (a MODEL, explicitly not a measurement):
 	# the sync law pays 4 serial cold builds; the lane law pays the
