@@ -15,7 +15,7 @@ This section is for self-hosters, operators, and contributors working on the dep
 |---|---|---|
 | **Game server** | The authoritative Godot server and world state | [DEPLOY.md](https://github.com/dhaupin/synmergia/blob/main/DEPLOY.md) |
 | **Web client** | The site and the `/game/` WebAssembly client | [DEPLOY_WEB.md](https://github.com/dhaupin/synmergia/blob/main/DEPLOY_WEB.md) |
-| **Sidecars** | Postgres, Redis, webhook, and Julia bridges | [srv/README.md](https://github.com/dhaupin/synmergia/blob/main/srv/README.md) |
+| **Sidecars** | Postgres, Redis, webhook, and Julia bridges | [srv/ bridges](https://github.com/dhaupin/synmergia/tree/main/srv) |
 | **Shard mesh** | Multi-container server topology | [Shard mesh PRD](https://github.com/dhaupin/synmergia/blob/main/labs/prd-shard-mesh.md) |
 | **Backups** | The hot-tier backup and restore path | [srv/backup/README.md](https://github.com/dhaupin/synmergia/blob/main/srv/backup/README.md) |
 
