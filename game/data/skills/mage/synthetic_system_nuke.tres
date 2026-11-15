@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "synthetic_system_nuke"
 display_name = "System Nuke"
 description = "Initiates a system-level attack that deals massive damage."

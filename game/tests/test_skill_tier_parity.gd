@@ -217,6 +217,19 @@ func _run() -> void:
 	_check(offenders.is_empty(),
 			"every authored `rarity` int is a valid GameTier rung (%d scanned)" % scanned[0])
 
+	# --- 9. No inlined rung ladder may DIVERGE from GameTier ------------
+	# A dict keyed by rung names is a re-inlined copy of the ladder. Two
+	# shipped defects motivated this: notification_service's loot ladder
+	# stopped at `legendary` (no mythic), and notification_toast's palette
+	# had its own legendary/mythic colours that disagreed with GameTier.
+	# A re-inline is allowed, but it must be COMPLETE and, when it paints
+	# colours, match the canonical palette.
+	var rung_offenders: Array = []
+	var rung_scanned: Array = [0]
+	_scan_rung_dicts("res://", rung_offenders, rung_scanned)
+	_check(rung_offenders.is_empty(),
+			"no inlined rung dict omits a rung or diverges on colour (%d scanned)" % rung_scanned[0])
+
 	_finish()
 
 
@@ -242,3 +255,102 @@ func _scan_rarity(dir_path: String, offenders: Array, acc: Array) -> void:
 						if v < 0 or v > GameTier.MAX_VALUE:
 							offenders.append("%s: %d" % [full, v])
 		nm = d.get_next()
+
+## Scan every shipped .gd for a dict literal keyed by rung names -- a
+## re-inlined copy of the five-rung ladder. Such a copy is allowed only
+## when COMPLETE (all five rungs) and, if it paints colours, when each
+## rung's Color matches GameTier.COLORS. Catches the two shipped defects:
+## a loot ladder that stopped at `legendary`, and a toast palette whose
+## legendary/mythic colours disagreed with the canonical palette.
+func _scan_rung_dicts(dir_path: String, offenders: Array, acc: Array) -> void:
+	var d := DirAccess.open(dir_path)
+	if d == null:
+		return
+	d.list_dir_begin()
+	var nm := d.get_next()
+	while nm != "":
+		if not nm.begins_with("."):
+			var full := dir_path.path_join(nm)
+			if d.current_is_dir():
+				# Skip the canonical source itself and the linter suite.
+				if full != "res://core/schemas/game_tier.gd" and not full.ends_with("/lint"):
+					_scan_rung_dicts(full, offenders, acc)
+			elif nm.ends_with(".gd") and full != "res://core/schemas/game_tier.gd":
+				_scan_rung_dicts_in_file(full, offenders, acc)
+		nm = d.get_next()
+
+
+func _scan_rung_dicts_in_file(path: String, offenders: Array, acc: Array) -> void:
+	var txt := FileAccess.get_file_as_string(path)
+	if txt.is_empty():
+		return
+	# Extract each depth-1 brace block (a dict literal body).
+	var blocks := _brace_blocks(txt)
+	for body in blocks:
+		var keys := _rung_keys(body)
+		if keys.size() < 2:
+			continue
+		acc[0] += 1
+		for rung in GameTier.NAMES:
+			if not keys.has(rung):
+				offenders.append("%s: rung dict omits '%s'" % [path, rung])
+				break
+		for rung in keys:
+			var c: Variant = _rung_color_in(body, rung)
+			if c != null and not _color_matches(c, GameTier.color(rung)):
+				offenders.append("%s: '%s' colour %s != canonical %s"
+					% [path, rung, str(c), str(GameTier.color(rung))])
+
+
+## Depth-1 brace-block bodies of a text (the inside of each `{ ... }`).
+func _brace_blocks(txt: String) -> Array:
+	var out: Array = []
+	var depth := 0
+	var start := -1
+	var i := 0
+	var n := txt.length()
+	while i < n:
+		var ch := txt[i]
+		if ch == "{":
+			if depth == 0:
+				start = i + 1
+			depth += 1
+		elif ch == "}":
+			depth -= 1
+			if depth == 0 and start >= 0:
+				out.append(txt.substr(start, i - start))
+				start = -1
+		i += 1
+	return out
+
+
+## Rung names that appear as string keys ("rare": ...) in a dict body.
+func _rung_keys(body: String) -> Array:
+	var found: Array = []
+	for rung in GameTier.NAMES:
+		if body.contains("\"%s\":" % rung):
+			found.append(rung)
+	return found
+
+
+## The Color(...) painted for `rung` inside a dict body, or null when the
+## dict carries no colour for it.
+func _rung_color_in(body: String, rung: String) -> Variant:
+	var idx := body.find("\"%s\":" % rung)
+	if idx < 0:
+		return null
+	var tail := body.substr(idx)
+	var ci := tail.find("Color(")
+	if ci < 0:
+		return null
+	var close := tail.find(")", ci)
+	if close < 0:
+		return null
+	var parts := tail.substr(ci + 6, close - ci - 6).split(",")
+	if parts.size() < 3:
+		return null
+	return Color(parts[0].to_float(), parts[1].to_float(), parts[2].to_float())
+
+
+func _color_matches(a: Color, b: Color) -> bool:
+	return absf(a.r - b.r) < 0.02 and absf(a.g - b.g) < 0.02 and absf(a.b - b.b) < 0.02

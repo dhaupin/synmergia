@@ -206,6 +206,10 @@ func _run() -> void:
         caster.display_name = "BandCaster"
         caster.entity_type = 1  # Entity.EntityType.PLAYER
         caster.relation = 0     # NEUTRAL
+        # Pin crit OFF: a heal can crit now (a game-wide system), and this
+        # test asserts raw heal math -- an unpinned crit roll would make the
+        # power-amplification assert flake ~8% of runs.
+        caster.stats["crit_chance"] = -1.0
         root.add_child(caster)
         var origin: Vector3 = Vector3(500, 0, 500)
         caster.global_position = origin

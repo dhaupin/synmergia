@@ -3,6 +3,7 @@
 extends Control
 class_name NotificationToast
 const UIStyles = preload("res://ui/components/ui_styles.gd")
+const GameTier = preload("res://core/schemas/game_tier.gd")
 
 ## Toast types with colors
 enum ToastType {
@@ -588,14 +589,9 @@ func achievement(message: String, title: String = "Achievement", duration: float
 	show_toast(message, ToastType.ACHIEVEMENT, title, duration, action, action_data)
 
 func show_loot(item_name: String, rarity: String = "common", quantity: int = 1) -> void:
-	var rarity_colors := {
-		"common": Color(0.6, 0.6, 0.6),
-		"rare": Color(0.3, 0.7, 1.0),
-		"epic": Color(0.8, 0.3, 1.0),
-		"legendary": Color(1.0, 0.8, 0.2),
-		"mythic": Color(1.0, 0.4, 0.1)
-	}
-	var color = rarity_colors.get(rarity.to_lower(), UIStyles.COLORS.text_primary)
+	# The one five-rung ladder (GameTier): common..mythic. Read the
+	# canonical palette so a loot toast matches the inventory border.
+	var color: Color = GameTier.color(rarity) if GameTier.is_valid(rarity) else UIStyles.COLORS.text_primary
 	var msg = "%s x%d" % [item_name, quantity] if quantity > 1 else item_name
 	show_toast(msg, ToastType.LOOT, "[%s] %s" % [rarity.capitalize(), "Loot Received"], 6.0, "open_inventory", {"item": item_name})
 

@@ -556,11 +556,9 @@ func spawn_boss(
 	# WorldStateProjection only projects entities carrying enemy_data.
 	boss.enemy_data = boss_data
 
-	# Apply stats from template
-	boss.stats["strength"] = boss_data.strength
-	boss.stats["agility"] = boss_data.agility
-	boss.stats["intelligence"] = boss_data.intelligence
-	boss.stats["vitality"] = boss_data.vitality
+	# Apply stats from the template through the one seeder (primaries +
+	# the crit identity; a boss authors a high crit pair).
+	boss_data.apply_stats_to(boss)
 
 	boss.max_health = boss_data.health
 	boss.current_health = boss_data.health
@@ -734,12 +732,11 @@ func spawn_enemy_direct(
 		if species != null:
 			enemy.apply_species(species)
 
-	# Stats from the template; health scales with the resolved level
-	# (level_override raised spawns are tougher, matching horde scaling).
-	enemy.stats["strength"] = template.strength
-	enemy.stats["agility"] = template.agility
-	enemy.stats["intelligence"] = template.intelligence
-	enemy.stats["vitality"] = template.vitality
+	# Stats from the template through the one seeder: it copies the
+	# primaries AND the crit identity, so an authored crit_chance reaches
+	# the spawned entity. level_override > 0 scales the primaries (a
+	# level-raised spawn is tougher, matching horde scaling).
+	template.apply_stats_to(enemy, level_override)
 	enemy.max_health = template.get_scaled_stat(template.health, enemy.level)
 	enemy.current_health = enemy.max_health
 
@@ -1034,11 +1031,9 @@ func _create_enemy(spawn_point: SpawnPoint) -> Variant:
 			if species:
 				enemy.apply_species(species)
 
-	# Apply stats from template
-	enemy.stats["strength"] = spawn_point.enemy_data.strength
-	enemy.stats["agility"] = spawn_point.enemy_data.agility
-	enemy.stats["intelligence"] = spawn_point.enemy_data.intelligence
-	enemy.stats["vitality"] = spawn_point.enemy_data.vitality
+	# Apply stats from the template through the one seeder (primaries +
+	# the crit identity).
+	spawn_point.enemy_data.apply_stats_to(enemy)
 
 	enemy.max_health = spawn_point.enemy_data.health
 	enemy.current_health = spawn_point.enemy_data.health

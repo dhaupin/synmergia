@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "human_sorcerer_fireball"
 display_name = "Fireball"
 description = "A roiling sphere of flame that bursts and clings."

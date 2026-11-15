@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "human_arcane_explosion"
 display_name = "Arcane Explosion"
 description = "Detonates stored arcane energy for massive damage."

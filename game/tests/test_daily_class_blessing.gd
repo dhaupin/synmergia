@@ -233,6 +233,9 @@ func _test_heal_hook() -> bool:
 	skill.heal_amount = 100
 	var healer = _fake_fighter(blessed)
 	healer.stats["wisdom"] = 0  # isolate the blessing on the flat heal
+	# Pin crit OFF: a heal can crit now (game-wide system); an unpinned
+	# roll would make the blessed-heal assert flake.
+	healer.stats["crit_chance"] = -1.0
 	var healed: int = skill.calculate_healing(healer)
 	if healed < int(100 * _svc.BLESSED_DAMAGE_MULTIPLIER):
 		push_error("FAIL: blessed heal %d below 120" % healed)
@@ -242,6 +245,7 @@ func _test_heal_hook() -> bool:
 	# plain_heal read 120 from WIS, not from a phantom blessing).
 	var plain = _fake_fighter(_unblessed_id(day))
 	plain.stats["wisdom"] = 0
+	plain.stats["crit_chance"] = -1.0
 	var plain_heal: int = skill.calculate_healing(plain)
 	if plain_heal != 100:
 		push_error("FAIL: unblessed heal %d != 100" % plain_heal)

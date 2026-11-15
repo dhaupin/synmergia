@@ -2009,10 +2009,8 @@ func _spawn_globe_enemy(template_id: String, surface: Vector3, DS, es, tm, level
 		var species = DS.get_species(str(template.species_id))
 		if species != null:
 			enemy.apply_species(species)
-	enemy.stats["strength"] = template.strength
-	enemy.stats["agility"] = template.agility
-	enemy.stats["intelligence"] = template.intelligence
-	enemy.stats["vitality"] = template.vitality
+	# The one seeder: primaries + the crit identity (wildlife can crit too).
+	template.apply_stats_to(enemy, level_override)
 	enemy.max_health = template.get_scaled_stat(template.health, enemy.level)
 	enemy.current_health = enemy.max_health
 	# Pre-applied data: Enemy._ready skips the template reload so the

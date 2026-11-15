@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "akkan_sorcerer_human_sig"
 display_name = "Void Arcane"
 description = "SIGNATURE Human Sorcerer technique through Akkan void energy. Channels Akkan void into a devastating arcane attack."

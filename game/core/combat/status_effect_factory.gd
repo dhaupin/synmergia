@@ -230,7 +230,10 @@ static func _apply_speed(fx: StatusEffect, data) -> void:
         match str(data.speed_type):
                 "haste":
                         fx.attack_speed_multiplier = delta
-                        fx.movement_speed_multiplier = delta
+                        # A haste's movement lift is only a FRACTION of its
+                        # attack lift (the rogue's axis is attack speed, not
+                        # raw speed): +20% haste = +20% attack, +6% movement.
+                        fx.movement_speed_multiplier = delta * StatId.HASTE_MOVE_FRACTION
                 "slow", "snare":
                         fx.movement_speed_multiplier = delta
                 "root":

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "synthetic_psion_mind_flay"
 display_name = "Mind Flay"
 description = "Grinds at a mind, doing damage that will not stop."

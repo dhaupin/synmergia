@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "akkan_rune_human_sig"
 display_name = "Ancestral Runes"
 description = "SIGNATURE Akkan Mage technique through human rune mastery. A powerful rune-enhanced arcane attack."

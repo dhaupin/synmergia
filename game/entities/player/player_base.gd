@@ -23,6 +23,7 @@ extends CharacterBody3D
 class_name PlayerBase
 
 const HealthComponent = preload("res://core/components/health_component.gd")
+const StatId = preload("res://core/schemas/stat_id.gd")
 
 ## THE PROGRESSION RATIO LAW: the cap and the curve live in ONE authority;
 ## the body consults it, never forks it.
@@ -79,6 +80,8 @@ var stats: Dictionary = {
 	"cooldown_reduction": 0.0,
 	"effect_duration_mult": 1.0,
 	"effect_power_mult": 1.0,
+	"crit_chance": 0.0,
+	"crit_damage": 0.0,
 }
 
 # --- Health + mana --------------------------------------------------------
@@ -90,6 +93,10 @@ var max_health: int = 100
 var current_health: int = 100
 var current_mana: int = 100
 var max_mana: int = 100
+
+## Guards _apply_class_crit_identity so the class crit/attack-speed bonus folds
+## onto the stat block exactly once per body.
+var _class_identity_applied: bool = false
 
 signal health_changed(current: int, maximum: int, delta: int)
 signal mana_changed(current: int, maximum: int)
@@ -324,10 +331,13 @@ func get_defense() -> int:
 	return get_stat("vitality") * 2
 
 func get_crit_chance() -> float:
-	return 0.05 + (get_stat("agility") * 0.003)
+	# THE crit formula (StatId): base + agility + the crit_chance stat delta,
+	# so a crit buff lands on the player body too (parity with Entity).
+	return StatId.crit_chance_of(
+		float(get_stat("agility")), float(stats.get("crit_chance", 0.0)))
 
 func get_crit_multiplier() -> float:
-	return 1.5
+	return StatId.crit_damage_of(float(stats.get("crit_damage", 0.0)))
 
 # --- Progression surface (duck-typed Entity API) --------------------------
 func add_experience(amount: int) -> void:
@@ -494,25 +504,55 @@ func _im() -> Node:
 	var tree := Engine.get_main_loop() as SceneTree
 	return tree.root.get_node_or_null(NodePath("InputManager")) if tree and tree.root else null
 
+## THE class-data resolver. Every class-driven surface (the skillbar, the
+## class crit identity, the GM star) reads the SAME class resource through
+## here, so a body can never resolve a class from one source and gate on
+## another. Returns null when neither the character nor the DataService can
+## name a class (a bare PlayerBase probe).
+func _resolve_class_data():
+	var char_data = _gm().selected_character_data if is_instance_valid(_gm()) else null
+	if char_data != null and "class_data" in char_data and char_data.class_data != null:
+		return char_data.class_data
+	var class_id: String = character_class
+	if char_data != null and "class_id" in char_data and str(char_data.class_id) != "":
+		class_id = str(char_data.class_id)
+	if is_instance_valid(_ds()) and _ds().has_method("get_character_class"):
+		return _ds().get_character_class(class_id)
+	return null
+
+## Fold the resolved class's crit identity (crit_chance_bonus / crit_damage_bonus)
+## and attack-speed identity (attack_speed_bonus) onto the body's stat block, so
+## the ranger's higher base crit and faster swing are DATA properties of the
+## class, not a hardcoded body.
+##
+## Applies exactly ONCE per body (guarded by _class_identity_applied) and ADDS
+## onto the 0.0 / 1.0 base, so a later haste or crit buff stacks on top of the
+## class base instead of being clobbered by a re-resolve.
+func _apply_class_crit_identity(class_data) -> void:
+	if class_data == null or _class_identity_applied:
+		return
+	_class_identity_applied = true
+	var chance := float(class_data.get("crit_chance_bonus")) if "crit_chance_bonus" in class_data else 0.0
+	var damage := float(class_data.get("crit_damage_bonus")) if "crit_damage_bonus" in class_data else 0.0
+	var haste := float(class_data.get("attack_speed_bonus")) if "attack_speed_bonus" in class_data else 0.0
+	# Add onto the base (crit_chance 0.0, attack_speed_multiplier 1.0) so a
+	# buff applied later rides on top rather than being overwritten.
+	stats["crit_chance"] = float(stats.get("crit_chance", 0.0)) + chance
+	stats["crit_damage"] = float(stats.get("crit_damage", 0.0)) + damage
+	stats["attack_speed_multiplier"] = float(stats.get("attack_speed_multiplier", 1.0)) + haste
+
 ## Populate the skillbar from the character's class data (idempotent). The
 ## class's starting_skills resolve to runtime Skill resources; boot paths
 ## without login run the default class so keys 1-8 are actually castable.
 func _setup_starting_skills() -> void:
 	if not skillbar.is_empty():
 		return
-	var class_data = null
-	var char_data = _gm().selected_character_data if is_instance_valid(_gm()) else null
-	if char_data != null and "class_data" in char_data and char_data.class_data != null:
-		class_data = char_data.class_data
-	else:
-		var class_id: String = "human_warrior"
-		if char_data != null and "class_id" in char_data and str(char_data.class_id) != "":
-			class_id = str(char_data.class_id)
-		if is_instance_valid(_ds()) and _ds().has_method("get_character_class"):
-			class_data = _ds().get_character_class(class_id)
+	var class_data = _resolve_class_data()
 	# Keep can_cast's class gate consistent with the skillbar source.
 	if class_data != null and "id" in class_data and str(class_data.id) != "":
 		character_class = str(class_data.id)
+	# The class crit identity rides the same resolved class data.
+	_apply_class_crit_identity(class_data)
 	# General skills first: the class-agnostic verbs (Bind, Recover) every
 	# walker of the Concord owns, ahead of the class kit. They load even when
 	# a class has no starting_skills of its own.

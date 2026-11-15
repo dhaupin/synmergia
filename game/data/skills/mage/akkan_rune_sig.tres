@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "akkan_rune_sig"
 display_name = "Rune Mastery"
 description = "SIGNATURE Akkan Mage technique. Channels void energy into devastating rune-based attacks that pierce magical barriers."

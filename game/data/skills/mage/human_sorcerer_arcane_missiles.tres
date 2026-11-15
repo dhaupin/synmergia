@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "human_sorcerer_arcane_missiles"
 display_name = "Arcane Missiles"
 description = "Three darts of raw arcane, each unerring."

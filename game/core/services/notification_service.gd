@@ -511,6 +511,9 @@ func notify_item_loot(entity_id: String, item_name: String, rarity: String = "co
 		"legendary":
 			message = "[LEGENDARY] " + message
 			priority = Priority.CRITICAL
+		"mythic":
+			message = "[MYTHIC] " + message
+			priority = Priority.CRITICAL
 
 	send(entity_id, message, NotificationType.ITEM, priority, DisplayLocation.CHAT_LOG, sound, {
 		"item_name": item_name,

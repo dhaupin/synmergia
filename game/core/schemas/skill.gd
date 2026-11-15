@@ -58,6 +58,14 @@ enum TargetType {
 # Effects (array of EffectData dictionaries)
 @export var effects: Array[Dictionary] = []
 
+## The damage school this skill deals: "physical" (default), "magical", or
+## "true" (unmitigated). It selects which attack stat scales the hit
+## (attack_power vs spell_power) AND which crit roll the hit table uses --
+## a magical skill crits off INT, a physical one off agility. Before this
+## field every skill was implicitly physical, so the magic crit path
+## (CombatMath.calculate_magic_hit) had no caller and mages crit off agility.
+@export var damage_type: String = "physical"
+
 # Requirements
 @export var required_level: int = 1
 @export var required_class: String = ""  # Empty = all classes

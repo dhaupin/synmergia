@@ -175,6 +175,8 @@ test_tick_phase2_systems
 test_combat_stack_live
 test_status_effect_tres
 test_stat_modifiers
+test_attack_speed
+test_crit_system
 test_globe_player_players_group
 test_globe_concord_loop
 test_character_select_zone
@@ -251,7 +253,6 @@ test_julia_presolve
 test_julia_orchestrator_live
 test_multi_iso_vertex
 test_chunk_command
-test_presolve_props
 probe_terrain_climate
 probe_ground_law_audit
 probe_ground_sample

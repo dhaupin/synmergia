@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "synthetic_psion_psychic_scream"
 display_name = "Psychic Scream"
 description = "A shriek of will that stuns every mind nearby."

@@ -13,6 +13,7 @@ extends SceneTree
 
 const StatusEffect = preload("res://core/entities/status_effect.gd")
 const Factory = preload("res://core/combat/status_effect_factory.gd")
+const StatId = preload("res://core/schemas/stat_id.gd")
 const SkillSchema = preload("res://core/schemas/skill.gd")
 const CombatSkill = preload("res://core/combat/skill.gd")
 
@@ -59,7 +60,11 @@ func _run() -> void:
         _assert(shield != null and shield.shield_amount == 150, "mana shield carries its shield payload")
 
         var haste = Factory.from_id("buff_haste")
-        _assert(haste != null and is_equal_approx(haste.movement_speed_multiplier, 0.2), "haste stores a +20% delta (0.2, not 1.2)")
+        # A haste's primary axis is ATTACK speed; it lifts movement only by a
+        # fraction (HASTE_MOVE_FRACTION), so a +20% haste is +20% attack speed
+        # but +6% movement.
+        _assert(haste != null and is_equal_approx(haste.attack_speed_multiplier, 0.2), "haste stores a +20% attack-speed delta (0.2, not 1.2)")
+        _assert(haste != null and is_equal_approx(haste.movement_speed_multiplier, 0.2 * StatId.HASTE_MOVE_FRACTION), "haste lifts movement by only a fraction of its attack speed")
 
         _assert(Factory.from_id("definitely_not_a_real_effect") == null, "unknown effect_id degrades to null (no crash)")
 

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "human_sorcerer_human_sig"
 display_name = "Arcane Surge"
 description = "SIGNATURE Human Sorcerer technique. A devastating arcane blast that bypasses magical resistance."

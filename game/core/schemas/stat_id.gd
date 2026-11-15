@@ -47,12 +47,20 @@ const MULT_KEYS: Array = [
 ##   health_regen      flat HP per second
 ##   mana_regen        flat MP per second
 ##   cooldown_reduction fraction shaved off every cooldown (0.0..0.5)
+##   crit_chance       fraction added to the crit roll (0.05 base + agility).
+##                     A flat delta so a buff/class base raises the crit rate
+##                     directly, the same shape as cooldown_reduction.
+##   crit_damage       fraction added to the crit multiplier (1.5 base). A
+##                     +0.25 means a crit lands for 1.75x. Flat so the rogue's
+##                     crit-damage climb stacks additively.
 const FLAT_KEYS: Array = [
         "damage_reduction",
         "damage_reflect",
         "health_regen",
         "mana_regen",
         "cooldown_reduction",
+        "crit_chance",
+        "crit_damage",
 ]
 
 const MODIFIER: Array = MULT_KEYS + FLAT_KEYS
@@ -79,9 +87,40 @@ const DEFAULTS: Dictionary = {
         "health_regen": 0.0,
         "mana_regen": 0.0,
         "cooldown_reduction": 0.0,
+        "crit_chance": 0.0,
+        "crit_damage": 0.0,
         "effect_duration_mult": 1.0,
         "effect_power_mult": 1.0,
 }
+
+## The crit roll's baseline chance (before agility and any crit_chance delta).
+## THE one home for it: Entity / the player body / CombatMath all read it here
+## so the three can never drift. A ranger class raises its own crit by seeding
+## a positive crit_chance delta, not by editing this constant.
+const BASE_CRIT_CHANCE: float = 0.05
+
+## The crit multiplier's baseline (1.5x before any crit_damage delta).
+const BASE_CRIT_DAMAGE: float = 1.5
+
+## Agility's contribution to crit chance, per point. The ranger identity leans
+## on this; it stays here next to the base so the accessors are one formula.
+const CRIT_PER_AGILITY: float = 0.003
+
+## --- Attack speed (the rogue / party buff axis) --------------------------
+## Attack speed is ONE multiplier (base 1.0) that fans out to four effects:
+## it raises hit rate, shortens cooldowns, speeds DoT/HoT ticks, and only
+## SLIGHTLY lifts movement (the rogue's axis is attack speed, not raw speed).
+## These are the one set of coefficients every consumer reads.
+const AGILITY_PER_ATTACK_SPEED: float = 0.01   # +1% attack speed per agility
+const MAX_ATTACK_SPEED_MULT: float = 2.5       # ceiling: haste cannot run away
+## Each +100% attack speed adds this much hit chance (a haste helps you land).
+const HIT_PER_ATTACK_SPEED: float = 0.15
+## Each +100% attack speed shaves this much cooldown (folded into CDR, still
+## under MAX_COOLDOWN_REDUCTION).
+const CDR_PER_ATTACK_SPEED: float = 0.50
+## A haste's movement lift is only this fraction of its attack-speed lift, so
+## a +20% haste is +20% attack speed but +6% movement -- "slightly faster".
+const HASTE_MOVE_FRACTION: float = 0.30
 
 ## Ceilings the pipeline clamps to, so authored data cannot make a body
 ## unkillable or a reflect loop unbounded.
@@ -89,6 +128,11 @@ const MAX_DAMAGE_REDUCTION: float = 0.90
 const MAX_DAMAGE_REFLECT: float = 1.00
 ## Cooldowns may be shaved by at most half; a longer buff cannot zero them.
 const MAX_COOLDOWN_REDUCTION: float = 0.50
+## Crit chance is capped below 1.0 so a stacked crit buff still misses the
+## crit segment when the defender's avoidance eats the roll; crit damage is
+## capped so a crit cannot one-shot a raid boss.
+const MAX_CRIT_CHANCE: float = 1.00
+const MAX_CRIT_DAMAGE: float = 5.00
 ## Support reach caps, so an amplifier can never double a heal or a buff.
 const MAX_EFFECT_DURATION_MULT: float = 2.0
 const MAX_EFFECT_POWER_MULT: float = 2.0
@@ -130,6 +174,46 @@ static func base_block() -> Dictionary:
         return DEFAULTS.duplicate()
 
 
+## The crit chance a body rolls, from its base + agility + crit_chance delta.
+## THE one formula: Entity.get_crit_chance, the player body, and CombatMath's
+## fallback all read it, so a buff on `crit_chance` actually lands (the old
+## per-body accessors hardcoded the base and shadowed the stat block).
+static func crit_chance_of(agility: float, crit_chance_delta: float) -> float:
+        return clampf(
+                BASE_CRIT_CHANCE + agility * CRIT_PER_AGILITY + crit_chance_delta,
+                0.0, MAX_CRIT_CHANCE)
+
+
+## The crit multiplier a body lands, from the 1.5 base + crit_damage delta.
+static func crit_damage_of(crit_damage_delta: float) -> float:
+        return clampf(BASE_CRIT_DAMAGE + crit_damage_delta, 1.0, MAX_CRIT_DAMAGE)
+
+
+## The attack-speed multiplier a body swings at: the 1.0 base + agility + the
+## attack_speed_multiplier stat delta (a haste). THE one formula, so a haste
+## buff, an agility climb, and a bare stub all resolve the same number.
+static func attack_speed_of(agility: float, attack_speed_delta: float) -> float:
+        return clampf(
+                1.0 + agility * AGILITY_PER_ATTACK_SPEED + attack_speed_delta,
+                0.1, MAX_ATTACK_SPEED_MULT)
+
+
+## The hit-chance bonus a haste grants, on top of the level/rating hit curve.
+static func hit_bonus_for_attack_speed(attack_speed: float) -> float:
+        return maxf(0.0, attack_speed - 1.0) * HIT_PER_ATTACK_SPEED
+
+
+## The extra cooldown reduction a haste grants, folded into the flat CDR the
+## skill path already clamps to MAX_COOLDOWN_REDUCTION.
+static func cdr_for_attack_speed(attack_speed: float) -> float:
+        return maxf(0.0, attack_speed - 1.0) * CDR_PER_ATTACK_SPEED
+
+
+## The DoT/HoT tick-rate multiplier: a haste ticks faster by the same factor
+## (interval is divided by it), capped so a tick cannot run away.
+static func dot_rate_for_attack_speed(attack_speed: float) -> float:
+        return clampf(attack_speed, 0.25, MAX_ATTACK_SPEED_MULT)
+
 ## Clamp an authored reduction/reflect fraction into its safe band.
 static func clamp_fraction(key: String, value: float) -> float:
         if key == "damage_reduction":
@@ -138,6 +222,10 @@ static func clamp_fraction(key: String, value: float) -> float:
                 return clampf(value, 0.0, MAX_DAMAGE_REFLECT)
         if key == "cooldown_reduction":
                 return clampf(value, 0.0, MAX_COOLDOWN_REDUCTION)
+        if key == "crit_chance":
+                return clampf(value, 0.0, MAX_CRIT_CHANCE)
+        if key == "crit_damage":
+                return clampf(value, 0.0, MAX_CRIT_DAMAGE)
         return value
 
 

@@ -46,6 +46,71 @@ Six facts from that log that still shape every round:
   gate by duck-type, so a missing flag is an inert buff-bar icon. A slow is a
   negative `movement_speed_multiplier` delta from the entry's authored `value`.
 
+## The game OS: services + schemas, canonicalized (READ THIS BEFORE A SYSTEM)
+
+Synmergia is not a pile of single-purpose static systems. It is a **game OS**:
+a fluid lattice of **services** (`game/core/services/*.gd`, autoloaded) that
+read **canonical definitions** (schemas in `game/core/schemas/*.gd`, data in
+`game/data/**/*.tres`). The substrate is extractable -- the reusable frame is
+the point, not a byproduct (see `labs/world-building-arch.md`).
+
+Five laws. They are how we keep the OS fluid instead of accruing copies.
+
+1. **Define from schema + data, not from code.** A new system's shape belongs
+   in a `core/schemas/*.gd` `@export` surface and its values in a `.tres`. A
+   service *consumes* a definition; it does not hardcode one. If you are
+   writing a `match`/`if` ladder of literal values, that ladder is a schema
+   asking to exist. `labs/data-authoring-baseline.md` is the authoring
+   contract; `test_data_naming_lint.gd` is the gate.
+2. **One source per concept -- canonicalize, never re-inline.** The recurring
+   bug in this repo is a second copy of a thing that already had a home:
+   `GameTier` (five rungs) re-inlined as a local dict; a stat key spelled by
+   hand instead of `StatId`; `crit_chance` hand-copied in five spawn paths and
+   dropped in three. When you need a value another system already owns, READ
+   it (`GameTier.color(name)`, `StatId.is_valid(key)`,
+   `EnemyData.apply_stats_to(...)`). If no single owner exists yet, make one --
+   do not add a second copy.
+3. **Services are shared, not per-site.** A behavior every caller needs (stat
+   seeding, hit resolution, crit, cooldowns) is one service/helper the callers
+   route through. Copy-paste-per-callsite is how the crit bug happened: five
+   pipelines each remembered the primaries and three forgot the crit identity.
+   When a second caller wants the same logic, extract the helper; the second
+   call site is the signal, not the exception.
+4. **Players, enemies, agents, NPCs are the same bodies.** An enemy uses
+   skills, crit, and cooldowns through the SAME `CombatComponent` / hit table /
+   `StatId` math a player does -- enemies are not a parallel implementation.
+   Author a behavior once, on the shared body, and every actor gets it. This is
+   the reuse rule (3) applied to actors.
+5. **Bands and tiers are the FIVE rungs, always.** common / rare / epic /
+   legendary / mythic, from `GameTier`. A local 4-rung ladder or a private
+   palette is drift, and `test_skill_tier_parity.gd` exists to fail it.
+
+### The current use case: classes within species
+
+Species are **bodies** (`core/schemas/species.gd`: stat deltas, relations,
+hitbox fairness law). Classes are the **verbs** layered on a body
+(`core/schemas/character_class.gd`: role, focal stats, resource type,
+`starting_skills`). A playable identity is a **species x class** pair, and the
+18 classes are distributed across the 3 species -- there is no separate
+"species skill system"; species-skill work is the class layer that already
+exists, authored per species.
+
+- **Identity verbs are canonical and shared.** A class's FIRST
+  `starting_skills` entry carries its family identity verb, read off `role`
+  (TANK=control, BENDER=teleport, HEALER=heal, DD/MAGE/ROGUE=damage). The verb
+  is a property of the LANE, so it is authored once and shared by every class
+  in that lane -- not re-invented per class. Enforced by
+  `test_data_naming_lint.gd` (see "The starter law").
+- **The class field surface is the contract.** `crit_chance_bonus`,
+  `crit_damage_bonus`, `attack_speed_bonus`, `focal_stat_1/2`,
+  `resource_type`, `base_stats`/`stat_growth` are all DATA. A class's identity
+  (a ranger crits harder, a rogue is faster) is authored in the `.tres`, not
+  special-cased in a service. Prefer adding a field + data over a code branch.
+- **When you extend this layer:** put the shape in the schema, the values in
+  the `.tres`, the behavior in one shared service, and the vocabulary in
+  `StatId` / `GameTier`. Then add the test that asserts it on the SPAWNED/
+  built body, not just on the template (see the enemy-seeder note below).
+
 ## READ FIRST
 
 Four things that have caused repeated agent damage in this
@@ -841,8 +906,12 @@ vocabulary are one.
 ### The starter law
 A class's FIRST `starting_skills` entry carries the family identity verb,
 read off the class `role`: TANK=control, BENDER=teleport, HEALER=heal,
-DD/MAGE/ROGUE=damage. Enforced by `test_data_naming_lint.gd`; a new class
-cannot ship a starter that ignores its lane.
+DD/MAGE/ROGUE=damage. The role -> verb map is
+`CharacterClass.IDENTITY_VERB_BY_ROLE` (with `identity_verb(role)` as the
+accessor) -- the SCHEMA owns the mapping, and `test_data_naming_lint.gd` loads
+it and asserts every class's first starter carries its role's verb. Enforced by
+`test_data_naming_lint.gd`; a new class cannot ship a starter that ignores its
+lane. Do NOT re-inline the map in a consumer -- read the const.
 
 ---
 
@@ -1313,6 +1382,63 @@ engine binary is provisioned by `scripts/setup-dev.sh`, not by LFS.
   `rarityLabel(i)` -- which indexes the game's int -- shifted every item/title
   label by one (epic -> "Rare"). Any "mirror the GDScript enums, by index" map
   on the web side must be re-checked whenever a game enum changes size.
+
+### The five-rung ladder: one source, and a guard that keeps it that way (learned 2026-10-28)
+
+- **A re-inlined rung ladder is the recurring parity bug.** `GameTier` is the
+  one scale (common/rare/epic/legendary/mythic), but consumers kept copying it.
+  Two shipped defects in one sweep: `notification_service.notify_item_loot`
+  stopped its `match rarity` at `legendary`, so a mythic drop got no prefix and
+  only HIGH priority; `notification_toast.show_loot` carried its own rarity
+  palette whose `legendary`/`mythic` colours disagreed with `GameTier.COLORS`,
+  so a loot toast did not match the inventory border. Fix the re-inline by
+  reading the canonical map (`GameTier.COLORS`, `GameTier.color(name)`), never
+  by copying the literals.
+- **`test_skill_tier_parity` now scans for the drift.** It walks every shipped
+  `.gd` for a dict literal keyed by rung names and fails if the dict omits a
+  rung or paints a colour that disagrees with `GameTier.COLORS` (0.02 epsilon).
+  A positive control (a temp dict missing `mythic`) makes it fail as intended.
+  It reports "0 scanned" when nothing re-inlines -- which is the goal, not a
+  broken check.
+- **`ui_styles.get_rarity_color`/`get_rarity_display_name` keep an `uncommon`
+  shim on purpose.** Legacy saves can carry the retired spelling; the shim maps
+  it onto `common`. Do NOT "clean up" those `"uncommon"` checks -- they are a
+  migration door, not stale data.
+- **The generated fleet packs drift silently.** `scripts/gen_fleet_packs.mjs`
+  derives `packs/public/*/main.mjs` from the runner's `DEFAULT_SET`. The
+  checked-in packs were stale (they named `test_world_chunks`, a test that no
+  longer ships). When you touch `DEFAULT_SET`, run
+  `node scripts/gen_fleet_packs.mjs`; it is idempotent. A pack naming a test the
+  runner does not carry is the exact violation packstruct exists to refuse.
+- **Register new tests in `DEFAULT_SET` or they are dead weight.** `test_attack_speed`
+  and `test_crit_system` shipped but were not in the runner block, so CI never
+  ran them. Add the name, then regenerate the packs.
+
+### Enemy spawn: one stat seeder (learned 2026-10-28)
+
+- **Crit was authored but did not reach the entity on 3 of 5 spawn paths.**
+  Five pipelines each hand-copied the primaries; only `spawn_enemy_direct` and
+  the horde producer also copied `crit_chance`/`crit_damage`. `spawn_boss`,
+  `_create_enemy` (spawn points) and the globe wildlife spawner dropped the
+  crit identity, so all five crit-authoring bosses spawned with their authored
+  `crit_chance = 0.20` discarded and fell back to agility-only crit (the Void
+  Lord rolled 0.17 instead of 0.28). The crit *system* was fine; the *copy* was
+  not.
+- **`EnemyData.apply_stats_to(entity, level_override)` is THE one stat-copy
+  path.** It seeds the primaries (+ optional level scaling) AND the crit
+  identity. Every spawn pipeline routes through it, so a path cannot "forget" a
+  field -- there is only one path. When you add a spawn route, call this; do NOT
+  hand-copy `stats[...]` from a template.
+- **Scaling differs by path, and the helper preserves it.** `level_override > 0`
+  scales the primaries via `get_scaled_stat` (the horde path's behavior, and how
+  level-raised direct spawns are meant to be tougher); otherwise raw primaries
+  are copied (direct/boss/globe). `crit_chance`/`crit_damage` are a flat
+  authored identity and are never level-scaled.
+- **A test that checks the TEMPLATE is not a test that checks the SPAWN.**
+  `test_crit_system` asserted `boss.get_stats_for_level()` authored crit -- which
+  passed while the spawned entity got none. Assert on the spawned entity (or a
+  live `spawn_boss` through `SpawnService`), not just the template. Negative
+  control: deleting the seeder's crit lines must fail the test.
 
 ### Quest objective bridges + CI triggers (learned 2026-11-29)
 

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "synthetic_psion_synthetic_sig"
 display_name = "System Corruption"
 description = "SIGNATURE Synthetic Sorcerer technique. A devastating system-level arcane attack that corrupts target data."

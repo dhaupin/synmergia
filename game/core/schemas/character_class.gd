@@ -28,6 +28,25 @@ enum Role {
 ## an alias so older call sites and tests read the same rung.
 const RANGER: int = Role.ROGUE
 
+## The family identity verb each role expresses in its FIRST starting skill
+## (the starter law): TANK controls, BENDER blinks, HEALER mends, and the three
+## damage lanes all strike. THE one home for the mapping -- the data-naming lint
+## loads this const and asserts every class's first starter carries its role's
+## verb, so the rule and its source cannot drift apart.
+const IDENTITY_VERB_BY_ROLE: Dictionary = {
+	Role.TANK: "control",     # the grab
+	Role.DD: "damage",
+	Role.MAGE: "damage",
+	Role.ROGUE: "damage",
+	Role.BENDER: "teleport",  # the blink
+	Role.HEALER: "heal",      # the mend
+}
+
+## The identity verb for a role, or "" for a role with no lane verb (GM, the
+## legacy aliases). A caller gates on "" rather than assuming a verb exists.
+static func identity_verb(role: int) -> String:
+	return str(IDENTITY_VERB_BY_ROLE.get(role, ""))
+
 @export var id: String = ""
 @export var display_name: String = "Warrior"
 @export var description: String = ""
@@ -76,6 +95,18 @@ const MAX_STAT_VALUE: int = 200
 @export var attack_power_per_level: int = 2
 @export var base_spell_power: int = 5
 @export var spell_power_per_level: int = 1
+
+## The class's base crit-chance bonus (added to the StatId 0.05 base) and
+## crit-damage bonus (added to the 1.5 base). A ranger class authors a
+## positive crit_chance_bonus so its crit identity is a DATA property, not a
+## hardcoded body: a marksman starts with a higher crit than a warrior.
+@export var crit_chance_bonus: float = 0.0
+@export var crit_damage_bonus: float = 0.0
+
+## The class's base attack-speed bonus (a delta on the 1.0 multiplier). The
+## rogue identity leans on this: a rogue class starts faster than a warrior,
+## and that speed fans out to hit rate, cooldowns, and DoT ticks.
+@export var attack_speed_bonus: float = 0.0
 
 # Starting skills
 @export var starting_skills: Array[String] = []

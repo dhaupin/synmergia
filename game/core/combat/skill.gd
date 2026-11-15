@@ -262,6 +262,7 @@ static func from_schema(s: SkillSchema) -> Skill:
 	sk.rally_band = bool(s.rally_band)
 	sk.blast_band = bool(s.blast_band)
 	sk.required_stance = s.required_stance
+	sk.damage_type = str(s.damage_type) if str(s.damage_type) != "" else "physical"
 	sk.schema = s
 	# Flatten effect dictionaries into runtime fields. THIS is the one effect
 	# vocabulary for the game: every type an authored .tres may use is handled
@@ -457,7 +458,8 @@ func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO, def
 		hot.effect_name = skill_name + " HoT"
 		hot.effect_type = StatusEffect.EffectType.BUFF
 		hot.tick_behavior = StatusEffect.TickBehavior.TICKED
-		hot.tick_interval = hot_tick_rate if hot_tick_rate > 0 else 1.0
+		# A hasted caster's HoT ticks faster, same law as the DoT path.
+		hot.tick_interval = (hot_tick_rate if hot_tick_rate > 0 else 1.0) / StatId.dot_rate_for_attack_speed(_attack_speed_of(caster))
 		hot.duration = hot_duration
 		hot.tick_heal = hot_heal
 
@@ -550,6 +552,24 @@ func consume_resources(caster) -> bool:
 var _last_was_crit: bool = false
 var _last_hit_result: Dictionary = {}
 
+## The heal twin of _last_was_crit: set by calculate_healing, read by
+## execute() to stamp the heal event so the HUD can style a crit mend.
+var _last_heal_was_crit: bool = false
+
+## The caster's crit chance / multiplier, duck-typed through the body's own
+## accessors (Entity and the player body both expose get_crit_chance /
+## get_crit_multiplier, which now fold the crit_chance / crit_damage stats).
+## Falls back to the StatId base formula for a bare stub with no accessors.
+func _crit_chance_of(caster) -> float:
+	if caster != null and caster.has_method("get_crit_chance"):
+		return float(caster.get_crit_chance())
+	return StatId.crit_chance_of(_stat_of(caster, "agility", 10.0), _stat_of(caster, "crit_chance", 0.0))
+
+func _crit_multiplier_of(caster) -> float:
+	if caster != null and caster.has_method("get_crit_multiplier"):
+		return float(caster.get_crit_multiplier())
+	return StatId.crit_damage_of(_stat_of(caster, "crit_damage", 0.0))
+
 func calculate_damage(caster, target) -> int:
 	var base_damage := damage
 
@@ -586,6 +606,17 @@ func calculate_healing(caster) -> int:
 	# A Bender's AMPLIFY stat raises every outgoing heal (the healer's lane
 	# partner). Clamped, so a buff can never double a mend.
 	base_heal = int(float(base_heal) * _power_scale(caster))
+
+	# Crit heal: roll the caster's crit table. A crit mend is a BIGGER heal,
+	# not a bigger number on one body -- so a healer (or any class whose kit
+	# is heals, not damage) still gets value from crit. The roll is stashed
+	# on _last_heal_was_crit for the execute() path and the HUD.
+	_last_heal_was_crit = false
+	if base_heal > 0:
+		var heal_crit_chance := _crit_chance_of(caster)
+		if heal_crit_chance > 0.0 and randf() < heal_crit_chance:
+			_last_heal_was_crit = true
+			base_heal = int(float(base_heal) * _crit_multiplier_of(caster))
 
 	# Daily Class Blessing (prd-psy.md section 8): the blessed class
 	# heals +20% for the day. Duck-typed + late-resolved so script-mode
@@ -746,7 +777,9 @@ func applyDoT(caster, target) -> void:
 	dot.effect_type = StatusEffect.EffectType.DEBUFF
 	dot.effect_category = StatusEffect.EffectCategory.POISON
 	dot.tick_behavior = StatusEffect.TickBehavior.TICKED
-	dot.tick_interval = dot_tick_rate if dot_tick_rate > 0 else 1.0
+	# A hasted caster's DoT ticks faster (interval / attack speed), so attack
+	# speed is worth something to the DoT lanes too.
+	dot.tick_interval = (dot_tick_rate if dot_tick_rate > 0 else 1.0) / StatId.dot_rate_for_attack_speed(_attack_speed_of(caster))
 	dot.duration = dot_duration
 	# Self-expire after the tick budget: a TICKED effect with
 	# total_ticks = 0 is infinite by contract, and the tick janitor only
@@ -1030,9 +1063,21 @@ func _power_scale(caster) -> float:
 	return clampf(_stat_of(caster, "effect_power_mult", 1.0) * upgrade_effect_strength_mult, 0.0, StatId.MAX_EFFECT_POWER_MULT)
 
 ## The caster's cooldown-reduction fraction, clamped (read at the one
-## cooldown set point in execute()).
+## cooldown set point in execute()). A haste (attack speed) shortens
+## cooldowns too, so it folds its CDR share in before the clamp.
 func _cooldown_reduction_of(caster) -> float:
-	return clampf(_stat_of(caster, "cooldown_reduction", 0.0), 0.0, StatId.MAX_COOLDOWN_REDUCTION)
+	var cdr := _stat_of(caster, "cooldown_reduction", 0.0)
+	cdr += StatId.cdr_for_attack_speed(_attack_speed_of(caster))
+	return clampf(cdr, 0.0, StatId.MAX_COOLDOWN_REDUCTION)
+
+## The caster's attack-speed multiplier. Duck-typed through the body's own
+## get_attack_speed when it has one (Entity / player), else the StatId
+## formula off the raw stat block, so a bare caster still resolves.
+func _attack_speed_of(caster) -> float:
+	if caster != null and caster.has_method("get_attack_speed"):
+		return float(caster.get_attack_speed())
+	var delta := _stat_of(caster, "attack_speed_multiplier", 1.0) - 1.0
+	return StatId.attack_speed_of(_stat_of(caster, "agility", 10.0), delta)
 
 ## Multiply every numeric magnitude on a built status effect by `mult` (the
 ## Bender's AMPLIFY). One field list, so a new magnitude field is added here

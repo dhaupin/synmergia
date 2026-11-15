@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+damage_type = "magical"
 id = "akkan_rune_strike"
 display_name = "Rune Strike"
 description = "Inscribes a rune into the ground that detonates on contact with a foe, dealing rune damage. The rune's first blast, single-target at first; from the epic band it fans into a hostile ring, uncapped at the top tiers."
