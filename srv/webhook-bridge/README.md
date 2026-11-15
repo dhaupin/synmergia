@@ -1,5 +1,7 @@
 # webhook-bridge
 
+> Part of the [srv sidecar and operations index](../README.md).
+
 Payment-processor webhook entry. Mirrors `srv/redis-bridge/` --
 same shape, same stdlib-only default backend, lazy redis import for
 prod.

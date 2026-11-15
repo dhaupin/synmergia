@@ -1,5 +1,7 @@
 # Docker — Headless Smoke Tests
 
+> Part of the [srv sidecar and operations index](../README.md).
+
 Run the Godot smoke test suite inside a Docker container, no GPU or display required.
 
 ## Quick Start
@@ -12,7 +14,7 @@ docker build -t synmergia .
 docker run --rm -e START_MODE=test synmergia
 
 # Run only notification-related tests
-docker run --rm synmergia bash -c 'TEST_FILTER=notification /usr/local/bin/test-headless.sh'
+docker run --rm synmergia bash -c 'TEST_FILTER=notification /workspace/project/srv/docker/test-headless.sh'
 ```
 
 ## Test Modes
@@ -21,13 +23,13 @@ The entrypoint handles test execution:
 
 ```bash
 # Via START_MODE (built into the unified image)
-docker run --rm synmergia test
+docker run --rm -e START_MODE=test synmergia
 
 # Via the test-headless.sh script (run inside any container with Godot)
-docker run --rm synmergia /usr/local/bin/test-headless.sh
+docker run --rm synmergia /workspace/project/srv/docker/test-headless.sh
 
 # With TEST_FILTER
-docker run --rm synmergia bash -c 'TEST_FILTER=notification /usr/local/bin/test-headless.sh'
+docker run --rm synmergia bash -c 'TEST_FILTER=notification /workspace/project/srv/docker/test-headless.sh'
 ```
 
 ## Running Tests from Host (No Docker)
@@ -35,10 +37,10 @@ docker run --rm synmergia bash -c 'TEST_FILTER=notification /usr/local/bin/test-
 If Godot is installed locally, run the script directly:
 
 ```bash
-GODOT=godot ./docker/test-headless.sh
+GODOT=godot ./srv/docker/test-headless.sh
 
 # Or filter to specific tests
-TEST_FILTER=notification GODOT=godot ./docker/test-headless.sh
+TEST_FILTER=notification GODOT=godot ./srv/docker/test-headless.sh
 ```
 
 ## Test Coverage
@@ -57,6 +59,7 @@ TEST_FILTER=notification GODOT=godot ./docker/test-headless.sh
 | `test_notif_migration_quest.gd` | Notification migration: quest |
 | `test_notif_migration_server_manager.gd` | Notification migration: server manager |
 
-**Total: 12 test files (~90+ cases).** Entry point runs all `test_*.gd` files.
+The table above is the curated smoke set; the authoritative full
+regression set is [`scripts/godot_test_runner.sh`](../../scripts/godot_test_runner.sh).
 
 Exit codes: `0` = all pass, `1` = one or more failed, `2` = Godot not found / error.

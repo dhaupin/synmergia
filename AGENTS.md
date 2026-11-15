@@ -11,9 +11,11 @@
 > [CONTRIBUTING.md](./CONTRIBUTING.md) (setup, tests, PRs) ·
 > [DEVCODE.md](./DEVCODE.md) (dev environment) · [DEPLOY.md](./DEPLOY.md)
 > (server) · [DEPLOY_WEB.md](./DEPLOY_WEB.md) (web) ·
-> [DEPLOY-GPU.md](./DEPLOY-GPU.md) (3D pipeline) · [SECURITY.md](./SECURITY.md) ·
-> [CREDITS.md](./CREDITS.md) · [TRADEMARK.md](./TRADEMARK.md) ·
-> [LICENSE](./LICENSE).
+> [DEPLOY-GPU.md](./DEPLOY-GPU.md) (3D pipeline) ·
+> [labs/prd-db.md](./labs/prd-db.md) (storage spec) ·
+> [srv/README.md](./srv/README.md) (sidecars + operations) ·
+> [SECURITY.md](./SECURITY.md) · [CREDITS.md](./CREDITS.md) ·
+> [TRADEMARK.md](./TRADEMARK.md) · [LICENSE](./LICENSE).
 
 ## Recent rounds -- moved to `labs/AGENTS_LOG.md`
 

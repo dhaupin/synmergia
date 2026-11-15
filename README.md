@@ -114,8 +114,11 @@ and the test-runner mechanics.
 | [Developer notes](AGENTS.md) | Code conventions, patterns, and autoload rules |
 | [Contributing](CONTRIBUTING.md) | Setup, conventions, tests, and pull requests |
 | [Dev environment](DEVCODE.md) | Rebuilding the dev loop from the repo alone |
-| [Game-server deployment](DEPLOY.md) | Docker, production, and operations |
+| [Game-server deployment](DEPLOY.md) | Docker profiles, operations, and production notes |
 | [Web deployment](DEPLOY_WEB.md) | Website and browser-client deployment |
+| [GPU & asset pipeline](DEPLOY-GPU.md) | GPU asset generation and the CPU import path |
+| [Database & cache](labs/prd-db.md) | Persistence, cache, and adapter contracts |
+| [Sidecars & operations](srv/README.md) | pg/redis/webhook/Julia, Docker tests, and backup |
 | [Shard mesh](labs/prd-shard-mesh.md) | Multi-container topology and phased path |
 | [Open-source audit](labs/OSS-AUDIT.md) | Launch audit and hardening checklist |
 | [Security policy](SECURITY.md) | How to report a vulnerability |

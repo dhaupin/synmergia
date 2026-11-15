@@ -1,23 +1,27 @@
 # julia-bridge
 
+> Part of the [srv sidecar and operations index](../README.md).
+
 Julia multi-iso orchestrator sidecar. Sibling of `srv/pg-bridge/` and
 `srv/redis-bridge/` -- same role in the architecture: a non-Godot
 service the game reaches over HTTP, never by import path.
 
 Client: `MultiIsoService` (game/core/services/multi_iso_service.gd)
-talks to `http://localhost:8090` (dev) or `http://julia:8090`
-(docker-compose service name) to register entities and run
+talks to `http://127.0.0.1:8090` (dev and the container; there is no
+separate `julia` Compose service) to register entities and run
 multi-axis intersection queries. Port 8090 is deliberate: 8080/8081 are
 pg-bridge/redis-bridge. `MULTI_ISO_URL` (or `JULIA_BRIDGE_URL`) overrides
 the URL at boot.
 
 ## Run
 
+    cd srv/julia-bridge
     julia --project=. server.jl        # HTTP API server (needs HTTP.jl + JSON.jl)
     julia --project=. orchestrator.jl  # self-tests
 
-Deps are stdlib + HTTP.jl + JSON.jl (see Project.toml). The Godot
-Dockerfile installs Julia; the service runs as a sidecar container.
+Deps are stdlib + HTTP.jl + JSON.jl (see Project.toml). The root
+Dockerfile installs Julia; the entrypoint starts it inside the
+`synmergia` container.
 
 **Started by the container.** `srv/docker/entrypoint.sh` starts the
 stdlib-only `server_lite.jl` on `127.0.0.1:8090` in every server mode

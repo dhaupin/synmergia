@@ -1,13 +1,14 @@
 # Synmergia — Deployment Guide
 
-> **Status:** v2 — Development/Staging ready. Production guidance marked where applicable.
-> **Last updated:** 2026-10-19
+> **Status:** v3 — development/staging runbook. Production notes call out the
+> pieces that are not automated yet.
+> **Last updated:** 2026-11-15
 >
-> **Scope note (2026-10 split):** this file now covers the **game
-> server** (Docker: Godot headless + bridges + Postgres) and the
-> legacy nginx front. The **website + browser game client**
-> (Cloudflare Pages, `/game/` serving law, access gates, WAF rules)
-> has its own focused guide: [DEPLOY_WEB.md](./DEPLOY_WEB.md).
+> **Scope note (2026-10 split):** this file covers the **game server**
+> (Docker: Godot headless + bridges + Postgres) and the nginx front
+> end. The **website + browser game client** (Cloudflare Pages,
+> `/game/` serving law, access gates, optional WAF rules) has its own
+> focused guide: [DEPLOY_WEB.md](./DEPLOY_WEB.md).
 
 ---
 
@@ -15,6 +16,7 @@
 
 1. [Quick Start](#1-quick-start)
 2. [Architecture Overview](#2-architecture-overview)
+2a. [Bridge Sidecars](#2a-bridge-sidecars)
 3. [Development Setup](#3-development-setup)
 4. [Staging/Production Setup](#4-stagingproduction-setup)
 5. [Docker Reference](#5-docker-reference)
@@ -26,6 +28,7 @@
 11. [Backup & Restore](#11-backup--restore)
 12. [Scaling Considerations](#12-scaling-considerations)
 13. [Troubleshooting](#13-troubleshooting)
+14. [Web Client & CI](#14-web-client--ci)
 
 ---
 
@@ -43,12 +46,12 @@
 git clone https://github.com/dhaupin/synmergia.git
 cd synmergia
 
-# Start in development mode (default)
-docker compose up --build
+# Compose services are profile-gated: `docker compose up` alone selects none.
+docker compose --profile dev up --build -d
 
-# Access via browser
+# Access via browser (nginx runs inside the synmergia container)
 open http://localhost:6080/vnc.html  # VNC viewer
-open http://localhost                # HTTP (if nginx running)
+open http://localhost
 ```
 
 ### Start Production Server
@@ -57,19 +60,20 @@ open http://localhost                # HTTP (if nginx running)
 # Clone and create .env file (see Environment Variables section for full list)
 git clone https://github.com/dhaupin/synmergia.git
 cd synmergia
-cat > .env << 'EOF'
+cat > .env <<EOF
 START_MODE=prod
-POSTGRES_PASSWORD=$(openssl rand -base64 32)
-JWT_SECRET=$(openssl rand -base64 64)
+POSTGRES_PASSWORD=$(openssl rand -hex 32)
+JWT_SECRET=$(openssl rand -hex 64)
 DOMAIN=play.example.com
 CERT_EMAIL=admin@example.com
 EOF
+chmod 600 .env
 
-# Start with PostgreSQL and Redis
+# Start the prod profile (nginx is inside the synmergia container).
 docker compose --profile prod up --build -d
 
-# Get Let's Encrypt certificates (first time)
-docker compose --profile prod run --rm certbot
+# TLS: the compose certbot service is a renewal loop, not a first-issuance
+# command. See the TLS status in section 4 before exposing this publicly.
 ```
 
 ---
@@ -101,9 +105,9 @@ docker compose --profile prod run --rm certbot
 
 | Service | Port | Purpose | Profile |
 |---------|------|---------|---------|
-| nginx | 80, 443 | Reverse proxy, static files | dev, prod |
+| synmergia (nginx) | 80, 443 | Reverse proxy + static files | dev, prod |
+| synmergia (Godot) | 9000 | Game server | all |
 | noVNC | 6080 | Browser VNC (dev only) | dev |
-| Godot | 9000 | Game server | all |
 | PostgreSQL | 5432 | Persistent storage | dev, prod |
 | Redis | 6379 | Cache, sessions | dev, prod |
 
@@ -121,18 +125,21 @@ docker compose --profile prod run --rm certbot
 ## 2a. Bridge Sidecars
 
 The Godot client never talks to PostgreSQL or Redis directly. Instead it
-hits two local HTTP sidecars that live inside the main container:
+hits local HTTP sidecars that live inside the main container:
 
 | Sidecar | Port | Backends | Purpose |
 |---------|------|----------|---------|
 | `pg-bridge` | 8080 | sqlite, postgres | Persistence (accounts, inventory, etc.) |
 | `redis-bridge` | 8081 | inmemory, redis | Cache / sessions / rate-limit state |
 | `webhook-bridge` | 8083 | inmemory, redis | Payment processor webhook transport (nginx routes `/hooks/` here; the engine poller claims + acks deliveries) |
+| `julia-bridge` | 8090 | stdlib Julia | Multi-iso spatial index (internal; no registered packages) |
 
-Both sidecars are stdlib-only by default (sqlite + inmemory). They lazily
-import `psycopg2-binary` or `redis-py` only when the matching backend is
-selected via env. This keeps the base image small and the sidecars usable
-for local dev without external services.
+The pg, redis, and webhook bridges are stdlib-only by default
+(sqlite/inmemory). They lazily import `psycopg2-binary` or `redis-py` only
+when the matching backend is selected. The Julia orchestrator is the
+stdlib-only `server_lite.jl`. The sidecar ports are internal to the
+`synmergia` container network; in the dev/prod profiles Compose publishes
+nginx, the game port, and (dev only) noVNC.
 
 ### Wire Protocol
 
@@ -142,20 +149,20 @@ lives in `labs/prd-db.md` sec.3-5 (persistence) and sec.7.2 (cache).
 
 ### Health
 
-    curl -f http://localhost:8080/health   # pg-bridge
-    curl -f http://localhost:8081/health   # redis-bridge
-    curl -f http://localhost:8083/health   # webhook-bridge
+    docker compose exec synmergia curl -f http://127.0.0.1:8080/health
+    docker compose exec synmergia curl -f http://127.0.0.1:8081/health
+    docker compose exec synmergia curl -f http://127.0.0.1:8083/health
+    docker compose exec synmergia curl -f http://127.0.0.1:8090/health
 
 ## 3. Development Setup
 
 ### Local Development with Docker
 
 ```bash
-# Start all services
-docker compose up --build
+# Start the dev profile (the bare `docker compose up` selects no profiled services)
+docker compose --profile dev up --build -d
 
-# Start with PostgreSQL and Redis
-docker compose --profile dev up --build
+# The dev profile already includes PostgreSQL and Redis.
 
 # View logs
 docker compose logs -f synmergia
@@ -173,14 +180,11 @@ docker compose exec synmergia bash
 # Open project in Godot editor
 godot --editor game/
 
-# Or run headless server
+# Or run a headless boot
 godot --headless --path game/
 
-# Run smoke tests (inside the game/ directory)
-cd game
-for test in tests/test_*.gd; do
-    godot --headless --path . --script "res://$test"
-done
+# Run the one headless test runner from the repo root.
+sh ./scripts/godot_test_runner.sh
 ```
 
 ### Environment Variables (Development)
@@ -202,6 +206,9 @@ REDIS_ENABLED=true
 
 # Security
 JWT_SECRET=dev_jwt_secret_change_in_production
+
+# Sidecars (loopback inside the container)
+MULTI_ISO_URL=http://127.0.0.1:8090
 ```
 
 ---
@@ -238,15 +245,13 @@ git clone https://github.com/dhaupin/synmergia.git
 cd synmergia
 
 # Create production environment file
-cat > .env << 'EOF'
+cat > .env <<EOF
 START_MODE=prod
 GODOT_PORT=9000
 
-# Generate secure password for PostgreSQL
-POSTGRES_PASSWORD=$(openssl rand -base64 32)
-
-# JWT Secret - generate a strong random string
-JWT_SECRET=$(openssl rand -base64 64)
+# Generate secure values (hex avoids shell/dotenv escaping surprises).
+POSTGRES_PASSWORD=$(openssl rand -hex 32)
+JWT_SECRET=$(openssl rand -hex 64)
 
 # Domain
 DOMAIN=play.example.com
@@ -272,21 +277,18 @@ sudo ufw allow 9000/tcp   # Godot (restrict in production)
 sudo ufw enable
 ```
 
-#### 4. Obtain SSL Certificates
+#### 4. TLS status (read before exposing production)
 
-```bash
-# Start services temporarily
-docker compose --profile prod up -d postgres redis
+The Compose stack ships nginx with a self-signed certificate. The
+`certbot` service is a **renewal loop**, not a one-shot first-issuance
+command, and the cert/webroot volumes are not mounted into the
+`synmergia` container today. Do not run
+`docker compose --profile prod run --rm certbot` expecting it to issue a
+certificate.
 
-# Wait for PostgreSQL to be ready
-sleep 10
-
-# Get Let's Encrypt certificate
-docker compose --profile prod run --rm certbot
-
-# Restart with HTTPS
-docker compose --profile prod up -d
-```
+For now, terminate TLS at a host reverse proxy/load balancer in front of
+the published ports, or wire a deliberate certificate mount and nginx
+config. A first-class in-Compose ACME path is an ops follow-up.
 
 #### 5. Systemd Service (Optional)
 
@@ -338,17 +340,17 @@ docker build --build-arg GODOT_VERSION=4.7.2 -t synmergia:4.7.2 .
 ### Run
 
 ```bash
-# Development (all services)
-docker compose up
+# Development (profile dev)
+docker compose --profile dev up -d
 
-# Production (with postgres/redis)
+# Production (profile prod)
 docker compose --profile prod up -d
 
-# Headless (server only)
+# Headless (profile headless)
 docker compose --profile headless up -d
 
 # Specific service
-docker compose up -d synmergia
+docker compose --profile dev up -d synmergia
 ```
 
 ### Logs
@@ -402,11 +404,17 @@ To inspect a volume: `docker volume inspect synmergia_postgres-data`
 | `EDGE_TRANSPORT` | `enet` | Server transport: `enet` (raw UDP) or `websocket` (aliases `ws`/`wss`) for an L7-proxied shard. Unknown values fall back to `enet`. | No |
 | `POSTGRES_PASSWORD` | `synmergia_dev_pass` | PostgreSQL password | **Yes** |
 | `POSTGRES_HOST` | `postgres` | PostgreSQL host | No |
+| `PG_BRIDGE_URL` | `http://127.0.0.1:8080` | Engine -> pg-bridge URL | No |
 | `REDIS_HOST` | `redis` | Redis host | No |
+| `REDIS_BRIDGE_URL` | `http://127.0.0.1:8081` | Engine -> redis-bridge URL | No |
+| `MULTI_ISO_URL` | `http://127.0.0.1:8090` | Engine -> Julia orchestrator URL | No |
 | `REDIS_ENABLED` | `true` | Enable Redis | No |
 | `JWT_SECRET` | `change_me_in_production` | JWT signing secret | **Yes** |
 | `DOMAIN` | `localhost` | Domain for SSL certs | For production |
 | `CERT_EMAIL` | `admin@localhost` | Email for Let's Encrypt | For production |
+
+[`.env.example`](./.env.example) is a copyable starter template using these
+names. It is not read automatically; copy it to `.env` and fill the secrets.
 
 ### Shard Mesh Variables
 
@@ -502,6 +510,9 @@ docker compose exec redis redis-cli ping
 
 ## 8. Web Server (nginx)
 
+nginx is a process inside the `synmergia` container, not a separate
+Compose service.
+
 ### Configuration Location
 - Container: `/etc/nginx/nginx.conf`
 - Host: `nginx.conf` in repo root
@@ -571,31 +582,27 @@ Automatically generated on container build:
 
 Browser will show security warning. Accept to proceed.
 
-### Production (Let's Encrypt)
+### Production (TLS status)
 
-```bash
-# 1. Start services (without nginx initially)
-docker compose --profile prod up -d postgres redis
-
-# 2. Get certificate
-docker compose --profile prod run --rm certbot
-
-# 3. Restart with HTTPS
-docker compose --profile prod up -d
-```
+See the TLS status in section 4. The Compose path currently serves a
+self-signed certificate; do not treat
+`docker compose --profile prod run --rm certbot` as a first-issuance
+step. A trusted certificate needs a deliberate reverse proxy or a wired
+certificate mount plus nginx config.
 
 ### Manual Certificate Upload
 
 ```bash
-# Mount certificates directory
-# In docker-compose.yml or .env:
-# volumes:
-#   - ./srv/certs:/etc/letsencrypt:ro
+# 1. Put the cert + key under srv/certs/.
+# 2. Add a read-only mount to the synmergia service:
+#      ./srv/certs:/etc/letsencrypt:ro
+# 3. The shipped nginx.conf expects the `localhost` directory name:
+#      /etc/letsencrypt/live/localhost/fullchain.pem
+#    Use that name, or update the two ssl_certificate lines in nginx.conf.
 
-# Structure:
 srv/certs/
 └── live/
-    └── play.example.com/
+    └── localhost/
         ├── fullchain.pem
         └── privkey.pem
 ```
@@ -632,11 +639,11 @@ docker compose logs synmergia
 # PostgreSQL logs
 docker compose logs postgres
 
-# nginx access logs
-docker compose exec nginx tail -f /var/log/nginx/access.log
+# nginx access logs (nginx lives inside synmergia)
+docker compose exec synmergia tail -f /var/log/nginx/access.log
 
 # nginx error logs
-docker compose exec nginx tail -f /var/log/nginx/error.log
+docker compose exec synmergia tail -f /var/log/nginx/error.log
 ```
 
 ### Useful Commands
@@ -947,13 +954,13 @@ docker compose logs postgres | grep -i error
 
 ```bash
 # Check nginx WebSocket support
-docker compose exec nginx nginx -V 2>&1 | grep -i proxy
+docker compose exec synmergia nginx -V 2>&1 | grep -i proxy
 
 # Test WebSocket endpoint
 wscat -c ws://localhost:9000
 
 # Check nginx logs
-docker compose logs --tail 100 nginx | grep -i websocket
+docker compose logs --tail 100 synmergia | grep -i websocket
 ```
 
 ### Common Error Messages
@@ -967,9 +974,10 @@ docker compose logs --tail 100 nginx | grep -i websocket
 
 ---
 
-## 14. Web Portal, Godot WASM & CI/CD Pipeline
+## 14. Web Client & CI
 
-Synmergia includes an integrated web client portal with dual-client hosting, static data bridging, and a zero-waste CI pipeline designed specifically to protect GitHub Actions free quotas.
+The browser client and site deploy live in [DEPLOY_WEB.md](./DEPLOY_WEB.md);
+this section only covers the repo-side data sync, packaging, and CI gates.
 
 ### Architecture
 
@@ -1006,16 +1014,24 @@ To build the game asset package for the WASM client:
 # Direct packaging with Godot 4.7.2
 ./scripts/pack_web.sh
 
-# Or via Docker:
-docker compose run --rm synmergia godot --headless --path /workspace/project/game --export-pack "Web" /workspace/project/web/game.pck
+# Or via Docker (the service is profile-gated):
+docker compose --profile dev run --rm synmergia godot --headless --path /workspace/project/game --export-pack "Web" /workspace/project/web/game.pck
 ```
 
-### 4. Zero-Waste GitHub Actions CI (`.github/workflows/web-ci.yml`)
-To guarantee you do not exhaust the monthly 2,000 GitHub Actions free minutes:
-- **Automatic Run Cancellation**: Any ongoing CI run on the same branch is automatically cancelled immediately when a new commit is pushed (`concurrency: cancel-in-progress: true` + `styfle/cancel-workflow-action`).
-- **Strict Path Filtering**: Only changes to `game/**` trigger the workflow. Commits touching markdown (`**.md`), documentation (`docs/**`), research notes (`labs/**`), web files (`src/**`, `web/**`), or scripts are ignored by CI.
-- **Standalone Binary Caching**: Uses a lightweight 50MB standalone Godot 4.7.2 headless binary cached across runs instead of pulling multi-gigabyte Docker images. Total CI run duration is ~35–45 seconds.
-- **Selective Testing**: Commits run fast GDScript syntax audits and PCK packaging. The full 37-script test suite is restricted to manual `workflow_dispatch` triggers (`run_full_suite: true`).
+### 4. CI workflows
+
+The repo has three separate gates:
+
+- `web-ci.yml` — path-filtered to `game/**` and its own workflow; validates
+  and packs the web PCK on `staging`/`main`, refreshes R2, and can
+  fast-forward `staging` after a successful `main` build.
+- `godot-ci.yml` — runs the default regression set on staging pushes and
+  on PRs to `staging`/`main`.
+- `docs-ci.yml` — runs the relative Markdown link gate on any `*.md`
+  change.
+
+See [DEPLOY_WEB.md](./DEPLOY_WEB.md) for the web deploy. Do not use the
+web CI job as a substitute for the game test runner.
 
 ---
 
@@ -1023,7 +1039,7 @@ To guarantee you do not exhaust the monthly 2,000 GitHub Actions free minutes:
 
 ```bash
 # Start dev server
-docker compose up
+docker compose --profile dev up -d
 
 # Start production server
 docker compose --profile prod up -d
@@ -1063,5 +1079,7 @@ git pull && docker compose --profile prod up --build -d
 **See also:** [README.md](./README.md) (product + architecture) ·
 [CONTRIBUTING.md](./CONTRIBUTING.md) (setup, tests, PRs) ·
 [DEVCODE.md](./DEVCODE.md) (dev environment) · [DEPLOY_WEB.md](./DEPLOY_WEB.md)
-(web) · [DEPLOY-GPU.md](./DEPLOY-GPU.md) (3D pipeline) · [SECURITY.md](./SECURITY.md) ·
-[LICENSE](./LICENSE).
+(web) · [DEPLOY-GPU.md](./DEPLOY-GPU.md) (3D pipeline) ·
+[labs/prd-db.md](./labs/prd-db.md) (storage spec) ·
+[srv/README.md](./srv/README.md) (sidecar and operations index) ·
+[SECURITY.md](./SECURITY.md) · [LICENSE](./LICENSE).

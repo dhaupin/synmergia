@@ -3,13 +3,13 @@
 #
 # One file. Pick a profile. Works for dev, prod, and headless.
 #
-# Profiles:
-#   dev       — Xvfb + noVNC + nginx + Godot GUI  (default)
+# Profiles (every service is profile-gated; `docker compose up` alone
+# selects no services):
+#   dev       — Xvfb + noVNC + nginx + Godot GUI
 #   prod      — nginx + Godot headless + postgres + redis
 #   headless  — Godot headless only (CI / bot runner)
 #
 # Usage:
-#   docker compose up               # dev (default)
 #   docker compose --profile dev up --build
 #   docker compose --profile prod up --build
 #   docker compose --profile headless up --build
@@ -172,9 +172,10 @@ services:
   # The frame service block was removed: it pointed at a nonexistent
   # srv/frame/Dockerfile and broke `docker compose --profile dev/prod up --build`.
 
-  # ── Certbot (prod, run-once to get HTTPS certs) ─────────────────────────
-  # Run once: docker compose --profile prod run --rm certbot
-  # Then uncomment HTTPS in nginx.conf and restart.
+  # ── Certbot (prod, renewal loop only) ───────────────────────────────────
+  # First issuance is NOT wired: this entrypoint only runs `certbot renew`,
+  # and the cert/webroot volumes are not mounted into synmergia. See
+  # DEPLOY.md section 4. Do not use `run --rm certbot` expecting issuance.
   certbot:
     image: certbot/certbot
     profiles:
