@@ -254,6 +254,8 @@ test_chunk_command
 test_presolve_props
 probe_terrain_climate
 probe_ground_law_audit
+probe_ground_sample
+test_ground_provider
 probe_clipmap
 probe_deep_garden
 probe_instance_props

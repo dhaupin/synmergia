@@ -84,8 +84,13 @@ func _run() -> void:
 				ok = _check("the beacon is built stone+cap+lamp", meshes >= 6, "meshes=%d" % meshes) and ok
 				var lamp = beacon.get_meta("lamp") if beacon.has_meta("lamp") else null
 				var halo = beacon.get_meta("halo") if beacon.has_meta("halo") else null
-				ok = _check("the beacon lamp + halo wired (dusk-read)", lamp != null and halo is OmniLight3D \
-					and not halo.visible) and ok
+				# The lamp+halo are WIRED (both meta present, halo a light). The
+				# boot's lit STATE rides the live Concord epoch, so the receipt must
+				# not pin it here -- a dusk/night boot legitimately lights the beacon
+				# (this leg was time-flaky: green at 01:09, red at 01:33 the same
+				# night). The night law's determinism is pinned below at fixed
+				# epoch fractions.
+				ok = _check("the beacon lamp + halo wired (dusk-read)", lamp != null and halo is OmniLight3D) and ok
 				# THE NIGHT LAW, live on this boot's own materials.
 				var dark = beacon.get_meta("lamp")
 				# The edge hours ride the epoch's FRACTION (place_night takes
@@ -255,6 +260,15 @@ func _run() -> void:
 		var OceanService = root.get_node_or_null("OceanService")
 		if QuestService != null and OceanService != null:
 			QuestService.load_player_quests("audit_walker")
+			# quest_cross_the_cistern chains off quest_listen_to_the_deep
+			# (the authored chain gate, enforced since 2026-11-02), so seed the
+			# prerequisite as turned in first -- the same honest seed the runner
+			# receipts use. Accepting the sequel cold is now CORRECTLY refused.
+			QuestService._player_quests["audit_walker"]["quest_listen_to_the_deep"] = {
+				"state": QuestService.QuestData.QuestState.REWARDED,
+				"objectives": [],
+				"data": load("res://data/quests/quest_listen_to_the_deep.tres")
+			}
 			var accepted: bool = QuestService.accept_quest("audit_walker", "quest_cross_the_cistern")
 			ok = _check("the swimming quest accepts on this boot", accepted) and ok
 			# Into the dish; one underworld frame delivers the credit.
@@ -306,6 +320,51 @@ func _run() -> void:
 		uglobe.release_visitor(walker)
 		ok = _check("the last visitor leaving folds the Deep Root away", \
 			not is_instance_valid(uglobe) or uglobe.is_queued_for_deletion()) and ok
+
+	# ---------- C2. THE MAIN-WORLD TERRAIN RENDERS (the new clipmap path) --
+	# The main world is the one globe the audit used to prove only at the
+	# structure level (beacon/deck). The TERRAIN itself is the clipmap + the
+	# provider + the splat skin now, so prove THAT renders: the clipmap drew
+	# its ground meshes, each carries the splat skin material (surface 0),
+	# the drawn ground rides the provider's own surface_sample, the sea shell
+	# is a real mesh at the declared waterline, and the landmass reads land
+	# where it should (not an all-ocean or all-land ball).
+	if world != null:
+		var cmap = world.get("clipmap")
+		ok = _check("the main world builds the clipmap renderer", cmap != null) and ok
+		if cmap != null:
+			var meshes: Array = cmap.ground_meshes()
+			ok = _check("the clipmap drew ground meshes", meshes.size() >= 1, "meshes=%d" % meshes.size()) and ok
+			var skinned := 0
+			for m in meshes:
+				if m is MeshInstance3D and m.get_surface_override_material(0) is ShaderMaterial:
+					skinned += 1
+			ok = _check("every drawn ground mesh wears the splat-skin shader (surface 0)", \
+				skinned == meshes.size(), "skinned=%d/%d" % [skinned, meshes.size()]) and ok
+			# The provider is the ONE ground law the skin draws from.
+			var prov = cmap.get("provider")
+			ok = _check("the clipmap draws through a ground provider", prov != null and prov.has_method("surface_sample")) and ok
+			if prov != null:
+				var samples: Array = []
+				var biome_ids := {}
+				for i in range(512):
+					var d: Vector3 = Vector3(sin(float(i) * 1.3), cos(float(i) * 0.7), sin(float(i) * 2.1)).normalized()
+					var ss: Dictionary = prov.surface_sample(d)
+					samples.append(ss)
+					biome_ids[int(prov.biome_id(d))] = true
+				var bare := 0
+				for ss in samples:
+					if not (ss.has("splat") and ss.get("splat") is Color):
+						bare += 1
+				ok = _check("the provider answers a splat color at every sampled direction", bare == 0, "bare=%d" % bare) and ok
+				ok = _check("the planet carries many biomes (not a single-color ball)", \
+					biome_ids.size() >= 3, "biomes=%d" % biome_ids.size()) and ok
+		# The sea shell is a real drawn mesh at the declared waterline.
+		var wb = world.get("water_body")
+		ok = _check("the sea shell is a real drawn mesh", wb != null and wb is MeshInstance3D and wb.mesh != null) and ok
+		var facts_w: Dictionary = _scan_meshes(world, {"total": 0, "bare": 0})
+		ok = _check("every main-world MeshInstance3D carries a real mesh", int(facts_w["bare"]) == 0) and ok
+		print("AUDIT render census mainworld meshes=%d bare=%d" % [int(facts_w["total"]), int(facts_w["bare"])])
 
 	if world != null:
 		world.queue_free()
