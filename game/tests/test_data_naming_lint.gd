@@ -2105,15 +2105,15 @@ func _run() -> void:
 	# Healer gets the mend, bender the blink, tank the grab (control). The
 	# damage lanes (DD/MAGE/ROGUE) carry damage. The same law for every
 	# family, read off the class `role`, so a new class cannot ship with a
-	# starter that ignores its lane.
-	var role_verb := {
-		1: "control",  # TANK
-		2: "damage",   # DD
-		3: "damage",   # MAGE
-		4: "damage",   # ROGUE
-		5: "teleport", # BENDER
-		6: "heal",     # HEALER
-	}
+	# starter that ignores its lane. The role -> verb map is THE schema's
+	# (CharacterClass.IDENTITY_VERB_BY_ROLE), not a private copy here, so the
+	# rule and its source cannot drift.
+	var role_verb: Dictionary = {}
+	var cc_script = load("res://core/schemas/character_class.gd")
+	if cc_script != null:
+		role_verb = cc_script.IDENTITY_VERB_BY_ROLE
+	if role_verb.is_empty():
+		_fail("Starter law: could not read CharacterClass.IDENTITY_VERB_BY_ROLE")
 	var bad_starter: Array = []
 	var starters_checked := 0
 	var cls_root := DirAccess.open("res://data/classes")
@@ -2121,7 +2121,7 @@ func _run() -> void:
 		cls_root.list_dir_begin()
 		var cf := cls_root.get_next()
 		while cf != "":
-			if cf.ends_with(".tres") and not cf.begins_with("gm_"):
+			if cf.ends_with(".tres") and not cf.begins_with("class_gm_"):
 				var ctxt := FileAccess.get_file_as_string("res://data/classes/%s" % cf)
 				var cid := ""
 				var c_role := -1

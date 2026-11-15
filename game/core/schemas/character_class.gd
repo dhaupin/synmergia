@@ -28,6 +28,25 @@ enum Role {
 ## an alias so older call sites and tests read the same rung.
 const RANGER: int = Role.ROGUE
 
+## The family identity verb each role expresses in its FIRST starting skill
+## (the starter law): TANK controls, BENDER blinks, HEALER mends, and the three
+## damage lanes all strike. THE one home for the mapping -- the data-naming lint
+## loads this const and asserts every class's first starter carries its role's
+## verb, so the rule and its source cannot drift apart.
+const IDENTITY_VERB_BY_ROLE: Dictionary = {
+	Role.TANK: "control",     # the grab
+	Role.DD: "damage",
+	Role.MAGE: "damage",
+	Role.ROGUE: "damage",
+	Role.BENDER: "teleport",  # the blink
+	Role.HEALER: "heal",      # the mend
+}
+
+## The identity verb for a role, or "" for a role with no lane verb (GM, the
+## legacy aliases). A caller gates on "" rather than assuming a verb exists.
+static func identity_verb(role: int) -> String:
+	return str(IDENTITY_VERB_BY_ROLE.get(role, ""))
+
 @export var id: String = ""
 @export var display_name: String = "Warrior"
 @export var description: String = ""
