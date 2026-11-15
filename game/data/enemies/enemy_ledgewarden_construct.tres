@@ -43,7 +43,6 @@ xp_reward = 4800
 skills = []
 movement_profile_id = ""
 hitbox_profile_id = ""
-model_path = ""
 icon_path = ""
 scale = 1.3
 animation_set = "void"

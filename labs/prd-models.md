@@ -1,95 +1,68 @@
-# PRD - Models: schema, catalog, and source-to-runtime pipeline
+# PRD - Models: record, registry, and source-to-runtime pipeline
 
-> **Status:** DESIGN 2026-11-15. This is the target contract for models; the
-> current seven GLBs are a prototype pass, not the production system.
+> **Status:** ACTIVE 2026-11-15. `ModelData` is the canonical model record.
+> The seven committed GLBs have records under `game/data/models/`; actors
+> resolve a stable `model_id` through `DataService`, never a GLB path.
 >
 > **Canonical root:** `game/data/` (not `game/assets`, not repo-root `data/`).
 > The later repo-root `/data` split is deferred until the frame is extracted.
 >
 > **Law it obeys:** [`prd-3d-pipeline.md`](./prd-3d-pipeline.md) owns the
 > toolchain/import law; [`prd-art-pipeline.md`](./prd-art-pipeline.md) owns
-> Lane D and GPU generation; this PRD owns the model record, runtime
-> resolution, and the retirement of ad-hoc `model_path` strings.
+> Lane D and GPU generation; this PRD owns the model record and runtime
+> resolution.
 
 ## 1. Why this exists
 
 The world is math-generated, but bodies, mounts, props, and set pieces still
-need authored meshes. The current pass proved that Blender -> glTF -> Godot
-works; it did not produce a model system.
+need authored meshes. A model is a data resource, not a filename convention:
+one record owns the mesh path, presentation scale, animation mapping, and
+provenance. Actors point at that record by id.
 
-The evidence is in the code:
-
-- Ten schemas carry their own visual-path fields: `EnemyData.model_path`,
-  `NPCData.scene_path` / `model_path`, `MountData.model_path`,
-  `VehicleData.model_path`, `Species.model_path`, `Ankh.model_path`,
-  `GatewayData.model_path`, `FurnishingData.model_path`,
-  `HouseData.model_path`, and `Item.model_path`.
-- `Enemy._mount_model()` loads a GLB directly from `EnemyData.model_path`;
-  NPCs use a separate `scene_path` path. There is no shared mount layer.
-- `DataService` loads enemies, NPCs, mounts, and props independently; it has
-  no model catalog.
-- `test_data_naming_lint.gd` checks that a path resolves. It does not check
-  the model id, provenance, license, animation contract, LODs, scale, or
-  attachment points.
-- The five enemy GLBs under `game/data/models/enemies/` are a prototype
-  pass. They are useful evidence, not the target pipeline.
-
-The result is path duplication and per-actor loading logic. A second actor
-that wants the same body has to copy a path; a model cannot carry its own
-scale, clips, LODs, or provenance; and the web/editor cannot reason about a
-model independently of an enemy.
+That keeps the model reusable across actors and makes the asset inspectable by
+the engine, the editor, and the web data export without any consumer scraping
+a GLB path.
 
 ## 2. Decision
 
 ### 2.1 One record per model
 
-Add `ModelData` (`game/core/schemas/model_data.gd`) as the canonical model
-record. A model is a data resource, not a filename convention.
-
 - `game/data/models/<family>/<model_id>.tres` is the `ModelData` record.
 - `game/data/models/<family>/<model_id>.glb` is the runtime mesh.
-- Optional LODs live beside it as `<model_id>_lod1.glb`, etc.
+- The id is stable and filename-equal: `<model_id>.tres` and
+  `<model_id>.glb` share the id.
 - Source files live under `game/data/art/src/<model_id>/`; GPU scratch lives
   under `game/data/art/out/<model_id>/`.
 
-The id is stable and filename-equal: `<model_id>.tres` and
-`<model_id>.glb` share the id.
-
-### 2.2 Actors reference an id, never a path
-
-Replace the visual fields on actor/ prop schemas with:
+### 2.2 Actors reference an id
 
 ```gdscript
 @export var model_id: String = ""
 ```
 
-`DataService` resolves `model_id` to the `ModelData` record. Consumers never
-read a GLB path directly, and two actors can share one model without copying
-a path.
+`DataService.get_model(model_id)` returns the record. Consumers use
+`model.asset_path`; they do not own a path. Two actors can share one model
+without copying anything.
 
 This follows the existing id rules (`movement_profile_id`,
 `hitbox_profile_id`, `loot_table_id`): stable string key, one owner, one
-resolver. The `.tres` record is what "rides with" the actor `.tres`; the
-actor keeps gameplay fields, the model record keeps presentation fields.
+resolver.
 
-### 2.3 Move presentation fields out of actor data
+### 2.3 Presentation and body data
 
-| Actor field | New owner |
-|---|---|
-| `model_path` | `ModelData.asset_path` |
-| `scale` | `ModelData.scale` |
-| `animation_set` | `ModelData.animation_clips` |
-| per-actor visual hacks | `ModelData` fields or an explicit override |
+`ModelData` owns the mesh path, model scale, semantic clips, and attachment
+points. `EnemyData` and `NPCData` own gameplay fields: stats, hitbox profile,
+movement profile, loot, AI, and interaction surface.
 
-Gameplay fields stay on the actor: `hitbox_profile_id`, movement profile,
-stats, loot, AI. A hitbox is gameplay fairness; a mesh scale is presentation.
-They can be related by a probe, but they are not the same field.
+`EnemyData.scale` remains the body size for an enemy without a model record.
+When a model record resolves, `ModelData.scale` is the body and visual scale.
+This keeps placeholder bodies correctly sized while every modeled actor has
+one presentation owner.
 
-`NPCData.scene_path` remains for composite NPC scenes (a blacksmith stall, a
-vendor with props). A simple NPC uses `model_id`. A composite scene owns its
-own presentation and may reference a `ModelData` record for its body.
+`NPCData.scene_path` remains for composite NPC scenes (a stall, a vendor with
+props). The scene owns its composition; a `model_id` supplies its body.
 
-### 2.4 Canonical tree for this phase
+### 2.4 Canonical tree
 
 ```
 game/data/
@@ -101,10 +74,14 @@ game/data/
   models/
     README.md
     enemies/
-      enemy_wolf.glb          # prototype, not production
-      enemy_wolf.tres         # ModelData, when authored
+      enemy_wolf.glb
+      enemy_wolf.tres         # ModelData
     npcs/
+      npc_blacksmith_village.glb
+      npc_blacksmith_village.tres
     blocks/
+      block_ref_cube.glb
+      block_ref_cube.tres
   brand/                      # logos, wordmarks
   shaders/
   textures/
@@ -114,13 +91,9 @@ game/data/
 `game/assets/` and `game/models/` are retired. Do not recreate them. Runtime
 paths are `res://data/models/...`, `res://data/brand/...`,
 `res://data/shaders/...`, and `res://data/textures/...`. The later repo-root
-`/data` split will preserve this relative shape and is not part of this
-phase.
+`/data` split preserves this relative shape.
 
 ## 3. The `ModelData` schema
-
-The initial schema is deliberately concrete. Keep optional fields optional;
-do not add a second descriptor type for a special case.
 
 ```gdscript
 extends Resource
@@ -129,109 +102,46 @@ class_name ModelData
 enum Kind {
     ACTOR,
     PROP,
-    MOUNT,
-    VEHICLE,
-    DWELLING,
-    GATEWAY,
-    FURNISHING,
-    ITEM,
-    BLOCK,
-    OTHER
-}
-
-enum Status {
-    PROTOTYPE,
-    PRODUCTION,
-    DEPRECATED
-}
-
-enum Collision {
-    NONE,
-    BOX,
-    CAPSULE,
-    CONVEX,
-    TRIMESH
+    BLOCK
 }
 
 @export var id: String = ""
 @export var display_name: String = ""
 @export var description: String = ""
-
 @export var kind: Kind = Kind.ACTOR
-@export var status: Status = Status.PROTOTYPE
-
-## Runtime mesh. For PRODUCTION this must be res://data/models/<family>/<id>.glb.
 @export_file("*.glb") var asset_path: String = ""
-
-## Provenance. PRODUCTION records require source_path, license, and either
-## generator or author; PROTOTYPE records may carry the prototype marker.
-@export var source_path: String = ""       # game/data/art/src/<id>/
-@export var source_url: String = ""
-@export var author: String = ""
-@export var license: String = ""
-@export var generator: String = ""         # script or suite name
-@export var source_hash: String = ""       # hash of source/generator commit
-
-## Presentation contract.
 @export var scale: float = 1.0
-@export var forward_axis: String = "-Z"
-@export var up_axis: String = "+Y"
-@export var bounds_height_m: float = 0.0
-
-## Semantic clip map: idle/walk/run/attack/cast/hit/death -> imported clip.
-## Empty means the model has no clips; consumers must not guess a clip name.
 @export var animation_clips: Dictionary = {}
-
-## LOD entries: {path, screen_ratio, triangles}. Base asset_path is LOD0.
-@export var lods: Array[Dictionary] = []
-
-## Static props only. Actors use the actor's hitbox_profile_id for gameplay.
-@export var collision: Collision = Collision.NONE
-@export var collision_path: String = ""
-@export var collision_size: Vector3 = Vector3.ZERO
-
-## Named sockets consumed by the shared mount layer.
-## Example: {"seat_driver": "seat_driver", "head_mount": "head_mount"}.
+@export var source_path: String = ""
+@export var generator: String = ""
+@export var license: String = ""
 @export var attachment_points: Dictionary = {}
-
-@export var tags: Array[String] = []
 ```
 
-`ModelData` never loads the mesh itself. It describes it. One shared
-`ModelMount` helper resolves `asset_path`, applies `scale`, attaches the
-semantic clips, and exposes the sockets. `Enemy`, `NPC`, mount, and prop
-presentation route through that helper instead of each writing its own
-`load()`/`instantiate()` block.
+`ModelData` describes the mesh; it never loads it. The mount site resolves the
+record, loads `asset_path`, applies `scale`, and maps the semantic clip keys
+it needs.
 
-## 4. Actor schema changes
+The record is deliberately one type. A block, an actor, and a prop differ by
+`kind` and fields, not by a second descriptor class.
 
-The fields below are the complete first migration. Do not leave a second
-visual path behind "for compatibility" once a consumer is migrated.
+## 4. Actor wiring
 
-| Schema | Add | Remove / deprecate |
+| Schema | Field | Contract |
 |---|---|---|
-| `EnemyData` | `model_id` | `model_path`, `scale`, `animation_set` |
-| `NPCData` | `model_id` | `model_path`; keep `scene_path` for composite scenes |
-| `MountData` | `model_id` | `model_path`; `tint` stays (instance tint) |
-| `VehicleData` | `model_id` | `model_path` |
-| `Species` | `model_id` | `model_path` |
-| `Ankh` | `model_id` | `model_path` |
-| `GatewayData` | `model_id` | `model_path` |
-| `FurnishingData` | `model_id` | `model_path` |
-| `HouseData` | `model_id` | `model_path` |
-| `Item` | `model_id` for dropped/world meshes | `model_path`; `icon_path` stays 2D |
+| `EnemyData` | `model_id` | Optional. Resolves to a `ModelData`; absent means the scene placeholder body. |
+| `EnemyData` | `scale` | Body scale when no model record resolves. |
+| `NPCData` | `model_id` | Optional body record for a composite scene. |
+| `NPCData` | `scene_path` | Composite NPC scene. |
 
-`icon_path` is UI art, not a 3D model. It does not become a `ModelData`
-record. `NPCData.scene_path` is a composite presentation seam, not a second
-model registry.
+The registry currently covers the five enemy models, the blacksmith NPC, and
+the calibration block. It is the only model registry.
 
 ## 5. DataService and validation
 
-`DataService` gains:
+`DataService` loads the recursive model directory once:
 
 ```gdscript
-var _models: Dictionary = {}
-
 func load_models() -> void:
     _models = _scan_directory(_data_path + "models", "model")
 
@@ -239,28 +149,18 @@ func get_model(id: String) -> ModelData:
     return _models.get(id)
 ```
 
-`load_all_data()` calls `load_models()` once. `get_model_for(data)` resolves a
-`model_id` and returns `null` with one warning for a missing record; consumers
-must degrade to a placeholder, not crash.
+`load_all_data()` calls `load_models()`. A missing actor model id logs once and
+the actor keeps its placeholder body; a missing asset logs and does not crash
+the spawn.
 
-The lint becomes a model gate, not only a path checker:
+`test_data_naming_lint.gd` enforces the registry:
 
 1. Every `ModelData.id` equals its filename stem.
-2. Every actor `model_id` resolves to a `ModelData`.
-3. `PRODUCTION` records have `asset_path`, `source_path`, `license`, and
-   `generator` or `author`; `PROTOTYPE` records are explicitly marked.
-4. `asset_path` exists and, for production, is under
-   `res://data/models/`.
-5. Every LOD path exists and its `screen_ratio` descends.
-6. Every `animation_clips` key is one of the semantic keys; no guessed names.
-7. Every `attachment_points` value names a node/ bone in the imported scene
-   when the model is mounted.
-8. No `.glb` is authored outside `game/data/models/`; no actor `.tres` holds
-   a direct `res://...glb` path outside `ModelData`.
-
-`test_data_naming_lint.gd` owns the data side. A new model probe loads the
-record, mounts it, and asserts the clip/socket/scale contract on the
-instantiated scene.
+2. Every `asset_path` exists and is under `res://data/models/`.
+3. Every `.glb` under `game/data/models/` has a record.
+4. Every actor `model_id` resolves to a record.
+5. Actor data contains no direct GLB path.
+6. Every `scene_path` resolves to a real file.
 
 ## 6. Pipeline
 
@@ -277,94 +177,60 @@ instantiated scene.
    `game/data/models/<family>/<model_id>.glb`. Pivot at base, +Y up,
    -Z forward, 1 unit = 1 meter; riders pivot at `seat_driver`.
 6. Author `game/data/models/<family>/<model_id>.tres` as `ModelData`.
-7. Run the model lint and the engine probe. A path that resolves is not
-   enough; the record must describe what was imported.
+7. Run the data lint and the engine probe.
 
 ### Runtime
 
-`DataService.get_model(model_id)` -> `ModelData` -> `ModelMount` ->
-`asset_path`. The mount helper applies scale, resolves semantic clips, and
-publishes sockets. No actor owns a path.
+`DataService.get_model(model_id)` -> `ModelData` -> `asset_path`. The mount
+site applies `scale`, resolves clips from `animation_clips`, and lets the actor
+keep its gameplay fields.
 
 ### Web / exports
 
 `src/data/godot_data.json` is generated from `game/data` by
-`npm run sync:data`. Model metadata must be exported through that generator
-once `ModelData` exists; the web side must not scrape GLB paths. The future
-repo-root `/data` split changes the projection, not this contract.
+`npm run sync:data`. The generator exports the `models` category alongside the
+gameplay records; the web side never scrapes GLB paths.
 
-## 7. The prototype pass
+## 7. Current registry
 
-The following are prototypes and must stay `Status.PROTOTYPE` until replaced:
-
-- `game/data/models/enemies/enemy_wolf.glb`
-- `game/data/models/enemies/enemy_slime.glb`
-- `game/data/models/enemies/enemy_bandit.glb`
-- `game/data/models/enemies/enemy_thistle_boar.glb`
-- `game/data/models/enemies/enemy_training_dummy.glb`
-
-`npc_blacksmith_village.glb` is a proven import/reference, but it is still a
-pre-`ModelData` asset; mark it `PROTOTYPE` rather than claiming production
-quality. `block_ref_cube.glb` is a calibration block and may be
-`DEPRECATED` or `PROTOTYPE`; it is not an actor.
-
-The prototype GLBs keep working while the schema lands. They are not evidence
-that the model system is finished, and no new enemy should copy their
-`model_path` shape.
+| Model id | Asset | Used by |
+|---|---|---|
+| `enemy_wolf` | `data/models/enemies/enemy_wolf.glb` | `EnemyData wolf` |
+| `enemy_slime` | `data/models/enemies/enemy_slime.glb` | `EnemyData slime` |
+| `enemy_bandit` | `data/models/enemies/enemy_bandit.glb` | `EnemyData bandit` |
+| `enemy_thistle_boar` | `data/models/enemies/enemy_thistle_boar.glb` | `EnemyData thistle_boar` |
+| `enemy_training_dummy` | `data/models/enemies/enemy_training_dummy.glb` | `EnemyData training_dummy` |
+| `npc_blacksmith_village` | `data/models/npcs/npc_blacksmith_village.glb` | `NPCData npc_blacksmith_village` scene |
+| `block_ref_cube` | `data/models/blocks/block_ref_cube.glb` | Calibration block |
 
 ## 8. FOSS provenance
 
-Because Synmergia is open source, a model record must answer: where did this
-come from, who made it, and under what license?
+Because Synmergia is open source, a model record answers: where did this come
+from, who made it, and under what license?
 
-- `author` and `license` are required for `PRODUCTION`.
-- `source_url` is required when the source is external.
 - `generator` names the deterministic script/suite when the mesh is generated.
-- `source_hash` pins the source or generator revision used to produce the
-  asset.
-- A bought or borrowed asset without a compatible license is not a
-  `PRODUCTION` record. It cannot ship.
-- Generated assets still record the generator and the source references; "the
-  script made it" is provenance, not an excuse to omit the license.
+- `source_path` names the tracked source directory when one exists.
+- `license` is required. A bought or borrowed asset without a compatible
+  license cannot ship.
+- Generated assets still record the generator and license; "the script made
+  it" is provenance, not an excuse to omit either.
 
-## 9. Migration phases
+## 9. Operating rules
 
-1. **Schema + resolver:** add `ModelData`, `DataService.load_models`, the
-   shared `ModelMount`, and the lint gates. No visual change.
-2. **Wrap the prototypes:** add `ModelData` records for the existing seven
-   GLBs with `PROTOTYPE` status. Point actor data at `model_id`; keep a
-   temporary legacy `model_path` fallback only until every consumer is
-   migrated.
-3. **One mount path:** move `Enemy._mount_model` and NPC idle mounting behind
-   `ModelMount`; delete direct GLB loads from actors.
-4. **Production assets:** author new models under `game/data/models` with
-   source/art provenance; add LODs and sockets where needed.
-5. **Retire the prototype path:** remove `model_path` from the schemas and
-   the old `game/models` references; the only model paths left are inside
-   `ModelData`.
-6. **Future root split:** when the frame and content separate, move
-   `game/data` to repo `/data` and keep the same relative tree. That is a
-   projection change, not a model-schema change.
+- A model asset enters through a `ModelData` record; no actor, scene, or
+  service carries a GLB path.
+- The id is filename-equal. Renaming a model renames both files and every
+  actor reference in the same change.
+- A shared model is edited once in its record; actors do not fork the path.
+- The record is the source for scale and clip mapping. Consumers do not guess
+  clip names.
+- The data lint is the gate. A file that exists but has no record is a
+  registry miss.
 
-## 10. Acceptance
-
-- `test_model_registry.gd` passes for every record: id/filename, asset path,
-  status/provenance, LODs, clips, sockets.
-- `test_model_refs.gd` passes: every `model_id` resolves; no actor data
-  contains a direct GLB path.
-- `probe_model_mount.gd` spawns an enemy, mounts its model, and asserts scale,
-  semantic idle clip, and socket names.
-- `npm run sync:data` exports model metadata without hand-edited paths.
-- The five proto GLBs are explicitly `PROTOTYPE`; no doc calls them the
-  production model system.
-- `game/assets/` and `game/models/` do not exist; `game/data/` is the only
-  authored content root.
-
-## 11. Non-goals
+## 10. Non-goals
 
 - Replacing math-generated terrain, props, or world layout.
 - A DCC/Blender-MCP integration; the Python generator + Blender export path
   remains the CPU floor.
 - A generic asset store, resource packs, or runtime GLB downloads.
 - The repo-root `/data` split. It is deliberately later.
-- Migrating all seven prototypes to production quality in this PRD.

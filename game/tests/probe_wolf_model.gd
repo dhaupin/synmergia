@@ -76,9 +76,14 @@ func _initialize() -> void:
 		push_error("FAIL: enemy_wolf data missing")
 		quit(1)
 		return
-	var mp = wolf.get("model_path")
-	if mp == null or str(mp) != "res://data/models/enemies/enemy_wolf.glb":
-		push_error("FAIL: wolf model_path not wired: %s" % str(mp))
+	var mid = wolf.get("model_id")
+	if mid == null or str(mid) != "enemy_wolf":
+		push_error("FAIL: wolf model_id not wired: %s" % str(mid))
+		quit(1)
+		return
+	var model = ds.get_model("enemy_wolf")
+	if model == null or model.asset_path != "res://data/models/enemies/enemy_wolf.glb":
+		push_error("FAIL: wolf ModelData asset not wired")
 		quit(1)
 		return
 	var prof = wolf.get("movement_profile_id")
@@ -86,7 +91,7 @@ func _initialize() -> void:
 		push_error("FAIL: wolf movement_profile_id not quadruped: %s" % str(prof))
 		quit(1)
 		return
-	print("[OK] enemy_wolf.tres -> enemy_wolf.glb + movement_quadruped")
+	print("[OK] enemy_wolf.tres -> ModelData enemy_wolf -> enemy_wolf.glb + movement_quadruped")
 	inst.free()
 	print("--- WOLF MODEL PROBE: ok=true ---")
 	quit(0)

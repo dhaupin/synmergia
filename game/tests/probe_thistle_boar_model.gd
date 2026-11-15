@@ -97,12 +97,17 @@ func _initialize() -> void:
 		push_error("FAIL: enemy_thistle_boar data missing")
 		quit(1)
 		return
-	var mp = boar.get("model_path")
-	if mp == null or str(mp) != "res://data/models/enemies/enemy_thistle_boar.glb":
-		push_error("FAIL: thistle boar model_path not wired: %s" % str(mp))
+	var mid = boar.get("model_id")
+	if mid == null or str(mid) != "enemy_thistle_boar":
+		push_error("FAIL: thistle boar model_id not wired: %s" % str(mid))
 		quit(1)
 		return
-	print("[OK] enemy_thistle_boar.tres -> enemy_thistle_boar.glb")
+	var model = ds.get_model("enemy_thistle_boar")
+	if model == null or model.asset_path != "res://data/models/enemies/enemy_thistle_boar.glb":
+		push_error("FAIL: thistle boar ModelData asset not wired")
+		quit(1)
+		return
+	print("[OK] enemy_thistle_boar.tres -> ModelData enemy_thistle_boar -> enemy_thistle_boar.glb")
 	inst.free()
 	print("--- THISTLE BOAR MODEL PROBE: ok=true ---")
 	quit(0)

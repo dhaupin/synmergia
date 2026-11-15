@@ -1,33 +1,41 @@
 # Models
 
-Canonical runtime model registry for the Godot project. Files are id-named and
-family-sorted:
+Canonical runtime model registry for the Godot project. Every runtime mesh has
+a `ModelData` record beside it:
 
 ```
 game/data/models/<family>/<id>.glb
+game/data/models/<family>/<id>.tres
 ```
 
-## Prototype pass
+The `.tres` record is the only place a GLB path is named. Actors use
+`model_id`; `DataService.get_model(model_id)` resolves the record.
 
-The current GLBs are prototypes and proof-of-import assets, not the target
-model system:
+## Registry
 
-- `enemies/enemy_wolf.glb`
-- `enemies/enemy_slime.glb`
-- `enemies/enemy_bandit.glb`
-- `enemies/enemy_thistle_boar.glb`
-- `enemies/enemy_training_dummy.glb`
-- `npcs/npc_blacksmith_village.glb`
-- `blocks/block_ref_cube.glb`
+| Family | Model id | Asset |
+|---|---|---|
+| enemies | `enemy_wolf` | `enemies/enemy_wolf.glb` |
+| enemies | `enemy_slime` | `enemies/enemy_slime.glb` |
+| enemies | `enemy_bandit` | `enemies/enemy_bandit.glb` |
+| enemies | `enemy_thistle_boar` | `enemies/enemy_thistle_boar.glb` |
+| enemies | `enemy_training_dummy` | `enemies/enemy_training_dummy.glb` |
+| npcs | `npc_blacksmith_village` | `npcs/npc_blacksmith_village.glb` |
+| blocks | `block_ref_cube` | `blocks/block_ref_cube.glb` |
 
-They may be used by the current gameplay data, but they do not define the
-production contract. Do not copy their `model_path` shape into new content.
-
-## Target
-
-`ModelData` (`game/core/schemas/model_data.gd`) will own `asset_path`, scale,
-semantic animation clips, LODs, collision, sockets, provenance, and status.
-Actor data references a stable `model_id`; it never hardcodes a GLB path.
+`ModelData` owns `asset_path`, `scale`, `animation_clips`, provenance, and
+attachment points. `EnemyData` and `NPCData` keep gameplay fields and point at
+the record with `model_id`.
 
 Source files belong in `game/data/art/src/<id>/`; GPU scratch belongs in
 `game/data/art/out/<id>/`. See [`labs/prd-models.md`](../../../labs/prd-models.md).
+
+## Adding a model
+
+1. Export the normalized GLB into its family directory.
+2. Add `<id>.tres` with the same id and an `asset_path` pointing at the GLB.
+3. Point the actor at `model_id`.
+4. Run `test_data_naming_lint.gd` and the model probe.
+
+A `.glb` without a record is a registry miss; a record with a phantom asset
+fails the data gate.

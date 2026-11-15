@@ -10,6 +10,7 @@ description = "The local blacksmith serving a small rural community."
 level = 1
 faction = "friendly"
 scene_path = "res://scenes/npcs/blacksmith_village.tscn"
+model_id = "npc_blacksmith_village"
 greeting = "Good to see ye, traveler. Bring me yer worn gear."
 farewell = "Safe travels, friend."
 location_type = 2

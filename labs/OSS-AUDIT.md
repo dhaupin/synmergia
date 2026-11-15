@@ -125,8 +125,9 @@ compatible license or a written grant.
 
 - [x] **Audio is generated in-repo.** `game/audio/*.wav` come from
       `scripts/gen_*_audio.py`. You own them.
-- [x] **3D models are generated in-repo.** `game/data/models/*.glb` come from
-      `scripts/gen_*_model.py`. You own them.
+- [x] **3D models are generated in-repo.** `game/data/models/**/*.glb` come
+      from `scripts/gen_*_model.py` and are registered as `ModelData` records
+      (see `prd-models.md`); you own them.
 - [x] **`gamestruct` (build dep) is MIT.** Pinned to a `dhaupin/gamestruct`
       commit. Compatible.
 - [x] **Self-hosted fonts carry their license files.** DONE: `public/fonts/OFL-Cinzel.txt` + `OFL-PlusJakartaSans.txt`. Cinzel and Plus

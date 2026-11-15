@@ -8,6 +8,7 @@ const AggroComponent = preload("res://core/components/aggro_component.gd")
 const KillRewards = preload("res://core/services/kill_rewards.gd")
 const EventService = preload("res://core/services/event_service.gd")
 const EnemyData = preload("res://core/schemas/enemy_data.gd")
+const ModelData = preload("res://core/schemas/model_data.gd")
 const FloatingName = preload("res://entities/floating_name.gd")
 
 ## Mirror of the Entity damage event with explicit damage_type, consumed
@@ -50,9 +51,10 @@ var _last_damager: Node = null
 ## _movement_profile(); null until first speed query after boot).
 var _movement_profile_cache: MovementProfile = null
 
-## AnimationPlayer on the mounted .glb model (null when the enemy has
-## no model_path or it carries no animations).
+## AnimationPlayer on the mounted model (null when the enemy has no
+## model record or the model carries no animations).
 var _model_anim: AnimationPlayer = null
+var _model_data_cache: ModelData = null
 
 ## Hitbox Profile System: cached profile (resolved lazily; null until
 ## first _apply_hitbox_profile after boot).
@@ -201,38 +203,49 @@ func _face_travel(dir: Vector3) -> void:
 	_update_model_anim(true)
 
 
-## Mount the skinned .glb from EnemyData.model_path under a ModelRoot
-## and hide any scene-level placeholder mesh the author left behind.
-## Silence is fine: most enemies still run box placeholders (the
-## phantom-path lint keeps model_path empty until the file exists).
+## Resolve this enemy's model record. No path fallback: an enemy without
+## a model_id runs its placeholder body, and a bad id is a data error.
+func _resolve_model() -> ModelData:
+	if _model_data_cache != null:
+		return _model_data_cache
+	if enemy_data == null or enemy_data.model_id.is_empty() or DataService == null:
+		return null
+	_model_data_cache = DataService.get_model(enemy_data.model_id)
+	if _model_data_cache == null:
+		GameLog.warn("Enemy: model_id not found: " + enemy_data.model_id)
+	return _model_data_cache
+
+
+## Mount the ModelData asset under a ModelRoot and hide any scene-level
+## placeholder mesh the author left behind. The record is the only model
+## path; an absent model_id keeps the placeholder.
 func _mount_model() -> void:
-	var path := ""
-	if enemy_data != null:
-		var mp = enemy_data.get("model_path")
-		if mp != null:
-			path = str(mp)
-	if path.is_empty() or not ResourceLoader.exists(path):
+	var model := _resolve_model()
+	if model == null or model.asset_path.is_empty():
+		return
+	var path := model.asset_path
+	if not ResourceLoader.exists(path):
+		GameLog.warn("Enemy: model asset missing: " + path)
 		return
 	var packed := load(path) as PackedScene
 	if packed == null:
-		GameLog.warn("Enemy: model_path failed to load: " + path)
+		GameLog.warn("Enemy: model asset failed to load: " + path)
 		return
 	var root := Node3D.new()
 	root.name = "ModelRoot"
 	add_child(root)
 	var inst := packed.instantiate()
-	inst.name = path.get_file().get_basename()
+	inst.name = model.id
 	root.add_child(inst)
 	# Face travel direction -Z like every other entity.
 	root.rotation.y = PI
 	_model_anim = _find_anim_player(inst)
-	# Hide the author's placeholder box mesh (direct child MeshInstance3D)
-	# once a real model is present -- only when it is NOT the model we
-	# just mounted.
+	# Hide the author's placeholder box mesh once the record's model mounts.
 	for c in get_children():
 		if c is MeshInstance3D:
 			c.visible = false
-	GameLog.info("Enemy: mounted model %s" % path)
+	_update_model_anim(false)
+	GameLog.info("Enemy: mounted model %s" % model.id)
 
 
 ## Hitbox Profile System: resolve this creature's HitboxProfile from
@@ -258,11 +271,7 @@ func _apply_hitbox_profile() -> void:
 	var profile: HitboxProfile = _hitbox_profile()
 	if profile == null:
 		return
-	var base_scale: float = 1.0
-	if enemy_data != null:
-		var sc = enemy_data.get("scale")
-		if sc != null:
-			base_scale = float(sc)
+	var base_scale := _body_scale()
 	var shape := profile.build_shape(base_scale)
 	var dims := profile.get_dims(base_scale)
 
@@ -302,19 +311,30 @@ func _apply_hitbox_profile() -> void:
 	GameLog.info("Enemy: hitbox '%s' applied to %s" % [profile.id, display_name])
 
 
-## Scale the mounted model by EnemyData.scale so the visual matches the
-## (clamped) hitbox scale. Box placeholders keep their authored size.
+## The body scale: a resolved model record owns it; otherwise the enemy
+## template's scale keeps its placeholder/hitbox size.
+func _body_scale() -> float:
+	var model := _resolve_model()
+	if model != null:
+		return model.scale
+	if enemy_data != null:
+		var sc = enemy_data.get("scale")
+		if sc != null:
+			return float(sc)
+	return 1.0
+
+
+## Scale the mounted model by the resolved body scale so the visual matches
+## the clamped hitbox. Placeholders keep their authored size.
 func _apply_model_scale() -> void:
-	if enemy_data == null:
-		return
-	var sc = enemy_data.get("scale")
-	if sc == null or is_equal_approx(float(sc), 1.0):
+	var sc := _body_scale()
+	if is_equal_approx(sc, 1.0):
 		return
 	var model_root := get_node_or_null("ModelRoot") as Node3D
 	if model_root == null:
 		return
 	var profile: HitboxProfile = _hitbox_profile()
-	var s: float = profile.clamp_scale(float(sc)) if profile != null else clampf(float(sc), 0.25, 4.0)
+	var s: float = profile.clamp_scale(sc) if profile != null else clampf(sc, 0.25, 4.0)
 	model_root.scale = Vector3(s, s, s)
 
 
@@ -336,7 +356,13 @@ func _update_model_anim(moving: bool) -> void:
 		return
 	if _model_anim.root_node.is_absolute():
 		_model_anim.root_node = _model_anim.get_parent().get_path()
-	var wanted := "walk" if moving else "idle"
+	var model := _resolve_model()
+	if model == null:
+		return
+	var key := "walk" if moving else "idle"
+	var wanted := str(model.animation_clips.get(key, ""))
+	if wanted.is_empty():
+		return
 	if _model_anim.current_animation != wanted and _model_anim.has_animation(wanted):
 		_model_anim.play(wanted)
 

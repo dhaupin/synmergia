@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ModelData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/model_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "enemy_bandit"
+display_name = "Bandit"
+kind = 0
+asset_path = "res://data/models/enemies/enemy_bandit.glb"
+scale = 1.0
+animation_clips = {"idle": "idle", "walk": "walk"}
+generator = "scripts/gen_bandit_model.py"
+license = "MIT"

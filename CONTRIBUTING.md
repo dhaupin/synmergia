@@ -146,5 +146,11 @@ in [CREDITS.md](./CREDITS.md).
 | `labs/` | design docs and PRDs |
 | `scripts/` | build, test, and generation scripts |
 
+The split is deliberate: `game/core/` owns schemas, services and behavior;
+`game/data/` owns the definable content -- ids, values, prices, spawn tables,
+catalogs, paths, models, art, brand, textures and shaders. If a designer can
+change it without changing behavior, it belongs in `game/data/`; resolve it
+through `DataService` instead of re-inlining it in core.
+
 Questions that are not a bug or a feature request are welcome in issues
 too. Welcome aboard.

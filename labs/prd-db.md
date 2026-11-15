@@ -474,22 +474,19 @@ be replaced when their stores land:
 | `chat_service.gd:194-213` + `game_config.gd:221` | `user://config/profanity_words.txt` | `GameDataStore` |
 | `logger.gd:18` | `user://logs/game.log` | Stay on disk (not adapter-layer) |
 
-### 3.20 Reference Data Inventory (`data/*.tres`)
+### 3.20 Reference Data Inventory (`game/data/**/*.tres`)
 
-`game/data/` has 26 subdirs containing ~200 `.tres` files
-across 18 schemas. These are the source of truth that get
-seeded into `GameDataStore` at boot:
-
-- achievements (8) / titles (9) / skills (8) / classes (22)
-- armors (1) / weapons (2) / consumables (2) / resources (1) / misc (1)
-- buffs (1) / status_effects (62)
-- containers (3) / dialogues (2) / dwellings (2) / enemies (5) / events (1)
-- factions (4) / gateways (3) / loot_tables (3) / npc (2) / npcs (9)
-- npc_offerings (9) / quests (4) / species (3) / targets (6) / zones (4)
+`game/data/` is the canonical content root: 60 top-level directories and
+1,071 `.tres` records across 62 schema scripts (2026-11-15 count). These are the
+source of truth that get seeded into `GameDataStore` at boot. Families include
+achievements, titles, skills, classes, items, consumables, resources, status
+effects, containers, dialogues, dwellings, enemies, events, factions,
+gateways, loot tables, NPCs, offerings, quests, species, targets, and zones.
+Models, art, brand, textures, and shaders sit beside them under the same root.
 
 Schemas average 20-50 `@export` fields each. Migration plan:
-one-shot `data/.tres -> Postgres` loader that uses
-`ResourceSaver` to read each .tres and `INSERT ... ON CONFLICT
+one-shot `game/data/**/*.tres -> Postgres` loader that uses
+`ResourceLoader` to read each .tres and `INSERT ... ON CONFLICT
 DO UPDATE` into the appropriate table. Idempotent, safe to
 re-run.
 

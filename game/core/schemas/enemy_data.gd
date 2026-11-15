@@ -88,8 +88,10 @@ enum EnemyType {
 # odd body plans (a hovering boss, a wide colossus).
 @export var hitbox_profile_id: String = ""
 
-# Visual
-@export var model_path: String = ""
+# Visual. model_id resolves through DataService to a ModelData record;
+# scale is the body scale for actors without a model record. A resolved
+# ModelData.scale wins. animation_set hints the unmodeled hitbox body plan.
+@export var model_id: String = ""
 @export var icon_path: String = ""
 @export var scale: float = 1.0
 @export var animation_set: String = ""

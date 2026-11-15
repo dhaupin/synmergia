@@ -2,15 +2,19 @@
 
 > **See also:** [`prd-art-pipeline.md`](./prd-art-pipeline.md) - Lane D, the
 > asset-generation lane that consumes this pipeline law;
-> [`prd-models.md`](./prd-models.md) - the `ModelData` schema and prototype
-> retirement. This doc owns the toolchain/import law; Lane D owns the
-> per-suite generation adapters.
+> [`prd-models.md`](./prd-models.md) - the `ModelData` record and registry.
+> This doc owns the toolchain/import law; Lane D owns the per-suite generation
+> adapters.
 
-> **Status:** PROVEN 2026-09-25 -- blacksmith NPC generated, exported,
-> imported, animated, and probed end-to-end in this repo. Screenshot:
-> `game/data/art/screenshots/npc_blacksmith_village.png`. Install blender once
-> with `sudo apt-get update && sudo apt-get install -y blender`, then
-> verify: `sh ./scripts/blender_smoke_test.sh`.
+> **Status:** PROVEN 2026-09-25; model registry live 2026-11-15. The blacksmith
+> NPC was generated, exported, imported, animated, and probed end-to-end in
+> this repo. Screenshot: `game/data/art/screenshots/npc_blacksmith_village.png`.
+> Install blender once with
+> `sudo apt-get update && sudo apt-get install -y blender`, then verify:
+> `sh ./scripts/blender_smoke_test.sh`.
+>
+> **Current milestone:** the seven GLBs have `ModelData` records and resolve
+> through `DataService`; actor data uses `model_id` and carries no GLB path.
 
 ## 1. Toolchain
 
@@ -26,15 +30,14 @@
 
 1. **Source `.blend` files live under `game/data/art/src/`**, hidden from
    Godot by `game/data/art/.gdignore`, and versioned with the repo. Only
-   exported `.glb` enters `game/data/models/`.
+   exported `.glb` enters `game/data/models/<family>/`.
 2. **Naming mirrors the data id conventions**: `mount_plains_runner.glb`,
    `npc_village_elder.glb`, `furn_fireplace_stone.glb`. A model file
    name resolves to its data id with zero mapping code.
 3. **The .glb filename is the model id; the `ModelData` record is the
    descriptor** (`game/data/models/<family>/<id>.tres`). Actor data uses
-   `model_id`; `model_path`/`scene_path` do not hardcode a GLB path. The
-   naming lint still fails a record that resolves to a phantom asset. See
-   `labs/prd-models.md`.
+   `model_id`; `scene_path` is only for composite NPC scenes. The naming lint
+   fails a record that resolves to a phantom asset. See `labs/prd-models.md`.
 4. **Pivot + scale law:** all props exported with origin at the base,
    +Y up, 1 unit = 1 meter. Mounts/vehicles pivot at saddle/driver
    seat. Breaking this law breaks housing grid placement.
@@ -125,12 +128,11 @@ only, headless).
 
 ## 8. Enemy + mount model mounting
 
-- `EnemyData.model_path` is LIVE: `enemy.gd._mount_model()` instances
-  the .glb under a `ModelRoot` child, hides any author placeholder
-  box mesh, and swaps walk/idle clips with AI movement
-  (`_update_model_anim`). The phantom-path lint keeps model_path
-  empty until the file exists -- populate the .tres only after the
-  .glb lands.
+- `EnemyData.model_id` resolves a `ModelData` record; `enemy.gd._mount_model()`
+  instances `asset_path` under a `ModelRoot` child, hides any author
+  placeholder box mesh, and swaps walk/idle clips from `animation_clips`
+  with AI movement (`_update_model_anim`). A missing id keeps the
+  placeholder body; a phantom asset fails the data lint.
 - Mounts/vehicles resolve their MovementProfile through the single
   path `DataService.get_mount_movement_profile(mount)`:
   MountData.movement_profile_id (or VehicleData's) wins, else kind

@@ -85,6 +85,23 @@ Five laws. They are how we keep the OS fluid instead of accruing copies.
    legendary / mythic, from `GameTier`. A local 4-rung ladder or a private
    palette is drift, and `test_skill_tier_parity.gd` exists to fail it.
 
+### The core / data boundary
+
+`game/core/` owns **how**: schemas (`@export` shape + validation), services,
+loaders, algorithms, lifecycle. `game/data/` owns **what**: `.tres` values,
+ids, prices, stat lines, spawn tables, clip maps, asset paths, catalogs, and
+the model/art/brand/texture/shader assets themselves.
+
+The `@export` surface stays in core; the record that fills it moves to
+`game/data`. A service resolves the record through `DataService`; it does not
+keep a literal copy. If a designer can change the value without changing
+behavior, it is data. `game/assets/` and `game/models/` are retired.
+
+Every runtime model has a `ModelData` record under `game/data/models/`. Actors
+carry `model_id`; `DataService.get_model(model_id)` resolves `asset_path`,
+scale, and clips. No actor carries a GLB path. The record and registry law is
+`labs/prd-models.md`.
+
 ### The current use case: classes within species
 
 Species are **bodies** (`core/schemas/species.gd`: stat deltas, relations,
@@ -748,7 +765,7 @@ the project so it doesn't taint the stable build with experimental work.
 
 `game/data/` is the canonical content root (gameplay `.tres`, models, art,
 brand, textures, shaders). `game/assets/` and `game/models/` are retired; do
-not recreate them. The target model schema is `labs/prd-models.md`.
+not recreate them. Models are `ModelData` records (`labs/prd-models.md`).
 
 `game/adapters/` is the **only** directory that services should use
 for persistence. See `labs/prd-db.md` for the full spec.

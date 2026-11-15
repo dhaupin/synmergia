@@ -9,7 +9,6 @@ display_name = "Royal Armorer"
 description = "The capital's premier source for weapons and armor."
 level = 1
 faction = "friendly"
-model_path = ""
 greeting = "Fine arms and armor, straight from the forge."
 farewell = "May your blade stay sharp."
 location_type = 4

@@ -9,7 +9,6 @@ display_name = "Master Trainer"
 description = "A seasoned master who teaches warriors the ancient arts of combat mastery. Choose your signature ability at level 10."
 level = 60
 faction = "friendly"
-model_path = ""
 greeting = "Greetings, warrior. Would you like to expand your combat knowledge or choose your signature ability?"
 farewell = "May your blade stay sharp. Return when you are ready to learn more."
 location_type = 0

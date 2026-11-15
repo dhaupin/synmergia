@@ -10,6 +10,7 @@ const ActProfile = preload("res://core/schemas/act_profile.gd")
 const MysteryData = preload("res://core/schemas/mystery_data.gd")
 const Item = preload("res://core/schemas/item.gd")
 const EnemyData = preload("res://core/schemas/enemy_data.gd")
+const ModelData = preload("res://core/schemas/model_data.gd")
 const CharacterClass = preload("res://core/schemas/character_class.gd")
 const Species = preload("res://core/schemas/species.gd")
 const Faction = preload("res://core/schemas/faction.gd")
@@ -36,6 +37,7 @@ var _resources: Dictionary = {}
 var _misc: Dictionary = {}
 
 var _enemies: Dictionary = {}
+var _models: Dictionary = {}
 var _classes: Dictionary = {}
 var _species: Dictionary = {}
 var _factions: Dictionary = {}
@@ -89,6 +91,7 @@ func load_all_data() -> void:
 	load_skills()
 	load_items()
 	load_enemies()
+	load_models()
 	load_classes()
 	load_species()
 	load_factions()
@@ -197,6 +200,12 @@ func load_items() -> void:
 func load_enemies() -> void:
 	_enemies = _scan_directory(_data_path + "enemies", "enemy")
 	GameLog.info("DataService: Loaded %d enemies" % _enemies.size())
+
+## Load model records from data/models/. ResourceScan is recursive, so
+## the family directories are one registry; the .glb assets are not resources.
+func load_models() -> void:
+	_models = _scan_directory(_data_path + "models", "model")
+	GameLog.info("DataService: Loaded %d models" % _models.size())
 
 ## Load classes from data/classes/
 func load_classes() -> void:
@@ -437,6 +446,15 @@ func get_enemy(id: String) -> EnemyData:
 		return _enemies.get(id)
 	GameLog.warn("DataService: Enemy not found: " + id)
 	return null
+
+func get_model(id: String) -> ModelData:
+	if _models.has(id):
+		return _models.get(id)
+	GameLog.warn("DataService: Model not found: " + id)
+	return null
+
+func get_all_models() -> Dictionary:
+	return _models.duplicate()
 
 func get_character_class(id: String) -> CharacterClass:
 	if _classes.has(id):
@@ -790,6 +808,7 @@ func reload_all() -> void:
 	_resources.clear()
 	_misc.clear()
 	_enemies.clear()
+	_models.clear()
 	_classes.clear()
 	_species.clear()
 	_factions.clear()
@@ -822,6 +841,9 @@ func reload_category(category: String) -> void:
 		"enemies":
 			_enemies.clear()
 			load_enemies()
+		"models":
+			_models.clear()
+			load_models()
 		"classes":
 			_classes.clear()
 			load_classes()
@@ -870,6 +892,7 @@ func get_counts() -> Dictionary:
 		"skills": _skills.size(),
 		"items": _items.size(),
 		"enemies": _enemies.size(),
+		"models": _models.size(),
 		"classes": _classes.size(),
 		"species": _species.size(),
 		"factions": _factions.size(),

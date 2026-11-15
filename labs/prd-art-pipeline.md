@@ -4,8 +4,12 @@
 > (`DEPLOY-GPU.md`, `scripts/gpu/`); the suite adapters are honest hooks
 > that need their per-suite bodies filled on a real GPU box.
 >
+> **Current model state:** the seven GLBs under `game/data/models/` each have
+> a `ModelData` record and resolve through `DataService`. The route through
+> `game/data` is the contract.
+>
 > **Law it obeys:** `labs/prd-3d-pipeline.md` (the pipeline law),
-> `labs/prd-models.md` (the ModelData schema + prototype boundary),
+> `labs/prd-models.md` (the ModelData record and registry),
 > `DEPLOY-GPU.md` (the GPU surface + artifact contract), and the locked
 > decisions in `labs/prd-spherical-mvp.md` sec 2.5/2.6 (no resource
 > packs; Blender MCP NOT adopted).
@@ -38,7 +42,7 @@ Provisioning + the artifact contract live in `DEPLOY-GPU.md`. Summary:
 - **Later: RunPod / Vast / Lambda / cloud** -- same script, same contract.
   The script IS the interface.
 - **Artifacts** flow `game/data/art/src/` (references, tracked) -> GPU -> `game/data/art/out/`
-  (scratch, gitignored) -> `game/data/models/<data_id>.glb` (tracked).
+  (scratch, gitignored) -> `game/data/models/<family>/<data_id>.glb` (tracked).
 
 ## 4. The suites (what to reach for)
 
@@ -59,7 +63,8 @@ SHIPPED (works today, no GPU needed to verify):
 - `scripts/gpu/gen_from_image.py` -- the generation helper. **The
   `--normalize` path is fully implemented and verified**: it scales a
   mesh to a target height, drops it to base-at-origin, centers X/Z, and
-  writes `game/data/models/<name>.glb`. (Verified: a 3 m mesh floating at
+  writes `game/data/models/<name>.glb`; move it into its family directory
+  before committing. (Verified: a 3 m mesh floating at
   Y=5, off-center -> exactly 1.2 m tall, base at 0, centered.)
 - `game/data/art/src/` (tracked) + `game/data/art/out/` (gitignored).
 

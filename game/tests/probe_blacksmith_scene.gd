@@ -4,19 +4,37 @@ extends SceneTree
 ## entity's idle-animation path finds the AnimationPlayer, and the
 ## idle clip visibly drives the skeleton. Exit 0 = all good.
 
-func _init() -> void:
+func _initialize() -> void:
 	var ok := true
+	var ds = root.get_node_or_null("DataService")
+	if ds == null:
+		push_error("FAIL: no DataService")
+		quit(1)
+		return
+	if not ds._loaded:
+		ds.load_all_data()
+	var npc_data = load("res://data/npc/npc_blacksmith_village.tres")
+	if npc_data == null:
+		push_error("FAIL: blacksmith NPCData did not load")
+		quit(1)
+		return
 	var scene: PackedScene = load("res://scenes/npcs/blacksmith_village.tscn")
 	if scene == null:
 		push_error("FAIL: npc scene did not load")
 		quit(1)
 		return
-	var inst := scene.instantiate()
+	var inst = scene.instantiate()
+	inst.npc_data = npc_data
 	root.add_child(inst)
 	await process_frame
-	var ap := inst.get_node_or_null("ModelRoot/model/AnimationPlayer") as AnimationPlayer
+	var model_root := inst.get_node_or_null("ModelRoot") as Node3D
+	if model_root == null:
+		push_error("FAIL: no mounted ModelRoot")
+		quit(1)
+		return
+	var ap := _find_ap(model_root)
 	if ap == null:
-		push_error("FAIL: no ModelRoot/model/AnimationPlayer")
+		push_error("FAIL: no AnimationPlayer under ModelRoot")
 		ok = false
 	elif not ap.has_animation("idle"):
 		push_error("FAIL: no idle clip")
@@ -44,6 +62,15 @@ func _init() -> void:
 		inst.free()
 	print("--- BLACKSMITH SCENE PROBE: ok=%s ---" % str(ok))
 	quit(0 if ok else 1)
+
+func _find_ap(n: Node) -> AnimationPlayer:
+	if n is AnimationPlayer:
+		return n
+	for c in n.get_children():
+		var found := _find_ap(c)
+		if found != null:
+			return found
+	return null
 
 func _find_skel(n: Node) -> Skeleton3D:
 	if n is Skeleton3D:

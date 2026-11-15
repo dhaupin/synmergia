@@ -38,19 +38,20 @@ does not get to change it:
 
 1. **Source files live under `game/data/art/src/`**: the tree is hidden from Godot by `game/data/art/.gdignore` and holds `.blend`,
    source textures, and reference images. Versioned with the repo.
-2. **Only exported `.glb` enters `game/data/models/`** — never a `.blend`,
-   never a raw `.obj`/`.fbx`/`.ply`.
+2. **Only exported `.glb` enters `game/data/models/<family>/`** — never a
+   `.blend`, never a raw `.obj`/`.fbx`/`.ply`.
 3. **The `.glb` filename IS the registry entry** — it must equal the
-   data id (`npc_village_elder.glb`, `mount_plains_runner.glb`). No
-   mapping code, ever.
+   data id (`npc_village_elder.glb`, `mount_plains_runner.glb`) and sit in
+   its family directory. No mapping code, ever.
 4. **Pivot + scale law**: origin at the base, +Y up, 1 unit = 1 meter.
    Breaking this breaks housing grid placement.
 5. **Textures**: packed into the `.glb` for props (2k max), external for
    hero assets.
 6. **Rigs**: one skeleton per creature family (biped, quadruped, bird,
    fish); animations swap by skeleton id.
-7. **`model_path` on the `.tres` stays EMPTY until the `.glb` exists** —
-   the data-naming lint fails any `.tres` pointing at a phantom path.
+7. **Declare the `ModelData` record** — `game/data/models/<family>/<id>.tres`
+   names the GLB. Actor data points at `model_id`; no actor `.tres` carries a
+   direct GLB path.
 8. **`labs/prd-spherical-mvp.md` sec 2.5/2.6 are locked**: no resource
    packs (the `.glb` registry + pck flow stays), and **Blender MCP is
    NOT adopted** — the python generator + `model_export_lib.py` +
@@ -94,7 +95,7 @@ before renting anything.
   +-------------+                     +------+-------+
                                              |  download / git
                                              v
-                                     game/data/models/<id>.glb
+                                     game/data/models/<family>/<id>.glb
                                              |
                                              v
                         blender_smoke_test.sh + naming lint + in-engine probe
@@ -108,11 +109,13 @@ Steps:
 3. **Generate**: run the chosen suite on the reference -> a `.glb`
    (+ textures) into `game/data/art/out/` on the GPU box.
 4. **Bring it back**: download to the sandbox (or commit `game/data/art/out/` to a
-   scratch branch). Land the final `.glb` in `game/data/models/<data_id>.glb`.
+   scratch branch). Land the final `.glb` in
+   `game/data/models/<family>/<data_id>.glb`.
 5. **Verify on CPU**: `sh ./scripts/blender_smoke_test.sh`, then the
    naming lint, then the in-engine probe. Fix the pivot/scale/naming
    here if the generator got it wrong (sec 2).
-6. **Declare it**: only now set `model_path` on the `.tres`.
+6. **Declare it**: author the `ModelData` record and point actor data at its
+   `model_id`. The data lint fails a phantom asset or an unresolved id.
 
 ### 3.3 Provisioning script
 
@@ -169,7 +172,7 @@ os.environ["HF_TOKEN"] = userdata.get("HF_TOKEN")  # gated model downloads
     --image game/data/art/src/concept_wolf.png --out game/data/art/out/wolf.glb
 
 # Cell 4 — fetch the artifact back to the sandbox, then verify on CPU
-#   (download game/data/art/out/wolf.glb -> game/data/models/enemy_wolf.glb,
+#   (download game/data/art/out/wolf.glb -> game/data/models/enemies/enemy_wolf.glb,
 #    then: sh ./scripts/blender_smoke_test.sh + naming lint + probe)
 ```
 

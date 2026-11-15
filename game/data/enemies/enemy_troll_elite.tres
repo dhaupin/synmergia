@@ -41,7 +41,6 @@ gold_min = 60
 gold_max = 120
 xp_reward = 450
 skills = []
-model_path = ""
 icon_path = ""
 scale = 1.3
 animation_set = "troll"

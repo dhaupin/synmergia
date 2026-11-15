@@ -42,7 +42,7 @@ questions live.
 - **LORE** — authored world content, canon rather than engineering.
 - **ARCHIVED** — lives in [`archive/`](./archive/README.md); history only.
 
-> **PRD status census (2026-11-14).** All 53 top-level `prd-*.md` files now
+> **PRD status census (2026-11-15).** All 54 top-level `prd-*.md` files now
 > carry an in-file `> **Status:**` block. 21 had no blockquote status block:
 > they were classified against the code and receipts (SHIPPED, PARTIAL, DESIGN,
 > REFERENCE, ACTIVE MODEL, POSITION PAPER); four plain `Status:` lines were
@@ -82,7 +82,7 @@ questions live.
 | [`prd-perf-bridges.md`](./prd-perf-bridges.md) | ACTIVE | Julia / Redis bridge facets and their ledgers |
 | [`prd-3d-pipeline.md`](./prd-3d-pipeline.md) | ACTIVE | Blender to Godot asset pipeline |
 | [`prd-art-pipeline.md`](./prd-art-pipeline.md) | ACTIVE | Art lane: models, textures, generation |
-| [`prd-models.md`](./prd-models.md) | DESIGN | ModelData schema, `game/data` catalog, prototype retirement |
+| [`prd-models.md`](./prd-models.md) | ACTIVE | ModelData records, registry, and source-to-runtime pipeline |
 | [`art-direction.md`](./art-direction.md) | ACTIVE | Style bible |
 | [`data-authoring-baseline.md`](./data-authoring-baseline.md) | ACTIVE | How `.tres` content is authored and gated |
 | [`prd-openhands-canvas.md`](./prd-openhands-canvas.md) | REFERENCE | Parallel agent lanes and their conventions |

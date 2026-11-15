@@ -41,7 +41,6 @@ gold_min = 400
 gold_max = 900
 xp_reward = 20000
 skills = []
-model_path = ""
 icon_path = ""
 scale = 2.4
 animation_set = "void"

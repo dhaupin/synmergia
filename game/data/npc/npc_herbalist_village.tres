@@ -9,7 +9,6 @@ display_name = "Herbalist"
 description = "A village herbalist specializing in potions and remedies."
 level = 1
 faction = "friendly"
-model_path = ""
 greeting = "Welcome! I have remedies for what ails you."
 farewell = "Safe travels."
 location_type = 2

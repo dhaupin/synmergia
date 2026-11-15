@@ -92,9 +92,14 @@ func _initialize() -> void:
                 push_error("FAIL: enemy_bandit data missing")
                 quit(1)
                 return
-        var mp = bandit.get("model_path")
-        if mp == null or str(mp) != "res://data/models/enemies/enemy_bandit.glb":
-                push_error("FAIL: bandit model_path not wired: %s" % str(mp))
+        var mid = bandit.get("model_id")
+        if mid == null or str(mid) != "enemy_bandit":
+                push_error("FAIL: bandit model_id not wired: %s" % str(mid))
+                quit(1)
+                return
+        var model = ds.get_model("enemy_bandit")
+        if model == null or model.asset_path != "res://data/models/enemies/enemy_bandit.glb":
+                push_error("FAIL: bandit ModelData asset not wired")
                 quit(1)
                 return
         var hp = bandit.get("hitbox_profile_id")
@@ -102,7 +107,7 @@ func _initialize() -> void:
                 push_error("FAIL: bandit hitbox_profile_id not humanoid: %s" % str(hp))
                 quit(1)
                 return
-        print("[OK] enemy_bandit.tres -> enemy_bandit.glb + hitbox_humanoid")
+        print("[OK] enemy_bandit.tres -> ModelData enemy_bandit -> enemy_bandit.glb + hitbox_humanoid")
         inst.free()
         print("--- BANDIT MODEL PROBE: ok=true ---")
         quit(0)

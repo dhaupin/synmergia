@@ -351,7 +351,8 @@ be optional and degrade gracefully.
 - One raster avatar key per talking entity: NPC, enemy, keeper, even
   the sign-voices (sign profile blessing the Concord system directly
   reuse it).
-- Format: `res://assets/avatars/<entity_key>.png` (entity_key matches
+- Format: `res://data/avatars/<entity_key>.png` (target; no avatar set is
+  authored yet). `entity_key` matches
   the entity id: `npc_blacksmith_village`, `enemy_troll_elite`,
   `sign_the_awakening`). House size: 128×128 (2× for retina = 256),
   single raster PNG per key, background-agnostic.

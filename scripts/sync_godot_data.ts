@@ -9,6 +9,7 @@ export interface GodotDataPayload {
   armors: Record<string, any>;
   consumables: Record<string, any>;
   enemies: Record<string, any>;
+  models: Record<string, any>;
   zones: Record<string, any>;
   skills: Record<string, any>;
   quests: Record<string, any>;
@@ -204,6 +205,7 @@ export function syncGodotData(): GodotDataPayload {
     armors: {},
     consumables: {},
     enemies: {},
+    models: {},
     zones: {},
     skills: {},
     quests: {},
@@ -243,6 +245,7 @@ export function syncGodotData(): GodotDataPayload {
     'armors',
     'consumables',
     'enemies',
+    'models',
     'zones',
     'skills',
     'quests',

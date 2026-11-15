@@ -6,6 +6,7 @@ extends "res://core/entities/entity.gd"
 class_name NPCEntity
 
 const NPCData = preload("res://core/schemas/npc_data.gd")
+const ModelData = preload("res://core/schemas/model_data.gd")
 const NPCOffering = preload("res://core/schemas/npc_offering.gd")
 # MenuManager is not an autoload (class_name only). on_interact()
 # calls MenuManager.open_menu(...) bare, which requires the
@@ -21,6 +22,7 @@ var npc_data: NPCData = null
 
 ## Hitbox Profile System: cached profile (null until _ready resolves).
 var _hitbox_profile_cache: HitboxProfile = null
+var _model_anim: AnimationPlayer = null
 
 func _ready() -> void:
 	entity_type = EntityType.NPC
@@ -30,6 +32,7 @@ func _ready() -> void:
 	if npc_data != null:
 		npc_data.normalize_includes()
 	_apply_hitbox_profile()
+	_mount_model()
 	_play_model_idle()
 
 
@@ -59,14 +62,50 @@ func _apply_hitbox_profile() -> void:
 	shape_node.position = Vector3(0.0, float(dims["offset"]), 0.0)
 
 
-## Play the idle clip on an instanced .glb model (scene_path scenes that
-## embed a ModelRoot with its own AnimationPlayer). Silence is fine:
-## not every NPC scene carries a skinned model yet.
+## Mount the NPC's ModelData body. A scene without a model_id keeps its
+## authored composition; a bad id is a data error, never a path fallback.
+func _mount_model() -> void:
+	if npc_data == null or npc_data.model_id.is_empty() or DataService == null:
+		return
+	var model: ModelData = DataService.get_model(npc_data.model_id)
+	if model == null:
+		GameLog.warn("NPCEntity: model_id not found: " + npc_data.model_id)
+		return
+	if model.asset_path.is_empty() or not ResourceLoader.exists(model.asset_path):
+		GameLog.warn("NPCEntity: model asset missing: " + model.asset_path)
+		return
+	var packed := load(model.asset_path) as PackedScene
+	if packed == null:
+		GameLog.warn("NPCEntity: model asset failed to load: " + model.asset_path)
+		return
+	var root := Node3D.new()
+	root.name = "ModelRoot"
+	add_child(root)
+	var inst := packed.instantiate()
+	inst.name = model.id
+	root.add_child(inst)
+	root.scale = Vector3.ONE * model.scale
+	_model_anim = _find_anim_player(inst)
+
+
+func _find_anim_player(n: Node) -> AnimationPlayer:
+	if n is AnimationPlayer:
+		return n
+	for c in n.get_children():
+		var found := _find_anim_player(c)
+		if found != null:
+			return found
+	return null
+
+
+## Play the idle clip on the mounted or scene-authored model. Silence is
+## fine when there is no skinned body.
 func _play_model_idle() -> void:
-	var ap := get_node_or_null("ModelRoot/model/AnimationPlayer") as AnimationPlayer
-	if ap == null:
-		# Older .glb imports nest the player under the model root itself.
-		ap = get_node_or_null("ModelRoot/AnimationPlayer") as AnimationPlayer
+	var ap := _model_anim
+	if ap == null or not is_instance_valid(ap):
+		var root := get_node_or_null("ModelRoot")
+		if root != null:
+			ap = _find_anim_player(root)
 	if ap == null or not ap.has_animation("idle"):
 		return
 	# The .glb's AnimationPlayer targets an absolute root

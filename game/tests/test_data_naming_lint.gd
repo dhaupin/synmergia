@@ -1,5 +1,7 @@
 extends SceneTree
 
+const ResourceScan = preload("res://core/frame/srv/resource_scan.gd")
+
 ## Data naming + reference lint.
 ##
 ## Freezes the id conventions decided 2026-09-25:
@@ -80,6 +82,39 @@ func _has_prefix(ids: Dictionary, prefix: String, label: String) -> void:
 
 func _file_text(dir_path: String, base: String) -> String:
 	return FileAccess.get_file_as_string("res://%s/%s.tres" % [dir_path, base])
+
+
+## The model registry: {id: {base, asset, path}}. ResourceScan is recursive,
+## so family directories do not need a second index.
+func _scan_model_records() -> Dictionary:
+	var out: Dictionary = {}
+	for path in ResourceScan.list_resources("res://data/models"):
+		var txt := FileAccess.get_file_as_string(path)
+		var id := _string_field(txt, "id")
+		out[id] = {
+			"base": path.get_file().get_basename(),
+			"asset": _string_field(txt, "asset_path"),
+			"path": path,
+		}
+	return out
+
+
+func _glb_paths(dir_path: String) -> Array:
+	var out: Array = []
+	var dir := DirAccess.open(dir_path)
+	if dir == null:
+		return out
+	dir.list_dir_begin()
+	var f := dir.get_next()
+	while f != "":
+		if dir.current_is_dir():
+			if f != "." and f != "..":
+				out.append_array(_glb_paths(dir_path + "/" + f))
+		elif f.ends_with(".glb"):
+			out.append(dir_path + "/" + f)
+		f = dir.get_next()
+	dir.list_dir_end()
+	return out
 
 
 ## The body of a .tres after the [resource] header (empty if none).
@@ -927,8 +962,34 @@ func _run() -> void:
 	else:
 		_fail("Item style violations: %s" % ", ".join(bad_items))
 
-	# --- Model/scene path integrity across ALL data files ---
-	var bad_model_paths: Array = []
+	# --- Model registry: records, assets, and actor refs ---
+	var models := _scan_model_records()
+	var bad_models: Array = []
+	var recorded_assets: Dictionary = {}
+	for mid in models:
+		var rec: Dictionary = models[mid]
+		if str(mid) == "":
+			bad_models.append("%s has no id" % rec["path"])
+			continue
+		if str(rec["base"]) != str(mid):
+			bad_models.append("%s filename != id %s" % [rec["path"], mid])
+		var asset := str(rec["asset"])
+		if asset.is_empty() or not asset.begins_with("res://data/models/"):
+			bad_models.append("%s asset_path is not under res://data/models/" % mid)
+		elif not FileAccess.file_exists(asset):
+			bad_models.append("%s asset missing: %s" % [mid, asset])
+		else:
+			recorded_assets[asset] = true
+	for glb in _glb_paths("res://data/models"):
+		if not recorded_assets.has(glb):
+			bad_models.append("unregistered model asset: " + glb)
+	if bad_models.is_empty():
+		_ok("All %d ModelData records resolve; every .glb has a record" % models.size())
+	else:
+		_fail("Model registry violations: %s" % ", ".join(bad_models))
+
+	# --- Actor model_id refs + scene path integrity ---
+	var bad_model_refs: Array = []
 	for data_dir in ["data/npc", "data/enemies", "data/species", "data/mounts", "data/vehicles", "data/furnishings", "data/houses", "data/gateways", "data/classes"]:
 		var mdir := DirAccess.open("res://" + data_dir)
 		if mdir == null:
@@ -940,18 +1001,22 @@ func _run() -> void:
 				var mtxt := FileAccess.get_file_as_string("res://%s/%s" % [data_dir, mf])
 				for line in mtxt.split("\n"):
 					var t := line.strip_edges()
-					if t.begins_with("model_path = \"") or t.begins_with("scene_path = \""):
+					if t.begins_with("model_id = \""):
+						var mid := t.trim_prefix("model_id = \"").trim_suffix("\"")
+						if not models.has(mid):
+							bad_model_refs.append("%s/%s -> model_id %s" % [data_dir, mf, mid])
+					if t.begins_with("model_path = \"") and (data_dir == "data/enemies" or data_dir == "data/npc"):
+						bad_model_refs.append("%s/%s -> direct model_path" % [data_dir, mf])
+					if t.begins_with("scene_path = \""):
 						var p := t.substr(t.find("res://"))
 						p = p.trim_suffix("\"")
-						if p.begins_with("res://") and p != "res://":
-							var fs_path := p.trim_prefix("res://")
-							if not FileAccess.file_exists(fs_path):
-								bad_model_paths.append("%s/%s -> %s" % [data_dir, mf, p])
+						if p.begins_with("res://") and p != "res://" and not FileAccess.file_exists(p):
+							bad_model_refs.append("%s/%s -> %s" % [data_dir, mf, p])
 			mf = mdir.get_next()
-	if bad_model_paths.is_empty():
-		_ok("All model_path/scene_path refs resolve to real files")
+	if bad_model_refs.is_empty():
+		_ok("Actor model_id refs resolve; scene_path refs are real; no direct actor model paths")
 	else:
-		_fail("Phantom model refs: %s" % ", ".join(bad_model_paths))
+		_fail("Model reference violations: %s" % ", ".join(bad_model_refs))
 
 	# --- Hitbox profiles: hitbox_ prefix, filename == id ---
 	var hitbox_ids := _load_ids("data/hitbox_profiles")

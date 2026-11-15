@@ -55,6 +55,11 @@ environment/CI-only until proven otherwise.
 
 ## OPEN ITEMS
 
+- **Core-to-data extraction (2026-11-15):** `game/data/` is the canonical
+  content root. Schemas, services and behavior stay in `game/core`; definable
+  values, paths, catalogs and assets move to `game/data`. Models are
+  `ModelData` records under `game/data/models/`; actors use `model_id` and
+  `DataService` resolves the asset. See `data-authoring-baseline.md` sec 0.
 - **Terrain fold:** CLOSED. `clipmap-fold-survey.md` A1-A4 and B1 are folded
   or removed, with the receipts recorded there; residual "streamer" mentions
   are historical prose, not live work.

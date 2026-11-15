@@ -43,7 +43,6 @@ xp_reward = 3600
 skills = []
 movement_profile_id = "movement_aerial"
 hitbox_profile_id = "hitbox_sky_large"
-model_path = ""
 icon_path = ""
 scale = 1.3
 animation_set = ""

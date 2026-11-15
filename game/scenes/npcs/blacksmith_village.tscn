@@ -1,7 +1,6 @@
-[gd_scene load_steps=6 format=3 uid="uid://blacksmith_village_01"]
+[gd_scene load_steps=4 format=3 uid="uid://blacksmith_village_01"]
 
 [ext_resource type="Script" path="res://core/entities/npc_entity.gd" id="1"]
-[ext_resource type="PackedScene" path="res://data/models/npcs/npc_blacksmith_village.glb" id="2"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 height = 2.0
@@ -16,10 +15,6 @@ script = ExtResource("1")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 shape = SubResource("CapsuleShape3D_1")
-
-[node name="ModelRoot" type="Node3D" parent="."]
-
-[node name="model" parent="ModelRoot" instance=ExtResource("2")]
 
 [node name="InteractionArea" type="Area3D" parent="."]
 

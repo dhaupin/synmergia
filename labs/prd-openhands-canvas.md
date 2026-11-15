@@ -145,8 +145,8 @@ lanes land. That is the merge point, not a lane's job.
   `game/data/models/**` (exported `.glb`), `scripts/gen_*_model.py`,
   `scripts/gen_icons.py`, `scripts/blender_*.sh`, and a new
   `labs/prd-art-pipeline.md`. Reads `labs/prd-3d-pipeline.md` and
-  `labs/prd-models.md` as law; the existing model GLBs are a prototype
-  pass, not the target schema.
+  `labs/prd-models.md` as law; the existing model GLBs are registered as
+  `ModelData` records and actors use `model_id`.
 - **Workspace:** source, scratch, and rendered references live under
   `game/data/art/**`; `game/data/models/**` is the exported `.glb` registry,
   not a second source tree.

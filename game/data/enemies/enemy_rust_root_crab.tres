@@ -41,7 +41,6 @@ xp_reward = 2950
 skills = []
 movement_profile_id = "movement_quadruped"
 hitbox_profile_id = ""
-model_path = ""
 icon_path = ""
 scale = 1.2
 animation_set = "troll"

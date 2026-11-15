@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ModelData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/model_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "enemy_training_dummy"
+display_name = "Training Dummy"
+kind = 0
+asset_path = "res://data/models/enemies/enemy_training_dummy.glb"
+scale = 1.0
+generator = "scripts/gen_training_dummy_model.py"
+license = "MIT"

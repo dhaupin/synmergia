@@ -153,7 +153,7 @@ func _test_creature_resolution() -> bool:
 func _test_enemy_wiring() -> bool:
 	# Real Enemy bodies built the way globe_world builds its wildlife:
 	# Enemy._ready mounts the model, applies the profile shape onto a
-	# StaticBody3D/Hitbox pair, and scales the model by EnemyData.scale.
+	# StaticBody3D/Hitbox pair, and scales the model by ModelData.scale.
 	# (Replaces the planar world_playable.tscn node walk -- planar-retirement
 	# Step 5. The plan is asserted straight off DataService, the same
 	# resolution Enemy._hitbox_profile uses.)

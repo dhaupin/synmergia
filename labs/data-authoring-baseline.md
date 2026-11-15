@@ -16,6 +16,41 @@ salvaged. It never says tech, never says magic, and never names gods. See
 `labs/prd-story.md`, `labs/prd-psy.md`, and the no-technology law in
 `labs/prd-ancient-movers.md`.
 
+## 0. The core / content boundary
+
+The rule for every extraction pass: **`game/core/` owns how; `game/data/`
+owns what.**
+
+| Layer | Owns | Does not own |
+|---|---|---|
+| `game/core/` | schemas (`@export` shape, validation), services, loaders, algorithms, lifecycle | authored ids, prices, stats, spawn tables, clip maps, asset paths, catalogs |
+| `game/data/` | `.tres` values, models, source art, brand, textures, shaders, catalogs, resolved paths | behavior, service logic, schema code |
+
+A schema is not "definable content" in this sense. The `@export` surface stays
+in `game/core/schemas/` so loaders and tools have a type to read; the record
+that fills it lives in `game/data/`. Moving the schema into data would make
+the loader depend on content, which is the boundary backwards.
+
+The test for a new value: if a designer could change it without changing
+behavior, it belongs in `game/data/`. If changing it changes an algorithm, a
+protocol, or a security rule, it belongs in `game/core/`.
+
+Current extraction:
+
+- Gameplay values and catalogs are `.tres` records under `game/data/`; services
+  resolve them through `DataService`, never through a second literal table.
+- Models, brand, textures, and shaders live under `game/data/` and load from
+  `res://data/...`. Every model is a `ModelData` record; actor data uses
+  `model_id` and `DataService` resolves the asset (`labs/prd-models.md`).
+- `game/assets/` and `game/models/` are retired. Do not add a path, generator
+  output, or doc reference that recreates them.
+- The repo-root `/data` split is deferred. Until it happens, `game/data` is the
+  single authored root, not a staging copy.
+
+This boundary is what keeps the frame extractable: services and schemas can
+ship without the game's content, and content can be re-authored without
+rewriting a service.
+
 ---
 
 ## 1. The file skeleton
@@ -306,7 +341,7 @@ style, NPC `zone_id` refs, quest chain + giver/turn_in refs, quest
 objective catalogs, offering `quest_ids`, dialogue `npc_id` refs, zone
 NPC rosters, gateway refs, currency/mount/vehicle/pack prefixes,
 mount/vehicle currency+faction+route refs, quest-item `quest_id` refs,
-misc `item_` prefix, `model_path`/`scene_path` refs, hitbox profile refs
+misc `item_` prefix, `model_id`/`scene_path` refs, hitbox profile refs
 and species fairness, sky signs, acts, mysteries, and class skill refs.
 
 The second gate is the item catalog:

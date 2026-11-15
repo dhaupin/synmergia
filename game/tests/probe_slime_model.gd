@@ -88,9 +88,14 @@ func _initialize() -> void:
                 push_error("FAIL: enemy_slime data missing")
                 quit(1)
                 return
-        var mp = slime.get("model_path")
-        if mp == null or str(mp) != "res://data/models/enemies/enemy_slime.glb":
-                push_error("FAIL: slime model_path not wired: %s" % str(mp))
+        var mid = slime.get("model_id")
+        if mid == null or str(mid) != "enemy_slime":
+                push_error("FAIL: slime model_id not wired: %s" % str(mid))
+                quit(1)
+                return
+        var model = ds.get_model("enemy_slime")
+        if model == null or model.asset_path != "res://data/models/enemies/enemy_slime.glb":
+                push_error("FAIL: slime ModelData asset not wired")
                 quit(1)
                 return
         var hp = slime.get("hitbox_profile_id")
@@ -98,7 +103,7 @@ func _initialize() -> void:
                 push_error("FAIL: slime hitbox_profile_id not blob: %s" % str(hp))
                 quit(1)
                 return
-        print("[OK] enemy_slime.tres -> enemy_slime.glb + hitbox_blob")
+        print("[OK] enemy_slime.tres -> ModelData enemy_slime -> enemy_slime.glb + hitbox_blob")
         inst.free()
         print("--- SLIME MODEL PROBE: ok=true ---")
         quit(0)

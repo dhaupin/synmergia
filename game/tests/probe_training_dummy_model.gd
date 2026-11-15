@@ -64,9 +64,14 @@ func _initialize() -> void:
                 push_error("FAIL: enemy_training_dummy data missing")
                 quit(1)
                 return
-        var mp = dummy.get("model_path")
-        if mp == null or str(mp) != "res://data/models/enemies/enemy_training_dummy.glb":
-                push_error("FAIL: dummy model_path not wired: %s" % str(mp))
+        var mid = dummy.get("model_id")
+        if mid == null or str(mid) != "enemy_training_dummy":
+                push_error("FAIL: dummy model_id not wired: %s" % str(mid))
+                quit(1)
+                return
+        var model = ds.get_model("enemy_training_dummy")
+        if model == null or model.asset_path != "res://data/models/enemies/enemy_training_dummy.glb":
+                push_error("FAIL: dummy ModelData asset not wired")
                 quit(1)
                 return
         var hp = dummy.get("hitbox_profile_id")
@@ -74,7 +79,7 @@ func _initialize() -> void:
                 push_error("FAIL: dummy hitbox_profile_id not dummy: %s" % str(hp))
                 quit(1)
                 return
-        print("[OK] enemy_training_dummy.tres -> enemy_training_dummy.glb + hitbox_dummy")
+        print("[OK] enemy_training_dummy.tres -> ModelData enemy_training_dummy -> enemy_training_dummy.glb + hitbox_dummy")
         inst.free()
         print("--- TRAINING DUMMY MODEL PROBE: ok=true ---")
         quit(0)

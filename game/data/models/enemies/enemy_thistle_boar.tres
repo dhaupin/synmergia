@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ModelData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/model_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "enemy_thistle_boar"
+display_name = "Thistle Boar"
+kind = 0
+asset_path = "res://data/models/enemies/enemy_thistle_boar.glb"
+scale = 1.1
+animation_clips = {"idle": "idle", "walk": "walk"}
+generator = "scripts/gen_thistle_boar_model.py"
+license = "MIT"

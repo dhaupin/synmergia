@@ -21,7 +21,7 @@ enum LocationType {
 
 # Visual
 @export var scene_path: String = ""  # Path to NPC .tscn scene
-@export var model_path: String = ""   # Legacy alias
+@export var model_id: String = ""    # Optional ModelData body
 @export var icon_path: String = ""
 
 # Hitbox (Hitbox Profile System). Empty = hitbox_humanoid; per-NPC

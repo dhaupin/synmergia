@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ModelData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/model_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "block_ref_cube"
+display_name = "Calibration Cube"
+kind = 2
+asset_path = "res://data/models/blocks/block_ref_cube.glb"
+scale = 1.0
+generator = "scripts/blender_smoke_test.sh"
+license = "MIT"
