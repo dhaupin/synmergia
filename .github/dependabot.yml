@@ -8,6 +8,16 @@ updates:
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 4
+    ignore:
+      # @vitejs/plugin-react 6.x declares peer vite "^8.0.0" ONLY, but the
+      # repo runs vite 6 (vite 7 after the bump in flight). The 6.x build
+      # dies at config load -- "Package subpath './internal' is not defined
+      # by 'exports' in vite/package.json" -- which is why PR #88 (a
+      # dependabot bump to 6.3.0) was closed unmerged. The 4.x/5.x lines
+      # span vite ^4-^8, so those stay proposable. Drop this ignore once
+      # vite reaches 8.
+      - dependency-name: "@vitejs/plugin-react"
+        update-types: ["version-update:semver-major"]
     groups:
       bun-minor-patch:
         patterns: ["*"]
