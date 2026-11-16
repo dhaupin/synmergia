@@ -11,6 +11,7 @@ icon_path = "res://icons/mounts/gullwing.png"
 model_path = ""
 kind = 1
 speed_multiplier = 1.9
+stamina = 120
 required_level = 25
 faction_id = "faction_human"
 source = 3

@@ -20,6 +20,13 @@ signal damage_dealt(source, target, amount: int, damage_type: String, is_crit: b
 @export var starting_level: int = 1
 @export var loot_table_id: String = ""
 
+## AI locomotion spends the body's stamina pool (the same field the template
+## seeds). A wolf's small pool and a bear's large pool become a real chase
+## difference: once exhausted, the enemy drops to the exhausted gait until
+## TickService regenerates it.
+const MOVE_STAMINA_PER_S: float = 3.0
+const EXHAUSTED_SPEED_MULT: float = 0.6
+
 ## Set true by spawn pipelines (SpawnService.spawn_enemy_direct,
 ## HordeEventService._produce_mob) AFTER pre-configuring level/stats/
 ## health on the node. When set, _ready's _load_from_data() skips the
@@ -139,6 +146,12 @@ func _load_from_data() -> void:
 	if "health" in enemy_data:
 		max_health = int(enemy_data.health)
 		current_health = max_health
+	# The template's authored stamina is the live pool, exactly like health:
+	# an Enemy._ready does not run Entity._calculate_max_resources (which would
+	# derive a pool from endurance), so the template is the one source.
+	if "stamina" in enemy_data:
+		max_stamina = float(maxi(int(enemy_data.stamina), 0))
+		current_stamina = max_stamina
 
 
 ## Walks the local subtree to find a HealthComponent. The scene attaches
@@ -170,6 +183,8 @@ func _physics_process(delta: float) -> void:
 			var speed: float = _current_speed()
 			global_position += move_direction * speed * delta
 			_face_travel(move_direction)
+			# The chase is work. TickService owns the regen on the same pool.
+			current_stamina = maxf(0.0, current_stamina - MOVE_STAMINA_PER_S * delta)
 			move_direction = Vector3.ZERO  # consume the steer for this frame
 		_update_model_anim(true)
 	else:
@@ -377,8 +392,12 @@ func _current_speed() -> float:
 	var profile: MovementProfile = _movement_profile()
 	if profile == null:
 		return base
-	# Map enemy move_speed onto the profile's run band proportionally.
-	return base * (profile.run_speed / 7.5)
+	# Map enemy move_speed onto the profile's run band proportionally. An
+	# exhausted animal still walks, just not at chase pace.
+	var speed: float = base * (profile.run_speed / 7.5)
+	if current_stamina <= 0.0:
+		speed *= EXHAUSTED_SPEED_MULT
+	return speed
 
 
 ## Resolve this enemy's movement profile from EnemyData.movement_profile_id
@@ -408,6 +427,13 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 	# slime kill paid the stale damager.
 	if _is_valid_damager(source):
 		_last_damager = source
+	# GENERAL POWER SCALING: the world level law lands before armor (and
+	# before shields below), at the terminal receiver. This is what makes a
+	# level-5 attacker's hit on a level-50 bear genuinely smaller, even with
+	# the same stats and gear. Instance-normalized fighters bypass it.
+	amount = CombatMath.apply_level_power(amount, source, self)
+	if amount <= 0:
+		return 0
 	# EnemyData armor/resist mitigation by school: physical hits face
 	# armor, magical hits face resistance. Training dummy carries 25/40
 	# specifically so players can SEE their mitigation on it. The shared
@@ -429,9 +455,11 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 	var attacker_level: int = level
 	if source != null and "level" in source:
 		attacker_level = int(source.get("level"))
+	var power_normalized: bool = CombatMath.is_power_normalized(self) \
+			or CombatMath.is_power_normalized(source)
 	var applied: int = CombatMath.calculate_mitigation(
 		amount, armor_value, attacker_level, level,
-		defense_multiplier, armor_multiplier, 0.0)
+		defense_multiplier, armor_multiplier, 0.0, power_normalized)
 	# Status-effect payloads on the enemy body (this path pokes the health
 	# component directly, so Entity.take_damage's reads never run): an active
 	# shield pool soaks first, then a flat authored damage_reduction trims
@@ -446,7 +474,7 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 			return 0
 	if flat > 0.0:
 		applied = CombatMath.calculate_mitigation(
-			applied, 0.0, attacker_level, level, 1.0, 1.0, flat)
+			applied, 0.0, attacker_level, level, 1.0, 1.0, flat, power_normalized)
 	if health_component:
 		# No _is_dead poke here: health_component.die() owns the dead flag
 		# and early-returns when it is already set -- setting it first used

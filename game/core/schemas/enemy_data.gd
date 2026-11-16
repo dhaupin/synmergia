@@ -27,6 +27,9 @@ enum EnemyType {
 # Stats (base values)
 @export var health: int = 100
 @export var mana: int = 0
+## THE body's movement/combat stamina pool. Authored per creature (a bear
+## carries more than a wolf); apply_stats_to seeds the live Entity fields on
+## every spawn path, scaled with level when the spawn raises it.
 @export var stamina: int = 50
 
 @export var strength: int = 10
@@ -168,6 +171,13 @@ func apply_stats_to(entity, level_override: int = -1) -> void:
 		entity.stats[key] = get_scaled_stat(base, level_override) if scaled else base
 	entity.stats["crit_chance"] = crit_chance
 	entity.stats["crit_damage"] = crit_damage
+	# Stamina is a body field, not a StatId (the pool's ceiling is authored
+	# here because EnemyData has no endurance primary). Seed it on the same
+	# one path as the primaries; a level-raised spawn scales it.
+	if "max_stamina" in entity:
+		var stamina_pool: int = get_scaled_stat(stamina, level_override) if scaled else stamina
+		entity.max_stamina = float(maxi(stamina_pool, 0))
+		entity.current_stamina = entity.max_stamina
 
 
 ## Check if this is a boss

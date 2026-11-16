@@ -34,6 +34,15 @@ enum MountSource {
 ## Flying above ~2.2 and aquatic above ~1.8 should be rare/late-game.
 @export var speed_multiplier: float = 1.3
 
+## Mount stamina: the beast's own pool, separate from the rider's. Sprinting
+## and climbing while mounted spend this pool (the rider's is not taxed
+## twice); a rested mount refills it. Authored per mount -- a pack beast
+## carries more than a courser.
+@export var stamina: int = 100
+## Fraction of max stamina restored per second while the mount is out. The
+## MountData is the tuning surface; RideService owns the clock.
+@export var stamina_regen_pct_per_sec: float = 0.02
+
 ## Movement Design System profile override. Empty = derived from kind
 ## (GROUND -> movement_quadruped, FLYING -> movement_aerial, AQUATIC ->
 ## movement_aquatic) via DataService.get_mount_movement_profile() --

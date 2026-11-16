@@ -47,6 +47,16 @@ class_name CombatBalanceData
 @export var armor_defender_level_bonus: float = 0.02
 @export var armor_mitigation_cap: float = 0.90
 
+## GENERAL POWER SCALING -- the open-world/PvE level law, separate from
+## an instance's power normalization. A same-stats level-5 fighter hitting
+## a level-50 fighter deals a fraction of the damage; the 50 hitting back
+## deals a multiple. Arena/duel/TDM/elimination/Royale instances stamp
+## their normalized fighters and skip this modifier so the bout stays
+## about play, not the level gap.
+@export var level_power_per_level: float = 0.03
+@export var level_power_min_multiplier: float = 0.20
+@export var level_power_max_multiplier: float = 3.00
+
 ## Baseline regeneration as a fraction of max resource per second. Rest and
 ## combat are separate rates so a class/skill can change the in-combat pace;
 ## they are the same value for now. Flat StatId regen stacks on top.
@@ -91,6 +101,12 @@ func is_valid() -> bool:
 	if armor_defender_level_bonus < 0.0:
 		return false
 	if armor_mitigation_cap <= 0.0 or armor_mitigation_cap > 1.0:
+		return false
+	if level_power_per_level < 0.0:
+		return false
+	if level_power_min_multiplier <= 0.0 or level_power_min_multiplier > 1.0:
+		return false
+	if level_power_max_multiplier < 1.0:
 		return false
 	var non_negative := [
 		hit_level_penalty_per_level,

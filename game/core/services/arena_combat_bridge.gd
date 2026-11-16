@@ -121,6 +121,10 @@ func _apply_power(levels: Dictionary, instance_id: String) -> void:
 			entity.stats, level, reference, 2.0)
 		for key in targets:
 			entity.stats[key] = targets[key]
+		# The battle is now normalized: CombatMath bypasses the open-world
+		# level-power law and reads one shared level for hit/armor penalties.
+		# Meta is bout-local and cleared with the stat snapshot below.
+		entity.set_meta("arena_power_normalized", true)
 		if entity.has_method("_calculate_max_resources"):
 			entity._calculate_max_resources()
 		_power_sessions[fid] = {"stats": snapshot, "room_id": instance_id}
@@ -138,6 +142,8 @@ func _restore_powers(_winner_team: int, _stats: Dictionary, instance_id: String)
 			var snapshot: Dictionary = session.get("stats", {})
 			for key in snapshot:
 				entity.stats[key] = snapshot[key]
+			if entity.has_meta("arena_power_normalized"):
+				entity.remove_meta("arena_power_normalized")
 			if entity.has_method("_calculate_max_resources"):
 				entity._calculate_max_resources()
 		_power_sessions.erase(fid)

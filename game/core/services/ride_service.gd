@@ -30,6 +30,9 @@ const NotifKind = preload("res://core/notifications/notification_kind.gd").Notif
 ## signal -- there is no second sync path to drift.
 signal mount_summoned(player_id: String, mount_id: String)
 signal mount_dismounted(player_id: String, mount_id: String)
+## The mounted pool changed (spend, restore, summon reset or regen tick).
+## Wallet-style signal so a HUD never re-derives the numbers.
+signal mount_stamina_changed(player_id: String, current: float, maximum: float)
 
 const _KV: String = "ride_service/mounts/"
 ## The wardens' own sky. Granted automatically when a GM enters the
@@ -40,11 +43,33 @@ const GM_MOUNT_ID: String = "mount_gm_skywarden"
 var _owned: Dictionary = {}    # player_id -> {mount_id: true}
 var _active: Dictionary = {}   # player_id -> mount_id (session truth)
 var _chars: Dictionary = {}    # player_id -> CharacterData (session truth)
+## player_id -> {current: float, maximum: float, regen_pct: float}. Session
+## truth, like `_active`: a mount whistled away and summoned again returns
+## rested. The rider's own stamina is never touched by the saddle.
+var _mount_stamina: Dictionary = {}
 
 
 func _ready() -> void:
 	if GameManager != null and not GameManager.player_entered_world.is_connected(_on_player_entered_world):
 		GameManager.player_entered_world.connect(_on_player_entered_world)
+
+
+## Mounted stamina regenerates on its own clock. The rider's TickService
+## regen never touches this pool (the two are separate bodies).
+func _process(delta: float) -> void:
+	for player_id in _mount_stamina.keys():
+		var pool: Dictionary = _mount_stamina[player_id]
+		var maximum := float(pool.get("maximum", 0.0))
+		if maximum <= 0.0:
+			continue
+		var current := float(pool.get("current", 0.0))
+		if current >= maximum:
+			continue
+		var previous_int := int(current)
+		current = minf(maximum, current + maximum * float(pool.get("regen_pct", 0.0)) * delta)
+		pool["current"] = current
+		if int(current) != previous_int:
+			mount_stamina_changed.emit(player_id, current, maximum)
 
 
 func _on_player_entered_world(player_id: String, character_data) -> void:
@@ -227,6 +252,7 @@ func summon(player_id: String, mount_id: String) -> bool:
 		GameLog.warn("RideService: summon refused, faction gate for %s on %s" % [mount_id, player_id])
 		return false
 	_active[player_id] = mount_id
+	_reset_mount_stamina(player_id, mount)
 	mount_summoned.emit(player_id, mount_id)
 	var profile = DataService.get_mount_movement_profile(mount)
 	if AntiCheatService:
@@ -356,6 +382,7 @@ func dismiss(player_id: String) -> bool:
 	var mount_name := active_mount_name(player_id)
 	var mount_id := active_mount_id(player_id)
 	_active.erase(player_id)
+	_mount_stamina.erase(player_id)
 	mount_dismounted.emit(player_id, mount_id)
 	if AntiCheatService:
 		AntiCheatService.set_profile_limits(player_id, "movement_standard")
@@ -369,6 +396,66 @@ func dismiss(player_id: String) -> bool:
 func active_mount_name(player_id: String) -> String:
 	var mount = active_mount(player_id)
 	return "" if mount == null else str(mount.display_name)
+
+
+# ---- Mount stamina --------------------------------------------------------
+
+## The active mount's remaining stamina (0 when unmounted or unseeded).
+func get_mount_stamina(player_id: String) -> float:
+	var pool: Dictionary = _mount_stamina.get(player_id, {})
+	return float(pool.get("current", 0.0))
+
+
+## The active mount's ceiling (0 when unmounted).
+func get_mount_max_stamina(player_id: String) -> float:
+	var pool: Dictionary = _mount_stamina.get(player_id, {})
+	return float(pool.get("maximum", 0.0))
+
+
+## Spend from the mounted pool. False when there is no pool or the cost is
+## unaffordable -- the caller then drops the sprint, exactly like the
+## player-side use_stamina contract.
+func spend_mount_stamina(player_id: String, amount: float) -> bool:
+	if amount < 0.0 or not _mount_stamina.has(player_id):
+		return false
+	var pool: Dictionary = _mount_stamina[player_id]
+	var current := float(pool.get("current", 0.0))
+	if current < amount:
+		return false
+	current -= amount
+	pool["current"] = current
+	mount_stamina_changed.emit(player_id, current, float(pool.get("maximum", 0.0)))
+	return true
+
+
+## Refill the mounted pool (a rest, a consumable, a stable hand). Clamped to
+## the ceiling; no-op when there is no active mount.
+func restore_mount_stamina(player_id: String, amount: float) -> void:
+	if amount <= 0.0 or not _mount_stamina.has(player_id):
+		return
+	var pool: Dictionary = _mount_stamina[player_id]
+	var maximum := float(pool.get("maximum", 0.0))
+	var current := minf(maximum, float(pool.get("current", 0.0)) + amount)
+	pool["current"] = current
+	mount_stamina_changed.emit(player_id, current, maximum)
+
+
+## Seed the pool from the MountData that just answered the whistle. A mount
+## always arrives rested; the authored `stamina` is the ceiling.
+func _reset_mount_stamina(player_id: String, mount) -> void:
+	var maximum := 0.0
+	var regen_pct := 0.0
+	if mount != null:
+		if "stamina" in mount:
+			maximum = maxf(0.0, float(mount.stamina))
+		if "stamina_regen_pct_per_sec" in mount:
+			regen_pct = maxf(0.0, float(mount.stamina_regen_pct_per_sec))
+	_mount_stamina[player_id] = {
+		"current": maximum,
+		"maximum": maximum,
+		"regen_pct": regen_pct,
+	}
+	mount_stamina_changed.emit(player_id, maximum, maximum)
 
 
 ## The S14.6 water handoff in one call: what happens to the rider at

@@ -11,6 +11,7 @@ icon_path = "res://icons/mounts/meadow_pacer.png"
 model_path = ""
 kind = 0
 speed_multiplier = 1.15
+stamina = 110
 required_level = 1
 faction_id = ""
 source = 2

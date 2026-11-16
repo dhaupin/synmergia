@@ -69,6 +69,62 @@ static func _rating(entity, rating_name: String) -> float:
 		return 0.0
 	return float(entity.stats.get(rating_name, 0.0))
 
+## The level a combatant actually fights at. Bare Entity, Enemy and the
+## player body all carry `level`; a fixture without one is level 1.
+static func level_of(entity) -> int:
+	if entity == null or not ("level" in entity):
+		return 1
+	return maxi(int(entity.get("level")), 1)
+
+## An instanced bout's power book marks its fighters after scaling their
+## primaries. While that mark is present, the world's general level law
+## is OFF (the instance has already brought the fighters together) and
+## the level-side hit/armor penalties use one shared reference level.
+## Meta is used instead of a stats key so the normalization stays
+## bout-local and never leaks into saved character data.
+static func is_power_normalized(entity) -> bool:
+	if entity == null or not entity.has_method("has_meta"):
+		return false
+	return entity.has_meta("arena_power_normalized") and bool(entity.get_meta("arena_power_normalized"))
+
+## GENERAL POWER SCALING: the open-world/PvE level law. Equal levels are
+## 1.0; a lower-level attacker is scaled down and a higher-level attacker
+## up, even when both bodies somehow carry the same stats and gear. This
+## is deliberately separate from InstanceContract.power_scale (the bout
+## normalization, which moves the other direction for fun): arena and
+## duel instances mark their fighters and bypass this multiplier.
+## Levels below 1 are treated as 1; invalid tuning falls back to 1.0.
+static func level_power_multiplier(attacker_level: int, defender_level: int) -> float:
+	var balance := _balance()
+	var atk: int = maxi(attacker_level, 1)
+	var def: int = maxi(defender_level, 1)
+	var gap: int = def - atk
+	var raw: float = 1.0 - float(gap) * balance.level_power_per_level
+	return clampf(raw, balance.level_power_min_multiplier, balance.level_power_max_multiplier)
+
+## Object-facing form of the general level law. Null refs and normalized
+## fighters both resolve to 1.0, so a bare roll fixture cannot invent a
+## level gap and an instance bout cannot double-scale.
+static func level_power_multiplier_for(attacker, defender) -> float:
+	if attacker == null or defender == null:
+		return 1.0
+	if is_power_normalized(attacker) or is_power_normalized(defender):
+		return 1.0
+	return level_power_multiplier(level_of(attacker), level_of(defender))
+
+## Apply the world level law to an incoming damage number. THE one home:
+## every terminal damage receiver (HealthComponent, Entity, Enemy) calls this
+## before armor/shields, so projectiles, DoTs, traps and direct take_damage
+## paths that never build a hit table still scale honestly. A source-less
+## hit (fall, environment) is 1.0.
+static func apply_level_power(amount: int, attacker, defender) -> int:
+	if amount <= 0:
+		return 0
+	var multiplier := level_power_multiplier_for(attacker, defender)
+	if is_equal_approx(multiplier, 1.0):
+		return amount
+	return maxi(1, int(float(amount) * multiplier))
+
 ## The record-backed hit/defense tuning. Tests inject a record with
 ## set_balance_override; the live game resolves it through DataService.
 static var _balance_override = null
@@ -180,11 +236,19 @@ static func calculate_armor_reduction(armor: float, attacker_level: int, defende
 ## authored delta); `flat_reduction` is the damage_reduction payload, stacked
 ## after the armor curve. The result always leaves at least 1 point so chip
 ## damage still lands.
+##
+## power_normalized is the instance flag: an arena/duel fighter has already
+## been stat-normalized, so the armor curve reads one shared level instead
+## of the raw level gap. Damage call sites pass CombatMath.is_power_normalized
+## for either combatant; hand-built callers keep the default and the normal
+## world law.
 static func calculate_mitigation(amount: int, armor: float, attacker_level: int, defender_level: int,
 		defense_multiplier: float = 1.0, armor_multiplier: float = 1.0,
-		flat_reduction: float = 0.0) -> int:
+		flat_reduction: float = 0.0, power_normalized: bool = false) -> int:
 	if amount <= 0:
 		return 0
+	if power_normalized:
+		attacker_level = defender_level
 	var effective_armor: float = maxf(0.0, armor * defense_multiplier * armor_multiplier)
 	var reduction := calculate_armor_reduction(effective_armor, attacker_level, defender_level)
 	var flat: float = clampf(flat_reduction, 0.0, StatId.MAX_DAMAGE_REDUCTION)
@@ -221,8 +285,14 @@ static func calculate_hit(attacker, defender, skill = null) -> Dictionary:
 	var attacker_ratings := get_entity_ratings(attacker)
 	var defender_ratings := get_entity_ratings(defender)
 
-	var attacker_level: int = int(attacker.get("level")) if "level" in attacker else 1
-	var defender_level: int = int(defender.get("level")) if "level" in defender else 1
+	var attacker_level: int = level_of(attacker)
+	var defender_level: int = level_of(defender)
+	# The room's power book already normalized the bout: level-side hit
+	# penalties read one shared reference, exactly like the stat book.
+	if is_power_normalized(attacker) or is_power_normalized(defender):
+		var reference: int = maxi(attacker_level, defender_level)
+		attacker_level = reference
+		defender_level = reference
 
 	# --- Segments -----------------------------------------------------
 	var hit_chance := calculate_hit_chance(attacker_level, defender_level, attacker_ratings.hit_rating)

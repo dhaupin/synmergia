@@ -178,6 +178,7 @@ test_status_effect_tres
 test_stat_modifiers
 test_stamina
 test_equipment_power
+test_power_scaling
 test_attack_speed
 test_crit_system
 test_globe_player_players_group

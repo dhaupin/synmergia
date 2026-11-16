@@ -397,6 +397,7 @@ var ride_service = null                 # RideService (runtime; null in tests)
 var mounted_mount_id: String = ""       # the mount's data id ("" = unmounted)
 var _mount_profile = null               # the resolved MovementProfile
 var _humanoid_gravity: float = -1.0     # pre-mount gravity, restored on dismount
+var _humanoid_sprint_cost: float = -1.0 # pre-mount drain rate, restored on dismount
 const SADDLE_LIFT: float = 0.4          # m above the surface law (hooves, not boots)
 # R46 camera-follow setup: the mount camera pulls back so the beast
 # fits the frame. The seat is applied only when the pivot still
@@ -445,9 +446,15 @@ func _on_mount_summoned(player_id: String, mount_id: String) -> void:
 	mounted_mount_id = str(mount_id)
 	if _humanoid_gravity < 0.0:
 		_humanoid_gravity = gravity_force
+	if _humanoid_sprint_cost < 0.0:
+		_humanoid_sprint_cost = _sprint_stamina_per_s
 	walk_speed = float(profile.walk_speed)
 	jump_force = float(profile.jump_force)
 	gravity_force = float(profile.gravity_force)
+	# The mount's own movement law owns its gallop drain, just as it owns
+	# walk/sprint speed. Mechanical profiles author 0 (no stamina).
+	if "sprint_stamina_cost" in profile:
+		_sprint_stamina_per_s = float(profile.sprint_stamina_cost)
 	var gl := _glog()
 	if gl:
 		gl.info("GlobeWorldPlayer: %s takes the saddle of the %s" % [entity_id, str(mount.display_name)])
@@ -464,6 +471,9 @@ func _on_mount_dismounted(player_id: String, mount_id: String) -> void:
 	if _humanoid_gravity >= 0.0:
 		gravity_force = _humanoid_gravity
 		_humanoid_gravity = -1.0
+	if _humanoid_sprint_cost >= 0.0:
+		_sprint_stamina_per_s = _humanoid_sprint_cost
+		_humanoid_sprint_cost = -1.0
 	walk_speed = WALK_SPEED_HUMANOID
 	jump_force = JUMP_FORCE_HUMANOID
 
@@ -908,12 +918,15 @@ func _physics_process(delta: float) -> void:
 	# (Recomputed AFTER the chain: a bail leaves sprint live, so the
 	# slide flows straight back into the run when the input is held.)
 	var sprint_held: bool = _virtual_sprint if _virtual_input_on else Input.is_action_pressed("sprint")
+	var stamina_max: float = _movement_stamina_max()
 	is_sprinting = (sprint_held or _sprint_override_on) \
-		and current_stamina > max_stamina * SPRINT_MIN_FRACTION and not is_crouching
-	# Sprinting spends the same pool climbing does. Mounted movement has its
-	# own profile/ride law, so the rider's stamina is not taxed twice.
-	if is_sprinting and not is_mounted():
-		current_stamina = maxf(0.0, current_stamina - _sprint_stamina_per_s * delta)
+		and stamina_max > 0.0 \
+		and _movement_stamina_current() > stamina_max * SPRINT_MIN_FRACTION \
+		and not is_crouching
+	# Sprinting spends the body's pool: the rider on foot, the mount in the
+	# saddle. Never both -- the saddle has its own stamina law.
+	if is_sprinting:
+		_spend_movement_stamina(_sprint_stamina_per_s * delta)
 
 	# THE SEA STEP (S14.7.2): deep water outranks the walk --
 	# the water owns the body, the ford law never sees it.
@@ -988,7 +1001,7 @@ func _physics_process(delta: float) -> void:
 			and Input.is_action_just_pressed("dismount"):
 		ride_service.dismiss(entity_id)
 		return
-	if allow_jump_input and is_on_floor() and current_stamina > max_stamina * CLIMB_ENGAGE_FRACTION \
+	if allow_jump_input and is_on_floor() and _movement_stamina_current() > _movement_stamina_max() * CLIMB_ENGAGE_FRACTION \
 			and Input.is_action_pressed("jump") and not Input.is_action_just_pressed("jump"):
 		var probe_dir: Vector3 = (wish if wish.length_squared() > 0.001 \
 			else cam_fwd).normalized()
@@ -1258,7 +1271,7 @@ func _physics_process(delta: float) -> void:
 ## caller returns right after).
 func _tick_climb(delta: float, up: Vector3, wish: Vector3, horizontal: Vector3) -> void:
 	# Release: button let go, or the wall is gone (streamed away).
-	if not Input.is_action_pressed("jump") or current_stamina <= 0.0:
+	if not Input.is_action_pressed("jump") or _movement_stamina_current() <= 0.0:
 		_end_climb(up)
 		return
 	var dir: Vector3 = -_climb_wall_normal
@@ -1284,7 +1297,7 @@ func _tick_climb(delta: float, up: Vector3, wish: Vector3, horizontal: Vector3) 
 		_end_climb(up)
 		return
 	_climb_wall_normal = still
-	current_stamina = maxf(0.0, current_stamina - CLIMB_DRAIN_PER_S * delta)
+	_spend_movement_stamina(CLIMB_DRAIN_PER_S * delta)
 	# Ride the wall: press into it (stick), climb up its face.
 	var wall_up: Vector3 = (up - _climb_wall_normal * up.dot(_climb_wall_normal)).normalized()
 	var radial: Vector3 = (global_position - planet_center).normalized()
@@ -1302,6 +1315,30 @@ func _end_climb(up: Vector3) -> void:
 	_climbing = false
 	snap_enabled = true
 	velocity = Vector3.ZERO
+
+
+## -- Shared movement-stamina surface ----------------------------------
+## On foot: PlayerBase's one pool. In the saddle: the mount's own pool,
+## owned by RideService. Sprint and climb read/spend through these three
+## helpers so the rider is never taxed twice and a mount can tire.
+func _movement_stamina_current() -> float:
+	if is_mounted() and ride_service != null:
+		return float(ride_service.get_mount_stamina(entity_id))
+	return current_stamina
+
+
+func _movement_stamina_max() -> float:
+	if is_mounted() and ride_service != null:
+		return float(ride_service.get_mount_max_stamina(entity_id))
+	return max_stamina
+
+
+func _spend_movement_stamina(amount: float) -> bool:
+	if amount <= 0.0:
+		return true
+	if is_mounted() and ride_service != null:
+		return bool(ride_service.spend_mount_stamina(entity_id, amount))
+	return use_stamina(amount)
 
 ## Probe for a steep or climbable surface within reach ahead. Returns
 ## the wall NORMAL (globe-frame) or Vector3.ZERO when nothing climbable

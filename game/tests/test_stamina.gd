@@ -13,6 +13,7 @@ extends SceneTree
 
 const PlayerBaseScript = preload("res://entities/player/player_base.gd")
 const EntityScript = preload("res://core/entities/entity.gd")
+const EnemyDataScript = preload("res://core/schemas/enemy_data.gd")
 const StatusEffectDataScript = preload("res://core/schemas/status_effect_data.gd")
 const Factory = preload("res://core/combat/status_effect_factory.gd")
 
@@ -98,6 +99,46 @@ func _run() -> void:
 	body.remove_status_effect(fx)
 	_assert(_approx(float(body.stats.get("stamina_regen", 0.0)), 0.0),
 		"removing the effect reverses the stat delta")
+
+	# --- 4. Enemy templates seed the body pool ---------------------------
+	var template = EnemyDataScript.new()
+	template.id = "test_bear_stamina"
+	template.stamina = 220
+	var mob = EntityScript.new()
+	root.add_child(mob)
+	template.apply_stats_to(mob)
+	_assert(_approx(mob.max_stamina, 220.0), "a template's stamina seeds the body ceiling")
+	_assert(_approx(mob.current_stamina, 220.0), "a fresh spawn starts at full stamina")
+	template.apply_stats_to(mob, 5)
+	_assert(_approx(mob.max_stamina, 308.0), "a level-raised spawn scales the authored stamina")
+	mob.queue_free()
+
+	# --- 5. Mounts own a separate movement pool --------------------------
+	var rides = root.get_node_or_null("RideService")
+	var ds = root.get_node_or_null("DataService")
+	_assert(rides != null, "RideService autoload is available")
+	_assert(ds != null, "DataService autoload is available")
+	if rides != null and ds != null:
+		var mount = ds.get_mount("mount_meadow_pacer")
+		_assert(mount != null and int(mount.stamina) > 0, "the mount data authors a stamina pool")
+		var rider_id := "test_mount_stamina_rider"
+		if not rides.owns_mount(rider_id, "mount_meadow_pacer"):
+			_assert(rides.grant_mount(rider_id, "mount_meadow_pacer"), "the test mount grants")
+		_assert(rides.summon(rider_id, "mount_meadow_pacer"), "the test mount summons")
+		_assert(_approx(rides.get_mount_max_stamina(rider_id), float(mount.stamina)),
+			"the mounted pool ceiling comes from MountData")
+		_assert(_approx(rides.get_mount_stamina(rider_id), rides.get_mount_max_stamina(rider_id)),
+			"a summoned mount arrives rested")
+		_assert(rides.spend_mount_stamina(rider_id, 10.0), "a mounted sprint can spend the mount pool")
+		_assert(_approx(rides.get_mount_stamina(rider_id), float(mount.stamina) - 10.0),
+			"the spend lands on the mount pool, not the rider")
+		rides.restore_mount_stamina(rider_id, 999.0)
+		_assert(_approx(rides.get_mount_stamina(rider_id), float(mount.stamina)),
+			"mount restore clamps to the authored ceiling")
+		_assert(rides.dismiss(rider_id), "the test mount dismisses")
+		_assert(_approx(rides.get_mount_stamina(rider_id), 0.0),
+			"dismount clears the mount pool")
+		rides.revoke_mount(rider_id, "mount_meadow_pacer")
 
 	player.queue_free()
 	body.queue_free()

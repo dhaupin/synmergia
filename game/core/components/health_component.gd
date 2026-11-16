@@ -102,6 +102,13 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 	if _is_dead:
 		return 0
 
+	# GENERAL POWER SCALING: the world's level law lands at the terminal
+	# receiver, so every path (hit table, projectile, DoT, trap) scales
+	# against the defender. Instance-normalized fighters bypass it.
+	amount = CombatMath.apply_level_power(amount, source, get_parent())
+	if amount <= 0:
+		return 0
+
 	# Status-effect payloads on the owner body (the player is not an Entity, so
 	# Entity.take_damage's reads never see it): invincibility negates the hit,
 	# active shield pools soak what remains before it reaches health.
@@ -148,9 +155,11 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 	var attacker_level: int = defender_level
 	if source != null and "level" in source:
 		attacker_level = int(source.get("level"))
+	var power_normalized: bool = CombatMath.is_power_normalized(entity) \
+			or CombatMath.is_power_normalized(source)
 	var actual_damage: int = CombatMath.calculate_mitigation(
 		amount, armor, attacker_level, defender_level,
-		defense_multiplier, armor_multiplier, flat)
+		defense_multiplier, armor_multiplier, flat, power_normalized)
 
 	current_health = max(0, current_health - actual_damage)
 	health_changed.emit(current_health, max_health, -actual_damage)

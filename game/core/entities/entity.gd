@@ -254,6 +254,12 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 	# the data's shield/immune fields are inert.
 	if _is_invincible():
 		return 0
+	# GENERAL POWER SCALING: applied before shields so the pool absorbs the
+	# level-adjusted hit, and at the terminal receiver so every damage lane
+	# (hit table, projectile, DoT, trap) obeys the same world law.
+	amount = CombatMath.apply_level_power(amount, source, self)
+	if amount <= 0:
+		return 0
 	amount = _absorb_with_shields(amount)
 	if amount <= 0:
 		return 0
@@ -342,11 +348,13 @@ func _calculate_damage_received(amount: int, damage_type: String = "physical", s
 	if source != null and "level" in source:
 		attacker_level = int(source.get("level"))
 	var flat: float = float(stats.get("damage_reduction", 0.0))
+	var power_normalized: bool = CombatMath.is_power_normalized(self) \
+			or CombatMath.is_power_normalized(source)
 	return CombatMath.calculate_mitigation(
 		amount, defense, attacker_level, level,
 		float(stats.get("defense_multiplier", 1.0)),
 		float(stats.get("armor_multiplier", 1.0)),
-		flat)
+		flat, power_normalized)
 
 ## MANA
 

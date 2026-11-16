@@ -11,6 +11,7 @@ icon_path = "res://icons/mounts/plains_runner.png"
 model_path = ""
 kind = 0
 speed_multiplier = 1.35
+stamina = 130
 required_level = 5
 faction_id = ""
 source = 0
