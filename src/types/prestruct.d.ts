@@ -6,12 +6,18 @@ declare module 'prestruct/islands' {
   export function mountIslands(registry?: Record<string, () => unknown>): void;
 }
 
-declare namespace JSX {
-  interface IntrinsicElements {
-    'pre-island': {
-      'data-pre-island'?: string;
-      'data-pre-load'?: 'eager' | 'visible' | 'idle';
-      children?: unknown;
-    };
+// React 19 moved the JSX namespace from global to React.JSX, so the old
+// `declare namespace JSX` no longer merges with anything. @types/react ships
+// `export as namespace React`, so this global namespace merge lands on the
+// same React.JSX the react-jsx transform resolves against.
+declare namespace React {
+  namespace JSX {
+    interface IntrinsicElements {
+      'pre-island': {
+        'data-pre-island'?: string;
+        'data-pre-load'?: 'eager' | 'visible' | 'idle';
+        children?: unknown;
+      };
+    }
   }
 }
