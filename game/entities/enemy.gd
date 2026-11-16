@@ -410,16 +410,28 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 		_last_damager = source
 	# EnemyData armor/resist mitigation by school: physical hits face
 	# armor, magical hits face resistance. Training dummy carries 25/40
-	# specifically so players can SEE their mitigation on it. Other
-	# schools (true/pure) bypass. min 1 so chip damage always lands.
-	var applied := amount
+	# specifically so players can SEE their mitigation on it. The shared
+	# curve uses the attacker's level and both stat multipliers; min 1 so
+	# chip damage always lands. Flat damage_reduction still stacks after
+	# shields, preserving the old shield/flat order.
+	var armor_value: float = 0.0
 	if enemy_data != null and "armor" in enemy_data:
-		var defense: float = float(enemy_data.resistance) \
+		armor_value = float(enemy_data.resistance) \
 				if (damage_type == "magical" or damage_type == "magic") \
 				else float(enemy_data.armor)
-		if defense > 0.0:
-			var reduction: float = defense / (defense + 100.0)
-			applied = maxi(1, int(float(amount) * (1.0 - reduction)))
+	var defense_multiplier: float = 1.0
+	var armor_multiplier: float = 1.0
+	var flat: float = 0.0
+	if "stats" in self:
+		defense_multiplier = float(stats.get("defense_multiplier", 1.0))
+		armor_multiplier = float(stats.get("armor_multiplier", 1.0))
+		flat = float(stats.get("damage_reduction", 0.0))
+	var attacker_level: int = level
+	if source != null and "level" in source:
+		attacker_level = int(source.get("level"))
+	var applied: int = CombatMath.calculate_mitigation(
+		amount, armor_value, attacker_level, level,
+		defense_multiplier, armor_multiplier, 0.0)
 	# Status-effect payloads on the enemy body (this path pokes the health
 	# component directly, so Entity.take_damage's reads never run): an active
 	# shield pool soaks first, then a flat authored damage_reduction trims
@@ -432,10 +444,9 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 				applied = effect.absorb_damage(applied)
 		if applied <= 0:
 			return 0
-	if "stats" in self:
-		var flat: float = clampf(float(stats.get("damage_reduction", 0.0)), 0.0, StatId.MAX_DAMAGE_REDUCTION)
-		if flat > 0.0:
-			applied = maxi(1, int(float(applied) * (1.0 - flat)))
+	if flat > 0.0:
+		applied = CombatMath.calculate_mitigation(
+			applied, 0.0, attacker_level, level, 1.0, 1.0, flat)
 	if health_component:
 		# No _is_dead poke here: health_component.die() owns the dead flag
 		# and early-returns when it is already set -- setting it first used

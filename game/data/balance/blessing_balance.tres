@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="BlessingBalanceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/blessing_balance_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "blessing_balance"
+damage_multiplier = 1.2
+heal_multiplier = 1.2
+xp_multiplier = 1.2
+level_bonus = 5

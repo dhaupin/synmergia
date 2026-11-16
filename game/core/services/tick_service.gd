@@ -654,11 +654,11 @@ func _decay_effects() -> Dictionary:
 				swept += 1
 	return {"swept": swept, "advanced": advanced}
 
-## Health/mana regen per tick (out-of-combat pacing, scaled by the tick
+## Health/mana regen per tick (rest/combat pacing, scaled by the tick
 ## interval). Fractional amounts accumulate per entity until a whole point
 ## applies, so the 50ms tick never rounds regen to zero. The percentages
 ## come from the combat balance record; the flat stat regen still rides
-## the same accumulator.
+## the same accumulator, so baseline + skill/status regen stack.
 var _regen_health_acc: Dictionary = {}   # entity_id -> float
 var _regen_mana_acc: Dictionary = {}     # entity_id -> float
 
@@ -676,10 +676,16 @@ func _combat_balance_record() -> CombatBalanceData:
 	_combat_balance = CombatBalanceData.new()
 	return _combat_balance
 
+func _regen_rates(in_combat: bool) -> Dictionary:
+	var balance := _combat_balance_record()
+	return {
+		"health_pct": balance.health_regen_combat_pct_per_sec if in_combat else balance.health_regen_pct_per_sec,
+		"mana_pct": balance.mana_regen_combat_pct_per_sec if in_combat else balance.mana_regen_pct_per_sec,
+	}
+
 func _regen_entities() -> void:
 	if EntityService == null:
 		return
-	var balance := _combat_balance_record()
 	var dt: float = _tick_interval / 1000.0
 	var entities = EntityService.get_all_entities()
 	for entity in entities:
@@ -699,13 +705,22 @@ func _regen_entities() -> void:
 		# regen skips those instead of erroring on a missing field.
 		var has_health: bool = "current_health" in entity and "max_health" in entity
 		var has_mana: bool = "current_mana" in entity and "max_mana" in entity
-		# Flat authored regen (StatId health_regen/mana_regen, e.g. a
-		# "Regeneration" buff) rides the same accumulator as the percentage
-		# baseline, so a body with both heals at the sum.
+		# Baseline regen is selected per body from rest/combat rates; flat
+		# authored regen (StatId health_regen/mana_regen, e.g. a
+		# "Regeneration" buff) rides the same accumulator, so a body with
+		# both heals at the sum. This is the only owner of baseline regen.
+		var in_combat: bool = false
+		if "combat_component" in entity:
+			var cc = entity.combat_component
+			if cc != null and "in_combat" in cc:
+				in_combat = bool(cc.in_combat)
+		var rates := _regen_rates(in_combat)
+		var health_pct: float = float(rates.get("health_pct", 0.0))
+		var mana_pct: float = float(rates.get("mana_pct", 0.0))
 		var flat_hp: float = float(entity.stats.get("health_regen", 0.0)) if ("stats" in entity) else 0.0
 		var flat_mp: float = float(entity.stats.get("mana_regen", 0.0)) if ("stats" in entity) else 0.0
 		if has_health and (entity.current_health < entity.max_health or flat_hp != 0.0):
-			var h_acc: float = float(_regen_health_acc.get(eid, 0.0)) + (float(entity.max_health) * balance.health_regen_pct_per_sec + flat_hp) * dt
+			var h_acc: float = float(_regen_health_acc.get(eid, 0.0)) + (float(entity.max_health) * health_pct + flat_hp) * dt
 			while h_acc >= 1.0:
 				h_acc -= 1.0
 				entity.heal(1)
@@ -713,7 +728,7 @@ func _regen_entities() -> void:
 		else:
 			_regen_health_acc.erase(eid)
 		if has_mana and (entity.current_mana < entity.max_mana or flat_mp != 0.0):
-			var m_acc: float = float(_regen_mana_acc.get(eid, 0.0)) + (float(entity.max_mana) * balance.mana_regen_pct_per_sec + flat_mp) * dt
+			var m_acc: float = float(_regen_mana_acc.get(eid, 0.0)) + (float(entity.max_mana) * mana_pct + flat_mp) * dt
 			while m_acc >= 1.0:
 				m_acc -= 1.0
 				entity.current_mana = mini(entity.max_mana, entity.current_mana + 1)

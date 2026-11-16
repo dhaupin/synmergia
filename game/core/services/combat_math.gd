@@ -155,6 +155,42 @@ static func calculate_block_value(block_rating: float, strength: int) -> float:
 	var rating_contribution := block_rating / balance.block_value_rating_divisor
 	return balance.block_value_base + strength_contribution + rating_contribution
 
+## Percentage armor curve. Flat armor (item armor_value for players,
+## EnemyData.armor/resistance for mobs, or a bare Entity's stat defense)
+## is divided by itself plus a level-scaled constant. The attacker's level
+## is the penetration scale: a low-level attacker faces a much larger
+## relative armor pool, while a high-level attacker cuts through it. A
+## defender above the attacker adds effective armor, so level gaps bite in
+## both directions.
+static func calculate_armor_reduction(armor: float, attacker_level: int, defender_level: int) -> float:
+	if armor <= 0.0:
+		return 0.0
+	var balance := _balance()
+	var gap: int = maxi(0, defender_level - attacker_level)
+	var effective_armor: float = armor * (1.0 + float(gap) * balance.armor_defender_level_bonus)
+	var level_scale: float = balance.armor_curve_base \
+			+ float(maxi(attacker_level, 1)) * balance.armor_curve_per_attacker_level
+	var denominator: float = effective_armor + level_scale
+	if denominator <= 0.0:
+		return 0.0
+	return clampf(effective_armor / denominator, 0.0, balance.armor_mitigation_cap)
+
+## Apply the shared percentage mitigation to one hit. `defense_multiplier`
+## and `armor_multiplier` are the full StatId multipliers (1.0 base plus any
+## authored delta); `flat_reduction` is the damage_reduction payload, stacked
+## after the armor curve. The result always leaves at least 1 point so chip
+## damage still lands.
+static func calculate_mitigation(amount: int, armor: float, attacker_level: int, defender_level: int,
+		defense_multiplier: float = 1.0, armor_multiplier: float = 1.0,
+		flat_reduction: float = 0.0) -> int:
+	if amount <= 0:
+		return 0
+	var effective_armor: float = maxf(0.0, armor * defense_multiplier * armor_multiplier)
+	var reduction := calculate_armor_reduction(effective_armor, attacker_level, defender_level)
+	var flat: float = clampf(flat_reduction, 0.0, StatId.MAX_DAMAGE_REDUCTION)
+	var total: float = reduction + flat * (1.0 - reduction)
+	return maxi(1, int(float(amount) * (1.0 - total)))
+
 ## Calculate full hit result -- the MWo-style single-roll combat table.
 ##
 ## ONE randf() in [0, 1) is split into cumulative segments, in order:

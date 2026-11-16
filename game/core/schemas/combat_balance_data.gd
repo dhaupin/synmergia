@@ -1,7 +1,7 @@
-## CombatBalanceData - the tunable hit table and baseline regeneration.
-## CombatMath owns the roll/order and the arithmetic; TickService owns the
-## regen application. This record owns the bases, curves, caps and rates a
-## designer can tune without editing the combat services.
+## CombatBalanceData - the tunable hit table, armor mitigation and baseline
+## regeneration. CombatMath owns the roll/order and the mitigation curve;
+## TickService owns the regen application. This record owns the bases, curves,
+## caps and rates a designer can tune without editing the combat services.
 extends Resource
 class_name CombatBalanceData
 
@@ -39,9 +39,21 @@ class_name CombatBalanceData
 @export var block_value_per_strength: float = 0.5
 @export var block_value_rating_divisor: float = 25.0
 
-## Baseline regeneration as a fraction of max resource per second.
+## Armor/resistance mitigation curve. Flat armor values come from items
+## (players) or EnemyData (enemies); the attacker's level sets the curve's
+## scaling, and a higher-level defender gets a small effective-armor bonus.
+@export var armor_curve_base: float = 100.0
+@export var armor_curve_per_attacker_level: float = 2.0
+@export var armor_defender_level_bonus: float = 0.02
+@export var armor_mitigation_cap: float = 0.90
+
+## Baseline regeneration as a fraction of max resource per second. Rest and
+## combat are separate rates so a class/skill can change the in-combat pace;
+## they are the same value for now. Flat StatId regen stacks on top.
 @export var health_regen_pct_per_sec: float = 0.01
+@export var health_regen_combat_pct_per_sec: float = 0.01
 @export var mana_regen_pct_per_sec: float = 0.02
+@export var mana_regen_combat_pct_per_sec: float = 0.02
 
 
 ## Structural gate: a malformed record must not reach the hit table.
@@ -72,13 +84,20 @@ func is_valid() -> bool:
 		return false
 	if block_value_rating_divisor <= 0.0:
 		return false
+	if armor_curve_base < 0.0 or armor_curve_per_attacker_level < 0.0:
+		return false
+	if armor_defender_level_bonus < 0.0:
+		return false
+	if armor_mitigation_cap <= 0.0 or armor_mitigation_cap > 1.0:
+		return false
 	var non_negative := [
 		hit_level_penalty_per_level,
 		dodge_base, dodge_per_agility, dodge_level_bonus,
 		parry_base, parry_per_strength, parry_level_bonus,
 		block_base, block_per_vitality,
 		block_value_base, block_value_per_strength,
-		health_regen_pct_per_sec, mana_regen_pct_per_sec,
+		health_regen_pct_per_sec, health_regen_combat_pct_per_sec,
+		mana_regen_pct_per_sec, mana_regen_combat_pct_per_sec,
 	]
 	for value in non_negative:
 		if float(value) < 0.0:

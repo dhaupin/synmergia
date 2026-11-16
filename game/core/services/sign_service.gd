@@ -25,6 +25,7 @@ extends Node
 
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 const SignProfileScript = preload("res://core/schemas/sign_profile.gd")
+const BlessingBalanceData = preload("res://core/schemas/blessing_balance_data.gd")
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
 signal sign_window_changed(sign_id: String, window_index: int, day_index: int)
@@ -54,6 +55,7 @@ const _KV := "signs:"
 
 var _signs: Dictionary = {}
 var _sign_ids: Array[String] = []
+var _blessing_balance: BlessingBalanceData = null
 ## Test/admin clock override (unix seconds); -1 = use the real clock.
 var _clock_override: float = -1.0
 
@@ -268,8 +270,37 @@ func get_ancient_code(day_index: int) -> String:
 ##    permutation slot by slot -- every class blesses exactly once per
 ##    round BY CONSTRUCTION. No repeat before a full rotation, on any
 ##    server, ever; re-hashing per day would allow collisions.
-const BLESSED_DAMAGE_MULTIPLIER: float = 1.2
-const BLESSED_LEVEL_BONUS: int = 5
+## Compatibility accessors over the authored blessing record. The record
+## in data/balance/blessing_balance.tres is the source of truth; these
+## properties keep the existing payoff readers declarative while ensuring
+## they cannot drift from DataService's loaded values.
+var BLESSED_DAMAGE_MULTIPLIER: float:
+	get:
+		return get_blessing_balance().damage_multiplier
+var BLESSED_HEAL_MULTIPLIER: float:
+	get:
+		return get_blessing_balance().heal_multiplier
+var BLESSED_XP_MULTIPLIER: float:
+	get:
+		return get_blessing_balance().xp_multiplier
+var BLESSED_LEVEL_BONUS: int:
+	get:
+		return get_blessing_balance().level_bonus
+
+## DataService owns the record; a script-mode call before autoload ready
+## still gets the schema defaults instead of a null crash.
+func get_blessing_balance() -> BlessingBalanceData:
+	if _blessing_balance != null:
+		return _blessing_balance
+	var ds = DataService
+	if ds != null and ds.has_method("get_blessing_balance"):
+		var record = ds.get_blessing_balance()
+		if record is BlessingBalanceData:
+			_blessing_balance = record
+			return _blessing_balance
+	GameLog.warn("SignService: blessing balance record missing; using schema defaults")
+	_blessing_balance = BlessingBalanceData.new()
+	return _blessing_balance
 
 ## Which class the wheel names for `day_index` (always derivable --
 ## the almanac previews it once the day is unlocked). Deterministic
@@ -474,7 +505,7 @@ func _maybe_complete_day_code(day: int) -> void:
 				blessed_name = str(cls.display_name)
 		NotificationService.notify(
 			NotifKind.CLASS_BLESSED,
-			"The wheel turns: %s is blessed tomorrow (+%d%% might, +%d levels, +%d%% XP)." % [blessed_name, int((BLESSED_DAMAGE_MULTIPLIER - 1.0) * 100.0), BLESSED_LEVEL_BONUS, int((BLESSED_DAMAGE_MULTIPLIER - 1.0) * 100.0)],
+			"The wheel turns: %s is blessed tomorrow (+%d%% might, +%d levels, +%d%% XP)." % [blessed_name, int((BLESSED_DAMAGE_MULTIPLIER - 1.0) * 100.0), BLESSED_LEVEL_BONUS, int((BLESSED_XP_MULTIPLIER - 1.0) * 100.0)],
 			"SignService",
 			"sign:blessed:%d" % tomorrow,
 			{"for_day": tomorrow, "class_id": blessed}
@@ -527,7 +558,7 @@ func _maybe_roll_day() -> void:
 					blessed_name = str(cls.display_name)
 			NotificationService.notify(
 				NotifKind.CLASS_BLESSED,
-				"Dawn: %s carries the sky's blessing today (+%d%% might, +%d levels, +%d%% XP)." % [blessed_name, int((BLESSED_DAMAGE_MULTIPLIER - 1.0) * 100.0), BLESSED_LEVEL_BONUS, int((BLESSED_DAMAGE_MULTIPLIER - 1.0) * 100.0)],
+				"Dawn: %s carries the sky's blessing today (+%d%% might, +%d levels, +%d%% XP)." % [blessed_name, int((BLESSED_DAMAGE_MULTIPLIER - 1.0) * 100.0), BLESSED_LEVEL_BONUS, int((BLESSED_XP_MULTIPLIER - 1.0) * 100.0)],
 				"SignService",
 				"sign:blessed:dawn:%d" % day,
 				{"day_index": day, "class_id": blessed}
@@ -582,7 +613,7 @@ func _on_player_entered_world(player_id: String, character_data: Resource) -> vo
 			display = str(cls.display_name)
 	NotificationService.notify(
 		NotifKind.CLASS_BLESSED,
-		"The sky's wheel named YOUR class today: +%d%% might, +%d levels, +%d%% XP until dawn." % [int((BLESSED_DAMAGE_MULTIPLIER - 1.0) * 100.0), BLESSED_LEVEL_BONUS, int((BLESSED_DAMAGE_MULTIPLIER - 1.0) * 100.0)],
+		"The sky's wheel named YOUR class today: +%d%% might, +%d levels, +%d%% XP until dawn." % [int((BLESSED_DAMAGE_MULTIPLIER - 1.0) * 100.0), BLESSED_LEVEL_BONUS, int((BLESSED_XP_MULTIPLIER - 1.0) * 100.0)],
 		"SignService",
 		"sign:blessed_login:%s:%d" % [player_id, day],
 		{"for_day": day, "class_id": cid, "player_id": player_id}

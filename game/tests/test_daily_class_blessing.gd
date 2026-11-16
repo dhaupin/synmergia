@@ -32,6 +32,7 @@ func _initialize() -> void:
 	if _svc.has_method("ensure_initialized"):
 		_svc.ensure_initialized()
 
+	ok = _test_balance_record() and ok
 	ok = _test_wheel_hydration() and ok
 	ok = _test_determinism() and ok
 	ok = _test_earn_gate() and ok
@@ -42,6 +43,30 @@ func _initialize() -> void:
 
 	print("--- DAILY CLASS BLESSING: ok=%s ---" % str(ok))
 	quit(0 if ok else 1)
+
+
+func _test_balance_record() -> bool:
+	var record = _ds.get_blessing_balance()
+	if record == null:
+		push_error("FAIL: blessing balance record missing")
+		return false
+	if record.id != "blessing_balance" or not record.is_valid():
+		push_error("FAIL: blessing balance record malformed")
+		return false
+	if not is_equal_approx(record.damage_multiplier, 1.2) \
+			or not is_equal_approx(record.heal_multiplier, 1.2) \
+			or not is_equal_approx(record.xp_multiplier, 1.2) \
+			or record.level_bonus != 5:
+		push_error("FAIL: blessing balance values drifted from 1.2/1.2/1.2/+5")
+		return false
+	if not is_equal_approx(_svc.BLESSED_DAMAGE_MULTIPLIER, record.damage_multiplier) \
+			or not is_equal_approx(_svc.BLESSED_HEAL_MULTIPLIER, record.heal_multiplier) \
+			or not is_equal_approx(_svc.BLESSED_XP_MULTIPLIER, record.xp_multiplier) \
+			or _svc.BLESSED_LEVEL_BONUS != record.level_bonus:
+		push_error("FAIL: SignService accessors do not read the authored record")
+		return false
+	print("[OK] blessing balance record: damage/heal/XP x1.2, +5 levels")
+	return true
 
 
 func _test_wheel_hydration() -> bool:
@@ -237,8 +262,9 @@ func _test_heal_hook() -> bool:
 	# roll would make the blessed-heal assert flake.
 	healer.stats["crit_chance"] = -1.0
 	var healed: int = skill.calculate_healing(healer)
-	if healed < int(100 * _svc.BLESSED_DAMAGE_MULTIPLIER):
-		push_error("FAIL: blessed heal %d below 120" % healed)
+	var expected_heal := int(100.0 * _svc.BLESSED_HEAL_MULTIPLIER)
+	if healed < expected_heal:
+		push_error("FAIL: blessed heal %d below %d" % [healed, expected_heal])
 		return false
 	# Control: SAME zeroed wisdom -- the class default (10) would add +20
 	# WIS healing and mask the blessing either way (real bug found here:
@@ -264,8 +290,9 @@ func _test_xp_hook() -> bool:
 	var winner = _fake_fighter(blessed)
 	winner.xp = 0
 	KillRewards._grant_xp(winner, 100)
-	if int(winner.xp) != 120:
-		push_error("FAIL: blessed XP %d != 120" % int(winner.xp))
+	var expected_xp := int(100.0 * _svc.BLESSED_XP_MULTIPLIER)
+	if int(winner.xp) != expected_xp:
+		push_error("FAIL: blessed XP %d != %d" % [int(winner.xp), expected_xp])
 		return false
 	var loser = _fake_fighter(_unblessed_id(day))
 	loser.xp = 0
@@ -274,7 +301,7 @@ func _test_xp_hook() -> bool:
 		push_error("FAIL: unblessed XP %d != 100" % int(loser.xp))
 		return false
 	_svc.set_clock_override(-1.0)
-	print("[OK] KillRewards XP: blessed 120, unblessed 100")
+	print("[OK] KillRewards XP: blessed %d, unblessed 100" % expected_xp)
 	return true
 
 

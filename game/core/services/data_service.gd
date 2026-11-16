@@ -17,6 +17,7 @@ const AcademyBalanceData = preload("res://core/schemas/academy_balance_data.gd")
 const HousingBalanceData = preload("res://core/schemas/housing_balance_data.gd")
 const BoutRewardsData = preload("res://core/schemas/bout_rewards_data.gd")
 const CombatBalanceData = preload("res://core/schemas/combat_balance_data.gd")
+const BlessingBalanceData = preload("res://core/schemas/blessing_balance_data.gd")
 const AgentSlotBalanceData = preload("res://core/schemas/agent_slot_balance_data.gd")
 const CharacterClass = preload("res://core/schemas/character_class.gd")
 const Species = preload("res://core/schemas/species.gd")
@@ -269,6 +270,14 @@ func get_combat_balance() -> CombatBalanceData:
 	if record is CombatBalanceData and record.is_valid():
 		return record
 	GameLog.warn("DataService: Combat balance record not found or invalid")
+	return null
+
+## The Daily Class Blessing multipliers and effective-level bonus.
+func get_blessing_balance() -> BlessingBalanceData:
+	var record = _balance.get("blessing_balance")
+	if record is BlessingBalanceData and record.is_valid():
+		return record
+	GameLog.warn("DataService: Blessing balance record not found or invalid")
 	return null
 
 ## The agent slot sigil ladder.

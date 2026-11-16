@@ -6,6 +6,7 @@ class_name Entity
 ## Canonical stat vocabulary (the keys in `stats` below and the
 ## mitigation/reflect keys the damage pipeline reads).
 const StatId = preload("res://core/schemas/stat_id.gd")
+const CombatMath = preload("res://core/services/combat_math.gd")
 const CcImmunity = preload("res://core/combat/cc_immunity.gd")
 
 signal health_changed(current: int, maximum: int)
@@ -256,7 +257,7 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 	if amount <= 0:
 		return 0
 
-	var damage := _calculate_damage_received(amount, damage_type)
+	var damage := _calculate_damage_received(amount, damage_type, source)
 	current_health = max(0, current_health - damage)
 	health_changed.emit(current_health, max_health)
 	var hub := _hub()
@@ -326,28 +327,25 @@ func heal_percentage(percent: float) -> void:
 func is_alive() -> bool:
 	return not is_dead and current_health > 0
 
-func _calculate_damage_received(amount: int, damage_type: String = "physical") -> int:
-	# Mitigation by school: physical hits face armor-ish defense, magical
-	# hits face magic resistance (both derived from stats). Other schools
-	# (true/pure damage) bypass. Keeps bare-Entity bosses and NPCs
-	# consistent with EnemyData-carrying enemies.
+func _calculate_damage_received(amount: int, damage_type: String = "physical", source = null) -> int:
+	# Mitigation by school: magical hits face magic resistance, everything
+	# else faces stat-derived defense. The shared CombatMath curve applies
+	# the level scale, both stat multipliers, and the flat damage_reduction
+	# payload, so bare Entity bosses, NPCs and EnemyData bodies cannot drift.
 	var defense: float = 0.0
 	if damage_type == "magical" or damage_type == "magic":
 		defense = float(get_magic_resistance())
 	else:
 		defense = float(get_defense())
-	# Status-effect defense multiplier (defense-buff deltas on a 1.0 base).
-	defense *= float(stats.get("defense_multiplier", 1.0))
-	var reduction: float = defense / (defense + 100.0) if defense > 0.0 else 0.0
-	# A flat authored damage_reduction fraction stacks on top of the
-	# defense curve, clamped so a stacked barrier can never reach immunity
-	# (immortal_form's immune_all is the one true immunity path). Read even
-	# when the defense curve is zero, so a bare body still honors it.
-	var flat: float = clampf(float(stats.get("damage_reduction", 0.0)), 0.0, StatId.MAX_DAMAGE_REDUCTION)
-	var total: float = reduction + flat * (1.0 - reduction)
-	if total <= 0.0:
-		return amount
-	return maxi(1, int(float(amount) * (1.0 - total)))
+	var attacker_level: int = level
+	if source != null and "level" in source:
+		attacker_level = int(source.get("level"))
+	var flat: float = float(stats.get("damage_reduction", 0.0))
+	return CombatMath.calculate_mitigation(
+		amount, defense, attacker_level, level,
+		float(stats.get("defense_multiplier", 1.0)),
+		float(stats.get("armor_multiplier", 1.0)),
+		flat)
 
 ## MANA
 

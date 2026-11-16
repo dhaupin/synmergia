@@ -133,7 +133,9 @@ plays a boosted day.
   hit_result), +20% healing
   (Skill.calculate_healing), +20% XP (KillRewards._grant_xp), and
   effective level +5 for stat computation
-  (CharacterData.get_stat_total). Announced at code-assembly (plan
+  (CharacterData.get_stat_total). All four values are authored in
+  `data/balance/blessing_balance.tres`; `SignService` keeps only the
+  wheel and earned-day gate. Announced at code-assembly (plan
   tomorrow's login) and again at dawn when it goes live.
 - **Almanac:** shows today's blessed class + live state, and
   tomorrow's preview ("if the tribe turns the key").
@@ -201,7 +203,9 @@ plays a boosted day.
   calculate_damage applies it), +20% healing
   (Skill.calculate_healing), +20% XP (KillRewards._grant_xp), and
   effective level +5 for stat computation
-  (CharacterData.get_stat_total). Announced at code-assembly (plan
+  (CharacterData.get_stat_total). All four values are authored in
+  `data/balance/blessing_balance.tres`; `SignService` keeps only the
+  wheel and earned-day gate. Announced at code-assembly (plan
   tomorrow's login) and again at dawn when it goes live.
 - **Almanac:** shows today's blessed class + live state, and
   tomorrow's preview ("if the tribe turns the key").

@@ -86,7 +86,7 @@ These are not extraction targets unless their ownership changes:
 | Revive and respawn policy | Service constants duplicate `GameConfig` (range 5 vs 10); two seven-row context tables for abuse and ability | NEEDS DESIGN: resolve owners, then one respawn-rules record |
 | Ferry skiff fare | `DEFAULT_SKIFF_TICKET = 25` | SMALL: route/vehicle record if fares become per-route |
 | Faction war terms | 10k declaration cost, 24h cooldown; cooldown duplicated in `GameConfig` | SMALL: faction balance record; declaration gate stays |
-| Daily blessing tuning | +20% might, +5 levels | SMALL: blessing balance record; earned-day gate stays |
+| Daily blessing tuning | +20% damage/heal/XP, +5 levels | SHIPPED: `data/balance/blessing_balance.tres`; earned-day gate stays in `SignService` |
 | Weather event fallback catalog | Built-in `storm_pack` / `aurora_window` dictionaries duplicate `data/weather_events` | **NEXT**: one declared default or a refusal; remove the duplicate |
 | World-event scheduler catalog | Three hardcoded scheduler rows in `world_service.gd`; the scheduler ignores the authored `data/events` family | **NEXT**: one event roster plus schedule fields; keep draw/lifetime in the service |
 | Faction reputation ladder | Seven rank thresholds and labels; the service clamp disagrees with `GameConfig` bounds | NEEDS DESIGN: resolve the drift, then faction balance record |
@@ -326,10 +326,11 @@ scheduler is NEXT, the rest are SMALL/LATER or blocked on design.
   cooldown; the cooldown is duplicated in `GameConfig`. Move the terms to a
   faction balance record once faction diplomacy gets a real tuning pass; keep
   the declaration gate and war state machine in the service.
-- **Daily blessing tuning - SMALL.** `BLESSED_DAMAGE_MULTIPLIER = 1.2` and
-  `BLESSED_LEVEL_BONUS = 5` are the blessing's whole balance. They are
-  candidates only if the sky blessing becomes a designer-tuned system; the
-  earned-day/wheel gate must stay in `SignService`.
+- **Daily blessing tuning - SHIPPED.** The multipliers and effective-level
+  bonus now live in `data/balance/blessing_balance.tres`
+  (`BlessingBalanceData`). `SignService` keeps the wheel and earned-day gate;
+  its `BLESSED_*` accessors read the record, so damage, heal, XP and level
+  tuning cannot drift back into service constants.
 - **Weather event fallback catalog - NEXT.** `weather_event_service.gd`
   carries `_builtin_storm_pack()` and `_builtin_aurora_window()` dictionaries
   that duplicate the shipped `data/weather_events/*.tres` rows almost exactly.

@@ -40,7 +40,13 @@ func _run() -> void:
 	_check(is_equal_approx(record.parry_base, 0.02), "parry base is 0.02")
 	_check(is_equal_approx(record.block_base, 0.05), "block base is 0.05")
 	_check(is_equal_approx(record.health_regen_pct_per_sec, 0.01), "health regen is 1%")
+	_check(is_equal_approx(record.health_regen_combat_pct_per_sec, 0.01), "combat health regen is 1% for now")
 	_check(is_equal_approx(record.mana_regen_pct_per_sec, 0.02), "mana regen is 2%")
+	_check(is_equal_approx(record.mana_regen_combat_pct_per_sec, 0.02), "combat mana regen is 2% for now")
+	_check(is_equal_approx(record.armor_curve_base, 100.0), "armor curve base is 100")
+	_check(is_equal_approx(record.armor_curve_per_attacker_level, 2.0), "armor curve scales with attacker level")
+	_check(is_equal_approx(record.armor_defender_level_bonus, 0.02), "defender level gap adds armor")
+	_check(is_equal_approx(record.armor_mitigation_cap, 0.90), "armor mitigation cap is 90%")
 
 	var ds = root.get_node_or_null("DataService")
 	if ds != null:
@@ -48,6 +54,22 @@ func _run() -> void:
 	var ts = root.get_node_or_null("TickService")
 	if ts != null and ts.has_method("_combat_balance_record"):
 		_check(ts._combat_balance_record() == record, "TickService reads the authored record")
+		var prior_balance = ts._combat_balance
+		var tuned_regen = record.duplicate()
+		tuned_regen.health_regen_pct_per_sec = 0.03
+		tuned_regen.health_regen_combat_pct_per_sec = 0.07
+		tuned_regen.mana_regen_pct_per_sec = 0.04
+		tuned_regen.mana_regen_combat_pct_per_sec = 0.08
+		ts._combat_balance = tuned_regen
+		var rest_rates: Dictionary = ts._regen_rates(false)
+		var combat_rates: Dictionary = ts._regen_rates(true)
+		_check(is_equal_approx(float(rest_rates.get("health_pct", 0.0)), 0.03) \
+				and is_equal_approx(float(rest_rates.get("mana_pct", 0.0)), 0.04),
+				"rest regen reads the rest rates")
+		_check(is_equal_approx(float(combat_rates.get("health_pct", 0.0)), 0.07) \
+				and is_equal_approx(float(combat_rates.get("mana_pct", 0.0)), 0.08),
+				"combat regen reads the combat rates")
+		ts._combat_balance = prior_balance
 
 	var malformed = record.duplicate()
 	malformed.dodge_cap = 2.0
@@ -55,6 +77,9 @@ func _run() -> void:
 	var malformed_hit_cap = record.duplicate()
 	malformed_hit_cap.hit_level_penalty_cap = 1.5
 	_check(not malformed_hit_cap.is_valid(), "out-of-range hit penalty cap is rejected")
+	var malformed_armor_cap = record.duplicate()
+	malformed_armor_cap.armor_mitigation_cap = 1.5
+	_check(not malformed_armor_cap.is_valid(), "out-of-range armor mitigation cap is rejected")
 
 	CombatMathScript.set_balance_override(record)
 	var tuned = record.duplicate()
@@ -93,6 +118,20 @@ func _run() -> void:
 		"block base reads the record with a shield")
 	_check(CombatMathScript.calculate_block_chance(1, 0.0, false, 10.0) == 0.0,
 		"block remains shield-gated")
+
+	# --- Armor curve: level gap and flat stat behavior -------------------
+	var low_vs_high: int = CombatMathScript.calculate_mitigation(100, 100.0, 5, 50)
+	var high_vs_low: int = CombatMathScript.calculate_mitigation(100, 44.0, 50, 5)
+	_check(low_vs_high < 40, "a level-5 attacker chips a level-50 armor target")
+	_check(high_vs_low > 75, "a level-50 attacker mostly ignores level-5 armor")
+	_check(low_vs_high < high_vs_low, "the level gap is asymmetric in the defender's favor")
+	var capped: int = CombatMathScript.calculate_mitigation(100, 10000.0, 5, 60)
+	_check(capped >= 9 and capped <= 10, "the armor cap leaves roughly 10% chip damage")
+	var base_hit: int = CombatMathScript.calculate_mitigation(100, 100.0, 10, 10)
+	var armored_hit: int = CombatMathScript.calculate_mitigation(100, 100.0, 10, 10, 1.0, 2.0)
+	_check(armored_hit < base_hit, "armor_multiplier raises the flat armor before the curve")
+	var flat_hit: int = CombatMathScript.calculate_mitigation(100, 0.0, 10, 10, 1.0, 1.0, 0.50)
+	_check(flat_hit == 50, "flat damage_reduction stacks after the armor curve")
 
 	CombatMathScript.set_balance_override(record)
 	print("--- COMBAT BALANCE: %d passed, %d failed ---" % [_pass, _fail])

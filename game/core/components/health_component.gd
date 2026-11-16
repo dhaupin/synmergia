@@ -4,6 +4,7 @@ extends Node
 class_name HealthComponent
 const Item = preload("res://core/schemas/item.gd")
 const StatId = preload("res://core/schemas/stat_id.gd")
+const CombatMath = preload("res://core/services/combat_math.gd")
 const Corpse = preload("res://scenes/entities/corpse.gd")
 
 func _party() -> Node:
@@ -46,8 +47,6 @@ signal respawned()
 
 @export var max_health: int = 100
 @export var base_health: int = 100
-@export var health_regen: float = 1.0  # HP per second
-@export var health_regen_combat: float = 0.0  # HP per second in combat
 
 var current_health: int
 var _is_dead: bool = false
@@ -125,22 +124,33 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 	if entity != null and "combat_component" in entity and entity.combat_component != null:
 		entity.combat_component.on_damage_taken(amount, source, damage_type)
 
-	# Apply armor/mitigation
-	var mitigated: int = 0
+	# Shared percentage mitigation. Player armor is the flat equipment sum;
+	# both stat multipliers and flat damage_reduction feed the same curve as
+	# enemies and bare Entities, so armor can never be flat subtraction here.
+	var armor: float = 0.0
 	if entity != null and "inventory_component" in entity and entity.inventory_component != null:
-		mitigated = entity.inventory_component.get_equipment_armor()
-	# Status-effect defense multiplier (defense-buff deltas on a 1.0 base).
+		armor = float(entity.inventory_component.get_equipment_armor())
+	elif entity != null and entity.has_method("get_magic_resistance") \
+			and (damage_type == "magical" or damage_type == "magic"):
+		armor = float(entity.get_magic_resistance())
+	elif entity != null and entity.has_method("get_defense"):
+		armor = float(entity.get_defense())
+	var defense_multiplier: float = 1.0
+	var armor_multiplier: float = 1.0
+	var flat: float = 0.0
 	if entity != null and "stats" in entity:
-		mitigated = int(float(mitigated) * float(entity.stats.get("defense_multiplier", 1.0)))
-	var actual_damage: int = max(1, amount - mitigated)
-
-	# Flat authored damage_reduction stacks on the armor subtraction, clamped
-	# so a stacked barrier can never reach immunity (immortal_form's
-	# immune_all is the one true immunity path, handled above).
-	if entity != null and "stats" in entity:
-		var flat: float = clampf(float(entity.stats.get("damage_reduction", 0.0)), 0.0, StatId.MAX_DAMAGE_REDUCTION)
-		if flat > 0.0:
-			actual_damage = maxi(1, int(float(actual_damage) * (1.0 - flat)))
+		defense_multiplier = float(entity.stats.get("defense_multiplier", 1.0))
+		armor_multiplier = float(entity.stats.get("armor_multiplier", 1.0))
+		flat = float(entity.stats.get("damage_reduction", 0.0))
+	var defender_level: int = 1
+	if entity != null and "level" in entity:
+		defender_level = int(entity.get("level"))
+	var attacker_level: int = defender_level
+	if source != null and "level" in source:
+		attacker_level = int(source.get("level"))
+	var actual_damage: int = CombatMath.calculate_mitigation(
+		amount, armor, attacker_level, defender_level,
+		defense_multiplier, armor_multiplier, flat)
 
 	current_health = max(0, current_health - actual_damage)
 	health_changed.emit(current_health, max_health, -actual_damage)
@@ -423,6 +433,9 @@ func service_respawn(position: Vector3, mode: int = -1) -> void:
 			hub.emit_signal("player_respawned", entity, position, mode)
 
 func _process(delta: float) -> void:
+	# Baseline regeneration is owned by TickService so rest/combat rates
+	# and flat StatId regen stack in one place. This component only handles
+	# death/respawn state.
 	if _is_dead:
 		# Service-held deaths (_respawn_svc() cycle) never use the legacy
 		# timer; the service calls service_respawn() when the delay ends.
@@ -431,18 +444,6 @@ func _process(delta: float) -> void:
 		_respawn_timer -= delta
 		if _respawn_timer <= 0:
 			_do_respawn()
-	else:
-		# Health regen
-		var regen := health_regen
-		var entity: Node = get_parent()
-		if entity and "combat_component" in entity and entity.combat_component and "in_combat" in entity.combat_component and entity.combat_component.in_combat:
-			regen = health_regen_combat
-
-		if regen > 0 and current_health < max_health:
-			var heal_amount := int(regen * delta)
-			if heal_amount > 0:
-				current_health = mini(current_health + heal_amount, max_health)
-				health_changed.emit(current_health, max_health, heal_amount)
 
 	# Self-rez cooldown
 	if _self_rez_cooldown > 0:

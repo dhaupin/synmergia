@@ -607,8 +607,8 @@ func calculate_healing(caster) -> int:
 			base_heal = int(float(base_heal) * CombatMath._crit_multiplier_for(caster))
 
 	# Daily Class Blessing (prd-psy.md section 8): the blessed class
-	# heals +20% for the day. Duck-typed + late-resolved so script-mode
-	# tests and bare Entities (never blessed) pass through clean.
+	# reads the authored heal multiplier for the day. Duck-typed +
+	# late-resolved so script-mode tests and bare Entities pass clean.
 	if caster != null and "character_class" in caster:
 		var cid := str(caster.get("character_class"))
 		if not cid.is_empty():
@@ -616,7 +616,7 @@ func calculate_healing(caster) -> int:
 			if ml != null and (ml is SceneTree):
 				var svc = (ml as SceneTree).root.get_node_or_null("SignService")
 				if svc != null and svc.has_method("is_class_blessed") and svc.is_class_blessed(cid):
-					base_heal = int(float(base_heal) * float(svc.BLESSED_DAMAGE_MULTIPLIER))
+					base_heal = int(float(base_heal) * float(svc.BLESSED_HEAL_MULTIPLIER))
 
 	return base_heal
 
