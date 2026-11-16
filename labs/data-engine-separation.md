@@ -3,8 +3,8 @@
 > **Status:** ACTIVE 2026-11-16. The Fixer board, starter kits, Academy
 > prices, housing economy, bout rewards, agent slots and payment SKUs are
 > extracted; the remaining ledger is a deliberate queue, not a rewrite mandate.
-> The 2026-11-16 census adds the world-event scheduler, faction ranks,
-> kill-streak rewards and chat channel metadata below.
+> The 2026-11-16 census passes add the world-event scheduler, faction ranks,
+> kill-streak rewards, chat channel metadata and party XP share below.
 >
 > **Law it obeys:** [`data-authoring-baseline.md`](./data-authoring-baseline.md)
 > sec 0 and the core/data boundary in [`AGENTS.md`](../AGENTS.md). This doc is
@@ -71,14 +71,15 @@ These are not extraction targets unless their ownership changes:
 | UI palette | `ui_styles.gd` colors | ENGINE unless a theme selector needs data |
 | Payment SKU catalog | Two provider `SKUS` / `SKU_CATALOG` arrays | **EXTRACTED** this pass: `data/balance/payment_skus.tres`; providers keep their id mappings |
 | Kill reward curve | XP/gold coefficients, grey spread, scale floor/cap | **NEXT**: balance record; formula stays in the service |
-| Container expansion costs | Two code copies of the tier ladder; `container_configs.tres` says costs are code-fixed | **NEXT**: one data table; remove both duplicates |
+| Party XP share | `share_xp` hardcodes the 0.1 bonus; `GameConfig.Party` XP knobs are dead | NEEDS DESIGN: one owner; keep the split formula in the service |
+| Container configuration and expansion costs | Three copies of the container rows (`container_schema.BASE_CONFIG`, `container_config_data.containers`, `container_configs.tres`) plus two cost ladders | **NEXT**: one data record; remove both code fallbacks |
 | Sigil sink catalog | Nine `SINKS` rows with prices, grants and copy | **NEXT after design**: resolve the mount source mismatch first |
 | Vault expansion | Slots/step, gold/slot, personal/guild caps | **NEXT**: base values and caps to data; 1.5x formula stays |
 | World content placement | Globe batches/manifest, biome density/palette, arena covers | LATER: world-content schema, not balance |
 | Presentation asset registries | Audio sound maps, icon fallbacks | LATER: asset routing; only if designers add content |
 | Blacksmith repair pricing | Six `@export` defaults plus rarity multipliers | **NEXT**: repair record; forge chance record stays separate |
 | Vendor price multipliers | Location type -> multiplier match; buy/sell fallbacks | **NEXT**: pricing record; per-NPC overrides stay |
-| Revive tuning | Service constants duplicate `GameConfig`; ranges disagree (5 vs 10) | NEEDS DESIGN: one owner, then extract after the drift is resolved |
+| Revive and respawn policy | Service constants duplicate `GameConfig` (range 5 vs 10); two seven-row context tables for abuse and ability | NEEDS DESIGN: resolve owners, then one respawn-rules record |
 | Ferry skiff fare | `DEFAULT_SKIFF_TICKET = 25` | SMALL: route/vehicle record if fares become per-route |
 | Faction war terms | 10k declaration cost, 24h cooldown; cooldown duplicated in `GameConfig` | SMALL: faction balance record; declaration gate stays |
 | Daily blessing tuning | +20% might, +5 levels | SMALL: blessing balance record; earned-day gate stays |
@@ -231,14 +232,18 @@ scheduler is NEXT, the rest are SMALL/LATER or blocked on design.
    payout at representative level gaps, and prove a missing record refuses
    rather than paying zero or guessing.
 
-2. **Container expansion costs - NEXT.** The ladder is duplicated in
-   `container_schema.gd` (`EXPANSION_COSTS`) and
-   `container_config_data.gd` (`DEFAULT_EXPANSION_COSTS`), while
-   `data/containers/container_configs.tres` says expansion costs are fixed in
-   code. Put the tier costs in the existing container config record, remove
-   both code copies, and keep slot limits/expansion behavior in the schema.
-   Receipt: every container type reads the same authored tier ladder and a
-   malformed record fails closed.
+2. **Container configuration and expansion costs - NEXT.** The container
+   rows are copied three times: `container_schema.gd` (`BASE_CONFIG`),
+   `container_config_data.gd` (`containers`), and the authored
+   `data/containers/container_configs.tres`. The tier ladder is copied twice
+   (`EXPANSION_COSTS` and `DEFAULT_EXPANSION_COSTS`), and
+   `container_config_data.load_config()` silently falls back to its built-in
+   copy when the record is missing. The `.tres` itself says expansion costs
+   are fixed in code. Put the full container rows and tier costs in the
+   existing record, remove both code config copies and the silent fallback,
+   and keep slot limits/expansion behavior in the schema. Receipt: every
+   container type reads the same authored rows and tier ladder; a missing or
+   malformed record fails closed instead of using a second catalog.
 
 3. **Sigil sink catalog - NEXT after design.** `sigil_sink_service.gd`
    (`SINKS`) owns nine rows with sink ids, prices, grant quantities and flavor
@@ -280,11 +285,18 @@ scheduler is NEXT, the rest are SMALL/LATER or blocked on design.
   1.5) and fallback buy/sell multipliers. Item prices and per-NPC
   `buy_multiplier`/`sell_multiplier` are already data. Move the global pricing
   table to data; keep the per-offering and per-NPC overrides in their records.
-- **Revive tuning - NEEDS DESIGN.** `respawn_service.gd` and
+- **Revive and respawn policy - NEEDS DESIGN.** `respawn_service.gd` and
   `GameConfig.Respawn` carry overlapping revive constants, and the ranges
-  disagree: the service uses 5.0 while `GameConfig` says 10.0. Pick one owner
-  and one value before extracting. This is a drift bug first, a data slice
-  second.
+  disagree: the service uses 5.0 while `GameConfig` says 10.0. The service
+  also owns two seven-row context tables: `_abuse_configs` (per-hour
+  thresholds, karma penalties, cooldowns) and `_ability_configs` (who may
+  revive, self-revive limits and cooldowns) for `open_world`, `dungeon`,
+  `raid`, `pvp_zone`, `arena`, `battleground` and `contested`. These are one
+  policy surface, not just stray constants, and no focused test covers
+  `set_context`, the ability gates or the abuse thresholds. Pick one owner
+  and one set of values first; if designers own it, ship one respawn-rules
+  record keyed by context and keep the state machine, cooldown book and
+  gates in the service.
 - **Ferry skiff fare - SMALL.** `DEFAULT_SKIFF_TICKET = 25` is the only fare
   value, and the dock UI reads it from the service. Extract only when fares
   become per-route or per-vehicle; a single constant does not earn a record.
@@ -354,7 +366,23 @@ lower value or blocked on a design decision.
   history caps and spam cooldowns are protocol and stay in core. The labels,
   colours, prefixes and say/yell reach are content a designer can re-theme.
   Extract only if chat presentation becomes authorable; otherwise this is the
-  same call as the UI palette and lobby copy.
+  same call as the UI palette and lobby copy. Before extracting anything,
+  resolve the config drift: `GameConfig.Chat.MESSAGE_COOLDOWN` (2s) and
+  `MAX_WHISPERS_PER_MINUTE` (20) have no readers, while the live spam gate is
+  `SPAM_COOLDOWN_MS = 500` with `SPAM_THRESHOLD = 5`.
+
+### 2026-11-16 census: follow-up
+
+- **Party XP share - NEEDS DESIGN (drift first).** `party_service.gd`
+  `share_xp()` hardcodes `1.0 + (member_count - 1) * 0.1` for the party
+  bonus. `GameConfig.Party.XP_BONUS_PER_MEMBER` carries the same 0.1 but has
+  zero readers, and `XP_LEVEL_DIFF_THRESHOLD` / `XP_PENALTY_MAX` are dead
+  too. The level-gap curve actually lives in `kill_rewards._level_scale`
+  (`GREY_LEVEL_SPREAD`). Pick one owner for party XP before extracting:
+  either the record owns the bonus and level-gap terms, or the service does
+  and the dead config goes. Keep the split arithmetic and grant path in the
+  service. Receipt: the split matches the record and a missing record
+  refuses the bonus rather than inventing a second coefficient.
 
 Checked and not promoted in this pass:
 
@@ -367,6 +395,10 @@ Checked and not promoted in this pass:
 - `GameTier.TIER_STAT_THRESHOLD` is the canonical tier vocabulary/stat gate
   and stays out of scope; `guild_service.gd` rank permissions and
   `matchmaking_qos.gd` latency bands are authorization/protocol.
+- `achievement_listeners.gd` is signal wiring, not one catalog: the
+  achievement `target_type` vocabulary is handled across several services,
+  so there is no single table to move yet. Revisit only if achievement
+  triggers become authored rules.
 
 `GameConfig` is intentionally not a single extraction target. It is a broad
 runtime configuration surface with protocol, security and gameplay values; a
