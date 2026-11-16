@@ -22,6 +22,7 @@ const CombatMath = preload("res://core/services/combat_math.gd")
 const Skill = preload("res://core/combat/skill.gd")
 const Factory = preload("res://core/combat/status_effect_factory.gd")
 const StatusEffectData = preload("res://core/schemas/status_effect_data.gd")
+const PlayerBaseScript = preload("res://entities/player/player_base.gd")
 
 var _pass := 0
 var _fail := 0
@@ -126,3 +127,24 @@ func _run() -> void:
 		var warrior_speed := StatId.attack_speed_of(10.0, float(warrior.get("attack_speed_bonus")))
 		_assert(rogue_speed > warrior_speed,
 			"a rogue body swings faster than a warrior body")
+
+		# The class cadence must reach the actual player body, not just the
+		# data file: _apply_class_crit_identity folds attack_speed_bonus into
+		# the same stat block CombatMath/Skill read.
+		var rogue_body = PlayerBaseScript.new()
+		rogue_body.stats["agility"] = 10
+		rogue_body._apply_class_crit_identity(rogue)
+		_assert(_approx(rogue_body.get_attack_speed(), 1.25),
+			"a marksman body reaches 1.25 attack speed from class cadence")
+		var warrior_body = PlayerBaseScript.new()
+		warrior_body.stats["agility"] = 10
+		warrior_body._apply_class_crit_identity(warrior)
+		_assert(warrior_body.get_attack_speed() > 1.10 \
+				and warrior_body.get_attack_speed() < rogue_body.get_attack_speed(),
+			"the warrior has cadence above base but below the rogue")
+		var guardian := load("res://data/classes/class_human_guardian.tres")
+		var guardian_body = PlayerBaseScript.new()
+		guardian_body.stats["agility"] = 5
+		guardian_body._apply_class_crit_identity(guardian)
+		_assert(_approx(guardian_body.get_attack_speed(), 1.0),
+			"the guardian's slower class cadence lands at 1.0 with agility 5")

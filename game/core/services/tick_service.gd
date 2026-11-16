@@ -654,13 +654,15 @@ func _decay_effects() -> Dictionary:
 				swept += 1
 	return {"swept": swept, "advanced": advanced}
 
-## Health/mana regen per tick (rest/combat pacing, scaled by the tick
-## interval). Fractional amounts accumulate per entity until a whole point
-## applies, so the 50ms tick never rounds regen to zero. The percentages
-## come from the combat balance record; the flat stat regen still rides
-## the same accumulator, so baseline + skill/status regen stack.
+## Health/mana/stamina regen per tick (rest/combat pacing, scaled by the
+## tick interval). Fractional amounts accumulate per entity until a whole
+## point applies, so the 50ms tick never rounds regen to zero. The
+## percentages come from the combat balance record; the flat stat regen
+## still rides the same accumulator, so baseline + skill/status regen
+## stack. This is the ONLY owner of baseline regen for every body.
 var _regen_health_acc: Dictionary = {}   # entity_id -> float
 var _regen_mana_acc: Dictionary = {}     # entity_id -> float
+var _regen_stamina_acc: Dictionary = {}  # entity_id -> float
 
 func _combat_balance_record() -> CombatBalanceData:
 	if _combat_balance != null:
@@ -681,6 +683,7 @@ func _regen_rates(in_combat: bool) -> Dictionary:
 	return {
 		"health_pct": balance.health_regen_combat_pct_per_sec if in_combat else balance.health_regen_pct_per_sec,
 		"mana_pct": balance.mana_regen_combat_pct_per_sec if in_combat else balance.mana_regen_pct_per_sec,
+		"stamina_pct": balance.stamina_regen_combat_pct_per_sec if in_combat else balance.stamina_regen_pct_per_sec,
 	}
 
 func _regen_entities() -> void:
@@ -705,6 +708,7 @@ func _regen_entities() -> void:
 		# regen skips those instead of erroring on a missing field.
 		var has_health: bool = "current_health" in entity and "max_health" in entity
 		var has_mana: bool = "current_mana" in entity and "max_mana" in entity
+		var has_stamina: bool = "current_stamina" in entity and "max_stamina" in entity
 		# Baseline regen is selected per body from rest/combat rates; flat
 		# authored regen (StatId health_regen/mana_regen, e.g. a
 		# "Regeneration" buff) rides the same accumulator, so a body with
@@ -717,8 +721,10 @@ func _regen_entities() -> void:
 		var rates := _regen_rates(in_combat)
 		var health_pct: float = float(rates.get("health_pct", 0.0))
 		var mana_pct: float = float(rates.get("mana_pct", 0.0))
+		var stamina_pct: float = float(rates.get("stamina_pct", 0.0))
 		var flat_hp: float = float(entity.stats.get("health_regen", 0.0)) if ("stats" in entity) else 0.0
 		var flat_mp: float = float(entity.stats.get("mana_regen", 0.0)) if ("stats" in entity) else 0.0
+		var flat_st: float = float(entity.stats.get("stamina_regen", 0.0)) if ("stats" in entity) else 0.0
 		if has_health and (entity.current_health < entity.max_health or flat_hp != 0.0):
 			var h_acc: float = float(_regen_health_acc.get(eid, 0.0)) + (float(entity.max_health) * health_pct + flat_hp) * dt
 			while h_acc >= 1.0:
@@ -735,6 +741,17 @@ func _regen_entities() -> void:
 			_regen_mana_acc[eid] = m_acc
 		else:
 			_regen_mana_acc.erase(eid)
+		if has_stamina and (entity.current_stamina < entity.max_stamina or flat_st != 0.0):
+			var s_acc: float = float(_regen_stamina_acc.get(eid, 0.0)) + (float(entity.max_stamina) * stamina_pct + flat_st) * dt
+			while s_acc >= 1.0:
+				s_acc -= 1.0
+				if entity.has_method("restore_stamina"):
+					entity.restore_stamina(1.0)
+				else:
+					entity.current_stamina = minf(entity.max_stamina, entity.current_stamina + 1.0)
+			_regen_stamina_acc[eid] = s_acc
+		else:
+			_regen_stamina_acc.erase(eid)
 
 ## Pull cross-shard HLC events from the coordinator.
 ## Absorbs the coordinator's pending event queue into the world step:

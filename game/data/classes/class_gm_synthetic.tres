@@ -27,8 +27,6 @@ stat_growth = {
 }
 base_resource = 200
 resource_per_level = 20
-resource_regen_per_second = 10.0
-resource_regen_combat = 5.0
 base_attack_power = 20
 attack_power_per_level = 5
 base_spell_power = 20

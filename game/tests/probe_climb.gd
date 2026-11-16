@@ -74,8 +74,10 @@ func _run() -> void:
 	player.name = "ClimbProbePlayer"
 	root.add_child(player)
 	await process_frame  # _ready sets the default layer/mask
-	ok = _check("player has climb stamina pool", \
-		absf(player.climb_stamina - GP.CLIMB_STAMINA_MAX) < 0.001) and ok
+	ok = _check("player starts with the shared stamina pool full", \
+		absf(player.current_stamina - player.max_stamina) < 0.001) and ok
+	ok = _check("climb alias reads the shared pool", \
+		absf(player.climb_stamina - player.current_stamina) < 0.001) and ok
 	ok = _check("player collides with the props layer", \
 		int(player.collision_mask) & 2 != 0) and ok
 	player.collision_layer = 1

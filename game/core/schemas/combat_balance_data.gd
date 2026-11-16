@@ -54,6 +54,8 @@ class_name CombatBalanceData
 @export var health_regen_combat_pct_per_sec: float = 0.01
 @export var mana_regen_pct_per_sec: float = 0.02
 @export var mana_regen_combat_pct_per_sec: float = 0.02
+@export var stamina_regen_pct_per_sec: float = 0.02
+@export var stamina_regen_combat_pct_per_sec: float = 0.01
 
 
 ## Structural gate: a malformed record must not reach the hit table.
@@ -98,6 +100,7 @@ func is_valid() -> bool:
 		block_value_base, block_value_per_strength,
 		health_regen_pct_per_sec, health_regen_combat_pct_per_sec,
 		mana_regen_pct_per_sec, mana_regen_combat_pct_per_sec,
+		stamina_regen_pct_per_sec, stamina_regen_combat_pct_per_sec,
 	]
 	for value in non_negative:
 		if float(value) < 0.0:

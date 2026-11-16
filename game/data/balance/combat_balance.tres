@@ -36,3 +36,5 @@ health_regen_pct_per_sec = 0.01
 health_regen_combat_pct_per_sec = 0.01
 mana_regen_pct_per_sec = 0.02
 mana_regen_combat_pct_per_sec = 0.02
+stamina_regen_pct_per_sec = 0.02
+stamina_regen_combat_pct_per_sec = 0.01

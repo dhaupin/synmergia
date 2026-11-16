@@ -43,6 +43,8 @@ func _run() -> void:
 	_check(is_equal_approx(record.health_regen_combat_pct_per_sec, 0.01), "combat health regen is 1% for now")
 	_check(is_equal_approx(record.mana_regen_pct_per_sec, 0.02), "mana regen is 2%")
 	_check(is_equal_approx(record.mana_regen_combat_pct_per_sec, 0.02), "combat mana regen is 2% for now")
+	_check(is_equal_approx(record.stamina_regen_pct_per_sec, 0.02), "stamina regen is 2%")
+	_check(is_equal_approx(record.stamina_regen_combat_pct_per_sec, 0.01), "combat stamina regen is 1%")
 	_check(is_equal_approx(record.armor_curve_base, 100.0), "armor curve base is 100")
 	_check(is_equal_approx(record.armor_curve_per_attacker_level, 2.0), "armor curve scales with attacker level")
 	_check(is_equal_approx(record.armor_defender_level_bonus, 0.02), "defender level gap adds armor")
@@ -60,15 +62,19 @@ func _run() -> void:
 		tuned_regen.health_regen_combat_pct_per_sec = 0.07
 		tuned_regen.mana_regen_pct_per_sec = 0.04
 		tuned_regen.mana_regen_combat_pct_per_sec = 0.08
+		tuned_regen.stamina_regen_pct_per_sec = 0.06
+		tuned_regen.stamina_regen_combat_pct_per_sec = 0.09
 		ts._combat_balance = tuned_regen
 		var rest_rates: Dictionary = ts._regen_rates(false)
 		var combat_rates: Dictionary = ts._regen_rates(true)
 		_check(is_equal_approx(float(rest_rates.get("health_pct", 0.0)), 0.03) \
-				and is_equal_approx(float(rest_rates.get("mana_pct", 0.0)), 0.04),
-				"rest regen reads the rest rates")
+				and is_equal_approx(float(rest_rates.get("mana_pct", 0.0)), 0.04) \
+				and is_equal_approx(float(rest_rates.get("stamina_pct", 0.0)), 0.06),
+				"rest regen reads all three rest rates")
 		_check(is_equal_approx(float(combat_rates.get("health_pct", 0.0)), 0.07) \
-				and is_equal_approx(float(combat_rates.get("mana_pct", 0.0)), 0.08),
-				"combat regen reads the combat rates")
+				and is_equal_approx(float(combat_rates.get("mana_pct", 0.0)), 0.08) \
+				and is_equal_approx(float(combat_rates.get("stamina_pct", 0.0)), 0.09),
+				"combat regen reads all three combat rates")
 		ts._combat_balance = prior_balance
 
 	var malformed = record.duplicate()

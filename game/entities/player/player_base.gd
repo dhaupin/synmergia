@@ -77,6 +77,7 @@ var stats: Dictionary = {
 	"damage_reflect": 0.0,
 	"health_regen": 0.0,
 	"mana_regen": 0.0,
+	"stamina_regen": 0.0,
 	"cooldown_reduction": 0.0,
 	"effect_duration_mult": 1.0,
 	"effect_power_mult": 1.0,
@@ -89,10 +90,20 @@ var stats: Dictionary = {
 ## services (TickService regen, HUD) that read them directly -- the same
 ## dual-store both bodies kept (R37 audit).
 var health_component: HealthComponent = null
+## The mounted bag (InventoryComponent) when a body has one. Declared on the
+## shared base so the combat surface can duck-type it without a subclass
+## field; a bare probe simply leaves it null.
+var inventory_component = null
 var max_health: int = 100
 var current_health: int = 100
 var current_mana: int = 100
 var max_mana: int = 100
+## THE shared stamina pool: climbing, sprinting and stamina-cost skills all
+## draw from these fields, and TickService owns baseline/flat regen. The old
+## globe-only climb_stamina pool was a second resource that could not be
+## reached by skills or the HUD.
+var max_stamina: float = 100.0
+var current_stamina: float = 100.0
 
 ## Guards _apply_class_crit_identity so the class crit/attack-speed bonus folds
 ## onto the stat block exactly once per body.
@@ -100,6 +111,7 @@ var _class_identity_applied: bool = false
 
 signal health_changed(current: int, maximum: int, delta: int)
 signal mana_changed(current: int, maximum: int)
+signal stamina_changed(current: float, maximum: float)
 signal player_died(killer)
 
 # --- Progression ----------------------------------------------------------
@@ -229,6 +241,9 @@ func set_hitbox_stance(stance: String) -> void:
 ## surface without a scene.
 func _ready() -> void:
 	_ensure_health_component()
+	_refresh_max_stamina()
+	current_stamina = max_stamina
+	stamina_changed.emit(current_stamina, max_stamina)
 	add_to_group("players")
 	_setup_starting_skills()
 	# The default basic attack (the fallback the Attack state and the globe
@@ -304,6 +319,24 @@ func _on_component_health_changed(current: int, maximum: int, _delta: int) -> vo
 	current_health = current
 	max_health = maximum
 
+## THE stamina ceiling: the same endurance formula Entity uses, so the two
+## player bodies and every NPC speak one pool size. Called on ready and
+## whenever endurance changes (equipment, level-up, buffs).
+func _refresh_max_stamina() -> void:
+	max_stamina = StatId.max_stamina_for_endurance(float(get_stat("endurance")))
+	current_stamina = minf(current_stamina, max_stamina)
+
+func use_stamina(amount: float) -> bool:
+	if current_stamina >= amount:
+		current_stamina -= amount
+		stamina_changed.emit(current_stamina, max_stamina)
+		return true
+	return false
+
+func restore_stamina(amount: float) -> void:
+	current_stamina = minf(max_stamina, current_stamina + amount)
+	stamina_changed.emit(current_stamina, max_stamina)
+
 # --- Stat surface ---------------------------------------------------------
 func get_stat(stat_name: String) -> int:
 	return int(stats.get(stat_name, 0))
@@ -314,12 +347,28 @@ func get_stat(stat_name: String) -> int:
 ## listener (a zero-listener emit would be void under the no-void law).
 func set_stat(stat_name: String, value: int) -> void:
 	stats[stat_name] = value
+	# Endurance owns the stamina pool's size. Equipment applies its delta
+	# through this setter, so a +endurance piece raises the ceiling without
+	# refilling the current pool.
+	if stat_name == "endurance":
+		_refresh_max_stamina()
+		stamina_changed.emit(current_stamina, max_stamina)
 
 func add_stat(stat_name: String, amount: int) -> void:
 	set_stat(stat_name, get_stat(stat_name) + amount)
 
 func get_attack_power() -> int:
-	return get_stat("strength") * 2
+	# Strength is the body's base physical power; the equipped main hand is
+	# the other half. InventoryComponent already owns the weapon range (and
+	# zeroes it when broken), so the live combat path reads that one source
+	# instead of leaving weapon_damage_min/max authored but inert.
+	var power := get_stat("strength") * 2
+	if "inventory_component" in self:
+		var bag = get("inventory_component")
+		if bag != null and bag.has_method("get_main_hand_damage"):
+			var damage: Dictionary = bag.get_main_hand_damage()
+			power += int(round((float(damage.get("min", 0)) + float(damage.get("max", 0))) * 0.5))
+	return power
 
 func get_spell_power() -> int:
 	return get_stat("intelligence") * 2
@@ -329,6 +378,13 @@ func get_healing_power() -> int:
 
 func get_defense() -> int:
 	return get_stat("vitality") * 2
+
+func get_attack_speed() -> float:
+	# THE attack-speed formula (StatId), parity with Entity. The class
+	# cadence folds into attack_speed_multiplier, so a rogue body swings
+	# faster through the same stat block every combat consumer reads.
+	return StatId.attack_speed_of(
+		float(get_stat("agility")), float(stats.get("attack_speed_multiplier", 1.0)) - 1.0)
 
 func get_crit_chance() -> float:
 	# THE crit formula (StatId): base + agility + the crit_chance stat delta,

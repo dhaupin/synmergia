@@ -84,6 +84,7 @@ var stats: Dictionary = {
 	"damage_reflect": 0.0,
 	"health_regen": 0.0,
 	"mana_regen": 0.0,
+	"stamina_regen": 0.0,
 	"cooldown_reduction": 0.0,
 	"effect_duration_mult": 1.0,
 	"effect_power_mult": 1.0,
@@ -174,7 +175,7 @@ func _ready() -> void:
 func _calculate_max_resources() -> void:
 	max_health = 100 + (get_stat("vitality") * 10)
 	max_mana = 100 + (get_stat("intelligence") * 8)
-	max_stamina = 100.0 + (get_stat("endurance") * 5)
+	max_stamina = StatId.max_stamina_for_endurance(float(get_stat("endurance")))
 
 ## STATS
 

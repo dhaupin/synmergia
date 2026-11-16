@@ -58,6 +58,7 @@ func _run() -> void:
         _assert(StatId.is_valid("damage_reduction"), "damage_reduction is a stat")
         _assert(StatId.is_valid("damage_reflect"), "damage_reflect is a stat")
         _assert(StatId.is_valid("health_regen"), "health_regen is a stat")
+        _assert(StatId.is_valid("stamina_regen"), "stamina_regen is a stat")
         _assert(not StatId.is_valid("bogus_stat"), "an unknown key is not a stat")
         _assert(StatId.is_primary("vitality"), "vitality is a primary")
         _assert(not StatId.is_primary("damage_reduction"), "damage_reduction is not a primary")

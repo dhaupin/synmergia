@@ -1076,7 +1076,7 @@ func _scale_effect_power(fx, mult: float) -> void:
 	for field in ["strength_mod", "agility_mod", "intelligence_mod", "vitality_mod",
 			"endurance_mod", "wisdom_mod", "damage_multiplier", "defense_multiplier",
 			"armor_multiplier", "attack_speed_multiplier", "movement_speed_multiplier",
-			"health_regen_mod", "mana_regen_mod", "damage_reduction", "damage_reflect",
+			"health_regen_mod", "mana_regen_mod", "stamina_regen_mod", "damage_reduction", "damage_reflect",
 			"shield_amount", "tick_heal"]:
 		if field in fx:
 			var v = fx.get(field)

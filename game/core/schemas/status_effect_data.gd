@@ -111,6 +111,7 @@ enum StealthType {
 # values suppress regen (e.g. debuff_regen_mitigate).
 @export var health_regen: float = 0.0
 @export var mana_regen: float = 0.0
+@export var stamina_regen: float = 0.0
 
 # Immunity Settings (for IMMUNITY type)
 @export var immune_stun: bool = false

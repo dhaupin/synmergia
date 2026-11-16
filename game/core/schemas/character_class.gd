@@ -87,8 +87,6 @@ const MAX_STAT_VALUE: int = 200
 # Resource settings
 @export var base_resource: int = 100  # Starting mana/energy/rage
 @export var resource_per_level: int = 10  # How much resource gained per level
-@export var resource_regen_per_second: float = 5.0  # Out of combat regen
-@export var resource_regen_combat: float = 1.0  # In combat regen (often lower)
 
 # Combat settings
 @export var base_attack_power: int = 10
@@ -155,12 +153,6 @@ func get_allocatable_points_for_level(level: int) -> int:
 ## Calculate resource at given level
 func calculate_resource(level: int) -> int:
 	return base_resource + (resource_per_level * (level - 1))
-
-## Get resource regen based on in_combat status
-func get_resource_regen(in_combat: bool) -> float:
-	if in_combat:
-		return resource_regen_combat
-	return resource_regen_per_second
 
 ## Get skills unlocked at level
 func get_skills_for_level(level: int) -> Array[String]:

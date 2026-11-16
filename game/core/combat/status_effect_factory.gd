@@ -51,6 +51,7 @@ const MULT_EXPORT := {
 const FLAT_EXPORT := {
         "health_regen": "health_regen_mod",
         "mana_regen": "mana_regen_mod",
+        "stamina_regen": "stamina_regen_mod",
         "damage_reduction": "damage_reduction",
         "damage_reflect": "damage_reflect",
         "cooldown_reduction": "cooldown_reduction_mod",
@@ -127,6 +128,8 @@ static func from_data(data, duration_override: float = 0.0) -> StatusEffect:
                 fx.health_regen_mod = float(data.health_regen)
         if float(data.mana_regen) != 0.0:
                 fx.mana_regen_mod = float(data.mana_regen)
+        if float(data.stamina_regen) != 0.0:
+                fx.stamina_regen_mod = float(data.stamina_regen)
 
         _apply_speed(fx, data)
 

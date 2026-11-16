@@ -46,6 +46,7 @@ const MULT_KEYS: Array = [
 ##   damage_reflect    fraction of damage dealt back to the attacker (0.0..1.0)
 ##   health_regen      flat HP per second
 ##   mana_regen        flat MP per second
+##   stamina_regen     flat stamina per second
 ##   cooldown_reduction fraction shaved off every cooldown (0.0..0.5)
 ##   crit_chance       fraction added to the crit roll (0.05 base + agility).
 ##                     A flat delta so a buff/class base raises the crit rate
@@ -58,6 +59,7 @@ const FLAT_KEYS: Array = [
         "damage_reflect",
         "health_regen",
         "mana_regen",
+        "stamina_regen",
         "cooldown_reduction",
         "crit_chance",
         "crit_damage",
@@ -86,6 +88,7 @@ const DEFAULTS: Dictionary = {
         "damage_reflect": 0.0,
         "health_regen": 0.0,
         "mana_regen": 0.0,
+        "stamina_regen": 0.0,
         "cooldown_reduction": 0.0,
         "crit_chance": 0.0,
         "crit_damage": 0.0,
@@ -223,6 +226,13 @@ static func crit_axis_for(damage_type: String, is_heal: bool) -> String:
 ## The crit multiplier a body lands, from the 1.5 base + crit_damage delta.
 static func crit_damage_of(crit_damage_delta: float) -> float:
         return clampf(BASE_CRIT_DAMAGE + crit_damage_delta, 1.0, MAX_CRIT_DAMAGE)
+
+
+## The one stamina pool size formula: 100 + 5 per endurance. Entity,
+## PlayerBase and the PlayerManager mirror all read this, so a pool ceiling
+## cannot drift between an NPC and either player body.
+static func max_stamina_for_endurance(endurance: float) -> float:
+        return 100.0 + endurance * 5.0
 
 
 ## The attack-speed multiplier a body swings at: the 1.0 base + agility + the

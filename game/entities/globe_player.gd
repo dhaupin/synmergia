@@ -101,8 +101,8 @@ var _inventory_bag = null
 ## Same bag under the name the planar controller exposes. UI resolvers
 ## (character_panel._resolve_inventory) duck-type this property; the
 ## globe body only had _inventory_bag, so the panel's player-node
-## fallback missed the bag it was standing on.
-var inventory_component = null
+## fallback missed the bag it was standing on. The field is declared on
+## PlayerBase now (the shared surface), so this body inherits it.
 ## Respawn binding (Ankh.bind_player writes respawn_ankh_id; the planar
 ## controller declares these locally -- the globe body inherits PlayerBase,
 ## which does not, so the ankh bind leg errored on the globe). The ankh
@@ -134,11 +134,17 @@ var allow_jump_input: bool = true
 
 ## Play-day feedback: BOTW-STYLE CLIMBING. Hold jump against a steep
 ## or climbable face (big rocks, trees, future features) to grab it;
-## climb while held; stamina drains while grabbing and regenerates on
-## the ground. Tapping jump stays a hop -- the climb engages on HOLD.
-const CLIMB_STAMINA_MAX: float = 6.0
-const CLIMB_DRAIN_PER_S: float = 1.0
-const CLIMB_REGEN_PER_S: float = 2.0
+## climb while held; the shared stamina pool drains while grabbing and
+## TickService regenerates it. Tapping jump stays a hop -- the climb
+## engages on HOLD.
+##
+## The player's pool is PlayerBase.current_stamina (150 at endurance 10).
+## These constants are tuned against that pool, not the old 6-point climb
+## meter: a full pool buys roughly six seconds of climbing, and the
+## fraction gates keep sprint/climb from engaging on an empty tank.
+const CLIMB_DRAIN_PER_S: float = 25.0
+const CLIMB_ENGAGE_FRACTION: float = 0.04
+const SPRINT_MIN_FRACTION: float = 0.10
 const CLIMB_SPEED: float = 2.2
 const CLIMB_REACH: float = 1.7
 const CLIMB_MIN_ANGLE_DEG: float = 50.0
@@ -147,7 +153,13 @@ const TerrainGen = preload("res://scenes/worlds/terrain_gen.gd")
 ## PERCH LAW: a walk-over cap this high above the terrain law is a
 ## climbable ledge (step off = airborne; the climb grabs it).
 const PERCH_MIN_LIFT: float = 0.55
-var climb_stamina: float = CLIMB_STAMINA_MAX
+## Compatibility alias: probes and older callers still name the climb pool
+## climb_stamina, but it now reads/writes the one shared PlayerBase pool.
+var climb_stamina: float:
+	get:
+		return current_stamina
+	set(value):
+		current_stamina = value
 var _climbing: bool = false
 var _climb_wall_normal: Vector3 = Vector3.ZERO
 
@@ -167,6 +179,10 @@ var _slide_t: float = 0.0
 var _slide_dir: Vector3 = Vector3.ZERO
 const CROUCH_MULT: float = 0.5
 const SPRINT_MULT: float = 1.55
+## Fallback when DataService is absent (script-mode probes): the authored
+## movement_standard sprint cost. The resolved profile wins in-game.
+const SPRINT_STAMINA_PER_S: float = 8.0
+var _sprint_stamina_per_s: float = SPRINT_STAMINA_PER_S
 const SLOPE_WALK_MULT: float = 0.55
 const SLOPE_WALK_SIN: float = 0.55
 const SLIDE_INIT_SPEED: float = 8.5
@@ -536,6 +552,13 @@ func _ready() -> void:
 	# all live in PlayerBase._ready now -- one home, so a bare PlayerBase
 	# (probes, fixture tests) carries the same surface as a scene body.
 	super._ready()
+	# The movement profile owns the sprint drain rate; stamina itself stays
+	# the body's one pool. Defensive: script-mode probes mount no DataService.
+	var ds_for_movement = _ds()
+	if ds_for_movement != null and ds_for_movement.has_method("get_movement_profile"):
+		var standard_profile = ds_for_movement.get_movement_profile("movement_standard")
+		if standard_profile != null and "sprint_stamina_cost" in standard_profile:
+			_sprint_stamina_per_s = float(standard_profile.sprint_stamina_cost)
 	# Hitbox Profile System: the species-fair player capsule (the ONE player
 	# hitbox). Applied deferred so the tree setup settles first; the globe's
 	# ground law is a math check (planet_distance), so the shape only matters
@@ -743,10 +766,8 @@ func _physics_process(delta: float) -> void:
 	var up: Vector3 = planet_up()
 	_surface_normal = up
 	up_direction = up
-	# Climb stamina regenerates whenever the body is not on a wall
-	# (grounded or airborne -- gliding rests you too, this is a game).
-	if not _climbing:
-		climb_stamina = minf(CLIMB_STAMINA_MAX, climb_stamina + CLIMB_REGEN_PER_S * delta)
+	# Baseline stamina regeneration belongs to TickService now (the same
+	# rest/combat record as health and mana); this body only spends it.
 
 	# True-north tangent: project the +Y pole direction onto the
 	# tangent plane. Degenerate only at the poles; fall back to the
@@ -883,12 +904,16 @@ func _physics_process(delta: float) -> void:
 					else (wish if wish.length_squared() > 0.001 else cam_fwd)
 			horizontal += (roll_dir.normalized() if roll_dir.length_squared() > 0.001 else north) * DODGE_FORCE
 	# Sprint: keyboard SHIFT or the touch auto-sprint override. Needs
-	# stamina reserve (stamina is the climb pool -- one pool, honest).
+	# stamina reserve from the one shared pool.
 	# (Recomputed AFTER the chain: a bail leaves sprint live, so the
 	# slide flows straight back into the run when the input is held.)
 	var sprint_held: bool = _virtual_sprint if _virtual_input_on else Input.is_action_pressed("sprint")
 	is_sprinting = (sprint_held or _sprint_override_on) \
-		and climb_stamina > 0.6 and not is_crouching
+		and current_stamina > max_stamina * SPRINT_MIN_FRACTION and not is_crouching
+	# Sprinting spends the same pool climbing does. Mounted movement has its
+	# own profile/ride law, so the rider's stamina is not taxed twice.
+	if is_sprinting and not is_mounted():
+		current_stamina = maxf(0.0, current_stamina - _sprint_stamina_per_s * delta)
 
 	# THE SEA STEP (S14.7.2): deep water outranks the walk --
 	# the water owns the body, the ford law never sees it.
@@ -963,7 +988,7 @@ func _physics_process(delta: float) -> void:
 			and Input.is_action_just_pressed("dismount"):
 		ride_service.dismiss(entity_id)
 		return
-	if allow_jump_input and is_on_floor() and climb_stamina > 0.25 \
+	if allow_jump_input and is_on_floor() and current_stamina > max_stamina * CLIMB_ENGAGE_FRACTION \
 			and Input.is_action_pressed("jump") and not Input.is_action_just_pressed("jump"):
 		var probe_dir: Vector3 = (wish if wish.length_squared() > 0.001 \
 			else cam_fwd).normalized()
@@ -1233,7 +1258,7 @@ func _physics_process(delta: float) -> void:
 ## caller returns right after).
 func _tick_climb(delta: float, up: Vector3, wish: Vector3, horizontal: Vector3) -> void:
 	# Release: button let go, or the wall is gone (streamed away).
-	if not Input.is_action_pressed("jump") or climb_stamina <= 0.0:
+	if not Input.is_action_pressed("jump") or current_stamina <= 0.0:
 		_end_climb(up)
 		return
 	var dir: Vector3 = -_climb_wall_normal
@@ -1259,7 +1284,7 @@ func _tick_climb(delta: float, up: Vector3, wish: Vector3, horizontal: Vector3) 
 		_end_climb(up)
 		return
 	_climb_wall_normal = still
-	climb_stamina = maxf(0.0, climb_stamina - CLIMB_DRAIN_PER_S * delta)
+	current_stamina = maxf(0.0, current_stamina - CLIMB_DRAIN_PER_S * delta)
 	# Ride the wall: press into it (stick), climb up its face.
 	var wall_up: Vector3 = (up - _climb_wall_normal * up.dot(_climb_wall_normal)).normalized()
 	var radial: Vector3 = (global_position - planet_center).normalized()

@@ -5,6 +5,7 @@ extends Node
 const BlacksmithUI = preload("res://ui/components/blacksmith_ui.gd")
 const SkillAcademyUI = preload("res://ui/components/skill_academy_ui.gd")
 const LevelCurve = preload("res://core/progression/level_curve.gd")
+const StatId = preload("res://core/schemas/stat_id.gd")
 
 signal health_changed(current: int, maximum: int)
 signal mana_changed(current: int, maximum: int)
@@ -49,11 +50,31 @@ func _ready() -> void:
 	GameLog.info("PlayerManager initialized")
 
 func set_local_player(player: Node) -> void:
+	# Re-seating the local player must not leave the previous body's signal
+	# feeding this mirror.
+	if local_player != null and is_instance_valid(local_player) and local_player != player \
+			and local_player.has_signal("stamina_changed") \
+			and local_player.stamina_changed.is_connected(_on_player_stamina_changed):
+		local_player.stamina_changed.disconnect(_on_player_stamina_changed)
 	local_player = player
 	# A null clear (logout, probe teardown) is a legal slot state:
 	# the duck-typed reads must not touch a missing node.
 	character_name = player.display_name if (player != null and is_instance_valid(player) and "display_name" in player) else "Player"
+	# Stamina lives on the body now; this autoload mirrors it for legacy
+	# readers instead of running a second regen clock. TickService owns the
+	# actual regeneration.
+	if player != null and is_instance_valid(player) and "current_stamina" in player \
+			and "max_stamina" in player:
+		current_stamina = float(player.current_stamina)
+		max_stamina = float(player.max_stamina)
+		if player.has_signal("stamina_changed") and not player.stamina_changed.is_connected(_on_player_stamina_changed):
+			player.stamina_changed.connect(_on_player_stamina_changed)
 	_update_resource_signals()
+
+func _on_player_stamina_changed(current: float, maximum: float) -> void:
+	current_stamina = current
+	max_stamina = maximum
+	stamina_changed.emit(current_stamina, max_stamina)
 
 ## Resolve the local player's entity id by duck-typing the bound player
 ## node (same pattern as TitleService.get_local_player_id). Returns ""
@@ -102,6 +123,15 @@ func _recalculate_derived_stats() -> void:
 		current_mana = int(mana_ratio * max_mana)
 		mana_changed.emit(current_mana, max_mana)
 
+	# Endurance owns stamina, matching PlayerBase/Entity's formula.
+	var endurance_stat := get_stat("endurance")
+	var new_max_stamina := StatId.max_stamina_for_endurance(float(endurance_stat))
+	if new_max_stamina != max_stamina:
+		var stamina_ratio := current_stamina / max_stamina if max_stamina > 0.0 else 1.0
+		max_stamina = new_max_stamina
+		current_stamina = stamina_ratio * max_stamina
+		stamina_changed.emit(current_stamina, max_stamina)
+
 ## HEALTH
 
 func take_damage(amount: int) -> void:
@@ -135,6 +165,8 @@ func restore_mana(amount: int) -> void:
 ## STAMINA
 
 func use_stamina(amount: float) -> bool:
+	if local_player != null and is_instance_valid(local_player) and local_player.has_method("use_stamina"):
+		return bool(local_player.use_stamina(amount))
 	if current_stamina >= amount:
 		current_stamina -= amount
 		stamina_changed.emit(current_stamina, max_stamina)
@@ -142,15 +174,11 @@ func use_stamina(amount: float) -> bool:
 	return false
 
 func restore_stamina(amount: float) -> void:
-	current_stamina = min(max_stamina, current_stamina + amount)
+	if local_player != null and is_instance_valid(local_player) and local_player.has_method("restore_stamina"):
+		local_player.restore_stamina(amount)
+		return
+	current_stamina = minf(max_stamina, current_stamina + amount)
 	stamina_changed.emit(current_stamina, max_stamina)
-
-func _process(_delta: float) -> void:
-	# Regenerate stamina out of combat
-	if current_stamina < max_stamina:
-		var regen_amount := 5.0 * _delta
-		current_stamina = min(max_stamina, current_stamina + regen_amount)
-		stamina_changed.emit(current_stamina, max_stamina)
 
 ## EXPERIENCE & LEVELING
 

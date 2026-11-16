@@ -176,6 +176,8 @@ test_tick_phase2_systems
 test_combat_stack_live
 test_status_effect_tres
 test_stat_modifiers
+test_stamina
+test_equipment_power
 test_attack_speed
 test_crit_system
 test_globe_player_players_group

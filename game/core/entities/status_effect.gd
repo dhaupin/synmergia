@@ -103,6 +103,7 @@ signal tick_occurred(entity, amount: int, tick_type: String)
 @export var movement_speed_multiplier: float = 0.0
 @export var health_regen_mod: float = 0.0
 @export var mana_regen_mod: float = 0.0
+@export var stamina_regen_mod: float = 0.0
 # The support lanes' reach verbs, carried as a buff on the target. DD LENGTHENS
 # (effect_duration_mult) and Bender AMPLIFIES (effect_power_mult) -- both deltas
 # on a 1.0 base, read by Skill's goodie helpers off the caster's stat block.
@@ -299,6 +300,8 @@ func _apply_combat_modifiers(adding: bool) -> void:
 		entity.stats.health_regen += sign * health_regen_mod * current_stacks
 	if mana_regen_mod != 0 and "mana_regen" in entity.stats:
 		entity.stats.mana_regen += sign * mana_regen_mod * current_stacks
+	if stamina_regen_mod != 0 and "stamina_regen" in entity.stats:
+		entity.stats.stamina_regen += sign * stamina_regen_mod * current_stacks
 	# The support-lane goodies. duration/power are deltas on a 1.0 base, so a
 	# +0.3 rides the same additive law as damage_multiplier; CDR is a flat
 	# fraction. Skill reads all three off the caster's stat block.
