@@ -1,8 +1,8 @@
 # Data / Engine Separation
 
 > **Status:** ACTIVE 2026-11-15. The Fixer board, starter kits, Academy
-> prices, housing economy, bout rewards and agent slots are extracted; the
-> remaining ledger is a deliberate queue, not a rewrite mandate.
+> prices, housing economy, bout rewards, agent slots and payment SKUs are
+> extracted; the remaining ledger is a deliberate queue, not a rewrite mandate.
 >
 > **Law it obeys:** [`data-authoring-baseline.md`](./data-authoring-baseline.md)
 > sec 0 and the core/data boundary in [`AGENTS.md`](../AGENTS.md). This doc is
@@ -67,7 +67,7 @@ These are not extraction targets unless their ownership changes:
 | Village bout props | Hardcoded zone ids/colors and prop batches | LATER: world-content builder, not a service constant |
 | Lobby copy and zone blurbs | `lobby_ui.gd` mode labels | LATER: presentation content, low risk |
 | UI palette | `ui_styles.gd` colors | ENGINE unless a theme selector needs data |
-| Payment SKU catalog | Two provider `SKUS` / `SKU_CATALOG` arrays | **NEXT**: one shared SKU record; providers keep processor mapping |
+| Payment SKU catalog | Two provider `SKUS` / `SKU_CATALOG` arrays | **EXTRACTED** this pass: `data/balance/payment_skus.tres`; providers keep their id mappings |
 | Kill reward curve | XP/gold coefficients, grey spread, scale floor/cap | **NEXT**: balance record; formula stays in the service |
 | Container expansion costs | Two code copies of the tier ladder; `container_configs.tres` says costs are code-fixed | **NEXT**: one data table; remove both duplicates |
 | Sigil sink catalog | Nine `SINKS` rows with prices, grants and copy | **NEXT after design**: resolve the mount source mismatch first |
@@ -192,21 +192,30 @@ rather than granting a free seat. The receipt is
 `game/tests/test_agent_roster.gd`: it resolves the record and walks the
 whole ladder using the authored prices.
 
-## 10. Ranked candidate queue (not yet extracted)
+## 10. Seventh slice: payment SKUs
+
+`ManualPaymentProvider` and `WebhookPaymentProvider` still own:
+
+- which SKU ids their processor sells (the provider mapping);
+- checkout state, order binding, fulfillment and webhook verification;
+- the refusal paths.
+
+`game/data/balance/payment_skus.tres` owns every product row: sku id,
+display name, sigil amount and price label. Both providers resolve their
+mapped slices through `DataService.get_payment_sku_catalog()`. A missing,
+malformed or partially mapped record returns no catalog and checkout
+refuses with `Payment catalog unavailable`; there is no code fallback.
+The receipt is `game/tests/test_payment_skus.gd`: it proves both providers
+resolve the six shared rows, keep their existing products and amounts,
+still refuse an unknown SKU, and fail closed when the record is removed.
+
+## 11. Ranked candidate queue (not yet extracted)
 
 The 2026-11-15 sweep added these to the ledger so the next pass starts here,
 not from a fresh grep. Rank is value/risk, not a promise to extract all of
 them. The two skill lanes are already issue #102 and are not repeated here.
 
-1. **Payment SKU catalog - NEXT.** The same sigil products are defined twice:
-   `webhook_payment_provider.gd` (`SKUS`) and `manual_payment_provider.gd`
-   (`SKU_CATALOG`). These carry real-money prices, sigil amounts and display
-   names, so drift is a money bug. Move the rows to one typed SKU catalog
-   record; each provider keeps only its processor mapping, checkout state and
-   fulfillment behavior. Receipt: both providers resolve the same rows and
-   still refuse an unknown SKU.
-
-2. **Kill reward curve - NEXT.** `kill_rewards.gd` carries XP/gold per enemy
+1. **Kill reward curve - NEXT.** `kill_rewards.gd` carries XP/gold per enemy
    level, per killer level, the grey spread and the scale floor/cap. Its own
    comment calls it one tunable table. Move those values to a balance record;
    keep the credit resolution, level-gap formula and grant path in the service.
@@ -214,7 +223,7 @@ them. The two skill lanes are already issue #102 and are not repeated here.
    payout at representative level gaps, and prove a missing record refuses
    rather than paying zero or guessing.
 
-3. **Container expansion costs - NEXT.** The ladder is duplicated in
+2. **Container expansion costs - NEXT.** The ladder is duplicated in
    `container_schema.gd` (`EXPANSION_COSTS`) and
    `container_config_data.gd` (`DEFAULT_EXPANSION_COSTS`), while
    `data/containers/container_configs.tres` says expansion costs are fixed in
@@ -223,20 +232,20 @@ them. The two skill lanes are already issue #102 and are not repeated here.
    Receipt: every container type reads the same authored tier ladder and a
    malformed record fails closed.
 
-4. **Sigil sink catalog - NEXT after design.** `sigil_sink_service.gd`
+3. **Sigil sink catalog - NEXT after design.** `sigil_sink_service.gd`
    (`SINKS`) owns nine rows with sink ids, prices, grant quantities and flavor
    copy. The service keeps the debit/grant/refund gates that already exist;
    the rows belong in data. Do this only after resolving the known mismatch:
    the catalog prices mounts whose own data marks them `DROP`. One record, not
    a second code table.
 
-5. **Vault expansion - NEXT.** `vault_service.gd` owns slots per step, gold
+4. **Vault expansion - NEXT.** `vault_service.gd` owns slots per step, gold
    per slot and the personal/guild caps. Move the base values and caps to a
    vault balance record; keep the exponential 1.5x curve and the 10M cap in
    the service because they are algorithm behavior. Receipt: the service
    computes costs from the record and a missing record refuses expansion.
 
-6. **World content placement - LATER, separate track.** `globe_world.gd`
+5. **World content placement - LATER, separate track.** `globe_world.gd`
    carries enemy/guard/NPC batches, gate/plot placements and the content
    manifest; `underworld_provider.gd`, `moon_provider.gd` and
    `terrain_provider.gd` carry biome density/palette tables; `arena_instance.gd`
@@ -244,7 +253,7 @@ them. The two skill lanes are already issue #102 and are not repeated here.
    It needs one world-content schema and a record per world/arena; do not fold
    it into `balance/`. The ledger's village bout props row is a subset.
 
-7. **Presentation asset registries - LATER.** `audio_service.gd` maps sound
+6. **Presentation asset registries - LATER.** `audio_service.gd` maps sound
    names to WAV paths; `icon_resolver.gd` maps categories to fallback icons.
    These are engine asset routing today. Move them only when designers are
    expected to add or replace sounds/icons without touching code; otherwise
@@ -294,7 +303,7 @@ Still explicitly out of scope: cooldowns and rate limits, the status-effect
 control maps, `StatId`/`GameTier` vocabulary, schema defaults and the UI island
 registry. They are behavior, protocol or routing, not content.
 
-## 11. Next-pass rule
+## 12. Next-pass rule
 
 One pass = one domain, one schema, one record, one receipt.
 

@@ -19,6 +19,28 @@
 extends RefCounted
 class_name PaymentProvider
 
+## Resolve the shared checkout board through DataService. Providers own
+## which SKU ids they sell; the rows live once in
+## data/balance/payment_skus.tres.
+func _sku_catalog():
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null or tree.root == null:
+		return null
+	var ds = tree.root.get_node_or_null(NodePath("DataService"))
+	if ds == null or not ds.has_method("get_payment_sku_catalog"):
+		return null
+	return ds.get_payment_sku_catalog()
+
+
+## The requested rows in provider order. Empty means the record is
+## absent, malformed, or missing one of the mapped ids.
+func _catalog_rows(sku_ids: Array) -> Array:
+	var catalog = _sku_catalog()
+	if catalog == null or not catalog.is_valid():
+		return []
+	return catalog.rows_for(sku_ids)
+
+
 ## One SKU row the shop panel renders. sigils = Concord Sigils granted
 ## on completion; price_label is a DISPLAY string only (the real
 ## currency exchange stays inside the processor, never gameplay code).
