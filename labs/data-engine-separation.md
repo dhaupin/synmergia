@@ -1,8 +1,10 @@
 # Data / Engine Separation
 
-> **Status:** ACTIVE 2026-11-15. The Fixer board, starter kits, Academy
+> **Status:** ACTIVE 2026-11-16. The Fixer board, starter kits, Academy
 > prices, housing economy, bout rewards, agent slots and payment SKUs are
 > extracted; the remaining ledger is a deliberate queue, not a rewrite mandate.
+> The 2026-11-16 census adds the world-event scheduler, faction ranks,
+> kill-streak rewards and chat channel metadata below.
 >
 > **Law it obeys:** [`data-authoring-baseline.md`](./data-authoring-baseline.md)
 > sec 0 and the core/data boundary in [`AGENTS.md`](../AGENTS.md). This doc is
@@ -81,6 +83,10 @@ These are not extraction targets unless their ownership changes:
 | Faction war terms | 10k declaration cost, 24h cooldown; cooldown duplicated in `GameConfig` | SMALL: faction balance record; declaration gate stays |
 | Daily blessing tuning | +20% might, +5 levels | SMALL: blessing balance record; earned-day gate stays |
 | Weather event fallback catalog | Built-in `storm_pack` / `aurora_window` dictionaries duplicate `data/weather_events` | **NEXT**: one declared default or a refusal; remove the duplicate |
+| World-event scheduler catalog | Three hardcoded scheduler rows in `world_service.gd`; the scheduler ignores the authored `data/events` family | **NEXT**: one event roster plus schedule fields; keep draw/lifetime in the service |
+| Faction reputation ladder | Seven rank thresholds and labels; the service clamp disagrees with `GameConfig` bounds | NEEDS DESIGN: resolve the drift, then faction balance record |
+| Kill-streak rewards | Thresholds, XP/gold coefficients and announce gate in `GameConfig.Respawn` | SMALL: death/kill-streak balance record |
+| Chat channel metadata | Twelve-row name/range/colour/prefix table plus mute labels | LATER: presentation content; channel routing stays engine |
 
 The ledger is intentionally shallow. Do not promote a row to "do it now" just
 because the value is numeric; the question is ownership, not type.
@@ -214,6 +220,8 @@ still refuse an unknown SKU, and fail closed when the record is removed.
 The 2026-11-15 sweep added these to the ledger so the next pass starts here,
 not from a fresh grep. Rank is value/risk, not a promise to extract all of
 them. The two skill lanes are already issue #102 and are not repeated here.
+The 2026-11-16 census rows sit outside this numbered order: the world-event
+scheduler is NEXT, the rest are SMALL/LATER or blocked on design.
 
 1. **Kill reward curve - NEXT.** `kill_rewards.gd` carries XP/gold per enemy
    level, per killer level, the grey spread and the scale floor/cap. Its own
@@ -294,6 +302,71 @@ them. The two skill lanes are already issue #102 and are not repeated here.
   This is the duplicate fallback catalog the ledger forbids, not a schema
   default. Decide whether an empty catalog is a hard refusal or one minimal
   declared default, remove the other copy, and add a missing-data receipt.
+
+### 2026-11-16 census: scheduler, faction, death, chat
+
+A second census pass looked for authored tables still living in services. The
+four rows added above are recorded here, not extracted. The world-event
+scheduler is the first of them that should get a schema; the other three are
+lower value or blocked on a design decision.
+
+- **World-event scheduler catalog - NEXT.** `world_service.gd`
+  `_setup_event_scheduler()` owns three rows (`double_xp`, `double_loot`,
+  `invasion`) with display names, durations, min/max intervals, weights and
+  time-of-day restrictions. The scheduler never reads `data/events/`;
+  `EventService` reads that family for modifiers. `_apply_event_effects()`
+  then keys behavior off the literal ids, and the first two effects are
+  stubs. That is a second event catalog and a second dispatch vocabulary.
+  The service should keep the weighted draw, active lifetime, persistence and
+  effect application; data should own the roster and schedule fields. Reuse
+  `EventData` (adding duration/weight/min_interval/max_interval/
+  time_restrictions) or one schedule record referencing event ids; do not keep
+  both lists. Receipt: resolve the authored roster, draw an authored event
+  without code changes, and prove an empty or malformed roster schedules
+  nothing.
+
+- **Faction reputation ladder - NEEDS DESIGN (drift first).**
+  `faction_manager.gd` `get_reputation_rank()` hardcodes seven thresholds
+  (9000/6000/3000/1000/0/-999/-3000) and their labels. The same service clamps
+  reputation to `-10000..10000`, while `GameConfig.FactionConfig` declares
+  `MIN_REPUTATION = -100` / `MAX_REPUTATION = 100` and is not read here. That
+  is drift, not a clean extract. Pick one bounds owner and one value; if
+  designers tune ranks, put the ladder in the faction balance record with the
+  war terms. Keep the reputation mutation and rank-transition toast in the
+  service. Receipt: rank labels and clamp agree with the record, and a missing
+  or malformed ladder refuses to invent a rank.
+
+- **Kill-streak rewards - SMALL.** `GameConfig.Respawn` owns
+  `KILL_STREAK_THRESHOLDS = [3, 5, 10, 25, 50]`,
+  `KILL_STREAK_XP_MULTIPLIER = 0.1`, `KILL_STREAK_GOLD_BONUS = 10` and the
+  announcement threshold; `death_features.gd` is the only reader. A threshold
+  ladder plus coefficients is one kill-streak balance record, not four
+  unrelated numbers. Move it when death tuning gets a design pass; keep the
+  streak state, kill credit and grant path in the service. Receipt:
+  thresholds and computed bonus match the record; a missing record disables
+  the bonus rather than inventing a ladder. The adjacent griefing threshold,
+  window and protection duration are anti-harassment policy, not part of this
+  ladder; leave them engine-side unless product wants them authorable.
+
+- **Chat channel metadata - LATER.** `chat_service.gd` `_channel_info` is a
+  twelve-row `Channel`-keyed table of display name, range, colour and prefix;
+  `MUTE_LABELS` repeats the readable names. Channel ids, send/receive gates,
+  history caps and spam cooldowns are protocol and stay in core. The labels,
+  colours, prefixes and say/yell reach are content a designer can re-theme.
+  Extract only if chat presentation becomes authorable; otherwise this is the
+  same call as the UI palette and lobby copy.
+
+Checked and not promoted in this pass:
+
+- `horde_event_service.gd` is already data-driven through `HordeData`; the
+  remaining `KILL_WEIGHT`, spawn batching and wave grace are algorithm.
+- `ride_service.gd` `get_shop_catalog()` builds mount rows from mount records;
+  it carries no literal price ladder.
+- `container_schema.gd` / `container_config_data.gd` remain the queued
+  duplicate-ladder item; this pass did not touch it.
+- `GameTier.TIER_STAT_THRESHOLD` is the canonical tier vocabulary/stat gate
+  and stays out of scope; `guild_service.gd` rank permissions and
+  `matchmaking_qos.gd` latency bands are authorization/protocol.
 
 `GameConfig` is intentionally not a single extraction target. It is a broad
 runtime configuration surface with protocol, security and gameplay values; a
