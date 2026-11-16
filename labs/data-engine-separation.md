@@ -3,8 +3,9 @@
 > **Status:** ACTIVE 2026-11-16. The Fixer board, starter kits, Academy
 > prices, housing economy, bout rewards, agent slots and payment SKUs are
 > extracted; the remaining ledger is a deliberate queue, not a rewrite mandate.
-> The 2026-11-16 census passes add the world-event scheduler, faction ranks,
-> kill-streak rewards, chat channel metadata and party XP share below.
+> The 2026-11-16 census passes add the world-event scheduler, royale storm
+> ladder, container capacity drift, faction ranks, kill-streak rewards, chat
+> channel metadata and party XP share below.
 >
 > **Law it obeys:** [`data-authoring-baseline.md`](./data-authoring-baseline.md)
 > sec 0 and the core/data boundary in [`AGENTS.md`](../AGENTS.md). This doc is
@@ -62,6 +63,7 @@ These are not extraction targets unless their ownership changes:
 | Skill Academy economy | Book price, respec base and per-point costs | **EXTRACTED** this pass: `data/balance/academy_balance.tres` |
 | Housing economy | Plot price, guard/ankh costs, default house tier, no-data house fallback | **EXTRACTED** this pass: `data/balance/housing_balance.tres`; tier costs already data |
 | Bout rewards | XP and gold for bout/trial/royale | **EXTRACTED** this pass: `data/balance/bout_rewards.tres` |
+| Royale storm ladder | Five hold/shrink/radius/damage phases, the minimum radius and storm defaults in `instance_contract.gd`; zones override only start and scale | **NEXT**: phases to a storm record; plan/lerp/damage math stays in the contract |
 | Agent slot ladder | Sigil prices per seat | **EXTRACTED** this pass: `data/balance/agent_slots.tres` |
 | Scope bands | Six verb band tables in `scope_band.gd` | LATER: combat tuning; extract with a schema when designers own it |
 | Skill special-case ids | `debuff_taunt` / aggro-horn string checks in `skill.gd` | NEEDS DESIGN: replace with authored flags/tags, not a data file |
@@ -72,7 +74,7 @@ These are not extraction targets unless their ownership changes:
 | Payment SKU catalog | Two provider `SKUS` / `SKU_CATALOG` arrays | **EXTRACTED** this pass: `data/balance/payment_skus.tres`; providers keep their id mappings |
 | Kill reward curve | XP/gold coefficients, grey spread, scale floor/cap | **NEXT**: balance record; formula stays in the service |
 | Party XP share | `share_xp` hardcodes the 0.1 bonus; `GameConfig.Party` XP knobs are dead | NEEDS DESIGN: one owner; keep the split formula in the service |
-| Container configuration and expansion costs | Three copies of the container rows (`container_schema.BASE_CONFIG`, `container_config_data.containers`, `container_configs.tres`) plus two cost ladders | **NEXT**: one data record; remove both code fallbacks |
+| Container configuration and expansion costs | Three copies of the container rows (`container_schema.BASE_CONFIG`, `container_config_data.containers`, `container_configs.tres`), two cost ladders, and a parallel `GameConfig.Inventory` capacity set (20 base / 12 equipment / 98 bank) read by `InventoryComponent`, whose bank size is hardcoded 98 while the record says 24 / 16 / 100 | **NEXT**: one data record; settle the live capacity owner first, then make both read the same rows and remove the code copies |
 | Sigil sink catalog | Nine `SINKS` rows with prices, grants and copy | **NEXT after design**: resolve the mount source mismatch first |
 | Vault expansion | Slots/step, gold/slot, personal/guild caps | **NEXT**: base values and caps to data; 1.5x formula stays |
 | World content placement | Globe batches/manifest, biome density/palette, arena covers | LATER: world-content schema, not balance |
@@ -87,7 +89,7 @@ These are not extraction targets unless their ownership changes:
 | World-event scheduler catalog | Three hardcoded scheduler rows in `world_service.gd`; the scheduler ignores the authored `data/events` family | **NEXT**: one event roster plus schedule fields; keep draw/lifetime in the service |
 | Faction reputation ladder | Seven rank thresholds and labels; the service clamp disagrees with `GameConfig` bounds | NEEDS DESIGN: resolve the drift, then faction balance record |
 | Kill-streak rewards | Thresholds, XP/gold coefficients and announce gate in `GameConfig.Respawn` | SMALL: death/kill-streak balance record |
-| Chat channel metadata | Twelve-row name/range/colour/prefix table plus mute labels | LATER: presentation content; channel routing stays engine |
+| Chat channel metadata | Twelve-row name/range/colour/prefix table, mute labels, and a second five-row tab name/colour table in `chat_ui.gd` | LATER: presentation content; channel routing stays engine |
 
 The ledger is intentionally shallow. Do not promote a row to "do it now" just
 because the value is numeric; the question is ownership, not type.
@@ -243,22 +245,40 @@ scheduler is NEXT, the rest are SMALL/LATER or blocked on design.
    existing record, remove both code config copies and the silent fallback,
    and keep slot limits/expansion behavior in the schema. Receipt: every
    container type reads the same authored rows and tier ladder; a missing or
-   malformed record fails closed instead of using a second catalog.
+   malformed record fails closed instead of using a second catalog. The
+   mounted `InventoryComponent` is a fourth capacity surface: it reads
+   `GameConfig.Inventory` (20 base slots, 12 equipment slots, 5 bags of 20,
+   98 bank slots, 4 expansions) while the container record says 24 inventory,
+   16 equipment and 100 bank slots. Its bank size and expansion step are
+   hardcoded 98, and `GameConfig.Inventory.BANK_SLOTS` has no reader. Settle
+   whether the mounted component or `SlotService` is the live capacity owner
+   before extraction, then bind both to the same rows.
 
-3. **Sigil sink catalog - NEXT after design.** `sigil_sink_service.gd`
+3. **Royale storm ladder - NEXT.** `instance_contract.gd` `STORM_PHASES`
+   carries five rows of hold seconds, shrink seconds, radius ratio and damage
+   per second, plus `MIN_STORM_RADIUS_M` and `DEFAULT_STORM_START_SECONDS`.
+   `bout_rules()` already applies zone overrides for start and scale, so the
+   missing piece is the phase ladder, not the contract defaults. Keep
+   `storm_plan`, `storm_radius_at`, `storm_damage_at`, the true-zero final
+   circle and the minimum-radius floor in the contract; move the phase rows
+   to one storm record (or per-zone phases if maps diverge). Receipt: authored
+   phases drive the plan, and a missing or malformed ladder refuses the bout
+   instead of falling back to a second code ladder.
+
+4. **Sigil sink catalog - NEXT after design.** `sigil_sink_service.gd`
    (`SINKS`) owns nine rows with sink ids, prices, grant quantities and flavor
    copy. The service keeps the debit/grant/refund gates that already exist;
    the rows belong in data. Do this only after resolving the known mismatch:
    the catalog prices mounts whose own data marks them `DROP`. One record, not
    a second code table.
 
-4. **Vault expansion - NEXT.** `vault_service.gd` owns slots per step, gold
+5. **Vault expansion - NEXT.** `vault_service.gd` owns slots per step, gold
    per slot and the personal/guild caps. Move the base values and caps to a
    vault balance record; keep the exponential 1.5x curve and the 10M cap in
    the service because they are algorithm behavior. Receipt: the service
    computes costs from the record and a missing record refuses expansion.
 
-5. **World content placement - LATER, separate track.** `globe_world.gd`
+6. **World content placement - LATER, separate track.** `globe_world.gd`
    carries enemy/guard/NPC batches, gate/plot placements and the content
    manifest; `underworld_provider.gd`, `moon_provider.gd` and
    `terrain_provider.gd` carry biome density/palette tables; `arena_instance.gd`
@@ -266,7 +286,7 @@ scheduler is NEXT, the rest are SMALL/LATER or blocked on design.
    It needs one world-content schema and a record per world/arena; do not fold
    it into `balance/`. The ledger's village bout props row is a subset.
 
-6. **Presentation asset registries - LATER.** `audio_service.gd` maps sound
+7. **Presentation asset registries - LATER.** `audio_service.gd` maps sound
    names to WAV paths; `icon_resolver.gd` maps categories to fallback icons.
    These are engine asset routing today. Move them only when designers are
    expected to add or replace sounds/icons without touching code; otherwise
@@ -407,6 +427,56 @@ future audit should split it by owner, not move the file into one `.tres`.
 Still explicitly out of scope: cooldowns and rate limits, the status-effect
 control maps, `StatId`/`GameTier` vocabulary, schema defaults and the UI island
 registry. They are behavior, protocol or routing, not content.
+
+### 2026-11-16 census: third pass (instances, containers, chat)
+
+A third sweep looked at instance contracts, inventory/container capacity and
+the remaining presentation tables. It adds one NEXT candidate and strengthens
+two queued rows; nothing was extracted.
+
+- **Royale storm ladder - NEXT.** `instance_contract.gd` owns the five-phase
+  storm table (hold/shrink/radius ratio/damage) and the 5 m minimum circle,
+  while `arena_instance.gd` consumes it through `storm_plan()` and the pure
+  radius/damage helpers. `ZoneData` already owns start and scale; the ladder
+  itself has no per-zone override, so every royale map shares one code table.
+  This is the highest-value new extraction because changing hold times, circle
+  sizes or damage changes the bout's primary clock, yet all five rows are
+  literals. See queue item 3 for the receipt.
+
+- **Container capacity drift - NEXT (owner first).** The queued container row
+  now has a fourth live capacity surface. `InventoryComponent` reads
+  `GameConfig.Inventory` for 20 base slots, 12 equipment slots, 5 bags of 20
+  and a 98-slot bank with four 98-slot expansions.
+  `container_config_data.gd` and the authored `.tres` say 24 inventory,
+  16 equipment and 100 bank slots (max 120/16/400). `InventoryComponent`
+  hardcodes its bank size and expansion step at 98, so
+  `GameConfig.Inventory.BANK_SLOTS` and `BANK_EXPANSION_SIZE` are dead values
+  beside a live hardcode. This is not just a UI ladder: the mounted component
+  and the authored rows describe the same container family with different
+  bases, equipment counts and expansion shapes. Resolve the owner before
+  extracting.
+
+- **Chat presentation duplicate - LATER.** `chat_ui.gd`
+  `_create_channel_tabs()` carries its own five-row name/colour table for
+  Say/Zone/Party/Guild/Whisper. The names and most colours repeat
+  `ChatService._channel_info` (Say uses `UIStyles.COLORS.text_primary`
+  instead of `#FFFFFF`). This is already a duplicate presentation catalog, so
+  a future chat metadata record must replace both. Channel routing and the
+  spam gate remain engine-side.
+
+Checked and not promoted in this pass:
+
+- `GameConfig.Combat` base hit/crit/dodge/parry/block, GCD, regen multipliers
+  and out-of-combat timer have zero readers; they are dead config, not a data
+  table.
+- `loot_rules_service.gd` owns policy enums and delegation arithmetic, not a
+  catalog; free-for-all/round-robin/leader/master routing stays engine-side.
+- `floating_name.gd` `KINDS`, `damage_numbers.gd` `SCHOOL_COLORS` and the
+  minimap layer toggles are presentation theme, the same call as the UI
+  palette.
+- `instance_contract.gd` gravity, kill target, time limit and spawn shield are
+  contract/schema defaults already overridable per zone; do not promote them
+  just because they are numeric.
 
 ## 12. Next-pass rule
 
