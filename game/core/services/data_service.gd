@@ -16,6 +16,7 @@ const StarterKitData = preload("res://core/schemas/starter_kit_data.gd")
 const AcademyBalanceData = preload("res://core/schemas/academy_balance_data.gd")
 const HousingBalanceData = preload("res://core/schemas/housing_balance_data.gd")
 const BoutRewardsData = preload("res://core/schemas/bout_rewards_data.gd")
+const CombatBalanceData = preload("res://core/schemas/combat_balance_data.gd")
 const AgentSlotBalanceData = preload("res://core/schemas/agent_slot_balance_data.gd")
 const CharacterClass = preload("res://core/schemas/character_class.gd")
 const Species = preload("res://core/schemas/species.gd")
@@ -260,6 +261,14 @@ func get_bout_rewards() -> BoutRewardsData:
 	if record is BoutRewardsData:
 		return record
 	GameLog.warn("DataService: Bout rewards record not found")
+	return null
+
+## The hit-table and baseline regen tuning.
+func get_combat_balance() -> CombatBalanceData:
+	var record = _balance.get("combat_balance")
+	if record is CombatBalanceData and record.is_valid():
+		return record
+	GameLog.warn("DataService: Combat balance record not found or invalid")
 	return null
 
 ## The agent slot sigil ladder.

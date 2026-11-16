@@ -474,8 +474,11 @@ func _produce_mob(h: Dictionary, pos: Vector3, extra_level: int, template_id: St
 	add_child(enemy)
 	enemy.global_position = pos
 
-	# Same AI attachment surface as the Enemy API (sets _ai + add_child).
-	enemy.attach_ai(EnemyAIScript.new())
+	# Same AI attachment surface as the Enemy API (sets _ai + add_child),
+	# configured from the template so horde mobs honor authored speed/ranges.
+	var ai = EnemyAIScript.new()
+	ai.configure_from_data(template)
+	enemy.attach_ai(ai)
 
 	var metadata := SpawnMetadata.enemy(
 		enemy.display_name, str(h["zone_id"]), pos, enemy.level

@@ -2024,9 +2024,7 @@ func _spawn_globe_enemy(template_id: String, surface: Vector3, DS, es, tm, level
 	# AI configured from the template's ranges; a training dummy keeps its
 	# inert stand (attach_ai no-ops on dummies).
 	var ai = EnemyAIScript.new()
-	ai.aggro_range = template.aggro_range
-	ai.chase_range = template.chase_range
-	ai.attack_range = template.attack_range
+	ai.configure_from_data(template)
 	enemy.attach_ai(ai)
 	if es != null and es.has_method("register_entity"):
 		var SpawnMetadataScript = load("res://core/events/spawn_metadata.gd")

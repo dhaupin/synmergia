@@ -1,8 +1,9 @@
 # Data / Engine Separation
 
 > **Status:** ACTIVE 2026-11-16. The Fixer board, starter kits, Academy
-> prices, housing economy, bout rewards, agent slots and payment SKUs are
-> extracted; the remaining ledger is a deliberate queue, not a rewrite mandate.
+> prices, housing economy, bout rewards, agent slots, payment SKUs and combat
+> balance are extracted; the remaining ledger is a deliberate queue, not a
+> rewrite mandate.
 > The 2026-11-16 census passes add the world-event scheduler, royale storm
 > ladder, container capacity drift, faction ranks, kill-streak rewards, chat
 > channel metadata and party XP share below.
@@ -63,6 +64,7 @@ These are not extraction targets unless their ownership changes:
 | Skill Academy economy | Book price, respec base and per-point costs | **EXTRACTED** this pass: `data/balance/academy_balance.tres` |
 | Housing economy | Plot price, guard/ankh costs, default house tier, no-data house fallback | **EXTRACTED** this pass: `data/balance/housing_balance.tres`; tier costs already data |
 | Bout rewards | XP and gold for bout/trial/royale | **EXTRACTED** this pass: `data/balance/bout_rewards.tres` |
+| Combat hit table and baseline regen | Base hit/dodge/parry/block curves, caps, block value and regen rates in `CombatMath` / `TickService`; `GameConfig.Combat` was a dead duplicate | **EXTRACTED** this pass: `data/balance/combat_balance.tres`; the services keep the roll/order and arithmetic |
 | Royale storm ladder | Five hold/shrink/radius/damage phases, the minimum radius and storm defaults in `instance_contract.gd`; zones override only start and scale | **NEXT**: phases to a storm record; plan/lerp/damage math stays in the contract |
 | Agent slot ladder | Sigil prices per seat | **EXTRACTED** this pass: `data/balance/agent_slots.tres` |
 | Scope bands | Six verb band tables in `scope_band.gd` | LATER: combat tuning; extract with a schema when designers own it |
@@ -466,9 +468,6 @@ two queued rows; nothing was extracted.
 
 Checked and not promoted in this pass:
 
-- `GameConfig.Combat` base hit/crit/dodge/parry/block, GCD, regen multipliers
-  and out-of-combat timer have zero readers; they are dead config, not a data
-  table.
 - `loot_rules_service.gd` owns policy enums and delegation arithmetic, not a
   catalog; free-for-all/round-robin/leader/master routing stays engine-side.
 - `floating_name.gd` `KINDS`, `damage_numbers.gd` `SCHOOL_COLORS` and the
@@ -477,6 +476,31 @@ Checked and not promoted in this pass:
 - `instance_contract.gd` gravity, kill target, time limit and spawn shield are
   contract/schema defaults already overridable per zone; do not promote them
   just because they are numeric.
+
+### 2026-11-16 follow-up: combat balance
+
+`GameConfig.Combat` and `CombatComponent`'s dormant direct-attack methods and
+crit/regen exports are deleted. The live hit table is still `CombatMath`; it
+now resolves `data/balance/combat_balance.tres` through `DataService` for hit,
+dodge, parry, block and block value. `TickService` reads the record's health and
+mana regen rates. `StatId` remains the crit vocabulary/formula owner, and class
+and enemy `.tres` records still own per-actor crit values.
+
+The record's schema defaults are the declared fallback when the record is
+missing or malformed; the services do not carry a second literal table.
+Receipts: `test_combat_balance` (record validity, DataService/TickService
+resolution and the tuning seam), `test_hit_table` (record-backed table), plus
+`test_crit_system`, `test_combat_loop` and `test_data_naming_lint`.
+
+The follow-up pass closed the last live hit-table literal
+(`hit_level_penalty_cap`, 0.30), deleted the unused
+`calculate_crit_chance` / `calculate_magic_hit` / `get_rating_per_percent`
+helpers and their dead rating fields, and made two authored fields reach
+their consumers: `EnemyData.attack_speed` now configures
+`EnemyAI.attack_cooldown` through `EnemyAI.configure_from_data`, and
+`ComboTracker` reads `Skill.combo_window` instead of a duplicate constant.
+Regen ownership and armor mitigation remain decision items, not record
+fields yet.
 
 ## 12. Next-pass rule
 

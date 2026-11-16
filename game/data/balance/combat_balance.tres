@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="CombatBalanceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/combat_balance_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "combat_balance"
+hit_base = 0.95
+hit_level_penalty_per_level = 0.01
+hit_level_penalty_cap = 0.30
+hit_floor = 0.05
+hit_rating_level_factor = 10.0
+dodge_base = 0.03
+dodge_per_agility = 0.0015
+dodge_level_bonus = 0.0005
+dodge_rating_divisor = 40.0
+dodge_cap = 0.35
+parry_base = 0.02
+parry_per_strength = 0.001
+parry_level_bonus = 0.0005
+parry_rating_divisor = 40.0
+parry_no_shield_multiplier = 0.5
+parry_cap = 0.25
+block_base = 0.05
+block_per_vitality = 0.002
+block_rating_divisor = 45.0
+block_cap = 0.4
+block_value_base = 30.0
+block_value_per_strength = 0.5
+block_value_rating_divisor = 25.0
+health_regen_pct_per_sec = 0.01
+mana_regen_pct_per_sec = 0.02

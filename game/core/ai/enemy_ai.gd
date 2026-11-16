@@ -84,6 +84,20 @@ var _known_threats: Dictionary = {}  # player_id -> weight (remembered attackers
 var _skills: Array = []          # materialized combat Skills
 var _skills_loaded: bool = false
 
+## The one mapping from an EnemyData record onto the brain: authored
+## aggro/chase/attack ranges and attacks-per-second. Spawners call this
+## instead of hand-copying fields, so a new range or speed field reaches
+## every spawn path.
+func configure_from_data(data) -> void:
+	if data == null:
+		return
+	aggro_range = float(data.aggro_range)
+	chase_range = float(data.chase_range)
+	attack_range = float(data.attack_range)
+	var speed := float(data.attack_speed)
+	# attack_speed is attacks per second; 0 makes the body inert (a dummy).
+	attack_cooldown = 1.0 / speed if speed > 0.0 else 9999.0
+
 ## Materialize EnemyData.skills into combat Skills once (lazy: the
 ## DataService catalog may still be filling during boot, and /root
 ## resolution keeps this file free of bare-autoload compile deps).

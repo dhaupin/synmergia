@@ -21,8 +21,6 @@ func _glog() -> Node:
 	var tree := Engine.get_main_loop() as SceneTree
 	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
 
-signal attack_started()
-signal attack_finished()
 signal skill_started(skill: Skill)
 signal skill_finished(skill: Skill)
 signal interrupted(skill: Skill, reason: String)
@@ -36,11 +34,6 @@ signal combat_exited()
 signal gcd_triggered(duration: float)
 signal durability_tick(total_loss: int)  # Emitted each minute of combat
 signal item_broken(item_id: String)  # Emitted when an item reaches 0 durability
-
-@export var attack_power: int = 10
-@export var spell_power: int = 10
-@export var crit_chance: float = 0.05  # 5%
-@export var crit_multiplier: float = 1.5
 
 # Global Cooldown (GCD)
 var gcd_remaining: float = 0.0
@@ -59,15 +52,6 @@ var _last_action_time: float = 0.0  # Time of last skill/attack
 @export var durability_tick_interval: float = 60.0  # Apply durability loss every 60 seconds (1 minute)
 @export var action_timeout: float = 5.0  # Stop counting active time after 5 seconds of no actions
 
-# Mana Regen
-@export var mana_regen_combat: float = 1.0    # Multiplier during combat
-@export var mana_regen_rest: float = 5.0     # Multiplier while resting
-var _current_mana_regen_multiplier: float = 1.0
-
-# Stamina Regen
-@export var stamina_regen_combat: float = 0.2
-@export var stamina_regen_rest: float = 1.0
-
 # Casting state (interrupted by damage)
 var is_casting: bool = false
 var cast_skill: Skill = null
@@ -84,10 +68,6 @@ var channel_time_total: float = 0.0
 var channel_tick_interval: float = 0.0
 var _channel_ticks: int = 0
 
-# Attack state
-var is_attacking: bool = false
-var attack_cooldown: float = 0.0
-
 # Skill queue
 var queued_skill: Skill = null
 var _skill_queue_enabled: bool = true
@@ -99,9 +79,6 @@ func _physics_process(delta: float) -> void:
 	# Update cooldowns
 	if gcd_remaining > 0:
 		gcd_remaining = max(0, gcd_remaining - delta)
-
-	if attack_cooldown > 0:
-		attack_cooldown = max(0, attack_cooldown - delta)
 
 	# Update combat state
 	_update_combat_state(delta)
@@ -470,28 +447,6 @@ func _finish_channel(completed: bool) -> void:
 	channel_ended.emit(skill, completed)
 	skill_finished.emit(skill)
 
-func _perform_attack(skill: Skill, target = null) -> void:
-	attack_started.emit()
-
-	# Calculate damage
-	var base_damage := attack_power
-	var is_crit: bool = randf() < crit_chance
-	var damage := base_damage
-
-	if is_crit:
-		damage = int(damage * crit_multiplier)
-
-	# Apply damage (duck-typed: take_damage first, HealthComponent fallback)
-	if target and is_instance_valid(target):
-		if target.has_method("take_damage"):
-			target.take_damage(damage, get_parent())
-		elif "health_component" in target and target.health_component != null:
-			target.health_component.take_damage(damage, get_parent())
-
-	attack_cooldown = 1.0 / skill.cast_time if skill.cast_time > 0 else 1.0
-	skill_finished.emit(skill)
-	record_action()
-
 ## Emit the EventHub skill_executed event (caster_id, skill_id, targets).
 ## The old EventHub.emit_skill_used() did not exist -- every non-hitbox
 ## cast crashed on it.
@@ -503,23 +458,6 @@ func _emit_skill_used(entity, skill: Skill, target) -> void:
 	var evt := _hub()
 	if evt:
 		evt.emit_signal("skill_executed", caster_id, skill.skill_id, target_ids)
-
-## Basic auto-attack
-func auto_attack(target, damage: int) -> void:
-	if attack_cooldown > 0:
-		return
-
-	var is_crit := randf() < crit_chance
-	var final_damage := damage
-
-	if is_crit:
-		final_damage = int(damage * crit_multiplier)
-
-	if target and is_instance_valid(target):
-		if target.has_method("take_damage"):
-			target.take_damage(final_damage, get_parent())
-		elif "health_component" in target and target.health_component != null:
-			target.health_component.take_damage(final_damage, get_parent())
 
 ## Check if GCD is active
 func is_gcd_active() -> bool:
@@ -560,7 +498,6 @@ func _enter_combat() -> void:
 
 	in_combat = true
 	combat_start_time = Time.get_ticks_msec()
-	_current_mana_regen_multiplier = mana_regen_combat
 
 	combat_entered.emit()
 	var evt := _hub()
@@ -573,7 +510,6 @@ func _exit_combat() -> void:
 
 	in_combat = false
 	combat_start_time = 0
-	_current_mana_regen_multiplier = mana_regen_rest
 
 	combat_exited.emit()
 	var evt := _hub()
@@ -596,16 +532,6 @@ func get_combat_duration() -> float:
 	if not in_combat:
 		return 0.0
 	return (Time.get_ticks_msec() - combat_start_time) / 1000.0
-
-## Get current mana regen multiplier
-func get_mana_regen_multiplier() -> float:
-	return _current_mana_regen_multiplier
-
-## Get stamina regen multiplier
-func get_stamina_regen_multiplier() -> float:
-	if in_combat:
-		return stamina_regen_combat
-	return stamina_regen_rest
 
 ## Force exit combat (e.g., zone change)
 func force_exit_combat() -> void:

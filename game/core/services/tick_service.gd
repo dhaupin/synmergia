@@ -24,6 +24,7 @@ extends Node
 const T3Script = preload("res://core/frame/kv/t3.gd")
 const StateTreeScript = preload("res://core/frame/kv/state_tree.gd")
 const SeedChainScript = preload("res://core/frame/kv/seed_chain.gd")
+const CombatBalanceData = preload("res://core/schemas/combat_balance_data.gd")
 
 signal tick_started(tick_number: int)
 signal tick_completed(tick_number: int, phase_timings: Dictionary)
@@ -110,6 +111,7 @@ func _adapter_registry():
 ## Tick state
 var _tick_number: int = 0
 var _is_running: bool = false
+var _combat_balance = null
 var _tick_timer: Timer = null
 var _tick_interval: float = DEFAULT_TICK_INTERVAL_MS
 
@@ -652,19 +654,32 @@ func _decay_effects() -> Dictionary:
 				swept += 1
 	return {"swept": swept, "advanced": advanced}
 
-## Health/mana regen per tick (out-of-combat pacing: 1% max health and
-## 2% max mana per second, scaled by the tick interval). Fractional
-## amounts accumulate per entity until a whole point applies, so the
-## 50ms tick never rounds regen to zero.
-const REGEN_HEALTH_PCT_PER_SEC: float = 0.01
-const REGEN_MANA_PCT_PER_SEC: float = 0.02
-
+## Health/mana regen per tick (out-of-combat pacing, scaled by the tick
+## interval). Fractional amounts accumulate per entity until a whole point
+## applies, so the 50ms tick never rounds regen to zero. The percentages
+## come from the combat balance record; the flat stat regen still rides
+## the same accumulator.
 var _regen_health_acc: Dictionary = {}   # entity_id -> float
 var _regen_mana_acc: Dictionary = {}     # entity_id -> float
+
+func _combat_balance_record() -> CombatBalanceData:
+	if _combat_balance != null:
+		return _combat_balance
+	var ds = get_node_or_null("/root/DataService")
+	if ds != null and ds.has_method("get_combat_balance"):
+		var record = ds.get_combat_balance()
+		if record is CombatBalanceData:
+			_combat_balance = record
+			return _combat_balance
+	# A missing record falls back to the schema's declared defaults; the
+	# shipped record is the tuning surface, not a second literal table.
+	_combat_balance = CombatBalanceData.new()
+	return _combat_balance
 
 func _regen_entities() -> void:
 	if EntityService == null:
 		return
+	var balance := _combat_balance_record()
 	var dt: float = _tick_interval / 1000.0
 	var entities = EntityService.get_all_entities()
 	for entity in entities:
@@ -690,7 +705,7 @@ func _regen_entities() -> void:
 		var flat_hp: float = float(entity.stats.get("health_regen", 0.0)) if ("stats" in entity) else 0.0
 		var flat_mp: float = float(entity.stats.get("mana_regen", 0.0)) if ("stats" in entity) else 0.0
 		if has_health and (entity.current_health < entity.max_health or flat_hp != 0.0):
-			var h_acc: float = float(_regen_health_acc.get(eid, 0.0)) + (float(entity.max_health) * REGEN_HEALTH_PCT_PER_SEC + flat_hp) * dt
+			var h_acc: float = float(_regen_health_acc.get(eid, 0.0)) + (float(entity.max_health) * balance.health_regen_pct_per_sec + flat_hp) * dt
 			while h_acc >= 1.0:
 				h_acc -= 1.0
 				entity.heal(1)
@@ -698,7 +713,7 @@ func _regen_entities() -> void:
 		else:
 			_regen_health_acc.erase(eid)
 		if has_mana and (entity.current_mana < entity.max_mana or flat_mp != 0.0):
-			var m_acc: float = float(_regen_mana_acc.get(eid, 0.0)) + (float(entity.max_mana) * REGEN_MANA_PCT_PER_SEC + flat_mp) * dt
+			var m_acc: float = float(_regen_mana_acc.get(eid, 0.0)) + (float(entity.max_mana) * balance.mana_regen_pct_per_sec + flat_mp) * dt
 			while m_acc >= 1.0:
 				m_acc -= 1.0
 				entity.current_mana = mini(entity.max_mana, entity.current_mana + 1)

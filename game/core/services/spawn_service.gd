@@ -479,12 +479,10 @@ func spawn_enemy(spawn_point_id: String) -> Variant:
 	# Position enemy
 	enemy.global_position = spawn_point.get_spawn_position()
 
-	# Attach an AI brain configured from EnemyData ranges. Without this the
+	# Attach an AI brain configured from EnemyData. Without this the
 	# enemy stands inert: aggro/threat/memory systems are unreachable.
 	var ai = EnemyAIScript.new()
-	ai.aggro_range = spawn_point.enemy_data.aggro_range
-	ai.chase_range = spawn_point.enemy_data.chase_range
-	ai.attack_range = spawn_point.enemy_data.attack_range
+	ai.configure_from_data(spawn_point.enemy_data)
 	enemy.attach_ai(ai)
 
 	# Parent into the scene tree so _physics_process runs (movement, AI
@@ -766,11 +764,10 @@ func spawn_enemy_direct(
 		plate_kind = "elite"
 		FloatingName.ensure(enemy, FloatingName.compose_text(enemy.display_name, enemy.level), plate_kind)
 
-	# AI configured from the template's ranges (same surface as
-	# spawn_enemy): without it the enemy stands inert.
+	# AI configured from the template (same surface as spawn_enemy):
+	# without it the enemy stands inert.
 	var ai = EnemyAIScript.new()
-	ai.aggro_range = template.aggro_range
-	ai.chase_range = template.chase_range
+	ai.configure_from_data(template)
 	enemy.attach_ai(ai)
 
 	var mtype: int = metadata_type

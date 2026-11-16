@@ -62,8 +62,8 @@ enum TargetType {
 ## "true" (unmitigated). It selects which attack stat scales the hit
 ## (attack_power vs spell_power) AND which crit roll the hit table uses --
 ## a magical skill crits off INT, a physical one off agility. Before this
-## field every skill was implicitly physical, so the magic crit path
-## (CombatMath.calculate_magic_hit) had no caller and mages crit off agility.
+## field every skill was implicitly physical, so mages crit off agility even
+## for magical skills.
 @export var damage_type: String = "physical"
 
 # Requirements

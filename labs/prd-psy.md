@@ -129,8 +129,8 @@ plays a boosted day.
   no buff. Agents may run the reveal outside game processes -- the
   code IS the lottery ticket.
 - **The payout (one day, whole shard):** +20% damage (CombatMath
-  calculate_hit/calculate_magic_hit -> calculate_damage via the
-  blessing_multiplier in the hit_result), +20% healing
+  calculate_hit -> calculate_damage via the blessing_multiplier in the
+  hit_result), +20% healing
   (Skill.calculate_healing), +20% XP (KillRewards._grant_xp), and
   effective level +5 for stat computation
   (CharacterData.get_stat_total). Announced at code-assembly (plan
@@ -197,8 +197,8 @@ plays a boosted day.
   no buff. Agents may run the reveal outside game processes -- the
   code IS the lottery ticket.
 - **The payout (one day, whole shard):** +20% damage (CombatMath
-  calculate_hit / calculate_magic_hit stamp a blessing_multiplier
-  into the hit_result; calculate_damage applies it), +20% healing
+  calculate_hit stamps a blessing_multiplier into the hit_result;
+  calculate_damage applies it), +20% healing
   (Skill.calculate_healing), +20% XP (KillRewards._grant_xp), and
   effective level +5 for stat computation
   (CharacterData.get_stat_total). Announced at code-assembly (plan

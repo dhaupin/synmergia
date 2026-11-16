@@ -47,6 +47,16 @@ func _run() -> void:
 		quit(1)
 		return
 
+	# The hit table now reads the authored balance record. Inject it so
+	# script-mode runs (no DataService boot) and the live game agree.
+	var combat_balance = load("res://data/balance/combat_balance.tres")
+	if combat_balance == null:
+		printerr("FAIL  combat_balance.tres failed to load")
+		_fails += 1
+		quit(1)
+		return
+	CombatMathScript.set_balance_override(combat_balance)
+
 	# Await each group: several suspend on process_frame (entity _ready),
 	# and an un-awaited call would let quit() race them -- the summary
 	# would print while async groups are still pending.

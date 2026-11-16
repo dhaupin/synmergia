@@ -351,13 +351,13 @@ class ComboTracker:
 	var last_skill: Skill = null
 	var combo_history: Array[String] = []
 
-	const COMBO_WINDOW: float = 2.0  # Seconds to chain combo
-
 	func record_skill(skill: Skill) -> void:
 		var current_time := Time.get_ticks_msec() / 1000.0
 
-		# Check if within combo window
-		if current_time - last_skill_time < COMBO_WINDOW and last_skill != null:
+		# The previous skill owns the chain window, so an authored
+		# combo_window reaches the tracker instead of a second constant.
+		var window := float(last_skill.combo_window) if last_skill != null else 2.0
+		if current_time - last_skill_time < window and last_skill != null:
 			# Check if skill can chain
 			if skill.skill_id in last_skill.combo_chain:
 				combo_count += 1
@@ -381,5 +381,6 @@ class ComboTracker:
 
 	func _physics_process(_delta: float) -> void:
 		var current_time := Time.get_ticks_msec() / 1000.0
-		if current_time - last_skill_time > COMBO_WINDOW:
+		var window := float(last_skill.combo_window) if last_skill != null else 2.0
+		if current_time - last_skill_time > window:
 			combo_count = 0

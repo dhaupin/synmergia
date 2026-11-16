@@ -76,6 +76,7 @@ func _test_spawn_service_creates_ai_enemy() -> void:
 	data.aggro_range = 30.0
 	data.chase_range = 40.0
 	data.attack_range = 2.0
+	data.attack_speed = 2.0
 
 	var SpawnServiceScript = load("res://core/services/spawn_service.gd")
 	var sp_id: String = spawn_service.register_spawn_point(
@@ -94,6 +95,8 @@ func _test_spawn_service_creates_ai_enemy() -> void:
 		return
 	_assert(enemy.get_script() == load("res://entities/enemy.gd"), "spawned enemy uses the full Enemy class")
 	_assert(enemy._ai != null, "spawned enemy has an AI attached")
+	_assert(is_equal_approx(float(enemy._ai.attack_cooldown), 0.5),
+		"spawned AI reads the template's attacks-per-second")
 	_assert(enemy.is_inside_tree(), "spawned enemy is parented into the scene tree")
 	_assert(enemy.health_component != null, "spawned enemy has a HealthComponent")
 	var reg_id = es.get_entity_id(enemy) if es.has_method("get_entity_id") else enemy.entity_id
