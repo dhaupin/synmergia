@@ -270,6 +270,14 @@ func get_agent_slot_balance() -> AgentSlotBalanceData:
 	GameLog.warn("DataService: Agent slot balance record not found")
 	return null
 
+## The shared payment provider SKU board.
+func get_payment_sku_catalog() -> PaymentSkuCatalogData:
+	var record = _balance.get("payment_skus")
+	if record is PaymentSkuCatalogData:
+		return record
+	GameLog.warn("DataService: Payment SKU catalog not found")
+	return null
+
 ## Load classes from data/classes/
 func load_classes() -> void:
 	_classes = _scan_directory(_data_path + "classes", "class")

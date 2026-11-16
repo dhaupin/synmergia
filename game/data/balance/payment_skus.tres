@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="PaymentSkuCatalogData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/payment_sku_catalog_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "payment_skus"
+skus = [{
+"sku_id": "sigil_pack_pouch",
+"display_name": "Pouch of Sigils",
+"sigils": 5,
+"price_label": "starter price (not wired)"
+}, {
+"sku_id": "sigil_pack_coffer",
+"display_name": "Coffer of Sigils",
+"sigils": 12,
+"price_label": "vault price (not wired)"
+}, {
+"sku_id": "sigil_pack_charter",
+"display_name": "Vault Charter of Sigils",
+"sigils": 30,
+"price_label": "deep-stall price (not wired)"
+}, {
+"sku_id": "sigil_100",
+"display_name": "100 Concord Sigils",
+"sigils": 100,
+"price_label": "$4.99"
+}, {
+"sku_id": "sigil_280",
+"display_name": "280 Concord Sigils",
+"sigils": 280,
+"price_label": "$12.99"
+}, {
+"sku_id": "sigil_600",
+"display_name": "600 Concord Sigils + 50 bonus",
+"sigils": 650,
+"price_label": "$24.99"
+}]

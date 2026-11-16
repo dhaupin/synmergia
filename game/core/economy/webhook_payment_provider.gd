@@ -40,10 +40,12 @@ extends "res://core/economy/payment_provider.gd"
 const SECRET_ENV := "PAYMENT_WEBHOOK_SECRET"
 const SIGNATURE_HEADER := "x-synmergia-signature"
 const FRESHNESS_SEC := 300.0
-const SKUS := [
-	{"sku_id": "sigil_100", "display_name": "100 Concord Sigils", "sigils": 100, "price_label": "$4.99"},
-	{"sku_id": "sigil_280", "display_name": "280 Concord Sigils", "sigils": 280, "price_label": "$12.99"},
-	{"sku_id": "sigil_600", "display_name": "600 Concord Sigils + 50 bonus", "sigils": 650, "price_label": "$24.99"},
+## The SKU ids this processor sells. The rows live once in the shared
+## data/balance/payment_skus.tres record; this is the processor mapping.
+const SKU_IDS := [
+	"sigil_100",
+	"sigil_280",
+	"sigil_600",
 ]
 
 ## purchase_id -> {purchase_id, player_id, sku_id, sigils, state}
@@ -90,12 +92,15 @@ func get_display_name() -> String:
 	return "Hosted Checkout (webhook)"
 
 func get_catalog(_player_id: String) -> Array:
-	return SKUS.duplicate(true)
+	return _catalog_rows(SKU_IDS)
 
 func begin_purchase(player_id: String, sku_id: String) -> Dictionary:
 	if player_id == "" or sku_id == "":
 		return {"status": "refused", "reason": "Missing buyer or SKU."}
-	var sku := _sku_for(sku_id)
+	var catalog := _catalog_rows(SKU_IDS)
+	if catalog.is_empty():
+		return {"status": "refused", "reason": "Payment catalog unavailable."}
+	var sku := _sku_for(sku_id, catalog)
 	if sku.is_empty():
 		return {"status": "refused", "reason": "That SKU is not on this processor's board."}
 	# One pending order per buyer -- the panel shows one, so the books
@@ -215,8 +220,8 @@ func fulfill_purchase(purchase_id: String) -> Dictionary:
 
 ## ---------------------------------------------------------------------------
 
-func _sku_for(sku_id: String) -> Dictionary:
-	for sku in SKUS:
+func _sku_for(sku_id: String, catalog: Array) -> Dictionary:
+	for sku in catalog:
 		if str(sku.get("sku_id", "")) == sku_id:
 			return sku
 	return {}

@@ -9,27 +9,12 @@
 ## "complete", and completion only comes through this seam.
 extends "res://core/economy/payment_provider.gd"
 
-## The SKU rows this provider sells. held as DATA so a processor swap
-## only reimplements the seam, not the catalog.
-const SKU_CATALOG := [
-	{
-		"sku_id": "sigil_pack_pouch",
-		"display_name": "Pouch of Sigils",
-		"sigils": 5,
-		"price_label": "starter price (not wired)",
-	},
-	{
-		"sku_id": "sigil_pack_coffer",
-		"display_name": "Coffer of Sigils",
-		"sigils": 12,
-		"price_label": "vault price (not wired)",
-	},
-	{
-		"sku_id": "sigil_pack_charter",
-		"display_name": "Vault Charter of Sigils",
-		"sigils": 30,
-		"price_label": "deep-stall price (not wired)",
-	},
+## The SKU ids this processor sells. The rows live once in the shared
+## data/balance/payment_skus.tres record; this is the processor mapping.
+const SKU_IDS := [
+	"sigil_pack_pouch",
+	"sigil_pack_coffer",
+	"sigil_pack_charter",
 ]
 
 var _pending := {}   # purchase_id -> {player_id, sku_id, sku, status}
@@ -41,10 +26,13 @@ func get_display_name() -> String:
 	return "Manual Checkout (dev seed)"
 
 func get_catalog(_player_id: String) -> Array:
-	return SKU_CATALOG.duplicate(true)
+	return _catalog_rows(SKU_IDS)
 
 func begin_purchase(player_id: String, sku_id: String) -> Dictionary:
-	for sku in SKU_CATALOG:
+	var catalog := _catalog_rows(SKU_IDS)
+	if catalog.is_empty():
+		return {"status": "refused", "reason": "Payment catalog unavailable."}
+	for sku in catalog:
 		if str(sku.get("sku_id")) == sku_id:
 			var pid := "order_%d_%s" % [Time.get_ticks_msec(), player_id]
 			_pending[pid] = {
