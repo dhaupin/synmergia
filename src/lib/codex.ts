@@ -239,7 +239,10 @@ function buildCategory(key: string, raw: Record<string, any>): CodexCategory {
   const bySource = new Map<string, CodexEntry>();
   for (const [id, v] of Object.entries(raw)) {
     if (!v || typeof v !== 'object') continue;
-    const entry = buildEntry(id, v as Raw);
+    // Namespace the id by category: ids are unique within a directory but not
+    // across the tree (a weapon and an achievement can share a slug), and the
+    // Codex renders every category in one list.
+    const entry = buildEntry(`${key}:${id}`, v as Raw);
     const anchor = entry.source || id;
     if (!bySource.has(anchor)) bySource.set(anchor, entry);
   }

@@ -101,6 +101,7 @@ questions live.
 | Doc | Status | Settles |
 | --- | --- | --- |
 | [`prd-clipmap.md`](./prd-clipmap.md) | ACTIVE | The sole terrain renderer: rings, water sheet, road deck, prop layer |
+| [`prd-codex.md`](./prd-codex.md) | ACTIVE | The public Codex: unfiltered `.tres` viewer, canonical enum vocabulary, community balance loop |
 | [`prd-terrain.md`](./prd-terrain.md) | ACTIVE | Biomes, surface look, hydrology, progression |
 | [`clipmap-fold-survey.md`](./clipmap-fold-survey.md) | TRACKER | What else folds into the provider path; A1-A4 and B1 closed, residual streamer prose is cleanup |
 | [`prd-ground-sample.md`](./prd-ground-sample.md) | REFERENCE | Completed ground-law fusion refactor |
