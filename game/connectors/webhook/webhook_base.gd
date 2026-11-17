@@ -152,7 +152,7 @@ func _process_queue() -> void:
 	var success: bool = send_immediate(message)
 
 	if not success and _rate_limit_remaining == 0:
-		var delay := max(0.1, _rate_limit_reset - Time.get_unix_time_from_system())
+		var delay: float = max(0.1, _rate_limit_reset - Time.get_unix_time_from_system())
 		await get_tree().create_timer(delay).timeout
 
 	_is_sending = false
@@ -162,7 +162,7 @@ func _process_queue() -> void:
 
 func _on_request_completed(result: int, response_code: int, headers: Array, body: PackedByteArray) -> void:
 	for header in headers:
-		var parts := header.split(": ", false, 1)
+		var parts: PackedStringArray = str(header).split(": ", false, 1)
 		if parts.size() == 2:
 			match parts[0].to_lower():
 				"x-ratelimit-remaining":

@@ -131,6 +131,7 @@ probe_thermals
 # write the literal assignment token in prose above it), and comment lines
 # and blanks are stripped when the block is read.
 DEFAULT_SET="
+test_parse_check
 test_data_naming_lint
 test_class_focal_stats
 test_achievements
@@ -178,6 +179,7 @@ test_status_effect_tres
 test_stat_modifiers
 test_stamina
 test_equipment_power
+test_dual_wield
 test_power_scaling
 test_attack_speed
 test_crit_system
@@ -328,6 +330,8 @@ probe_anim_play
 probe_blacksmith_scene
 probe_world_shape_ground
 test_agent_door_spec
+test_agent_driver
+test_agent_web_hooks
 test_agent_body_lifecycle
 test_agent_roster_panel
 test_globe_look_direction_wiring

@@ -194,7 +194,11 @@ func get_attack_power() -> int:
 		hi = band.y
 	if hi > 0:
 		body = randi_range(maxi(lo, 0), maxi(hi, 0))
-	return body + get_weapon_damage_roll()
+	var bag = _inventory_bag()
+	if bag == null:
+		return body
+	body += get_weapon_damage_roll(Item.WeaponDamageType.PHYSICAL)
+	return _dual_wield_power(body, Item.WeaponDamageType.PHYSICAL, bag)
 
 func _load_from_data() -> void:
 	if spawn_data_applied:

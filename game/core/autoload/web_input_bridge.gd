@@ -45,50 +45,85 @@ func _ready() -> void:
 ## reach the SAME AgentDriver verbs, so a browser agent plays by the real
 ## rules. observe/act/events are synchronous; wait_for is JS-side polling
 ## of observe() (a browser has no server-side await to park on).
+##
+## MARSHALLING LAW (live-verified on wasm): a JavaScriptBridge.create_callback
+## function RUNS when JS calls it, but (a) its RETURN VALUE does NOT cross back
+## to JS -- every return type (int/String/Dictionary) arrives as null; and (b)
+## a JS OBJECT argument arrives as an opaque JavaScriptObject, not a GDScript
+## Dictionary (only primitives survive). So the hooks take a JSON STRING and
+## publish their JSON result on a window global the JS facade reads back in the
+## same turn (the callback runs synchronously). This is the same side-channel
+## __synA11yDump already uses for window.__synA11yLast. A Dictionary that merely
+## CONTAINS callbacks also does not survive the Variant->JS marshal (it landed
+## as undefined), so the facade object itself is built in JS.
 func _install_agent_hooks() -> void:
 	var win = JavaScriptBridge.get_interface("window")
 	_agent_observe_cb = JavaScriptBridge.create_callback(_js_agent_observe)
 	_agent_act_cb = JavaScriptBridge.create_callback(_js_agent_act)
 	_agent_events_cb = JavaScriptBridge.create_callback(_js_agent_events)
-	win.SynmergiaAgent = {
-		"observe": _agent_observe_cb,
-		"act": _agent_act_cb,
-		"events": _agent_events_cb,
-	}
+	win.__synAgentObserve = _agent_observe_cb
+	win.__synAgentAct = _agent_act_cb
+	win.__synAgentEvents = _agent_events_cb
+	JavaScriptBridge.eval(
+		"window.SynmergiaAgent = {" +
+		"  observe: function () { window.__synAgentObserve(); return window.__synAgentResult; }," +
+		"  act: function (id, args) {" +
+		"    var payload = (id && typeof id === 'object') ? id : { id: id, args: args || null };" +
+		"    window.__synAgentAct(JSON.stringify(payload));" +
+		"    return window.__synAgentResult; }," +
+		"  events: function (since) {" +
+		"    window.__synAgentEvents(JSON.stringify(since == null ? -1 : since));" +
+		"    return window.__synAgentResult; }," +
+		"};", true)
 
 func _agent_driver() -> Node:
 	return get_node_or_null("/root/AgentDriver")
 
-func _js_agent_observe(_args: Array) -> String:
-	var d := _agent_driver()
-	if d == null:
-		return "{}"
-	return JSON.stringify(d.observe())
+## Publish a hook's JSON on window.__synAgentResult for the JS facade to read
+## back in the same turn (a create_callback return value does not survive).
+func _publish_agent_result(json: String) -> void:
+	JavaScriptBridge.eval("window.__synAgentResult = %s;" % JSON.stringify(json), true)
 
-func _js_agent_act(args: Array) -> String:
+## Decode a JSON string argument (a JS object does not marshal to a Dictionary).
+func _json_arg(args: Array, fallback = null):
+	if args.is_empty() or args[0] == null:
+		return fallback
+	var parsed = JSON.parse_string(String(args[0]))
+	return parsed if parsed != null else fallback
+
+func _js_agent_observe(_args: Array) -> void:
 	var d := _agent_driver()
 	if d == null:
-		return '{"ok":false,"reason":"driver missing"}'
-	if args.is_empty():
-		return '{"ok":false,"reason":"act needs an action id"}'
-	var payload = args[0]
+		_publish_agent_result("{}")
+		return
+	_publish_agent_result(JSON.stringify(d.observe()))
+
+func _js_agent_act(args: Array) -> void:
+	var d := _agent_driver()
+	if d == null:
+		_publish_agent_result('{"ok":false,"reason":"driver missing"}')
+		return
+	var payload = _json_arg(args, {})
 	var action_id: String = ""
 	var extra: Dictionary = {}
 	if payload is String:
 		action_id = String(payload)
 	elif payload is Dictionary:
 		action_id = String(payload.get("id", ""))
-		extra = payload.get("args", {})
-	return JSON.stringify(d.act(action_id, extra))
+		var a = payload.get("args", null)
+		if a is Dictionary:
+			extra = a
+	if action_id == "":
+		_publish_agent_result('{"ok":false,"reason":"act needs an action id"}')
+		return
+	_publish_agent_result(JSON.stringify(d.act(action_id, extra)))
 
-func _js_agent_events(args: Array) -> String:
+func _js_agent_events(args: Array) -> void:
 	var d := _agent_driver()
 	if d == null:
-		return "[]"
-	var since: int = -1
-	if not args.is_empty() and args[0] != null:
-		since = int(args[0])
-	return JSON.stringify(d.events(since))
+		_publish_agent_result("[]")
+		return
+	_publish_agent_result(JSON.stringify(d.events(int(_json_arg(args, -1)))))
 
 func _js_a11y_dump(args: Array) -> void:
 	A11yService.dump()

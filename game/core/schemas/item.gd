@@ -29,7 +29,27 @@ enum WeaponType {
 	STAFF,
 	WAND,
 	SPEAR,
-	SHIELD
+	SHIELD,
+	## The long-blade family: 1H lances are the short couched variant,
+	## 2H lances the reach/charge weapon. Spear remains the thrown/pike
+	## family; keeping them separate lets each author its own identity.
+	LANCE,
+	## 2H reaping blade. No 1H variant by design (the off-hand belongs to
+	## a dagger or focus in that posture).
+	SCYTHE,
+	## Healer focus: a 1H or 2H relic whose weapon band feeds healing
+	## power instead of physical attack. The band is the healing min-max.
+	RELIC
+}
+
+## What the weapon's authored band feeds. A physical weapon rolls into
+## attack power; a magical staff/wand rolls into spell power; a relic rolls
+## into healing power. This is how one Item field becomes the three lanes
+## without a second damage table.
+enum WeaponDamageType {
+	PHYSICAL,
+	MAGICAL,
+	HEALING
 }
 
 ## Shield families. A normal shield is the 1H weapon + shield posture;
@@ -166,9 +186,14 @@ enum EquipSlot {
 # Equipment-specific
 @export var weapon_damage_min: int = 0
 @export var weapon_damage_max: int = 0
+## Which power lane the band feeds. Physical = attack power; magical =
+## spell power (staff/wand); healing = healing power (relic). A magical or
+## healing weapon's band is still a real min/max roll, just not a physical
+## auto-attack band.
+@export var weapon_damage_type: WeaponDamageType = WeaponDamageType.PHYSICAL
 ## A two-handed weapon occupies the main hand and forbids a normal off-hand
 ## shield; only a wrist shield may ride beside it. One-handed weapons and
-## wands leave the off hand free for a normal shield.
+## wands leave the off hand free for a normal shield or a second one-hander.
 @export var is_two_handed: bool = false
 ## Only meaningful when weapon_type == SHIELD. NORMAL is the full shield;
 ## WRIST is the arm-strapped lesser family legal beside a two-handed weapon.
@@ -380,6 +405,14 @@ func get_effective_crit_damage() -> float:
 func is_shield() -> bool:
 	return weapon_type == WeaponType.SHIELD
 
+## A hand weapon that can live in either hand. Shields and two-handers
+## are excluded; this is the one dual-wield eligibility predicate.
+func is_one_handed_weapon() -> bool:
+	return item_category == ItemCategory.WEAPON \
+		and weapon_type != WeaponType.NONE \
+		and weapon_type != WeaponType.SHIELD \
+		and not is_two_handed
+
 func is_wrist_shield() -> bool:
 	return is_shield() and shield_type == ShieldType.WRIST
 
@@ -475,6 +508,7 @@ func to_dict() -> Dictionary:
 		"secondary_stats": secondary_stats,
 		"weapon_damage_min": weapon_damage_min,
 		"weapon_damage_max": weapon_damage_max,
+		"weapon_damage_type": weapon_damage_type,
 		"is_two_handed": is_two_handed,
 		"shield_type": shield_type,
 		"attack_speed": attack_speed,
@@ -544,6 +578,7 @@ static func from_dict(data: Dictionary) -> Item:
 	item.secondary_stats = data.get("secondary_stats", {})
 	item.weapon_damage_min = int(data.get("weapon_damage_min", 0))
 	item.weapon_damage_max = int(data.get("weapon_damage_max", 0))
+	item.weapon_damage_type = int(data.get("weapon_damage_type", WeaponDamageType.PHYSICAL))
 	item.is_two_handed = bool(data.get("is_two_handed", false))
 	item.shield_type = int(data.get("shield_type", ShieldType.NORMAL))
 	item.attack_speed = float(data.get("attack_speed", 1.0))

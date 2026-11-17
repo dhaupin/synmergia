@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_iron_warhammer"
+display_name = "Iron Warhammer"
+description = "A short-hafted hammer balanced for one hand. Slower than a sword, but the shield hand stays free."
+icon_path = "res://icons/items/axe_iron.png"
+item_category = 0
+rarity = 0
+equip_slot = 7
+weapon_type = 3
+is_two_handed = false
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+is_bound = false
+bind_on_equip = false
+unique = false
+sell_price = 60
+buy_price = 250
+item_level = 7
+required_level = 6
+required_class = ""
+required_strength = 5
+required_agility = 0
+required_intelligence = 0
+stats = {
+"strength": 4
+}
+primary_stats = {}
+secondary_stats = {}
+weapon_damage_min = 13
+weapon_damage_max = 21
+attack_speed = 0.90
+crit_chance = 0.012
+crit_damage = 0.120
+armor_value = 0
