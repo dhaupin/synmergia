@@ -535,7 +535,12 @@ func _update_combat(delta: float) -> void:
 	_attack_timer -= delta
 	if _attack_timer <= 0:
 		_perform_attack()
-		_attack_timer = attack_cooldown
+		# Weapon cadence and haste reach the enemy brain through the same
+		# body getter players use; the template's attacks/sec is the base.
+		var cadence: float = 1.0
+		if entity.has_method("get_attack_speed"):
+			cadence = clampf(float(entity.get_attack_speed()), 0.1, 3.0)
+		_attack_timer = attack_cooldown / cadence
 
 func _perform_attack() -> void:
 	if not _target or not is_instance_valid(_target):

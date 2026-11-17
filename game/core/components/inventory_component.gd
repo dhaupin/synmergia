@@ -106,6 +106,7 @@ static func from_dict(data: Dictionary) -> InventoryComponent:
 		if item_data is Dictionary and not item_data.is_empty():
 			comp._equipment[slot] = Item.from_dict(item_data)
 	comp._migrate_legacy_weapon_slot()
+	comp._migrate_hand_legality()
 	return comp
 
 ## Old saves and old .tres both used off-hand (8) for every hand weapon. The
@@ -126,6 +127,42 @@ func _migrate_legacy_weapon_slot() -> void:
 	for i in range(_inventory.size()):
 		if _inventory[i] == null:
 			_inventory[i] = offhand
+			_equipment.erase(Item.EquipSlot.OFF_HAND)
+			return
+
+## A two-handed main hand forbids every off-hand except a wrist shield.
+## Called on both sides of an equip and on loaded saves, so an authored or
+## pre-canonical illegal pair can never survive into a live stat block.
+func _hand_layout_allows(item: Item, equip_slot: int) -> bool:
+	if item == null:
+		return false
+	if equip_slot == Item.EquipSlot.MAIN_HAND and item.is_two_handed:
+		var off = _equipment.get(Item.EquipSlot.OFF_HAND)
+		if off != null and not off.is_wrist_shield():
+			return false
+	if equip_slot == Item.EquipSlot.OFF_HAND:
+		var main = _equipment.get(Item.EquipSlot.MAIN_HAND)
+		if main != null and main.is_two_handed and not item.is_wrist_shield():
+			return false
+		if item.is_two_handed:
+			return false
+	return true
+
+## Public legality read for UI/equip preview. The same predicate equip_item
+## enforces, so the button and the mutation cannot disagree.
+func can_equip_in_slot(item: Item) -> bool:
+	return item != null and item.can_equip() and _hand_layout_allows(item, int(item.equip_slot))
+
+## Move an illegal loaded off-hand pair back to the bag. A full bag leaves
+## the save untouched rather than deleting the item.
+func _migrate_hand_legality() -> void:
+	var main: Item = _equipment.get(Item.EquipSlot.MAIN_HAND)
+	var off: Item = _equipment.get(Item.EquipSlot.OFF_HAND)
+	if main == null or off == null or not main.is_two_handed or off.is_wrist_shield():
+		return
+	for i in range(_inventory.size()):
+		if _inventory[i] == null:
+			_inventory[i] = off
 			_equipment.erase(Item.EquipSlot.OFF_HAND)
 			return
 
@@ -330,6 +367,8 @@ func equip_item(inventory_slot: int) -> bool:
 		return false
 
 	var equip_slot = item.equip_slot
+	if not _hand_layout_allows(item, int(equip_slot)):
+		return false
 
 	# Unequip current item in that slot
 	var old_item: Item = _equipment.get(equip_slot)
@@ -583,6 +622,37 @@ func get_main_hand_damage() -> Dictionary:
 		min_dmg = weapon.get_effective_damage_min()
 		max_dmg = weapon.get_effective_damage_max()
 	return {"min": min_dmg, "max": max_dmg}
+
+## One per-swing roll inside the main-hand band. The item normalizes an
+## inverted authored pair, so the roll can never escape lower..higher.
+func get_main_hand_damage_roll() -> int:
+	var damage := get_main_hand_damage()
+	var lo: int = int(damage.get("min", 0))
+	var hi: int = int(damage.get("max", 0))
+	if hi <= 0:
+		return 0
+	return randi_range(maxi(lo, 0), maxi(hi, 0))
+
+## Main-hand identity read by every body (player, enemy, future actor).
+func get_main_hand_attack_speed() -> float:
+	var weapon: Item = _equipment.get(Item.EquipSlot.MAIN_HAND)
+	return weapon.get_effective_attack_speed() if weapon != null else 1.0
+
+func get_main_hand_crit_chance() -> float:
+	var weapon: Item = _equipment.get(Item.EquipSlot.MAIN_HAND)
+	return weapon.get_effective_crit_chance() if weapon != null else 0.0
+
+func get_main_hand_crit_damage() -> float:
+	var weapon: Item = _equipment.get(Item.EquipSlot.MAIN_HAND)
+	return weapon.get_effective_crit_damage() if weapon != null else 0.0
+
+## The off-hand block scale the hit table multiplies into block chance and
+## block value. A normal shield is 1.0, a wrist shield 0.4, broken/absent 0.
+func get_offhand_block_scale() -> float:
+	var off: Item = _equipment.get(Item.EquipSlot.OFF_HAND)
+	if off == null or not off.is_shield() or off.is_broken():
+		return 0.0
+	return off.get_shield_block_scale()
 
 ## Get inventory count
 func get_inventory_count() -> int:

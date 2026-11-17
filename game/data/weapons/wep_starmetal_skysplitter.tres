@@ -12,6 +12,7 @@ item_category = 0
 rarity = 4
 equip_slot = 7
 weapon_type = 1
+is_two_handed = true
 stack_size = 1
 sell_price = 1800
 buy_price = 5200

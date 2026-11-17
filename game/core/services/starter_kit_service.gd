@@ -177,41 +177,12 @@ func _give_starter_item(player_id: String, item_id: String) -> bool:
 		push_warning("StarterKitService: Failed to load item: %s" % item_path)
 		return false
 
-	# Create a new instance of the item
+	# Create a new instance through the schema's one serializer. The old
+	# hand-copied field list silently dropped every field added after it was
+	# written (handedness, shield family, resists, crit, block); from_dict
+	# means a starter item cannot drift from the catalog record.
 	var ItemClass: Script = load("res://core/schemas/item.gd")
-	var new_item: Resource = ItemClass.new()
-	if "id" in item_res:
-		new_item.id = item_res.get("id")
-	if "display_name" in item_res:
-		new_item.display_name = item_res.get("display_name")
-	if "description" in item_res:
-		new_item.description = item_res.get("description")
-	if "icon_path" in item_res:
-		new_item.icon_path = item_res.get("icon_path")
-	if "item_category" in item_res:
-		new_item.item_category = item_res.get("item_category")
-	if "rarity" in item_res:
-		new_item.rarity = item_res.get("rarity")
-	if "equip_slot" in item_res:
-		new_item.equip_slot = item_res.get("equip_slot")
-	if "weapon_type" in item_res:
-		new_item.weapon_type = item_res.get("weapon_type")
-	if "stack_size" in item_res:
-		new_item.stack_size = item_res.get("stack_size")
-	if "sell_price" in item_res:
-		new_item.sell_price = item_res.get("sell_price")
-	if "buy_price" in item_res:
-		new_item.buy_price = item_res.get("buy_price")
-	if "required_level" in item_res:
-		new_item.required_level = item_res.get("required_level")
-	if "stats" in item_res:
-		new_item.stats = item_res.get("stats")
-	if "weapon_damage_min" in item_res:
-		new_item.weapon_damage_min = item_res.get("weapon_damage_min")
-	if "weapon_damage_max" in item_res:
-		new_item.weapon_damage_max = item_res.get("weapon_damage_max")
-	if "attack_speed" in item_res:
-		new_item.attack_speed = item_res.get("attack_speed")
+	var new_item: Resource = ItemClass.from_dict(item_res.to_dict())
 
 	# Add to inventory
 	if InventoryService:

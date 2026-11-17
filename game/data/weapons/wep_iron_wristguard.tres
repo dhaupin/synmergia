@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_iron_wristguard"
+display_name = "Iron Wristguard"
+description = "A banded forearm plate with a short bite. It turns a blade aside and never pretends to be a wall."
+icon_path = "res://icons/items/shield_haven_wall.png"
+item_category = 0
+rarity = 0
+equip_slot = 8
+weapon_type = 10
+is_two_handed = false
+shield_type = 2
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 40
+buy_price = 160
+item_level = 6
+required_level = 6
+required_strength = 4
+stats = {
+"strength": 1
+}
+weapon_damage_min = 3
+weapon_damage_max = 5
+attack_speed = 1.0
+crit_chance = 0.0
+crit_damage = 0.0
+damage_resists = {
+"physical": 0.03
+}
+armor_value = 7
+block_rating = 10.0
+max_durability = 100
+current_durability = 100

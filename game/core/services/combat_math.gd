@@ -322,9 +322,12 @@ static func calculate_hit(attacker, defender, skill = null) -> Dictionary:
 	var parry_chance := calculate_parry_chance(
 		defender_level, defender_ratings.parry_rating, has_shield,
 		_stat(defender, "strength", 10.0))
+	# Wrist shields are a lesser family: they open the lane but only a
+	# fraction of the block chance/value of a normal shield.
+	var shield_scale := _shield_block_scale(defender)
 	var block_chance := calculate_block_chance(
 		defender_level, defender_ratings.block_rating, has_shield,
-		_stat(defender, "vitality", 10.0))
+		_stat(defender, "vitality", 10.0)) * shield_scale
 
 	var crit_chance := _crit_chance_for(attacker, skill)
 	var crit_segment: float = maxf(0.0, 1.0 - (miss_chance + dodge_chance + parry_chance + block_chance))
@@ -353,7 +356,7 @@ static func calculate_hit(attacker, defender, skill = null) -> Dictionary:
 	if roll < cursor:
 		result["hit_result"] = HitResult.BLOCK
 		result["blocked_damage"] = int(calculate_block_value(
-			defender_ratings.block_rating, int(_stat(defender, "strength", 10.0))))
+			defender_ratings.block_rating, int(_stat(defender, "strength", 10.0))) * shield_scale)
 		return result
 
 	cursor += crit_chance
@@ -489,21 +492,18 @@ static func _attack_speed_for(attacker) -> float:
 	var delta := _stat(attacker, "attack_speed_multiplier", 1.0) - 1.0
 	return StatId.attack_speed_of(_stat(attacker, "agility", 10.0), delta)
 
-## Helper to check if defender has shield equipped. Duck-typed: only
-## the player body carries an inventory_component; bare Entity / Enemy
-## simply have no off-hand, hence no block.
-static func _has_shield(entity) -> bool:
+## The off-hand block scale: 1.0 for a normal shield, 0.4 for a wrist
+## shield, 0.0 when there is no legal off-hand. Duck-typed so the player
+## body and an equipped Enemy read the same lane.
+static func _shield_block_scale(entity) -> float:
 	if entity == null or not ("inventory_component" in entity):
-		return false
+		return 0.0
 	var inv = entity.inventory_component
-	if inv == null or not inv.has_method("get_equipped"):
-		return false
-	var offhand = inv.get_equipped(Item.EquipSlot.OFF_HAND)
-	if offhand == null or not ("weapon_type" in offhand):
-		return false
-	# An off-hand orb/tome is not a shield. Only the shield weapon type opens
-	# the block/parry lane; armor-category wall shields carry the same type.
-	# A broken shield is armor with no integrity left: it stops blocking too.
-	if offhand.has_method("is_broken") and offhand.is_broken():
-		return false
-	return int(offhand.weapon_type) == Item.WeaponType.SHIELD
+	if inv == null or not inv.has_method("get_offhand_block_scale"):
+		return 0.0
+	return float(inv.get_offhand_block_scale())
+
+## Helper to check if defender has shield equipped. The block scale owns
+## shield identity, brokenness, and the wrist family in one place.
+static func _has_shield(entity) -> bool:
+	return _shield_block_scale(entity) > 0.0

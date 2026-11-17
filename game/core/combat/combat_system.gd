@@ -135,7 +135,7 @@ func create_hitbox(caster: Node, skill: Skill, target: Node, ground_position: Ve
 	# 0/unlimited from legendary up). The cap applies at EVERY tier so the band's
 	# promise -- single-target until epic -- actually holds; an unbanded hitbox
 	# leaves it 0 and keeps the sweep's old uncapped behaviour.
-	hitbox.max_hits = skill.blast_max_targets if (skill.blast_band and skill.damage > 0) else 0
+	hitbox.max_hits = skill.blast_max_targets if (skill.blast_band and skill.get_damage_range().y > 0) else 0
 
 	# Calculate hitbox position
 	if skill.is_ground_targeted and ground_position != Vector3.ZERO:
