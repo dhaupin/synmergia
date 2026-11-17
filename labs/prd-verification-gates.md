@@ -129,27 +129,41 @@ After the fixes: **836 compiled, 1 baselined, 0 broken.**
 - Registered first in `DEFAULT_SET`; a named run is
   `sh ./scripts/godot_test_runner.sh test_parse_check`.
 
-## 6. Flake observed (this round): `probe_globe_world` radial-drift leg
+## 6. `probe_globe_world` radial-drift flake — root-caused and FIXED
 
 On PR #118's first CI run, `default-set` went red on a single test:
 `probe_globe_world` → `FAIL no radial drift (|v_rad|=-1.67)`.
 
-- The check is `abs(player.velocity.dot(normal)) < 1.5`, read immediately
-  after the auto-walk loop stops (`probe_globe_world.gd:80`). The probe is
-  already in the runner's `SERIAL_SET` (JOBS=1, ahead of the swarm) precisely
-  because a movement read is timing-sensitive.
-- It is NOT this PR's change: the diff touches no movement code, and the same
-  probe PASSES locally (`|v_rad|=-0.00`) and passed in the last green staging
-  run (31 s). A **job re-run went green** with no code change.
-- The failure is a velocity read landing on a single frame where the
-  tangential walk has a radial component just over the 1.5 threshold — a
-  slow-CI-box artifact, not a regression. The threshold has no smoothing:
-  one frame's `velocity` decides pass/fail.
+It is **not** a threshold/timing artifact — it is a real half-implemented
+contract in the globe body, reproduced locally ~1 run in 5 (always the same
+`-1.67`-ish value, bimodal with `-0.00`).
 
-**Follow-up (not done here):** either widen the threshold with margin,
-sample `velocity` over a few frames (average) instead of one, or zero the
-velocity before the read. A one-frame velocity assertion on a wall-clock walk
-is a flake generator.
+- The check is `abs(player.velocity.dot(normal)) < 1.5`, read right after the
+  auto-walk loop stops (`probe_globe_world.gd:80`).
+- **Root cause.** In `globe_player.gd` `_physics_process`, gravity is added to
+  `velocity` (`vertical -= up * gravity_force * delta`), then `move_and_slide()`
+  runs. `move_and_slide` only zeroes the vertical component when it actually
+  **collides**. A body sitting a hair above the surface that frame floats
+  through with the gravity still in `velocity`. The surface-snap block then
+  re-homes **position** to `target_r` but never cleared that phantom radial
+  **velocity** — despite its own comment claiming it should ("cancel residual
+  radial drift so the body rides the surface exactly"). So the read was
+  bimodal: `-0.00` when the prior frame collided, `-gravity*delta` (~`-1.67`)
+  when it did not. The value is exactly one frame of gravity, which is why it
+  was identical across runs.
+- **Fix.** In the snap block, after re-homing position, strip the radial
+  component of `velocity` (`velocity -= up * velocity.dot(up)`), keeping the
+  tangential walk component. This is what the comment already promised.
+  Verified: probe passes 10/10 locally (was ~1-in-5 failing), and the whole
+  movement/globe set (`probe_globe_world`, `probe_riding`, `probe_climb`,
+  `probe_glider`, `probe_thermals`, `probe_planet_control_100m`,
+  `probe_stream_flow_100m`, `probe_planet_walk_20km`,
+  `probe_planet_rebase_20km`, the `test_globe_*` suite) is green.
+
+This is the kind of defect the "if you see something say something" rule is
+for: a flaky test that a re-run hides is usually a real, if minor, code
+inconsistency — the velocity field lying about the body's state — not just a
+slow box.
 
 ## 7. Open items
 

@@ -1228,6 +1228,16 @@ func _physics_process(delta: float) -> void:
 		var err: float = planet_distance() - target_r
 		if abs(err) > 0.001:
 			global_position = planet_center + (global_position - planet_center).normalized() * target_r
+		# Cancel the residual radial velocity too, not just the position.
+		# move_and_slide() only zeroes the vertical component when it actually
+		# collides; a body a hair above the surface the tick gravity was added
+		# floats through with the gravity still in `velocity`. Re-homing the
+		# position alone leaves that phantom radial speed in the velocity field
+		# (the probe's "no radial drift" leg read gravity*delta, bimodally,
+		# depending on whether the prior frame collided). The glued body rides
+		# the surface, so its radial velocity is zero by definition -- strip it
+		# here, keeping the tangential (walk) component intact.
+		velocity -= up * velocity.dot(up)
 		# PERCH LAW: standing on a walk-over cap whose top is a
 		# climbable ledge (0.55 m or more above the terrain law) -- step
 		# off it and the body becomes AIRBORNE immediately (no snap
