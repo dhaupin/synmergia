@@ -136,9 +136,8 @@ static func from_dict(data: Dictionary) -> InventoryComponent:
 		if item_data is Dictionary and not item_data.is_empty():
 			comp._equipment[slot] = Item.from_dict(item_data)
 	comp._migrate_legacy_weapon_slot()
-	comp._migrate_breather_slot()
 	comp._migrate_hand_legality()
-	comp._migrate_capacity_overflow()
+	comp._sanitize_equipment_slots()
 	return comp
 
 ## Old saves and old .tres both used off-hand (8) for every hand weapon. The
@@ -151,6 +150,7 @@ func _migrate_legacy_weapon_slot() -> void:
 		return
 	var main: Item = _equipment.get(Item.EquipSlot.MAIN_HAND)
 	if main == null:
+		offhand.equip_slot = Item.EquipSlot.MAIN_HAND
 		_equipment[Item.EquipSlot.MAIN_HAND] = offhand
 		_equipment.erase(Item.EquipSlot.OFF_HAND)
 		return
@@ -297,6 +297,17 @@ func _capacity_for_family(family: String) -> int:
 ## only while the authored count leaves room. Replacing an occupied lane
 ## does not increase the count, so a swap stays legal at capacity.
 func _capacity_allows(item: Item, slot: int) -> bool:
+	# Layer identity is part of equip legality, not a UI convention. A
+	# BREATHER must be a breather; a TABLET must be a tablet. This blocks
+	# a helm/breather swap even if a save or resource authors the wrong
+	# slot key.
+	if int(slot) == Item.EquipSlot.HEAD \
+			and int(item.item_category) != int(Item.ItemCategory.ARMOR):
+		return false
+	if int(slot) == Item.EquipSlot.BREATHER and not item.is_breather():
+		return false
+	if int(slot) == Item.EquipSlot.TABLET and not item.is_tablet():
+		return false
 	var base_family := _slot_family(int(item.equip_slot))
 	if base_family.is_empty():
 		# Fixed slots have no capacity count. A one-hander's authored base
@@ -321,7 +332,8 @@ func _capacity_allows(item: Item, slot: int) -> bool:
 	return occupied < capacity
 
 ## Put an item back in the first free bag slot. Returns false when the bag
-## is full; callers leave the save untouched rather than deleting the item.
+## is full; callers preserve the item by appending it rather than deleting
+## or leaving it in an illegal equipment lane.
 func _return_to_bag(item: Item) -> bool:
 	for i in range(_inventory.size()):
 		if _inventory[i] == null:
@@ -329,34 +341,29 @@ func _return_to_bag(item: Item) -> bool:
 			return true
 	return false
 
-## Legacy breathers lived in NECKLACE. The air layer is now BREATHER; old
-## saves move the necklace breather across without changing its values.
-func _migrate_breather_slot() -> void:
-	var legacy: Item = _equipment.get(Item.EquipSlot.NECKLACE)
-	if legacy == null or not legacy.is_breather():
-		return
-	if _equipment.get(Item.EquipSlot.BREATHER) == null:
-		_equipment[Item.EquipSlot.BREATHER] = legacy
-		_equipment.erase(Item.EquipSlot.NECKLACE)
-		return
-	if _return_to_bag(legacy):
-		_equipment.erase(Item.EquipSlot.NECKLACE)
-
-## Designers can lower a count after characters already wear the old
-## capacity. Extra lanes spill into the bag; a full bag leaves the save
-## untouched rather than deleting gear.
-func _migrate_capacity_overflow() -> void:
-	for family in ["ring", "amulet", "belt", "cloak"]:
-		var lanes := _slots_for_family(family)
-		var capacity := _capacity_for_family(family)
-		for lane_index in range(lanes.size()):
-			var lane: int = lanes[lane_index]
-			var item: Item = _equipment.get(lane)
-			if item == null or lane_index < capacity:
-				continue
-			_equipment.erase(lane)
-			if not _return_to_bag(item):
-				_equipment[lane] = item
+## Load-time slot law. A save can only carry an item where live equip would
+## accept it. A cross-slotted breather/helm (or any illegal lane) is moved
+## to the bag, never equipped, so HEAD and BREATHER cannot be swapped by
+## data edits, save edits, or hax. Invalid items are preserved, not deleted.
+func _sanitize_equipment_slots() -> void:
+	var invalid_slots: Array = []
+	for slot in _equipment.keys():
+		var item: Item = _equipment[slot]
+		if item == null:
+			_equipment.erase(slot)
+			continue
+		if int(item.equip_slot) != Item.EquipSlot.NONE \
+				and _hand_layout_allows(item, int(slot)) \
+				and _capacity_allows(item, int(slot)):
+			continue
+		invalid_slots.append(slot)
+	for slot in invalid_slots:
+		var item: Item = _equipment.get(slot)
+		if item == null:
+			continue
+		_equipment.erase(slot)
+		if not _return_to_bag(item):
+			_inventory.append(item)
 
 func add_item(item: Item, quantity: int = 1) -> bool:
 	# Security: Check for item duplication exploit. The component may
@@ -822,17 +829,13 @@ func get_world_ward(hazard: String) -> float:
 	return tablet.get_world_ward(hazard)
 
 ## The equipped breather. The air layer is its own BREATHER slot; a HEAD
-## helm is separate armor and never doubles as a tank. The LEGACY NECKLACE
-## read remains for a partially built bag that has not run the load
-## migration yet.
+## helm is separate armor and never doubles as a tank. No other slot is
+## read, so a breather moved to NECKLACE/HEAD can never supply air.
 func get_equipped_breather() -> Item:
 	var item: Item = _equipment.get(Item.EquipSlot.BREATHER)
-	if item != null and item.is_breather() and not item.is_broken():
-		return item
-	var legacy: Item = _equipment.get(Item.EquipSlot.NECKLACE)
-	if legacy != null and legacy.is_breather() and not legacy.is_broken():
-		return legacy
-	return null
+	if item == null or not item.is_breather() or item.is_broken():
+		return null
+	return item
 
 ## True when a tablet is equipped or held in the bag. StarterKitService uses
 ## this as the never-tabletless backstop.

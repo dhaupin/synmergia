@@ -1,5 +1,5 @@
 {
-  "lastSyncedAt": "2026-11-17T03:50:20.956Z",
+  "lastSyncedAt": "2026-11-17T04:30:24.139Z",
   "counts": {
     "classes": 39,
     "weapons": 92,
@@ -22960,6 +22960,34 @@
       "_sourceFile": "game/data/accessories/acc_breather_lungshell.tres",
       "_scriptClass": "Item"
     },
+    "acc_breather_pearl_sigil": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_breather_pearl_sigil",
+      "display_name": "Pearl Sigil of the Deep Sentinel",
+      "description": "A pearl the trench dreamed around a bone core, strung on braided kelp by whatever hands the Sentinel keeps and set into a breather collar. The squeeze line reads the dream and labors to obey it: the deep forgives ten more meters, and no current can carry a body wearing the trench's own word.",
+      "icon_path": "res://icons/items/necklace_pearl_sigil.png",
+      "item_category": 2,
+      "rarity": 4,
+      "equip_slot": 16,
+      "accessory_type": 6,
+      "breath_multiplier": 1,
+      "squeeze_grace_m": 10,
+      "current_immune": true,
+      "stack_size": 1,
+      "bind_on_equip": true,
+      "sell_price": 12000,
+      "buy_price": 30000,
+      "item_level": 40,
+      "required_level": 40,
+      "stats": {
+        "wisdom": 7,
+        "vitality": 4
+      },
+      "_sourceFile": "game/data/accessories/acc_breather_pearl_sigil.tres",
+      "_scriptClass": "Item"
+    },
     "acc_breather_reed": {
       "script": {
         "_extResource": "1"
@@ -23225,33 +23253,6 @@
         "intelligence": 2
       },
       "_sourceFile": "game/data/accessories/acc_necklace_paleshard_ward.tres",
-      "_scriptClass": "Item"
-    },
-    "acc_necklace_pearl_sigil": {
-      "script": {
-        "_extResource": "1"
-      },
-      "id": "acc_necklace_pearl_sigil",
-      "display_name": "Pearl Sigil of the Deep Sentinel",
-      "description": "A pearl the trench dreamed around a bone core, strung on braided kelp by whatever hands the Sentinel keeps. The squeeze line reads the dream and labors to obey it: the deep forgives ten more meters, and no current can carry a body wearing the trench's own word.",
-      "icon_path": "res://icons/items/necklace_pearl_sigil.png",
-      "item_category": 2,
-      "rarity": 4,
-      "equip_slot": 11,
-      "accessory_type": 2,
-      "squeeze_grace_m": 10,
-      "current_immune": true,
-      "stack_size": 1,
-      "bind_on_equip": true,
-      "sell_price": 12000,
-      "buy_price": 30000,
-      "item_level": 40,
-      "required_level": 40,
-      "stats": {
-        "wisdom": 7,
-        "vitality": 4
-      },
-      "_sourceFile": "game/data/accessories/acc_necklace_pearl_sigil.tres",
       "_scriptClass": "Item"
     },
     "acc_necklace_sinew": {
@@ -28287,7 +28288,7 @@
       "id": "loot_trench_dream",
       "name": "Trench Dream Drops",
       "description": "What the Sentinel carries up from past the squeeze line. The pearl it grows around is the trench's own dream: whoever wears it hears the squeeze line loosen. The ores are the garden's debris caught in its kelp net -- the deep grades, shed honestly.",
-      "entries": "[{\n\"item_id\": \"acc_necklace_pearl_sigil\",\n\"min_quantity\": 1,\n\"max_quantity\": 1,\n\"drop_rate\": 0.10,\n\"rarity_weight\": 3.0,\n\"is_guaranteed\": false,\n\"conditions\": []",
+      "entries": "[{\n\"item_id\": \"acc_breather_pearl_sigil\",\n\"min_quantity\": 1,\n\"max_quantity\": 1,\n\"drop_rate\": 0.10,\n\"rarity_weight\": 3.0,\n\"is_guaranteed\": false,\n\"conditions\": []",
       "base_drop_chance": 1,
       "min_items_dropped": 1,
       "max_items_dropped": 3,

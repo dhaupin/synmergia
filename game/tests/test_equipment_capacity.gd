@@ -126,6 +126,10 @@ func _run() -> void:
 	_check(reed != null and int(reed.equip_slot) == ItemScript.EquipSlot.BREATHER,
 		"the reed breather loads at BREATHER")
 	_check(reed != null and reed.is_breather(), "the BREATHER item is a breather")
+	var pearl_sigil = load("res://data/accessories/acc_breather_pearl_sigil.tres")
+	_check(pearl_sigil != null and pearl_sigil.is_breather()
+		and int(pearl_sigil.equip_slot) == ItemScript.EquipSlot.BREATHER,
+		"the Sentinel pearl sigil authors the same BREATHER layer")
 	var helm_ok: bool = diver.equip_direct(helm.duplicate(), ItemScript.EquipSlot.HEAD)
 	_check(helm_ok and diver.get_equipped_breather() == null,
 		"a helm equips without becoming a breather")
@@ -135,6 +139,21 @@ func _run() -> void:
 	_check(reed_ok and diver.get_equipped_breather() != null
 		and str(diver.get_equipped_breather().id) == "acc_breather_reed",
 		"the breather occupies its own layer beside the helm")
+	_check(not diver.can_equip_in_slot(helm, ItemScript.EquipSlot.BREATHER),
+		"a helm cannot be placed in the breather layer")
+	_check(not diver.can_equip_in_slot(reed, ItemScript.EquipSlot.HEAD),
+		"a breather cannot be placed in the helm layer")
+	_check(not diver.equip_direct(helm.duplicate(), ItemScript.EquipSlot.BREATHER)
+		and not diver.equip_direct(reed.duplicate(), ItemScript.EquipSlot.HEAD),
+		"direct equips cannot swap the two head layers")
+	var disguised_breather = reed.duplicate()
+	disguised_breather.equip_slot = ItemScript.EquipSlot.HEAD
+	_check(not diver.can_equip_in_slot(disguised_breather, ItemScript.EquipSlot.HEAD),
+		"a breather re-authored as HEAD cannot become armor")
+	var disguised_helm = helm.duplicate()
+	disguised_helm.equip_slot = ItemScript.EquipSlot.BREATHER
+	_check(not diver.can_equip_in_slot(disguised_helm, ItemScript.EquipSlot.BREATHER),
+		"a helm re-authored as BREATHER cannot become air")
 
 	var inv_svc = root.get_node_or_null("InventoryService")
 	var ocean = root.get_node_or_null("OceanService")
@@ -147,18 +166,52 @@ func _run() -> void:
 	else:
 		_check(false, "OceanService + InventoryService autoloads are present")
 
-	# A legacy necklace breather migrates to the new layer on load.
-	var legacy_breather = load("res://data/accessories/acc_breather_abyss_pearl.tres")
-	var saved := {
-		"inventory": [],
+	# The save path obeys the same layer law. Cross-slotted items are bagged,
+	# never auto-swapped into the other head; there is no necklace fallback.
+	var pearl = load("res://data/accessories/acc_breather_abyss_pearl.tres")
+	var cross_saved := {
+		"inventory": [null, null, null],
 		"equipment": {
-			str(ItemScript.EquipSlot.NECKLACE): legacy_breather.to_dict()
+			str(ItemScript.EquipSlot.HEAD): reed.to_dict(),
+			str(ItemScript.EquipSlot.BREATHER): helm.to_dict(),
+			str(ItemScript.EquipSlot.NECKLACE): pearl.to_dict()
 		}
 	}
-	var restored: InventoryComponent = InventoryScript.from_dict(saved)
-	_check(restored.get_equipped(ItemScript.EquipSlot.BREATHER) != null
-		and restored.get_equipped(ItemScript.EquipSlot.NECKLACE) == null,
-		"a legacy necklace breather migrates to BREATHER on load")
+	var cross: InventoryComponent = InventoryScript.from_dict(cross_saved)
+	_check(cross.get_equipped(ItemScript.EquipSlot.HEAD) == null
+		and cross.get_equipped(ItemScript.EquipSlot.BREATHER) == null
+		and cross.get_equipped(ItemScript.EquipSlot.NECKLACE) == null,
+		"a save cannot cross-slot the helm, breather, or necklace layers")
+	_check(cross.get_equipped_breather() == null,
+		"a breather bagged out of NECKLACE supplies no air")
+	var cross_ids: Array = []
+	for i in range(3):
+		if cross.get_item(i) != null:
+			cross_ids.append(str(cross.get_item(i).id))
+	_check(cross_ids.has("arm_diving_helm") and cross_ids.has("acc_breather_reed")
+		and cross_ids.has("acc_breather_abyss_pearl"),
+		"cross-slotted gear is preserved in the bag, not deleted")
+	if inv_svc != null and ocean != null:
+		inv_svc.register_inventory("capacity_cross", cross)
+		var cross_profile: Dictionary = ocean.breather_for("capacity_cross")
+		_check(absf(float(cross_profile.get("mult", 0.0)) - 1.0) < 0.0001,
+			"OceanService reads only the BREATHER layer")
+		inv_svc.unregister_inventory("capacity_cross")
+
+	var valid_saved := {
+		"inventory": [],
+		"equipment": {
+			str(ItemScript.EquipSlot.HEAD): helm.to_dict(),
+			str(ItemScript.EquipSlot.BREATHER): reed.to_dict()
+		}
+	}
+	var valid_pair: InventoryComponent = InventoryScript.from_dict(valid_saved)
+	_check(valid_pair.get_equipped(ItemScript.EquipSlot.HEAD) != null
+		and valid_pair.get_equipped_breather() != null
+		and str(valid_pair.get_equipped_breather().id) == "acc_breather_reed",
+		"a legal HEAD + BREATHER pair survives load")
+	_check(valid_pair.get_equipment_armor() >= int(helm.armor_value),
+		"the legal helm still supplies armor after load")
 
 	# Lowering capacity later spills overflow into the bag, never deletes it.
 	var overflow_saved := {

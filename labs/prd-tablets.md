@@ -114,8 +114,9 @@ The head slot is a helm. The breather is its own layer.
   feeds `OceanService.breather_for()`.
 - A sealed diving helm is `arm_diving_helm` (HEAD armor). It has no
   `breath_multiplier`; it is a helm, not a tank.
-- Legacy necklace breathers migrate to `BREATHER` on load. The amulet lane
-  is then free for an actual necklace.
+- A load-time slot sanitizer accepts only a breather in `BREATHER` and
+  only a helm in `HEAD`. Any cross-slotted item is moved to the bag, never
+  auto-swapped; there is no necklace fallback and no second air lane.
 
 ## 5. Interaction grammar
 
@@ -364,10 +365,12 @@ The equipment slice is accepted when:
   sale.
 - A full bag still receives and equips the starter tablet.
 - A returning character with no tablet receives one on world entry.
-- A legacy necklace breather migrates to `BREATHER`; a HEAD diving helm
+- A cross-slotted breather or helm is bagged on load; a HEAD diving helm
   remains armor and supplies no air.
 - `equipment_capacity.tres` authors 2 rings / 1 amulet / 1 belt / 1 cloak;
   a data override can open 10 rings and 3 amulets without code.
+- `HEAD` and `BREATHER` reject each other's items on live equip and on
+  save load; `OceanService` reads no other slot.
 - A lowered capacity spills overflow to the bag rather than deleting it.
 - `test_equipment_capacity`, `test_equipment_vocabulary`,
   `test_character_fresh_kit`, and `test_sundered_deep_economy` pass.

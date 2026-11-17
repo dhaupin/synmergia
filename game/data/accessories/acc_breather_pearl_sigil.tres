@@ -4,14 +4,15 @@
 
 [resource]
 script = ExtResource("1")
-id = "acc_necklace_pearl_sigil"
+id = "acc_breather_pearl_sigil"
 display_name = "Pearl Sigil of the Deep Sentinel"
-description = "A pearl the trench dreamed around a bone core, strung on braided kelp by whatever hands the Sentinel keeps. The squeeze line reads the dream and labors to obey it: the deep forgives ten more meters, and no current can carry a body wearing the trench's own word."
+description = "A pearl the trench dreamed around a bone core, strung on braided kelp by whatever hands the Sentinel keeps and set into a breather collar. The squeeze line reads the dream and labors to obey it: the deep forgives ten more meters, and no current can carry a body wearing the trench's own word."
 icon_path = "res://icons/items/necklace_pearl_sigil.png"
 item_category = 2
 rarity = 4
-equip_slot = 11
-accessory_type = 2
+equip_slot = 16
+accessory_type = 6
+breath_multiplier = 1.0
 squeeze_grace_m = 10.0
 current_immune = true
 stack_size = 1

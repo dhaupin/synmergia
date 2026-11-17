@@ -41,10 +41,6 @@ const PRESSURE_GRACE_M: float = 10.0
 ## The default floor radius when a volume declares none (the main
 ## planet's surface scale).
 const DEFAULT_FLOOR_RADIUS: float = 20000.0
-## Item schema script (enum reads in breather_for). Item is a plain
-## class_name Resource (no autoload shadow), so preload is safe here.
-const ItemScript = preload("res://core/schemas/item.gd")
-
 var _volumes: Dictionary = {}
 var _loaded: bool = false
 ## The seed's sea truth, resolved once (runtime cache -- the world
@@ -374,14 +370,6 @@ func breather_for(player_id: String) -> Dictionary:
 	var item = null
 	if inv.has_method("get_equipped_breather"):
 		item = inv.get_equipped_breather()
-	elif inv.has_method("get_equipped"):
-		# Compatibility with a bare/partial bag: read the new layer, then
-		# the pre-split necklace lane if the load migration has not run.
-		item = inv.get_equipped(ItemScript.EquipSlot.BREATHER)
-		if item == null or not item.is_breather():
-			item = inv.get_equipped(ItemScript.EquipSlot.NECKLACE)
-		if item == null or not item.is_breather():
-			item = null
 	if item == null:
 		return out
 	out["mult"] = maxf(float(item.breath_multiplier), 1.0)

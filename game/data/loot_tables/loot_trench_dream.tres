@@ -8,7 +8,7 @@ id = "loot_trench_dream"
 name = "Trench Dream Drops"
 description = "What the Sentinel carries up from past the squeeze line. The pearl it grows around is the trench's own dream: whoever wears it hears the squeeze line loosen. The ores are the garden's debris caught in its kelp net -- the deep grades, shed honestly."
 entries = [{
-"item_id": "acc_necklace_pearl_sigil",
+"item_id": "acc_breather_pearl_sigil",
 "min_quantity": 1,
 "max_quantity": 1,
 "drop_rate": 0.10,

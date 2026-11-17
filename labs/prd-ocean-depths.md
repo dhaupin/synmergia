@@ -123,6 +123,7 @@ armor, no breath fields).
 acc_breather_reed          starter: air x2, grace +2 m   (crafted, BREATHER)
 acc_breather_lungshell     mid: air x4, grace +8 m       (deep drop, BREATHER)
 acc_breather_abyss_pearl   endgame: air x8, grace +20 m, current immunity (mystery drop, BREATHER)
+acc_breather_pearl_sigil   sentinel: air x1, grace +10 m, current immunity, wis/vit (boss drop, BREATHER)
 arm_diving_helm            sealed HEAD helm: armor 10, physical/cold resists (no air)
 ```
 
@@ -131,10 +132,10 @@ the ocean's own loot hook, the reason anyone goes deep. Breathers
 do NOT touch swim speed (MovementProfile owns speed; gear owns
 air) -- the two systems stay orthogonal, or stacking becomes soup.
 One breath layer means one profile: `InventoryComponent.get_equipped_breather()`
-reads BREATHER and `OceanService` resolves that item. Legacy necklace
-breathers migrate to BREATHER when a save loads; the amulet lane is then
-free for an actual necklace. A player can wear a helm and a breather at
-the same time, and should.
+reads BREATHER and `OceanService` resolves that item. NECKLACE never supplies
+air; a load-time slot sanitizer moves any breather or helm found in the
+wrong layer to the bag, so the amulet lane stays an amulet lane. A player
+can wear a helm and a breather at the same time, and should.
 
 ## 6. Anticheat Hooks (S14 additions to the ticket/limit model)
 
@@ -336,8 +337,9 @@ Abyss Pearl (x8, +20 m, current immunity) sit there. The Diving Helm is
 HEAD armor (`arm_diving_helm`) with armor/resists and no breath fields:
 helms stay active underwater, but they are not tanks. `OceanService.breather_for(player_id)`
 resolves the one equipped BREATHER through InventoryService to
-{mult, grace_m} (default {1.0, 0.0} when anything is missing). Legacy
-NECKLACE breathers migrate to BREATHER in `InventoryComponent.from_dict`.
+{mult, grace_m} (default {1.0, 0.0} when anything is missing). There is no
+NECKLACE read and no fallback slot: `InventoryComponent.from_dict` bags any
+cross-slotted helm/breather before the component goes live.
 The grace deepens the squeeze line and the
 multiplier feeds set_breath_capacity -- CRUSH never moves (gear
 extends the swim, not the stone's patience). THE ONE-DERIVATION

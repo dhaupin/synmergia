@@ -30,7 +30,9 @@ const ACCESSORY_TYPE = [
 const EQUIP_SLOT = [
   'None', 'Head', 'Chest', 'Legs', 'Feet', 'Gloves', 'Shoulders',
   'Main Hand', 'Off Hand', 'Ring 1', 'Ring 2', 'Necklace', 'Cloak', 'Belt',
-  'Arms', 'Tablet',
+  'Arms', 'Tablet', 'Breather',
+  'Ring 3', 'Ring 4', 'Ring 5', 'Ring 6', 'Ring 7', 'Ring 8', 'Ring 9', 'Ring 10',
+  'Necklace 2', 'Necklace 3', 'Belt 2', 'Belt 3', 'Cloak 2', 'Cloak 3',
 ];
 const ENEMY_TYPE = ['Normal', 'Elite', 'Champion', 'Boss', 'World Boss', 'Raid Boss'];
 const SKILL_TYPE = [
