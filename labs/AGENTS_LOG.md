@@ -8,6 +8,12 @@
 >
 > **Moved 2026-11-14** in the docs round, verbatim and hash-checked. Nothing
 > below was edited. The only addition is this header.
+>
+> **Reading the entry dates.** The `YYYY-MM-DD` prefixes below are **session
+> IDs**, not wall-clock commit dates; a trailing letter (`2026-11-16d`)
+> distinguishes several rounds logged under one label. For the real date of a
+> change, use `git log`/`git blame` -- this log is the narrative, git is the
+> record.
 
 ---
 

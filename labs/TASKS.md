@@ -5,6 +5,13 @@ sections, 10,337 lines) is appended verbatim to
 [TASKS_ARCHIVE.md](./TASKS_ARCHIVE.md); only current state, open items and the
 recent sessions stay here. Git history remains the durable record.
 
+> **Reading the section dates.** The `## YYYY-MM-DD` headings below are
+> **session IDs**, not wall-clock commit dates: a trailing letter (`2026-11-29g`)
+> distinguishes several sessions logged under one label, and the same labels are
+> cross-referenced from [TASKS_ARCHIVE.md](./TASKS_ARCHIVE.md). For the real date
+> of any change, use `git log`/`git blame`; this file is the narrative, git is
+> the record. Do not renumber these headings -- the archive points at them.
+
 > **RUNNER STATUS: use `scripts/godot_test_runner.sh`.** One runner: single
 > boot for one test or `JOBS=1`, `-j N` (default 4) for a sweep, `--all` for
 > everything, `--resume FILE` to continue a killed run. It warms the `.godot`

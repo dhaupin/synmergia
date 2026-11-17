@@ -192,6 +192,8 @@ export default function SiteLayout() {
           <nav className="flex items-center gap-4" aria-label="Footer">
             <Link to="/lore" className="hover:text-accent">Lore</Link>
             <Link to="/rules" className="hover:text-accent">Rules</Link>
+            <Link to="/accessibility" className="hover:text-accent">Accessibility</Link>
+            <Link to="/agents" className="hover:text-accent">Agents</Link>
             <Link to="/opensource" className="hover:text-accent">Open Source</Link>
             <a href={DOCS_URL} className="hover:text-accent">Docs</a>
             <Link to="/privacy" className="hover:text-accent">Privacy</Link>

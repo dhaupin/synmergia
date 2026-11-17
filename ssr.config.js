@@ -85,7 +85,7 @@ export default {
       meta: {
         title: 'Play Synmergia in your browser',
         description:
-          'The WASM client loads in this tab — Godot 4.7 compiled for the web with threaded terrain workers. No account, no download, no install.',
+          'The WASM client loads in this tab — Godot 4.7 compiled for the web with threaded terrain workers. Early access is key-gated; no download, no install.',
       },
     },
     {
@@ -99,13 +99,33 @@ export default {
       },
     },
     {
+      path: '/accessibility',
+      priority: '0.5',
+      changefreq: 'yearly',
+      meta: {
+        title: 'Accessibility | Synmergia',
+        description:
+          'Named controls, real focus order, and settings that change the surface: high contrast, text scale, reduce motion, colorblind correction, screen shake, flash effects.',
+      },
+    },
+    {
+      path: '/agents',
+      priority: '0.5',
+      changefreq: 'yearly',
+      meta: {
+        title: 'Agents | Synmergia',
+        description:
+          'Programs can join as players: their own character, the same actions everyone uses, consequential acts gated for human approval, and off until someone runs one.',
+      },
+    },
+    {
       path: '/privacy',
       priority: '0.4',
       changefreq: 'yearly',
       meta: {
         title: 'Privacy | Synmergia',
         description:
-          'Synmergia collects nothing: no accounts, no analytics, no tracking. Local saves only, stored on your own device.',
+          'What Synmergia stores: the account minimum (email, display name, hashed password), session records, and gameplay anti-cheat. No third-party analytics or ads.',
       },
     },
     {

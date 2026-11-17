@@ -18,6 +18,8 @@ import OpenSourcePage from './pages/OpenSourcePage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import RulesPage from './pages/RulesPage';
+import AccessibilityPage from './pages/AccessibilityPage';
+import AgentsPage from './pages/AgentsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import AdminGate from './pages/AdminGate';
 
@@ -54,6 +56,8 @@ export function AppRoutes() {
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/rules" element={<RulesPage />} />
+          <Route path="/accessibility" element={<AccessibilityPage />} />
+          <Route path="/agents" element={<AgentsPage />} />
           <Route path="/admin" element={<AdminGate />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
