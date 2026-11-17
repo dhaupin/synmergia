@@ -10,9 +10,14 @@
 ##                               {ok:false, reason} by stable handle (N1/N2/N21)
 ##   4. POST /wait_for        -> an unsatisfiable predicate times out honestly
 ##                               (reason:"timeout") and NEVER hangs (N3)
-##   5. GET  /events?since=N  -> a monotonic, honest frame cursor (N4)
+##   5. GET  /events?since=N  -> a monotonic, honest frame cursor + a TOP-LEVEL
+##                               frame (N4)
 ##   6. POST /see             -> ok+path OR an honest refusal; never base64 on
-##                               the wire (N22/N23)
+##                               the wire (N22/N23), and a successful capture
+##                               records a `see` event on the ring (N24)
+##   7. GET  /observe         -> carries the focus handle + a summary (N5)
+##   8. token posture         -> /health is tokenless; a configured token makes
+##                               every other route 401 without it (N16)
 ##
 ## The door `kind` -> gamestruct role fold mirrors gamestruct's own reference
 ## adapter (node_modules/gamestruct/lib/adapters/synmergia.mjs, doorNodes), so
@@ -99,6 +104,8 @@ func _run() -> void:
 	await _leg_wait_for_timeout()
 	await _leg_events_cursor()
 	await _leg_see()
+	await _leg_focus_summary()
+	await _leg_token_posture()
 
 	_door.stop()
 	_finish()
@@ -187,16 +194,11 @@ func _leg_events_cursor() -> void:
 		if e is Dictionary and int(e.get("frame", -1)) <= cursor:
 			honest = false
 	_assert(honest, "since=<cursor> returns only frames past the cursor (honest cursor, N4)")
-	# HONEST GAP (reported, not fixed here -- agent_door.gd is outside this
-	# receipt's owned file): SPEC's primitive table + N4 define
-	# events(sinceFrame) -> { frame, events[] } with a TOP-LEVEL `frame`
-	# cursor (gamestruct's own reference bridge.events() returns it). The
-	# door's /events route answers { ok, events[] } with no top-level frame,
-	# so a client must derive the cursor from the events themselves. This leg
-	# reports the gap; the cursor above is derived from event frames, which is
-	# why the monotonic/honest assertions still hold.
-	var has_top_frame: bool = ring_all.has("frame")
-	print("    [events] ring=%d cursor=%d top_level_frame=%s" % [evs.size(), cursor, str(has_top_frame)])
+	# N4: events(sinceFrame) -> { frame, events[] } with a TOP-LEVEL `frame`
+	# cursor (gamestruct's own reference bridge.events() returns it), so a client
+	# reads the cursor without deriving it from the events themselves.
+	_assert(ring_all.has("frame"), "GET /events carries a top-level frame cursor (N4)")
+	print("    [events] ring=%d cursor=%d top_level_frame=%s" % [evs.size(), cursor, str(ring_all.has("frame"))])
 
 
 ## 6. The eyes: ok+path when the surface can render, an honest refusal when it
@@ -214,6 +216,41 @@ func _leg_see() -> void:
 	var raw: String = JSON.stringify(resp)
 	_assert(not raw.contains("\"base64\"") and not raw.contains("data:image"), "no base64/pixels on the wire (N23)")
 	_assert(raw.length() < 4096, "the /see descriptor is small -- no pixel bytes (N23)")
+	# N24: seeing is an event. A successful capture records on the ring, so a
+	# listener reads it from the cursor rather than it being a silent side effect.
+	if bool(resp.get("ok", false)):
+		var evs: Dictionary = await _http("GET", "/events?since=-1")
+		var seen: bool = false
+		for e in evs.get("events", []):
+			if e is Dictionary and String(e.get("event", "")) == "see":
+				seen = true
+		_assert(seen, "a successful /see records a 'see' event on the ring (N24)")
+
+
+## 7. observe carries the focus handle + a summary (N5).
+func _leg_focus_summary() -> void:
+	var obs: Dictionary = await _http("GET", "/observe")
+	_assert(obs.has("focus"), "GET /observe carries a focus field (N5)")
+	var summary = obs.get("summary", null)
+	_assert(summary is Dictionary, "GET /observe carries a summary object (N5)")
+	if summary is Dictionary:
+		_assert(summary.has("nodes") and summary.has("actionable"), "the summary counts nodes + actionable (N5)")
+	print("    [observe] focus=%s summary=%s" % [str(obs.get("focus", null)), str(summary)])
+
+
+## 8. The token posture (N16): /health is tokenless; a configured token refuses
+## every other route with 401 unless it is presented, and admits it when present.
+func _leg_token_posture() -> void:
+	OS.set_environment("SYN_AGENT_TOKEN", "spec-secret")
+	var health: Dictionary = await _http("GET", "/health")
+	_assert(bool(health.get("ok", false)), "/health stays open when a token is configured (N16)")
+	var denied: Dictionary = await _http("GET", "/observe")
+	_assert(not bool(denied.get("ok", true)), "/observe is refused without the token (N16)")
+	_assert(String(denied.get("reason", "")) == "unauthorized", "the refusal is an honest {ok:false, reason} value (N21)")
+	var allowed: Dictionary = await _http("GET", "/observe", "", {"Authorization": "Bearer spec-secret"})
+	_assert(bool(allowed.get("ok", false)), "/observe is admitted with the bearer token (N16)")
+	OS.set_environment("SYN_AGENT_TOKEN", "")
+	print("    [token] health_open=%s denied_reason=%s" % [str(health.get("ok", false)), String(denied.get("reason", ""))])
 
 
 ## Fold the door's flat actions[] into SPEC nodes, mirroring gamestruct's
@@ -253,7 +290,7 @@ func _role_for_kind(kind: String) -> String:
 
 
 ## A one-shot HTTP round-trip against the door (raw TCP, no client lib).
-func _http(method: String, path: String, body: String = "") -> Dictionary:
+func _http(method: String, path: String, body: String = "", extra_headers: Dictionary = {}) -> Dictionary:
 	var peer := StreamPeerTCP.new()
 	var err: int = peer.connect_to_host("127.0.0.1", _door.get_port())
 	if err != OK:
@@ -264,8 +301,11 @@ func _http(method: String, path: String, body: String = "") -> Dictionary:
 		peer.poll()
 	if peer.get_status() != StreamPeerTCP.STATUS_CONNECTED:
 		return {}
-	var req: String = "%s %s HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nContent-Length: %d\r\nConnection: keep-alive\r\n\r\n%s" % [
-		method, path, body.to_utf8_buffer().size(), body]
+	var hdrs: String = ""
+	for k in extra_headers:
+		hdrs += "%s: %s\r\n" % [String(k), String(extra_headers[k])]
+	var req: String = "%s %s HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\n%sContent-Length: %d\r\nConnection: keep-alive\r\n\r\n%s" % [
+		method, path, hdrs, body.to_utf8_buffer().size(), body]
 	peer.put_data(req.to_utf8_buffer())
 	var raw := PackedByteArray()
 	deadline = Time.get_ticks_msec() + 15000
