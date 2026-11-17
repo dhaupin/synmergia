@@ -21,6 +21,10 @@ attack_power = 150
 spell_power = 200
 armor = 100
 resistance = 80
+damage_resists = {
+"shadow": 0.35,
+"arcane": 0.15
+}
 crit_chance = 0.20
 crit_damage = 0.5
 attack_range = 40.0

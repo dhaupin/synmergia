@@ -10,7 +10,7 @@ description = "A master's battle staff in starmetal, fitted to the Psion's grip 
 icon_path = "res://icons/items/staff_walnut.png"
 item_category = 0
 rarity = 4
-equip_slot = 8
+equip_slot = 7
 weapon_type = 7
 armor_type = 0
 accessory_type = 0
@@ -25,4 +25,6 @@ stats = {
 }
 weapon_damage_min = 44
 weapon_damage_max = 65
-attack_speed = 1.1
+attack_speed = 1.17
+crit_chance = 0.052
+crit_damage = 0.178

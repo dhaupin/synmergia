@@ -106,6 +106,9 @@ enum StealthType {
 # authored data cannot make a body unkillable (that is immune_all's job).
 @export var damage_reduction: float = 0.0    # Fraction of incoming damage removed
 @export var damage_reflect: float = 0.0      # Fraction dealt back to the attacker
+## Per-school resistance fractions, e.g. {"fire": 0.2}. Uses the same
+## canonical school names as armor, shields and enemy templates.
+@export var damage_resists: Dictionary = {}
 
 # Flat regeneration per second (read by TickService._regen_entities). Negative
 # values suppress regen (e.g. debuff_regen_mitigate).

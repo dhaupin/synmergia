@@ -289,20 +289,26 @@ static func scatter_spawn(center: Vector3, index: int, ring_radius: float = 3.0)
 	return center + Vector3(cos(angle) * ring_radius, 0.0, sin(angle) * ring_radius)
 
 
-## Relative power normalization (owner decision: the lvl 5 vs lvl 60
-## problem). Scales a level toward a reference with the boost CAPPED
-## at max_boost_ratio so levels keep meaning: a 5 next to a 60 plays
-## at 10, never at 60. Callers map the normalized level to bout-local
-## stat scaling (AuraComponent buffs inside the room only -- real
-## stats never change). 1.0 when at or above the reference.
-static func normalized_level(level: int, reference_level: int, max_boost_ratio: float = 2.0) -> int:
+## Relative power normalization (owner decision: the lvl 5 vs lvl 50
+## problem). The bout's highest fighter is the reference; everyone below
+## is pulled toward it but keeps a share of the gap so the stronger
+## fighter still has an edge. `gap_retention` is that share:
+##   0.20 -> a 5 next to a 50 plays at 41-equivalent
+##   0.20 -> a 30 next to a 60 plays at 54-equivalent
+##   1.00 -> no normalization (raw level)
+##   0.00 -> full normalization (everyone at the reference)
+## A fighter at/above the reference is never pulled down.
+const ARENA_GAP_RETENTION: float = 0.20
+
+static func normalized_level(level: int, reference_level: int,
+		gap_retention: float = ARENA_GAP_RETENTION) -> int:
 	var lvl: int = maxi(level, 1)
-	if reference_level <= lvl:
+	var ref: int = maxi(reference_level, 1)
+	if ref <= lvl:
 		return lvl
-	var ratio: float = float(reference_level) / float(lvl)
-	if ratio > max_boost_ratio:
-		ratio = max_boost_ratio
-	return int(round(float(lvl) * ratio))
+	var retain: float = clampf(gap_retention, 0.0, 1.0)
+	var gap: float = float(ref - lvl)
+	return maxi(lvl, int(round(float(ref) - gap * retain)))
 
 
 ## Level-band matchmaking. Raw distance with the band widening as the
@@ -339,13 +345,14 @@ static func afk_kick_seconds(zone) -> float:
 
 
 ## Relative power multiplier for one fighter inside a bout: their
-## normalized level (capped boost) against the bout's reference -- the
-## ratio is the combat scale. 1.0 at/above reference, never below 1.0
-## (a stronger fighter is never nerfed). Pair with power_scale_target
-## stats for the Entity.stats dictionary.
-static func power_scale(level: int, reference_level: int, max_boost_ratio: float = 2.0) -> float:
+## normalized level against the bout's reference -- the ratio is the
+## combat scale. 1.0 at/above reference, never below 1.0 (a stronger
+## fighter is never pulled down). Pair with power_scale_target stats
+## for the Entity.stats dictionary.
+static func power_scale(level: int, reference_level: int,
+		gap_retention: float = ARENA_GAP_RETENTION) -> float:
 	var lvl: int = maxi(level, 1)
-	var norm := normalized_level(lvl, reference_level, max_boost_ratio)
+	var norm := normalized_level(lvl, reference_level, gap_retention)
 	return maxf(float(norm) / float(lvl), 1.0)
 
 ## The six Entity stats a power scale multiplies (Entity.stats keys).
@@ -355,8 +362,9 @@ const POWER_SCALED_STATS: Array = [
 
 ## Per-stat scaled targets for one fighter. Non-scaled keys in the
 ## entity's stats (e.g. damage_multiplier) pass through untouched.
-static func power_scale_target(stats: Dictionary, level: int, reference_level: int, max_boost_ratio: float = 2.0) -> Dictionary:
-	var scale: float = power_scale(level, reference_level, max_boost_ratio)
+static func power_scale_target(stats: Dictionary, level: int, reference_level: int,
+		gap_retention: float = ARENA_GAP_RETENTION) -> Dictionary:
+	var scale: float = power_scale(level, reference_level, gap_retention)
 	var out: Dictionary = {}
 	for key in POWER_SCALED_STATS:
 		out[key] = int(round(float(int(stats.get(key, 10))) * scale))

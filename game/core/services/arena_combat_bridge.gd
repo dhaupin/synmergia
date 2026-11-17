@@ -10,10 +10,11 @@
 ##      count as life; RECEIVED damage never breaks the shield and
 ##      never registers activity (being hit is not playing).
 ##   3. POWER NORMALIZATION enforcement: when a room reports its level
-##      book, the bridge snapshots each fighter's six base stats,
-##      scales them toward the capped normalized level (contract
-##      power_scale_target), and RESTORES the snapshot at bout end --
-##      bout-local only, real stats never change.
+##      book, the bridge snapshots each fighter's six base stats and scales
+##      them toward the highest fighter (contract power_scale_target). It
+##      recomputes from that snapshot on every roster/reference change, so
+##      the book can be RETUNED when a player joins or leaves, and RESTORES
+##      the snapshot at bout end -- bout-local only, real stats never change.
 ##
 ## Bridge-only autoload: no class_name (AGENTS rule). Resolves rooms
 ## through ArenaRoomService's instance_id -> room map so CombatSystem
@@ -100,12 +101,18 @@ func _on_damage_dealt(damager, target, amount, _skill) -> void:
 # ---- 3. Power normalization ----------------------------------------------
 
 func _apply_power(levels: Dictionary, instance_id: String) -> void:
-	if levels.is_empty():
-		return
 	var room = _room_by_id(instance_id)
 	if room == null:
 		return
-	# Reference: the bout's max level.
+	if levels.is_empty():
+		# The last fighter left: restore every session this room still holds.
+		for fid in _power_sessions.keys():
+			var orphan: Dictionary = _power_sessions[fid]
+			if str(orphan.get("room_id", "")) == instance_id:
+				_restore_session(fid, orphan)
+		return
+	# Reference: the bout's current highest level. A retune recomputes from
+	# this book, so a 60 joining lifts the room and a 60 leaving lowers it.
 	var reference: int = 1
 	for fid in levels:
 		reference = maxi(reference, int(levels[fid]))
@@ -114,11 +121,17 @@ func _apply_power(levels: Dictionary, instance_id: String) -> void:
 		if entity == null or not ("stats" in entity):
 			continue
 		var level: int = int(levels[fid])
-		var snapshot: Dictionary = _snapshot_stats(entity)
-		if _power_sessions.has(fid):
-			continue  # already scaled this bout; never double-apply
-		var targets: Dictionary = Contract.power_scale_target( \
-			entity.stats, level, reference, 2.0)
+		var session: Dictionary = _power_sessions.get(fid, {})
+		var baseline: Dictionary
+		if not session.is_empty() and str(session.get("room_id", "")) == instance_id:
+			# Retune: recompute from the PRE-bout snapshot, never from the
+			# already-scaled stat block (which would compound every join).
+			baseline = session.get("stats", {})
+		else:
+			baseline = _snapshot_stats(entity)
+			_power_sessions[fid] = {"stats": baseline.duplicate(), "room_id": instance_id}
+		var targets: Dictionary = Contract.power_scale_target(
+			baseline, level, reference)
 		for key in targets:
 			entity.stats[key] = targets[key]
 		# The battle is now normalized: CombatMath bypasses the open-world
@@ -127,26 +140,42 @@ func _apply_power(levels: Dictionary, instance_id: String) -> void:
 		entity.set_meta("arena_power_normalized", true)
 		if entity.has_method("_calculate_max_resources"):
 			entity._calculate_max_resources()
-		_power_sessions[fid] = {"stats": snapshot, "room_id": instance_id}
-	GameLog.info("ArenaCombatBridge: power book applied in %s (reference lvl %d)" % [instance_id, reference])
-
-
-func _restore_powers(_winner_team: int, _stats: Dictionary, instance_id: String) -> void:
-	var room = _room_by_id(instance_id)
+		var stored: Dictionary = _power_sessions.get(fid, {})
+		stored["level"] = level
+		stored["reference"] = reference
+		_power_sessions[fid] = stored
+	# A fighter that left the room's level book no longer belongs to this
+	# bout's session: restore their real stats now instead of waiting for
+	# an end that may never include them.
 	for fid in _power_sessions.keys():
 		var session: Dictionary = _power_sessions[fid]
 		if str(session.get("room_id", "")) != instance_id:
 			continue
-		var entity = _entity_for(fid)
-		if entity != null and "stats" in entity:
-			var snapshot: Dictionary = session.get("stats", {})
-			for key in snapshot:
-				entity.stats[key] = snapshot[key]
-			if entity.has_meta("arena_power_normalized"):
-				entity.remove_meta("arena_power_normalized")
-			if entity.has_method("_calculate_max_resources"):
-				entity._calculate_max_resources()
-		_power_sessions.erase(fid)
+		if levels.has(fid):
+			continue
+		_restore_session(fid, session)
+	GameLog.info("ArenaCombatBridge: power book applied in %s (reference lvl %d)" % [instance_id, reference])
+
+
+func _restore_powers(_winner_team: int, _stats: Dictionary, instance_id: String) -> void:
+	for fid in _power_sessions.keys():
+		var session: Dictionary = _power_sessions[fid]
+		if str(session.get("room_id", "")) != instance_id:
+			continue
+		_restore_session(fid, session)
+
+## Restore one fighter's pre-bout snapshot and clear the normalized mark.
+func _restore_session(fid: String, session: Dictionary) -> void:
+	var entity = _entity_for(fid)
+	if entity != null and "stats" in entity:
+		var snapshot: Dictionary = session.get("stats", {})
+		for key in snapshot:
+			entity.stats[key] = snapshot[key]
+		if entity.has_meta("arena_power_normalized"):
+			entity.remove_meta("arena_power_normalized")
+		if entity.has_method("_calculate_max_resources"):
+			entity._calculate_max_resources()
+	_power_sessions.erase(fid)
 
 
 # ---- Resolvers ------------------------------------------------------------

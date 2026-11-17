@@ -43,3 +43,4 @@ can_use_armor = {
 "mail": true,
 "plate": true
 }
+movement_speed_bonus = 0.00

@@ -10,7 +10,7 @@ description = "A weighted head on a banded haft, meant to be set against a charg
 icon_path = "res://icons/items/halberd_mythril.png"
 item_category = 0
 rarity = 2
-equip_slot = 8
+equip_slot = 7
 weapon_type = 3
 armor_type = 0
 accessory_type = 0
@@ -25,4 +25,6 @@ stats = {
 }
 weapon_damage_min = 20
 weapon_damage_max = 34
-attack_speed = 0.9
+attack_speed = 0.92
+crit_chance = 0.018
+crit_damage = 0.164

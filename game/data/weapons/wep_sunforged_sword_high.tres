@@ -10,7 +10,7 @@ description = "A sunforged arming sword worked for the long ascent. Cut at the s
 icon_path = "res://icons/items/sword_iron.png"
 item_category = 0
 rarity = 4
-equip_slot = 8
+equip_slot = 7
 weapon_type = 1
 armor_type = 0
 accessory_type = 0
@@ -24,4 +24,6 @@ stats = {
 }
 weapon_damage_min = 51
 weapon_damage_max = 76
-attack_speed = 1.2
+attack_speed = 1.28
+crit_chance = 0.048
+crit_damage = 0.190

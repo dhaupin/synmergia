@@ -118,8 +118,10 @@ func _run() -> void:
 	await process_frame
 	_check("bout started by the host", room.is_started())
 	# p2 (lvl 12) is the reference; p1 (lvl 8) scales 12/8 = 1.5.
+	# 8 vs 12 keeps 20% of the 4-level gap -> 11-equivalent, not a full 12.
+	var expected_weak: int = int(round(float(base_strength) * Contract.power_scale(8, 12)))
 	_check("power normalization applied to the weaker fighter", \
-		int(p1.stats["strength"]) == int(round(float(base_strength) * 1.5)) \
+		int(p1.stats["strength"]) == expected_weak \
 		and int(p2.stats["strength"]) == 12)
 
 	# ---- 5. The kill (CombatSystem signal, bridge routes it) ------------
@@ -166,6 +168,32 @@ func _run() -> void:
 	host._pay_draw(draw_book)
 	_check("draw pays consolation, not a win", int(pm.experience) >= int(rewards.consolation_xp))
 	clock_room.queue_free()
+	await process_frame
+
+	# A real player departure is a production caller for remove_fighter:
+	# the host drops their level from the reference book so survivors retune.
+	var depart_room = ArenaScene.new()
+	depart_room.zone_data = coliseum
+	depart_room.instance_id = "depart_probe"
+	root.add_child(depart_room)
+	depart_room.spawn_fighter("depart_low", 0)
+	depart_room.spawn_fighter("depart_high", 1)
+	depart_room.start_bout()
+	depart_room.set_fighter_level("depart_low", 5)
+	depart_room.set_fighter_level("depart_high", 60)
+	host._hosted["depart_probe"] = {
+		"room": depart_room,
+		"participants": ["depart_low", "depart_high"],
+		"started": true,
+	}
+	host._on_player_left({"entity_id": "depart_high"})
+	_check("player_left drops the departed fighter", not depart_room.has_fighter("depart_high"))
+	_check("player_left drops the departed level reference",
+		not depart_room._levels.has("depart_high"))
+	_check("player_left removes the participant from the host book",
+		not (host._hosted["depart_probe"]["participants"] as Array).has("depart_high"))
+	host._hosted.erase("depart_probe")
+	depart_room.queue_free()
 	await process_frame
 
 	# Streaks: TDM room (respawn keeps the bout alive), manual revive

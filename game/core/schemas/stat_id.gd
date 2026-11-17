@@ -41,6 +41,31 @@ const MULT_KEYS: Array = [
         "effect_power_mult",
 ]
 
+## Damage schools. The one vocabulary every armor, shield, enemy template,
+## status effect and future system names a resistance against. `physical`
+## and `magical` are the two broad lanes the old schema knew; the rest are
+## typed schools so a fire ward can be a real, separate number.
+const DAMAGE_SCHOOLS: Array = [
+        "physical", "magical", "fire", "frost", "lightning",
+        "poison", "arcane", "holy", "shadow",
+]
+
+## Authoring spellings that resolve to a canonical school. Legacy content
+## used "magic"; keeping the alias here means old data still lands on the
+## magical lane instead of silently becoming an unknown school.
+const SCHOOL_ALIASES: Dictionary = {
+        "magic": "magical",
+        "phys": "physical",
+}
+
+## Canonical per-school resistance keys (`resist_fire`, ...). Stored as
+## flat fractions (0.25 = 25%) and clamped at the damage pipeline.
+const RESIST_KEYS: Array = [
+        "resist_physical", "resist_magical", "resist_fire", "resist_frost",
+        "resist_lightning", "resist_poison", "resist_arcane", "resist_holy",
+        "resist_shadow",
+]
+
 ## Additive combat deltas. Plain floats, base 0.0.
 ##   damage_reduction  fraction of incoming damage removed (0.0..0.9)
 ##   damage_reflect    fraction of damage dealt back to the attacker (0.0..1.0)
@@ -54,6 +79,9 @@ const MULT_KEYS: Array = [
 ##   crit_damage       fraction added to the crit multiplier (1.5 base). A
 ##                     +0.25 means a crit lands for 1.75x. Flat so the rogue's
 ##                     crit-damage climb stacks additively.
+##   resist_*          per-school damage fractions, one canonical lane each.
+##   block/dodge/parry/hit ratings are the combat-table ratings equipment
+##                     and buffs move; they are flat points, not fractions.
 const FLAT_KEYS: Array = [
         "damage_reduction",
         "damage_reflect",
@@ -63,6 +91,19 @@ const FLAT_KEYS: Array = [
         "cooldown_reduction",
         "crit_chance",
         "crit_damage",
+        "resist_physical",
+        "resist_magical",
+        "resist_fire",
+        "resist_frost",
+        "resist_lightning",
+        "resist_poison",
+        "resist_arcane",
+        "resist_holy",
+        "resist_shadow",
+        "hit_rating",
+        "dodge_rating",
+        "parry_rating",
+        "block_rating",
 ]
 
 const MODIFIER: Array = MULT_KEYS + FLAT_KEYS
@@ -92,6 +133,19 @@ const DEFAULTS: Dictionary = {
         "cooldown_reduction": 0.0,
         "crit_chance": 0.0,
         "crit_damage": 0.0,
+        "resist_physical": 0.0,
+        "resist_magical": 0.0,
+        "resist_fire": 0.0,
+        "resist_frost": 0.0,
+        "resist_lightning": 0.0,
+        "resist_poison": 0.0,
+        "resist_arcane": 0.0,
+        "resist_holy": 0.0,
+        "resist_shadow": 0.0,
+        "hit_rating": 0.0,
+        "dodge_rating": 0.0,
+        "parry_rating": 0.0,
+        "block_rating": 0.0,
         "effect_duration_mult": 1.0,
         "effect_power_mult": 1.0,
 }
@@ -134,9 +188,11 @@ const CDR_PER_ATTACK_SPEED: float = 0.50
 const HASTE_MOVE_FRACTION: float = 0.30
 
 ## Ceilings the pipeline clamps to, so authored data cannot make a body
-## unkillable or a reflect loop unbounded.
+## unkillable or a reflect loop unbounded. A school resistance is one of
+## those ceilings: even a full ward leaves a 10% chip lane.
 const MAX_DAMAGE_REDUCTION: float = 0.90
 const MAX_DAMAGE_REFLECT: float = 1.00
+const MAX_RESIST: float = 0.90
 ## Cooldowns may be shaved by at most half; a longer buff cannot zero them.
 const MAX_COOLDOWN_REDUCTION: float = 0.50
 ## Crit chance is capped below 1.0 so a stacked crit buff still misses the
@@ -157,6 +213,32 @@ const REFLECT_SCHOOL: String = "reflected"
 ## True when `key` is a real stat (primary or modifier).
 static func is_valid(key: String) -> bool:
         return DEFAULTS.has(key)
+
+
+## Canonical school name for an authored damage type. Unknown schools stay
+## unknown ("") rather than guessing a lane, so future/typed damage that has
+## no ward authored simply takes no resistance.
+static func canonical_school(school: String) -> String:
+        var key := school.to_lower().strip_edges()
+        key = str(SCHOOL_ALIASES.get(key, key))
+        return key if key in DAMAGE_SCHOOLS else ""
+
+
+## The stat key a school's resistance lives under, or "" for an unknown
+## school. `fire` -> `resist_fire`; `magic` -> `resist_magical`.
+static func resist_key_for(school: String) -> String:
+        var canonical := canonical_school(school)
+        return "resist_%s" % canonical if canonical != "" else ""
+
+
+## A defender's clamped resistance to one school, read from its stat block.
+## THE one read used by the damage pipeline for players, enemies and any
+## future body with a `stats` dictionary.
+static func school_resist_of(stats: Dictionary, school: String) -> float:
+        var key := resist_key_for(school)
+        if key == "":
+                return 0.0
+        return clampf(float(stats.get(key, 0.0)), 0.0, MAX_RESIST)
 
 
 static func is_primary(key: String) -> bool:

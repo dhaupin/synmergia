@@ -1,5 +1,5 @@
 {
-  "lastSyncedAt": "2026-11-16T23:22:56.371Z",
+  "lastSyncedAt": "2026-11-17T00:08:25.518Z",
   "counts": {
     "classes": 39,
     "weapons": 82,
@@ -76,6 +76,10 @@
       "crit_chance_bonus": 0.07,
       "crit_damage_bonus": 0.15,
       "attack_speed_bonus": 0.05,
+      "movement_speed_bonus": 0.02,
+      "damage_resists": {
+        "physical": 0.02
+      },
       "spell_power_per_level": 1,
       "starting_skills": [
         "akkan_void_slash"
@@ -129,6 +133,10 @@
       "crit_chance_bonus": 0.03,
       "crit_damage_bonus": 0.05,
       "attack_speed_bonus": -0.05,
+      "movement_speed_bonus": -0.04,
+      "damage_resists": {
+        "physical": 0.05
+      },
       "spell_power_per_level": 1,
       "starting_skills": [
         "akkan_battle_cry"
@@ -181,6 +189,10 @@
       "crit_chance_bonus": 0.06,
       "crit_damage_bonus": 0.2,
       "attack_speed_bonus": 0,
+      "movement_speed_bonus": 0,
+      "damage_resists": {
+        "arcane": 0.05
+      },
       "spell_power_per_level": 3,
       "starting_skills": [
         "akkan_rune_strike"
@@ -233,6 +245,10 @@
       "crit_chance_bonus": 0.04,
       "crit_damage_bonus": 0.12,
       "attack_speed_bonus": 0.05,
+      "movement_speed_bonus": 0.04,
+      "damage_resists": {
+        "shadow": 0.04
+      },
       "spell_power_per_level": 3,
       "starting_skills": [
         "akkan_void_bolt"
@@ -285,6 +301,10 @@
       "crit_chance_bonus": 0.06,
       "crit_damage_bonus": 0.1,
       "attack_speed_bonus": 0,
+      "movement_speed_bonus": 0.01,
+      "damage_resists": {
+        "holy": 0.05
+      },
       "spell_power_per_level": 3,
       "starting_skills": [
         "akkan_spirit_bolt"
@@ -338,6 +358,10 @@
       "crit_chance_bonus": 0.1,
       "crit_damage_bonus": 0.15,
       "attack_speed_bonus": 0.15,
+      "movement_speed_bonus": 0.06,
+      "damage_resists": {
+        "physical": 0.02
+      },
       "spell_power_per_level": 1,
       "starting_skills": [
         "akkan_pounce"
@@ -399,6 +423,7 @@
         "mail": true,
         "plate": true
       },
+      "movement_speed_bonus": 0,
       "_sourceFile": "game/data/classes/class_gm_akkan.tres",
       "_scriptClass": "CharacterClass"
     },
@@ -445,6 +470,7 @@
         "mail": true,
         "plate": true
       },
+      "movement_speed_bonus": 0,
       "_sourceFile": "game/data/classes/class_gm_human.tres",
       "_scriptClass": "CharacterClass"
     },
@@ -491,6 +517,7 @@
         "mail": true,
         "plate": true
       },
+      "movement_speed_bonus": 0,
       "_sourceFile": "game/data/classes/class_gm_synthetic.tres",
       "_scriptClass": "CharacterClass"
     },
@@ -529,6 +556,10 @@
       "crit_chance_bonus": 0.06,
       "crit_damage_bonus": 0.1,
       "attack_speed_bonus": 0,
+      "movement_speed_bonus": 0.01,
+      "damage_resists": {
+        "holy": 0.05
+      },
       "spell_power_per_level": 3,
       "starting_skills": [
         "human_holy_light"
@@ -581,6 +612,10 @@
       "crit_chance_bonus": 0.03,
       "crit_damage_bonus": 0.05,
       "attack_speed_bonus": -0.05,
+      "movement_speed_bonus": -0.04,
+      "damage_resists": {
+        "physical": 0.05
+      },
       "spell_power_per_level": 1,
       "starting_skills": [
         "human_shield_toss"
@@ -634,6 +669,10 @@
       "crit_chance_bonus": 0.1,
       "crit_damage_bonus": 0.15,
       "attack_speed_bonus": 0.15,
+      "movement_speed_bonus": 0.06,
+      "damage_resists": {
+        "physical": 0.02
+      },
       "spell_power_per_level": 1,
       "starting_skills": [
         "human_ambush"
@@ -688,6 +727,10 @@
       "crit_chance_bonus": 0.06,
       "crit_damage_bonus": 0.2,
       "attack_speed_bonus": 0,
+      "movement_speed_bonus": 0,
+      "damage_resists": {
+        "arcane": 0.05
+      },
       "spell_power_per_level": 1,
       "starting_skills": [
         "human_arcane_bolt"
@@ -741,6 +784,10 @@
       "crit_chance_bonus": 0.04,
       "crit_damage_bonus": 0.12,
       "attack_speed_bonus": 0.05,
+      "movement_speed_bonus": 0.04,
+      "damage_resists": {
+        "shadow": 0.04
+      },
       "spell_power_per_level": 4,
       "starting_skills": [
         "human_time_warp"
@@ -794,6 +841,10 @@
       "crit_chance_bonus": 0.07,
       "crit_damage_bonus": 0.15,
       "attack_speed_bonus": 0.05,
+      "movement_speed_bonus": 0.02,
+      "damage_resists": {
+        "physical": 0.02
+      },
       "spell_power_per_level": 1,
       "starting_skills": [
         "human_shield_bash",
@@ -848,6 +899,10 @@
       "crit_chance_bonus": 0.06,
       "crit_damage_bonus": 0.1,
       "attack_speed_bonus": 0,
+      "movement_speed_bonus": 0.01,
+      "damage_resists": {
+        "holy": 0.05
+      },
       "spell_power_per_level": 4,
       "starting_skills": [
         "synthetic_energy_transfer"
@@ -900,6 +955,10 @@
       "crit_chance_bonus": 0.07,
       "crit_damage_bonus": 0.15,
       "attack_speed_bonus": 0.05,
+      "movement_speed_bonus": 0.02,
+      "damage_resists": {
+        "physical": 0.02
+      },
       "spell_power_per_level": 2,
       "starting_skills": [
         "synthetic_energy_strike_exploiter",
@@ -956,6 +1015,10 @@
       "crit_chance_bonus": 0.04,
       "crit_damage_bonus": 0.12,
       "attack_speed_bonus": 0.05,
+      "movement_speed_bonus": 0.04,
+      "damage_resists": {
+        "shadow": 0.04
+      },
       "spell_power_per_level": 4,
       "starting_skills": [
         "synthetic_clock_surge"
@@ -1009,6 +1072,10 @@
       "crit_chance_bonus": 0.06,
       "crit_damage_bonus": 0.2,
       "attack_speed_bonus": 0,
+      "movement_speed_bonus": 0,
+      "damage_resists": {
+        "arcane": 0.05
+      },
       "spell_power_per_level": 1,
       "starting_skills": [
         "synthetic_system_bolt"
@@ -1063,6 +1130,10 @@
       "crit_chance_bonus": 0.1,
       "crit_damage_bonus": 0.15,
       "attack_speed_bonus": 0.15,
+      "movement_speed_bonus": 0.06,
+      "damage_resists": {
+        "physical": 0.02
+      },
       "spell_power_per_level": 1,
       "starting_skills": [
         "synthetic_ping_scan"
@@ -1116,6 +1187,10 @@
       "crit_chance_bonus": 0.03,
       "crit_damage_bonus": 0.05,
       "attack_speed_bonus": -0.05,
+      "movement_speed_bonus": -0.04,
+      "damage_resists": {
+        "physical": 0.05
+      },
       "spell_power_per_level": 2,
       "starting_skills": [
         "synthetic_threat_matrix"
@@ -1169,6 +1244,10 @@
       "crit_chance_bonus": 0.07,
       "crit_damage_bonus": 0.15,
       "attack_speed_bonus": 0.05,
+      "movement_speed_bonus": 0.02,
+      "damage_resists": {
+        "physical": 0.02
+      },
       "spell_power_per_level": 1,
       "starting_skills": [
         "akkan_void_slash"
@@ -1223,6 +1302,10 @@
       "crit_chance_bonus": 0.03,
       "crit_damage_bonus": 0.05,
       "attack_speed_bonus": -0.05,
+      "movement_speed_bonus": -0.04,
+      "damage_resists": {
+        "physical": 0.05
+      },
       "spell_power_per_level": 1,
       "starting_skills": [
         "akkan_battle_cry"
@@ -1276,6 +1359,10 @@
       "crit_chance_bonus": 0.06,
       "crit_damage_bonus": 0.2,
       "attack_speed_bonus": 0,
+      "movement_speed_bonus": 0,
+      "damage_resists": {
+        "arcane": 0.05
+      },
       "spell_power_per_level": 3,
       "starting_skills": [
         "akkan_rune_strike"
@@ -1329,6 +1416,10 @@
       "crit_chance_bonus": 0.04,
       "crit_damage_bonus": 0.12,
       "attack_speed_bonus": 0.05,
+      "movement_speed_bonus": 0.04,
+      "damage_resists": {
+        "shadow": 0.04
+      },
       "spell_power_per_level": 3,
       "starting_skills": [
         "akkan_void_bolt"
@@ -1382,6 +1473,10 @@
       "crit_chance_bonus": 0.06,
       "crit_damage_bonus": 0.1,
       "attack_speed_bonus": 0,
+      "movement_speed_bonus": 0.01,
+      "damage_resists": {
+        "holy": 0.05
+      },
       "spell_power_per_level": 3,
       "starting_skills": [
         "akkan_spirit_bolt"
@@ -1436,6 +1531,10 @@
       "crit_chance_bonus": 0.1,
       "crit_damage_bonus": 0.15,
       "attack_speed_bonus": 0.15,
+      "movement_speed_bonus": 0.06,
+      "damage_resists": {
+        "physical": 0.02
+      },
       "spell_power_per_level": 1,
       "starting_skills": [
         "akkan_pounce"
@@ -1490,6 +1589,10 @@
       "crit_chance_bonus": 0.06,
       "crit_damage_bonus": 0.1,
       "attack_speed_bonus": 0,
+      "movement_speed_bonus": 0.01,
+      "damage_resists": {
+        "holy": 0.05
+      },
       "spell_power_per_level": 3,
       "starting_skills": [
         "human_holy_light"
@@ -1543,6 +1646,10 @@
       "crit_chance_bonus": 0.03,
       "crit_damage_bonus": 0.05,
       "attack_speed_bonus": -0.05,
+      "movement_speed_bonus": -0.04,
+      "damage_resists": {
+        "physical": 0.05
+      },
       "spell_power_per_level": 1,
       "starting_skills": [
         "human_shield_toss"
@@ -1597,6 +1704,10 @@
       "crit_chance_bonus": 0.1,
       "crit_damage_bonus": 0.15,
       "attack_speed_bonus": 0.15,
+      "movement_speed_bonus": 0.06,
+      "damage_resists": {
+        "physical": 0.02
+      },
       "spell_power_per_level": 1,
       "starting_skills": [
         "human_ambush"
@@ -1652,6 +1763,10 @@
       "crit_chance_bonus": 0.06,
       "crit_damage_bonus": 0.2,
       "attack_speed_bonus": 0,
+      "movement_speed_bonus": 0,
+      "damage_resists": {
+        "arcane": 0.05
+      },
       "spell_power_per_level": 1,
       "starting_skills": [
         "human_arcane_bolt"
@@ -1706,6 +1821,10 @@
       "crit_chance_bonus": 0.04,
       "crit_damage_bonus": 0.12,
       "attack_speed_bonus": 0.05,
+      "movement_speed_bonus": 0.04,
+      "damage_resists": {
+        "shadow": 0.04
+      },
       "spell_power_per_level": 4,
       "starting_skills": [
         "human_time_warp"
@@ -1760,6 +1879,10 @@
       "crit_chance_bonus": 0.07,
       "crit_damage_bonus": 0.15,
       "attack_speed_bonus": 0.05,
+      "movement_speed_bonus": 0.02,
+      "damage_resists": {
+        "physical": 0.02
+      },
       "spell_power_per_level": 1,
       "starting_skills": [
         "human_shield_bash",
@@ -1815,6 +1938,10 @@
       "crit_chance_bonus": 0.06,
       "crit_damage_bonus": 0.1,
       "attack_speed_bonus": 0,
+      "movement_speed_bonus": 0.01,
+      "damage_resists": {
+        "holy": 0.05
+      },
       "spell_power_per_level": 4,
       "starting_skills": [
         "synthetic_energy_transfer"
@@ -1868,6 +1995,10 @@
       "crit_chance_bonus": 0.07,
       "crit_damage_bonus": 0.15,
       "attack_speed_bonus": 0.05,
+      "movement_speed_bonus": 0.02,
+      "damage_resists": {
+        "physical": 0.02
+      },
       "spell_power_per_level": 2,
       "starting_skills": [
         "synthetic_energy_strike_exploiter",
@@ -1925,6 +2056,10 @@
       "crit_chance_bonus": 0.04,
       "crit_damage_bonus": 0.12,
       "attack_speed_bonus": 0.05,
+      "movement_speed_bonus": 0.04,
+      "damage_resists": {
+        "shadow": 0.04
+      },
       "spell_power_per_level": 4,
       "starting_skills": [
         "synthetic_clock_surge"
@@ -1979,6 +2114,10 @@
       "crit_chance_bonus": 0.06,
       "crit_damage_bonus": 0.2,
       "attack_speed_bonus": 0,
+      "movement_speed_bonus": 0,
+      "damage_resists": {
+        "arcane": 0.05
+      },
       "spell_power_per_level": 1,
       "starting_skills": [
         "synthetic_system_bolt"
@@ -2034,6 +2173,10 @@
       "crit_chance_bonus": 0.1,
       "crit_damage_bonus": 0.15,
       "attack_speed_bonus": 0.15,
+      "movement_speed_bonus": 0.06,
+      "damage_resists": {
+        "physical": 0.02
+      },
       "spell_power_per_level": 1,
       "starting_skills": [
         "synthetic_ping_scan"
@@ -2088,6 +2231,10 @@
       "crit_chance_bonus": 0.03,
       "crit_damage_bonus": 0.05,
       "attack_speed_bonus": -0.05,
+      "movement_speed_bonus": -0.04,
+      "damage_resists": {
+        "physical": 0.05
+      },
       "spell_power_per_level": 2,
       "starting_skills": [
         "synthetic_threat_matrix"
@@ -2118,7 +2265,7 @@
       "icon_path": "res://icons/items/sword_iron.png",
       "item_category": 0,
       "rarity": 2,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 1,
       "armor_type": 0,
       "accessory_type": 0,
@@ -2133,7 +2280,9 @@
       },
       "weapon_damage_min": 17,
       "weapon_damage_max": 28,
-      "attack_speed": 1.2,
+      "attack_speed": 1.25,
+      "crit_chance": 0.031,
+      "crit_damage": 0.114,
       "_sourceFile": "game/data/weapons/wep_attacker_sword.tres",
       "_scriptClass": "Item"
     },
@@ -2163,6 +2312,14 @@
       "weapon_damage_min": 15,
       "weapon_damage_max": 24,
       "attack_speed": 0.8,
+      "armor_value": 44,
+      "block_rating": 28,
+      "damage_resists": {
+        "physical": 0.084,
+        "fire": 0.021
+      },
+      "crit_chance": 0,
+      "crit_damage": 0,
       "_sourceFile": "game/data/weapons/wep_bulwark_towershield.tres",
       "_scriptClass": "Item"
     },
@@ -2176,7 +2333,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 2,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 7,
       "armor_type": 0,
       "accessory_type": 0,
@@ -2191,7 +2348,9 @@
       },
       "weapon_damage_min": 17,
       "weapon_damage_max": 27,
-      "attack_speed": 1.1,
+      "attack_speed": 1.13,
+      "crit_chance": 0.025,
+      "crit_damage": 0.127,
       "_sourceFile": "game/data/weapons/wep_cleric_staff.tres",
       "_scriptClass": "Item"
     },
@@ -2205,7 +2364,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 2,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 8,
       "armor_type": 0,
       "accessory_type": 0,
@@ -2220,7 +2379,9 @@
       },
       "weapon_damage_min": 16,
       "weapon_damage_max": 25,
-      "attack_speed": 1.3,
+      "attack_speed": 1.33,
+      "crit_chance": 0.031,
+      "crit_damage": 0.102,
       "_sourceFile": "game/data/weapons/wep_conduit_wand.tres",
       "_scriptClass": "Item"
     },
@@ -2234,7 +2395,7 @@
       "icon_path": "res://icons/items/axe_iron.png",
       "item_category": 0,
       "rarity": 0,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 2,
       "armor_type": 0,
       "accessory_type": 0,
@@ -2258,6 +2419,8 @@
       "weapon_damage_min": 5,
       "weapon_damage_max": 9,
       "attack_speed": 1,
+      "crit_chance": 0.012,
+      "crit_damage": 0.126,
       "armor_value": 0,
       "_sourceFile": "game/data/weapons/wep_copper_cleaver.tres",
       "_scriptClass": "Item"
@@ -2272,7 +2435,7 @@
       "icon_path": "res://icons/items/dagger_iron.png",
       "item_category": 0,
       "rarity": 2,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 4,
       "armor_type": 0,
       "accessory_type": 0,
@@ -2287,7 +2450,9 @@
       },
       "weapon_damage_min": 16,
       "weapon_damage_max": 26,
-      "attack_speed": 1.6,
+      "attack_speed": 1.67,
+      "crit_chance": 0.064,
+      "crit_damage": 0.164,
       "_sourceFile": "game/data/weapons/wep_exploiter_fang.tres",
       "_scriptClass": "Item"
     },
@@ -2301,7 +2466,7 @@
       "icon_path": "res://icons/items/axe_iron.png",
       "item_category": 0,
       "rarity": 3,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 2,
       "armor_type": 0,
       "accessory_type": 0,
@@ -2315,7 +2480,9 @@
       },
       "weapon_damage_min": 29,
       "weapon_damage_max": 47,
-      "attack_speed": 0.9,
+      "attack_speed": 0.94,
+      "crit_chance": 0.025,
+      "crit_damage": 0.196,
       "_sourceFile": "game/data/weapons/wep_golden_axe_high.tres",
       "_scriptClass": "Item"
     },
@@ -2329,7 +2496,7 @@
       "icon_path": "res://icons/items/estoc_golden.png",
       "item_category": 0,
       "rarity": 2,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 1,
       "stack_size": 1,
       "sell_price": 165,
@@ -2343,7 +2510,9 @@
       },
       "weapon_damage_min": 12,
       "weapon_damage_max": 19,
-      "attack_speed": 1.2,
+      "attack_speed": 1.23,
+      "crit_chance": 0.025,
+      "crit_damage": 0.114,
       "_sourceFile": "game/data/weapons/wep_golden_estoc.tres",
       "_scriptClass": "Item"
     },
@@ -2357,7 +2526,7 @@
       "icon_path": "res://icons/items/halberd_mythril.png",
       "item_category": 0,
       "rarity": 2,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 3,
       "armor_type": 0,
       "accessory_type": 0,
@@ -2372,7 +2541,9 @@
       },
       "weapon_damage_min": 20,
       "weapon_damage_max": 34,
-      "attack_speed": 0.9,
+      "attack_speed": 0.92,
+      "crit_chance": 0.018,
+      "crit_damage": 0.164,
       "_sourceFile": "game/data/weapons/wep_guardian_maul.tres",
       "_scriptClass": "Item"
     },
@@ -2386,7 +2557,7 @@
       "icon_path": "res://icons/items/axe_iron.png",
       "item_category": 0,
       "rarity": 0,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 2,
       "stack_size": 1,
       "sell_price": 30,
@@ -2400,6 +2571,8 @@
       "weapon_damage_min": 12,
       "weapon_damage_max": 20,
       "attack_speed": 0.9,
+      "crit_chance": 0.013,
+      "crit_damage": 0.128,
       "_sourceFile": "game/data/weapons/wep_iron_axe.tres",
       "_scriptClass": "Item"
     },
@@ -2413,7 +2586,7 @@
       "icon_path": "res://icons/items/bow_long.png",
       "item_category": 0,
       "rarity": 1,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 6,
       "armor_type": 0,
       "accessory_type": 0,
@@ -2427,7 +2600,9 @@
       },
       "weapon_damage_min": 16,
       "weapon_damage_max": 27,
-      "attack_speed": 0.9,
+      "attack_speed": 0.91,
+      "crit_chance": 0.032,
+      "crit_damage": 0.145,
       "_sourceFile": "game/data/weapons/wep_iron_crossbow.tres",
       "_scriptClass": "Item"
     },
@@ -2441,7 +2616,7 @@
       "icon_path": "res://icons/items/dagger_iron.png",
       "item_category": 0,
       "rarity": 0,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 4,
       "stack_size": 1,
       "sell_price": 15,
@@ -2455,6 +2630,8 @@
       "weapon_damage_min": 5,
       "weapon_damage_max": 9,
       "attack_speed": 1.8,
+      "crit_chance": 0.042,
+      "crit_damage": 0.124,
       "_sourceFile": "game/data/weapons/wep_iron_dagger.tres",
       "_scriptClass": "Item"
     },
@@ -2468,7 +2645,7 @@
       "icon_path": "res://icons/items/spear_iron.png",
       "item_category": 0,
       "rarity": 0,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 9,
       "stack_size": 1,
       "sell_price": 35,
@@ -2483,6 +2660,8 @@
       "weapon_damage_min": 10,
       "weapon_damage_max": 18,
       "attack_speed": 1,
+      "crit_chance": 0.023,
+      "crit_damage": 0.109,
       "_sourceFile": "game/data/weapons/wep_iron_spear.tres",
       "_scriptClass": "Item"
     },
@@ -2496,7 +2675,7 @@
       "icon_path": "res://icons/items/sword_iron.png",
       "item_category": 0,
       "rarity": 0,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 1,
       "armor_type": 0,
       "accessory_type": 0,
@@ -2520,6 +2699,8 @@
       "weapon_damage_min": 8,
       "weapon_damage_max": 15,
       "attack_speed": 1.2,
+      "crit_chance": 0.017,
+      "crit_damage": 0.087,
       "armor_value": 0,
       "_sourceFile": "game/data/weapons/wep_iron_sword.tres",
       "_scriptClass": "Item"
@@ -2534,7 +2715,7 @@
       "icon_path": "res://icons/items/bow_long.png",
       "item_category": 0,
       "rarity": 0,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 5,
       "stack_size": 1,
       "sell_price": 55,
@@ -2548,6 +2729,8 @@
       "weapon_damage_min": 14,
       "weapon_damage_max": 26,
       "attack_speed": 1,
+      "crit_chance": 0.034,
+      "crit_damage": 0.112,
       "_sourceFile": "game/data/weapons/wep_longbow.tres",
       "_scriptClass": "Item"
     },
@@ -2561,7 +2744,7 @@
       "icon_path": "res://icons/items/bow_long.png",
       "item_category": 0,
       "rarity": 2,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 5,
       "armor_type": 0,
       "accessory_type": 0,
@@ -2576,7 +2759,9 @@
       },
       "weapon_damage_min": 18,
       "weapon_damage_max": 30,
-      "attack_speed": 1,
+      "attack_speed": 1.04,
+      "crit_chance": 0.07,
+      "crit_damage": 0.158,
       "_sourceFile": "game/data/weapons/wep_marksman_bow.tres",
       "_scriptClass": "Item"
     },
@@ -2590,7 +2775,7 @@
       "icon_path": "res://icons/items/bow_long.png",
       "item_category": 0,
       "rarity": 3,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 6,
       "armor_type": 0,
       "accessory_type": 0,
@@ -2604,7 +2789,9 @@
       },
       "weapon_damage_min": 31,
       "weapon_damage_max": 49,
-      "attack_speed": 0.9,
+      "attack_speed": 0.94,
+      "crit_chance": 0.048,
+      "crit_damage": 0.199,
       "_sourceFile": "game/data/weapons/wep_mythril_crossbow_high.tres",
       "_scriptClass": "Item"
     },
@@ -2618,7 +2805,7 @@
       "icon_path": "res://icons/items/halberd_mythril.png",
       "item_category": 0,
       "rarity": 3,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 9,
       "stack_size": 1,
       "sell_price": 950,
@@ -2632,7 +2819,9 @@
       },
       "weapon_damage_min": 15,
       "weapon_damage_max": 26,
-      "attack_speed": 1,
+      "attack_speed": 1.04,
+      "crit_chance": 0.036,
+      "crit_damage": 0.157,
       "_sourceFile": "game/data/weapons/wep_mythril_halberd.tres",
       "_scriptClass": "Item"
     },
@@ -2646,7 +2835,7 @@
       "icon_path": "res://icons/items/dagger_iron.png",
       "item_category": 0,
       "rarity": 3,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 4,
       "armor_type": 0,
       "accessory_type": 0,
@@ -2669,7 +2858,9 @@
       "secondary_stats": {},
       "weapon_damage_min": 22,
       "weapon_damage_max": 34,
-      "attack_speed": 1.6,
+      "attack_speed": 1.66,
+      "crit_chance": 0.065,
+      "crit_damage": 0.183,
       "armor_value": 0,
       "_sourceFile": "game/data/weapons/wep_mythril_shortblade.tres",
       "_scriptClass": "Item"
@@ -2684,7 +2875,7 @@
       "icon_path": "res://icons/items/spear_iron.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 9,
       "armor_type": 0,
       "accessory_type": 0,
@@ -2698,7 +2889,9 @@
       },
       "weapon_damage_min": 35,
       "weapon_damage_max": 54,
-      "attack_speed": 1,
+      "attack_speed": 1.05,
+      "crit_chance": 0.046,
+      "crit_damage": 0.19,
       "_sourceFile": "game/data/weapons/wep_mythril_spear_high.tres",
       "_scriptClass": "Item"
     },
@@ -2712,7 +2905,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 3,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 8,
       "armor_type": 0,
       "accessory_type": 0,
@@ -2726,7 +2919,9 @@
       },
       "weapon_damage_min": 30,
       "weapon_damage_max": 45,
-      "attack_speed": 1.3,
+      "attack_speed": 1.36,
+      "crit_chance": 0.042,
+      "crit_damage": 0.121,
       "_sourceFile": "game/data/weapons/wep_mythril_wand_high.tres",
       "_scriptClass": "Item"
     },
@@ -2740,7 +2935,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 2,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 7,
       "armor_type": 0,
       "accessory_type": 0,
@@ -2755,7 +2950,9 @@
       },
       "weapon_damage_min": 17,
       "weapon_damage_max": 27,
-      "attack_speed": 1.1,
+      "attack_speed": 1.13,
+      "crit_chance": 0.031,
+      "crit_damage": 0.114,
       "_sourceFile": "game/data/weapons/wep_overclocker_staff.tres",
       "_scriptClass": "Item"
     },
@@ -2769,7 +2966,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 2,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 7,
       "armor_type": 0,
       "accessory_type": 0,
@@ -2784,7 +2981,9 @@
       },
       "weapon_damage_min": 17,
       "weapon_damage_max": 27,
-      "attack_speed": 1.1,
+      "attack_speed": 1.13,
+      "crit_chance": 0.031,
+      "crit_damage": 0.114,
       "_sourceFile": "game/data/weapons/wep_psion_staff.tres",
       "_scriptClass": "Item"
     },
@@ -2798,7 +2997,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 2,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 7,
       "armor_type": 0,
       "accessory_type": 0,
@@ -2813,7 +3012,9 @@
       },
       "weapon_damage_min": 17,
       "weapon_damage_max": 27,
-      "attack_speed": 1.1,
+      "attack_speed": 1.13,
+      "crit_chance": 0.031,
+      "crit_damage": 0.114,
       "_sourceFile": "game/data/weapons/wep_rune_staff.tres",
       "_scriptClass": "Item"
     },
@@ -2827,7 +3028,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 2,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 8,
       "armor_type": 0,
       "accessory_type": 0,
@@ -2842,7 +3043,9 @@
       },
       "weapon_damage_min": 16,
       "weapon_damage_max": 25,
-      "attack_speed": 1.3,
+      "attack_speed": 1.33,
+      "crit_chance": 0.037,
+      "crit_damage": 0.089,
       "_sourceFile": "game/data/weapons/wep_seer_wand.tres",
       "_scriptClass": "Item"
     },
@@ -2856,7 +3059,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 2,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 7,
       "armor_type": 0,
       "accessory_type": 0,
@@ -2871,7 +3074,9 @@
       },
       "weapon_damage_min": 17,
       "weapon_damage_max": 27,
-      "attack_speed": 1.1,
+      "attack_speed": 1.13,
+      "crit_chance": 0.025,
+      "crit_damage": 0.127,
       "_sourceFile": "game/data/weapons/wep_shaman_staff.tres",
       "_scriptClass": "Item"
     },
@@ -2885,7 +3090,7 @@
       "icon_path": "res://icons/items/sword_iron.png",
       "item_category": 0,
       "rarity": 2,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 1,
       "armor_type": 0,
       "accessory_type": 0,
@@ -2908,7 +3113,9 @@
       "secondary_stats": {},
       "weapon_damage_min": 26,
       "weapon_damage_max": 38,
-      "attack_speed": 1.5,
+      "attack_speed": 1.54,
+      "crit_chance": 0.026,
+      "crit_damage": 0.117,
       "armor_value": 0,
       "_sourceFile": "game/data/weapons/wep_silver_rapier.tres",
       "_scriptClass": "Item"
@@ -2923,7 +3130,7 @@
       "icon_path": "res://icons/items/sword_iron.png",
       "item_category": 0,
       "rarity": 3,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 1,
       "armor_type": 0,
       "accessory_type": 0,
@@ -2937,7 +3144,9 @@
       },
       "weapon_damage_min": 26,
       "weapon_damage_max": 41,
-      "attack_speed": 1.2,
+      "attack_speed": 1.25,
+      "crit_chance": 0.032,
+      "crit_damage": 0.139,
       "_sourceFile": "game/data/weapons/wep_silver_sword_high.tres",
       "_scriptClass": "Item"
     },
@@ -2951,7 +3160,7 @@
       "icon_path": "res://icons/items/halberd_mythril.png",
       "item_category": 0,
       "rarity": 2,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 3,
       "armor_type": 0,
       "accessory_type": 0,
@@ -2974,7 +3183,9 @@
       "secondary_stats": {},
       "weapon_damage_min": 30,
       "weapon_damage_max": 46,
-      "attack_speed": 0.9,
+      "attack_speed": 0.92,
+      "crit_chance": 0.019,
+      "crit_damage": 0.142,
       "armor_value": 0,
       "_sourceFile": "game/data/weapons/wep_silver_warhammer.tres",
       "_scriptClass": "Item"
@@ -2989,7 +3200,7 @@
       "icon_path": "res://icons/items/bow_long.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 5,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3003,7 +3214,9 @@
       },
       "weapon_damage_min": 59,
       "weapon_damage_max": 88,
-      "attack_speed": 1,
+      "attack_speed": 1.07,
+      "crit_chance": 0.076,
+      "crit_damage": 0.232,
       "_sourceFile": "game/data/weapons/wep_skyforged_bow_high.tres",
       "_scriptClass": "Item"
     },
@@ -3017,7 +3230,7 @@
       "icon_path": "res://icons/items/dagger_iron.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 4,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3031,7 +3244,9 @@
       },
       "weapon_damage_min": 53,
       "weapon_damage_max": 79,
-      "attack_speed": 1.6,
+      "attack_speed": 1.71,
+      "crit_chance": 0.09,
+      "crit_damage": 0.256,
       "_sourceFile": "game/data/weapons/wep_skyforged_fang_high.tres",
       "_scriptClass": "Item"
     },
@@ -3045,7 +3260,7 @@
       "icon_path": "res://icons/items/halberd_mythril.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 3,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3059,7 +3274,9 @@
       },
       "weapon_damage_min": 59,
       "weapon_damage_max": 89,
-      "attack_speed": 0.9,
+      "attack_speed": 0.96,
+      "crit_chance": 0.043,
+      "crit_damage": 0.229,
       "_sourceFile": "game/data/weapons/wep_skyforged_maul_high.tres",
       "_scriptClass": "Item"
     },
@@ -3073,7 +3290,7 @@
       "icon_path": "res://icons/items/sword_iron.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 1,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3087,7 +3304,9 @@
       },
       "weapon_damage_min": 60,
       "weapon_damage_max": 88,
-      "attack_speed": 1.2,
+      "attack_speed": 1.28,
+      "crit_chance": 0.053,
+      "crit_damage": 0.205,
       "_sourceFile": "game/data/weapons/wep_skyforged_sword_high.tres",
       "_scriptClass": "Item"
     },
@@ -3101,7 +3320,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 2,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 7,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3116,7 +3335,9 @@
       },
       "weapon_damage_min": 17,
       "weapon_damage_max": 27,
-      "attack_speed": 1.1,
+      "attack_speed": 1.13,
+      "crit_chance": 0.031,
+      "crit_damage": 0.114,
       "_sourceFile": "game/data/weapons/wep_sorcerer_staff.tres",
       "_scriptClass": "Item"
     },
@@ -3130,7 +3351,7 @@
       "icon_path": "res://icons/items/dagger_iron.png",
       "item_category": 0,
       "rarity": 2,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 4,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3145,7 +3366,9 @@
       },
       "weapon_damage_min": 16,
       "weapon_damage_max": 26,
-      "attack_speed": 1.6,
+      "attack_speed": 1.66,
+      "crit_chance": 0.083,
+      "crit_damage": 0.182,
       "_sourceFile": "game/data/weapons/wep_stalker_fang.tres",
       "_scriptClass": "Item"
     },
@@ -3159,7 +3382,7 @@
       "icon_path": "res://icons/items/bow_long.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 5,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3173,7 +3396,9 @@
       },
       "weapon_damage_min": 41,
       "weapon_damage_max": 63,
-      "attack_speed": 1,
+      "attack_speed": 1.06,
+      "crit_chance": 0.066,
+      "crit_damage": 0.202,
       "_sourceFile": "game/data/weapons/wep_starmetal_bow_high.tres",
       "_scriptClass": "Item"
     },
@@ -3187,7 +3412,7 @@
       "icon_path": "res://icons/items/bow_long.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 6,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3201,7 +3426,9 @@
       },
       "weapon_damage_min": 46,
       "weapon_damage_max": 69,
-      "attack_speed": 0.9,
+      "attack_speed": 0.95,
+      "crit_chance": 0.06,
+      "crit_damage": 0.238,
       "_sourceFile": "game/data/weapons/wep_starmetal_crossbow_high.tres",
       "_scriptClass": "Item"
     },
@@ -3215,7 +3442,7 @@
       "icon_path": "res://icons/items/dagger_iron.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 4,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3229,7 +3456,9 @@
       },
       "weapon_damage_min": 37,
       "weapon_damage_max": 56,
-      "attack_speed": 1.6,
+      "attack_speed": 1.69,
+      "crit_chance": 0.081,
+      "crit_damage": 0.229,
       "_sourceFile": "game/data/weapons/wep_starmetal_fang_high.tres",
       "_scriptClass": "Item"
     },
@@ -3243,7 +3472,7 @@
       "icon_path": "res://icons/items/sword_iron.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 1,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3258,7 +3487,9 @@
       },
       "weapon_damage_min": 44,
       "weapon_damage_max": 66,
-      "attack_speed": 1.2,
+      "attack_speed": 1.3,
+      "crit_chance": 0.052,
+      "crit_damage": 0.178,
       "_sourceFile": "game/data/weapons/wep_starmetal_master_attacker.tres",
       "_scriptClass": "Item"
     },
@@ -3288,6 +3519,14 @@
       "weapon_damage_min": 42,
       "weapon_damage_max": 62,
       "attack_speed": 0.8,
+      "armor_value": 102,
+      "block_rating": 60,
+      "damage_resists": {
+        "physical": 0.12,
+        "fire": 0.03
+      },
+      "crit_chance": 0,
+      "crit_damage": 0,
       "_sourceFile": "game/data/weapons/wep_starmetal_master_bulwark.tres",
       "_scriptClass": "Item"
     },
@@ -3301,7 +3540,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 7,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3316,7 +3555,9 @@
       },
       "weapon_damage_min": 44,
       "weapon_damage_max": 65,
-      "attack_speed": 1.1,
+      "attack_speed": 1.17,
+      "crit_chance": 0.044,
+      "crit_damage": 0.193,
       "_sourceFile": "game/data/weapons/wep_starmetal_master_cleric.tres",
       "_scriptClass": "Item"
     },
@@ -3330,7 +3571,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 8,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3345,7 +3586,9 @@
       },
       "weapon_damage_min": 43,
       "weapon_damage_max": 63,
-      "attack_speed": 1.3,
+      "attack_speed": 1.38,
+      "crit_chance": 0.052,
+      "crit_damage": 0.164,
       "_sourceFile": "game/data/weapons/wep_starmetal_master_conduit.tres",
       "_scriptClass": "Item"
     },
@@ -3359,7 +3602,7 @@
       "icon_path": "res://icons/items/dagger_iron.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 4,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3374,7 +3617,9 @@
       },
       "weapon_damage_min": 43,
       "weapon_damage_max": 64,
-      "attack_speed": 1.6,
+      "attack_speed": 1.73,
+      "crit_chance": 0.092,
+      "crit_damage": 0.238,
       "_sourceFile": "game/data/weapons/wep_starmetal_master_exploiter.tres",
       "_scriptClass": "Item"
     },
@@ -3388,7 +3633,7 @@
       "icon_path": "res://icons/items/halberd_mythril.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 3,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3403,7 +3648,9 @@
       },
       "weapon_damage_min": 47,
       "weapon_damage_max": 72,
-      "attack_speed": 0.9,
+      "attack_speed": 0.95,
+      "crit_chance": 0.036,
+      "crit_damage": 0.238,
       "_sourceFile": "game/data/weapons/wep_starmetal_master_guardian.tres",
       "_scriptClass": "Item"
     },
@@ -3417,7 +3664,7 @@
       "icon_path": "res://icons/items/bow_long.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 5,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3432,7 +3679,9 @@
       },
       "weapon_damage_min": 45,
       "weapon_damage_max": 68,
-      "attack_speed": 1,
+      "attack_speed": 1.07,
+      "crit_chance": 0.1,
+      "crit_damage": 0.23,
       "_sourceFile": "game/data/weapons/wep_starmetal_master_marksman.tres",
       "_scriptClass": "Item"
     },
@@ -3446,7 +3695,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 7,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3461,7 +3710,9 @@
       },
       "weapon_damage_min": 44,
       "weapon_damage_max": 65,
-      "attack_speed": 1.1,
+      "attack_speed": 1.17,
+      "crit_chance": 0.052,
+      "crit_damage": 0.178,
       "_sourceFile": "game/data/weapons/wep_starmetal_master_overclocker.tres",
       "_scriptClass": "Item"
     },
@@ -3475,7 +3726,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 7,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3490,7 +3741,9 @@
       },
       "weapon_damage_min": 44,
       "weapon_damage_max": 65,
-      "attack_speed": 1.1,
+      "attack_speed": 1.17,
+      "crit_chance": 0.052,
+      "crit_damage": 0.178,
       "_sourceFile": "game/data/weapons/wep_starmetal_master_psion.tres",
       "_scriptClass": "Item"
     },
@@ -3504,7 +3757,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 7,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3519,7 +3772,9 @@
       },
       "weapon_damage_min": 44,
       "weapon_damage_max": 65,
-      "attack_speed": 1.1,
+      "attack_speed": 1.17,
+      "crit_chance": 0.052,
+      "crit_damage": 0.178,
       "_sourceFile": "game/data/weapons/wep_starmetal_master_rune.tres",
       "_scriptClass": "Item"
     },
@@ -3533,7 +3788,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 8,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3548,7 +3803,9 @@
       },
       "weapon_damage_min": 43,
       "weapon_damage_max": 63,
-      "attack_speed": 1.3,
+      "attack_speed": 1.38,
+      "crit_chance": 0.06,
+      "crit_damage": 0.149,
       "_sourceFile": "game/data/weapons/wep_starmetal_master_seer.tres",
       "_scriptClass": "Item"
     },
@@ -3562,7 +3819,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 7,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3577,7 +3834,9 @@
       },
       "weapon_damage_min": 44,
       "weapon_damage_max": 65,
-      "attack_speed": 1.1,
+      "attack_speed": 1.17,
+      "crit_chance": 0.044,
+      "crit_damage": 0.193,
       "_sourceFile": "game/data/weapons/wep_starmetal_master_shaman.tres",
       "_scriptClass": "Item"
     },
@@ -3591,7 +3850,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 7,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3606,7 +3865,9 @@
       },
       "weapon_damage_min": 44,
       "weapon_damage_max": 65,
-      "attack_speed": 1.1,
+      "attack_speed": 1.17,
+      "crit_chance": 0.052,
+      "crit_damage": 0.178,
       "_sourceFile": "game/data/weapons/wep_starmetal_master_sorcerer.tres",
       "_scriptClass": "Item"
     },
@@ -3620,7 +3881,7 @@
       "icon_path": "res://icons/items/dagger_iron.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 4,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3635,7 +3896,9 @@
       },
       "weapon_damage_min": 43,
       "weapon_damage_max": 64,
-      "attack_speed": 1.6,
+      "attack_speed": 1.71,
+      "crit_chance": 0.116,
+      "crit_damage": 0.26,
       "_sourceFile": "game/data/weapons/wep_starmetal_master_stalker.tres",
       "_scriptClass": "Item"
     },
@@ -3649,7 +3912,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 7,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3664,7 +3927,9 @@
       },
       "weapon_damage_min": 44,
       "weapon_damage_max": 65,
-      "attack_speed": 1.1,
+      "attack_speed": 1.17,
+      "crit_chance": 0.052,
+      "crit_damage": 0.178,
       "_sourceFile": "game/data/weapons/wep_starmetal_master_temporalist.tres",
       "_scriptClass": "Item"
     },
@@ -3678,7 +3943,7 @@
       "icon_path": "res://icons/items/bow_long.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 6,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3693,7 +3958,9 @@
       },
       "weapon_damage_min": 46,
       "weapon_damage_max": 69,
-      "attack_speed": 0.9,
+      "attack_speed": 0.96,
+      "crit_chance": 0.092,
+      "crit_damage": 0.26,
       "_sourceFile": "game/data/weapons/wep_starmetal_master_tracker.tres",
       "_scriptClass": "Item"
     },
@@ -3723,6 +3990,14 @@
       "weapon_damage_min": 42,
       "weapon_damage_max": 62,
       "attack_speed": 0.8,
+      "armor_value": 102,
+      "block_rating": 60,
+      "damage_resists": {
+        "physical": 0.12,
+        "fire": 0.03
+      },
+      "crit_chance": 0,
+      "crit_damage": 0,
       "_sourceFile": "game/data/weapons/wep_starmetal_master_warden.tres",
       "_scriptClass": "Item"
     },
@@ -3736,7 +4011,7 @@
       "icon_path": "res://icons/items/sword_iron.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 1,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3751,7 +4026,9 @@
       },
       "weapon_damage_min": 44,
       "weapon_damage_max": 66,
-      "attack_speed": 1.2,
+      "attack_speed": 1.3,
+      "crit_chance": 0.052,
+      "crit_damage": 0.178,
       "_sourceFile": "game/data/weapons/wep_starmetal_master_warrior.tres",
       "_scriptClass": "Item"
     },
@@ -3765,7 +4042,7 @@
       "icon_path": "res://icons/items/halberd_mythril.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 3,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3779,7 +4056,9 @@
       },
       "weapon_damage_min": 38,
       "weapon_damage_max": 59,
-      "attack_speed": 0.9,
+      "attack_speed": 0.95,
+      "crit_chance": 0.031,
+      "crit_damage": 0.193,
       "_sourceFile": "game/data/weapons/wep_starmetal_maul_high.tres",
       "_scriptClass": "Item"
     },
@@ -3793,7 +4072,7 @@
       "icon_path": "res://icons/items/skysplitter.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 1,
       "stack_size": 1,
       "sell_price": 1800,
@@ -3807,7 +4086,9 @@
       },
       "weapon_damage_min": 20,
       "weapon_damage_max": 34,
-      "attack_speed": 0.9,
+      "attack_speed": 0.94,
+      "crit_chance": 0.033,
+      "crit_damage": 0.145,
       "_sourceFile": "game/data/weapons/wep_starmetal_skysplitter.tres",
       "_scriptClass": "Item"
     },
@@ -3821,7 +4102,7 @@
       "icon_path": "res://icons/items/spear_iron.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 9,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3835,7 +4116,9 @@
       },
       "weapon_damage_min": 44,
       "weapon_damage_max": 66,
-      "attack_speed": 1,
+      "attack_speed": 1.06,
+      "crit_chance": 0.051,
+      "crit_damage": 0.205,
       "_sourceFile": "game/data/weapons/wep_starmetal_spear_high.tres",
       "_scriptClass": "Item"
     },
@@ -3849,7 +4132,7 @@
       "icon_path": "res://icons/items/sword_iron.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 1,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3863,7 +4146,9 @@
       },
       "weapon_damage_min": 36,
       "weapon_damage_max": 56,
-      "attack_speed": 1.2,
+      "attack_speed": 1.27,
+      "crit_chance": 0.04,
+      "crit_damage": 0.166,
       "_sourceFile": "game/data/weapons/wep_starmetal_sword_high.tres",
       "_scriptClass": "Item"
     },
@@ -3877,7 +4162,7 @@
       "icon_path": "res://icons/items/axe_iron.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 2,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3891,7 +4176,9 @@
       },
       "weapon_damage_min": 49,
       "weapon_damage_max": 75,
-      "attack_speed": 0.9,
+      "attack_speed": 0.96,
+      "crit_chance": 0.038,
+      "crit_damage": 0.244,
       "_sourceFile": "game/data/weapons/wep_sunforged_axe_high.tres",
       "_scriptClass": "Item"
     },
@@ -3905,7 +4192,7 @@
       "icon_path": "res://icons/items/bow_long.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 6,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3919,7 +4206,9 @@
       },
       "weapon_damage_min": 47,
       "weapon_damage_max": 71,
-      "attack_speed": 0.9,
+      "attack_speed": 0.95,
+      "crit_chance": 0.061,
+      "crit_damage": 0.241,
       "_sourceFile": "game/data/weapons/wep_sunforged_crossbow_high.tres",
       "_scriptClass": "Item"
     },
@@ -3933,7 +4222,7 @@
       "icon_path": "res://icons/items/spear_iron.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 9,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3947,7 +4236,9 @@
       },
       "weapon_damage_min": 55,
       "weapon_damage_max": 81,
-      "attack_speed": 1,
+      "attack_speed": 1.06,
+      "crit_chance": 0.057,
+      "crit_damage": 0.223,
       "_sourceFile": "game/data/weapons/wep_sunforged_spear_high.tres",
       "_scriptClass": "Item"
     },
@@ -3961,7 +4252,7 @@
       "icon_path": "res://icons/items/sword_iron.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 1,
       "armor_type": 0,
       "accessory_type": 0,
@@ -3975,7 +4266,9 @@
       },
       "weapon_damage_min": 51,
       "weapon_damage_max": 76,
-      "attack_speed": 1.2,
+      "attack_speed": 1.28,
+      "crit_chance": 0.048,
+      "crit_damage": 0.19,
       "_sourceFile": "game/data/weapons/wep_sunforged_sword_high.tres",
       "_scriptClass": "Item"
     },
@@ -3989,7 +4282,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 8,
       "armor_type": 0,
       "accessory_type": 0,
@@ -4003,7 +4296,9 @@
       },
       "weapon_damage_min": 48,
       "weapon_damage_max": 70,
-      "attack_speed": 1.3,
+      "attack_speed": 1.38,
+      "crit_chance": 0.055,
+      "crit_damage": 0.158,
       "_sourceFile": "game/data/weapons/wep_sunforged_wand_high.tres",
       "_scriptClass": "Item"
     },
@@ -4017,7 +4312,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 2,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 7,
       "armor_type": 0,
       "accessory_type": 0,
@@ -4032,7 +4327,9 @@
       },
       "weapon_damage_min": 17,
       "weapon_damage_max": 27,
-      "attack_speed": 1.1,
+      "attack_speed": 1.13,
+      "crit_chance": 0.031,
+      "crit_damage": 0.114,
       "_sourceFile": "game/data/weapons/wep_temporalist_staff.tres",
       "_scriptClass": "Item"
     },
@@ -4046,7 +4343,7 @@
       "icon_path": "res://icons/items/bow_long.png",
       "item_category": 0,
       "rarity": 2,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 6,
       "armor_type": 0,
       "accessory_type": 0,
@@ -4061,7 +4358,9 @@
       },
       "weapon_damage_min": 19,
       "weapon_damage_max": 31,
-      "attack_speed": 0.9,
+      "attack_speed": 0.93,
+      "crit_chance": 0.064,
+      "crit_damage": 0.182,
       "_sourceFile": "game/data/weapons/wep_tracker_crossbow.tres",
       "_scriptClass": "Item"
     },
@@ -4075,7 +4374,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 0,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 7,
       "stack_size": 1,
       "sell_price": 45,
@@ -4089,6 +4388,8 @@
       "weapon_damage_min": 6,
       "weapon_damage_max": 12,
       "attack_speed": 1.1,
+      "crit_chance": 0.018,
+      "crit_damage": 0.089,
       "_sourceFile": "game/data/weapons/wep_walnut_staff.tres",
       "_scriptClass": "Item"
     },
@@ -4118,6 +4419,14 @@
       "weapon_damage_min": 15,
       "weapon_damage_max": 24,
       "attack_speed": 0.8,
+      "armor_value": 44,
+      "block_rating": 28,
+      "damage_resists": {
+        "physical": 0.084,
+        "fire": 0.021
+      },
+      "crit_chance": 0,
+      "crit_damage": 0,
       "_sourceFile": "game/data/weapons/wep_warden_towershield.tres",
       "_scriptClass": "Item"
     },
@@ -4131,7 +4440,7 @@
       "icon_path": "res://icons/items/sword_iron.png",
       "item_category": 0,
       "rarity": 2,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 1,
       "armor_type": 0,
       "accessory_type": 0,
@@ -4146,7 +4455,9 @@
       },
       "weapon_damage_min": 17,
       "weapon_damage_max": 28,
-      "attack_speed": 1.2,
+      "attack_speed": 1.25,
+      "crit_chance": 0.031,
+      "crit_damage": 0.114,
       "_sourceFile": "game/data/weapons/wep_warrior_sword.tres",
       "_scriptClass": "Item"
     },
@@ -4160,7 +4471,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 1,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 8,
       "armor_type": 0,
       "accessory_type": 0,
@@ -4174,7 +4485,9 @@
       },
       "weapon_damage_min": 16,
       "weapon_damage_max": 25,
-      "attack_speed": 1.3,
+      "attack_speed": 1.32,
+      "crit_chance": 0.028,
+      "crit_damage": 0.082,
       "_sourceFile": "game/data/weapons/wep_willow_wand.tres",
       "_scriptClass": "Item"
     },
@@ -4188,7 +4501,7 @@
       "icon_path": "res://icons/items/bow_wood.png",
       "item_category": 0,
       "rarity": 0,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 5,
       "stack_size": 1,
       "is_bound": false,
@@ -4205,6 +4518,8 @@
       "weapon_damage_min": 6,
       "weapon_damage_max": 12,
       "attack_speed": 1.5,
+      "crit_chance": 0.032,
+      "crit_damage": 0.105,
       "_sourceFile": "game/data/weapons/wep_wooden_bow.tres",
       "_scriptClass": "Item"
     },
@@ -4218,7 +4533,7 @@
       "icon_path": "res://icons/items/axe_iron.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 2,
       "armor_type": 0,
       "accessory_type": 0,
@@ -4232,7 +4547,9 @@
       },
       "weapon_damage_min": 62,
       "weapon_damage_max": 95,
-      "attack_speed": 0.9,
+      "attack_speed": 0.96,
+      "crit_chance": 0.046,
+      "crit_damage": 0.268,
       "_sourceFile": "game/data/weapons/wep_zenithforged_axe_high.tres",
       "_scriptClass": "Item"
     },
@@ -4246,7 +4563,7 @@
       "icon_path": "res://icons/items/bow_long.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 5,
       "armor_type": 0,
       "accessory_type": 0,
@@ -4260,7 +4577,9 @@
       },
       "weapon_damage_min": 65,
       "weapon_damage_max": 97,
-      "attack_speed": 1,
+      "attack_speed": 1.07,
+      "crit_chance": 0.078,
+      "crit_damage": 0.238,
       "_sourceFile": "game/data/weapons/wep_zenithforged_bow_high.tres",
       "_scriptClass": "Item"
     },
@@ -4274,7 +4593,7 @@
       "icon_path": "res://icons/items/bow_long.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 6,
       "armor_type": 0,
       "accessory_type": 0,
@@ -4288,7 +4607,9 @@
       },
       "weapon_damage_min": 61,
       "weapon_damage_max": 92,
-      "attack_speed": 0.9,
+      "attack_speed": 0.96,
+      "crit_chance": 0.07,
+      "crit_damage": 0.268,
       "_sourceFile": "game/data/weapons/wep_zenithforged_crossbow_high.tres",
       "_scriptClass": "Item"
     },
@@ -4302,7 +4623,7 @@
       "icon_path": "res://icons/items/dagger_iron.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 4,
       "armor_type": 0,
       "accessory_type": 0,
@@ -4316,7 +4637,9 @@
       },
       "weapon_damage_min": 58,
       "weapon_damage_max": 86,
-      "attack_speed": 1.6,
+      "attack_speed": 1.71,
+      "crit_chance": 0.094,
+      "crit_damage": 0.268,
       "_sourceFile": "game/data/weapons/wep_zenithforged_fang_high.tres",
       "_scriptClass": "Item"
     },
@@ -4330,7 +4653,7 @@
       "icon_path": "res://icons/items/halberd_mythril.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 3,
       "armor_type": 0,
       "accessory_type": 0,
@@ -4344,7 +4667,9 @@
       },
       "weapon_damage_min": 66,
       "weapon_damage_max": 99,
-      "attack_speed": 0.9,
+      "attack_speed": 0.96,
+      "crit_chance": 0.046,
+      "crit_damage": 0.238,
       "_sourceFile": "game/data/weapons/wep_zenithforged_maul_high.tres",
       "_scriptClass": "Item"
     },
@@ -4373,6 +4698,14 @@
       "weapon_damage_min": 52,
       "weapon_damage_max": 76,
       "attack_speed": 0.8,
+      "armor_value": 130,
+      "block_rating": 76,
+      "damage_resists": {
+        "physical": 0.132,
+        "fire": 0.033
+      },
+      "crit_chance": 0,
+      "crit_damage": 0,
       "_sourceFile": "game/data/weapons/wep_zenithforged_shield_high.tres",
       "_scriptClass": "Item"
     },
@@ -4386,7 +4719,7 @@
       "icon_path": "res://icons/items/spear_iron.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 9,
       "armor_type": 0,
       "accessory_type": 0,
@@ -4400,7 +4733,9 @@
       },
       "weapon_damage_min": 63,
       "weapon_damage_max": 95,
-      "attack_speed": 1.1,
+      "attack_speed": 1.18,
+      "crit_chance": 0.062,
+      "crit_damage": 0.238,
       "_sourceFile": "game/data/weapons/wep_zenithforged_spear_high.tres",
       "_scriptClass": "Item"
     },
@@ -4414,7 +4749,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 7,
       "armor_type": 0,
       "accessory_type": 0,
@@ -4428,7 +4763,9 @@
       },
       "weapon_damage_min": 60,
       "weapon_damage_max": 89,
-      "attack_speed": 1.1,
+      "attack_speed": 1.18,
+      "crit_chance": 0.054,
+      "crit_damage": 0.208,
       "_sourceFile": "game/data/weapons/wep_zenithforged_staff_high.tres",
       "_scriptClass": "Item"
     },
@@ -4442,7 +4779,7 @@
       "icon_path": "res://icons/items/sword_iron.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 1,
       "armor_type": 0,
       "accessory_type": 0,
@@ -4456,7 +4793,9 @@
       },
       "weapon_damage_min": 66,
       "weapon_damage_max": 96,
-      "attack_speed": 1.2,
+      "attack_speed": 1.28,
+      "crit_chance": 0.054,
+      "crit_damage": 0.208,
       "_sourceFile": "game/data/weapons/wep_zenithforged_sword_high.tres",
       "_scriptClass": "Item"
     },
@@ -4470,7 +4809,7 @@
       "icon_path": "res://icons/items/staff_walnut.png",
       "item_category": 0,
       "rarity": 4,
-      "equip_slot": 8,
+      "equip_slot": 7,
       "weapon_type": 8,
       "armor_type": 0,
       "accessory_type": 0,
@@ -4484,7 +4823,9 @@
       },
       "weapon_damage_min": 58,
       "weapon_damage_max": 86,
-      "attack_speed": 1.3,
+      "attack_speed": 1.39,
+      "crit_chance": 0.062,
+      "crit_damage": 0.179,
       "_sourceFile": "game/data/weapons/wep_zenithforged_wand_high.tres",
       "_scriptClass": "Item"
     }
@@ -4512,6 +4853,11 @@
         "vitality": 6
       },
       "armor_value": 20,
+      "damage_resists": {
+        "physical": 0.056,
+        "lightning": 0.028,
+        "fire": 0.005
+      },
       "_sourceFile": "game/data/armors/arm_attacker_chest.tres",
       "_scriptClass": "Item"
     },
@@ -4537,6 +4883,10 @@
         "vitality": 6
       },
       "armor_value": 20,
+      "damage_resists": {
+        "physical": 0.085,
+        "fire": 0.028
+      },
       "_sourceFile": "game/data/armors/arm_bulwark_pauldrons.tres",
       "_scriptClass": "Item"
     },
@@ -4561,6 +4911,10 @@
         "intelligence": 2
       },
       "armor_value": 4,
+      "damage_resists": {
+        "arcane": 0.042,
+        "fire": 0.021
+      },
       "_sourceFile": "game/data/armors/arm_cartographer_belt.tres",
       "_scriptClass": "Item"
     },
@@ -4586,6 +4940,11 @@
         "vitality": 6
       },
       "armor_value": 13,
+      "damage_resists": {
+        "arcane": 0.056,
+        "fire": 0.028,
+        "holy": 0.01
+      },
       "_sourceFile": "game/data/armors/arm_cleric_chest.tres",
       "_scriptClass": "Item"
     },
@@ -4611,6 +4970,11 @@
         "vitality": 6
       },
       "armor_value": 12,
+      "damage_resists": {
+        "arcane": 0.056,
+        "fire": 0.028,
+        "holy": 0.01
+      },
       "_sourceFile": "game/data/armors/arm_conduit_chest.tres",
       "_scriptClass": "Item"
     },
@@ -4637,6 +5001,10 @@
         "vitality": 2
       },
       "armor_value": 3,
+      "damage_resists": {
+        "physical": 0.031,
+        "poison": 0.021
+      },
       "_sourceFile": "game/data/armors/arm_copper_helm.tres",
       "_scriptClass": "Item"
     },
@@ -4662,6 +5030,11 @@
         "vitality": 6
       },
       "armor_value": 15,
+      "damage_resists": {
+        "physical": 0.042,
+        "poison": 0.028,
+        "fire": 0.005
+      },
       "_sourceFile": "game/data/armors/arm_exploiter_chest.tres",
       "_scriptClass": "Item"
     },
@@ -4686,6 +5059,10 @@
         "vitality": 9
       },
       "armor_value": 38,
+      "damage_resists": {
+        "physical": 0.05,
+        "poison": 0.033
+      },
       "_sourceFile": "game/data/armors/arm_golden_boots_high.tres",
       "_scriptClass": "Item"
     },
@@ -4712,6 +5089,10 @@
         "strength": 3
       },
       "armor_value": 26,
+      "damage_resists": {
+        "physical": 0.056,
+        "lightning": 0.028
+      },
       "_sourceFile": "game/data/armors/arm_golden_scale_chest.tres",
       "_scriptClass": "Item"
     },
@@ -4737,6 +5118,10 @@
         "vitality": 6
       },
       "armor_value": 20,
+      "damage_resists": {
+        "physical": 0.085,
+        "fire": 0.028
+      },
       "_sourceFile": "game/data/armors/arm_guardian_chest.tres",
       "_scriptClass": "Item"
     },
@@ -4763,6 +5148,10 @@
         "strength": 2
       },
       "armor_value": 20,
+      "damage_resists": {
+        "physical": 0.043,
+        "lightning": 0.022
+      },
       "_sourceFile": "game/data/armors/arm_iron_mail_chest.tres",
       "_scriptClass": "Item"
     },
@@ -4787,6 +5176,10 @@
         "agility": 2
       },
       "armor_value": 6,
+      "damage_resists": {
+        "physical": 0.031,
+        "poison": 0.021
+      },
       "_sourceFile": "game/data/armors/arm_leather_boots.tres",
       "_scriptClass": "Item"
     },
@@ -4813,6 +5206,10 @@
         "vitality": 3
       },
       "armor_value": 12,
+      "damage_resists": {
+        "arcane": 0.042,
+        "fire": 0.021
+      },
       "_sourceFile": "game/data/armors/arm_leather_chest.tres",
       "_scriptClass": "Item"
     },
@@ -4838,6 +5235,10 @@
         "agility": 1
       },
       "armor_value": 5,
+      "damage_resists": {
+        "physical": 0.031,
+        "poison": 0.021
+      },
       "_sourceFile": "game/data/armors/arm_leather_gloves.tres",
       "_scriptClass": "Item"
     },
@@ -4862,6 +5263,10 @@
         "vitality": 2
       },
       "armor_value": 8,
+      "damage_resists": {
+        "physical": 0.031,
+        "poison": 0.021
+      },
       "_sourceFile": "game/data/armors/arm_leather_helm.tres",
       "_scriptClass": "Item"
     },
@@ -4886,6 +5291,10 @@
         "agility": 2
       },
       "armor_value": 10,
+      "damage_resists": {
+        "physical": 0.031,
+        "poison": 0.021
+      },
       "_sourceFile": "game/data/armors/arm_leather_legs.tres",
       "_scriptClass": "Item"
     },
@@ -4911,6 +5320,10 @@
         "vitality": 6
       },
       "armor_value": 15,
+      "damage_resists": {
+        "physical": 0.042,
+        "poison": 0.038
+      },
       "_sourceFile": "game/data/armors/arm_marksman_chest.tres",
       "_scriptClass": "Item"
     },
@@ -4937,6 +5350,10 @@
         "strength": 4
       },
       "armor_value": 20,
+      "damage_resists": {
+        "physical": 0.063,
+        "lightning": 0.032
+      },
       "_sourceFile": "game/data/armors/arm_mythril_gauntlets.tres",
       "_scriptClass": "Item"
     },
@@ -4961,6 +5378,10 @@
         "vitality": 10
       },
       "armor_value": 50,
+      "damage_resists": {
+        "physical": 0.068,
+        "lightning": 0.034
+      },
       "_sourceFile": "game/data/armors/arm_mythril_gauntlets_high.tres",
       "_scriptClass": "Item"
     },
@@ -4985,6 +5406,10 @@
         "vitality": 10
       },
       "armor_value": 34,
+      "damage_resists": {
+        "arcane": 0.068,
+        "fire": 0.034
+      },
       "_sourceFile": "game/data/armors/arm_mythril_helm_high.tres",
       "_scriptClass": "Item"
     },
@@ -5009,6 +5434,10 @@
         "vitality": 10
       },
       "armor_value": 60,
+      "damage_resists": {
+        "physical": 0.094,
+        "fire": 0.038
+      },
       "_sourceFile": "game/data/armors/arm_mythril_legs_high.tres",
       "_scriptClass": "Item"
     },
@@ -5036,6 +5465,10 @@
         "wisdom": 2
       },
       "armor_value": 34,
+      "damage_resists": {
+        "physical": 0.064,
+        "lightning": 0.032
+      },
       "_sourceFile": "game/data/armors/arm_mythril_wardmail.tres",
       "_scriptClass": "Item"
     },
@@ -5061,6 +5494,11 @@
         "vitality": 6
       },
       "armor_value": 12,
+      "damage_resists": {
+        "arcane": 0.056,
+        "fire": 0.028,
+        "shadow": 0.01
+      },
       "_sourceFile": "game/data/armors/arm_overclocker_legs.tres",
       "_scriptClass": "Item"
     },
@@ -5086,6 +5524,10 @@
         "vitality": 6
       },
       "armor_value": 12,
+      "damage_resists": {
+        "arcane": 0.071,
+        "fire": 0.028
+      },
       "_sourceFile": "game/data/armors/arm_psion_chest.tres",
       "_scriptClass": "Item"
     },
@@ -5111,6 +5553,11 @@
         "vitality": 6
       },
       "armor_value": 12,
+      "damage_resists": {
+        "physical": 0.056,
+        "lightning": 0.028,
+        "arcane": 0.015
+      },
       "_sourceFile": "game/data/armors/arm_rune_gauntlets.tres",
       "_scriptClass": "Item"
     },
@@ -5136,6 +5583,11 @@
         "vitality": 6
       },
       "armor_value": 12,
+      "damage_resists": {
+        "arcane": 0.056,
+        "fire": 0.028,
+        "shadow": 0.01
+      },
       "_sourceFile": "game/data/armors/arm_seer_chest.tres",
       "_scriptClass": "Item"
     },
@@ -5161,6 +5613,11 @@
         "vitality": 6
       },
       "armor_value": 13,
+      "damage_resists": {
+        "physical": 0.042,
+        "poison": 0.028,
+        "holy": 0.01
+      },
       "_sourceFile": "game/data/armors/arm_shaman_chest.tres",
       "_scriptClass": "Item"
     },
@@ -5174,7 +5631,7 @@
       "icon_path": "res://icons/items/shield_haven_wall.png",
       "item_category": 1,
       "rarity": 1,
-      "equip_slot": 6,
+      "equip_slot": 8,
       "weapon_type": 10,
       "armor_type": 3,
       "stack_size": 1,
@@ -5185,9 +5642,14 @@
       "required_level": 5,
       "required_class": "",
       "stats": {
-        "armor": 14,
-        "block_chance": 18
+        "vitality": 4
       },
+      "armor_value": 14,
+      "damage_resists": {
+        "physical": 0.073,
+        "fire": 0.018
+      },
+      "block_rating": 21.6,
       "_sourceFile": "game/data/armors/arm_shield_haven_wall.tres",
       "_scriptClass": "Item"
     },
@@ -5201,7 +5663,7 @@
       "icon_path": "res://icons/items/shield_haven_wall.png",
       "item_category": 1,
       "rarity": 1,
-      "equip_slot": 6,
+      "equip_slot": 8,
       "weapon_type": 10,
       "armor_type": 3,
       "stack_size": 1,
@@ -5212,7 +5674,12 @@
       "stats": {
         "vitality": 4
       },
-      "armor_value": 32,
+      "armor_value": 33,
+      "damage_resists": {
+        "physical": 0.074,
+        "fire": 0.018
+      },
+      "block_rating": 22.4,
       "_sourceFile": "game/data/armors/arm_shield_iron_wall.tres",
       "_scriptClass": "Item"
     },
@@ -5237,6 +5704,10 @@
         "vitality": 9
       },
       "armor_value": 44,
+      "damage_resists": {
+        "physical": 0.066,
+        "lightning": 0.033
+      },
       "_sourceFile": "game/data/armors/arm_silver_chest_high.tres",
       "_scriptClass": "Item"
     },
@@ -5263,6 +5734,10 @@
         "vitality": 5
       },
       "armor_value": 26,
+      "damage_resists": {
+        "physical": 0.057,
+        "lightning": 0.028
+      },
       "_sourceFile": "game/data/armors/arm_silver_scale_legs.tres",
       "_scriptClass": "Item"
     },
@@ -5287,6 +5762,10 @@
         "vitality": 15
       },
       "armor_value": 86,
+      "damage_resists": {
+        "physical": 0.107,
+        "fire": 0.043
+      },
       "_sourceFile": "game/data/armors/arm_skyforged_boots_high.tres",
       "_scriptClass": "Item"
     },
@@ -5311,6 +5790,10 @@
         "vitality": 15
       },
       "armor_value": 90,
+      "damage_resists": {
+        "physical": 0.109,
+        "fire": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_skyforged_chest_high.tres",
       "_scriptClass": "Item"
     },
@@ -5335,6 +5818,10 @@
         "vitality": 14
       },
       "armor_value": 68,
+      "damage_resists": {
+        "physical": 0.064,
+        "poison": 0.042
+      },
       "_sourceFile": "game/data/armors/arm_skyforged_helm_high.tres",
       "_scriptClass": "Item"
     },
@@ -5359,6 +5846,10 @@
         "vitality": 15
       },
       "armor_value": 66,
+      "damage_resists": {
+        "arcane": 0.086,
+        "fire": 0.043
+      },
       "_sourceFile": "game/data/armors/arm_skyforged_legs_high.tres",
       "_scriptClass": "Item"
     },
@@ -5384,6 +5875,10 @@
         "vitality": 6
       },
       "armor_value": 12,
+      "damage_resists": {
+        "arcane": 0.071,
+        "fire": 0.028
+      },
       "_sourceFile": "game/data/armors/arm_sorcerer_pauldrons.tres",
       "_scriptClass": "Item"
     },
@@ -5409,6 +5904,10 @@
         "vitality": 6
       },
       "armor_value": 15,
+      "damage_resists": {
+        "physical": 0.042,
+        "poison": 0.038
+      },
       "_sourceFile": "game/data/armors/arm_stalker_chest.tres",
       "_scriptClass": "Item"
     },
@@ -5433,6 +5932,10 @@
         "vitality": 11
       },
       "armor_value": 50,
+      "damage_resists": {
+        "physical": 0.058,
+        "poison": 0.039
+      },
       "_sourceFile": "game/data/armors/arm_starmetal_boots_high.tres",
       "_scriptClass": "Item"
     },
@@ -5459,6 +5962,10 @@
         "strength": 5
       },
       "armor_value": 44,
+      "damage_resists": {
+        "physical": 0.089,
+        "fire": 0.036
+      },
       "_sourceFile": "game/data/armors/arm_starmetal_bulwark.tres",
       "_scriptClass": "Item"
     },
@@ -5483,6 +5990,10 @@
         "vitality": 11
       },
       "armor_value": 54,
+      "damage_resists": {
+        "physical": 0.076,
+        "lightning": 0.038
+      },
       "_sourceFile": "game/data/armors/arm_starmetal_chest_high.tres",
       "_scriptClass": "Item"
     },
@@ -5507,6 +6018,10 @@
         "vitality": 12
       },
       "armor_value": 62,
+      "damage_resists": {
+        "physical": 0.079,
+        "lightning": 0.04
+      },
       "_sourceFile": "game/data/armors/arm_starmetal_gauntlets_high.tres",
       "_scriptClass": "Item"
     },
@@ -5531,6 +6046,10 @@
         "vitality": 11
       },
       "armor_value": 64,
+      "damage_resists": {
+        "physical": 0.096,
+        "fire": 0.038
+      },
       "_sourceFile": "game/data/armors/arm_starmetal_helm_high.tres",
       "_scriptClass": "Item"
     },
@@ -5555,6 +6074,10 @@
         "vitality": 12
       },
       "armor_value": 46,
+      "damage_resists": {
+        "arcane": 0.078,
+        "fire": 0.039
+      },
       "_sourceFile": "game/data/armors/arm_starmetal_legs_high.tres",
       "_scriptClass": "Item"
     },
@@ -5579,6 +6102,10 @@
         "vitality": 12
       },
       "armor_value": 72,
+      "damage_resists": {
+        "physical": 0.1,
+        "fire": 0.04
+      },
       "_sourceFile": "game/data/armors/arm_starmetal_pauldrons_high.tres",
       "_scriptClass": "Item"
     },
@@ -5603,6 +6130,10 @@
         "vitality": 13
       },
       "armor_value": 60,
+      "damage_resists": {
+        "physical": 0.061,
+        "poison": 0.041
+      },
       "_sourceFile": "game/data/armors/arm_sunforged_boots_high.tres",
       "_scriptClass": "Item"
     },
@@ -5627,6 +6158,10 @@
         "vitality": 14
       },
       "armor_value": 80,
+      "damage_resists": {
+        "physical": 0.104,
+        "fire": 0.042
+      },
       "_sourceFile": "game/data/armors/arm_sunforged_chest_high.tres",
       "_scriptClass": "Item"
     },
@@ -5651,6 +6186,10 @@
         "vitality": 14
       },
       "armor_value": 74,
+      "damage_resists": {
+        "physical": 0.084,
+        "lightning": 0.042
+      },
       "_sourceFile": "game/data/armors/arm_sunforged_gauntlets_high.tres",
       "_scriptClass": "Item"
     },
@@ -5675,6 +6214,10 @@
         "vitality": 13
       },
       "armor_value": 66,
+      "damage_resists": {
+        "physical": 0.081,
+        "lightning": 0.04
+      },
       "_sourceFile": "game/data/armors/arm_sunforged_helm_high.tres",
       "_scriptClass": "Item"
     },
@@ -5699,6 +6242,10 @@
         "vitality": 13
       },
       "armor_value": 56,
+      "damage_resists": {
+        "arcane": 0.082,
+        "fire": 0.041
+      },
       "_sourceFile": "game/data/armors/arm_sunforged_legs_high.tres",
       "_scriptClass": "Item"
     },
@@ -5724,6 +6271,11 @@
         "vitality": 6
       },
       "armor_value": 12,
+      "damage_resists": {
+        "arcane": 0.056,
+        "fire": 0.028,
+        "shadow": 0.01
+      },
       "_sourceFile": "game/data/armors/arm_temporalist_legs.tres",
       "_scriptClass": "Item"
     },
@@ -5749,6 +6301,10 @@
         "vitality": 6
       },
       "armor_value": 15,
+      "damage_resists": {
+        "physical": 0.042,
+        "poison": 0.038
+      },
       "_sourceFile": "game/data/armors/arm_tracker_chest.tres",
       "_scriptClass": "Item"
     },
@@ -5774,6 +6330,10 @@
         "vitality": 6
       },
       "armor_value": 20,
+      "damage_resists": {
+        "physical": 0.085,
+        "fire": 0.028
+      },
       "_sourceFile": "game/data/armors/arm_warden_chest.tres",
       "_scriptClass": "Item"
     },
@@ -5799,6 +6359,11 @@
         "vitality": 6
       },
       "armor_value": 20,
+      "damage_resists": {
+        "physical": 0.056,
+        "lightning": 0.028,
+        "fire": 0.005
+      },
       "_sourceFile": "game/data/armors/arm_warrior_chest.tres",
       "_scriptClass": "Item"
     },
@@ -5823,6 +6388,10 @@
         "vitality": 17
       },
       "armor_value": 96,
+      "damage_resists": {
+        "physical": 0.11,
+        "fire": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_boots_high.tres",
       "_scriptClass": "Item"
     },
@@ -5847,6 +6416,10 @@
         "vitality": 18
       },
       "armor_value": 104,
+      "damage_resists": {
+        "physical": 0.11,
+        "fire": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_chest_high.tres",
       "_scriptClass": "Item"
     },
@@ -5872,6 +6445,10 @@
         "vitality": 10
       },
       "armor_value": 60,
+      "damage_resists": {
+        "arcane": 0.088,
+        "fire": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_cloth_boots.tres",
       "_scriptClass": "Item"
     },
@@ -5897,6 +6474,10 @@
         "vitality": 10
       },
       "armor_value": 66,
+      "damage_resists": {
+        "arcane": 0.088,
+        "fire": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_cloth_chest.tres",
       "_scriptClass": "Item"
     },
@@ -5922,6 +6503,10 @@
         "vitality": 10
       },
       "armor_value": 56,
+      "damage_resists": {
+        "arcane": 0.088,
+        "fire": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_cloth_gauntlets.tres",
       "_scriptClass": "Item"
     },
@@ -5947,6 +6532,10 @@
         "vitality": 10
       },
       "armor_value": 52,
+      "damage_resists": {
+        "arcane": 0.088,
+        "fire": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_cloth_helm.tres",
       "_scriptClass": "Item"
     },
@@ -5972,6 +6561,10 @@
         "vitality": 10
       },
       "armor_value": 50,
+      "damage_resists": {
+        "arcane": 0.088,
+        "fire": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_cloth_legs.tres",
       "_scriptClass": "Item"
     },
@@ -5997,6 +6590,10 @@
         "vitality": 10
       },
       "armor_value": 54,
+      "damage_resists": {
+        "arcane": 0.088,
+        "fire": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_cloth_pauldrons.tres",
       "_scriptClass": "Item"
     },
@@ -6021,6 +6618,10 @@
         "vitality": 16
       },
       "armor_value": 88,
+      "damage_resists": {
+        "physical": 0.11,
+        "fire": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_gauntlets_high.tres",
       "_scriptClass": "Item"
     },
@@ -6045,6 +6646,10 @@
         "vitality": 16
       },
       "armor_value": 82,
+      "damage_resists": {
+        "physical": 0.11,
+        "fire": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_helm_high.tres",
       "_scriptClass": "Item"
     },
@@ -6070,6 +6675,10 @@
         "vitality": 12
       },
       "armor_value": 70,
+      "damage_resists": {
+        "physical": 0.066,
+        "poison": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_leather_boots.tres",
       "_scriptClass": "Item"
     },
@@ -6095,6 +6704,10 @@
         "vitality": 12
       },
       "armor_value": 76,
+      "damage_resists": {
+        "physical": 0.066,
+        "poison": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_leather_chest.tres",
       "_scriptClass": "Item"
     },
@@ -6120,6 +6733,10 @@
         "vitality": 12
       },
       "armor_value": 64,
+      "damage_resists": {
+        "physical": 0.066,
+        "poison": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_leather_gauntlets.tres",
       "_scriptClass": "Item"
     },
@@ -6145,6 +6762,10 @@
         "vitality": 12
       },
       "armor_value": 60,
+      "damage_resists": {
+        "physical": 0.066,
+        "poison": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_leather_helm.tres",
       "_scriptClass": "Item"
     },
@@ -6170,6 +6791,10 @@
         "vitality": 12
       },
       "armor_value": 58,
+      "damage_resists": {
+        "physical": 0.066,
+        "poison": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_leather_legs.tres",
       "_scriptClass": "Item"
     },
@@ -6195,6 +6820,10 @@
         "vitality": 12
       },
       "armor_value": 62,
+      "damage_resists": {
+        "physical": 0.066,
+        "poison": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_leather_pauldrons.tres",
       "_scriptClass": "Item"
     },
@@ -6219,6 +6848,10 @@
         "vitality": 16
       },
       "armor_value": 78,
+      "damage_resists": {
+        "physical": 0.11,
+        "fire": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_legs_high.tres",
       "_scriptClass": "Item"
     },
@@ -6244,6 +6877,10 @@
         "vitality": 14
       },
       "armor_value": 80,
+      "damage_resists": {
+        "physical": 0.088,
+        "lightning": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_mail_boots.tres",
       "_scriptClass": "Item"
     },
@@ -6269,6 +6906,10 @@
         "vitality": 14
       },
       "armor_value": 88,
+      "damage_resists": {
+        "physical": 0.088,
+        "lightning": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_mail_chest.tres",
       "_scriptClass": "Item"
     },
@@ -6294,6 +6935,10 @@
         "vitality": 14
       },
       "armor_value": 74,
+      "damage_resists": {
+        "physical": 0.088,
+        "lightning": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_mail_gauntlets.tres",
       "_scriptClass": "Item"
     },
@@ -6319,6 +6964,10 @@
         "vitality": 14
       },
       "armor_value": 70,
+      "damage_resists": {
+        "physical": 0.088,
+        "lightning": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_mail_helm.tres",
       "_scriptClass": "Item"
     },
@@ -6344,6 +6993,10 @@
         "vitality": 14
       },
       "armor_value": 66,
+      "damage_resists": {
+        "physical": 0.088,
+        "lightning": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_mail_legs.tres",
       "_scriptClass": "Item"
     },
@@ -6369,6 +7022,10 @@
         "vitality": 14
       },
       "armor_value": 72,
+      "damage_resists": {
+        "physical": 0.088,
+        "lightning": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_mail_pauldrons.tres",
       "_scriptClass": "Item"
     },
@@ -6393,6 +7050,10 @@
         "vitality": 16
       },
       "armor_value": 86,
+      "damage_resists": {
+        "physical": 0.11,
+        "fire": 0.044
+      },
       "_sourceFile": "game/data/armors/arm_zenithforged_pauldrons_high.tres",
       "_scriptClass": "Item"
     }
@@ -6832,6 +7493,9 @@
       "spell_power": 20,
       "armor": 24,
       "resistance": 22,
+      "damage_resists": {
+        "poison": 0.3
+      },
       "attack_range": 2.2,
       "attack_speed": 1.5,
       "move_speed": 5.4,
@@ -6933,6 +7597,10 @@
       "spell_power": 90,
       "armor": 120,
       "resistance": 40,
+      "damage_resists": {
+        "lightning": 0.25,
+        "physical": 0.1
+      },
       "crit_chance": 0.2,
       "crit_damage": 0.5,
       "attack_range": 3,
@@ -7840,6 +8508,9 @@
       "spell_power": 120,
       "armor": 96,
       "resistance": 62,
+      "damage_resists": {
+        "poison": 0.25
+      },
       "crit_chance": 0.2,
       "crit_damage": 0.5,
       "attack_range": 4,
@@ -7942,6 +8613,10 @@
       "spell_power": 104,
       "armor": 52,
       "resistance": 44,
+      "damage_resists": {
+        "frost": 0.3,
+        "physical": 0.1
+      },
       "crit_chance": 0.12,
       "crit_damage": 0.25,
       "attack_range": 2.5,
@@ -8044,6 +8719,10 @@
       "spell_power": 0,
       "armor": 25,
       "resistance": 40,
+      "damage_resists": {
+        "physical": 0.1,
+        "fire": 0.05
+      },
       "attack_range": 0,
       "attack_speed": 0,
       "move_speed": 0,
@@ -8243,6 +8922,10 @@
       "spell_power": 200,
       "armor": 100,
       "resistance": 80,
+      "damage_resists": {
+        "shadow": 0.35,
+        "arcane": 0.15
+      },
       "crit_chance": 0.2,
       "crit_damage": 0.5,
       "attack_range": 40,

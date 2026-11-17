@@ -196,19 +196,23 @@ func _check_s11_primitives(Contract) -> void:
 	_check("band base: 25 vs 36 refused", not Contract.level_band_ok(25, 36))
 	_check("band widens at 30 s wait", Contract.level_band_ok(25, 36, 30.0))
 	_check("gulf never auto-passes", not Contract.level_band_ok(5, 60, 999.0))
-	# Power: capped normalize; ratio 2 ceiling keeps levels meaningful.
-	_check("normalize caps at ratio 2 (5 vs 60 -> 10)", Contract.normalized_level(5, 60) == 10)
-	_check("normalize full-reaches reference (30 vs 60 -> 60)", Contract.normalized_level(30, 60) == 60)
+	# Power: pull toward the reference but retain 20% of the gap, so the
+	# stronger fighter still has an edge. 5 vs 50 -> 41; 30 vs 60 -> 54.
+	_check("normalize 5 vs 50 -> 41-equivalent", Contract.normalized_level(5, 50) == 41)
+	_check("normalize 5 vs 60 -> 49-equivalent", Contract.normalized_level(5, 60) == 49)
+	_check("normalize 30 vs 60 -> 54-equivalent", Contract.normalized_level(30, 60) == 54)
 	_check("normalize never nerfs", Contract.normalized_level(70, 60) == 70)
-	# Power scale: the combat multiplier form of the same cap.
+	_check("gap retention 0 is full normalization", Contract.normalized_level(5, 60, 0.0) == 60)
+	_check("gap retention 1 is raw level", Contract.normalized_level(5, 60, 1.0) == 5)
+	# Power scale: the combat multiplier form of the same rule.
 	var ps5: float = Contract.power_scale(5, 60)
 	var ps70: float = Contract.power_scale(70, 60)
-	_check("power_scale caps at 2.0 and never nerfs", \
-		abs(ps5 - 2.0) < 0.0001 and abs(ps70 - 1.0) < 0.0001)
+	_check("power_scale boosts 5 vs 60 by 9.8 and never nerfs", \
+		abs(ps5 - 9.8) < 0.0001 and abs(ps70 - 1.0) < 0.0001)
 	var scaled: Dictionary = Contract.power_scale_target( \
 		{"strength": 10, "vitality": 10, "damage_multiplier": 1.5}, 30, 60)
-	_check("power_scale_target doubles base six, skips extras", \
-		int(scaled.get("strength", 0)) == 20 and int(scaled.get("vitality", 0)) == 20 \
+	_check("power_scale_target scales base six at 1.8, skips extras", \
+		int(scaled.get("strength", 0)) == 18 and int(scaled.get("vitality", 0)) == 18 \
 		and not scaled.has("damage_multiplier"))
 	# AFK: zone override wins; shared default 90 s; 0 disables.
 	var no_zone: float = Contract.afk_kick_seconds(null)

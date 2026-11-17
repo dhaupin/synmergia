@@ -157,9 +157,10 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 		attacker_level = int(source.get("level"))
 	var power_normalized: bool = CombatMath.is_power_normalized(entity) \
 			or CombatMath.is_power_normalized(source)
+	var school_resist: float = CombatMath.school_resist_for(entity, damage_type)
 	var actual_damage: int = CombatMath.calculate_mitigation(
 		amount, armor, attacker_level, defender_level,
-		defense_multiplier, armor_multiplier, flat, power_normalized)
+		defense_multiplier, armor_multiplier, flat, power_normalized, school_resist)
 
 	current_health = max(0, current_health - actual_damage)
 	health_changed.emit(current_health, max_health, -actual_damage)

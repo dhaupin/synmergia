@@ -10,7 +10,7 @@ description = "A silver arming sword worked for the low marches. Cut at the silv
 icon_path = "res://icons/items/sword_iron.png"
 item_category = 0
 rarity = 3
-equip_slot = 8
+equip_slot = 7
 weapon_type = 1
 armor_type = 0
 accessory_type = 0
@@ -24,4 +24,6 @@ stats = {
 }
 weapon_damage_min = 26
 weapon_damage_max = 41
-attack_speed = 1.2
+attack_speed = 1.25
+crit_chance = 0.032
+crit_damage = 0.139
