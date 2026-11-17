@@ -90,6 +90,11 @@ enum TargetType {
 
 # Effects
 @export var damage: int = 0
+## Authored damage band. A damaging skill samples this once per cast; a
+## zero pair falls back to the legacy single `damage` value. Effects[] can
+## author `min`/`max` per entry and the flattener sums them here.
+@export var damage_min: int = 0
+@export var damage_max: int = 0
 @export var damage_type: String = "physical"  # physical, magical, true
 @export var is_dot: bool = false  # Damage over time
 @export var dot_duration: float = 0.0
@@ -270,7 +275,15 @@ static func from_schema(s: SkillSchema) -> Skill:
 	for effect: Dictionary in s.effects:
 		match str(effect.get("type", "")):
 			"damage":
-				sk.damage += int(effect.get("value", 0))
+				var value: int = int(effect.get("value", 0))
+				sk.damage += value
+				# Authored range wins; an entry without min/max is a
+				# deterministic value and contributes that same number to
+				# both ends of the summed band.
+				var low: int = int(effect.get("min", value))
+				var high: int = int(effect.get("max", value))
+				sk.damage_min += mini(low, high)
+				sk.damage_max += maxi(low, high)
 			"heal":
 				sk.heal_amount += int(effect.get("value", 0))
 			"stun", "root", "slow":
@@ -422,7 +435,7 @@ func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO, def
 	remaining_cooldown = cooldown * (1.0 - _cooldown_reduction_of(caster))
 
 	# Calculate damage
-	if damage > 0:
+	if get_damage_range().y > 0:
 		var actual_damage := calculate_damage(caster, target)
 		result.damage_dealt = actual_damage
 
@@ -556,8 +569,28 @@ var _last_hit_result: Dictionary = {}
 ## execute() to stamp the heal event so the HUD can style a crit mend.
 var _last_heal_was_crit: bool = false
 
+## The skill's one damage roll for this cast. A legacy single-value skill
+## still returns its authored damage; a ranged skill samples its band.
+func get_damage_range() -> Vector2i:
+	var lo: int = damage_min
+	var hi: int = damage_max
+	if lo <= 0 and hi <= 0:
+		lo = damage
+		hi = damage
+	elif hi <= 0:
+		hi = lo
+	elif lo <= 0:
+		lo = hi
+	return Vector2i(mini(lo, hi), maxi(lo, hi))
+
+func get_damage_roll() -> int:
+	var band := get_damage_range()
+	if band.y <= 0:
+		return 0
+	return randi_range(maxi(band.x, 0), maxi(band.y, 0))
+
 func calculate_damage(caster, target) -> int:
-	var base_damage := damage
+	var base_damage := get_damage_roll()
 
 	# Apply caster's attack power based on damage type
 	if damage_type == "physical":
@@ -872,7 +905,7 @@ func apply_scope_bands() -> void:
 	# guard the heal fold leaves to apply_banded_heal has to live here: a skill
 	# that authors its own ring (Fireball, Frost Nova) is already an AoE and must
 	# never be capped down to the single-target rung.
-	if blast_band and damage > 0:
+	if blast_band and get_damage_range().y > 0:
 		var authored_ring := aoe_radius > 0.0
 		var bb: Dictionary = ScopeBand.blast_band(upgrade_level)
 		blast_aoe = bool(bb.get("aoe", false))

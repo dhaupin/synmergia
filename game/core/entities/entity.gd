@@ -6,6 +6,7 @@ class_name Entity
 ## Canonical stat vocabulary (the keys in `stats` below and the
 ## mitigation/reflect keys the damage pipeline reads).
 const StatId = preload("res://core/schemas/stat_id.gd")
+const Item = preload("res://core/schemas/item.gd")
 const CombatMath = preload("res://core/services/combat_math.gd")
 const CcImmunity = preload("res://core/combat/cc_immunity.gd")
 
@@ -366,9 +367,29 @@ func get_defense() -> int:
 func get_magic_resistance() -> int:
 	return stats.wisdom * 2
 
+## The body's weapon, or null. Shared by every Entity-family actor that
+## carries an InventoryComponent (enemies, NPCs, future actors).
+func _main_hand_weapon():
+	if "inventory_component" not in self:
+		return null
+	var bag = get("inventory_component")
+	if bag == null or not bag.has_method("get_equipped"):
+		return null
+	return bag.get_equipped(Item.EquipSlot.MAIN_HAND)
+
+## One per-swing roll from the equipped main hand (0 when unarmed/broken).
+func get_weapon_damage_roll() -> int:
+	if "inventory_component" not in self:
+		return 0
+	var bag = get("inventory_component")
+	if bag == null or not bag.has_method("get_main_hand_damage_roll"):
+		return 0
+	return int(bag.get_main_hand_damage_roll())
+
 func get_attack_power() -> int:
-	# Physical damage: STR-based
-	return get_stat("strength") * 2
+	# Physical damage: STR-based body plus the main-hand band. A weaponless
+	# actor keeps the old strength-only number.
+	return get_stat("strength") * 2 + get_weapon_damage_roll()
 
 func get_spell_power() -> int:
 	# Magical damage: INT-based
@@ -381,21 +402,33 @@ func get_healing_power() -> int:
 func get_attack_speed() -> float:
 	# THE attack-speed formula (StatId): 1.0 base + agility + the
 	# attack_speed_multiplier stat delta (a haste). Reading the stat block is
-	# what lets a haste buff actually land -- the status-effect field was
-	# declared but never folded into the stats block.
+	# what lets a haste buff actually land, and the main hand multiplies the
+	# body's cadence exactly like the player path.
 	var delta := float(stats.get("attack_speed_multiplier", 1.0)) - 1.0
-	return StatId.attack_speed_of(float(get_stat("agility")), delta)
+	var speed := StatId.attack_speed_of(float(get_stat("agility")), delta)
+	var weapon = _main_hand_weapon()
+	if weapon != null and weapon.has_method("get_effective_attack_speed"):
+		speed *= float(weapon.get_effective_attack_speed())
+	return clampf(speed, 0.1, StatId.MAX_ATTACK_SPEED_MULT)
 
 func get_crit_chance() -> float:
 	# THE crit formula (StatId): base + agility + the crit_chance stat
-	# delta. Reading the stat block here is what lets a crit buff or a
-	# class base actually land -- the old hardcoded body shadowed it.
-	return StatId.crit_chance_of(
-		float(get_stat("agility")), float(stats.get("crit_chance", 0.0)))
+	# delta, plus the main hand's authored crit identity. Enemy bodies and
+	# players now read one weapon-crit lane.
+	var delta: float = float(stats.get("crit_chance", 0.0))
+	var weapon = _main_hand_weapon()
+	if weapon != null and weapon.has_method("get_effective_crit_chance"):
+		delta += float(weapon.get_effective_crit_chance())
+	return StatId.crit_chance_of(float(get_stat("agility")), delta)
 
 func get_crit_multiplier() -> float:
-	# The 1.5 base + the crit_damage stat delta (a rogue's climb).
-	return StatId.crit_damage_of(float(stats.get("crit_damage", 0.0)))
+	# The 1.5 base + the crit_damage stat delta (a rogue's climb) plus the
+	# main hand's authored crit-damage contribution.
+	var delta: float = float(stats.get("crit_damage", 0.0))
+	var weapon = _main_hand_weapon()
+	if weapon != null and weapon.has_method("get_effective_crit_damage"):
+		delta += float(weapon.get_effective_crit_damage())
+	return StatId.crit_damage_of(delta)
 
 func get_armor() -> int:
 	# Physical mitigation: VIT-based

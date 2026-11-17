@@ -12,6 +12,7 @@ item_category = 0
 rarity = 4
 equip_slot = 7
 weapon_type = 9
+is_two_handed = true
 armor_type = 0
 accessory_type = 0
 stack_size = 1

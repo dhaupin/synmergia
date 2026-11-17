@@ -32,6 +32,15 @@ enum WeaponType {
 	SHIELD
 }
 
+## Shield families. A normal shield is the 1H weapon + shield posture;
+## a wrist shield straps to the arm and is the only off-hand legal beside a
+## two-handed weapon. The wrist family is deliberately lesser in play.
+enum ShieldType {
+	NONE,
+	NORMAL,
+	WRIST
+}
+
 enum ArmorType {
 	NONE,
 	CLOTH,
@@ -157,6 +166,13 @@ enum EquipSlot {
 # Equipment-specific
 @export var weapon_damage_min: int = 0
 @export var weapon_damage_max: int = 0
+## A two-handed weapon occupies the main hand and forbids a normal off-hand
+## shield; only a wrist shield may ride beside it. One-handed weapons and
+## wands leave the off hand free for a normal shield.
+@export var is_two_handed: bool = false
+## Only meaningful when weapon_type == SHIELD. NORMAL is the full shield;
+## WRIST is the arm-strapped lesser family legal beside a two-handed weapon.
+@export var shield_type: ShieldType = ShieldType.NORMAL
 ## Weapon cadence is a MULTIPLIER on the body's class/enemy attack speed:
 ## 1.0 rides the class default, 1.2 swings 20% faster, 0.8 swings slower.
 @export var attack_speed: float = 1.0
@@ -359,6 +375,19 @@ func get_effective_crit_chance() -> float:
 func get_effective_crit_damage() -> float:
 	return 0.0 if is_broken() else crit_damage
 
+## Shield identity. Every shield carries weapon_type SHIELD; the family
+## decides the legal hand posture and how much of the block lane it opens.
+func is_shield() -> bool:
+	return weapon_type == WeaponType.SHIELD
+
+func is_wrist_shield() -> bool:
+	return is_shield() and shield_type == ShieldType.WRIST
+
+func get_shield_block_scale() -> float:
+	if not is_shield():
+		return 0.0
+	return 0.40 if shield_type == ShieldType.WRIST else 1.0
+
 ## Get effective armor value (0 if broken)
 func get_effective_armor_value() -> int:
 	if is_broken():
@@ -446,6 +475,8 @@ func to_dict() -> Dictionary:
 		"secondary_stats": secondary_stats,
 		"weapon_damage_min": weapon_damage_min,
 		"weapon_damage_max": weapon_damage_max,
+		"is_two_handed": is_two_handed,
+		"shield_type": shield_type,
 		"attack_speed": attack_speed,
 		"crit_chance": crit_chance,
 		"crit_damage": crit_damage,
@@ -513,6 +544,8 @@ static func from_dict(data: Dictionary) -> Item:
 	item.secondary_stats = data.get("secondary_stats", {})
 	item.weapon_damage_min = int(data.get("weapon_damage_min", 0))
 	item.weapon_damage_max = int(data.get("weapon_damage_max", 0))
+	item.is_two_handed = bool(data.get("is_two_handed", false))
+	item.shield_type = int(data.get("shield_type", ShieldType.NORMAL))
 	item.attack_speed = float(data.get("attack_speed", 1.0))
 	item.crit_chance = float(data.get("crit_chance", 0.0))
 	item.crit_damage = float(data.get("crit_damage", 0.0))

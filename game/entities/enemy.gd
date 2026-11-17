@@ -8,6 +8,7 @@ const AggroComponent = preload("res://core/components/aggro_component.gd")
 const KillRewards = preload("res://core/services/kill_rewards.gd")
 const EventService = preload("res://core/services/event_service.gd")
 const EnemyData = preload("res://core/schemas/enemy_data.gd")
+const InventoryComponent = preload("res://core/components/inventory_component.gd")
 const ModelData = preload("res://core/schemas/model_data.gd")
 const FloatingName = preload("res://entities/floating_name.gd")
 
@@ -44,6 +45,9 @@ var spawn_data_applied: bool = false
 ## the node is fully in the tree.
 var health_component: HealthComponent = null
 var aggro_component: AggroComponent = null
+## Optional enemy loadout. The same InventoryComponent and Item records the
+## player uses; absent when a template authors no equipment_ids.
+var inventory_component = null
 var _ai = null  # EnemyAI child, if attached (set via attach_ai)
 
 var _wander_target: Vector3 = Vector3.ZERO
@@ -79,6 +83,10 @@ func _ready() -> void:
 	elif starting_health > 0:
 		max_health = starting_health
 		current_health = starting_health
+
+	# Equipment is applied before the health component binds, so armor that
+	# adds vitality cannot leave the component on a stale pool.
+	_apply_equipment_loadout()
 
 	_resolve_health()
 	if health_component == null:
@@ -132,6 +140,62 @@ func _ready() -> void:
 	GameLog.info("Enemy spawned: %s (lvl %d, %d HP)" % [display_name, level, max_health])
 
 
+## Equip the template's optional item loadout through the SAME inventory,
+## stat, hand-legality and shield lanes a player uses. Items are deep-copied
+## from the data catalog so durability and stack state never leak between
+## enemy instances.
+func _apply_equipment_loadout() -> void:
+	if enemy_data == null or not ("equipment_ids" in enemy_data):
+		return
+	var ids: Array = enemy_data.equipment_ids
+	if ids.is_empty():
+		return
+	var ds = get_node_or_null("/root/DataService")
+	if ds == null or not ds.has_method("get_item"):
+		return
+	var bag = InventoryComponent.new()
+	bag.name = "InventoryComponent"
+	bag.max_inventory_slots = maxi(24, ids.size() + 4)
+	bag.set_owner_id(entity_id)
+	add_child(bag)
+	inventory_component = bag
+	for raw_id in ids:
+		var item_id: String = str(raw_id)
+		var source = ds.get_item(item_id)
+		if source == null:
+			GameLog.warn("Enemy %s loadout missing item %s" % [entity_id, item_id])
+			continue
+		var item: Item = Item.from_dict(source.to_dict())
+		if not bag.add_item(item):
+			GameLog.warn("Enemy %s loadout could not carry %s" % [entity_id, item_id])
+			continue
+		var slot: int = bag.find_item(item_id)
+		if slot >= 0 and not bag.equip_item(slot):
+			GameLog.warn("Enemy %s loadout could not equip %s (hand legality)" % [entity_id, item_id])
+
+## Enemy health is template-owned. Equipment vitality is a real stat bonus,
+## but it must not rewrite the authored pool through Entity's generic
+## 100 + vitality * 10 formula (a 6500 HP boss would become a 1300 HP mob).
+func _calculate_max_resources() -> void:
+	if enemy_data != null:
+		return
+	super._calculate_max_resources()
+
+## The enemy swing: its authored body band plus the equipped main-hand roll.
+## Spawn pipelines seed attack_damage_min/max on the stat block; a direct
+## scene template falls back to the record's raw authored band.
+func get_attack_power() -> int:
+	var body: int = get_stat("strength") * 2
+	var lo: int = int(stats.get("attack_damage_min", 0))
+	var hi: int = int(stats.get("attack_damage_max", 0))
+	if hi <= 0 and enemy_data != null and enemy_data.has_method("get_raw_damage_range"):
+		var band: Vector2i = enemy_data.get_raw_damage_range()
+		lo = band.x
+		hi = band.y
+	if hi > 0:
+		body = randi_range(maxi(lo, 0), maxi(hi, 0))
+	return body + get_weapon_damage_roll()
+
 func _load_from_data() -> void:
 	if spawn_data_applied:
 		# A spawn pipeline pre-applied template data (possibly with a
@@ -152,6 +216,11 @@ func _load_from_data() -> void:
 	if "stamina" in enemy_data:
 		max_stamina = float(maxi(int(enemy_data.stamina), 0))
 		current_stamina = max_stamina
+	# A directly instantiated template still gets its raw primaries, crit,
+	# wards, and body damage band. Spawn pipelines that already seeded the
+	# body return above (spawn_data_applied), so this cannot double-scale.
+	if enemy_data.has_method("apply_stats_to"):
+		enemy_data.apply_stats_to(self)
 
 
 ## Walks the local subtree to find a HealthComponent. The scene attaches
@@ -445,6 +514,11 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 		armor_value = float(enemy_data.resistance) \
 				if (damage_type == "magical" or damage_type == "magic") \
 				else float(enemy_data.armor)
+	# A physical hit also faces the enemy's equipped armor and shield. The
+	# school ward from the same gear lands later in the canonical pipeline.
+	if damage_type != "magical" and damage_type != "magic" \
+			and inventory_component != null and inventory_component.has_method("get_equipment_armor"):
+		armor_value += float(inventory_component.get_equipment_armor())
 	var defense_multiplier: float = 1.0
 	var armor_multiplier: float = 1.0
 	var flat: float = 0.0

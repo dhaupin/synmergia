@@ -63,11 +63,29 @@ func _shield() -> Resource:
 	item.display_name = "Test Shield"
 	item.equip_slot = ItemScript.EquipSlot.OFF_HAND
 	item.weapon_type = ItemScript.WeaponType.SHIELD
+	item.shield_type = ItemScript.ShieldType.NORMAL
 	item.armor_value = 10
 	item.block_rating = 45.0
 	item.damage_resists = {"physical": 0.1}
 	item.max_durability = 100
 	item.current_durability = 100
+	return item
+
+func _two_handed() -> Resource:
+	var item = _weapon()
+	item.id = "test_greatsword"
+	item.display_name = "Test Greatsword"
+	item.is_two_handed = true
+	return item
+
+func _wrist_shield() -> Resource:
+	var item = _shield()
+	item.id = "test_wristguard"
+	item.display_name = "Test Wristguard"
+	item.shield_type = ItemScript.ShieldType.WRIST
+	item.armor_value = 4
+	item.block_rating = 12.0
+	item.damage_resists = {"physical": 0.03}
 	return item
 
 func _run() -> void:
@@ -214,4 +232,65 @@ func _run() -> void:
 		"the migrated weapon no longer sits in the off hand")
 	legacy.free()
 
+	# --- Two-handed / wrist-shield hand law -----------------------------
+	var hand_player = PlayerBaseScript.new()
+	hand_player.name = "HandLawProbePlayer"
+	root.add_child(hand_player)
+	await process_frame
+	var hand_bag = InventoryComponentScript.new()
+	hand_bag.name = "Inventory"
+	hand_player.add_child(hand_bag)
+	hand_player.set("inventory_component", hand_bag)
+
+	var greatsword = _two_handed()
+	hand_bag.add_item(greatsword)
+	_assert(hand_bag.equip_item(0), "a two-handed weapon equips in the main hand")
+	var normal_shield = _shield()
+	hand_bag.add_item(normal_shield)
+	_assert(not hand_bag.equip_item(hand_bag.find_item("test_shield")),
+		"a normal shield is illegal beside a two-handed weapon")
+	var wrist = _wrist_shield()
+	hand_bag.add_item(wrist)
+	_assert(hand_bag.equip_item(hand_bag.find_item("test_wristguard")),
+		"a wrist shield is legal beside a two-handed weapon")
+	_assert(CombatMath._has_shield(hand_player), "a wrist shield opens the block lane")
+	_assert(_approx(CombatMath._shield_block_scale(hand_player), 0.4),
+		"a wrist shield contributes only the lesser block fraction")
+
+	# Loading an illegal saved pair (two-handed + normal shield) returns the
+	# normal shield to the bag instead of leaving both hands live.
+	var illegal = InventoryComponentScript.from_dict({
+		"equipment": {
+			"7": {
+				"id": "saved_greatsword",
+				"display_name": "Saved Greatsword",
+				"equip_slot": 7,
+				"weapon_type": 1,
+				"is_two_handed": true,
+				"weapon_damage_min": 10,
+				"weapon_damage_max": 20,
+				"current_durability": 100,
+				"max_durability": 100,
+			},
+			"8": {
+				"id": "saved_shield",
+				"display_name": "Saved Shield",
+				"equip_slot": 8,
+				"weapon_type": 10,
+				"shield_type": 1,
+				"current_durability": 100,
+				"max_durability": 100,
+			},
+		},
+		"inventory": [null],
+	})
+	_assert(illegal.get_equipped(ItemScript.EquipSlot.MAIN_HAND) != null,
+		"the saved two-handed weapon survives the load")
+	_assert(illegal.get_equipped(ItemScript.EquipSlot.OFF_HAND) == null,
+		"an illegal saved normal shield leaves the off hand")
+	_assert(illegal.find_item("saved_shield") >= 0,
+		"the illegal saved shield is returned to the bag, not deleted")
+	illegal.free()
+
 	player.queue_free()
+	hand_player.queue_free()

@@ -1,8 +1,8 @@
 {
-  "lastSyncedAt": "2026-11-17T00:08:25.518Z",
+  "lastSyncedAt": "2026-11-17T01:29:12.463Z",
   "counts": {
     "classes": 39,
-    "weapons": 82,
+    "weapons": 84,
     "armors": 77,
     "consumables": 13,
     "enemies": 31,
@@ -2267,6 +2267,7 @@
       "rarity": 2,
       "equip_slot": 7,
       "weapon_type": 1,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -2298,6 +2299,8 @@
       "rarity": 2,
       "equip_slot": 8,
       "weapon_type": 10,
+      "shield_type": 1,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -2335,6 +2338,7 @@
       "rarity": 2,
       "equip_slot": 7,
       "weapon_type": 7,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -2366,6 +2370,7 @@
       "rarity": 2,
       "equip_slot": 7,
       "weapon_type": 8,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -2397,6 +2402,7 @@
       "rarity": 0,
       "equip_slot": 7,
       "weapon_type": 2,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -2437,6 +2443,7 @@
       "rarity": 2,
       "equip_slot": 7,
       "weapon_type": 4,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -2468,6 +2475,7 @@
       "rarity": 3,
       "equip_slot": 7,
       "weapon_type": 2,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -2498,6 +2506,7 @@
       "rarity": 2,
       "equip_slot": 7,
       "weapon_type": 1,
+      "is_two_handed": false,
       "stack_size": 1,
       "sell_price": 165,
       "buy_price": 450,
@@ -2528,6 +2537,7 @@
       "rarity": 2,
       "equip_slot": 7,
       "weapon_type": 3,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -2559,6 +2569,7 @@
       "rarity": 0,
       "equip_slot": 7,
       "weapon_type": 2,
+      "is_two_handed": false,
       "stack_size": 1,
       "sell_price": 30,
       "buy_price": 140,
@@ -2588,6 +2599,7 @@
       "rarity": 1,
       "equip_slot": 7,
       "weapon_type": 6,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -2618,6 +2630,7 @@
       "rarity": 0,
       "equip_slot": 7,
       "weapon_type": 4,
+      "is_two_handed": false,
       "stack_size": 1,
       "sell_price": 15,
       "buy_price": 60,
@@ -2647,6 +2660,7 @@
       "rarity": 0,
       "equip_slot": 7,
       "weapon_type": 9,
+      "is_two_handed": true,
       "stack_size": 1,
       "sell_price": 35,
       "buy_price": 160,
@@ -2677,6 +2691,7 @@
       "rarity": 0,
       "equip_slot": 7,
       "weapon_type": 1,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -2705,6 +2720,46 @@
       "_sourceFile": "game/data/weapons/wep_iron_sword.tres",
       "_scriptClass": "Item"
     },
+    "wep_iron_wristguard": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_iron_wristguard",
+      "display_name": "Iron Wristguard",
+      "description": "A banded forearm plate with a short bite. It turns a blade aside and never pretends to be a wall.",
+      "icon_path": "res://icons/items/shield_haven_wall.png",
+      "item_category": 0,
+      "rarity": 0,
+      "equip_slot": 8,
+      "weapon_type": 10,
+      "is_two_handed": false,
+      "shield_type": 2,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 40,
+      "buy_price": 160,
+      "item_level": 6,
+      "required_level": 6,
+      "required_strength": 4,
+      "stats": {
+        "strength": 1
+      },
+      "weapon_damage_min": 3,
+      "weapon_damage_max": 5,
+      "attack_speed": 1,
+      "crit_chance": 0,
+      "crit_damage": 0,
+      "damage_resists": {
+        "physical": 0.03
+      },
+      "armor_value": 7,
+      "block_rating": 10,
+      "max_durability": 100,
+      "current_durability": 100,
+      "_sourceFile": "game/data/weapons/wep_iron_wristguard.tres",
+      "_scriptClass": "Item"
+    },
     "wep_longbow": {
       "script": {
         "_extResource": "1"
@@ -2717,6 +2772,7 @@
       "rarity": 0,
       "equip_slot": 7,
       "weapon_type": 5,
+      "is_two_handed": true,
       "stack_size": 1,
       "sell_price": 55,
       "buy_price": 260,
@@ -2746,6 +2802,7 @@
       "rarity": 2,
       "equip_slot": 7,
       "weapon_type": 5,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -2777,6 +2834,7 @@
       "rarity": 3,
       "equip_slot": 7,
       "weapon_type": 6,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -2807,6 +2865,7 @@
       "rarity": 3,
       "equip_slot": 7,
       "weapon_type": 9,
+      "is_two_handed": true,
       "stack_size": 1,
       "sell_price": 950,
       "buy_price": 2600,
@@ -2837,6 +2896,7 @@
       "rarity": 3,
       "equip_slot": 7,
       "weapon_type": 4,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -2877,6 +2937,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 9,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -2907,6 +2968,7 @@
       "rarity": 3,
       "equip_slot": 7,
       "weapon_type": 8,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -2937,6 +2999,7 @@
       "rarity": 2,
       "equip_slot": 7,
       "weapon_type": 7,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -2968,6 +3031,7 @@
       "rarity": 2,
       "equip_slot": 7,
       "weapon_type": 7,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -2999,6 +3063,7 @@
       "rarity": 2,
       "equip_slot": 7,
       "weapon_type": 7,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3030,6 +3095,7 @@
       "rarity": 2,
       "equip_slot": 7,
       "weapon_type": 8,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3061,6 +3127,7 @@
       "rarity": 2,
       "equip_slot": 7,
       "weapon_type": 7,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3092,6 +3159,7 @@
       "rarity": 2,
       "equip_slot": 7,
       "weapon_type": 1,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3132,6 +3200,7 @@
       "rarity": 3,
       "equip_slot": 7,
       "weapon_type": 1,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3162,6 +3231,7 @@
       "rarity": 2,
       "equip_slot": 7,
       "weapon_type": 3,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3202,6 +3272,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 5,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3232,6 +3303,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 4,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3262,6 +3334,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 3,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3292,6 +3365,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 1,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3322,6 +3396,7 @@
       "rarity": 2,
       "equip_slot": 7,
       "weapon_type": 7,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3353,6 +3428,7 @@
       "rarity": 2,
       "equip_slot": 7,
       "weapon_type": 4,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3384,6 +3460,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 5,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3414,6 +3491,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 6,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3444,6 +3522,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 4,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3474,6 +3553,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 1,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3505,6 +3585,8 @@
       "rarity": 4,
       "equip_slot": 8,
       "weapon_type": 10,
+      "shield_type": 1,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3542,6 +3624,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 7,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3573,6 +3656,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 8,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3604,6 +3688,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 4,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3635,6 +3720,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 3,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3666,6 +3752,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 5,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3697,6 +3784,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 7,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3728,6 +3816,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 7,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3759,6 +3848,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 7,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3790,6 +3880,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 8,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3821,6 +3912,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 7,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3852,6 +3944,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 7,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3883,6 +3976,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 4,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3914,6 +4008,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 7,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3945,6 +4040,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 6,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -3976,6 +4072,8 @@
       "rarity": 4,
       "equip_slot": 8,
       "weapon_type": 10,
+      "shield_type": 1,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4013,6 +4111,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 1,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4044,6 +4143,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 3,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4074,6 +4174,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 1,
+      "is_two_handed": true,
       "stack_size": 1,
       "sell_price": 1800,
       "buy_price": 5200,
@@ -4104,6 +4205,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 9,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4134,6 +4236,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 1,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4152,6 +4255,48 @@
       "_sourceFile": "game/data/weapons/wep_starmetal_sword_high.tres",
       "_scriptClass": "Item"
     },
+    "wep_starmetal_wristguard": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wep_starmetal_wristguard",
+      "display_name": "Starmetal Wristguard",
+      "description": "A starmetal forearm shell, close-fitting and quick. It keeps the hand free for the great weapon and the guard honest.",
+      "icon_path": "res://icons/items/shield_haven_wall.png",
+      "item_category": 0,
+      "rarity": 4,
+      "equip_slot": 8,
+      "weapon_type": 10,
+      "is_two_handed": false,
+      "shield_type": 2,
+      "armor_type": 0,
+      "accessory_type": 0,
+      "stack_size": 1,
+      "sell_price": 4700,
+      "buy_price": 19000,
+      "item_level": 45,
+      "required_level": 45,
+      "required_strength": 25,
+      "stats": {
+        "strength": 3,
+        "agility": 2
+      },
+      "weapon_damage_min": 9,
+      "weapon_damage_max": 14,
+      "attack_speed": 1,
+      "crit_chance": 0,
+      "crit_damage": 0,
+      "damage_resists": {
+        "physical": 0.06,
+        "fire": 0.04
+      },
+      "armor_value": 24,
+      "block_rating": 28,
+      "max_durability": 100,
+      "current_durability": 100,
+      "_sourceFile": "game/data/weapons/wep_starmetal_wristguard.tres",
+      "_scriptClass": "Item"
+    },
     "wep_sunforged_axe_high": {
       "script": {
         "_extResource": "1"
@@ -4164,6 +4309,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 2,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4194,6 +4340,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 6,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4224,6 +4371,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 9,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4254,6 +4402,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 1,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4284,6 +4433,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 8,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4314,6 +4464,7 @@
       "rarity": 2,
       "equip_slot": 7,
       "weapon_type": 7,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4345,6 +4496,7 @@
       "rarity": 2,
       "equip_slot": 7,
       "weapon_type": 6,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4376,6 +4528,7 @@
       "rarity": 0,
       "equip_slot": 7,
       "weapon_type": 7,
+      "is_two_handed": true,
       "stack_size": 1,
       "sell_price": 45,
       "buy_price": 220,
@@ -4405,6 +4558,8 @@
       "rarity": 2,
       "equip_slot": 8,
       "weapon_type": 10,
+      "shield_type": 1,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4442,6 +4597,7 @@
       "rarity": 2,
       "equip_slot": 7,
       "weapon_type": 1,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4473,6 +4629,7 @@
       "rarity": 1,
       "equip_slot": 7,
       "weapon_type": 8,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4503,6 +4660,7 @@
       "rarity": 0,
       "equip_slot": 7,
       "weapon_type": 5,
+      "is_two_handed": true,
       "stack_size": 1,
       "is_bound": false,
       "unique": false,
@@ -4535,6 +4693,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 2,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4565,6 +4724,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 5,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4595,6 +4755,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 6,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4625,6 +4786,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 4,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4655,6 +4817,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 3,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4685,6 +4848,8 @@
       "rarity": 4,
       "equip_slot": 8,
       "weapon_type": 10,
+      "shield_type": 1,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4721,6 +4886,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 9,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4751,6 +4917,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 7,
+      "is_two_handed": true,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4781,6 +4948,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 1,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -4811,6 +4979,7 @@
       "rarity": 4,
       "equip_slot": 7,
       "weapon_type": 8,
+      "is_two_handed": false,
       "armor_type": 0,
       "accessory_type": 0,
       "stack_size": 1,
@@ -5633,6 +5802,8 @@
       "rarity": 1,
       "equip_slot": 8,
       "weapon_type": 10,
+      "shield_type": 1,
+      "is_two_handed": false,
       "armor_type": 3,
       "stack_size": 1,
       "bind_on_equip": true,
@@ -5665,6 +5836,8 @@
       "rarity": 1,
       "equip_slot": 8,
       "weapon_type": 10,
+      "shield_type": 1,
+      "is_two_handed": false,
       "armor_type": 3,
       "stack_size": 1,
       "sell_price": 96,
@@ -7442,6 +7615,8 @@
       "intelligence": 3,
       "vitality": 9,
       "attack_power": 20,
+      "attack_damage_min": 17,
+      "attack_damage_max": 23,
       "spell_power": 0,
       "armor": 5,
       "resistance": 1,
@@ -7462,6 +7637,11 @@
       "gold_max": 20,
       "xp_reward": 55,
       "skills": [],
+      "equipment_ids": [
+        "wep_iron_axe",
+        "arm_leather_chest",
+        "wep_iron_wristguard"
+      ],
       "hitbox_profile_id": "hitbox_humanoid",
       "model_id": "enemy_bandit",
       "icon_path": "",
@@ -7490,6 +7670,8 @@
       "intelligence": 8,
       "vitality": 50,
       "attack_power": 112,
+      "attack_damage_min": 95,
+      "attack_damage_max": 129,
       "spell_power": 20,
       "armor": 24,
       "resistance": 22,
@@ -7543,6 +7725,8 @@
       "intelligence": 40,
       "vitality": 92,
       "attack_power": 138,
+      "attack_damage_min": 117,
+      "attack_damage_max": 159,
       "spell_power": 52,
       "armor": 72,
       "resistance": 44,
@@ -7594,6 +7778,8 @@
       "intelligence": 95,
       "vitality": 110,
       "attack_power": 120,
+      "attack_damage_min": 102,
+      "attack_damage_max": 138,
       "spell_power": 90,
       "armor": 120,
       "resistance": 40,
@@ -7620,6 +7806,10 @@
       "gold_max": 1200,
       "xp_reward": 6000,
       "skills": [],
+      "equipment_ids": [
+        "wep_guardian_maul",
+        "wep_iron_wristguard"
+      ],
       "icon_path": "",
       "scale": 2.2,
       "animation_set": "",
@@ -7647,6 +7837,8 @@
       "intelligence": 10,
       "vitality": 22,
       "attack_power": 50,
+      "attack_damage_min": 42,
+      "attack_damage_max": 58,
       "spell_power": 16,
       "armor": 14,
       "resistance": 6,
@@ -7697,6 +7889,8 @@
       "intelligence": 12,
       "vitality": 62,
       "attack_power": 116,
+      "attack_damage_min": 98,
+      "attack_damage_max": 134,
       "spell_power": 14,
       "armor": 38,
       "resistance": 16,
@@ -7747,6 +7941,8 @@
       "intelligence": 46,
       "vitality": 66,
       "attack_power": 140,
+      "attack_damage_min": 119,
+      "attack_damage_max": 161,
       "spell_power": 96,
       "armor": 44,
       "resistance": 36,
@@ -7797,6 +7993,8 @@
       "intelligence": 10,
       "vitality": 56,
       "attack_power": 104,
+      "attack_damage_min": 88,
+      "attack_damage_max": 120,
       "spell_power": 30,
       "armor": 28,
       "resistance": 30,
@@ -7847,6 +8045,8 @@
       "intelligence": 4,
       "vitality": 8,
       "attack_power": 10,
+      "attack_damage_min": 8,
+      "attack_damage_max": 12,
       "spell_power": 0,
       "armor": 2,
       "resistance": 0,
@@ -7897,6 +8097,8 @@
       "intelligence": 34,
       "vitality": 58,
       "attack_power": 92,
+      "attack_damage_min": 78,
+      "attack_damage_max": 106,
       "spell_power": 64,
       "armor": 30,
       "resistance": 34,
@@ -7947,6 +8149,8 @@
       "intelligence": 20,
       "vitality": 12,
       "attack_power": 31,
+      "attack_damage_min": 26,
+      "attack_damage_max": 36,
       "spell_power": 34,
       "armor": 6,
       "resistance": 12,
@@ -7997,6 +8201,8 @@
       "intelligence": 22,
       "vitality": 74,
       "attack_power": 122,
+      "attack_damage_min": 103,
+      "attack_damage_max": 141,
       "spell_power": 15,
       "armor": 54,
       "resistance": 26,
@@ -8049,6 +8255,8 @@
       "intelligence": 14,
       "vitality": 30,
       "attack_power": 90,
+      "attack_damage_min": 76,
+      "attack_damage_max": 104,
       "spell_power": 20,
       "armor": 22,
       "resistance": 12,
@@ -8101,6 +8309,8 @@
       "intelligence": 40,
       "vitality": 72,
       "attack_power": 136,
+      "attack_damage_min": 115,
+      "attack_damage_max": 157,
       "spell_power": 92,
       "armor": 48,
       "resistance": 40,
@@ -8153,6 +8363,8 @@
       "intelligence": 8,
       "vitality": 26,
       "attack_power": 68,
+      "attack_damage_min": 57,
+      "attack_damage_max": 79,
       "spell_power": 10,
       "armor": 20,
       "resistance": 8,
@@ -8204,6 +8416,8 @@
       "intelligence": 30,
       "vitality": 140,
       "attack_power": 72,
+      "attack_damage_min": 61,
+      "attack_damage_max": 83,
       "spell_power": 0,
       "armor": 150,
       "resistance": 150,
@@ -8253,6 +8467,8 @@
       "intelligence": 8,
       "vitality": 34,
       "attack_power": 88,
+      "attack_damage_min": 74,
+      "attack_damage_max": 102,
       "spell_power": 8,
       "armor": 34,
       "resistance": 10,
@@ -8305,6 +8521,8 @@
       "intelligence": 6,
       "vitality": 74,
       "attack_power": 110,
+      "attack_damage_min": 93,
+      "attack_damage_max": 127,
       "spell_power": 8,
       "armor": 58,
       "resistance": 34,
@@ -8355,6 +8573,8 @@
       "intelligence": 10,
       "vitality": 24,
       "attack_power": 58,
+      "attack_damage_min": 49,
+      "attack_damage_max": 67,
       "spell_power": 40,
       "armor": 18,
       "resistance": 10,
@@ -8405,6 +8625,8 @@
       "intelligence": 30,
       "vitality": 60,
       "attack_power": 124,
+      "attack_damage_min": 105,
+      "attack_damage_max": 143,
       "spell_power": 48,
       "armor": 34,
       "resistance": 24,
@@ -8457,6 +8679,8 @@
       "intelligence": 1,
       "vitality": 5,
       "attack_power": 8,
+      "attack_damage_min": 6,
+      "attack_damage_max": 10,
       "spell_power": 0,
       "armor": 2,
       "resistance": 0,
@@ -8505,6 +8729,8 @@
       "intelligence": 70,
       "vitality": 140,
       "attack_power": 158,
+      "attack_damage_min": 134,
+      "attack_damage_max": 182,
       "spell_power": 120,
       "armor": 96,
       "resistance": 62,
@@ -8560,6 +8786,8 @@
       "intelligence": 6,
       "vitality": 18,
       "attack_power": 30,
+      "attack_damage_min": 25,
+      "attack_damage_max": 35,
       "spell_power": 0,
       "armor": 12,
       "resistance": 2,
@@ -8610,6 +8838,8 @@
       "intelligence": 52,
       "vitality": 74,
       "attack_power": 158,
+      "attack_damage_min": 134,
+      "attack_damage_max": 182,
       "spell_power": 104,
       "armor": 52,
       "resistance": 44,
@@ -8637,6 +8867,9 @@
       "gold_max": 1200,
       "xp_reward": 5500,
       "skills": [],
+      "equipment_ids": [
+        "wep_mythril_halberd"
+      ],
       "movement_profile_id": "",
       "hitbox_profile_id": "",
       "icon_path": "",
@@ -8666,6 +8899,8 @@
       "intelligence": 28,
       "vitality": 62,
       "attack_power": 95,
+      "attack_damage_min": 80,
+      "attack_damage_max": 110,
       "spell_power": 25,
       "armor": 46,
       "resistance": 22,
@@ -8716,6 +8951,8 @@
       "intelligence": 1,
       "vitality": 10,
       "attack_power": 0,
+      "attack_damage_min": 1,
+      "attack_damage_max": 1,
       "spell_power": 0,
       "armor": 25,
       "resistance": 40,
@@ -8769,6 +9006,8 @@
       "intelligence": 70,
       "vitality": 100,
       "attack_power": 110,
+      "attack_damage_min": 93,
+      "attack_damage_max": 127,
       "spell_power": 140,
       "armor": 75,
       "resistance": 65,
@@ -8819,6 +9058,8 @@
       "intelligence": 8,
       "vitality": 40,
       "attack_power": 65,
+      "attack_damage_min": 55,
+      "attack_damage_max": 75,
       "spell_power": 0,
       "armor": 40,
       "resistance": 15,
@@ -8869,6 +9110,8 @@
       "intelligence": 4,
       "vitality": 10,
       "attack_power": 14,
+      "attack_damage_min": 11,
+      "attack_damage_max": 17,
       "spell_power": 0,
       "armor": 4,
       "resistance": 0,
@@ -8919,6 +9162,8 @@
       "intelligence": 100,
       "vitality": 120,
       "attack_power": 150,
+      "attack_damage_min": 127,
+      "attack_damage_max": 173,
       "spell_power": 200,
       "armor": 100,
       "resistance": 80,
@@ -8973,6 +9218,8 @@
       "intelligence": 1,
       "vitality": 7,
       "attack_power": 14,
+      "attack_damage_min": 11,
+      "attack_damage_max": 17,
       "spell_power": 0,
       "armor": 3,
       "resistance": 0,
@@ -13305,7 +13552,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 45
+          "value": 45,
+          "min": 38,
+          "max": 52
         }
       ],
       "required_level": 15,
@@ -13334,7 +13583,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 18
+          "value": 18,
+          "min": 15,
+          "max": 21
         },
         {
           "type": "debuff",
@@ -13368,7 +13619,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 300
+          "value": 300,
+          "min": 255,
+          "max": 345
         }
       ],
       "required_level": 10,
@@ -13396,7 +13649,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 320
+          "value": 320,
+          "min": 272,
+          "max": 368
         }
       ],
       "required_level": 10,
@@ -13424,7 +13679,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 35
+          "value": 35,
+          "min": 29,
+          "max": 41
         }
       ],
       "required_level": 10,
@@ -13453,7 +13710,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 22
+          "value": 22,
+          "min": 18,
+          "max": 26
         }
       ],
       "required_level": 1,
@@ -13482,7 +13741,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 280
+          "value": 280,
+          "min": 238,
+          "max": 322
         }
       ],
       "required_level": 10,
@@ -13537,7 +13798,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 55
+          "value": 55,
+          "min": 46,
+          "max": 64
         },
         {
           "type": "debuff",
@@ -13571,7 +13834,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 25
+          "value": 25,
+          "min": 21,
+          "max": 29
         }
       ],
       "required_level": 5,
@@ -13627,7 +13892,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 320
+          "value": 320,
+          "min": 272,
+          "max": 368
         }
       ],
       "required_level": 10,
@@ -13655,7 +13922,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 310
+          "value": 310,
+          "min": 263,
+          "max": 357
         }
       ],
       "required_level": 10,
@@ -13739,7 +14008,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 8
+          "value": 8,
+          "min": 6,
+          "max": 10
         }
       ],
       "required_level": 10,
@@ -13795,7 +14066,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 22
+          "value": 22,
+          "min": 18,
+          "max": 26
         }
       ],
       "required_level": 1,
@@ -13824,7 +14097,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 45
+          "value": 45,
+          "min": 38,
+          "max": 52
         }
       ],
       "required_level": 10,
@@ -13910,7 +14185,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 33
+          "value": 33,
+          "min": 28,
+          "max": 38
         }
       ],
       "required_level": 15,
@@ -13940,7 +14217,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 40
+          "value": 40,
+          "min": 34,
+          "max": 46
         },
         {
           "type": "damage_over_time",
@@ -13975,7 +14254,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 20
+          "value": 20,
+          "min": 17,
+          "max": 23
         },
         {
           "type": "debuff",
@@ -14009,7 +14290,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 300
+          "value": 300,
+          "min": 255,
+          "max": 345
         }
       ],
       "required_level": 10,
@@ -14066,7 +14349,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 290
+          "value": 290,
+          "min": 246,
+          "max": 334
         }
       ],
       "required_level": 10,
@@ -14183,7 +14468,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 26
+          "value": 26,
+          "min": 22,
+          "max": 30
         },
         {
           "type": "debuff",
@@ -14217,7 +14504,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 330
+          "value": 330,
+          "min": 280,
+          "max": 380
         }
       ],
       "required_level": 10,
@@ -14272,7 +14561,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 270
+          "value": 270,
+          "min": 229,
+          "max": 311
         },
         {
           "type": "debuff",
@@ -14333,7 +14624,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 23
+          "value": 23,
+          "min": 19,
+          "max": 27
         }
       ],
       "required_level": 1,
@@ -14362,7 +14655,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 50
+          "value": 50,
+          "min": 42,
+          "max": 58
         }
       ],
       "required_level": 10,
@@ -14391,7 +14686,9 @@
       "effects": [
         {
           "type": "damage",
-          "value": 20
+          "value": 20,
+          "min": 17,
+          "max": 23
         },
         {
           "type": "debuff",

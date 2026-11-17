@@ -40,6 +40,11 @@ enum EnemyType {
 
 # Combat stats
 @export var attack_power: int = 10
+## The enemy's own damage band. A swing rolls inside this pair; a broken
+## weapon or an empty loadout never removes the body's authored band. Both
+## zero falls back to attack_power, so older records keep a sane swing.
+@export var attack_damage_min: int = 0
+@export var attack_damage_max: int = 0
 @export var spell_power: int = 5
 @export var armor: int = 5
 @export var resistance: int = 0
@@ -87,6 +92,12 @@ enum EnemyType {
 # Skills
 @export var skills: Array[String] = []  # Skill IDs
 
+## Optional equipment loadout: item ids the spawn equips on this body.
+## Weapons, armor and shields all use the same Item records players use; an
+## empty list means the enemy fights with its body alone. The order matters
+## only for hand legality (two-handed weapon, then a wrist shield).
+@export var equipment_ids: Array[String] = []
+
 # Movement (Movement Design System). Empty = movement_standard humanoid
 # profile; per-mob override for e.g. quadruped wolves.
 @export var movement_profile_id: String = ""
@@ -129,6 +140,22 @@ func get_scaled_health() -> int:
 func get_scaled_damage(lvl_override: int = -1) -> int:
 	return get_scaled_stat(attack_power, lvl_override)
 
+## The authored band before level scaling. A spawn pipeline applies this
+## when it copies the raw template primaries; get_damage_range scales it
+## when the spawn is level-raised.
+func get_raw_damage_range() -> Vector2i:
+	var lo: int = attack_damage_min if attack_damage_min > 0 else attack_power
+	var hi: int = attack_damage_max if attack_damage_max > 0 else attack_power
+	return Vector2i(mini(lo, hi), maxi(lo, hi))
+
+## The authored enemy damage band, level-scaled and normalized so a max
+## below min can never escape. An unauthored pair falls back to attack_power.
+func get_damage_range(lvl_override: int = -1) -> Vector2i:
+	var raw := get_raw_damage_range()
+	var lo: int = get_scaled_stat(raw.x, lvl_override)
+	var hi: int = get_scaled_stat(raw.y, lvl_override)
+	return Vector2i(mini(lo, hi), maxi(lo, hi))
+
 ## Create actual stats dictionary for spawning
 func get_stats_for_level(lvl_override: int = -1) -> Dictionary:
 	return {
@@ -140,6 +167,8 @@ func get_stats_for_level(lvl_override: int = -1) -> Dictionary:
 		"intelligence": get_scaled_stat(intelligence, lvl_override),
 		"vitality": get_scaled_stat(vitality, lvl_override),
 		"attack_power": get_scaled_damage(lvl_override),
+		"attack_damage_min": get_damage_range(lvl_override).x,
+		"attack_damage_max": get_damage_range(lvl_override).y,
 		"spell_power": get_scaled_stat(spell_power, lvl_override),
 		"armor": get_scaled_stat(armor, lvl_override),
 		"resistance": get_scaled_stat(resistance, lvl_override),
@@ -176,6 +205,16 @@ func apply_stats_to(entity, level_override: int = -1) -> void:
 		entity.stats[key] = get_scaled_stat(base, level_override) if scaled else base
 	entity.stats["crit_chance"] = crit_chance
 	entity.stats["crit_damage"] = crit_damage
+	# The enemy's body damage band rides the same stat block every actor
+	# reads. A weapon loadout adds its own main-hand roll on top. Scale it
+	# only when the spawn pipeline is scaling the primaries above.
+	var damage_band: Vector2i
+	if scaled:
+		damage_band = get_damage_range(level_override)
+	else:
+		damage_band = get_raw_damage_range()
+	entity.stats["attack_damage_min"] = damage_band.x
+	entity.stats["attack_damage_max"] = damage_band.y
 	for school in damage_resists:
 		var resist_key := StatId.resist_key_for(str(school))
 		if resist_key != "":

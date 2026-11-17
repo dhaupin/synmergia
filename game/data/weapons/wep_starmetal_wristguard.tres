@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_starmetal_wristguard"
+display_name = "Starmetal Wristguard"
+description = "A starmetal forearm shell, close-fitting and quick. It keeps the hand free for the great weapon and the guard honest."
+icon_path = "res://icons/items/shield_haven_wall.png"
+item_category = 0
+rarity = 4
+equip_slot = 8
+weapon_type = 10
+is_two_handed = false
+shield_type = 2
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+sell_price = 4700
+buy_price = 19000
+item_level = 45
+required_level = 45
+required_strength = 25
+stats = {
+"strength": 3,
+"agility": 2
+}
+weapon_damage_min = 9
+weapon_damage_max = 14
+attack_speed = 1.0
+crit_chance = 0.0
+crit_damage = 0.0
+damage_resists = {
+"physical": 0.06,
+"fire": 0.04
+}
+armor_value = 24
+block_rating = 28.0
+max_durability = 100
+current_durability = 100
