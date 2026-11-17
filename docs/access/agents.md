@@ -50,6 +50,32 @@ godot --headless --server --path game/
 
 The door is local development and self-hosted surface, not a public API. For remote access, put an authenticated TLS proxy in front of it and set `SYN_AGENT_TOKEN`.
 
+## Enable it in the web build
+
+The wasm export has no process env, so `SYN_AGENT=1` has no browser
+equivalent. The in-page wire (`window.SynmergiaAgent`, backed by the
+`WebInputBridge` hooks) installs regardless, but the driver stays OFF until
+the operator opts in -- fail-closed, exactly like an unset `SYN_AGENT`. Set
+the flag in `web/config.js` (the deploy config) before the engine boots:
+
+```js
+window.SynmergiaConfig.agent = true;   // window.SynmergiaAgent verbs go live
+```
+
+With the flag unset, every verb returns `{ ok: false, reason: "agent driver
+disabled" }`. With it set, the same `observe`/`act`/`events` verbs run against
+the real `AgentDriver` -- a browser agent plays by the real rules, driven by
+stable handles (`ui:<path>` / `world:<id>`), never screen coordinates. The
+`scripts/web_probe/probe_agent_wire.js` probe is the end-to-end oracle: it
+drives menu -> register -> lobby -> species -> class -> world entirely through
+`window.SynmergiaAgent`.
+
+Two wasm marshalling facts the hooks are built around (a `create_callback`
+cannot carry either direction of a rich value): a callback's RETURN VALUE
+never crosses back to JS (it publishes JSON on `window.__synAgentResult`
+instead), and a JS OBJECT argument arrives as an opaque `JavaScriptObject`,
+not a Dictionary (so the facade passes JSON strings the hook decodes).
+
 ## Observe, then act
 
 ```bash

@@ -48,7 +48,7 @@ var _next_id: int = 1
 var _waits: Array = []  # [{id, pred, deadline_ms, since_frame}]
 
 func _ready() -> void:
-	_enabled = _env_enabled()
+	_enabled = _env_enabled() or _web_opt_in()
 	_connect_event_ring()
 	if _enabled:
 		GameLog.info("AgentDriver: ENABLED (agents may connect; door binds localhost)")
@@ -58,6 +58,19 @@ func _env_enabled() -> bool:
 	if OS.has_environment("SYN_AGENT"):
 		raw = OS.get_environment("SYN_AGENT").strip_edges().to_lower()
 	return raw in ["1", "true", "yes", "on"]
+
+## Web builds have no process env, so the native `SYN_AGENT=1` opt-in has no
+## equivalent -- the in-page `window.SynmergiaAgent` hooks would install but
+## could never be enabled (the driver refuses every verb while off). The web
+## opt-in is an explicit config flag the page/companion sets BEFORE the engine
+## boots: `window.SynmergiaConfig.agent = true`. Fail-closed: absent or false
+## leaves the driver off, exactly like an unset SYN_AGENT.
+func _web_opt_in() -> bool:
+	if not OS.has_feature("web"):
+		return false
+	var v = JavaScriptBridge.eval(
+		"!!(window.SynmergiaConfig && window.SynmergiaConfig.agent === true)", true)
+	return bool(v)
 
 ## Enable/disable at runtime (the door asks; receipts force it on).
 func set_enabled(v: bool) -> void:
