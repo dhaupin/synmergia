@@ -8,8 +8,8 @@
     "dev": "vite --host 0.0.0.0 --port 3000",
     "sync:data": "tsx scripts/sync_godot_data.ts",
     "smoke:3d": "sh ./scripts/blender_smoke_test.sh",
-    "build": "npm run sync:data && tsc && node scripts/prestruct-build.mjs",
-    "build:web": "npm run sync:data && tsc && vite build",
+    "build": "npm run sync:data && npm run verify:codex && tsc && node scripts/prestruct-build.mjs",
+    "build:web": "npm run sync:data && npm run verify:codex && tsc && vite build",
     "lint": "tsc --noEmit",
     "preview": "vite preview --port 3000",
     "preview:with-bridges": "node scripts/start-bridges.js && vite preview --port 3000",
@@ -17,6 +17,7 @@
     "r2:put:pck": "npx --yes wrangler r2 object put synmergia-client/game.pck --file web/game.pck --remote --content-type application/octet-stream",
     "r2:put": "npm run r2:put:wasm && npm run r2:put:pck",
     "verify:lane": "node scripts/verify_lane.mjs",
+    "verify:codex": "node scripts/verify_codex.mjs",
     "docs:build": "cd docs && bundle exec jekyll build && cd .. && node node_modules/freestruct/bin/freestruct.mjs --strict",
     "docs:serve": "cd docs && bundle exec jekyll serve --host 0.0.0.0 --port 4000"
   },

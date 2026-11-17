@@ -1,5 +1,5 @@
 {
-  "lastSyncedAt": "2026-11-17T02:23:20.586Z",
+  "lastSyncedAt": "2026-11-17T03:56:45.994Z",
   "counts": {
     "classes": 39,
     "weapons": 92,
@@ -38,6 +38,771 @@
     "furnishings": 11,
     "gliders": 6,
     "thermals": 10
+  },
+  "vocab": {
+    "enums": {
+      "AchievementType": [
+        "GLOBAL",
+        "PROGRESS",
+        "COLLECTIBLE"
+      ],
+      "Category": [
+        "COMBAT",
+        "SOCIAL",
+        "ECONOMY",
+        "EXPLORATION",
+        "ACHIEVEMENT"
+      ],
+      "Rarity": [
+        "COMMON",
+        "RARE",
+        "EPIC",
+        "LEGENDARY",
+        "MYTHIC"
+      ],
+      "AnkhType": [
+        "SHARED",
+        "PERSONAL",
+        "GUILD",
+        "FACTION",
+        "NEUTRAL",
+        "BLESSED",
+        "CURSED",
+        "ARENA"
+      ],
+      "AnkhSize": [
+        "SMALL",
+        "MEDIUM",
+        "LARGE",
+        "COLOSSAL"
+      ],
+      "Family": [
+        "CRAG",
+        "DEAD_TREE",
+        "MYCELIUM",
+        "STALAGMITE",
+        "GRASS"
+      ],
+      "TierScale": [
+        "LOCAL",
+        "WORLD",
+        "SYSTEM",
+        "GALAXY",
+        "UNIVERSE"
+      ],
+      "AdvanceMode": [
+        "TICK",
+        "EVALUATE"
+      ],
+      "ResourceType": [
+        "MANA",
+        "ENERGY",
+        "RAGE",
+        "RUNIC_POWER",
+        "CHI"
+      ],
+      "Role": [
+        "GM",
+        "TANK",
+        "DD",
+        "MAGE",
+        "ROGUE",
+        "BENDER",
+        "HEALER",
+        "DPS_MELEE",
+        "DPS_RANGED"
+      ],
+      "ContainerType": [
+        "INVENTORY",
+        "BANK",
+        "GUILD_VAULT",
+        "HOUSE_STORAGE",
+        "MOUNT_INVENTORY",
+        "EQUIPMENT_SLOTS",
+        "LOOT",
+        "SHOP",
+        "TRADE"
+      ],
+      "CurrencyKind": [
+        "REGULAR",
+        "TOKEN",
+        "FAVOR",
+        "EVENT",
+        "BLACK_MARKET",
+        "PREMIUM"
+      ],
+      "DialogActionType": [
+        "NONE",
+        "GIVE_QUEST",
+        "COMPLETE_QUEST",
+        "ABANDON_QUEST",
+        "START_FOLLOW",
+        "STOP_FOLLOW",
+        "OPEN_SHOP",
+        "OPEN_VAULT",
+        "TELEPORT",
+        "SET_WAYPOINT",
+        "GIVE_ITEM",
+        "REMOVE_ITEM",
+        "GIVE_CURRENCY",
+        "REMOVE_CURRENCY",
+        "TEACH_SKILL",
+        "EQUIP_ITEM",
+        "UNLOCK_TITLE",
+        "OPEN_TRADE"
+      ],
+      "EnemyType": [
+        "NORMAL",
+        "ELITE",
+        "CHAMPION",
+        "BOSS",
+        "WORLD_BOSS",
+        "RAID_BOSS"
+      ],
+      "EventType": [
+        "XP_BOOST",
+        "GOLD_BOOST",
+        "DROP_BOOST",
+        "LOOT_PARTY",
+        "PVP_WEEKEND",
+        "HOLIDAY",
+        "RAID_WEEK",
+        "CRAFTING_MASTER",
+        "GUILD_FESTIVAL",
+        "NEW_PLAYER",
+        "SEASONAL"
+      ],
+      "EventStatus": [
+        "INACTIVE",
+        "ACTIVE",
+        "UPCOMING",
+        "ENDED"
+      ],
+      "FactionType": [
+        "SPECIES",
+        "POLITICAL",
+        "PVP_RULE",
+        "REPUTATION"
+      ],
+      "PvPRule": [
+        "DEFAULT",
+        "PEACEFUL",
+        "HUNTED"
+      ],
+      "Relation": [
+        "ALLIED",
+        "NEUTRAL",
+        "HOSTILE"
+      ],
+      "FurnishingCategory": [
+        "FURNITURE",
+        "DECORATION",
+        "LIGHTING",
+        "STORAGE",
+        "FUNCTIONAL",
+        "STRUCTURAL",
+        "OUTDOOR",
+        "TROPHY",
+        "TECHNICAL",
+        "MISC"
+      ],
+      "PlacementSurface": [
+        "ANY",
+        "FLOOR",
+        "WALL",
+        "CEILING",
+        "OUTDOOR_GROUND"
+      ],
+      "OwnershipModel": [
+        "PERSONAL",
+        "GUILD",
+        "PUBLIC",
+        "INSTANCE"
+      ],
+      "GatewayType": [
+        "ANKH",
+        "WAYPOINT",
+        "DUNGEON_ENTRY",
+        "TOWN_PORTAL",
+        "SHIP",
+        "CUSTOM"
+      ],
+      "ActivationRequirement": [
+        "NONE",
+        "QUEST_COMPLETE",
+        "LEVEL_REACH",
+        "FACTION_RANK",
+        "ITEM_HOLD",
+        "ZONE_VISITED",
+        "GUILD_RANK",
+        "DAILY"
+      ],
+      "WatchTrigger": [
+        "NONE",
+        "ATTACKED",
+        "ATTACKED_FACTION",
+        "ATTACKED_PLAYER",
+        "STEALING",
+        "KILLING",
+        "TRESPASS",
+        "WANTED"
+      ],
+      "GuardDuty": [
+        "TOWN_WATCH",
+        "PERSONAL",
+        "FACTION",
+        "QUEST",
+        "ARENA"
+      ],
+      "ShapeKind": [
+        "CAPSULE",
+        "BOX",
+        "SPHERE"
+      ],
+      "Tier": [
+        "CLAIM",
+        "COTTAGE",
+        "HALL"
+      ],
+      "LobbyState": [
+        "OPEN",
+        "FULL",
+        "LOCKED",
+        "CLOSED"
+      ],
+      "InstanceMode": [
+        "ELIMINATION",
+        "TEAM_DEATHMATCH",
+        "ROYALE"
+      ],
+      "ItemCategory": [
+        "WEAPON",
+        "ARMOR",
+        "ACCESSORY",
+        "CONSUMABLE",
+        "RESOURCE",
+        "GEM",
+        "EVENT",
+        "FURNISHING",
+        "MISC",
+        "SKILL_BOOK"
+      ],
+      "WeaponType": [
+        "NONE",
+        "SWORD",
+        "AXE",
+        "MACE",
+        "DAGGER",
+        "BOW",
+        "CROSSBOW",
+        "STAFF",
+        "WAND",
+        "SPEAR",
+        "SHIELD",
+        "LANCE",
+        "SCYTHE",
+        "RELIC"
+      ],
+      "WeaponDamageType": [
+        "PHYSICAL",
+        "MAGICAL",
+        "HEALING"
+      ],
+      "ShieldType": [
+        "NONE",
+        "NORMAL",
+        "WRIST"
+      ],
+      "ArmorType": [
+        "NONE",
+        "CLOTH",
+        "LEATHER",
+        "MAIL",
+        "PLATE"
+      ],
+      "AccessoryType": [
+        "NONE",
+        "RING",
+        "NECKLACE",
+        "BRACELET",
+        "CLOAK",
+        "BELT",
+        "BREATHER"
+      ],
+      "EquipSlot": [
+        "NONE",
+        "HEAD",
+        "CHEST",
+        "LEGS",
+        "FEET",
+        "GLOVES",
+        "SHOULDERS",
+        "MAIN_HAND",
+        "OFF_HAND",
+        "RING_1",
+        "RING_2",
+        "NECKLACE",
+        "CLOAK",
+        "BELT"
+      ],
+      "Kind": [
+        "SETTLEMENT",
+        "PEAK",
+        "LAKE",
+        "STRAIT",
+        "MONOLITH",
+        "GATE",
+        "ANKH",
+        "RUIN",
+        "SITE"
+      ],
+      "Discover": [
+        "VISIBLE",
+        "HIDDEN",
+        "VISITED"
+      ],
+      "MountKind": [
+        "GROUND",
+        "FLYING",
+        "AQUATIC",
+        "SPACE"
+      ],
+      "MountSource": [
+        "DROP",
+        "QUEST",
+        "VENDOR",
+        "FACTION",
+        "EVENT",
+        "GM"
+      ],
+      "LocomotionClass": [
+        "HUMANOID",
+        "QUADRUPED",
+        "AERIAL",
+        "AQUATIC",
+        "MECHANICAL"
+      ],
+      "AnswerKind": [
+        "SKY_CODE",
+        "FORECAST"
+      ],
+      "LocationType": [
+        "TOWN",
+        "OUTPOST",
+        "VILLAGE",
+        "DUNGEON",
+        "CAPITAL"
+      ],
+      "DepthBand": [
+        "DRY",
+        "WADING",
+        "SUBMERGED",
+        "SQUEEZE",
+        "CRUSH"
+      ],
+      "Liquid": [
+        "WATER",
+        "LAVA"
+      ],
+      "AccessScope": [
+        "WORLD",
+        "PERSONAL",
+        "GUILD",
+        "FACTION"
+      ],
+      "QuestType": [
+        "MAIN",
+        "SIDE",
+        "DAILY",
+        "WEEKLY",
+        "EVENT",
+        "GUILD"
+      ],
+      "QuestState": [
+        "LOCKED",
+        "AVAILABLE",
+        "IN_PROGRESS",
+        "COMPLETE",
+        "REWARDED",
+        "FAILED"
+      ],
+      "ObjectiveType": [
+        "KILL",
+        "COLLECT",
+        "ESCORT",
+        "DEFEND",
+        "EXPLORE",
+        "TALK",
+        "DELIVER",
+        "USE_ITEM",
+        "CRAFT",
+        "REACH_LEVEL",
+        "ACHIEVE_STEP",
+        "RECORD_INSIGHT",
+        "SWIM",
+        "GLIDE"
+      ],
+      "Difficulty": [
+        "TRIVIAL",
+        "EASY",
+        "MEDIUM",
+        "HARD",
+        "EXPERT",
+        "MASTER"
+      ],
+      "Station": [
+        "NONE",
+        "FORGE",
+        "WORKBENCH",
+        "ALCHEMY"
+      ],
+      "RoadSurface": [
+        "DIRT",
+        "GRAVEL",
+        "COBBLE",
+        "PLANK",
+        "STONE_SLAB"
+      ],
+      "SkillType": [
+        "MELEE",
+        "RANGED",
+        "INSTANT",
+        "GROUND_TARGETED",
+        "TARGETED_AOE",
+        "SELF",
+        "CHANNEL",
+        "PROJECTILE_AOE",
+        "REVIVE"
+      ],
+      "TargetType": [
+        "SINGLE_ENEMY",
+        "MULTIPLE_ENEMY",
+        "SELF",
+        "ALLY",
+        "DEAD_ALLY",
+        "GROUND",
+        "TARGETED_AOE"
+      ],
+      "EffectCategory": [
+        "BUFF",
+        "DEBUFF",
+        "NEUTRAL"
+      ],
+      "EffectType": [
+        "STAT_MODIFIER",
+        "HEALTH_MODIFIER",
+        "IMMUNITY",
+        "STEALTH",
+        "CONTROL",
+        "SPECIAL"
+      ],
+      "ControlType": [
+        "NONE",
+        "STUN",
+        "ROOT",
+        "SNARE",
+        "FEAR",
+        "SILENCE",
+        "KNOCKBACK",
+        "INCAPACITATE"
+      ],
+      "StatType": [
+        "STRENGTH",
+        "AGILITY",
+        "INTELLIGENCE",
+        "VITALITY",
+        "ENDURANCE",
+        "WISDOM",
+        "MAX_HEALTH",
+        "MAX_MANA",
+        "MAX_STAMINA",
+        "HEALTH_REGEN",
+        "MANA_REGEN",
+        "STAMINA_REGEN",
+        "ARMOR",
+        "RESISTANCE",
+        "ATTACK_POWER",
+        "SPELL_POWER",
+        "CRIT_CHANCE",
+        "CRIT_MULTIPLIER",
+        "HASTE",
+        "MOVEMENT_SPEED",
+        "ARMOR_MULTIPLIER",
+        "DAMAGE_REDUCTION",
+        "DAMAGE_REFLECT",
+        "ALL_STATS"
+      ],
+      "StealthType": [
+        "NONE",
+        "INVISIBLE",
+        "STEALTH",
+        "VANISH"
+      ],
+      "EntityType": [
+        "NONE",
+        "PLAYER",
+        "ENEMY",
+        "NPC",
+        "DESTRUCTIBLE",
+        "OBJECT",
+        "TELEPORT",
+        "LOOT",
+        "ALL"
+      ],
+      "InteractionMode": [
+        "HOVER",
+        "CLICK",
+        "PROXIMITY"
+      ],
+      "SelectionMode": [
+        "SINGLE",
+        "MULTI",
+        "RADIAL"
+      ],
+      "Controller": [
+        "NONE",
+        "FACTION",
+        "GUILD"
+      ],
+      "Activation": [
+        "ALWAYS",
+        "RITUAL"
+      ],
+      "UnlockMethod": [
+        "ACHIEVEMENT",
+        "QUEST",
+        "PVP",
+        "CRAFTING",
+        "EVENT",
+        "GM_GRANT",
+        "PURCHASE",
+        "ACCOUNT"
+      ],
+      "VehicleKind": [
+        "CARAVAN",
+        "FERRY",
+        "SLEDGE",
+        "SIEGE",
+        "CUSTOM"
+      ],
+      "VehicleSource": [
+        "PURCHASE",
+        "GUILD",
+        "QUEST",
+        "EVENT"
+      ],
+      "TriggerKind": [
+        "SPARK_BAND",
+        "BAND_STATE",
+        "AURORA_BAND"
+      ],
+      "WorldKind": [
+        "MAIN",
+        "SUBWORLD",
+        "CELESTIAL"
+      ],
+      "OfflineState": [
+        "ONLINE",
+        "OFFLINE",
+        "DEV_ONLY"
+      ],
+      "PvPZoneMode": [
+        "SAFE",
+        "SPECIES_PVP",
+        "FACTION_PVP",
+        "FREE_PVP",
+        "WARZONE"
+      ]
+    },
+    "byClass": {
+      "AchievementData": {
+        "achievement_type": "AchievementType",
+        "category": "Category",
+        "rarity": "Rarity"
+      },
+      "Ankh": {
+        "ankh_type": "AnkhType",
+        "ankh_size": "AnkhSize"
+      },
+      "BiomeBand": {
+        "family": "Family"
+      },
+      "CalibrationTier": {
+        "scale": "TierScale",
+        "advance_mode": "AdvanceMode"
+      },
+      "CharacterClass": {
+        "role": "Role",
+        "resource_type": "ResourceType"
+      },
+      "CurrencyData": {
+        "kind": "CurrencyKind"
+      },
+      "EnemyData": {
+        "enemy_type": "EnemyType"
+      },
+      "EventData": {
+        "event_type": "EventType"
+      },
+      "Faction": {
+        "faction_type": "FactionType",
+        "pvp_rule": "PvPRule"
+      },
+      "FurnishingData": {
+        "furnishing_category": "FurnishingCategory",
+        "placement_surface": "PlacementSurface",
+        "ownership": "OwnershipModel"
+      },
+      "GatewayData": {
+        "gateway_type": "GatewayType",
+        "activation_requirement": "ActivationRequirement"
+      },
+      "GuardData": {
+        "guard_duty": "GuardDuty"
+      },
+      "HitboxProfile": {
+        "kind": "ShapeKind"
+      },
+      "HouseData": {
+        "tier": "Tier"
+      },
+      "Item": {
+        "item_category": "ItemCategory",
+        "rarity": "Rarity",
+        "equip_slot": "EquipSlot",
+        "weapon_type": "WeaponType",
+        "armor_type": "ArmorType",
+        "accessory_type": "AccessoryType",
+        "weapon_damage_type": "WeaponDamageType",
+        "shield_type": "ShieldType"
+      },
+      "LandmarkData": {
+        "kind": "Kind",
+        "discover": "Discover"
+      },
+      "ModelData": {
+        "kind": "Kind"
+      },
+      "MountData": {
+        "kind": "MountKind",
+        "source": "MountSource"
+      },
+      "MovementProfile": {
+        "locomotion_class": "LocomotionClass"
+      },
+      "MysteryData": {
+        "answer_kind": "AnswerKind"
+      },
+      "NPCData": {
+        "location_type": "LocationType"
+      },
+      "OceanVolume": {
+        "liquid": "Liquid"
+      },
+      "PlacementAccess": {
+        "scope": "AccessScope"
+      },
+      "QuestData": {
+        "quest_type": "QuestType",
+        "difficulty": "Difficulty"
+      },
+      "RecipeData": {
+        "station": "Station"
+      },
+      "RoadData": {
+        "surface": "RoadSurface"
+      },
+      "SkillSchema": {
+        "skill_type": "SkillType",
+        "target_type": "TargetType"
+      },
+      "StatusEffectData": {
+        "category": "EffectCategory",
+        "effect_type": "EffectType",
+        "control_type": "ControlType",
+        "stealth_type": "StealthType"
+      },
+      "TargetSchema": {
+        "entity_type": "EntityType",
+        "interaction_mode": "InteractionMode",
+        "selection_mode": "SelectionMode"
+      },
+      "TerritoryData": {
+        "controller": "Controller"
+      },
+      "ThermalUpdraft": {
+        "kind": "Kind",
+        "activation": "Activation"
+      },
+      "TitleData": {
+        "category": "Category",
+        "rarity": "Rarity",
+        "unlock_method": "UnlockMethod"
+      },
+      "VehicleData": {
+        "kind": "VehicleKind",
+        "source": "VehicleSource"
+      },
+      "WorldData": {
+        "kind": "WorldKind",
+        "offline": "OfflineState"
+      },
+      "ZoneData": {
+        "pvp_mode": "PvPZoneMode"
+      }
+    },
+    "fieldEnums": {
+      "achievement_type": "AchievementType",
+      "rarity": "Rarity",
+      "ankh_type": "AnkhType",
+      "ankh_size": "AnkhSize",
+      "family": "Family",
+      "scale": "TierScale",
+      "advance_mode": "AdvanceMode",
+      "role": "Role",
+      "resource_type": "ResourceType",
+      "enemy_type": "EnemyType",
+      "event_type": "EventType",
+      "faction_type": "FactionType",
+      "pvp_rule": "PvPRule",
+      "furnishing_category": "FurnishingCategory",
+      "placement_surface": "PlacementSurface",
+      "ownership": "OwnershipModel",
+      "gateway_type": "GatewayType",
+      "activation_requirement": "ActivationRequirement",
+      "guard_duty": "GuardDuty",
+      "tier": "Tier",
+      "item_category": "ItemCategory",
+      "equip_slot": "EquipSlot",
+      "weapon_type": "WeaponType",
+      "armor_type": "ArmorType",
+      "accessory_type": "AccessoryType",
+      "weapon_damage_type": "WeaponDamageType",
+      "shield_type": "ShieldType",
+      "discover": "Discover",
+      "locomotion_class": "LocomotionClass",
+      "answer_kind": "AnswerKind",
+      "location_type": "LocationType",
+      "liquid": "Liquid",
+      "scope": "AccessScope",
+      "quest_type": "QuestType",
+      "difficulty": "Difficulty",
+      "station": "Station",
+      "surface": "RoadSurface",
+      "skill_type": "SkillType",
+      "target_type": "TargetType",
+      "effect_type": "EffectType",
+      "control_type": "ControlType",
+      "stealth_type": "StealthType",
+      "entity_type": "EntityType",
+      "interaction_mode": "InteractionMode",
+      "selection_mode": "SelectionMode",
+      "controller": "Controller",
+      "activation": "Activation",
+      "unlock_method": "UnlockMethod",
+      "offline": "OfflineState",
+      "pvp_mode": "PvPZoneMode"
+    }
   },
   "classes": {
     "akkan_attacker": {

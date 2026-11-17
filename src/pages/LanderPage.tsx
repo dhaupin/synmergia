@@ -232,7 +232,7 @@ export default function LanderPage() {
           <Link to="/codex" className="text-accent hover:underline">
             Codex
           </Link>{' '}
-          — {CODEX_TOTAL.toLocaleString()} entries across {CODEX_CATEGORY_COUNT} categories.
+          — {CODEX_TOTAL.toLocaleString()} data files across {CODEX_CATEGORY_COUNT} categories.
         </p>
       </section>
 
@@ -242,8 +242,8 @@ export default function LanderPage() {
           <div>
             <h2 className="font-display text-2xl sm:text-3xl mb-2">Browse the world itself</h2>
             <p className="text-sm text-ink-soft max-w-2xl">
-              Every class, skill, enemy, recipe, and mount the world ships — with the
-              real numbers behind them. Look anything up before you go chase it down.
+              Every data file the world ships — read straight from the source, field by
+              field. Look anything up before you go chase it down.
             </p>
           </div>
           <Link
