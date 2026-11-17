@@ -94,15 +94,13 @@ const SADDLE_SPRINT_SCALE: float = 0.6
 
 ## Radius of the sphere this player stands on (set by the globe scene).
 var planet_radius: float = 100.0
-## This body's inventory bag (round 7: the globe world had no bag at
-## all -- the starter kit had nothing to land in and panels rendered
-## empty). Created + registered in _setup_inventory_bag().
-var _inventory_bag = null
-## Same bag under the name the planar controller exposes. UI resolvers
-## (character_panel._resolve_inventory) duck-type this property; the
-## globe body only had _inventory_bag, so the panel's player-node
-## fallback missed the bag it was standing on. The field is declared on
-## PlayerBase now (the shared surface), so this body inherits it.
+## This body's inventory bag. Created + registered in
+## _setup_inventory_bag(). The field is inherited from PlayerBase (the shared
+## surface, named inventory_component); this body reads/writes it directly.
+## It must NOT be redeclared here as _inventory_bag -- PlayerBase declares
+## func _inventory_bag(), and a same-named member in the subclass is a hard
+## parse error ("member already exists in parent class"), which stops the
+## whole world scene from loading.
 ## Respawn binding (Ankh.bind_player writes respawn_ankh_id; the planar
 ## controller declares these locally -- the globe body inherits PlayerBase,
 ## which does not, so the ankh bind leg errored on the globe). The ankh
@@ -684,11 +682,10 @@ func _setup_inventory_bag() -> void:
 	var root_node: Node = (ml as SceneTree).root
 	var InvComp = load("res://core/components/inventory_component.gd")
 	var InvSvc = root_node.get_node_or_null("InventoryService")
-	if _inventory_bag == null and InvComp != null:
+	if inventory_component == null and InvComp != null:
 		var bag = InvComp.new()
 		bag.name = "InventoryComponent"
 		add_child(bag)
-		_inventory_bag = bag
 		inventory_component = bag
 	# The world scene assigns entity_id right after add_child(this);
 	# stamp + register a moment later so the id is final. StarterKit
@@ -699,11 +696,11 @@ func _setup_inventory_bag() -> void:
 		tree.create_timer(0.1).timeout.connect(func(): _register_bag())
 
 func _register_bag() -> void:
-	if _inventory_bag == null or not is_instance_valid(_inventory_bag):
+	if inventory_component == null or not is_instance_valid(inventory_component):
 		return
 	if entity_id == null or str(entity_id) == "":
 		entity_id = "globe_player_1"
-	_inventory_bag.set_owner_id(str(entity_id))
+	inventory_component.set_owner_id(str(entity_id))
 	var root_node: Node = Engine.get_main_loop().root
 	var InvSvc = root_node.get_node_or_null("InventoryService")
 	if InvSvc != null and InvSvc.has_method("register_inventory"):
@@ -716,12 +713,11 @@ func _register_bag() -> void:
 		# race: 'Not enough gold (need 150, have 0)'). A freed stale
 		# registration still yields to the fresh bag.
 		var existing = InvSvc.get_inventory(str(entity_id)) if InvSvc.has_method("get_inventory") else null
-		if existing != null and is_instance_valid(existing) and existing != _inventory_bag:
-			_inventory_bag.queue_free()
-			_inventory_bag = existing
+		if existing != null and is_instance_valid(existing) and existing != inventory_component:
+			inventory_component.queue_free()
 			inventory_component = existing
 		else:
-			InvSvc.register_inventory(str(entity_id), _inventory_bag)
+			InvSvc.register_inventory(str(entity_id), inventory_component)
 	# THE ONE PURSE mirror (planar-retirement Step 5): the globe node's
 	# `gold` was never bound to the bag, so kill payouts paid the purse but
 	# the node stayed at zero. Bind it the same way the planar controller

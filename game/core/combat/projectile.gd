@@ -170,7 +170,7 @@ func _check_collision(from: Vector3, to: Vector3) -> void:
 	var result := space_state.intersect_ray(query)
 
 	if result:
-		var collider := result["collider"]
+		var collider: Object = result["collider"]
 
 		if collider is Entity:
 			if collider != source and not _hit_entities.has(collider):
