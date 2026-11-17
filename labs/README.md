@@ -87,6 +87,7 @@ questions live.
 | [`data-authoring-baseline.md`](./data-authoring-baseline.md) | ACTIVE | How `.tres` content is authored and gated |
 | [`data-engine-separation.md`](./data-engine-separation.md) | ACTIVE | Data vs engine boundary, extraction ledger, leave-alone list |
 | [`prd-openhands-canvas.md`](./prd-openhands-canvas.md) | REFERENCE | Parallel agent lanes and their conventions |
+| [`prd-verification-gates.md`](./prd-verification-gates.md) | ACTIVE | The structural parse guard and the "merged red" law |
 | [`OSS-AUDIT.md`](./OSS-AUDIT.md) | REFERENCE | Open-source launch audit + post-public hardening |
 | [`AGENTS_LOG.md`](./AGENTS_LOG.md) | REFERENCE | Archived AGENTS.md round logs (91 entries, 2026-10-28 .. 2026-11-16); history, not current law |
 | [`jolt-playground/`](./jolt-playground/README.md) | REFERENCE | Jolt Physics evaluation plan; point-in-time |
