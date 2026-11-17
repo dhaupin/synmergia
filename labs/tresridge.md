@@ -128,6 +128,8 @@ readable end-to-end. **Do not re-derive them from this list — read the owner.*
 | **Data naming lint** | `godot --headless --path game --script res://tests/test_data_naming_lint.gd` | prefix law, filename==id, ~30 ref checks |
 | **Item catalog** | `godot --headless --path game --script res://tests/test_item_catalog.gd` | item family identity, authored words, recipe bill |
 | **Content ref integrity** | `godot --headless --path game --script res://tests/test_content_ref_integrity.gd` | loot/offering/enemy ids resolve |
+| **Tres relation gate** | `node <tresridge>/bin/cli.mjs lint game/data --decl game/data/relations.json` | every declared edge resolves, no undeclared `_id`, no cycles (the standard's verdict) |
+| **Tres drift gate** | `node <tresridge>/bin/cli.mjs graph game/data --against game/data/relations.json` | the declaration the tree implies vs the committed one (added / removed) |
 | **Full game sweep** | `sh scripts/godot_test_runner.sh [-j N]` | 214 `test_*.gd` |
 | **Codex verify** | `npm run verify:codex` | vocab, coverage, fidelity, nothing-skipped |
 | **Web build** | `npm run build` | `sync:data` → `verify:codex` → `tsc` → prerender + SEO audit |
@@ -135,6 +137,20 @@ readable end-to-end. **Do not re-derive them from this list — read the owner.*
 
 `npm run build` is the one command that runs the whole web half. The game half is
 `godot_test_runner.sh`.
+
+### The tres relation gate in CI
+
+`.github/workflows/tres-ci.yml` runs the two tres gates plus a reproducibility check on
+every change to `game/data/**` or `scripts/gen-relations.mjs`. The standard is not on npm
+yet, so the lane clones `dhaupin/tresridge` at a **pinned commit** (`TRESRIDGE_REF` in the
+lane env) - the family's pinned-linter rule: a floating linter is a random CI.
+
+To move the pin: bump `TRESRIDGE_REF`, re-run `npm run gen:relations`, and commit the pin
+and any declaration delta together. The reproducibility step refuses a stale
+`relations.json` (it regenerates and byte-compares), so a tree change that should have
+moved the declaration cannot land quietly.
+
+Locally, the same three steps run with `TRESRIDGE=/path/to/tresridge/bin/cli.mjs`.
 
 ---
 

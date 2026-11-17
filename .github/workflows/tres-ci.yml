@@ -1,0 +1,82 @@
+name: Tres Relation Gate
+
+# Synmergia is the FIRST CONSUMER of the .tres relation standard (tresridge).
+# This lane is the teeth: the declaration in game/data/relations.json is judged
+# against the tree on every change to the data or the generator, so a dangling
+# or undeclared reference fails the build instead of surfacing in playtest.
+#
+# The standard is not on npm yet, so the linter is a PINNED COMMIT of
+# dhaupin/tresridge (the family's pinned-linter rule: a floating linter is a
+# random CI). When the pin moves, re-derive the declaration in the SAME commit.
+
+on:
+  push:
+    branches: [staging, main]
+    paths:
+      - 'game/data/**'
+      - 'game/core/data/**'
+      - 'scripts/gen-relations.mjs'
+      - '.github/workflows/tres-ci.yml'
+  pull_request:
+    branches: [staging, main]
+    paths:
+      - 'game/data/**'
+      - 'game/core/data/**'
+      - 'scripts/gen-relations.mjs'
+      - '.github/workflows/tres-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tres-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The pinned standard. A commit, never a branch - see the header.
+  TRESRIDGE_REF: de22ac88451b739ebadfd12901a7a132f2581123
+
+jobs:
+  relation-gate:
+    name: Relation gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      # Clone the standard at the pinned commit. Zero runtime deps, so no
+      # install step is needed - the CLI runs straight from the checkout.
+      - name: Fetch the pinned standard
+        run: |
+          git init -q "$RUNNER_TEMP/tresridge"
+          cd "$RUNNER_TEMP/tresridge"
+          git remote add origin https://github.com/dhaupin/tresridge.git
+          git fetch -q --depth 1 origin "$TRESRIDGE_REF"
+          git checkout -q FETCH_HEAD
+
+      # The verdict: every declared edge resolves; no undeclared _id; no cycles.
+      - name: Lint the declaration against the tree
+        run: node "$RUNNER_TEMP/tresridge/bin/cli.mjs" lint game/data --decl game/data/relations.json
+
+      # The drift gate: the declaration the tree implies must match the committed
+      # one. A record that quietly stopped being referenced fails here.
+      - name: Drift gate (graph --against)
+        run: node "$RUNNER_TEMP/tresridge/bin/cli.mjs" graph game/data --against game/data/relations.json
+
+      # The generator is the one source of the declaration; it must be
+      # deterministic, or the committed artifact is not reproducible.
+      - name: Declaration is reproducible (regenerate == committed)
+        env:
+          TRESRIDGE: ${{ runner.temp }}/tresridge/bin/cli.mjs
+        run: |
+          node scripts/gen-relations.mjs > "$RUNNER_TEMP/relations.regen.json"
+          if ! diff -q "$RUNNER_TEMP/relations.regen.json" game/data/relations.json; then
+            echo "relations.json is stale: run 'npm run gen:relations' (or scripts/gen-relations.mjs --write) and commit the result."
+            diff "$RUNNER_TEMP/relations.regen.json" game/data/relations.json || true
+            exit 1
+          fi
+          echo "relations.json matches a fresh generation."
