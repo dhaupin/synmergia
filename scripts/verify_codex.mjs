@@ -12,7 +12,7 @@
 //
 // Run: node scripts/verify_codex.mjs   (exit 0 = the Codex is faithful)
 
-import { readFileSync } from 'fs';
+import { readFileSync, readdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 
@@ -77,6 +77,34 @@ for (const [key, raw] of Object.entries(DATA)) {
 }
 check('coverage: payload carries authored fields', authoredFields > 10000, `got ${authoredFields}`);
 check('coverage: every .tres source is represented', sourceFiles > 900, `got ${sourceFiles}`);
+
+// 2b. Nothing skipped: every .tres file on disk must appear in the payload.
+//     This is the "Codex is the unfiltered view" law -- a hardcoded category
+//     list, or an id-less file colliding on its stem, would drop files here.
+const diskTres = [];
+const walk = (dir) => {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    const full = resolve(dir, e.name);
+    if (e.isDirectory()) walk(full);
+    else if (e.name.endsWith('.tres')) diskTres.push(full);
+  }
+};
+walk(resolve(ROOT, 'game/data'));
+const payloadSources = new Set();
+for (const [key, raw] of Object.entries(DATA)) {
+  if (META_CATEGORIES.has(key) || !raw || typeof raw !== 'object') continue;
+  for (const v of Object.values(raw)) {
+    if (v && typeof v === 'object' && v._sourceFile) payloadSources.add(resolve(ROOT, v._sourceFile));
+  }
+}
+const missing = diskTres.filter((f) => !payloadSources.has(f));
+check(
+  'nothing skipped: every game/data/**/*.tres is in the payload',
+  missing.length === 0,
+  missing.length
+    ? `${missing.length} missing, e.g. ${missing.slice(0, 3).map((f) => f.replace(ROOT + '/', '')).join(', ')}`
+    : `all ${diskTres.length} files present`,
+);
 
 // 3. Enum fidelity on live data: every class resource_type must land on the
 //    engine's rung, not a stale mirror.

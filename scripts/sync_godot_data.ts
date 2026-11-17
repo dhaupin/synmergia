@@ -24,43 +24,10 @@ export interface GodotDataPayload {
   lastSyncedAt: string;
   counts: Record<string, number>;
   vocab: GodotVocab;
-  classes: Record<string, any>;
-  weapons: Record<string, any>;
-  armors: Record<string, any>;
-  consumables: Record<string, any>;
-  enemies: Record<string, any>;
-  models: Record<string, any>;
-  zones: Record<string, any>;
-  skills: Record<string, any>;
-  quests: Record<string, any>;
-  buffs: Record<string, any>;
-  factions: Record<string, any>;
-  achievements: Record<string, any>;
-  titles: Record<string, any>;
-  species: Record<string, any>;
-  dialogues: Record<string, any>;
-  currencies: Record<string, any>;
-  mounts: Record<string, any>;
-  vehicles: Record<string, any>;
-  resources: Record<string, any>;
-  items: Record<string, any>;
-  accessories: Record<string, any>;
-  recipes: Record<string, any>;
-  status_effects: Record<string, any>;
-  npcs: Record<string, any>;
-  world_bosses: Record<string, any>;
-  signs: Record<string, any>;
-  mysteries: Record<string, any>;
-  acts: Record<string, any>;
-  loot_tables: Record<string, any>;
-  hordes: Record<string, any>;
-  weather_events: Record<string, any>;
-  gateways: Record<string, any>;
-  oceans: Record<string, any>;
-  biomes: Record<string, any>;
-  furnishings: Record<string, any>;
-  gliders: Record<string, any>;
-  thermals: Record<string, any>;
+  // Every directory under game/data/ becomes a key here, discovered at sync
+  // time. The interface is deliberately open: a new .tres directory must show
+  // up in the payload (and so in the Codex) with no code change anywhere.
+  [category: string]: Record<string, any> | string | Record<string, number> | GodotVocab;
 }
 
 // Helper to convert Godot values into JS primitives/objects
@@ -188,10 +155,15 @@ export function parseTresFile(content: string, filePath: string): { scriptClass?
     }
   }
 
-  // If id is missing, infer from filename
+  // If id is missing, infer from the file's path relative to its category
+  // directory. A bare stem collides for id-less files that share a name --
+  // four roots/*/environment.tres -- which would silently drop three of them
+  // from the payload. The path keeps every file distinct.
   if (!data.id) {
-    const baseName = path.basename(filePath, '.tres');
-    data.id = baseName;
+    const parts = filePath.split(path.sep);
+    const stem = parts[parts.length - 1].replace(/\.tres$/, '');
+    const category = parts[parts.length - 2] || '';
+    data.id = category && category !== stem ? `${category}/${stem}` : stem;
   }
 
   return { scriptClass, data };
@@ -326,102 +298,55 @@ export function syncGodotData(): GodotDataPayload {
     lastSyncedAt: new Date().toISOString(),
     counts: {},
     vocab: { enums: {}, byClass: {}, fieldEnums: {} },
-    classes: {},
-    weapons: {},
-    armors: {},
-    consumables: {},
-    enemies: {},
-    models: {},
-    zones: {},
-    skills: {},
-    quests: {},
-    buffs: {},
-    factions: {},
-    achievements: {},
-    titles: {},
-    species: {},
-    dialogues: {},
-    currencies: {},
-    mounts: {},
-    vehicles: {},
-    resources: {},
-    items: {},
-    accessories: {},
-    recipes: {},
-    status_effects: {},
-    npcs: {},
-    world_bosses: {},
-    signs: {},
-    mysteries: {},
-    acts: {},
-    loot_tables: {},
-    hordes: {},
-    weather_events: {},
-    gateways: {},
-    oceans: {},
-    biomes: {},
-    furnishings: {},
-    gliders: {},
-    thermals: {},
   };
 
-  const categories: Array<keyof Omit<GodotDataPayload, 'lastSyncedAt' | 'counts'>> = [
-    'classes',
-    'weapons',
-    'armors',
-    'consumables',
-    'enemies',
-    'models',
-    'zones',
-    'skills',
-    'quests',
-    'buffs',
-    'factions',
-    'achievements',
-    'titles',
-    'species',
-    'dialogues',
-    'currencies',
-    'mounts',
-    'vehicles',
-    'resources',
-    'items',
-    'accessories',
-    'recipes',
-    'status_effects',
-    'npcs',
-    'world_bosses',
-    'signs',
-    'mysteries',
-    'acts',
-    'loot_tables',
-    'hordes',
-    'weather_events',
-    'gateways',
-    'oceans',
-    'biomes',
-    'furnishings',
-    'gliders',
-    'thermals',
-  ];
+  // Discover categories from the filesystem, not a list. Every directory
+  // under game/data/ that holds at least one .tres becomes a payload key --
+  // balance, calibration, spawn_tables, hitbox_profiles, everything. A new
+  // data directory must reach the Codex with no code change, because the
+  // Codex is the unfiltered public view of the shipped .tres files.
+  //
+  // A dir maps to its own name, except the singular/plural pairs below where
+  // the dir name would otherwise shadow a payload key (npc -> npcs).
+  const DIR_KEY_OVERRIDES: Record<string, string> = { npc: 'npcs' };
+  const categories = fs
+    .readdirSync(dataDir, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => DIR_KEY_OVERRIDES[e.name] ?? e.name)
+    // Drop anything already claimed by a non-category payload key (vocab,
+    // counts, lastSyncedAt) so a future dir cannot clobber them.
+    .filter((c) => !['vocab', 'counts', 'lastSyncedAt'].includes(c))
+    .sort();
 
   for (const cat of categories) {
-    // Some payload keys are the plural of the on-disk dir (npc -> npcs).
-    const dirName = cat === 'npcs' ? 'npc' : cat;
+    // Reverse the override to find the on-disk directory for this key.
+    const dirName = Object.entries(DIR_KEY_OVERRIDES).find(([, k]) => k === cat)?.[0] ?? cat;
     const catDir = path.join(dataDir, dirName);
     const files = scanDir(catDir);
+    if (files.length === 0) continue;
+    payload[cat] = {};
     for (const file of files) {
       try {
         const content = fs.readFileSync(file, 'utf-8');
         const parsed = parseTresFile(content, file);
         const item = parsed.data;
-        if (item.id) {
-          payload[cat][item.id] = {
-            ...item,
-            _sourceFile: path.relative(process.cwd(), file),
-            _scriptClass: parsed.scriptClass,
-          };
-        }
+        // Key by id when the file carries one. Id-less resources (roots,
+        // calibration curves, physics layers) key by their path within the
+        // category, so two files that share a stem -- four different
+        // roots/*/environment.tres -- stay distinct instead of colliding.
+        const relPath = path.relative(catDir, file).replace(/\\/g, '/').replace(/\.tres$/, '');
+        const key = item.id || relPath;
+        if (!item.id) item.id = key;
+        // Last-resort guard: a duplicate key must never overwrite a sibling,
+        // because the Codex promises to show every .tres file.
+        let uniqueKey = key;
+        for (let n = 2; payload[cat][uniqueKey]; n += 1) uniqueKey = `${key}_${n}`;
+        payload[cat][uniqueKey] = {
+          ...item,
+          id: uniqueKey,
+          _sourceFile: path.relative(process.cwd(), file),
+          _scriptClass: parsed.scriptClass,
+        };
       } catch (err) {
         console.warn(`[sync:data] Failed to parse ${file}:`, err);
       }
