@@ -193,16 +193,27 @@ No step lands without the previous step's receipt.
 
 ---
 
-## 6. Open questions
+## 6. Rulings (was: open questions)
 
-1. **`currency_id`** — prefix or bare? The adoption forces the call. (Lean: bare `gold`,
-   since loot tables outnumber schemas, but this is the owner's ruling.)
-2. **The prefix contradiction** — reconcile `id_registry.gd` to the baseline, or the
-   baseline to the registry? (Lean: the baseline is content truth; the registry is runtime
-   and references nothing — retire the runtime prefixes.)
-3. **`relations.gd` or a `.json`?** The standard's artifact is JSON. The engine reads
-   GDScript best. (Lean: generate `relations.gd` from the JSON; the JSON is the source, the
-   `.gd` is the engine's build output — same pattern as `godot_data.json` → the Codex.)
+Resolved by evidence, 2026-10-28. Each ruling names the measurement that settled it, so a
+later reader can re-check rather than re-litigate.
+
+1. **`currency_id` — BARE `gold` is canonical.** `loot_table.gd` accepts both spellings and
+   normalizes the *result* key (`currency_gold` → `gold`, with a comment naming the earlier
+   silent-drop bug). So `gold` is a designed runtime alias, not a typo, and it is what every
+   consumer reads. The edge targets `currencies`; the five records still writing the alias are
+   baselined (owner: content, expiry set), because a `ref` must resolve to a record and the
+   alias is not one. Normalizing the data to `currency_gold` is the follow-up, not the ruling.
+2. **The prefix contradiction — RETIRE the runtime prefixes.** `id_registry.gd` reserves
+   `itm_`/`skl_`/`zn_`/`qst_`/`fct_`, but **0 of 1097 record ids use any of them**, the file is
+   not an autoload, and none of its functions are called anywhere. The one live `generate_id()`
+   is a local `wp_`-prefixed function in `waypoint_service.gd`. The registry is dead code: the
+   baseline is content truth, and the registry is retired rather than reconciled.
+3. **`relations.gd` or a `.json`?** The `.json` is the source; `relations.gd` is generated
+   build output. The standard's artifact is JSON, and the generator already emits it; the engine
+   reads GDScript best, so the `.gd` is produced from the JSON the same way `godot_data.json`
+   feeds the Codex. Not yet authored — it is M2 work, and the JSON is committed now so the
+   build step has a source.
 4. **Do the 6 dangling stay dangling?** Each needs a ruling: a real defect to fix, or a
    **baseline** to acknowledge. The standard now carries baselines with teeth (SPEC §9):
    a row in `relations.json` naming the code, the record, a **non-empty reason**, and an
