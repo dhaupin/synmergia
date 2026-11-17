@@ -35,7 +35,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.3.0",
     "freestruct": "1.4.1",
-    "gamestruct": "github:dhaupin/gamestruct#447a0e4ae7aaaa3f338b56300dbb55481cdb2e14",
+    "gamestruct": "github:dhaupin/gamestruct#1576774e86e25741a9766dd3c82f267851ef3808",
     "prestruct": "^1.5.1",
     "tailwindcss": "^4.3.5",
     "tsx": "^4.23.13",
