@@ -154,11 +154,17 @@ contract in the globe body, reproduced locally ~1 run in 5 (always the same
 - **Fix.** In the snap block, after re-homing position, strip the radial
   component of `velocity` (`velocity -= up * velocity.dot(up)`), keeping the
   tangential walk component. This is what the comment already promised.
-  Verified: probe passes 10/10 locally (was ~1-in-5 failing), and the whole
-  movement/globe set (`probe_globe_world`, `probe_riding`, `probe_climb`,
+  **Gate it on `err <= 0.05`** (the body is actually resting, not airborne) —
+  an ungated strip also killed the genuine gravity of a body placed *above*
+  the surface, which broke `probe_world_lattice`'s "lunar gravity pulled at
+  6 m/s^2" leg (it drops a body 5 m up and asserts the gravity survives). The
+  5 cm band is the same landing tolerance the snap already uses to re-engage.
+  Verified: `probe_globe_world` passes 10/10 locally (was ~1-in-5 failing),
+  `probe_world_lattice` 3/3, and the whole movement/globe set
+  (`probe_globe_world`, `probe_world_lattice`, `probe_riding`, `probe_climb`,
   `probe_glider`, `probe_thermals`, `probe_planet_control_100m`,
   `probe_stream_flow_100m`, `probe_planet_walk_20km`,
-  `probe_planet_rebase_20km`, the `test_globe_*` suite) is green.
+  `probe_planet_rebase_20km`) is green.
 
 This is the kind of defect the "if you see something say something" rule is
 for: a flaky test that a re-run hides is usually a real, if minor, code

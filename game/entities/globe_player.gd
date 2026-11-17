@@ -1228,16 +1228,18 @@ func _physics_process(delta: float) -> void:
 		var err: float = planet_distance() - target_r
 		if abs(err) > 0.001:
 			global_position = planet_center + (global_position - planet_center).normalized() * target_r
-		# Cancel the residual radial velocity too, not just the position.
-		# move_and_slide() only zeroes the vertical component when it actually
-		# collides; a body a hair above the surface the tick gravity was added
-		# floats through with the gravity still in `velocity`. Re-homing the
-		# position alone leaves that phantom radial speed in the velocity field
-		# (the probe's "no radial drift" leg read gravity*delta, bimodally,
-		# depending on whether the prior frame collided). The glued body rides
-		# the surface, so its radial velocity is zero by definition -- strip it
-		# here, keeping the tangential (walk) component intact.
-		velocity -= up * velocity.dot(up)
+		# Cancel the residual radial velocity too, not just the position --
+		# but ONLY for a body resting on the surface. move_and_slide() zeroes
+		# the vertical component when it collides; a resting body that floated
+		# a hair (or was tangent-overshot walking a sphere) keeps that frame's
+		# gravity in `velocity`, so a one-frame read shows phantom radial drift
+		# (probe_globe_world's "no radial drift" leg, gravity*delta bimodally).
+		# A body genuinely ABOVE the surface is airborne and its gravity must
+		# survive (the moon-gravity law, probe_world_lattice): gate on the same
+		# 5 cm landing band the snap uses to re-engage below. A resting body's
+		# radial error is sub-cm (gravity sink + tangent overshoot).
+		if err <= 0.05:
+			velocity -= up * velocity.dot(up)
 		# PERCH LAW: standing on a walk-over cap whose top is a
 		# climbable ledge (0.55 m or more above the terrain law) -- step
 		# off it and the body becomes AIRBORNE immediately (no snap
