@@ -4,6 +4,7 @@ extends Resource
 class_name Item
 
 const StatId = preload("res://core/schemas/stat_id.gd")
+const WorldHazard = preload("res://core/schemas/world_hazard.gd")
 
 enum ItemCategory {
 	WEAPON,       # Swords, bows, staves, daggers
@@ -15,7 +16,8 @@ enum ItemCategory {
 	EVENT,        # Limited time event items
 	FURNISHING,     # Housing items, furniture, decorations
 	MISC,          # Everything else (quest items, vanity, garbage loot)
-	SKILL_BOOK    # Skill book: consumes to upgrade a skill
+	SKILL_BOOK,   # Skill book: consumes to upgrade a skill
+	TABLET        # World-ward equipment (mitigates authored hazards)
 }
 
 enum WeaponType {
@@ -74,11 +76,13 @@ enum AccessoryType {
 	RING,
 	NECKLACE,
 	BRACELET,
-	CLOAK,
+	CLOAK,       ## capes ride this family; the slot's read name is CLOAK
 	BELT,
-	BREATHER   ## S14.4: the water accessory class (air x N + grace +N m;
+	BREATHER,    ## S14.4: the water accessory class (air x N + grace +N m;
 	## stats own speed is untouched -- gear owns air, the
 	## MovementProfile owns speed, orthogonal or soup)
+	UNDERWATER_HELM, ## sealed HEAD armor identity; a helm is not the air layer
+	TABLET       ## world-ward equipment; equip_slot TABLET
 }
 
 ## The one game-wide five-rung scale (GameTier). No `uncommon` -- that
@@ -106,7 +110,37 @@ enum EquipSlot {
 	RING_2,
 	NECKLACE,
 	CLOAK,
-	BELT
+	BELT,
+	ARMS,        ## appended: bracers/armguards (SHOULDERS stays pauldrons)
+	TABLET,      ## appended: the one tablet socket, item-driven world ward
+	BREATHER,    ## appended: the air layer, separate from the HEAD helm
+	RING_3,      ## appended capacity lanes; base ids stay RING_1/RING_2
+	RING_4,
+	RING_5,
+	RING_6,
+	RING_7,
+	RING_8,
+	RING_9,
+	RING_10,
+	NECKLACE_2,  ## amulet capacity lanes
+	NECKLACE_3,
+	BELT_2,
+	BELT_3,
+	CLOAK_2,
+	CLOAK_3
+}
+
+## Tablet focus. Every tablet carries the same baseline world ward; the
+## focus adds its authored `tablet_domain_ward` on top for one hazard.
+## WORLD is the generalist: its domain ward applies to every hazard.
+enum TabletDomain {
+	WORLD,
+	HEAT,
+	COLD,
+	STORM,
+	MIASMA,
+	DEEP,
+	VOID
 }
 
 @export var id: String = ""
@@ -137,6 +171,15 @@ enum EquipSlot {
 ## the same seam the water mounts ride). Air and depth ratings stay
 ## on the accessory; this only answers the water, never the swim.
 @export var current_immune: bool = false
+
+## TABLET equipment (item_category/accessory_type/equip_slot TABLET). Every
+## tablet has a baseline world ward -- the core mitigation that makes it a
+## tablet -- plus an optional focus ward for one hazard. The live consumer is
+## the sea (deep pressure/drowning); future weather/traps read the same
+## Item.get_world_ward() seam rather than inventing a second resist table.
+@export var tablet_domain: TabletDomain = TabletDomain.WORLD
+@export var tablet_world_ward: float = 0.02
+@export var tablet_domain_ward: float = 0.0
 
 # Stack & Trade
 @export var stack_size: int = 1
@@ -292,6 +335,8 @@ func _init() -> void:
 				durability_loss_rate = 0.8  # Slower than weapons
 			ItemCategory.ACCESSORY:
 				durability_loss_rate = 0.5  # Accessories decay slowly
+			ItemCategory.TABLET:
+				durability_loss_rate = 0.25  # Tablets are carried, not battered
 
 ## Check if entity can use this item
 func can_use(entity) -> bool:
@@ -327,6 +372,59 @@ func get_total_stats() -> Dictionary:
 	if block_rating != 0.0:
 		total["block_rating"] = float(total.get("block_rating", 0.0)) + block_rating
 	return total
+
+## True when the item may not be transferred, sold, or dropped. The
+## starter tablet's never-tabletless guarantee rides this predicate.
+func is_loss_protected() -> bool:
+	return soulbound or bind_on_pickup or is_bound
+
+## A tablet is equipment in its own slot, not a stat-stick accessory.
+func is_tablet() -> bool:
+	return item_category == ItemCategory.TABLET \
+		and accessory_type == AccessoryType.TABLET \
+		and equip_slot == EquipSlot.TABLET
+
+## The air layer is the BREATHER equip slot. A sealed underwater helm is
+## HEAD armor with its own armor/stat line; it is active in water but never
+## doubles as the breather layer.
+func is_breather() -> bool:
+	return accessory_type == AccessoryType.BREATHER \
+		and equip_slot == EquipSlot.BREATHER
+
+## The hazard key a tablet's focus guards. WORLD means every hazard (handled
+## by get_world_ward's baseline-plus-domain path).
+static func tablet_domain_key(domain: int) -> String:
+	match domain:
+		TabletDomain.HEAT:
+			return "heat"
+		TabletDomain.COLD:
+			return "cold"
+		TabletDomain.STORM:
+			return "storm"
+		TabletDomain.MIASMA:
+			return "miasma"
+		TabletDomain.DEEP:
+			return "deep"
+		TabletDomain.VOID:
+			return "void"
+		_:
+			return "world"
+
+## A tablet's mitigation for one hazard, as a 0.0..0.9 fraction. Every
+## tablet applies its baseline; a focused tablet adds its domain ward when
+## the hazard matches. Broken tablets contribute nothing.
+func get_world_ward(hazard: String) -> float:
+	if not is_tablet() or is_broken():
+		return 0.0
+	if not WorldHazard.is_hazard(hazard):
+		return 0.0
+	var key := WorldHazard.normalize(hazard)
+	var ward := clampf(tablet_world_ward, 0.0, StatId.MAX_RESIST)
+	if tablet_domain == TabletDomain.WORLD:
+		ward += maxf(tablet_domain_ward, 0.0)
+	elif tablet_domain_key(tablet_domain) == key:
+		ward += maxf(tablet_domain_ward, 0.0)
+	return clampf(ward, 0.0, StatId.MAX_RESIST)
 
 ## Get total weight for this stack
 func get_total_weight() -> float:
@@ -487,6 +585,11 @@ func to_dict() -> Dictionary:
 		"armor_type": armor_type,
 		"accessory_type": accessory_type,
 		"current_immune": current_immune,
+		"breath_multiplier": breath_multiplier,
+		"squeeze_grace_m": squeeze_grace_m,
+		"tablet_domain": tablet_domain,
+		"tablet_world_ward": tablet_world_ward,
+		"tablet_domain_ward": tablet_domain_ward,
 		"stack_size": stack_size,
 		"current_stack": current_stack,
 		"is_bound": is_bound,
@@ -554,6 +657,11 @@ static func from_dict(data: Dictionary) -> Item:
 	item.armor_type = data.get("armor_type", ArmorType.NONE)
 	item.accessory_type = data.get("accessory_type", AccessoryType.NONE)
 	item.current_immune = bool(data.get("current_immune", false))
+	item.breath_multiplier = float(data.get("breath_multiplier", 1.0))
+	item.squeeze_grace_m = float(data.get("squeeze_grace_m", 0.0))
+	item.tablet_domain = int(data.get("tablet_domain", TabletDomain.WORLD))
+	item.tablet_world_ward = float(data.get("tablet_world_ward", 0.02))
+	item.tablet_domain_ward = float(data.get("tablet_domain_ward", 0.0))
 	item.stack_size = int(data.get("stack_size", 1))
 	item.current_stack = int(data.get("current_stack", 1))
 	item.is_bound = data.get("is_bound", false)

@@ -65,6 +65,10 @@ func _run() -> void:
 		push_error("FAIL: role 0/4 starter kit rows drifted from the data record")
 		quit(1)
 		return
+	if not kits.guaranteed_for_all().has("acc_tablet_wayfarer"):
+		push_error("FAIL: the guaranteed starter tablet is missing from the kit record")
+		quit(1)
+		return
 	var service_kits = starter._kit_data()
 	if service_kits == null or not service_kits.is_valid():
 		push_error("FAIL: StarterKitService did not resolve the data record")

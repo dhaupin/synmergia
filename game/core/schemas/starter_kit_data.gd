@@ -6,6 +6,10 @@ class_name StarterKitData
 
 @export var id: String = "starter_kits"
 @export var items_by_role: Dictionary = {}
+## Universal grant appended to every role (the soulbound starter tablet).
+## Kept separate from items_by_role so one record can never leave a role
+## without the interaction-layer tool.
+@export var guaranteed_items: Array = []
 @export var gold_by_role: Dictionary = {}
 
 
@@ -14,6 +18,11 @@ class_name StarterKitData
 func items_for(role: int) -> Array:
 	var value = items_by_role.get(role, [])
 	return value if value is Array else []
+
+
+## Universal item ids every role receives.
+func guaranteed_for_all() -> Array:
+	return guaranteed_items.duplicate()
 
 
 ## Starting gold for a role. A missing role grants none.

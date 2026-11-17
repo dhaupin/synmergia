@@ -10,7 +10,10 @@ enum MountKind {
 	GROUND,
 	FLYING,
 	AQUATIC,
-	SPACE
+	SPACE,
+	GLIDER   ## appended: a sewn/unpowered wing (movement_glider), distinct
+	## from a living flying mount. Both own a MovementProfile; the kind
+	## keeps the catalog honest without a second registry.
 }
 
 enum MountSource {
@@ -45,8 +48,9 @@ enum MountSource {
 
 ## Movement Design System profile override. Empty = derived from kind
 ## (GROUND -> movement_quadruped, FLYING -> movement_aerial, AQUATIC ->
-## movement_aquatic) via DataService.get_mount_movement_profile() --
-## the single resolution path, no fallbacks in consumers.
+## movement_aquatic, GLIDER -> movement_glider) via
+## DataService.get_mount_movement_profile() -- the single resolution path,
+## no fallbacks in consumers.
 @export var movement_profile_id: String = ""
 
 ## Character level required to ride.
@@ -92,6 +96,11 @@ func is_swimmer() -> bool:
 ## dismounts into freefall and the mount returns to its whistle.
 func bails_on_fall() -> bool:
 	return kind == MountKind.GROUND
+
+## A sewn wing, not a beast: the glider catalog gets its own kind while
+## still riding the same MountData/RideService door.
+func is_glider() -> bool:
+	return kind == MountKind.GLIDER
 
 ## Flavor: saddle color / harness accent for the renderer.
 @export var tint: Color = Color(1, 1, 1, 1)

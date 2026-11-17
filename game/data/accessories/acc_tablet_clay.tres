@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_tablet_clay"
+display_name = "Clay Ward Tablet"
+description = "A palm of fired river clay pressed with a Convergence sigil that never quite cooled. It does not stop the world; it asks the world to be gentler, and the old machinery still listens."
+icon_path = ""
+item_category = 10
+rarity = 0
+equip_slot = 15
+accessory_type = 8
+tablet_domain = 0
+tablet_world_ward = 0.03
+tablet_domain_ward = 0.02
+durability_loss_rate = 0.25
+stack_size = 1
+bind_on_equip = true
+sell_price = 10
+buy_price = 50
+item_level = 2
+required_level = 1
+stats = {
+"intelligence": 1
+}

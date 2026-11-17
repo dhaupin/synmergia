@@ -323,8 +323,8 @@ func _get_repairable_items() -> Array:
 	var items := []
 	if not _inventory:
 		return items
-	# Repairable category law: WEAPON/ARMOR/ACCESSORY ItemCategory ids
-	# (0/1/2). The old filter matched a nonexistent item_type STRING
+	# Repairable category law: WEAPON/ARMOR/ACCESSORY/TABLET ItemCategory
+	# ids. The old filter matched a nonexistent item_type STRING
 	# property with two-arg gets -- both fatal on typed Items: the
 	# two-arg Variant get throws and "" matched nothing, so the smithy
 	# list was EMPTY whenever it ran through a typed-bag path.
@@ -332,6 +332,7 @@ func _get_repairable_items() -> Array:
 		ItemScript.ItemCategory.WEAPON,
 		ItemScript.ItemCategory.ARMOR,
 		ItemScript.ItemCategory.ACCESSORY,
+		ItemScript.ItemCategory.TABLET,
 	]
 	var inv_items = _inventory.get_all_items()
 	for item in inv_items:

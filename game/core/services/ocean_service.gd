@@ -353,16 +353,16 @@ func forget_swimmer(body_id: String) -> void:
 
 ## ---- S14.4: the breather (gear owns air, the profile owns speed) -----------
 
-## Resolve a player's breather: the equipped BREATHER accessory's
-## breath_multiplier x squeeze_grace_m, as {mult, grace_m} (the
-## unbreathered default {1.0, 0.0}). Grace feeds band_for/tick_swimmer
-## (the squeeze line DEEPENS); the multiplier feeds SwimState's air
-## capacity. Orthogonal by law: no speed, no pressure, no depth limit
-## -- a bigger breath and a longer free swim, never a faster swimmer.
+## Resolve a player's breather: the equipped BREATHER layer's
+## breath_multiplier x squeeze_grace_m, as {mult, grace_m} (the unbreathered
+## default {1.0, 0.0}). Grace feeds band_for/tick_swimmer (the squeeze line
+## DEEPENS); the multiplier feeds SwimState's air capacity. Orthogonal by
+## law: no speed, no pressure, no depth limit -- a bigger breath and a
+## longer free swim, never a faster swimmer.
 ##
-## Resolution is the InventoryService path (registered components;
-## NECKLACE slot holds the breather). Anything missing -- no
-## inventory, no component, nothing equipped -- resolves to the
+## One air layer, one ocean law: the BREATHER slot. A HEAD helm is separate
+## armor and keeps contributing armor/stats underwater, but never air.
+## Resolution is the InventoryService path; anything missing resolves to the
 ## unbreathered default so callers never null-check.
 func breather_for(player_id: String) -> Dictionary:
 	var out := {"mult": 1.0, "grace_m": 0.0, "current_immune": false}
@@ -371,8 +371,18 @@ func breather_for(player_id: String) -> Dictionary:
 		inv = InventoryService.get_inventory(player_id)
 	if inv == null:
 		return out
-	var item = inv.get_equipped(ItemScript.EquipSlot.NECKLACE) if inv.has_method("get_equipped") else null
-	if item == null or item.accessory_type != ItemScript.AccessoryType.BREATHER:
+	var item = null
+	if inv.has_method("get_equipped_breather"):
+		item = inv.get_equipped_breather()
+	elif inv.has_method("get_equipped"):
+		# Compatibility with a bare/partial bag: read the new layer, then
+		# the pre-split necklace lane if the load migration has not run.
+		item = inv.get_equipped(ItemScript.EquipSlot.BREATHER)
+		if item == null or not item.is_breather():
+			item = inv.get_equipped(ItemScript.EquipSlot.NECKLACE)
+		if item == null or not item.is_breather():
+			item = null
+	if item == null:
 		return out
 	out["mult"] = maxf(float(item.breath_multiplier), 1.0)
 	out["grace_m"] = maxf(float(item.squeeze_grace_m), 0.0)

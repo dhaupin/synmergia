@@ -4,7 +4,9 @@ extends Node
 
 static var instance: StarterKitService
 
+const ItemScript = preload("res://core/schemas/item.gd")
 const DATA_ID := "starter_kits"
+const STARTER_TABLET_ID := "acc_tablet_wayfarer"
 var _kit_cache: StarterKitData = null
 
 ## Resolve the role-keyed grant tables from DataService. The service owns
@@ -63,10 +65,35 @@ func _ready() -> void:
 ## Called when player enters the world: gate on the fresh-confirm law
 ## before the grant (see _should_grant_kit).
 func _on_player_entered_world(player_id: String, character_data) -> void:
-	if not _should_grant_kit(player_id):
+	if _should_grant_kit(player_id):
+		grant_starter_kit(player_id, character_data)
+	else:
 		GameLog.info("StarterKitService: %s has saved progress -- kit not re-issued" % player_id)
+	# The interaction-layer backstop runs for returning characters too: a
+	# tabletless bag earns the soulbound Wayfarer tablet, never a soft lock.
+	ensure_tablet(player_id)
+
+## Guarantee one tablet. Fresh kits already carry the guaranteed record;
+## returning characters who somehow have no tablet receive it here. A tablet
+## already in the bag is auto-equipped when the tablet socket is empty.
+func ensure_tablet(player_id: String) -> void:
+	if InventoryService == null or not InventoryService.has_inventory(player_id):
+		var tree := get_tree()
+		if tree != null:
+			await tree.create_timer(0.5).timeout
+			ensure_tablet(player_id)
 		return
-	grant_starter_kit(player_id, character_data)
+	var inv: Node = InventoryService.get_inventory(player_id)
+	if inv == null:
+		return
+	if inv.has_method("has_tablet") and inv.has_tablet():
+		if inv.has_method("get_equipped_tablet") and inv.get_equipped_tablet() == null:
+			var bag_slot: int = inv.find_tablet_slot()
+			if bag_slot >= 0:
+				inv.equip_item(bag_slot, ItemScript.EquipSlot.TABLET)
+		return
+	if not _give_starter_item(player_id, STARTER_TABLET_ID):
+		GameLog.warn("StarterKitService: could not grant the guaranteed tablet to %s" % player_id)
 
 ## The tree relay: every node that carries the selection script gets
 ## its character_confirmed connected to the fresh-confirm handler.
@@ -132,6 +159,9 @@ func grant_starter_kit(player_id: String, character_data) -> void:
 		role = character_data.class_data.get("role")
 
 	var item_ids: Array = kit.items_for(role)
+	for guaranteed_id in kit.guaranteed_for_all():
+		if not item_ids.has(guaranteed_id):
+			item_ids.append(guaranteed_id)
 	var gold: int = kit.gold_for(role)
 
 	var granted_items: Array = []
@@ -159,18 +189,16 @@ func grant_starter_kit(player_id: String, character_data) -> void:
 
 ## Give a single starter item to player
 func _give_starter_item(player_id: String, item_id: String) -> bool:
-	# Load the item resource
-	var item_path := "res://data/items/%s.tres" % item_id
-	if not ResourceLoader.exists(item_path):
-		# Try other paths
-		item_path = "res://data/weapons/%s.tres" % item_id
-		if not ResourceLoader.exists(item_path):
-			item_path = "res://data/armors/%s.tres" % item_id
-			if not ResourceLoader.exists(item_path):
-				item_path = "res://data/consumables/%s.tres" % item_id
-				if not ResourceLoader.exists(item_path):
-					push_warning("StarterKitService: Item not found: %s" % item_id)
-					return false
+	# Load the item resource from every starter-bearing directory.
+	var item_path := ""
+	for directory in ["items", "weapons", "armors", "accessories", "consumables"]:
+		var candidate := "res://data/%s/%s.tres" % [directory, item_id]
+		if ResourceLoader.exists(candidate):
+			item_path = candidate
+			break
+	if item_path.is_empty():
+		push_warning("StarterKitService: Item not found: %s" % item_id)
+		return false
 
 	var item_res := load(item_path)
 	if item_res == null:
@@ -184,10 +212,17 @@ func _give_starter_item(player_id: String, item_id: String) -> bool:
 	var ItemClass: Script = load("res://core/schemas/item.gd")
 	var new_item: Resource = ItemClass.from_dict(item_res.to_dict())
 
-	# Add to inventory
+	# Add to inventory. The tablet is equipped directly: it is the interaction
+	# tool, soulbound, and must not fail when the bag is full.
 	if InventoryService:
 		var inv: Node = InventoryService.get_inventory(player_id)
 		if inv and inv.has_method("add_item"):
+			if new_item.is_tablet():
+				if inv.has_method("has_tablet") and inv.has_tablet():
+					return true
+				if inv.has_method("equip_direct") and inv.get_equipped_tablet() == null:
+					if inv.equip_direct(new_item, ItemScript.EquipSlot.TABLET):
+						return true
 			return inv.add_item(new_item)
 		else:
 			push_warning("StarterKitService: Player inventory not found: %s" % player_id)

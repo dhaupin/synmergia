@@ -411,6 +411,10 @@ func _on_drop_item() -> void:
 		return
 	if _selected_slot < comp.get_inventory_count():
 		var item: Item = comp.get_item(_selected_slot)
+		# Soulbound items have no ground copy. The tablet is protected here
+		# as well as in death/vendor/trade paths.
+		if item != null and item.is_loss_protected():
+			return
 		if item and comp.remove_item(_selected_slot) != null:
 			item_dropped.emit(_selected_slot, item.id)
 			_refresh_inventory()

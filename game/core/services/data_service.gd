@@ -13,6 +13,7 @@ const EnemyData = preload("res://core/schemas/enemy_data.gd")
 const ModelData = preload("res://core/schemas/model_data.gd")
 const BlackMarketData = preload("res://core/schemas/black_market_data.gd")
 const StarterKitData = preload("res://core/schemas/starter_kit_data.gd")
+const EquipmentCapacityData = preload("res://core/schemas/equipment_capacity_data.gd")
 const AcademyBalanceData = preload("res://core/schemas/academy_balance_data.gd")
 const HousingBalanceData = preload("res://core/schemas/housing_balance_data.gd")
 const BoutRewardsData = preload("res://core/schemas/bout_rewards_data.gd")
@@ -240,6 +241,14 @@ func get_starter_kits() -> StarterKitData:
 	GameLog.warn("DataService: Starter kit tables not found")
 	return null
 
+## The data-authored accessory capacity table.
+func get_equipment_capacity() -> EquipmentCapacityData:
+	var record = _balance.get("equipment_capacity")
+	if record is EquipmentCapacityData and record.is_valid():
+		return record
+	GameLog.warn("DataService: Equipment capacity record missing or invalid")
+	return null
+
 ## The Skill Academy price tables.
 func get_academy_balance() -> AcademyBalanceData:
 	var record = _balance.get("academy_balance")
@@ -368,7 +377,7 @@ func load_currencies() -> void:
 	GameLog.info("DataService: Loaded %d currencies" % _currencies.size())
 
 ## Load mounts from data/mounts/ + data/gliders/ (S12.4: a sewn
-## glider is a mount -- MountKind.FLYING, movement_glider -- and the
+## glider is a mount -- MountKind.GLIDER, movement_glider -- and the
 ## craft/ride/ledger paths resolve it through the same get_mount
 ## door; no second registry to drift).
 func load_mounts() -> void:
@@ -694,8 +703,8 @@ func get_movement_profiles() -> Dictionary:
 ## Single resolution path for rideable/driveable movement: an explicit
 ## movement_profile_id on the MountData/VehicleData wins; otherwise the
 ## mount's kind derives it (GROUND->quadruped, FLYING->aerial,
-## AQUATIC->aquatic) and vehicles fall back to movement_mechanical.
-## No per-consumer fallback code anywhere else.
+## AQUATIC->aquatic, GLIDER->glider) and vehicles fall back to
+## movement_mechanical. No per-consumer fallback code anywhere else.
 func get_mount_movement_profile(mount) -> MovementProfile:
 	var explicit = mount.get("movement_profile_id") if mount != null else null
 	if explicit != null and not str(explicit).is_empty():
@@ -707,6 +716,7 @@ func get_mount_movement_profile(mount) -> MovementProfile:
 			1: derived = "movement_aerial"    # MountKind.FLYING
 			2: derived = "movement_aquatic"   # MountKind.AQUATIC
 			3: derived = "movement_leviathan" # MountKind.SPACE (R44; movement_lunar is S16.4's Lunar Settler)
+			4: derived = "movement_glider"    # MountKind.GLIDER (sewn wing)
 			_: derived = "movement_quadruped" # MountKind.GROUND
 		return get_movement_profile(derived)
 	return get_movement_profile("movement_mechanical")

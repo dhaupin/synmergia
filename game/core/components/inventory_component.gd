@@ -8,6 +8,25 @@ const Item = preload("res://core/schemas/item.gd")
 # time, so preload it here.
 const Entity = preload("res://core/entities/entity.gd")
 const StatId = preload("res://core/schemas/stat_id.gd")
+const EquipmentCapacityData = preload("res://core/schemas/equipment_capacity_data.gd")
+
+## Capacity lanes. Base authored ids stay RING_1 / NECKLACE / BELT / CLOAK;
+## the extra slots are appended ceilings a balance record can open later.
+const RING_SLOT_ORDER: Array = [
+	Item.EquipSlot.RING_1, Item.EquipSlot.RING_2, Item.EquipSlot.RING_3,
+	Item.EquipSlot.RING_4, Item.EquipSlot.RING_5, Item.EquipSlot.RING_6,
+	Item.EquipSlot.RING_7, Item.EquipSlot.RING_8, Item.EquipSlot.RING_9,
+	Item.EquipSlot.RING_10
+]
+const AMULET_SLOT_ORDER: Array = [
+	Item.EquipSlot.NECKLACE, Item.EquipSlot.NECKLACE_2, Item.EquipSlot.NECKLACE_3
+]
+const BELT_SLOT_ORDER: Array = [
+	Item.EquipSlot.BELT, Item.EquipSlot.BELT_2, Item.EquipSlot.BELT_3
+]
+const CLOAK_SLOT_ORDER: Array = [
+	Item.EquipSlot.CLOAK, Item.EquipSlot.CLOAK_2, Item.EquipSlot.CLOAK_3
+]
 
 ## Dual wield is the no-shield one-hander posture: both hands carry a legal
 ## one-handed weapon. The trade is speed plus a small all-lane power lift,
@@ -32,6 +51,9 @@ signal weight_changed(current: float, max_weight: float, encumbered: bool)
 
 @export var max_inventory_slots: int = GameConfig.Inventory.DEFAULT_SLOTS
 @export var max_equipment_slots: int = GameConfig.Inventory.MAX_EQUIPMENT_SLOTS
+## Optional local override (tests, creator previews). Production reads the
+## data/balance/equipment_capacity.tres record through DataService.
+@export var equipment_capacity_override: Resource = null
 
 var _inventory: Array = []
 var _equipment: Dictionary = {}	 # EquipSlot -> Item
@@ -114,7 +136,9 @@ static func from_dict(data: Dictionary) -> InventoryComponent:
 		if item_data is Dictionary and not item_data.is_empty():
 			comp._equipment[slot] = Item.from_dict(item_data)
 	comp._migrate_legacy_weapon_slot()
+	comp._migrate_breather_slot()
 	comp._migrate_hand_legality()
+	comp._migrate_capacity_overflow()
 	return comp
 
 ## Old saves and old .tres both used off-hand (8) for every hand weapon. The
@@ -170,7 +194,20 @@ func _default_equip_slot(item: Item) -> int:
 		var off: Item = _equipment.get(Item.EquipSlot.OFF_HAND)
 		if main != null and off == null and main.is_one_handed_weapon():
 			return Item.EquipSlot.OFF_HAND
-	return slot
+	# Capacity families (rings/amulets/belts/cloaks) auto-fill the first
+	# empty legal lane. When every lane is full, the primary lane is the
+	# replacement target, preserving the old click-to-swap behavior.
+	var family := _slot_family(slot)
+	if family.is_empty():
+		return slot
+	var capacity := _capacity_for_family(family)
+	if capacity <= 0:
+		return Item.EquipSlot.NONE
+	var lanes := _slots_for_family(family)
+	for i in range(mini(capacity, lanes.size())):
+		if _equipment.get(lanes[i]) == null:
+			return lanes[i]
+	return lanes[0] if not lanes.is_empty() else Item.EquipSlot.NONE
 
 ## Public legality read for UI/equip preview. The same predicate equip_item
 ## enforces, so the button and the mutation cannot disagree. target_slot is
@@ -179,7 +216,9 @@ func can_equip_in_slot(item: Item, target_slot: int = -1) -> bool:
 	if item == null or not item.can_equip():
 		return false
 	var slot := target_slot if target_slot >= 0 else _default_equip_slot(item)
-	return _hand_layout_allows(item, slot)
+	if slot == Item.EquipSlot.NONE:
+		return false
+	return _hand_layout_allows(item, slot) and _capacity_allows(item, slot)
 
 ## Move an illegal loaded off-hand pair back to the bag. The same
 ## _hand_layout_allows predicate that guards a live equip guards the load, so
@@ -208,6 +247,117 @@ func _resolve_service(service_name: String) -> Node:
 	if ml == null or not (ml is SceneTree):
 		return null
 	return (ml as SceneTree).root.get_node_or_null(service_name)
+
+## The live capacity table. The record is the single tuning surface; the
+## fallback mirrors the seed so script-mode/early-boot reads stay legal.
+func get_equipment_capacity() -> EquipmentCapacityData:
+	if equipment_capacity_override is EquipmentCapacityData \
+			and equipment_capacity_override.is_valid():
+		return equipment_capacity_override
+	var data_service := _resolve_service("DataService")
+	if data_service != null and data_service.has_method("get_equipment_capacity"):
+		var record = data_service.get_equipment_capacity()
+		if record is EquipmentCapacityData and record.is_valid():
+			return record
+	return EquipmentCapacityData.new()
+
+## Which capacity family a slot belongs to. Fixed slots return "".
+func _slot_family(slot: int) -> String:
+	slot = int(slot)
+	if RING_SLOT_ORDER.has(slot):
+		return "ring"
+	if AMULET_SLOT_ORDER.has(slot):
+		return "amulet"
+	if BELT_SLOT_ORDER.has(slot):
+		return "belt"
+	if CLOAK_SLOT_ORDER.has(slot):
+		return "cloak"
+	return ""
+
+func _slots_for_family(family: String) -> Array:
+	match family:
+		"ring":
+			return RING_SLOT_ORDER
+		"amulet":
+			return AMULET_SLOT_ORDER
+		"belt":
+			return BELT_SLOT_ORDER
+		"cloak":
+			return CLOAK_SLOT_ORDER
+		_:
+			return []
+
+func _capacity_for_family(family: String) -> int:
+	var lanes := _slots_for_family(family)
+	if lanes.is_empty():
+		return 0
+	return clampi(get_equipment_capacity().capacity_for_family(family), 0, lanes.size())
+
+## Equip legality: a family item may enter only a lane of its family, and
+## only while the authored count leaves room. Replacing an occupied lane
+## does not increase the count, so a swap stays legal at capacity.
+func _capacity_allows(item: Item, slot: int) -> bool:
+	var base_family := _slot_family(int(item.equip_slot))
+	if base_family.is_empty():
+		# Fixed slots have no capacity count. A one-hander's authored base
+		# is MAIN_HAND but the hand-layout law may put it in OFF_HAND
+		# (dual wield); everything else must match its authored slot.
+		if int(slot) == int(item.equip_slot):
+			return true
+		return int(slot) == Item.EquipSlot.OFF_HAND and item.is_one_handed_weapon()
+	if _slot_family(int(slot)) != base_family:
+		return false
+	var lanes := _slots_for_family(base_family)
+	var capacity := _capacity_for_family(base_family)
+	var lane_index := lanes.find(int(slot))
+	if lane_index < 0 or lane_index >= capacity:
+		return false
+	var occupied := 0
+	for i in range(capacity):
+		if lanes[i] == int(slot):
+			continue
+		if _equipment.get(lanes[i]) != null:
+			occupied += 1
+	return occupied < capacity
+
+## Put an item back in the first free bag slot. Returns false when the bag
+## is full; callers leave the save untouched rather than deleting the item.
+func _return_to_bag(item: Item) -> bool:
+	for i in range(_inventory.size()):
+		if _inventory[i] == null:
+			_inventory[i] = item
+			return true
+	return false
+
+## Legacy breathers lived in NECKLACE. The air layer is now BREATHER; old
+## saves move the necklace breather across without changing its values.
+func _migrate_breather_slot() -> void:
+	var legacy: Item = _equipment.get(Item.EquipSlot.NECKLACE)
+	if legacy == null or not legacy.is_breather():
+		return
+	if _equipment.get(Item.EquipSlot.BREATHER) == null:
+		_equipment[Item.EquipSlot.BREATHER] = legacy
+		_equipment.erase(Item.EquipSlot.NECKLACE)
+		return
+	if _return_to_bag(legacy):
+		_equipment.erase(Item.EquipSlot.NECKLACE)
+
+## Designers can lower a count after characters already wear the old
+## capacity. Extra lanes spill into the bag; a full bag leaves the save
+## untouched rather than deleting gear.
+func _migrate_capacity_overflow() -> void:
+	for family in ["ring", "amulet", "belt", "cloak"]:
+		var lanes := _slots_for_family(family)
+		var capacity := _capacity_for_family(family)
+		for lane_index in range(lanes.size()):
+			var lane: int = lanes[lane_index]
+			var item: Item = _equipment.get(lane)
+			if item == null or lane_index < capacity:
+				continue
+			_equipment.erase(lane)
+			if not _return_to_bag(item):
+				_equipment[lane] = item
+
 func add_item(item: Item, quantity: int = 1) -> bool:
 	# Security: Check for item duplication exploit. The component may
 	# live outside the scene tree (pre-boot stubs, detached pickups), and
@@ -403,7 +553,9 @@ func equip_item(inventory_slot: int, target_slot: int = -1) -> bool:
 		return false
 
 	var equip_slot: int = target_slot if target_slot >= 0 else _default_equip_slot(item)
-	if not _hand_layout_allows(item, equip_slot):
+	if equip_slot == Item.EquipSlot.NONE:
+		return false
+	if not _hand_layout_allows(item, equip_slot) or not _capacity_allows(item, equip_slot):
 		return false
 
 	# Unequip current item in that slot
@@ -427,6 +579,25 @@ func equip_item(inventory_slot: int, target_slot: int = -1) -> bool:
 	# Apply equipment stats
 	_apply_equipment_stats()
 
+	return true
+
+## Equip an item that did not come from a bag slot (starter grants, GM
+## repair). The same hand/capacity predicates apply. A replaced item goes
+## back to the bag, and a failed swap leaves the old item in place.
+func equip_direct(item: Item, target_slot: int) -> bool:
+	if item == null or not item.can_equip() or target_slot == Item.EquipSlot.NONE:
+		return false
+	if not _hand_layout_allows(item, target_slot) or not _capacity_allows(item, target_slot):
+		return false
+	var old_item: Item = _equipment.get(target_slot)
+	if old_item != null:
+		_equipment[target_slot] = null
+		if not add_item(old_item):
+			_equipment[target_slot] = old_item
+			return false
+	_equipment[target_slot] = item
+	item_equipped.emit(item, _equip_slot_name(target_slot), true)
+	_apply_equipment_stats()
 	return true
 
 ## Unequip item to inventory
@@ -640,6 +811,50 @@ func get_equipment_stats() -> Dictionary:
 			stats[stat] += effective_stats[stat]
 
 	return stats
+
+## The equipped tablet's world ward for one hazard (0 when none/broken).
+## This is the one equipment read the world-hazard damage law uses; a
+## tablet never leaks its ward into the combat school-resist lane.
+func get_world_ward(hazard: String) -> float:
+	var tablet: Item = _equipment.get(Item.EquipSlot.TABLET)
+	if tablet == null or not tablet.is_tablet() or tablet.is_broken():
+		return 0.0
+	return tablet.get_world_ward(hazard)
+
+## The equipped breather. The air layer is its own BREATHER slot; a HEAD
+## helm is separate armor and never doubles as a tank. The LEGACY NECKLACE
+## read remains for a partially built bag that has not run the load
+## migration yet.
+func get_equipped_breather() -> Item:
+	var item: Item = _equipment.get(Item.EquipSlot.BREATHER)
+	if item != null and item.is_breather() and not item.is_broken():
+		return item
+	var legacy: Item = _equipment.get(Item.EquipSlot.NECKLACE)
+	if legacy != null and legacy.is_breather() and not legacy.is_broken():
+		return legacy
+	return null
+
+## True when a tablet is equipped or held in the bag. StarterKitService uses
+## this as the never-tabletless backstop.
+func has_tablet() -> bool:
+	var equipped: Item = _equipment.get(Item.EquipSlot.TABLET)
+	if equipped != null and equipped.is_tablet():
+		return true
+	for item in _inventory:
+		if item is Item and item.is_tablet():
+			return true
+	return false
+
+## First bag slot holding a tablet, or -1.
+func find_tablet_slot() -> int:
+	for i in range(_inventory.size()):
+		var item = _inventory[i]
+		if item is Item and item.is_tablet():
+			return i
+	return -1
+
+func get_equipped_tablet() -> Item:
+	return _equipment.get(Item.EquipSlot.TABLET)
 
 ## Get total armor from equipment (0 if broken)
 func get_equipment_armor() -> int:

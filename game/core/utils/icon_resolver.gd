@@ -16,6 +16,7 @@ const ITEM_ICONS: Dictionary = {
 	7: "%s/items/furnishing.png" % BASE,    # FURNISHING
 	8: "%s/items/skill_book.png" % BASE,  # SKILL_BOOK
 	9: "%s/items/misc.png" % BASE,        # MISC
+	10: "%s/items/accessory.png" % BASE, # TABLET (ward talisman placeholder)
 }
 
 ## Skill type -> placeholder path

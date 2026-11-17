@@ -192,6 +192,11 @@ func sell_item(player_id: String, offering, npc_data, item_id: String, slot_key:
 	if item == null or item.id != item_id:
 		return _fail("Item not in that slot")
 
+	# A soulbound item has no market copy. This is the starter tablet rule,
+	# and it applies to every bound item the schema exposes.
+	if item.is_loss_protected():
+		return _fail("%s is soulbound and cannot be sold" % item.display_name)
+
 	var owned_qty: int = item.current_stack
 	if owned_qty < qty:
 		return _fail("Not enough items to sell")

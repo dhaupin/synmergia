@@ -25,6 +25,7 @@ class_name PlayerBase
 const HealthComponent = preload("res://core/components/health_component.gd")
 const StatId = preload("res://core/schemas/stat_id.gd")
 const ItemScript = preload("res://core/schemas/item.gd")
+const WorldHazard = preload("res://core/schemas/world_hazard.gd")
 
 ## THE PROGRESSION RATIO LAW: the cap and the curve live in ONE authority;
 ## the body consults it, never forks it.
@@ -256,12 +257,24 @@ func _setup_gm_indicator() -> void:
 	ind.set_script(load("res://entities/player/components/gm_indicator.gd"))
 	add_child(ind)
 
+# --- World mitigation -----------------------------------------------------
+## The equipped tablet's ward for a named environmental hazard. This is the
+## body-surface read WorldHazard.mitigate() and the sea damage driver use;
+## enemies get the same method on Entity.
+func get_world_ward(hazard: String) -> float:
+	var inv = inventory_component
+	if inv == null or not inv.has_method("get_world_ward"):
+		return 0.0
+	return clampf(float(inv.get_world_ward(hazard)), 0.0, StatId.MAX_RESIST)
+
 # --- Health surface -------------------------------------------------------
 ## Receive damage from any combatant (enemies route here through
 ## EnemyAI._perform_attack and skill.gd's untyped take_damage).
 func take_damage(amount: int, source = null, damage_type: String = "physical", is_crit: bool = false) -> int:
 	if health_component == null:
 		return 0
+	if WorldHazard.is_hazard(damage_type):
+		amount = WorldHazard.mitigate(self, amount, damage_type)
 	var dealt: int = health_component.take_damage(amount, source, damage_type, is_crit)
 	if dealt > 0:
 		# Emit the health_component truth, not the stale local field -- the
@@ -339,7 +352,7 @@ func add_stat(stat_name: String, amount: int) -> void:
 	set_stat(stat_name, get_stat(stat_name) + amount)
 
 ## The mounted bag, or null. One read for every hand/gear lane below.
-func _inventory_bag():
+func _equipment_bag():
 	if "inventory_component" not in self:
 		return null
 	var bag = get("inventory_component")
@@ -364,7 +377,7 @@ func get_attack_power() -> int:
 	# always taking the average, so authored min/max is a real damage band.
 	# A staff/wand/relic band is not physical and is skipped here.
 	var power := get_stat("strength") * 2
-	var bag = _inventory_bag()
+	var bag = _equipment_bag()
 	if bag != null and bag.has_method("get_main_hand_damage_roll"):
 		power += int(bag.get_main_hand_damage_roll(ItemScript.WeaponDamageType.PHYSICAL))
 		power = _dual_wield_power(power, ItemScript.WeaponDamageType.PHYSICAL, bag)
@@ -373,7 +386,7 @@ func get_attack_power() -> int:
 ## The equipped main-hand weapon, or null. The one read every weapon
 ## identity surface (damage, cadence, crit) goes through.
 func _main_hand_weapon():
-	var bag = _inventory_bag()
+	var bag = _equipment_bag()
 	if bag == null:
 		return null
 	return bag.get_equipped(ItemScript.EquipSlot.MAIN_HAND)
@@ -382,7 +395,7 @@ func get_spell_power() -> int:
 	# INT body + the magical staff/wand band. A one-handed focus in the off
 	# hand contributes its half-band while dual wielding.
 	var power := get_stat("intelligence") * 2
-	var bag = _inventory_bag()
+	var bag = _equipment_bag()
 	if bag != null and bag.has_method("get_main_hand_damage_roll"):
 		power += int(bag.get_main_hand_damage_roll(ItemScript.WeaponDamageType.MAGICAL))
 		power = _dual_wield_power(power, ItemScript.WeaponDamageType.MAGICAL, bag)
@@ -392,7 +405,7 @@ func get_healing_power() -> int:
 	# WIS body + the relic's healing band; the same min/max roll law as the
 	# other two lanes, just spent on restoration.
 	var power := get_stat("wisdom") * 2
-	var bag = _inventory_bag()
+	var bag = _equipment_bag()
 	if bag != null and bag.has_method("get_main_hand_damage_roll"):
 		power += int(bag.get_main_hand_damage_roll(ItemScript.WeaponDamageType.HEALING))
 		power = _dual_wield_power(power, ItemScript.WeaponDamageType.HEALING, bag)
@@ -412,7 +425,7 @@ func get_attack_speed() -> float:
 	var weapon = _main_hand_weapon()
 	if weapon != null and weapon.has_method("get_effective_attack_speed"):
 		speed *= float(weapon.get_effective_attack_speed())
-	var bag = _inventory_bag()
+	var bag = _equipment_bag()
 	if bag != null and bag.has_method("is_dual_wielding") and bag.is_dual_wielding():
 		speed *= float(bag.get_dual_wield_attack_speed_multiplier())
 	return clampf(speed, 0.1, StatId.MAX_ATTACK_SPEED_MULT)
@@ -425,7 +438,7 @@ func get_crit_chance() -> float:
 	var weapon = _main_hand_weapon()
 	if weapon != null and weapon.has_method("get_effective_crit_chance"):
 		delta += float(weapon.get_effective_crit_chance())
-	var bag = _inventory_bag()
+	var bag = _equipment_bag()
 	if bag != null and bag.has_method("get_offhand_crit_chance"):
 		delta += float(bag.get_offhand_crit_chance())
 	return StatId.crit_chance_of(float(get_stat("agility")), delta)
@@ -435,7 +448,7 @@ func get_crit_multiplier() -> float:
 	var weapon = _main_hand_weapon()
 	if weapon != null and weapon.has_method("get_effective_crit_damage"):
 		delta += float(weapon.get_effective_crit_damage())
-	var bag = _inventory_bag()
+	var bag = _equipment_bag()
 	if bag != null and bag.has_method("get_offhand_crit_damage"):
 		delta += float(bag.get_offhand_crit_damage())
 	return StatId.crit_damage_of(delta)

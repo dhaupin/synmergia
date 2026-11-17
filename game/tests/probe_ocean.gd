@@ -165,8 +165,8 @@ func _run() -> void:
 		shell != null and int(shell.accessory_type) == 6 \
 		and absf(float(shell.breath_multiplier) - 4.0) < 0.001 \
 		and absf(float(shell.squeeze_grace_m) - 8.0) < 0.001)
-	_check("the reed sits on the neck (one breath slot)", \
-		reed != null and int(reed.equip_slot) == 11)
+	_check("the reed sits on the dedicated BREATHER layer", \
+		reed != null and int(reed.equip_slot) == 16)
 	var b_none: Dictionary = svc.breather_for("swimmer_with_no_gear")
 	_check("no gear resolves to the unbreathered default", \
 		absf(float(b_none["mult"]) - 1.0) < 0.001 and absf(float(b_none["grace_m"])) < 0.001)

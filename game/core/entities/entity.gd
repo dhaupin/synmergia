@@ -9,6 +9,7 @@ const StatId = preload("res://core/schemas/stat_id.gd")
 const Item = preload("res://core/schemas/item.gd")
 const CombatMath = preload("res://core/services/combat_math.gd")
 const CcImmunity = preload("res://core/combat/cc_immunity.gd")
+const WorldHazard = preload("res://core/schemas/world_hazard.gd")
 
 signal health_changed(current: int, maximum: int)
 signal mana_changed(current: int, maximum: int)
@@ -240,6 +241,10 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 	amount = CombatMath.apply_level_power(amount, source, self)
 	if amount <= 0:
 		return 0
+	# Tablets guard the world, not the combat school lane: only named
+	# environmental hazards read this ward. A broken/absent tablet -> 0.
+	if WorldHazard.is_hazard(damage_type):
+		amount = WorldHazard.mitigate(self, amount, damage_type)
 	amount = _absorb_with_shields(amount)
 	if amount <= 0:
 		return 0
@@ -376,6 +381,15 @@ func _inventory_bag():
 	if bag == null or not bag.has_method("get_equipped"):
 		return null
 	return bag
+
+## The equipped tablet's ward for a named environmental hazard (0 when the
+## body has no bag/tablet). Enemy loadouts ride the same InventoryComponent,
+## so a future enemy tablet needs no separate read path.
+func get_world_ward(hazard: String) -> float:
+	var bag = _inventory_bag()
+	if bag == null or not bag.has_method("get_world_ward"):
+		return 0.0
+	return clampf(float(bag.get_world_ward(hazard)), 0.0, StatId.MAX_RESIST)
 
 ## The body's weapon, or null.
 func _main_hand_weapon():

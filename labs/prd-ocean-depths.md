@@ -111,21 +111,30 @@ and the radial branch both consume the same vertical-speed model.
   below 60% depth the world goes to murk. Sound: AudioService gets
   water-name WAVs (muffle filter is a stretch goal, not a promise).
 
-## 5. The Breather (new accessory class)
+## 5. The Breather (its own layer)
 
-Accessories are `acc_` prefixed (conventions locked). New
-`AccessoryClass.BREATHER`:
+The water family is `acc_` prefixed (conventions locked). The air layer
+is `AccessoryType.BREATHER` in `EquipSlot.BREATHER`. A HEAD helm is a
+separate armor layer: it keeps its armor, stats and resists underwater,
+but it never supplies air. The diving helm is `arm_diving_helm` (HEAD
+armor, no breath fields).
 
 ```
-acc_breather_reed        starter: air x2, grace +2 m   (crafted)
-acc_breather_lungshell   mid: air x4, grace +8 m       (deep drop)
-acc_breather_abyss_pearl endgame: air x8, grace +20 m, current immunity (the mystery drop)
+acc_breather_reed          starter: air x2, grace +2 m   (crafted, BREATHER)
+acc_breather_lungshell     mid: air x4, grace +8 m       (deep drop, BREATHER)
+acc_breather_abyss_pearl   endgame: air x8, grace +20 m, current immunity (mystery drop, BREATHER)
+arm_diving_helm            sealed HEAD helm: armor 10, physical/cold resists (no air)
 ```
 
 Reagent `res_abyss_pearl` exists only below max_depth - grace --
 the ocean's own loot hook, the reason anyone goes deep. Breathers
 do NOT touch swim speed (MovementProfile owns speed; gear owns
 air) -- the two systems stay orthogonal, or stacking becomes soup.
+One breath layer means one profile: `InventoryComponent.get_equipped_breather()`
+reads BREATHER and `OceanService` resolves that item. Legacy necklace
+breathers migrate to BREATHER when a save loads; the amulet lane is then
+free for an actual necklace. A player can wear a helm and a breather at
+the same time, and should.
 
 ## 6. Anticheat Hooks (S14 additions to the ticket/limit model)
 
@@ -319,13 +328,17 @@ prune-on-read) and forgive ONLY the downward plunge past the swim
 terminal -- the boat-fall entry; horizontal and absurd-vertical
 checks never yield. unregister_player clears all three books.
 
-**The breather (S14.4).** Gear owns air; the MovementProfile owns
-speed (orthogonal or soup). Item gains AccessoryType.BREATHER +
-breath_multiplier/squeeze_grace_m; the Hollow Reed (x2, +2 m) and
-the Lungshell (x4, +8 m) sit on the NECKLACE slot;
-`OceanService.breather_for(player_id)` resolves through
-InventoryService to {mult, grace_m} (default {1.0, 0.0} when
-anything is missing). The grace deepens the squeeze line and the
+**The breather (S14.4, split layer).** Gear owns air; the
+MovementProfile owns speed (orthogonal or soup). `AccessoryType.BREATHER`
+lives in `EquipSlot.BREATHER` and carries breath_multiplier /
+squeeze_grace_m; the Hollow Reed (x2, +2 m), Lungshell (x4, +8 m) and
+Abyss Pearl (x8, +20 m, current immunity) sit there. The Diving Helm is
+HEAD armor (`arm_diving_helm`) with armor/resists and no breath fields:
+helms stay active underwater, but they are not tanks. `OceanService.breather_for(player_id)`
+resolves the one equipped BREATHER through InventoryService to
+{mult, grace_m} (default {1.0, 0.0} when anything is missing). Legacy
+NECKLACE breathers migrate to BREATHER in `InventoryComponent.from_dict`.
+The grace deepens the squeeze line and the
 multiplier feeds set_breath_capacity -- CRUSH never moves (gear
 extends the swim, not the stone's patience). THE ONE-DERIVATION
 LAW (learned by probe): the PRIMITIVE applies the grace

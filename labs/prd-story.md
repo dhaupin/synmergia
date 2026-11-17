@@ -157,7 +157,8 @@ Sporebound Matriarch is its kin, deeper and older.
 ## 6. The player (who you are)
 
 A **tablet-bearer** -- one of the few who can hear the dormant world
-answer. Canon in-game: species-faction join at creation; the main
+answer. The first tablet is the soulbound Wayfarer's Tablet, and no
+bearer can be left without one. Canon in-game: species-faction join at creation; the main
 quest chain ("Reach the Nexus Core", canonized from the HUD mock);
 dailies like "Siphon Aether" and "Recover Lost Schematics" are the
 Waking economy in miniature. Your verb -- wake things -- is also

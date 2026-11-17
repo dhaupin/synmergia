@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_tablet_mycel"
+display_name = "Mycel Ward Tablet"
+description = "A porous green tablet threaded with living white filaments. The Bloom's spores read its pattern as root and pass the bearer by, though the tablet grows warm when the mycelium argues back."
+icon_path = ""
+item_category = 10
+rarity = 2
+equip_slot = 15
+accessory_type = 8
+tablet_domain = 4
+tablet_world_ward = 0.05
+tablet_domain_ward = 0.16
+durability_loss_rate = 0.25
+stack_size = 1
+bind_on_equip = true
+sell_price = 180
+buy_price = 900
+item_level = 28
+required_level = 20
+stats = {
+"intelligence": 3,
+"wisdom": 1
+}

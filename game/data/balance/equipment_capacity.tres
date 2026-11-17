@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="EquipmentCapacityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/equipment_capacity_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "equipment_capacity"
+ring_slots = 2
+amulet_slots = 1
+belt_slots = 1
+cloak_slots = 1

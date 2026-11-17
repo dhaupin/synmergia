@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_iron_armguards"
+display_name = "Iron Armguards"
+description = "Two strapped iron sleeves, dented where the forge bent them and never quite hammered flat. They turn a blade off the forearm and make a shield arm feel worth trusting."
+icon_path = "res://icons/items/armor_iron_mail.png"
+item_category = 1
+rarity = 1
+equip_slot = 14
+armor_type = 3
+stack_size = 1
+sell_price = 30
+buy_price = 130
+item_level = 6
+required_level = 4
+stats = {
+"strength": 1
+}
+armor_value = 8
+damage_resists = {
+"physical": 0.045
+}

@@ -16,7 +16,7 @@
 #      honest purse when the body samples inside the band.
 #   E. THE ABYSSAL BREATHER LOOP: pearl x1 + kelp x8 crafts
 #      acc_breather_abyss_pearl (x8 air, +20 m grace, current_immune),
-#      equips into the necklace slot, and breather_for speaks it.
+#      equips into the BREATHER layer, and breather_for speaks it.
 #
 # Script mode law: autoloads at runtime (OceanService, DataService,
 # HarvestService, PlayerManager, InventoryService, CraftingService);
@@ -192,9 +192,9 @@ func _run() -> void:
 		_count_id(stringer_bag, "res_abyss_pearl") == 0 \
 		and _count_id(stringer_bag, "res_kelp_fiber") == 0)
 	var slot: int = stringer_bag.find_item("acc_breather_abyss_pearl")
-	_check("the breather equips into the necklace slot", \
+	_check("the breather equips into the BREATHER layer", \
 		slot >= 0 and bool(stringer_bag.equip_item(slot)) \
-		and str(stringer_bag.get_equipped(Itm.EquipSlot.NECKLACE).id) == "acc_breather_abyss_pearl")
+		and str(stringer_bag.get_equipped(Itm.EquipSlot.BREATHER).id) == "acc_breather_abyss_pearl")
 	var defa: Dictionary = svc.breather_for("dd_diver")
 	_check("a bare bag reads the default breather law", \
 		absf(float(defa["mult"]) - 1.0) < 1e-9 and absf(float(defa["grace_m"])) < 1e-9 \
@@ -204,7 +204,7 @@ func _run() -> void:
 		absf(float(br["mult"]) - 8.0) < 1e-9 and absf(float(br["grace_m"]) - 20.0) < 1e-9 \
 		and bool(br["current_immune"]))
 	_check("an un-equip resets the breather law (equipment truth, not history)", \
-		(bool(stringer_bag.unequip_item(int(Itm.EquipSlot.NECKLACE))) \
+		(bool(stringer_bag.unequip_item(int(Itm.EquipSlot.BREATHER))) \
 		and bool(svc.breather_for("dd_stringer")["current_immune"]) == false))
 
 	# ---- The book rests clean ------------------------------------------------

@@ -210,13 +210,13 @@ the schema and wire a reader first.
 
 ### Item families in detail (`item.gd`)
 
-`item.gd` serves six item families. The `item_category` field picks the
+`item.gd` serves seven item families. The `item_category` field picks the
 family's meaning:
 
 ```
 ItemCategory: 0 WEAPON, 1 ARMOR, 2 ACCESSORY, 3 CONSUMABLE,
               4 RESOURCE, 5 GEM, 6 EVENT, 7 FURNISHING, 8 MISC,
-              9 SKILL_BOOK
+              9 SKILL_BOOK, 10 TABLET
 ```
 
 So a resource is `item_category = 4`, a consumable `= 3`, misc/quest
@@ -225,11 +225,30 @@ resolvable `quest_id` on quest tokens.
 
 Equipment slots (`EquipSlot`): `0 NONE, 1 HEAD, 2 CHEST, 3 LEGS, 4 FEET,
 5 GLOVES, 6 SHOULDERS, 7 MAIN_HAND, 8 OFF_HAND, 9 RING_1, 10 RING_2,
-11 NECKLACE, 12 CLOAK, 13 BELT`.
+11 NECKLACE, 12 CLOAK, 13 BELT, 14 ARMS, 15 TABLET, 16 BREATHER,
+17 RING_3 ... 24 RING_10, 25 NECKLACE_2, 26 NECKLACE_3, 27 BELT_2,
+28 BELT_3, 29 CLOAK_2, 30 CLOAK_3`. `ARMS` is the bracer/armguard slot
+(SHOULDERS stays pauldrons). Base records still author the first lane
+(`RING_1`, `NECKLACE`, `BELT`, `CLOAK`); the extra lanes are the data
+ceiling.
+
+Accessory types (`AccessoryType`): `0 NONE, 1 RING, 2 NECKLACE,
+3 BRACELET, 4 CLOAK, 5 BELT, 6 BREATHER, 7 UNDERWATER_HELM, 8 TABLET`.
+Capes use `CLOAK`. A sealed HEAD helm carries `UNDERWATER_HELM`; its air
+layer is separate: `BREATHER` items author `equip_slot = 16` and only
+they resolve as `is_breather()`. A diving helm is HEAD armor and never
+supplies air.
+
+Accessory capacity is authored in
+`data/balance/equipment_capacity.tres` (`EquipmentCapacityData`):
+`ring_slots`, `amulet_slots`, `belt_slots`, `cloak_slots`. The live seed
+is 2 / 1 / 1 / 1. Designers can raise those counts up to the appended
+ceilings (10 / 3 / 3 / 3) without code; lowering a count spills overflow
+to the bag on load rather than deleting gear.
 
 Weapon types (`WeaponType`): `0 NONE, 1 SWORD, 2 AXE, 3 MACE, 4 DAGGER,
-5 BOW, 6 CROSSBOW, 7 STAFF, 8 WAND, 9 SPEAR, 10 SHIELD`. A weapon must
-set a non-zero `weapon_type`.
+5 BOW, 6 CROSSBOW, 7 STAFF, 8 WAND, 9 SPEAR, 10 SHIELD, 11 LANCE,
+12 SCYTHE, 13 RELIC`. A weapon must set a non-zero `weapon_type`.
 
 Armor types (`ArmorType`): `0 NONE, 1 CLOTH, 2 LEATHER, 3 MAIL, 4 PLATE`.
 An armor must set a non-zero `armor_type`.
@@ -237,6 +256,22 @@ An armor must set a non-zero `armor_type`.
 Rarity (`Rarity`, sourced from `GameTier`): `0 COMMON, 1 RARE, 2 EPIC,
 3 LEGENDARY, 4 MYTHIC`. `UNCOMMON` is retired (2026-11-14) and the ladder
 is five rungs everywhere -- skills, items, titles, achievements.
+
+Tablets (`acc_tablet_*` in `data/accessories/`) are equipment, not
+consumables: `item_category = 10`, `accessory_type = 8`, `equip_slot = 15`.
+Every tablet must author a nonzero `tablet_world_ward` (the core baseline);
+`tablet_domain` picks the focus (`0 WORLD` generalist, then `1 HEAT,
+2 COLD, 3 STORM, 4 MIASMA, 5 DEEP, 6 VOID`) and `tablet_domain_ward` adds
+the focus-specific mitigation. `WorldHazard` is the hazard-key authority;
+the sea's `drowning` tag normalizes to `deep`.
+
+The starter is `acc_tablet_wayfarer`: common, WORLD focus, 3% / 2%
+wards, `max_durability = 0`, `durability_loss_rate = 0`,
+`soulbound = true`, `unique = true`, `bind_on_pickup = true`. It is
+listed in `starter_kits.tres` under `guaranteed_items` so every role gets
+it; `StarterKitService` equips it directly into the tablet socket (a full
+bag cannot block it) and restores it on world entry if a character has
+none. Do not author a starter tablet as a role row or as a 0/0 purse.
 
 Purse law for items: `sell_price >= 0`, `buy_price >= 0`, and when
 `buy_price > 0` then `sell_price < buy_price`. A `0 / 0` purse is legal
@@ -271,8 +306,9 @@ Above the mined resource ladder the FORGE tiers keep climbing, and a
 - zenithforged (the last rung, the level cap: item_level =
   required_level = 60)
 
-Zenithforged is the CAPSTONE: one weapon per `WeaponType`, one piece per
-armor slot, one per `AccessoryType`, sourced through
+Zenithforged is the CAPSTONE: one weapon per original `WeaponType` (1..10),
+one piece for each original armor slot (HEAD..SHOULDERS), one per original
+accessory family (types 1..5), sourced through
 `loot_zenith_reach`. There is nothing above it while the cap is 60; a
 future cap raise appends a rung, it does not renumber this one.
 

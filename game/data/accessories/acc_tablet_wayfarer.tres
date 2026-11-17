@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_tablet_wayfarer"
+display_name = "Wayfarer's Tablet"
+description = "A palm-sized Convergence fragment, clouded teal with a hairline crack that never spreads. It is bound to the hand that first woke it. Every bearer starts here: the world is loud with dormant things, and this is the quiet that answers."
+icon_path = ""
+item_category = 10
+rarity = 0
+equip_slot = 15
+accessory_type = 8
+tablet_domain = 0
+tablet_world_ward = 0.03
+tablet_domain_ward = 0.02
+durability_loss_rate = 0.0
+max_durability = 0
+current_durability = 0
+stack_size = 1
+soulbound = true
+unique = true
+bind_on_pickup = true
+sell_price = 1
+buy_price = 0
+item_level = 1
+required_level = 1

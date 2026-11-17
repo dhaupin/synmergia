@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_tablet_storm"
+display_name = "Storm Ward Tablet"
+description = "A jagged grey plate whose etched branches fork and rejoin when lightning is near. It does not ground the strike; it convinces the storm that the bearer is part of the weather, not a target in it."
+icon_path = ""
+item_category = 10
+rarity = 2
+equip_slot = 15
+accessory_type = 8
+tablet_domain = 3
+tablet_world_ward = 0.05
+tablet_domain_ward = 0.15
+durability_loss_rate = 0.25
+stack_size = 1
+bind_on_equip = true
+sell_price = 140
+buy_price = 700
+item_level = 22
+required_level = 16
+stats = {
+"agility": 1,
+"intelligence": 3
+}

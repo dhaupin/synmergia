@@ -178,6 +178,8 @@ test_status_effect_tres
 test_stat_modifiers
 test_stamina
 test_equipment_power
+test_equipment_vocabulary
+test_equipment_capacity
 test_dual_wield
 test_power_scaling
 test_attack_speed

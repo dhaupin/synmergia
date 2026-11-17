@@ -815,11 +815,18 @@ func _drop_player_loot(entity, killer, was_duel: bool = false) -> void:
 		var item = equipment[slot]
 		if item == null:
 			continue
+		# Soulbound/bound gear never enters the ground copy. The starter
+		# tablet lives here: death cannot leave a player tabletless.
+		if item.is_loss_protected():
+			continue
 		inventory.clear_equipment_slot(slot)
 		dropped_items.append(item)
 
 	# Then bag items. remove_item(slot) hands back the removed Item.
 	for slot in range(inventory.max_inventory_slots):
+		var bag_item = inventory.get_item(slot)
+		if bag_item != null and bag_item.is_loss_protected():
+			continue
 		var removed = inventory.remove_item(slot)
 		if removed != null:
 			dropped_items.append(removed)

@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arm_diving_helm"
+display_name = "Diving Helm"
+description = "A sealed ceramic helm with a warped glass eye and a kelp-rubber collar. It does not make air; it keeps the cold and the pressure off the skull while the breather layer does the breathing. The glass remembers every reef it has seen."
+icon_path = "res://icons/items/armor_iron_mail.png"
+item_category = 1
+rarity = 1
+equip_slot = 1
+armor_type = 3
+accessory_type = 7
+stack_size = 1
+bind_on_equip = true
+sell_price = 60
+buy_price = 280
+item_level = 8
+required_level = 5
+stats = {
+"endurance": 1
+}
+armor_value = 10
+damage_resists = {
+"physical": 0.04,
+"cold": 0.03
+}

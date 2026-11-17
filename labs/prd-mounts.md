@@ -37,7 +37,8 @@ space mounts lawful the same way -- by data, never by special cases.
    resolves the mount's MovementProfile through
    `DataService.get_mount_movement_profile` (the one derivation:
    explicit `movement_profile_id` wins, else kind -- GROUND ->
-   quadruped, FLYING -> aerial, AQUATIC -> aquatic, SPACE ->
+   quadruped, FLYING -> aerial, AQUATIC -> aquatic, GLIDER ->
+   glider, SPACE ->
    leviathan -- its own class since R44, when the first space mount
    landed) and stamps the anticheat via
    `AntiCheatService.set_profile_limits`. (The SPACE default is
@@ -95,7 +96,10 @@ the layer. (As built R44: the Vesper -- `mount_vesper_whale` rides
 - `game/core/services/ride_service.gd` -- NEW autoload (registered
   after FerryService in `project.godot`). grant/revoke/owns (ledger),
   summon/dismiss/active_mount (session), water_stamp_for (handoff).
-- `game/core/schemas/mount_data.gd` -- `MountKind.SPACE` added.
+- `game/core/schemas/mount_data.gd` -- `MountKind.SPACE` added;
+  `MountKind.GLIDER` appended for the six sewn wings in `data/gliders/`
+  (`movement_glider`). A glider is still a `MountData`/RideService record,
+  but no longer shares the living `FLYING` kind by default.
 - `game/core/services/anticheat_service.gd` -- `set_profile_limits`.
 - `game/data/movement_profiles/movement_sky_{lancer,soarer,moth}.tres`
   -- NEW elite flight profiles.

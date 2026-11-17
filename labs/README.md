@@ -42,7 +42,7 @@ questions live.
 - **LORE** — authored world content, canon rather than engineering.
 - **ARCHIVED** — lives in [`archive/`](./archive/README.md); history only.
 
-> **PRD status census (2026-11-15).** All 54 top-level `prd-*.md` files now
+> **PRD status census (2026-11-17).** All 57 top-level `prd-*.md` files now
 > carry an in-file `> **Status:**` block. 21 had no blockquote status block:
 > they were classified against the code and receipts (SHIPPED, PARTIAL, DESIGN,
 > REFERENCE, ACTIVE MODEL, POSITION PAPER); four plain `Status:` lines were
@@ -71,6 +71,7 @@ questions live.
 | [`prd-tdm.md`](./prd-tdm.md) | ACTIVE | Haven Sandpit: respawns, spawn shield, first to 20 kills |
 | [`prd-royale.md`](./prd-royale.md) | ACTIVE | Sundered Valley: sky drop, closing fog, Last Light |
 | [`prd-ocean-depths.md`](./prd-ocean-depths.md) | ACTIVE | Swimming, water volumes, vessels |
+| [`prd-tablets.md`](./prd-tablets.md) | DESIGN | Tablet interaction layer, world verbs, starter guarantee |
 | [`prd-ancient-movers.md`](./prd-ancient-movers.md) | ACTIVE | Dormancy, the mystery gate, movers |
 | [`prd-monetization.md`](./prd-monetization.md) | ACTIVE | Priced seats, the Concord's table |
 | [`prd-economy.md`](./prd-economy.md) | ACTIVE | The living economy: mint, move, melt |

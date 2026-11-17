@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_tablet_rime"
+display_name = "Rime Ward Tablet"
+description = "A pale slate furred with frost that never melts. Its script is a slow spiral, and the cold reads it as a promise that the bearer is already winter's."
+icon_path = ""
+item_category = 10
+rarity = 1
+equip_slot = 15
+accessory_type = 8
+tablet_domain = 2
+tablet_world_ward = 0.04
+tablet_domain_ward = 0.10
+durability_loss_rate = 0.25
+stack_size = 1
+bind_on_equip = true
+sell_price = 48
+buy_price = 240
+item_level = 10
+required_level = 7
+stats = {
+"intelligence": 2,
+"endurance": 1
+}

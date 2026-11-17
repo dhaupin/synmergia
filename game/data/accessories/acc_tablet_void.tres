@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_tablet_void"
+display_name = "Void Ward Tablet"
+description = "A black slab with no reflection and a single pale star at its center. The Silence is written here in negative space; carrying it makes the empty places treat the bearer as already claimed."
+icon_path = ""
+item_category = 10
+rarity = 3
+equip_slot = 15
+accessory_type = 8
+tablet_domain = 6
+tablet_world_ward = 0.07
+tablet_domain_ward = 0.25
+durability_loss_rate = 0.25
+stack_size = 1
+bind_on_equip = true
+sell_price = 320
+buy_price = 1600
+item_level = 40
+required_level = 30
+stats = {
+"intelligence": 4,
+"wisdom": 2
+}

@@ -15,17 +15,22 @@ const DATA = godotData as unknown as Record<string, Raw>;
 const RARITY = ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic'];
 const ITEM_CATEGORY = [
   'Weapon', 'Armor', 'Accessory', 'Consumable', 'Resource',
-  'Gem', 'Event', 'Furnishing', 'Misc', 'Skill Book',
+  'Gem', 'Event', 'Furnishing', 'Misc', 'Skill Book', 'Tablet',
 ];
 const WEAPON_TYPE = [
   'None', 'Sword', 'Axe', 'Mace', 'Dagger', 'Bow',
-  'Crossbow', 'Staff', 'Wand', 'Spear', 'Shield',
+  'Crossbow', 'Staff', 'Wand', 'Spear', 'Shield', 'Lance',
+  'Scythe', 'Relic',
 ];
 const ARMOR_TYPE = ['None', 'Cloth', 'Leather', 'Mail', 'Plate'];
-const ACCESSORY_TYPE = ['None', 'Ring', 'Necklace', 'Bracelet', 'Cloak', 'Belt', 'Breather'];
+const ACCESSORY_TYPE = [
+  'None', 'Ring', 'Necklace', 'Bracelet', 'Cloak', 'Belt', 'Breather',
+  'Underwater Helm', 'Tablet',
+];
 const EQUIP_SLOT = [
   'None', 'Head', 'Chest', 'Legs', 'Feet', 'Gloves', 'Shoulders',
   'Main Hand', 'Off Hand', 'Ring 1', 'Ring 2', 'Necklace', 'Cloak', 'Belt',
+  'Arms', 'Tablet',
 ];
 const ENEMY_TYPE = ['Normal', 'Elite', 'Champion', 'Boss', 'World Boss', 'Raid Boss'];
 const SKILL_TYPE = [
@@ -344,7 +349,7 @@ export function buildCodex(): CodexCategory[] {
   };
   itemLike('weapons', 'Weapons', 'Blades, hafts, bows, and staves — and what they cost.', (v) => weaponTypeLabel(v.weapon_type));
   itemLike('armors', 'Armor', 'Cloth to plate, and the belts and cloaks that hang off it.', (v) => armorTypeLabel(v.armor_type));
-  itemLike('accessories', 'Accessories', 'Rings, amulets, cloaks, belts, and the deep-water breathers.', (v) => accessoryTypeLabel(v.accessory_type));
+  itemLike('accessories', 'Accessories', 'Rings, amulets, cloaks, belts, the deep-water breathers, and world-ward tablets.', (v) => accessoryTypeLabel(v.accessory_type));
   itemLike('items', 'Items', 'Coins, seals, quest tokens, and everything else.', (v) => itemCategoryLabel(v.item_category));
   itemLike('resources', 'Resources', 'Ores, fibers, petals — the raw stock the world gathers.', (v) => itemCategoryLabel(v.item_category));
   itemLike('consumables', 'Consumables', 'Potions, elixirs, and the things you drink once.', (v) => itemCategoryLabel(v.item_category));
