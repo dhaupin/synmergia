@@ -9,6 +9,14 @@ const Item = preload("res://core/schemas/item.gd")
 const Entity = preload("res://core/entities/entity.gd")
 const StatId = preload("res://core/schemas/stat_id.gd")
 
+## Dual wield is the no-shield one-hander posture: both hands carry a legal
+## one-handed weapon. The trade is speed plus a small all-lane power lift,
+## with the off hand adding half its band. Values live here as the one tuning
+## surface; a later balance record can promote them without moving callers.
+const DUAL_WIELD_ATTACK_SPEED_BONUS: float = 0.15
+const DUAL_WIELD_POWER_BONUS: float = 0.06
+const DUAL_WIELD_OFFHAND_DAMAGE_SCALE: float = 0.50
+
 
 signal item_added(item: Item, slot: int)
 signal item_removed(item: Item, slot: int)
@@ -117,13 +125,17 @@ func _migrate_legacy_weapon_slot() -> void:
 	var offhand: Item = _equipment.get(Item.EquipSlot.OFF_HAND)
 	if offhand == null or int(offhand.weapon_type) == Item.WeaponType.SHIELD:
 		return
-	if _equipment.get(Item.EquipSlot.MAIN_HAND) == null:
+	var main: Item = _equipment.get(Item.EquipSlot.MAIN_HAND)
+	if main == null:
 		_equipment[Item.EquipSlot.MAIN_HAND] = offhand
 		_equipment.erase(Item.EquipSlot.OFF_HAND)
 		return
-	# Both hands hold a non-shield: keep the main hand and return the legacy
-	# off-hand copy to the bag. A full bag leaves the save untouched rather
-	# than deleting the item.
+	# Both hands hold a non-shield. A legal pair of one-handers is the
+	# dual-wield posture, so the off-hand copy is NOT legacy there. Any other
+	# pair is returned to the bag; a full bag leaves the save untouched
+	# rather than deleting the item.
+	if main.is_one_handed_weapon() and offhand.is_one_handed_weapon():
+		return
 	for i in range(_inventory.size()):
 		if _inventory[i] == null:
 			_inventory[i] = offhand
@@ -148,17 +160,39 @@ func _hand_layout_allows(item: Item, equip_slot: int) -> bool:
 			return false
 	return true
 
-## Public legality read for UI/equip preview. The same predicate equip_item
-## enforces, so the button and the mutation cannot disagree.
-func can_equip_in_slot(item: Item) -> bool:
-	return item != null and item.can_equip() and _hand_layout_allows(item, int(item.equip_slot))
+## The default hand for an item. A one-hander auto-fills the empty off hand
+## when the main hand already holds a one-hander, which is the click a player
+## makes to dual wield; an explicit target_slot still wins.
+func _default_equip_slot(item: Item) -> int:
+	var slot := int(item.equip_slot)
+	if slot == Item.EquipSlot.MAIN_HAND and item.is_one_handed_weapon():
+		var main: Item = _equipment.get(Item.EquipSlot.MAIN_HAND)
+		var off: Item = _equipment.get(Item.EquipSlot.OFF_HAND)
+		if main != null and off == null and main.is_one_handed_weapon():
+			return Item.EquipSlot.OFF_HAND
+	return slot
 
-## Move an illegal loaded off-hand pair back to the bag. A full bag leaves
-## the save untouched rather than deleting the item.
+## Public legality read for UI/equip preview. The same predicate equip_item
+## enforces, so the button and the mutation cannot disagree. target_slot is
+## optional; -1 asks for the default hand (including the dual-wield off hand).
+func can_equip_in_slot(item: Item, target_slot: int = -1) -> bool:
+	if item == null or not item.can_equip():
+		return false
+	var slot := target_slot if target_slot >= 0 else _default_equip_slot(item)
+	return _hand_layout_allows(item, slot)
+
+## Move an illegal loaded off-hand pair back to the bag. The same
+## _hand_layout_allows predicate that guards a live equip guards the load, so
+## a 2H main + non-wrist off hand and a 1H main + 2H off hand both return the
+## off hand. A legal dual-wield pair and a 2H + wrist pair survive. A full bag
+## leaves the save untouched rather than deleting the item.
 func _migrate_hand_legality() -> void:
 	var main: Item = _equipment.get(Item.EquipSlot.MAIN_HAND)
 	var off: Item = _equipment.get(Item.EquipSlot.OFF_HAND)
-	if main == null or off == null or not main.is_two_handed or off.is_wrist_shield():
+	if off == null:
+		return
+	var main_ok := main == null or _hand_layout_allows(main, Item.EquipSlot.MAIN_HAND)
+	if main_ok and _hand_layout_allows(off, Item.EquipSlot.OFF_HAND):
 		return
 	for i in range(_inventory.size()):
 		if _inventory[i] == null:
@@ -360,14 +394,16 @@ func get_item(slot: int) -> Item:
 		return null
 	return _inventory[slot]
 
-## Equip item
-func equip_item(inventory_slot: int) -> bool:
+## Equip item. target_slot = -1 uses the item's default hand, which for a
+## second one-hander is the off hand (dual wield). An explicit target lets a
+## caller replace the main hand even while the off hand is occupied.
+func equip_item(inventory_slot: int, target_slot: int = -1) -> bool:
 	var item: Item = get_item(inventory_slot)
 	if item == null or not item.can_equip():
 		return false
 
-	var equip_slot = item.equip_slot
-	if not _hand_layout_allows(item, int(equip_slot)):
+	var equip_slot: int = target_slot if target_slot >= 0 else _default_equip_slot(item)
+	if not _hand_layout_allows(item, equip_slot):
 		return false
 
 	# Unequip current item in that slot
@@ -624,14 +660,65 @@ func get_main_hand_damage() -> Dictionary:
 	return {"min": min_dmg, "max": max_dmg}
 
 ## One per-swing roll inside the main-hand band. The item normalizes an
-## inverted authored pair, so the roll can never escape lower..higher.
-func get_main_hand_damage_roll() -> int:
+## inverted authored pair, so the roll can never escape lower..higher. A
+## damage_lane (Item.WeaponDamageType) filters a magical/healing band out of
+## the physical lane; -1 keeps the legacy any-lane roll.
+func get_main_hand_damage_roll(damage_lane: int = -1) -> int:
+	var weapon: Item = _equipment.get(Item.EquipSlot.MAIN_HAND)
+	if weapon == null:
+		return 0
+	if damage_lane >= 0 and int(weapon.weapon_damage_type) != damage_lane:
+		return 0
 	var damage := get_main_hand_damage()
 	var lo: int = int(damage.get("min", 0))
 	var hi: int = int(damage.get("max", 0))
 	if hi <= 0:
 		return 0
 	return randi_range(maxi(lo, 0), maxi(hi, 0))
+
+## The off-hand weapon, or null when the off hand holds a shield/focus or is
+## empty. Dual wield is both hands carrying legal one-handed weapons.
+func get_offhand_weapon() -> Item:
+	var off: Item = _equipment.get(Item.EquipSlot.OFF_HAND)
+	if off == null or not off.is_one_handed_weapon():
+		return null
+	return off
+
+func is_dual_wielding() -> bool:
+	var main: Item = _equipment.get(Item.EquipSlot.MAIN_HAND)
+	var off := get_offhand_weapon()
+	return main != null and main.is_one_handed_weapon() and not main.is_broken() \
+		and off != null and not off.is_broken()
+
+func get_dual_wield_power_multiplier() -> float:
+	return 1.0 + DUAL_WIELD_POWER_BONUS if is_dual_wielding() else 1.0
+
+func get_dual_wield_attack_speed_multiplier() -> float:
+	return 1.0 + DUAL_WIELD_ATTACK_SPEED_BONUS if is_dual_wielding() else 1.0
+
+## The off-hand band contribution. It is rolled separately from the main hand
+## and deliberately scaled below 1.0 so dual wield is speed + reach, not two
+## full swings. A lane filter keeps a physical main hand from borrowing a
+## magical off hand (and vice versa).
+func get_offhand_damage_roll(damage_lane: int = -1) -> int:
+	var off := get_offhand_weapon()
+	if off == null or not is_dual_wielding():
+		return 0
+	if damage_lane >= 0 and int(off.weapon_damage_type) != damage_lane:
+		return 0
+	var lo: int = off.get_effective_damage_min()
+	var hi: int = off.get_effective_damage_max()
+	if hi <= 0:
+		return 0
+	return randi_range(maxi(lo, 0), maxi(hi, 0))
+
+func get_offhand_crit_chance() -> float:
+	var off := get_offhand_weapon()
+	return off.get_effective_crit_chance() if off != null and is_dual_wielding() else 0.0
+
+func get_offhand_crit_damage() -> float:
+	var off := get_offhand_weapon()
+	return off.get_effective_crit_damage() if off != null and is_dual_wielding() else 0.0
 
 ## Main-hand identity read by every body (player, enemy, future actor).
 func get_main_hand_attack_speed() -> float:

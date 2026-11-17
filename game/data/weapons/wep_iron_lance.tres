@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_iron_lance"
+display_name = "Iron Lance"
+description = "A long couched lance with a narrow steel head. Reach is the whole point; the off hand braces the haft."
+icon_path = "res://icons/items/spear_iron.png"
+item_category = 0
+rarity = 0
+equip_slot = 7
+weapon_type = 11
+is_two_handed = true
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+is_bound = false
+bind_on_equip = false
+unique = false
+sell_price = 95
+buy_price = 380
+item_level = 9
+required_level = 8
+required_class = ""
+required_strength = 5
+required_agility = 3
+required_intelligence = 0
+stats = {
+"strength": 5
+}
+primary_stats = {}
+secondary_stats = {}
+weapon_damage_min = 22
+weapon_damage_max = 34
+attack_speed = 0.88
+crit_chance = 0.018
+crit_damage = 0.130
+armor_value = 0

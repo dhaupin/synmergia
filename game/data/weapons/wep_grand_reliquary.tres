@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_grand_reliquary"
+display_name = "Grand Reliquary"
+description = "A two-handed shrine of ivory and reliquary glass. It is carried like a standard and answers with a broad healing band."
+icon_path = "res://icons/items/staff_walnut.png"
+item_category = 0
+rarity = 1
+equip_slot = 7
+weapon_type = 13
+weapon_damage_type = 2
+is_two_handed = true
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+is_bound = false
+bind_on_equip = false
+unique = false
+sell_price = 245
+buy_price = 980
+item_level = 12
+required_level = 11
+required_class = ""
+required_strength = 0
+required_agility = 0
+required_intelligence = 6
+stats = {
+"wisdom": 7,
+"intelligence": 3
+}
+primary_stats = {}
+secondary_stats = {}
+weapon_damage_min = 20
+weapon_damage_max = 34
+attack_speed = 0.90
+crit_chance = 0.028
+crit_damage = 0.180
+armor_value = 0

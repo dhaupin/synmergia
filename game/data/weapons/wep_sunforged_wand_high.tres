@@ -25,6 +25,7 @@ stats = {
 }
 weapon_damage_min = 48
 weapon_damage_max = 70
+weapon_damage_type = 1
 attack_speed = 1.38
 crit_chance = 0.055
 crit_damage = 0.158

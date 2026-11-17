@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_iron_greatsword"
+display_name = "Iron Greatsword"
+description = "A long two-handed blade with a plain crossguard. It trades the shield hand for reach and a heavier arc."
+icon_path = "res://icons/items/sword_iron.png"
+item_category = 0
+rarity = 0
+equip_slot = 7
+weapon_type = 1
+is_two_handed = true
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+is_bound = false
+bind_on_equip = false
+unique = false
+sell_price = 75
+buy_price = 300
+item_level = 8
+required_level = 7
+required_class = ""
+required_strength = 6
+required_agility = 0
+required_intelligence = 0
+stats = {
+"strength": 6
+}
+primary_stats = {}
+secondary_stats = {}
+weapon_damage_min = 18
+weapon_damage_max = 28
+attack_speed = 0.90
+crit_chance = 0.022
+crit_damage = 0.150
+armor_value = 0

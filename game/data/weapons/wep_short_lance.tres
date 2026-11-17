@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_short_lance"
+display_name = "Short Lance"
+description = "A cut-down lance for the press of a melee line. Fast enough for one hand, long enough to keep a sword at bay."
+icon_path = "res://icons/items/spear_iron.png"
+item_category = 0
+rarity = 0
+equip_slot = 7
+weapon_type = 11
+is_two_handed = false
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+is_bound = false
+bind_on_equip = false
+unique = false
+sell_price = 200
+buy_price = 800
+item_level = 11
+required_level = 10
+required_class = ""
+required_strength = 4
+required_agility = 5
+required_intelligence = 0
+stats = {
+"strength": 3,
+"agility": 4
+}
+primary_stats = {}
+secondary_stats = {}
+weapon_damage_min = 12
+weapon_damage_max = 20
+attack_speed = 1.15
+crit_chance = 0.022
+crit_damage = 0.110
+armor_value = 0
