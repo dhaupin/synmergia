@@ -23,3 +23,7 @@ stats = {
 "strength": 3
 }
 armor_value = 26
+damage_resists = {
+"physical": 0.056,
+"lightning": 0.028
+}

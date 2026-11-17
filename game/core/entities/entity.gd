@@ -67,30 +67,9 @@ var move_direction: Vector3 = Vector3.ZERO
 @export var controller_type: ControllerType = ControllerType.NPC
 @export var connector_id: String = ""  # Which connector controls this (for agents)
 
-# Stats stored as dictionary
-var stats: Dictionary = {
-	"strength": 10,
-	"agility": 10,
-	"intelligence": 10,
-	"vitality": 10,
-	"endurance": 10,
-	"wisdom": 10,
-	"damage_multiplier": 1.0,
-	"defense_multiplier": 1.0,
-	"armor_multiplier": 1.0,
-	"movement_speed_multiplier": 1.0,
-	"attack_speed_multiplier": 1.0,
-	"damage_reduction": 0.0,
-	"damage_reflect": 0.0,
-	"health_regen": 0.0,
-	"mana_regen": 0.0,
-	"stamina_regen": 0.0,
-	"cooldown_reduction": 0.0,
-	"effect_duration_mult": 1.0,
-	"effect_power_mult": 1.0,
-	"crit_chance": 0.0,
-	"crit_damage": 0.0,
-}
+# Stats stored as dictionary, seeded from THE canonical vocabulary so the
+# base body can never omit a key StatId (or a status effect) expects.
+var stats: Dictionary = StatId.base_block()
 
 # Resources
 var max_health: int = 100
@@ -354,7 +333,8 @@ func _calculate_damage_received(amount: int, damage_type: String = "physical", s
 		amount, defense, attacker_level, level,
 		float(stats.get("defense_multiplier", 1.0)),
 		float(stats.get("armor_multiplier", 1.0)),
-		flat, power_normalized)
+		flat, power_normalized,
+		CombatMath.school_resist_for(self, damage_type))
 
 ## MANA
 

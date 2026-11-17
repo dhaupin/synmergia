@@ -10,7 +10,7 @@ description = "A sunforged war axe worked for the sun-touched rim. Cut at the su
 icon_path = "res://icons/items/axe_iron.png"
 item_category = 0
 rarity = 4
-equip_slot = 8
+equip_slot = 7
 weapon_type = 2
 armor_type = 0
 accessory_type = 0
@@ -24,4 +24,6 @@ stats = {
 }
 weapon_damage_min = 49
 weapon_damage_max = 75
-attack_speed = 0.9
+attack_speed = 0.96
+crit_chance = 0.038
+crit_damage = 0.244

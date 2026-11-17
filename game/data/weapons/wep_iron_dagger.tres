@@ -10,7 +10,7 @@ description = "Nine inches of honest iron. The quayside answer to everything big
 icon_path = "res://icons/items/dagger_iron.png"
 item_category = 0
 rarity = 0
-equip_slot = 8
+equip_slot = 7
 weapon_type = 4
 stack_size = 1
 sell_price = 15
@@ -23,4 +23,6 @@ stats = {
 }
 weapon_damage_min = 5
 weapon_damage_max = 9
-attack_speed = 1.8
+attack_speed = 1.80
+crit_chance = 0.042
+crit_damage = 0.124

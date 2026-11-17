@@ -10,7 +10,7 @@ description = "A sunforged crossbow worked for the sun-touched rim. Cut at the s
 icon_path = "res://icons/items/bow_long.png"
 item_category = 0
 rarity = 4
-equip_slot = 8
+equip_slot = 7
 weapon_type = 6
 armor_type = 0
 accessory_type = 0
@@ -24,4 +24,6 @@ stats = {
 }
 weapon_damage_min = 47
 weapon_damage_max = 71
-attack_speed = 0.9
+attack_speed = 0.95
+crit_chance = 0.061
+crit_damage = 0.241

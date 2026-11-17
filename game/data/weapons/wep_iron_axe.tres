@@ -10,7 +10,7 @@ description = "Splits firewood before breakfast and wolves after it. The edge re
 icon_path = "res://icons/items/axe_iron.png"
 item_category = 0
 rarity = 0
-equip_slot = 8
+equip_slot = 7
 weapon_type = 2
 stack_size = 1
 sell_price = 30
@@ -23,4 +23,6 @@ stats = {
 }
 weapon_damage_min = 12
 weapon_damage_max = 20
-attack_speed = 0.9
+attack_speed = 0.90
+crit_chance = 0.013
+crit_damage = 0.128

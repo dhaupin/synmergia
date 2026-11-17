@@ -284,7 +284,7 @@ func _leg_door_wire() -> void:
 	var seen: Dictionary = await _http("POST", "/see", JSON.stringify({"label": "wire"}))
 	_assert(bool(seen.get("ok", false)) and String(seen.get("path", "")) != "", "POST /see captures a frame over the wire")
 	var tools: Dictionary = await _http("GET", "/tools")
-	_assert(not bool(tools.get("ok", true)) and String(tools.get("error", "")).begins_with("unknown route"), "GET /tools is GONE (projection lives in gamestruct)")
+	_assert(not bool(tools.get("ok", true)) and String(tools.get("reason", "")).begins_with("unknown route"), "GET /tools is GONE (projection lives in gamestruct)")
 	var call: Dictionary = await _http("POST", "/call", "{}")
 	_assert(not bool(call.get("ok", true)), "POST /call is GONE (MCP projection lives in gamestruct)")
 	_door.stop()

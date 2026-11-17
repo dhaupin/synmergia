@@ -24,6 +24,7 @@ class_name PlayerBase
 
 const HealthComponent = preload("res://core/components/health_component.gd")
 const StatId = preload("res://core/schemas/stat_id.gd")
+const ItemScript = preload("res://core/schemas/item.gd")
 
 ## THE PROGRESSION RATIO LAW: the cap and the curve live in ONE authority;
 ## the body consults it, never forks it.
@@ -60,30 +61,10 @@ var relation: int = 0
 var faction_id: String = ""
 var team_id: int = 0
 
-## Standard stat block (Entity-compatible shape used by the get_* accessors).
-var stats: Dictionary = {
-	"strength": 10,
-	"agility": 10,
-	"intelligence": 10,
-	"vitality": 10,
-	"endurance": 10,
-	"wisdom": 10,
-	"damage_multiplier": 1.0,
-	"defense_multiplier": 1.0,
-	"armor_multiplier": 1.0,
-	"movement_speed_multiplier": 1.0,
-	"attack_speed_multiplier": 1.0,
-	"damage_reduction": 0.0,
-	"damage_reflect": 0.0,
-	"health_regen": 0.0,
-	"mana_regen": 0.0,
-	"stamina_regen": 0.0,
-	"cooldown_reduction": 0.0,
-	"effect_duration_mult": 1.0,
-	"effect_power_mult": 1.0,
-	"crit_chance": 0.0,
-	"crit_damage": 0.0,
-}
+## Standard stat block (Entity-compatible shape used by the get_* accessors),
+## seeded from THE canonical vocabulary so the player body and Entity cannot
+## drift as new stat lanes (resists, ratings) are added.
+var stats: Dictionary = StatId.base_block()
 
 # --- Health + mana --------------------------------------------------------
 ## The component owns the damage/heal path; the fields mirror it for the
@@ -360,15 +341,34 @@ func add_stat(stat_name: String, amount: int) -> void:
 func get_attack_power() -> int:
 	# Strength is the body's base physical power; the equipped main hand is
 	# the other half. InventoryComponent already owns the weapon range (and
-	# zeroes it when broken), so the live combat path reads that one source
-	# instead of leaving weapon_damage_min/max authored but inert.
+	# zeroes it when broken). A swing ROLLS inside that range instead of
+	# always taking the average, so authored min/max is a real damage band.
 	var power := get_stat("strength") * 2
 	if "inventory_component" in self:
 		var bag = get("inventory_component")
 		if bag != null and bag.has_method("get_main_hand_damage"):
 			var damage: Dictionary = bag.get_main_hand_damage()
-			power += int(round((float(damage.get("min", 0)) + float(damage.get("max", 0))) * 0.5))
+			var lo: int = int(damage.get("min", 0))
+			var hi: int = int(damage.get("max", 0))
+			# Guard against inverted authored bounds: the runtime always rolls
+			# between the smaller and larger number.
+			if hi < lo:
+				var swap := lo
+				lo = hi
+				hi = swap
+			if hi > 0:
+				power += randi_range(maxi(lo, 0), hi)
 	return power
+
+## The equipped main-hand weapon, or null. The one read every weapon
+## identity surface (damage, cadence, crit) goes through.
+func _main_hand_weapon():
+	if "inventory_component" not in self:
+		return null
+	var bag = get("inventory_component")
+	if bag == null or not bag.has_method("get_equipped"):
+		return null
+	return bag.get_equipped(ItemScript.EquipSlot.MAIN_HAND)
 
 func get_spell_power() -> int:
 	return get_stat("intelligence") * 2
@@ -382,18 +382,32 @@ func get_defense() -> int:
 func get_attack_speed() -> float:
 	# THE attack-speed formula (StatId), parity with Entity. The class
 	# cadence folds into attack_speed_multiplier, so a rogue body swings
-	# faster through the same stat block every combat consumer reads.
-	return StatId.attack_speed_of(
+	# faster through the same stat block every combat consumer reads. A
+	# weapon rides that cadence by DEFAULT (1.0 multiplier) and can override
+	# it with its own authored attack_speed.
+	var speed: float = StatId.attack_speed_of(
 		float(get_stat("agility")), float(stats.get("attack_speed_multiplier", 1.0)) - 1.0)
+	var weapon = _main_hand_weapon()
+	if weapon != null and weapon.has_method("get_effective_attack_speed"):
+		speed *= float(weapon.get_effective_attack_speed())
+	return clampf(speed, 0.1, StatId.MAX_ATTACK_SPEED_MULT)
 
 func get_crit_chance() -> float:
 	# THE crit formula (StatId): base + agility + the crit_chance stat delta,
-	# so a crit buff lands on the player body too (parity with Entity).
-	return StatId.crit_chance_of(
-		float(get_stat("agility")), float(stats.get("crit_chance", 0.0)))
+	# so a crit buff lands on the player body too (parity with Entity). The
+	# main hand then adds its own crit identity on top.
+	var delta: float = float(stats.get("crit_chance", 0.0))
+	var weapon = _main_hand_weapon()
+	if weapon != null and weapon.has_method("get_effective_crit_chance"):
+		delta += float(weapon.get_effective_crit_chance())
+	return StatId.crit_chance_of(float(get_stat("agility")), delta)
 
 func get_crit_multiplier() -> float:
-	return StatId.crit_damage_of(float(stats.get("crit_damage", 0.0)))
+	var delta: float = float(stats.get("crit_damage", 0.0))
+	var weapon = _main_hand_weapon()
+	if weapon != null and weapon.has_method("get_effective_crit_damage"):
+		delta += float(weapon.get_effective_crit_damage())
+	return StatId.crit_damage_of(delta)
 
 # --- Progression surface (duck-typed Entity API) --------------------------
 func add_experience(amount: int) -> void:
@@ -591,11 +605,20 @@ func _apply_class_crit_identity(class_data) -> void:
 	var chance := float(class_data.get("crit_chance_bonus")) if "crit_chance_bonus" in class_data else 0.0
 	var damage := float(class_data.get("crit_damage_bonus")) if "crit_damage_bonus" in class_data else 0.0
 	var haste := float(class_data.get("attack_speed_bonus")) if "attack_speed_bonus" in class_data else 0.0
-	# Add onto the base (crit_chance 0.0, attack_speed_multiplier 1.0) so a
-	# buff applied later rides on top rather than being overwritten.
+	var movement := float(class_data.get("movement_speed_bonus")) if "movement_speed_bonus" in class_data else 0.0
+	# Add onto the base (crit_chance 0.0, attack_speed_multiplier 1.0,
+	# movement_speed_multiplier 1.0) so a buff applied later rides on top
+	# rather than being overwritten. A class's movement lane is authored
+	# data just like its crit and cadence.
 	stats["crit_chance"] = float(stats.get("crit_chance", 0.0)) + chance
 	stats["crit_damage"] = float(stats.get("crit_damage", 0.0)) + damage
 	stats["attack_speed_multiplier"] = float(stats.get("attack_speed_multiplier", 1.0)) + haste
+	stats["movement_speed_multiplier"] = float(stats.get("movement_speed_multiplier", 1.0)) + movement
+	if "damage_resists" in class_data and class_data.damage_resists is Dictionary:
+		for school in class_data.damage_resists:
+			var key := StatId.resist_key_for(str(school))
+			if key != "":
+				stats[key] = float(stats.get(key, 0.0)) + float(class_data.damage_resists[school])
 
 ## Populate the skillbar from the character's class data (idempotent). The
 ## class's starting_skills resolve to runtime Skill resources; boot paths

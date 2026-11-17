@@ -22,6 +22,12 @@
 ## they live in gamestruct (bindings/mcp.mjs + profiles/agent.mjs), so the
 ## door stays primitive-transport and the protocol layer has ONE owner.
 ##
+## Status posture (SPEC N16/N21/N26): /health is tokenless liveness; every
+## other route fails closed with 401 when SYN_AGENT_TOKEN is set. Refusals
+## cross the wire as a status, never a throw -- a refused /act is 409, an
+## honest /wait_for timeout is 408, a driver timeout 504, an unknown route
+## 404 -- each carrying {ok:false, reason} so DoorClient reads it as data.
+##
 ## Threading law: this runs on its OWN thread and never touches the scene
 ## tree. Every request is submit()'d to AgentDriver and the response is
 ## poll()'d here -- the main thread stays the only mutator. That is also
@@ -143,19 +149,34 @@ func _serve_connection(conn: StreamPeerTCP) -> void:
 		_send(conn, parsed["method"], parsed["path"], parsed["body"], parsed.get("headers", {}))
 
 func _send(conn: StreamPeerTCP, method: String, path: String, body: String, headers: Dictionary) -> void:
-	var payload: Dictionary = _route(method, path, body, headers)
-	var data: PackedByteArray = JSON.stringify(payload).to_utf8_buffer()
+	var result: Dictionary = _route(method, path, body, headers)
+	var status: int = int(result.get("__status", 200))
+	result.erase("__status")
+	var data: PackedByteArray = JSON.stringify(result).to_utf8_buffer()
 	var head: String = (
-		"HTTP/1.1 200 OK\r\n"
+		"HTTP/1.1 %d %s\r\n"
 		+ "Content-Type: application/json\r\n"
 		+ "Access-Control-Allow-Origin: *\r\n"
-		+ "Access-Control-Allow-Headers: Content-Type\r\n"
+		+ "Access-Control-Allow-Headers: Content-Type, Authorization\r\n"
 		+ "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n"
 		+ "Content-Length: %d\r\n"
 		+ "Connection: keep-alive\r\n\r\n"
-	) % data.size()
+	) % [status, _status_text(status), data.size()]
 	conn.put_data(head.to_utf8_buffer())
 	conn.put_data(data)
+
+func _status_text(code: int) -> String:
+	match code:
+		200: return "OK"
+		204: return "No Content"
+		401: return "Unauthorized"
+		404: return "Not Found"
+		408: return "Request Timeout"
+		409: return "Conflict"
+		502: return "Bad Gateway"
+		503: return "Service Unavailable"
+		504: return "Gateway Timeout"
+	return "OK"
 
 ## Return {method, path, body, rest} once a full request is buffered, else {}.
 func _try_parse(buffer: PackedByteArray) -> Dictionary:
@@ -202,37 +223,56 @@ func _route(method: String, path: String, body: String, headers: Dictionary = {}
 		path_only = path.substr(0, qidx)
 		query = _parse_query(path.substr(qidx + 1))
 	if method == "OPTIONS":
-		return {"ok": true}
-	if not _authorized(headers):
-		return {"ok": false, "error": "unauthorized"}
+		return {"__status": 204, "ok": true}
 	var driver := _driver()
+	# N16: /health is liveness and MUST NOT require the token. Every other route
+	# fails closed with 401 when a token is configured.
+	if path_only == "/health":
+		if driver == null:
+			return {"__status": 503, "ok": false, "reason": "agent driver unavailable"}
+		return _reply(_call(driver, "ping", {}), 200)
+	if not _authorized(headers):
+		return {"__status": 401, "ok": false, "reason": "unauthorized"}
 	if driver == null:
-		return {"ok": false, "error": "agent driver unavailable"}
+		return {"__status": 503, "ok": false, "reason": "agent driver unavailable"}
 	match path_only:
-		"/health":
-			return _call(driver, "ping", {})
 		"/observe":
-			return _call(driver, "observe", {"principal": String(query.get("principal", ""))})
+			return _reply(_call(driver, "observe", {"principal": String(query.get("principal", ""))}), 200)
 		"/events":
-			return _call(driver, "events", {"since": int(query.get("since", -1))})
+			return _reply(_call(driver, "events", {"since": int(query.get("since", -1))}), 200)
 		"/act":
-			return _call(driver, "act", _act_args(_parse_body(body)))
+			# N26: a refused act crosses the wire under 409; a success under 200.
+			var a: Dictionary = _call(driver, "act", _act_args(_parse_body(body)))
+			return _reply(a, 200 if bool(a.get("ok", false)) else 409)
 		"/wait_for":
 			var w: Dictionary = _parse_body(body)
-			return _call(driver, "wait_for", {
+			var wr: Dictionary = _call(driver, "wait_for", {
 				"predicate": w.get("predicate", {}),
 				"timeout_ms": int(w.get("timeout_ms", w.get("timeoutMs", 8000))),
 			})
+			# N3/N26: an honest timeout crosses as 408; a resolve as 200.
+			return _reply(wr, 200 if bool(wr.get("ok", false)) else 408)
 		"/see":
 			# The eyes primitive: capture the current frame to a PNG and answer
 			# its path + file:// url. {label} is optional. POST body or GET query.
 			var s: Dictionary = _parse_body(body)
 			if s.is_empty():
 				s = query
-			return _call(driver, "see", {"label": String(s.get("label", ""))})
+			var sr: Dictionary = _call(driver, "see", {"label": String(s.get("label", ""))})
+			# A capture that did not produce an image is an honest failure (502),
+			# matching gamestruct's own binding; the body still carries the reason.
+			return _reply(sr, 200 if bool(sr.get("ok", false)) else 502)
 		"/coord":
-			return _call(driver, "coord", _parse_body(body))
-	return {"ok": false, "error": "unknown route '%s'" % path_only}
+			return _reply(_call(driver, "coord", _parse_body(body)), 200)
+	return {"__status": 404, "ok": false, "reason": "unknown route '%s'" % path_only}
+
+## Stamp a reply with its HTTP status. The transport reads __status, then strips
+## it before the body goes on the wire. A leg that already set a status (e.g. a
+## driver timeout -> 504) keeps it.
+func _reply(payload: Dictionary, status: int) -> Dictionary:
+	if not payload.has("__status"):
+		payload["__status"] = status
+	return payload
 
 ## The gamestruct /act body is {id, verb, value}. The driver's act(id, args)
 ## takes an id plus a verb-specific args object, so fold `value` in (tolerating
@@ -267,7 +307,7 @@ func _call(driver: Node, verb: String, args: Dictionary) -> Dictionary:
 		if not resp.is_empty():
 			return resp
 		OS.delay_msec(POLL_MS)
-	return {"ok": false, "error": "driver timeout"}
+	return {"ok": false, "reason": "driver timeout", "__status": 504}
 
 ## Bearer auth, fail-closed when a token is configured. Loopback-only by
 ## default (no token) is the dev posture; a non-loopback bind without a token

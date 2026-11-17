@@ -3,6 +3,8 @@
 extends Resource
 class_name Item
 
+const StatId = preload("res://core/schemas/stat_id.gd")
+
 enum ItemCategory {
 	WEAPON,       # Swords, bows, staves, daggers
 	ARMOR,        # Head, chest, legs, feet, gloves, shoulders
@@ -155,8 +157,20 @@ enum EquipSlot {
 # Equipment-specific
 @export var weapon_damage_min: int = 0
 @export var weapon_damage_max: int = 0
-@export var attack_speed: float = 1.0  # Attacks per second
+## Weapon cadence is a MULTIPLIER on the body's class/enemy attack speed:
+## 1.0 rides the class default, 1.2 swings 20% faster, 0.8 swings slower.
+@export var attack_speed: float = 1.0
+## Weapon crit identity, added to the body's StatId crit delta. A rogue
+## weapon authors more chance; a heavy weapon authors more crit damage.
+@export var crit_chance: float = 0.0
+@export var crit_damage: float = 0.0
+## Per-school resistance fractions, authored as school -> fraction
+## ({"fire": 0.2} = 20% fire resist). Shields and armor share this field.
+@export var damage_resists: Dictionary = {}
 @export var armor_value: int = 0
+## Shield block rating. Only meaningful when the item is in the off-hand
+## and its weapon_type is SHIELD; CombatMath reads it off the stat block.
+@export var block_rating: float = 0.0
 
 # Durability
 @export var max_durability: int = 100  # 0 = indestructible
@@ -262,6 +276,15 @@ func get_total_stats() -> Dictionary:
 			total[key] += primary_stats[key]
 		else:
 			total[key] = primary_stats[key]
+	# Per-school resists are authored on their own field so a fire ward
+	# cannot be mistaken for a primary or a rating. Fold them into the same
+	# canonical keys the rest of the game reads.
+	for school in damage_resists:
+		var key := StatId.resist_key_for(str(school))
+		if key != "":
+			total[key] = float(total.get(key, 0.0)) + float(damage_resists[school])
+	if block_rating != 0.0:
+		total["block_rating"] = float(total.get("block_rating", 0.0)) + block_rating
 	return total
 
 ## Get total weight for this stack
@@ -303,17 +326,38 @@ func is_broken() -> bool:
 		return false  # Indestructible
 	return current_durability <= 0
 
+## Normalized damage bounds. Authored min/max can drift (a forge bug, a
+## hand-edited resource); the runtime always treats the pair as a range
+## with the lower number first, so a max below min can never invert a roll.
+func get_damage_range() -> Vector2i:
+	var a: int = maxi(weapon_damage_min, 0)
+	var b: int = maxi(weapon_damage_max, 0)
+	return Vector2i(mini(a, b), maxi(a, b))
+
 ## Get effective damage (0 if broken)
 func get_effective_damage_min() -> int:
 	if is_broken():
 		return 0
-	return weapon_damage_min
+	return get_damage_range().x
 
 ## Get effective damage (0 if broken)
 func get_effective_damage_max() -> int:
 	if is_broken():
 		return 0
-	return weapon_damage_max
+	return get_damage_range().y
+
+## Weapon cadence multiplier (1.0 neutral, 0.1 floor).
+func get_effective_attack_speed() -> float:
+	if is_broken():
+		return 1.0
+	return maxf(0.1, attack_speed)
+
+## Weapon crit deltas (0.0 when broken).
+func get_effective_crit_chance() -> float:
+	return 0.0 if is_broken() else crit_chance
+
+func get_effective_crit_damage() -> float:
+	return 0.0 if is_broken() else crit_damage
 
 ## Get effective armor value (0 if broken)
 func get_effective_armor_value() -> int:
@@ -403,7 +447,11 @@ func to_dict() -> Dictionary:
 		"weapon_damage_min": weapon_damage_min,
 		"weapon_damage_max": weapon_damage_max,
 		"attack_speed": attack_speed,
+		"crit_chance": crit_chance,
+		"crit_damage": crit_damage,
+		"damage_resists": damage_resists,
 		"armor_value": armor_value,
+		"block_rating": block_rating,
 		"max_durability": max_durability,
 		"current_durability": current_durability,
 		"durability_loss_rate": durability_loss_rate,
@@ -466,7 +514,11 @@ static func from_dict(data: Dictionary) -> Item:
 	item.weapon_damage_min = int(data.get("weapon_damage_min", 0))
 	item.weapon_damage_max = int(data.get("weapon_damage_max", 0))
 	item.attack_speed = float(data.get("attack_speed", 1.0))
+	item.crit_chance = float(data.get("crit_chance", 0.0))
+	item.crit_damage = float(data.get("crit_damage", 0.0))
+	item.damage_resists = data.get("damage_resists", {})
 	item.armor_value = int(data.get("armor_value", 0))
+	item.block_rating = float(data.get("block_rating", 0.0))
 	item.max_durability = int(data.get("max_durability", 100))
 	item.current_durability = int(data.get("current_durability", 100))
 	item.durability_loss_rate = float(data.get("durability_loss_rate", 1.0))
@@ -479,11 +531,23 @@ static func from_dict(data: Dictionary) -> Item:
 	item.furnishing_category = data.get("furnishing_category", "")
 	item.furnishing_size = data.get("furnishing_size", Vector3.ONE)
 	item.is_placeable = data.get("is_placeable", false)
-	item.placement_zones = data.get("placement_zones", [])
+	# placement_zones is Array[String]; assigning an untyped JSON array fails
+	# the typed-property check and aborts the whole load (which also drops the
+	# rest of the item's fields). Convert through a typed array.
+	var zones: Array[String] = []
+	for zone_id in data.get("placement_zones", []):
+		zones.append(str(zone_id))
+	item.placement_zones = zones
 	item.event_id = data.get("event_id", "")
 	item.event_expires = data.get("event_expires", false)
 	item.event_end_date = data.get("event_end_date", "")
-	item.buff_effects = data.get("buff_effects", [])
+	# buff_effects is Array[Dictionary]; an untyped JSON array would abort the
+	# load on the typed assignment.
+	var buffs: Array[Dictionary] = []
+	for buff in data.get("buff_effects", []):
+		if buff is Dictionary:
+			buffs.append(buff)
+	item.buff_effects = buffs
 	item.is_self_rez_item = data.get("is_self_rez_item", false)
 	item.self_rez_health_percent = float(data.get("self_rez_health_percent", 0.5))
 	item.self_rez_mana_percent = float(data.get("self_rez_mana_percent", 0.5))

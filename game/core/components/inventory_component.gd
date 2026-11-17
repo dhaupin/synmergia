@@ -105,7 +105,29 @@ static func from_dict(data: Dictionary) -> InventoryComponent:
 		var item_data: Dictionary = equip_dict[slot_str]
 		if item_data is Dictionary and not item_data.is_empty():
 			comp._equipment[slot] = Item.from_dict(item_data)
+	comp._migrate_legacy_weapon_slot()
 	return comp
+
+## Old saves and old .tres both used off-hand (8) for every hand weapon. The
+## canonical slot for a hand weapon is main-hand (7); shields stay off-hand.
+## This one-way load migration moves a legacy non-shield weapon into the main
+## hand (or back to the bag when the main hand is already occupied).
+func _migrate_legacy_weapon_slot() -> void:
+	var offhand: Item = _equipment.get(Item.EquipSlot.OFF_HAND)
+	if offhand == null or int(offhand.weapon_type) == Item.WeaponType.SHIELD:
+		return
+	if _equipment.get(Item.EquipSlot.MAIN_HAND) == null:
+		_equipment[Item.EquipSlot.MAIN_HAND] = offhand
+		_equipment.erase(Item.EquipSlot.OFF_HAND)
+		return
+	# Both hands hold a non-shield: keep the main hand and return the legacy
+	# off-hand copy to the bag. A full bag leaves the save untouched rather
+	# than deleting the item.
+	for i in range(_inventory.size()):
+		if _inventory[i] == null:
+			_inventory[i] = offhand
+			_equipment.erase(Item.EquipSlot.OFF_HAND)
+			return
 
 ## Tree-safe autoload resolution: get_node_or_null("/root/X") hard-errors
 ## when this component is not inside the scene tree. Walking the main

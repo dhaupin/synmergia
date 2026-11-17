@@ -46,6 +46,10 @@ var origin_stones: Dictionary = {}  # fighter_id -> Vector3
 # S11: real levels per fighter (bridged in from the live entities at
 # spawn time; default 1 when the entity is not resolvable).
 var _levels: Dictionary = {}  # fighter_id -> int
+## A roster/reference change while the bout is live asks the bridge to
+## retune the power book. Coalesced to one deferred emission per frame so
+## several joins/leaves in a tick cannot thrash every fighter's stats.
+var _power_retune_queued: bool = false
 # S12: trial bout flag -- dummies + AFK sweep exemption + no ring out.
 var _trial: bool = false
 # S12: spectators in scope (permission-checked by the caller --
@@ -144,6 +148,10 @@ func spawn_fighter(id: String, team_id: int):
 	if _rules.get("spawn_shield_seconds", 0.0) > 0.0:
 		f.apply_spawn_shield(float(_rules.get("spawn_shield_seconds")))
 	fighter_spawned.emit(id, team_id)
+	# A late join changes the bout's reference level; retune the room once
+	# the caller has had a chance to set the new fighter's level.
+	if _started and not _over:
+		_queue_power_retune()
 	return f
 
 ## Seat one dummy (the marshal's trial bout): entity-FREE filler with
@@ -158,8 +166,46 @@ func spawn_dummy_fighter(id: String, team_id: int) -> void:
 ## Bridge-facing book: the real level of a fighter (from their live
 ## entity). Consumed by power normalization at bout start.
 func set_fighter_level(fighter_id: String, level: int) -> void:
-	if _fighters.has(fighter_id):
-		_levels[fighter_id] = maxi(level, 1)
+	if not _fighters.has(fighter_id):
+		return
+	var next_level: int = maxi(level, 1)
+	var changed: bool = int(_levels.get(fighter_id, 1)) != next_level
+	_levels[fighter_id] = next_level
+	# The highest fighter is the live reference. A level change (a late
+	# joiner, a level-up, a roster correction) re-tunes everyone else.
+	if changed and _started and not _over:
+		_queue_power_retune()
+
+## Roster departure: stop counting this fighter's level as the reference
+## and restore their bout-local stats. The caller owns the body teleport;
+## the room owns the power book.
+func remove_fighter(fighter_id: String) -> void:
+	if not _fighters.has(fighter_id):
+		return
+	var f = _fighters.get(fighter_id)
+	var team_id: int = int(f.team) if f != null else 0
+	var roster: Array = _teams.get(team_id, [])
+	roster.erase(fighter_id)
+	_fighters.erase(fighter_id)
+	_levels.erase(fighter_id)
+	_last_activity.erase(fighter_id)
+	if f != null and is_instance_valid(f):
+		f.queue_free()
+	if _started and not _over:
+		_queue_power_retune()
+
+## Coalesced power-book retune. The bridge listens on the same signal the
+## bout start uses, but it reads the LATEST level book and recomputes from
+## each fighter's pre-bout snapshot, so a retune never compounds.
+func _queue_power_retune() -> void:
+	if _power_retune_queued or _over:
+		return
+	_power_retune_queued = true
+	call_deferred("_emit_power_reference")
+
+func refresh_power_reference() -> void:
+	if _started and not _over:
+		_queue_power_retune()
 
 func has_fighter(fighter_id: String) -> bool:
 	return _fighters.has(fighter_id)
@@ -223,6 +269,7 @@ func start_bout() -> void:
 	call_deferred("_emit_power_reference")
 
 func _emit_power_reference() -> void:
+	_power_retune_queued = false
 	if _over:
 		return
 	# ROYALE drop (owner decision: classic sky drop + glide): the
@@ -234,7 +281,10 @@ func _emit_power_reference() -> void:
 		_emit_royale_drop()
 	var levels: Dictionary = {}
 	for fid in _fighters:
-		levels[fid] = int(_levels.get(fid, 1))
+		# A fighter without a level entry is not part of the power book
+		# (removed/departed); do not let a stale 1 pull everyone down.
+		if _levels.has(fid):
+			levels[fid] = int(_levels[fid])
 	power_reference_ready.emit(levels)
 
 ## The drop: index-stable wide ring (no stacking -- 30 fighters need
@@ -611,6 +661,11 @@ func kick_fighter(fighter_id: String) -> void:
 		return
 	var back: Vector3 = origin_stones.get(fighter_id, _spawn_for_team(0))
 	f.eliminate()
+	# An ejected fighter is no longer the room's live reference. Keep the
+	# fighter node for return-map bookkeeping, but drop their level entry
+	# and retune the survivors against the new highest.
+	if _levels.erase(fighter_id) and _started and not _over:
+		_queue_power_retune()
 	fighter_afk_kicked.emit(fighter_id, back)
 	if _rules.get("respawn_allowed", false):
 		_schedule_respawn(f)

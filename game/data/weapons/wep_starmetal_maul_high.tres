@@ -10,7 +10,7 @@ description = "A starmetal maul worked for the starfall reach. Cut at the starme
 icon_path = "res://icons/items/halberd_mythril.png"
 item_category = 0
 rarity = 4
-equip_slot = 8
+equip_slot = 7
 weapon_type = 3
 armor_type = 0
 accessory_type = 0
@@ -24,4 +24,6 @@ stats = {
 }
 weapon_damage_min = 38
 weapon_damage_max = 59
-attack_speed = 0.9
+attack_speed = 0.95
+crit_chance = 0.031
+crit_damage = 0.193

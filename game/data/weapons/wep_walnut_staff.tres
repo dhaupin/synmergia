@@ -10,7 +10,7 @@ description = "Black walnut, moon-grown, with a silver ferrule the smith set by 
 icon_path = "res://icons/items/staff_walnut.png"
 item_category = 0
 rarity = 0
-equip_slot = 8
+equip_slot = 7
 weapon_type = 7
 stack_size = 1
 sell_price = 45
@@ -23,4 +23,6 @@ stats = {
 }
 weapon_damage_min = 6
 weapon_damage_max = 12
-attack_speed = 1.1
+attack_speed = 1.10
+crit_chance = 0.018
+crit_damage = 0.089

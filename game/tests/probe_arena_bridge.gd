@@ -40,17 +40,17 @@ func _run() -> void:
 		bridge != null and room_svc != null and cs != null)
 
 	# ---- A. Contract power helpers ------------------------------------
-	_check("power_scale 30 vs 60 = 2.0 (full boost)", \
-		abs(Contract.power_scale(30, 60) - 2.0) < 0.0001)
-	_check("power_scale 5 vs 60 = 2.0 (cap holds)", \
-		abs(Contract.power_scale(5, 60) - 2.0) < 0.0001)
+	_check("power_scale 30 vs 60 = 1.8 (54-equivalent)", \
+		abs(Contract.power_scale(30, 60) - 1.8) < 0.0001)
+	_check("power_scale 5 vs 60 = 9.8 (49-equivalent)", \
+		abs(Contract.power_scale(5, 60) - 9.8) < 0.0001)
 	_check("power_scale never nerfs (70 vs 60 = 1.0)", \
 		abs(Contract.power_scale(70, 60) - 1.0) < 0.0001)
 	var targets: Dictionary = Contract.power_scale_target( \
 		{"strength": 10, "agility": 10, "intelligence": 10, "vitality": 10, \
 		"endurance": 10, "wisdom": 10, "damage_multiplier": 1.5}, 30, 60)
-	_check("scale target doubles the base six", \
-		int(targets.get("strength", 0)) == 20 and int(targets.get("vitality", 0)) == 20)
+	_check("scale target scales the base six at 1.8", \
+		int(targets.get("strength", 0)) == 18 and int(targets.get("vitality", 0)) == 18)
 	_check("scale target leaves non-scaled keys alone", \
 		not targets.has("damage_multiplier"))
 
@@ -95,10 +95,26 @@ func _run() -> void:
 	room.start_bout()
 	await process_frame
 	await process_frame  # deferred power emission + bridge application
-	_check("lvl 5 strength scaled 10 -> 20 (cap ratio 2)", int(l5.stats["strength"]) == 20)
-	_check("lvl 5 vitality scaled -> max health 300", l5.max_health == 300)
+	_check("lvl 5 strength scaled 10 -> 98 (49-equivalent vs 60)", int(l5.stats["strength"]) == 98)
+	_check("lvl 5 vitality scaled -> max health 1080", l5.max_health == 1080)
 	_check("lvl 60 stats untouched (at reference)", int(l60.stats["strength"]) == 60)
 	_check("snapshot stashed for restore", bridge._power_sessions.has("bridge_l5"))
+
+	# A live reference change retunes from the pre-bout snapshot. The 60
+	# drops to 50, so the 5 is pulled to 41-equivalent (strength 82); the
+	# fighter at the reference is never nerfed.
+	room.set_fighter_level("bridge_l60", 50)
+	await process_frame
+	await process_frame
+	_check("retune after reference 60 -> 50: lvl 5 strength 82", \
+		int(l5.stats["strength"]) == 82)
+	_check("the reference fighter keeps its real 60 stats", \
+		int(l60.stats["strength"]) == 60)
+	room.set_fighter_level("bridge_l60", 60)
+	await process_frame
+	await process_frame
+	_check("retune back to 60: lvl 5 strength 98, no compounding", \
+		int(l5.stats["strength"]) == 98)
 
 	# ---- E. Death routing resolves the elimination bout -----------------
 	var returns: Array = []
@@ -116,6 +132,29 @@ func _run() -> void:
 	room.queue_free()
 	await process_frame
 	_check("room unregistered on exit", room_svc.room_by_id("bridge_probe_room") == null)
+
+	# ---- C2. A fighter leaving restores them and retunes the survivors ---
+	var leave_room = ArenaScene.new()
+	leave_room.zone_data = arena
+	leave_room.instance_id = "bridge_probe_leave"
+	root.add_child(leave_room)
+	leave_room.spawn_fighter("bridge_l5", 0)
+	leave_room.spawn_fighter("bridge_l60", 1)
+	leave_room.set_fighter_level("bridge_l5", 5)
+	leave_room.set_fighter_level("bridge_l60", 60)
+	leave_room.start_bout()
+	await process_frame
+	await process_frame
+	_check("leave probe: lvl 5 is normalized first", int(l5.stats["strength"]) == 98)
+	leave_room.remove_fighter("bridge_l60")
+	await process_frame
+	await process_frame
+	_check("leaving the 60 restores the lvl 5 to its real stats", \
+		int(l5.stats["strength"]) == 10)
+	_check("departed fighter's session is restored too", \
+		not bridge._power_sessions.has("bridge_l60"))
+	leave_room.queue_free()
+	await process_frame
 
 	# ---- D. Fire-and-you-lose-it via the live signal path (TDM) ---------
 	# Real event shape: CombatSystem carries live ENTITIES (entity_id),

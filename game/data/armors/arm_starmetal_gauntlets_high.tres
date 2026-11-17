@@ -21,3 +21,7 @@ stats = {
 "vitality": 12
 }
 armor_value = 62
+damage_resists = {
+"physical": 0.079,
+"lightning": 0.040
+}

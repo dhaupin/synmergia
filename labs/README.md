@@ -121,7 +121,8 @@ Verify a claim against the code before citing it as current.
 [`prd-mounts`](./prd-mounts.md) · [`prd-crafting`](./prd-crafting.md) ·
 [`prd-gathering`](./prd-gathering.md) · [`prd-blacksmith`](./prd-blacksmith.md) ·
 [`prd-bout-host`](./prd-bout-host.md) · [`prd-industry-labs`](./prd-industry-labs.md) ·
-[`prd-psy`](./prd-psy.md) · [`prd-blessings`](./prd-blessings.md)
+[`prd-psy`](./prd-psy.md) · [`prd-blessings`](./prd-blessings.md) ·
+[`prd-combat`](./prd-combat.md)
 
 ## World-building series
 

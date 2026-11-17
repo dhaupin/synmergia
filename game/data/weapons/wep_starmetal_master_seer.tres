@@ -10,7 +10,7 @@ description = "A master's wand in starmetal, fitted to the Seer's grip and nothi
 icon_path = "res://icons/items/staff_walnut.png"
 item_category = 0
 rarity = 4
-equip_slot = 8
+equip_slot = 7
 weapon_type = 8
 armor_type = 0
 accessory_type = 0
@@ -25,4 +25,6 @@ stats = {
 }
 weapon_damage_min = 43
 weapon_damage_max = 63
-attack_speed = 1.3
+attack_speed = 1.38
+crit_chance = 0.060
+crit_damage = 0.149

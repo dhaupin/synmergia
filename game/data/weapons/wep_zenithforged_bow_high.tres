@@ -10,7 +10,7 @@ description = "A zenithforged war bow, drawn for the outer air. At the top rung 
 icon_path = "res://icons/items/bow_long.png"
 item_category = 0
 rarity = 4
-equip_slot = 8
+equip_slot = 7
 weapon_type = 5
 armor_type = 0
 accessory_type = 0
@@ -24,4 +24,6 @@ stats = {
 }
 weapon_damage_min = 65
 weapon_damage_max = 97
-attack_speed = 1.0
+attack_speed = 1.07
+crit_chance = 0.078
+crit_damage = 0.238
