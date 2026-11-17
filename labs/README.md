@@ -86,7 +86,8 @@ questions live.
 | [`art-direction.md`](./art-direction.md) | ACTIVE | Style bible |
 | [`data-authoring-baseline.md`](./data-authoring-baseline.md) | ACTIVE | How `.tres` content is authored and gated |
 | [`data-engine-separation.md`](./data-engine-separation.md) | ACTIVE | Data vs engine boundary, extraction ledger, leave-alone list |
-| [`prd-data-graph.md`](./prd-data-graph.md) | DESIGN | Formal `.tres` relation graph: declared families and edges, replacing hand-maintained cross-reference rules |
+| [`prd-data-graph.md`](./prd-data-graph.md) | REFERENCE | Design record for the in-house relation-graph model; the idea reached independently, now frozen as the tresridge standard |
+| [`prd-tres.md`](./prd-tres.md) | DESIGN | Adopting the tresridge standard: binds `dhaupin/tresridge` to Synmergia's 55 families, loader, lints and Codex; the four-step ladder and four open rulings |
 | [`prd-openhands-canvas.md`](./prd-openhands-canvas.md) | REFERENCE | Parallel agent lanes and their conventions |
 | [`prd-verification-gates.md`](./prd-verification-gates.md) | ACTIVE | The structural parse guard and the "merged red" law |
 | [`OSS-AUDIT.md`](./OSS-AUDIT.md) | REFERENCE | Open-source launch audit + post-public hardening |
