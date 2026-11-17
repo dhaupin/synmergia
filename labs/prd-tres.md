@@ -204,7 +204,14 @@ No step lands without the previous step's receipt.
    GDScript best. (Lean: generate `relations.gd` from the JSON; the JSON is the source, the
    `.gd` is the engine's build output — same pattern as `godot_data.json` → the Codex.)
 4. **Do the 6 dangling stay dangling?** Each needs a ruling: a real defect to fix, or a
-   `required: false` edge to acknowledge.
+   **baseline** to acknowledge. The standard now carries baselines with teeth (SPEC §9):
+   a row in `relations.json` naming the code, the record, a **non-empty reason**, and an
+   **expiry**. An expired baseline stops excusing (`baseline-expired`); one that matches
+   nothing is reported (`baseline-unmatched`). So the `gold` five and the virtual book id
+   can ship acknowledged rather than fixed — but on the record, with an owner and a clock,
+   never silenced. There is no `--ignore` to reach for. (`required: false` remains the
+   coarser tool: it downgrades every dangling target on the edge, where a baseline excuses
+   exactly the rows it names.)
 
 ---
 
