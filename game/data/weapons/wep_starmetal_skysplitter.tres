@@ -10,7 +10,7 @@ description = "The Concord charter names it the Starmetal Greatblade and would p
 icon_path = "res://icons/items/skysplitter.png"
 item_category = 0
 rarity = 4
-equip_slot = 8
+equip_slot = 7
 weapon_type = 1
 stack_size = 1
 sell_price = 1800
@@ -24,4 +24,6 @@ stats = {
 }
 weapon_damage_min = 20
 weapon_damage_max = 34
-attack_speed = 0.9
+attack_speed = 0.94
+crit_chance = 0.033
+crit_damage = 0.145

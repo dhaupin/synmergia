@@ -459,7 +459,8 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 			or CombatMath.is_power_normalized(source)
 	var applied: int = CombatMath.calculate_mitigation(
 		amount, armor_value, attacker_level, level,
-		defense_multiplier, armor_multiplier, 0.0, power_normalized)
+		defense_multiplier, armor_multiplier, 0.0, power_normalized,
+		CombatMath.school_resist_for(self, damage_type))
 	# Status-effect payloads on the enemy body (this path pokes the health
 	# component directly, so Entity.take_damage's reads never run): an active
 	# shield pool soaks first, then a flat authored damage_reduction trims
@@ -473,8 +474,10 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 		if applied <= 0:
 			return 0
 	if flat > 0.0:
+		# The school ward already landed in the first pass; this pass only
+		# stacks the flat reduction after shields.
 		applied = CombatMath.calculate_mitigation(
-			applied, 0.0, attacker_level, level, 1.0, 1.0, flat, power_normalized)
+			applied, 0.0, attacker_level, level, 1.0, 1.0, flat, power_normalized, 0.0)
 	if health_component:
 		# No _is_dead poke here: health_component.die() owns the dead flag
 		# and early-returns when it is already set -- setting it first used

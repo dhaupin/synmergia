@@ -10,7 +10,7 @@ description = "A spiral of storm-cut timber around a shard of conduit glass. The
 icon_path = "res://icons/items/staff_walnut.png"
 item_category = 0
 rarity = 2
-equip_slot = 8
+equip_slot = 7
 weapon_type = 7
 armor_type = 0
 accessory_type = 0
@@ -25,4 +25,6 @@ stats = {
 }
 weapon_damage_min = 17
 weapon_damage_max = 27
-attack_speed = 1.1
+attack_speed = 1.13
+crit_chance = 0.031
+crit_damage = 0.114

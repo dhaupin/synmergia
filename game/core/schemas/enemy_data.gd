@@ -4,6 +4,7 @@ extends Resource
 class_name EnemyData
 
 const LootTableResolver = preload("res://core/schemas/loot_table_resolver.gd")
+const StatId = preload("res://core/schemas/stat_id.gd")
 
 enum EnemyType {
 	NORMAL,
@@ -42,6 +43,10 @@ enum EnemyType {
 @export var spell_power: int = 5
 @export var armor: int = 5
 @export var resistance: int = 0
+## Per-school resistance fractions, authored as school -> fraction. This is
+## the enemy lane of the same canonical `resist_*` stats armor and shields
+## use, so a fire-aligned elemental can be warded against its own school.
+@export var damage_resists: Dictionary = {}
 
 ## Crit identity. Every enemy extends Entity, so crit already flows through
 ## the StatId formula (base + agility); these two author a template-specific
@@ -171,6 +176,10 @@ func apply_stats_to(entity, level_override: int = -1) -> void:
 		entity.stats[key] = get_scaled_stat(base, level_override) if scaled else base
 	entity.stats["crit_chance"] = crit_chance
 	entity.stats["crit_damage"] = crit_damage
+	for school in damage_resists:
+		var resist_key := StatId.resist_key_for(str(school))
+		if resist_key != "":
+			entity.stats[resist_key] = float(damage_resists[school])
 	# Stamina is a body field, not a StatId (the pool's ceiling is authored
 	# here because EnemyData has no endurance primary). Seed it on the same
 	# one path as the primaries; a level-raised spawn scales it.

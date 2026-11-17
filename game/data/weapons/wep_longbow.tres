@@ -10,7 +10,7 @@ description = "A longbow of layered timber, the string a Kelp Fiber cord that ha
 icon_path = "res://icons/items/bow_long.png"
 item_category = 0
 rarity = 0
-equip_slot = 8
+equip_slot = 7
 weapon_type = 5
 stack_size = 1
 sell_price = 55
@@ -23,4 +23,6 @@ stats = {
 }
 weapon_damage_min = 14
 weapon_damage_max = 26
-attack_speed = 1.0
+attack_speed = 1.00
+crit_chance = 0.034
+crit_damage = 0.112

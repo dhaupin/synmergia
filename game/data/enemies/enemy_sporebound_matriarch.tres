@@ -21,6 +21,9 @@ attack_power = 158
 spell_power = 120
 armor = 96
 resistance = 62
+damage_resists = {
+"poison": 0.25
+}
 crit_chance = 0.20
 crit_damage = 0.5
 attack_range = 4.0

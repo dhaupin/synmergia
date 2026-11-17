@@ -10,7 +10,7 @@ description = "A starmetal war bow worked for the high crags. Cut at the starmet
 icon_path = "res://icons/items/bow_long.png"
 item_category = 0
 rarity = 4
-equip_slot = 8
+equip_slot = 7
 weapon_type = 5
 armor_type = 0
 accessory_type = 0
@@ -24,4 +24,6 @@ stats = {
 }
 weapon_damage_min = 41
 weapon_damage_max = 63
-attack_speed = 1.0
+attack_speed = 1.06
+crit_chance = 0.066
+crit_damage = 0.202

@@ -244,7 +244,8 @@ static func calculate_armor_reduction(armor: float, attacker_level: int, defende
 ## world law.
 static func calculate_mitigation(amount: int, armor: float, attacker_level: int, defender_level: int,
 		defense_multiplier: float = 1.0, armor_multiplier: float = 1.0,
-		flat_reduction: float = 0.0, power_normalized: bool = false) -> int:
+		flat_reduction: float = 0.0, power_normalized: bool = false,
+		school_resist: float = 0.0) -> int:
 	if amount <= 0:
 		return 0
 	if power_normalized:
@@ -253,7 +254,19 @@ static func calculate_mitigation(amount: int, armor: float, attacker_level: int,
 	var reduction := calculate_armor_reduction(effective_armor, attacker_level, defender_level)
 	var flat: float = clampf(flat_reduction, 0.0, StatId.MAX_DAMAGE_REDUCTION)
 	var total: float = reduction + flat * (1.0 - reduction)
+	# Per-school resistance is a separate ward layered after armor and flat
+	# reduction, so a fire ward protects a cloth wearer who has no plate.
+	var resist: float = clampf(school_resist, 0.0, StatId.MAX_RESIST)
+	total = 1.0 - (1.0 - total) * (1.0 - resist)
 	return maxi(1, int(float(amount) * (1.0 - total)))
+
+## A body's resistance to one damage school, read from the canonical
+## `stats` block. Null/statless bodies and unknown schools take no ward;
+## the value is clamped by StatId.school_resist_of.
+static func school_resist_for(entity, damage_type: String) -> float:
+	if entity == null or not ("stats" in entity) or not (entity.stats is Dictionary):
+		return 0.0
+	return StatId.school_resist_of(entity.stats, damage_type)
 
 ## Calculate full hit result -- the MWo-style single-roll combat table.
 ##
@@ -486,4 +499,11 @@ static func _has_shield(entity) -> bool:
 	if inv == null or not inv.has_method("get_equipped"):
 		return false
 	var offhand = inv.get_equipped(Item.EquipSlot.OFF_HAND)
-	return offhand != null
+	if offhand == null or not ("weapon_type" in offhand):
+		return false
+	# An off-hand orb/tome is not a shield. Only the shield weapon type opens
+	# the block/parry lane; armor-category wall shields carry the same type.
+	# A broken shield is armor with no integrity left: it stops blocking too.
+	if offhand.has_method("is_broken") and offhand.is_broken():
+		return false
+	return int(offhand.weapon_type) == Item.WeaponType.SHIELD

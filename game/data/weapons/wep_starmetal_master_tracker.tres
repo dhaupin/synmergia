@@ -10,7 +10,7 @@ description = "A master's crossbow in starmetal, fitted to the Tracker's grip an
 icon_path = "res://icons/items/bow_long.png"
 item_category = 0
 rarity = 4
-equip_slot = 8
+equip_slot = 7
 weapon_type = 6
 armor_type = 0
 accessory_type = 0
@@ -25,4 +25,6 @@ stats = {
 }
 weapon_damage_min = 46
 weapon_damage_max = 69
-attack_speed = 0.9
+attack_speed = 0.96
+crit_chance = 0.092
+crit_damage = 0.260

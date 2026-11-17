@@ -123,6 +123,8 @@ static func from_data(data, duration_override: float = 0.0) -> StatusEffect:
                 fx.damage_reduction = clampf(float(data.damage_reduction), 0.0, StatId.MAX_DAMAGE_REDUCTION)
         if float(data.damage_reflect) != 0.0:
                 fx.damage_reflect = clampf(float(data.damage_reflect), 0.0, StatId.MAX_DAMAGE_REFLECT)
+        if "damage_resists" in data and data.damage_resists is Dictionary:
+                fx.damage_resists = data.damage_resists.duplicate()
         # Flat per-second regen payloads (positive heals, negative suppresses).
         if float(data.health_regen) != 0.0:
                 fx.health_regen_mod = float(data.health_regen)

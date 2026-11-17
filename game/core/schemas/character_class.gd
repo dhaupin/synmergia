@@ -106,6 +106,16 @@ const MAX_STAT_VALUE: int = 200
 ## and that speed fans out to hit rate, cooldowns, and DoT ticks.
 @export var attack_speed_bonus: float = 0.0
 
+## The class's base movement-speed bonus (a delta on the 1.0 multiplier).
+## Enemies author `move_speed` on EnemyData and mounts author their own
+## movement profile; this is the player-class lane of the same idea.
+@export var movement_speed_bonus: float = 0.0
+
+## Innate per-school resistances, authored as school -> fraction. The same
+## canonical lanes armor, shields and enemies use; a class can lean into a
+## ward before it ever equips a piece of gear.
+@export var damage_resists: Dictionary = {}
+
 # Starting skills
 @export var starting_skills: Array[String] = []
 @export var skill_tree_unlocks: Dictionary = {

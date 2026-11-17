@@ -21,3 +21,7 @@ stats = {
 "vitality": 13
 }
 armor_value = 56
+damage_resists = {
+"arcane": 0.082,
+"fire": 0.041
+}

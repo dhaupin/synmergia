@@ -10,7 +10,7 @@ description = "A simple bow carved from oak. Good for beginners."
 icon_path = "res://icons/items/bow_wood.png"
 item_category = 0
 rarity = 0
-equip_slot = 8
+equip_slot = 7
 weapon_type = 5
 stack_size = 1
 is_bound = false
@@ -26,4 +26,6 @@ stats = {
 }
 weapon_damage_min = 6
 weapon_damage_max = 12
-attack_speed = 1.5
+attack_speed = 1.50
+crit_chance = 0.032
+crit_damage = 0.105

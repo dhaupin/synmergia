@@ -10,7 +10,7 @@ description = "A thrusting blade tinned thin enough to find the seam in any ring
 icon_path = "res://icons/items/estoc_golden.png"
 item_category = 0
 rarity = 2
-equip_slot = 8
+equip_slot = 7
 weapon_type = 1
 stack_size = 1
 sell_price = 165
@@ -24,4 +24,6 @@ stats = {
 }
 weapon_damage_min = 12
 weapon_damage_max = 19
-attack_speed = 1.2
+attack_speed = 1.23
+crit_chance = 0.025
+crit_damage = 0.114

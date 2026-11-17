@@ -21,6 +21,10 @@ attack_power = 0
 spell_power = 0
 armor = 25
 resistance = 40
+damage_resists = {
+"physical": 0.10,
+"fire": 0.05
+}
 attack_range = 0.0
 attack_speed = 0.0
 move_speed = 0.0

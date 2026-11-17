@@ -10,7 +10,7 @@ description = "A round iron-bound shield over a planked core. Plain work, and pl
 icon_path = "res://icons/items/shield_haven_wall.png"
 item_category = 1
 rarity = 1
-equip_slot = 6
+equip_slot = 8
 weapon_type = 10
 armor_type = 3
 stack_size = 1
@@ -21,4 +21,9 @@ required_level = 8
 stats = {
 "vitality": 4
 }
-armor_value = 32
+armor_value = 33
+damage_resists = {
+"physical": 0.074,
+"fire": 0.018
+}
+block_rating = 22.4

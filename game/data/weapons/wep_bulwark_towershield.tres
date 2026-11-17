@@ -26,3 +26,11 @@ stats = {
 weapon_damage_min = 15
 weapon_damage_max = 24
 attack_speed = 0.8
+armor_value = 44
+block_rating = 28.0
+damage_resists = {
+"physical": 0.084,
+"fire": 0.021
+}
+crit_chance = 0.000
+crit_damage = 0.000

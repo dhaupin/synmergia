@@ -70,6 +70,35 @@ func _ready() -> void:
 	if LobbyService != null and LobbyService.has_signal("trial_fallback_due"):
 		LobbyService.trial_fallback_due.connect(_on_trial_fallback_due)
 		GameLog.info("BoutHostService: armed on trial_fallback_due (the marshal watches)")
+	# A player who leaves the world mid-bout is a real departure, not just an
+	# AFK kick. Drop their level from the room's reference book and retune the
+	# survivors; otherwise a departed level 60 keeps everyone normalized around
+	# a fighter who is no longer in the room.
+	if EntityService != null and EntityService.has_signal("player_left"):
+		EntityService.player_left.connect(_on_player_left)
+
+
+func _on_player_left(player, _metadata = null) -> void:
+	if player == null or _hosted.is_empty():
+		return
+	var pid: String = ""
+	if "entity_id" in player:
+		pid = str(player.entity_id)
+	elif player.has_method("get_entity_id"):
+		pid = str(player.get_entity_id())
+	if pid == "":
+		return
+	for instance_id in _hosted.keys():
+		var book: Dictionary = _hosted[instance_id]
+		var room = book.get("room")
+		if room == null or room.is_over():
+			continue
+		if not room.has_fighter(pid):
+			continue
+		room.remove_fighter(pid)
+		var participants: Array = book.get("participants", [])
+		participants.erase(pid)
+		GameLog.info("BoutHostService: %s left bout %s; reference retuned" % [pid, instance_id])
 
 
 ## The marshal's trial bout: fabricate the dummy block, host a real

@@ -12,6 +12,7 @@ class_name StatusEffect
 ## is_instance_of(obj, Script) is the runtime equivalent of `is Entity`
 ## and needs no global class_name registration.
 const EntityScript = preload("res://core/entities/entity.gd")
+const StatId = preload("res://core/schemas/stat_id.gd")
 
 
 ## Effect type classification
@@ -125,9 +126,12 @@ signal tick_occurred(entity, amount: int, tick_type: String)
 # Shield
 @export var shield_amount: int = 0
 
-# Resistance
+# Resistance. The legacy pair maps onto the canonical physical/magical
+# lanes; damage_resists is the per-school map ({"fire": 0.2}) every other
+# armor/shield/enemy surface uses.
 @export var physical_resistance: float = 0.0
 @export var magical_resistance: float = 0.0
+@export var damage_resists: Dictionary = {}
 
 # Crowd control
 @export var can_move: bool = true
@@ -294,6 +298,20 @@ func _apply_combat_modifiers(adding: bool) -> void:
 		entity.stats.attack_speed_multiplier += sign * attack_speed_multiplier * current_stacks
 	if damage_reduction != 0 and "damage_reduction" in entity.stats:
 		entity.stats.damage_reduction += sign * damage_reduction * current_stacks
+	# Per-school wards are the same canonical `resist_*` stat keys armor,
+	# shields and enemies seed. Legacy physical/magical fields fold into
+	# their lanes so old effects keep working.
+	if physical_resistance != 0:
+		entity.stats["resist_physical"] = float(entity.stats.get("resist_physical", 0.0)) \
+			+ sign * physical_resistance * current_stacks
+	if magical_resistance != 0:
+		entity.stats["resist_magical"] = float(entity.stats.get("resist_magical", 0.0)) \
+			+ sign * magical_resistance * current_stacks
+	for school in damage_resists:
+		var key := StatId.resist_key_for(str(school))
+		if key != "":
+			entity.stats[key] = float(entity.stats.get(key, 0.0)) \
+				+ sign * float(damage_resists[school]) * current_stacks
 	if damage_reflect != 0 and "damage_reflect" in entity.stats:
 		entity.stats.damage_reflect += sign * damage_reflect * current_stacks
 	if health_regen_mod != 0 and "health_regen" in entity.stats:
