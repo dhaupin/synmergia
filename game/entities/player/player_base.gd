@@ -338,43 +338,65 @@ func set_stat(stat_name: String, value: int) -> void:
 func add_stat(stat_name: String, amount: int) -> void:
 	set_stat(stat_name, get_stat(stat_name) + amount)
 
-func get_attack_power() -> int:
-	# Strength is the body's base physical power; the equipped main hand is
-	# the other half. InventoryComponent already owns the weapon range (and
-	# zeroes it when broken). A swing ROLLS inside that range instead of
-	# always taking the average, so authored min/max is a real damage band.
-	var power := get_stat("strength") * 2
-	if "inventory_component" in self:
-		var bag = get("inventory_component")
-		if bag != null and bag.has_method("get_main_hand_damage"):
-			var damage: Dictionary = bag.get_main_hand_damage()
-			var lo: int = int(damage.get("min", 0))
-			var hi: int = int(damage.get("max", 0))
-			# Guard against inverted authored bounds: the runtime always rolls
-			# between the smaller and larger number.
-			if hi < lo:
-				var swap := lo
-				lo = hi
-				hi = swap
-			if hi > 0:
-				power += randi_range(maxi(lo, 0), hi)
-	return power
-
-## The equipped main-hand weapon, or null. The one read every weapon
-## identity surface (damage, cadence, crit) goes through.
-func _main_hand_weapon():
+## The mounted bag, or null. One read for every hand/gear lane below.
+func _inventory_bag():
 	if "inventory_component" not in self:
 		return null
 	var bag = get("inventory_component")
 	if bag == null or not bag.has_method("get_equipped"):
 		return null
+	return bag
+
+## The dual-wield off-hand contribution and small all-lane power lift,
+## parity with Entity. InventoryComponent owns the legality and scale.
+func _dual_wield_power(base: int, damage_lane: int, bag) -> int:
+	if bag == null or not bag.has_method("is_dual_wielding") or not bag.is_dual_wielding():
+		return base
+	if bag.has_method("get_offhand_damage_roll"):
+		var off: int = int(bag.get_offhand_damage_roll(damage_lane))
+		base += int(float(off) * float(bag.DUAL_WIELD_OFFHAND_DAMAGE_SCALE))
+	return int(float(base) * float(bag.get_dual_wield_power_multiplier()))
+
+func get_attack_power() -> int:
+	# Strength is the body's base physical power; the equipped physical
+	# main hand is the other half. InventoryComponent owns the range and
+	# zeroes it when broken. A swing ROLLS inside that range instead of
+	# always taking the average, so authored min/max is a real damage band.
+	# A staff/wand/relic band is not physical and is skipped here.
+	var power := get_stat("strength") * 2
+	var bag = _inventory_bag()
+	if bag != null and bag.has_method("get_main_hand_damage_roll"):
+		power += int(bag.get_main_hand_damage_roll(ItemScript.WeaponDamageType.PHYSICAL))
+		power = _dual_wield_power(power, ItemScript.WeaponDamageType.PHYSICAL, bag)
+	return power
+
+## The equipped main-hand weapon, or null. The one read every weapon
+## identity surface (damage, cadence, crit) goes through.
+func _main_hand_weapon():
+	var bag = _inventory_bag()
+	if bag == null:
+		return null
 	return bag.get_equipped(ItemScript.EquipSlot.MAIN_HAND)
 
 func get_spell_power() -> int:
-	return get_stat("intelligence") * 2
+	# INT body + the magical staff/wand band. A one-handed focus in the off
+	# hand contributes its half-band while dual wielding.
+	var power := get_stat("intelligence") * 2
+	var bag = _inventory_bag()
+	if bag != null and bag.has_method("get_main_hand_damage_roll"):
+		power += int(bag.get_main_hand_damage_roll(ItemScript.WeaponDamageType.MAGICAL))
+		power = _dual_wield_power(power, ItemScript.WeaponDamageType.MAGICAL, bag)
+	return power
 
 func get_healing_power() -> int:
-	return get_stat("wisdom") * 2
+	# WIS body + the relic's healing band; the same min/max roll law as the
+	# other two lanes, just spent on restoration.
+	var power := get_stat("wisdom") * 2
+	var bag = _inventory_bag()
+	if bag != null and bag.has_method("get_main_hand_damage_roll"):
+		power += int(bag.get_main_hand_damage_roll(ItemScript.WeaponDamageType.HEALING))
+		power = _dual_wield_power(power, ItemScript.WeaponDamageType.HEALING, bag)
+	return power
 
 func get_defense() -> int:
 	return get_stat("vitality") * 2
@@ -390,6 +412,9 @@ func get_attack_speed() -> float:
 	var weapon = _main_hand_weapon()
 	if weapon != null and weapon.has_method("get_effective_attack_speed"):
 		speed *= float(weapon.get_effective_attack_speed())
+	var bag = _inventory_bag()
+	if bag != null and bag.has_method("is_dual_wielding") and bag.is_dual_wielding():
+		speed *= float(bag.get_dual_wield_attack_speed_multiplier())
 	return clampf(speed, 0.1, StatId.MAX_ATTACK_SPEED_MULT)
 
 func get_crit_chance() -> float:
@@ -400,6 +425,9 @@ func get_crit_chance() -> float:
 	var weapon = _main_hand_weapon()
 	if weapon != null and weapon.has_method("get_effective_crit_chance"):
 		delta += float(weapon.get_effective_crit_chance())
+	var bag = _inventory_bag()
+	if bag != null and bag.has_method("get_offhand_crit_chance"):
+		delta += float(bag.get_offhand_crit_chance())
 	return StatId.crit_chance_of(float(get_stat("agility")), delta)
 
 func get_crit_multiplier() -> float:
@@ -407,6 +435,9 @@ func get_crit_multiplier() -> float:
 	var weapon = _main_hand_weapon()
 	if weapon != null and weapon.has_method("get_effective_crit_damage"):
 		delta += float(weapon.get_effective_crit_damage())
+	var bag = _inventory_bag()
+	if bag != null and bag.has_method("get_offhand_crit_damage"):
+		delta += float(bag.get_offhand_crit_damage())
 	return StatId.crit_damage_of(delta)
 
 # --- Progression surface (duck-typed Entity API) --------------------------
@@ -725,12 +756,26 @@ func use_skill(slot: int) -> void:
 ## path). Callers that mean "attack" use this instead of assuming skillbar
 ## slot 0 is an attack -- the skillbar order is not an attack contract.
 func basic_attack_target(target = null) -> bool:
-	if basic_attack == null or not basic_attack.can_cast(self):
+	if basic_attack == null:
+		return false
+	_sync_basic_attack_lane()
+	if not basic_attack.can_cast(self):
 		return false
 	if combat_component:
 		return combat_component.execute_skill(basic_attack, target)
 	create_hitbox(basic_attack, target)
 	return true
+
+## A staff/wand's basic strike is a magical bolt, so its authored band rides
+## spell power instead of the physical lane. A relic is a focus, not a
+## damage weapon; its basic strike stays a physical bonk (the healing band
+## still only feeds heals).
+func _sync_basic_attack_lane() -> void:
+	var lane := "physical"
+	var weapon = _main_hand_weapon()
+	if weapon != null and int(weapon.weapon_damage_type) == ItemScript.WeaponDamageType.MAGICAL:
+		lane = "magical"
+	basic_attack.damage_type = lane
 
 func _get_ground_target_position(max_range: float) -> Vector3:
 	var direction: Vector2 = _im().last_direction if _im() else Vector2(0, -1)

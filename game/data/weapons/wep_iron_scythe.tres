@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_iron_scythe"
+display_name = "Iron Scythe"
+description = "A reaper's blade mounted on a war shaft. The edge is cruel; the arc is worse."
+icon_path = "res://icons/items/axe_iron.png"
+item_category = 0
+rarity = 0
+equip_slot = 7
+weapon_type = 12
+is_two_handed = true
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+is_bound = false
+bind_on_equip = false
+unique = false
+sell_price = 230
+buy_price = 920
+item_level = 12
+required_level = 11
+required_class = ""
+required_strength = 8
+required_agility = 2
+required_intelligence = 0
+stats = {
+"strength": 8,
+"agility": 2
+}
+primary_stats = {}
+secondary_stats = {}
+weapon_damage_min = 26
+weapon_damage_max = 40
+attack_speed = 0.80
+crit_chance = 0.035
+crit_damage = 0.200
+armor_value = 0

@@ -452,6 +452,24 @@ static func _blessing_multiplier_for(attacker) -> float:
 		return 1.0
 	return float(svc.BLESSED_DAMAGE_MULTIPLIER) if svc.is_class_blessed(cid) else 1.0
 
+## Weapon crit identity on the caster axes. get_crit_chance already folds
+## the main hand in on the agility axis; a magical/heal crit derives off
+## INT/WIS instead, so it must add the same weapon (and dual-wield off-hand)
+## crit here or a wand/relic's authored crit% would never land.
+static func _weapon_crit_chance_delta(attacker) -> float:
+	if attacker == null or "inventory_component" not in attacker:
+		return 0.0
+	var bag = attacker.get("inventory_component")
+	if bag == null or not bag.has_method("get_equipped"):
+		return 0.0
+	var delta := 0.0
+	var main = bag.get_equipped(Item.EquipSlot.MAIN_HAND)
+	if main != null and main.has_method("get_effective_crit_chance"):
+		delta += float(main.get_effective_crit_chance())
+	if bag.has_method("get_offhand_crit_chance"):
+		delta += float(bag.get_offhand_crit_chance())
+	return delta
+
 ## Crit chance off the combatant's own roll when it has one (Entity /
 ## the player body get_crit_chance), stat-derived otherwise. Both paths read
 ## the crit_chance stat delta through StatId, so a crit buff lands on any body
@@ -473,6 +491,7 @@ static func _crit_chance_for(attacker, skill = null) -> float:
 	# A caster axis (int/wis) derives straight off the stat; the agility axis
 	# prefers the body's own roll so a weapon/class crit buff lands.
 	if axis != "agility":
+		delta += _weapon_crit_chance_delta(attacker)
 		return StatId.crit_chance_on_axis(axis, _stat(attacker, axis, 10.0), delta)
 	if attacker != null and attacker.has_method("get_crit_chance"):
 		return float(attacker.get_crit_chance())

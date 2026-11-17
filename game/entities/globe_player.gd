@@ -1737,6 +1737,7 @@ func _can_move() -> bool:
 func _try_attack() -> void:
 	if _text_entry_focused():
 		return
+	_sync_basic_attack_lane()
 	var skill = basic_attack
 	if skill == null or not skill.can_cast(self):
 		return

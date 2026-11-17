@@ -1,8 +1,10 @@
 # PRD: Canonical Combat - As-Built and Gap Ledger
 
 > **Status:** PARTIAL (canonical lanes wired 2026-11-16; two-handed, wrist
-> shields, enemy loadouts and min/max bands wired 2026-11-17; gaps below are
-> real, not hypothetical)
+> shields, enemy loadouts and min/max bands wired 2026-11-17; dual wield,
+> weapon families and the physical/magical/healing weapon lanes wired
+> 2026-11-17; the full five-rarity x level-band catalog is explicitly deferred
+> in P1 below)
 > **Law:** `game/core/schemas/stat_id.gd` is the vocabulary; `CombatMath` is the
 > hit/mitigation authority; `EnemyData.apply_stats_to` and
 > `Item.get_total_stats` are the seeding paths. Where this document and code
@@ -14,14 +16,16 @@
 
 | Piece | Truth |
 | --- | --- |
-| Weapon damage band | `PlayerBase.get_attack_power()` and the shared `Entity.get_attack_power()` roll `randi_range(min, max)` on every swing through `InventoryComponent.get_main_hand_damage_roll()`. `Item.get_damage_range()` sorts authored bounds, so a max below min (or min above max) cannot invert a roll. Broken weapons contribute 0. |
-| Weapon handedness | `Item.is_two_handed` is the authored hand identity. 46 of the 77 hand weapons are two-handed (all staves, bows, crossbows, spears, maces/mauls/warhammers, the golden/sunforged/zenith axes, `wep_mythril_halberd`, `wep_starmetal_skysplitter`); wands and the light axes/swords/daggers stay one-handed. `InventoryComponent._hand_layout_allows()` rejects a normal off-hand beside a two-handed main hand and rejects a two-handed item in the off hand. `from_dict` runs the same law on loaded saves. |
+| Weapon damage lanes | `Item.weapon_damage_type` selects what the authored min/max band feeds: `PHYSICAL` -> `get_attack_power()`, `MAGICAL` -> `get_spell_power()` (staves/wands), `HEALING` -> `get_healing_power()` (relics). `PlayerBase` and the shared `Entity` both roll through `InventoryComponent.get_main_hand_damage_roll(lane)` / `get_offhand_damage_roll(lane)`; `Item.get_damage_range()` sorts authored bounds, so a max below min cannot invert a roll. Broken weapons contribute 0, and a staff/wand's basic strike is tagged magical so its band rides spell power rather than the physical lane. |
+| Weapon handedness | `Item.is_two_handed` is the authored hand identity. 85 hand weapons are now in the catalog: 51 two-handed, 34 one-handed. The one-handed set includes swords, light axes, the new warhammer, daggers, wands, the short lance and the oak reliquary; the two-handed set includes swords, greataxes, hammers/mauls, staves, bows, crossbows, spears, lances, scythes and the grand reliquary. `InventoryComponent._hand_layout_allows()` rejects a normal off-hand beside a two-handed main hand and rejects a two-handed item in the off hand. `from_dict` runs the same law on loaded saves. |
+| Dual wield | `InventoryComponent.is_dual_wielding()` is true only when both hands hold unbroken one-handed non-shield weapons. A second one-hander auto-fills an empty off hand when the main hand is already a one-hander (`equip_item(slot, target_slot = -1)` also accepts an explicit hand). The no-shield posture pays 15% attack cadence and 6% to attack/spell/healing power, and the off hand adds half its band; the main and off hand both add their authored crit chance/damage. A shield replaces the off-hand weapon and closes the posture. |
+| Weapon families | `WeaponType` keeps its original 0-10 values and appends `LANCE=11`, `SCYTHE=12`, `RELIC=13`. Representative records author both hand variants where legal: `wep_iron_greatsword` (2H sword), `wep_iron_greataxe` (2H axe), `wep_iron_warhammer` (1H hammer), `wep_iron_lance` / `wep_short_lance` (2H/1H lance), `wep_iron_scythe` (2H scythe), `wep_oak_reliquary` / `wep_grand_reliquary` (1H/2H healing relic). A 1H scythe and a 2H dagger/wand are deliberately illegal shapes, not missing variants. |
 | Enemy damage band | `EnemyData.attack_damage_min/max` is the enemy body band (`attack_power` is the fallback). A spawn pipeline seeds the raw band on the stat block, or its level-scaled form when it is scaling the body; `Enemy.get_attack_power()` rolls the body band once and adds the equipped main-hand roll. Inverted authored bounds are normalized. |
 | Skill damage band | A skill's `effects[]` damage entries may author `min`/`max`; `Skill.from_schema()` flattens them into runtime `damage_min/max` and keeps `damage` as the authored/display value. `Skill.get_damage_roll()` samples the summed band once per cast. All 25 direct-damage entries in the magical skill catalog now carry an 85%-115% band; physical/ranged skills stay deterministic because the weapon roll supplies their variance. |
 | Crit on bands | Every band is sampled first, then `CombatMath.calculate_damage()` applies the one crit multiplier to that sample. Weapon, enemy-body and skill rolls all use the same terminal path; magical crit still reads the INT axis through `StatId.crit_axis_for`. |
 | Weapon cadence | `Item.attack_speed` is a multiplier on the body's class/enemy cadence. `1.0` rides the default; `1.2` is 20% faster. The shared `Entity.get_attack_speed()` applies it after the `StatId` agility/class formula and clamps at `MAX_ATTACK_SPEED_MULT`; `EnemyAI` divides its template cooldown by that same cadence. |
-| Weapon crit | `Item.crit_chance` / `crit_damage` are flat deltas added to the body's `StatId` crit delta. The shared `Entity.get_crit_chance()` / `get_crit_multiplier()` read the main hand, so enemies and future actors get the same weapon identity; broken weapons contribute 0. Magical and heal crits still use their INT/WIS axes. |
-| Weapon data | All 84 weapon-directory records now carry `crit_chance` / `crit_damage`; the 77 hand weapons use `MAIN_HAND = 7`; the 7 weapon shields use `OFF_HAND = 8`. All 77 hand weapons author `is_two_handed`; all 7 weapon shields and 2 armor shields author `shield_type`. Rogue weapons lean crit, DD/tank lanes lean cadence, and rarity/level add a little of both. |
+| Weapon crit | `Item.crit_chance` / `crit_damage` are flat deltas added to the body's `StatId` crit delta. The shared `Entity.get_crit_chance()` / `get_crit_multiplier()` read the main hand and, while dual wielding, the off hand too, so enemies and future actors get the same weapon identity; broken weapons contribute 0. `CombatMath._weapon_crit_chance_delta()` adds the same weapon/off-hand crit to the INT magical and WIS healing axes, so a wand or relic's authored crit% actually lands. |
+| Weapon data | All 92 weapon-directory records now carry `crit_chance` / `crit_damage`; the 85 hand weapons use `MAIN_HAND = 7`; the 7 weapon shields use `OFF_HAND = 8`. All 85 hand weapons author `is_two_handed`; all 7 weapon shields and 2 armor shields author `shield_type`. 24 staves/wands author `weapon_damage_type = MAGICAL`; the two reliquaries author `HEALING`; the rest default to `PHYSICAL`. Rogue weapons lean crit, DD/tank lanes lean cadence, and rarity/level add a little of both. |
 | School resists | `StatId.DAMAGE_SCHOOLS` is physical, magical, fire, frost, lightning, poison, arcane, holy, shadow. Each school has a canonical `resist_*` flat stat, clamped by `MAX_RESIST = 0.90`. `CombatMath.calculate_mitigation(..., school_resist)` layers the ward after armor and flat reduction. |
 | Resist seeding | `Item.damage_resists` folds into `get_total_stats()`; `EnemyData.damage_resists` seeds the same keys in `apply_stats_to`; `CharacterClass.damage_resists` folds in `PlayerBase._apply_class_crit_identity`; `StatusEffect.damage_resists` adds/removes through `_apply_combat_modifiers`. |
 | Armor data | All 77 armor records now author `damage_resists` by armor type (cloth/leather/mail/plate), with a class-lane bonus and rarity/level scaling. Shields author physical/fire wards. |
@@ -50,11 +54,20 @@
    one-handed posture and opens the full block lane; a wrist shield is the only
    off-hand legal beside a two-handed weapon and opens 40% of it. Block chance
    is still the `CombatBalanceData` formula, not a second hardcoded table.
-5. **Arena power is bout-local and reference-relative.** The highest current
+5. **Dual wield is a two-one-hander, no-shield posture.** Both hands carry an
+   unbroken one-handed non-shield weapon. The trade is 15% cadence and a 6%
+   power lift, plus half the off-hand band and both weapons' crit identity;
+   any shield in the off hand replaces the off-hand weapon and ends the
+   posture. Two-handers never dual wield and still reject a non-wrist off hand.
+6. **A weapon band has one lane.** Physical bands feed attack power, magical
+   bands feed spell power, healing bands feed healing power. The same min/max
+   roll law and the same terminal crit multiplier apply in all three lanes;
+   the lane changes which body power the roll feeds, not whether it varies.
+7. **Arena power is bout-local and reference-relative.** The highest current
    level in the room is the reference; every lower fighter gets a normalized
    stat book derived from its pre-bout snapshot. Real stats are restored at bout
    end or on departure.
-6. **A stronger fighter keeps the edge.** Normalization pulls lower levels
+8. **A stronger fighter keeps the edge.** Normalization pulls lower levels
    close but never to parity; 20% of the gap survives by design.
 
 ## 3. Gaps
@@ -71,9 +84,9 @@ live, but these are not:
   attachment slot, weight, or failure state.
 - Shield-specific skills (bash, wall, reflect) reading the shield's block
   rating/ward rather than a generic off-hand.
-- Dual wield and weapon-set swapping. The hand layout is enforced, but there is
-  no second main-hand lane and no one-key swap between a two-handed weapon and
-  a one-handed weapon + normal shield.
+- Weapon-set swapping. Dual wield itself is live, but there is no one-key swap
+  between a two-handed weapon and a one-handed weapon + normal shield, and no
+  saved off-hand loadout to restore after a swap.
 - The equip UI exposes `can_equip_in_slot()` as a predicate, but not every
   inventory row renders the wrist/2H reason; a refused equip can still look
   available until clicked.
@@ -107,19 +120,62 @@ live, but these are not:
 - The generated crit/cadence values are a first pass: base weapon-type identity
   plus role/rarity/level. Named weapons (raid drops, quest rewards) should get
   hand-authored overrides where their fantasy differs from the formula.
-- `is_two_handed` is authored on all 77 hand weapons, but the split is a first
-  pass: every staff/bow/crossbow/spear/mace is two-handed, while only the
-  golden/sunforged/zenith axes, mythril halberd, and starmetal skysplitter
-  axes are. Named exceptions and off-hand-only weapons need a design pass.
+- The catalog now has 85 hand weapons (51 two-handed, 34 one-handed), but it is
+  still not a complete family tree. Missing families are thrown weapons
+  (javelins, throwing axes/daggers), fist/gauntlet weapons, a one-handed spear
+  distinct from the short lance, off-hand-only parrying blades/foci, and an
+  unarmed/martial-arts lane. `SCYTHE` is intentionally two-handed only; `DAGGER`
+  and `WAND` are intentionally one-handed only.
+- The appended families (`LANCE`, `SCYTHE`, `RELIC`) currently top out below
+  level 60: the short/iron lances are L11/L9, the iron scythe L12, and the
+  oak/grand reliquaries L6/L12. They have no L60 capstone and no full rarity
+  ladder; `test_zenith_capstone` still covers the original `WeaponType` 1..10
+  only, deliberately.
+- Dual wield is structurally live, but only the shared weapon rows are tuned.
+  Named dual-wield pairs, off-hand-specific skills, and per-class off-hand
+  identities (rogue dagger + dagger, healer relic + relic, battle-mage
+  wand + sword) still need authored content.
 - Generic weapons with `required_class = ""` have no role lean; their cadence
   and crit come from type/rarity/level only.
 - `attack_speed` still carries a legacy "attacks per second" comment in some
   tooling/UI. The runtime treats it as a multiplier; the label should be
   corrected wherever it is shown to players.
-- Weapon damage is rolled inside `get_attack_power()`. A caller that invokes
-  that accessor twice for one swing would roll twice; today the basic-attack
-  path reads it once, but future multi-hit skills should cache the roll for the
-  swing.
+- Weapon damage is rolled inside `get_attack_power()` / `get_spell_power()` /
+  `get_healing_power()`. A caller that invokes an accessor twice for one swing
+  would roll twice; today the basic-attack path reads it once, but future
+  multi-hit skills should cache the roll for the swing.
+
+### P1 - Full five-rarity x level-band catalog is deferred
+
+The user request explicitly defers the complete catalog until the combat system
+is ironed out. The target matrix is:
+
+- **Rarities:** Common, Rare, Epic, Legendary, Mythic (0-4).
+- **Level bands:** 1-10, 11-20, 21-30, 31-40, 41-50, 51-60.
+- **Weapon families:** every legal hand variant of sword, axe, hammer/mace,
+  dagger, bow, crossbow, staff, wand, spear, lance, scythe and relic (plus
+  thrown/fist once those families exist).
+- **Armor families:** every armor slot/type pair (cloth, leather, mail, plate)
+  in each band, not just the current high-tier rows.
+- **Shield families:** normal and wrist shields in each band, with block rating,
+  armor value and wards scaling by rarity rather than only by item level.
+
+Acceptance for that content pass:
+
+1. Every family x rarity x band cell has one authored record (or an explicit
+   "not legal in this shape" ledger row, e.g. 1H scythe / 2H dagger).
+2. Buy-price ladders stay banded and monotonic inside each family.
+3. Drop tables, vendors, recipes and icons resolve for every new id; a catalog
+   row with no acquisition path is not shipped.
+4. `test_item_catalog`, `test_data_naming_lint` and a new matrix-coverage receipt
+   pass; the new L60 records join `test_zenith_capstone` once the three appended
+   families have capstones.
+5. The generated `src/data/godot_data.json` is refreshed and the client build
+   reads the new records without a second data shape.
+
+Current coverage is nowhere near that matrix: 42 of 85 hand weapons are Mythic,
+19 Epic, 15 Common, 6 Legendary and only 3 Rare; the weapon directory has no
+full band sweep. This is a content-authoring task, not a runtime gap.
 
 ### P2 - Arena normalization edges
 
@@ -147,7 +203,12 @@ live, but these are not:
   bosses with a two-handed loadout now add the weapon roll on top of that
   authored body band, so their live swing is wider than the template number.
 - The displayed character sheet still shows a single damage number for a
-  weapon band; it does not show min-max or the enemy's body band.
+  weapon band; it does not show min-max, the enemy's body band, or the
+  dual-wield off-hand half-band. The inventory row also does not preview the
+  auto-off-hand placement before the click.
+- The healing lane has only the two reliquary records and no relic-specific
+  heal/HoT skills yet. `get_healing_power()` feeds any healing skill, but the
+  authored content that makes a relic a full healer identity is still thin.
 
 ### P2 - Resist coverage
 
@@ -182,6 +243,13 @@ live, but these are not:
   inverted bounds, weapon cadence/crit, armor resists, shield block lane,
   two-handed + normal shield rejection, two-handed + wrist acceptance,
   loaded-save hand migration, broken gear.
+- `game/tests/test_dual_wield.gd` - 49 checks: auto off-hand placement, no
+  shield lane, 15% cadence + 6% power + half off-hand band, both weapons' crit,
+  shield closes the posture, two-hander rejects an off-hand one-hander,
+  staff/wand magical power and crit, relic healing power and crit, saved
+  dual-wield and illegal 1H+2H load migration, and every `WeaponType` 1..13 has
+  an authored record plus both legal lance/relic hand variants and the 2H
+  scythe.
 - `game/tests/test_combat_resists.gd` - school vocabulary, damage pipeline,
   EnemyData seeding, status-effect wards, class movement/wards, gear data.
 - `game/tests/test_instance_contract.gd` - 5 vs 50 -> 41, 30 vs 60 -> 54, gap
@@ -193,6 +261,7 @@ live, but these are not:
 - `game/tests/test_attack_speed.gd` / `test_crit_system.gd` - class cadence and
   crit lanes still pass through the shared formulas (22/22 and 36/36).
 - `game/tests/test_data_naming_lint.gd` / `test_item_catalog.gd` - 72/72 data
-  lint and 12/12 catalog laws after the new two-handed, wrist and enemy data.
+  lint and 12/12 catalog laws after the new two-handed, wrist, dual-wield and
+  weapon-family data.
 - `game/tests/test_character_fresh_kit.gd` - starter-kit item copy through
   `Item.from_dict()` (run after the new schema fields).

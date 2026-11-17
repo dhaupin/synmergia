@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_oak_reliquary"
+display_name = "Oak Reliquary"
+description = "A palm-sized oak shrine bound in silver. Its healing band answers a healer's WIS rather than an arm."
+icon_path = "res://icons/items/staff_walnut.png"
+item_category = 0
+rarity = 0
+equip_slot = 7
+weapon_type = 13
+weapon_damage_type = 2
+is_two_handed = false
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+is_bound = false
+bind_on_equip = false
+unique = false
+sell_price = 35
+buy_price = 150
+item_level = 6
+required_level = 5
+required_class = ""
+required_strength = 0
+required_agility = 0
+required_intelligence = 3
+stats = {
+"wisdom": 4,
+"intelligence": 2
+}
+primary_stats = {}
+secondary_stats = {}
+weapon_damage_min = 8
+weapon_damage_max = 14
+attack_speed = 1.00
+crit_chance = 0.018
+crit_damage = 0.090
+armor_value = 0

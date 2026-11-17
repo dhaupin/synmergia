@@ -367,37 +367,71 @@ func get_defense() -> int:
 func get_magic_resistance() -> int:
 	return stats.wisdom * 2
 
-## The body's weapon, or null. Shared by every Entity-family actor that
-## carries an InventoryComponent (enemies, NPCs, future actors).
-func _main_hand_weapon():
+## The mounted bag, or null. Shared by every Entity-family actor that carries
+## an InventoryComponent (enemies, NPCs, future actors).
+func _inventory_bag():
 	if "inventory_component" not in self:
 		return null
 	var bag = get("inventory_component")
 	if bag == null or not bag.has_method("get_equipped"):
 		return null
+	return bag
+
+## The body's weapon, or null.
+func _main_hand_weapon():
+	var bag = _inventory_bag()
+	if bag == null:
+		return null
 	return bag.get_equipped(Item.EquipSlot.MAIN_HAND)
 
 ## One per-swing roll from the equipped main hand (0 when unarmed/broken).
-func get_weapon_damage_roll() -> int:
-	if "inventory_component" not in self:
-		return 0
-	var bag = get("inventory_component")
+## A lane filter keeps a magical/healing band out of the physical lane; -1
+## keeps the legacy any-lane read.
+func get_weapon_damage_roll(damage_lane: int = -1) -> int:
+	var bag = _inventory_bag()
 	if bag == null or not bag.has_method("get_main_hand_damage_roll"):
 		return 0
-	return int(bag.get_main_hand_damage_roll())
+	return int(bag.get_main_hand_damage_roll(damage_lane))
+
+## Add the dual-wield off-hand contribution and the small all-lane power
+## lift. The off-hand band is scaled below a full swing in InventoryComponent.
+func _dual_wield_power(base: int, damage_lane: int, bag) -> int:
+	if bag == null or not bag.has_method("is_dual_wielding") or not bag.is_dual_wielding():
+		return base
+	if bag.has_method("get_offhand_damage_roll"):
+		var off: int = int(bag.get_offhand_damage_roll(damage_lane))
+		base += int(float(off) * float(bag.DUAL_WIELD_OFFHAND_DAMAGE_SCALE))
+	return int(float(base) * float(bag.get_dual_wield_power_multiplier()))
 
 func get_attack_power() -> int:
-	# Physical damage: STR-based body plus the main-hand band. A weaponless
-	# actor keeps the old strength-only number.
-	return get_stat("strength") * 2 + get_weapon_damage_roll()
+	# Physical damage: STR body + the physical main-hand band. A staff/wand
+	# or relic band belongs to spell/heal power instead, not this lane.
+	var bag = _inventory_bag()
+	var power: int = get_stat("strength") * 2
+	if bag != null:
+		power += get_weapon_damage_roll(Item.WeaponDamageType.PHYSICAL)
+		power = _dual_wield_power(power, Item.WeaponDamageType.PHYSICAL, bag)
+	return power
 
 func get_spell_power() -> int:
-	# Magical damage: INT-based
-	return get_stat("intelligence") * 2
+	# Magical damage: INT body + the magical staff/wand band. A one-handed
+	# focus in the off hand contributes its half-band while dual wielding.
+	var bag = _inventory_bag()
+	var power: int = get_stat("intelligence") * 2
+	if bag != null:
+		power += get_weapon_damage_roll(Item.WeaponDamageType.MAGICAL)
+		power = _dual_wield_power(power, Item.WeaponDamageType.MAGICAL, bag)
+	return power
 
 func get_healing_power() -> int:
-	# Healing power: WIS-based
-	return get_stat("wisdom") * 2
+	# Healing power: WIS body + the relic's healing band. Relics author the
+	# same min/max window a weapon does, just on the restoration lane.
+	var bag = _inventory_bag()
+	var power: int = get_stat("wisdom") * 2
+	if bag != null:
+		power += get_weapon_damage_roll(Item.WeaponDamageType.HEALING)
+		power = _dual_wield_power(power, Item.WeaponDamageType.HEALING, bag)
+	return power
 
 func get_attack_speed() -> float:
 	# THE attack-speed formula (StatId): 1.0 base + agility + the
@@ -409,6 +443,9 @@ func get_attack_speed() -> float:
 	var weapon = _main_hand_weapon()
 	if weapon != null and weapon.has_method("get_effective_attack_speed"):
 		speed *= float(weapon.get_effective_attack_speed())
+	var bag = _inventory_bag()
+	if bag != null and bag.has_method("is_dual_wielding") and bag.is_dual_wielding():
+		speed *= float(bag.get_dual_wield_attack_speed_multiplier())
 	return clampf(speed, 0.1, StatId.MAX_ATTACK_SPEED_MULT)
 
 func get_crit_chance() -> float:
@@ -419,6 +456,9 @@ func get_crit_chance() -> float:
 	var weapon = _main_hand_weapon()
 	if weapon != null and weapon.has_method("get_effective_crit_chance"):
 		delta += float(weapon.get_effective_crit_chance())
+	var bag = _inventory_bag()
+	if bag != null and bag.has_method("get_offhand_crit_chance"):
+		delta += float(bag.get_offhand_crit_chance())
 	return StatId.crit_chance_of(float(get_stat("agility")), delta)
 
 func get_crit_multiplier() -> float:
@@ -428,6 +468,9 @@ func get_crit_multiplier() -> float:
 	var weapon = _main_hand_weapon()
 	if weapon != null and weapon.has_method("get_effective_crit_damage"):
 		delta += float(weapon.get_effective_crit_damage())
+	var bag = _inventory_bag()
+	if bag != null and bag.has_method("get_offhand_crit_damage"):
+		delta += float(bag.get_offhand_crit_damage())
 	return StatId.crit_damage_of(delta)
 
 func get_armor() -> int:

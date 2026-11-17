@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_iron_greataxe"
+display_name = "Iron Greataxe"
+description = "A broad bearded axe on a long haft. The weight does the arguing; the wielder only steers."
+icon_path = "res://icons/items/axe_iron.png"
+item_category = 0
+rarity = 0
+equip_slot = 7
+weapon_type = 2
+is_two_handed = true
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+is_bound = false
+bind_on_equip = false
+unique = false
+sell_price = 85
+buy_price = 350
+item_level = 9
+required_level = 8
+required_class = ""
+required_strength = 7
+required_agility = 0
+required_intelligence = 0
+stats = {
+"strength": 7
+}
+primary_stats = {}
+secondary_stats = {}
+weapon_damage_min = 22
+weapon_damage_max = 36
+attack_speed = 0.82
+crit_chance = 0.020
+crit_damage = 0.155
+armor_value = 0
