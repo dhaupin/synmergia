@@ -38,10 +38,10 @@ The MCP protocol is not reimplemented in the Godot door. The door transports the
 Synmergia pins gamestruct in `package.json`:
 
 ```json
-"gamestruct": "github:dhaupin/gamestruct#447a0e4ae7aaaa3f338b56300dbb55481cdb2e14"
+"gamestruct": "github:dhaupin/gamestruct#1576774e86e25741a9766dd3c82f267851ef3808"
 ```
 
-The installed package is **1.1.0**. The commit pin is the reproducibility anchor; `bun.lock` carries the resolved package and integrity. The repository's `npm run verify:lane` receipt imports the package the way a companion brain would and checks the parts Synmergia depends on: the role vocabulary, `Bridge`, the agent tool catalog, `DoorClient`, and the Synmergia adapter's `doorNodes` normalizer.
+The installed package is **1.4.0**. The commit pin is the reproducibility anchor; `bun.lock` carries the resolved package and integrity. The repository's `npm run verify:lane` receipt imports the package the way a companion brain would and checks the parts Synmergia depends on: the role vocabulary, `Bridge`, the agent tool catalog, `DoorClient`, and the Synmergia adapter's `doorNodes` normalizer.
 
 ## The handle law
 

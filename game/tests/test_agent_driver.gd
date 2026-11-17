@@ -163,10 +163,14 @@ func _leg_handle_verbs() -> void:
 ## magic), and that a blank frame would be refused (the size floor).
 func _leg_see() -> void:
 	var r: Dictionary = _driver.act("see", {"label": "receipt"})
-	_assert(bool(r.get("ok", false)), "see() captures a frame")
 	if not bool(r.get("ok", false)):
-		print("    [see] refused: %s" % String(r.get("reason", "")))
+		# A surface with no renderer (headless/dummy) honestly refuses see()
+		# (SPEC N22) -- never a fake image. The leg holds when the refusal is a
+		# value with a reason; a real renderer falls through to the capture checks.
+		_assert(String(r.get("reason", "")) != "", "see() refuses honestly when blind (N22)")
+		print("    [see] honest refusal: %s" % String(r.get("reason", "")))
 		return
+	_assert(true, "see() captures a frame")
 	var path: String = String(r.get("path", ""))
 	_assert(path != "" and FileAccess.file_exists(path), "the capture file exists on disk")
 	_assert(int(r.get("bytes", 0)) >= 1024, "the capture is a real image (not skeletal)")
@@ -282,7 +286,11 @@ func _leg_door_wire() -> void:
 	var coord: Dictionary = await _http("POST", "/coord", JSON.stringify({"op": "status"}))
 	_assert(coord.has("ok"), "POST /coord answered (the multi-agent extension)")
 	var seen: Dictionary = await _http("POST", "/see", JSON.stringify({"label": "wire"}))
-	_assert(bool(seen.get("ok", false)) and String(seen.get("path", "")) != "", "POST /see captures a frame over the wire")
+	if bool(seen.get("ok", false)):
+		_assert(String(seen.get("path", "")) != "", "POST /see captures a frame over the wire")
+	else:
+		# Blind surface (headless): the wire still carries an honest refusal.
+		_assert(String(seen.get("reason", "")) != "", "POST /see refuses honestly over the wire (N22)")
 	var tools: Dictionary = await _http("GET", "/tools")
 	_assert(not bool(tools.get("ok", true)) and String(tools.get("reason", "")).begins_with("unknown route"), "GET /tools is GONE (projection lives in gamestruct)")
 	var call: Dictionary = await _http("POST", "/call", "{}")

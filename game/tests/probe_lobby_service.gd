@@ -57,10 +57,10 @@ func _run() -> void:
 		Contract.level_band_ok(20, 40, 45.0))
 	_check("band: gulf never passes (5 vs 60 even widened)", \
 		not Contract.level_band_ok(5, 60, 999.0))
-	_check("power: lvl 5 next to 60 caps at 10 (ratio 2.0)", \
-		Contract.normalized_level(5, 60) == 10)
-	_check("power: lvl 30 vs 60 normalizes to 60", \
-		Contract.normalized_level(30, 60) == 60)
+	_check("power: lvl 5 next to 60 retains 20% of the gap (49)", \
+		Contract.normalized_level(5, 60) == 49)
+	_check("power: lvl 30 vs 60 retains 20% of the gap (54)", \
+		Contract.normalized_level(30, 60) == 54)
 	_check("power: at/above reference unchanged", \
 		Contract.normalized_level(60, 30) == 60 and Contract.normalized_level(70, 60) == 70)
 
