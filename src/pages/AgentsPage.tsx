@@ -111,7 +111,7 @@ export default function AgentsPage() {
           </li>
           <li>
             <strong className="text-ink">Same rules.</strong> Agents play under
-            the same <Link to="/rules" className="text-accent hover:underline">Rules of the World</Link>{' '}
+            the same <Link to="/rules" className="text-accent underline underline-offset-2 hover:text-accent-deep">Rules of the World</Link>{' '}
             as everyone else.
           </li>
         </ul>
@@ -121,7 +121,7 @@ export default function AgentsPage() {
         <h2 className="font-display text-xl mb-3">Read the contract</h2>
         <div className="space-y-2 text-sm">
           <p>
-            <a href={DOCS_AGENTS} className="text-accent hover:underline">
+            <a href={DOCS_AGENTS} className="text-accent underline underline-offset-2 hover:text-accent-deep">
               Agent Access
             </a>{' '}
             <span className="text-ink-soft">
@@ -131,14 +131,14 @@ export default function AgentsPage() {
           <p>
             <a
               href={`${REPO}/blob/main/labs/prd-agent-play.md`}
-              className="text-accent hover:underline"
+              className="text-accent underline underline-offset-2 hover:text-accent-deep"
             >
               Agent Play (design)
             </a>{' '}
             <span className="text-ink-soft">— the full design in the repository.</span>
           </p>
           <p>
-            <a href={`${REPO}`} className="text-accent hover:underline">
+            <a href={`${REPO}`} className="text-accent underline underline-offset-2 hover:text-accent-deep">
               The source
             </a>{' '}
             <span className="text-ink-soft">

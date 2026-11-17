@@ -4,9 +4,10 @@ import {
   Route,
   useLocation,
 } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { mountIslands } from 'prestruct/islands';
 import { islands } from './AppIslands';
+import { routeTitle } from './lib/routeMeta';
 
 import SiteLayout from './components/SiteLayout';
 import LanderPage from './pages/LanderPage';
@@ -28,10 +29,23 @@ import AdminGate from './pages/AdminGate';
 
 function ScrollToTop() {
   const location = useLocation();
+  const isFirst = useRef(true);
   useEffect(() => {
     if (typeof window !== 'undefined') {
       window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
     }
+    // Announce the new route to assistive tech: update the document title
+    // (WCAG 2.4.2 Page Titled) and move focus to the main landmark so the
+    // next Tab starts in the new content (WCAG 2.4.3 Focus Order). Skipped
+    // on the first render so a fresh page load keeps its natural focus.
+    if (typeof document !== 'undefined') {
+      document.title = routeTitle(location.pathname);
+      if (!isFirst.current) {
+        const main = document.getElementById('main');
+        if (main) main.focus({ preventScroll: true });
+      }
+    }
+    isFirst.current = false;
     // Scan after every route change, including the first client render.
     // mountIslands is idempotent (WeakSet), so this is safe alongside the
     // post-unlock scan in PlayPage.

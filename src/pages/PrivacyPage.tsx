@@ -121,7 +121,7 @@ export default function PrivacyPage() {
           <h2 className="font-display text-xl mb-2">Contact</h2>
           <p>
             Open an issue at{' '}
-            <a href="https://github.com/dhaupin/synmergia/issues" target="_blank" rel="noreferrer" className="text-accent hover:underline">
+            <a href="https://github.com/dhaupin/synmergia/issues" target="_blank" rel="noreferrer" className="text-accent underline underline-offset-2 hover:text-accent-deep">
               github.com/dhaupin/synmergia/issues
             </a>{' '}
             for any privacy question.

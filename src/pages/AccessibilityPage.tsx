@@ -113,7 +113,7 @@ export default function AccessibilityPage() {
           website is tracked in the open:{' '}
           <a
             href={`${REPO}/issues/101`}
-            className="text-accent hover:underline"
+            className="text-accent underline underline-offset-2 hover:text-accent-deep"
           >
             issue #101
           </a>
@@ -124,7 +124,7 @@ export default function AccessibilityPage() {
       <section className="mb-4">
         <h2 className="font-display text-xl mb-3">Read the contract</h2>
         <p className="text-sm">
-          <a href={DOCS_HUMAN} className="text-accent hover:underline">
+          <a href={DOCS_HUMAN} className="text-accent underline underline-offset-2 hover:text-accent-deep">
             Human Accessibility
           </a>{' '}
           <span className="text-ink-soft">
