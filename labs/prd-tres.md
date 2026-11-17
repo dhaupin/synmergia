@@ -23,6 +23,11 @@ its own repo, `dhaupin/tresridge`:
 | [`labs/prd-tresridge.md`](https://github.com/dhaupin/tresridge/blob/main/labs/prd-tresridge.md) | the product contract |
 | [`README.md`](https://github.com/dhaupin/tresridge/blob/main/README.md) | the front door and the CLI surface |
 
+**Ownership.** tresridge is a **synmergia project** — it keeps the struct family's *model*
+(the layout, the refusal battery, the named refusals) but is not on the family roster. It is
+not registered in govstruct, has no family-domain site, and is published (if at all) on
+synmergia's say-so. The reference deployment's adoption PRD is below.
+
 **This doc is the reference deployment's adoption PRD.** It does not restate the grammar —
 it binds the standard to Synmergia's reality: which families exist, which fields are edges,
 where the declaration lives in the engine, and which consumers read it. Restating the
@@ -54,11 +59,18 @@ prefix contradiction — is in [`prd-data-graph.md`](./prd-data-graph.md) §1 an
 The measured shape of the fix, from the probe (`scripts/tresridge_probe.mjs`):
 
 ```
-1097 records · 55 families · 344 edges inferred
-14 fields need declaration · 6 dangling
+1097 records · 55 families
+344 reference instances resolved by the rule
+61 declaration edges (family.field pairs) · 12 need declaring
+6 dangling
 ```
 
-Fourteen fields. That is the entire cost of declaring what 1097 records already assume.
+Naming the unit matters here - "edge" was three different things (reference instances,
+declaration pairs, inferred pairs) and the counts only reconcile once separated
+([SPEC §2](https://github.com/dhaupin/tresridge/blob/main/spec/SPEC.md) carries the table).
+The number that matters for the work: **12 pairs** must be declared by hand, covering the
+fields the rule cannot resolve. That is the entire cost of declaring what 1097 records
+already assume.
 
 ---
 
@@ -90,12 +102,17 @@ first draft — `tresridge graph` formalizes it.
 
 ### 3.2 The edges
 
-344 inferred edges become the declaration. The residue is the interesting part:
+The rule resolves 49 `(family, field)` pairs outright; **12 more must be declared**. The
+residue is the interesting part:
 
-- **14 fields with no target convention** — these are declared by hand. Each is either a
-  real edge the rule could not see (a `nested` path, a `virtual` id) or a `literal` field
-  that only *looks* like a reference. Declaring them is the work; the standard's `literal`
-  kind is what keeps that work honest.
+- **12 pairs with no target convention** — declared by hand. Each is either a real edge the
+  rule could not see (a `nested` path, a `virtual` id) or a `literal` field that only
+  *looks* like a reference. Declaring them is the work; the standard's `literal` kind is
+  what keeps that work honest. Two shapes the rule cannot express, both measured:
+  - **a union target** — item ids live across `weapons/`, `armors/`, `resources/`, ... so
+    the edge's target is an **array of keys**, not one family.
+  - **a non-id** — `npc_offerings.service_id` holds `"BlacksmithService"`, a class name.
+    It ends `_id` and is not a reference: the `literal` call.
 - **6 dangling** — declared edges pointing at records that do not exist. Each is a real
   defect (the `currency_id` split is one class of them) or a `required: false` edge.
 - **`currency_id`** — the sharpest one. Schemas write `"currency_gold"`, loot tables write
@@ -117,8 +134,8 @@ standard's artifacts. Each step names the artifact it produces and the receipt t
 ### Step 0 — EXTRACT (done)
 
 `scripts/tresridge_probe.mjs` walks the tree, infers edges, reports the residue. 122 lines,
-zero dependencies. **Receipt:** 1097 records / 55 families / 344 edges / 14 undeclared / 6
-dangling.
+zero dependencies. **Receipt:** 1097 records / 55 families / 344 reference instances
+resolved / 61 declaration pairs (49 inferred + 12 to declare) / 6 dangling.
 
 ### Step 1 — DECLARE
 
@@ -195,7 +212,7 @@ No step lands without the previous step's receipt.
 
 ```bash
 cd /workspace/project/synmergia
-node scripts/tresridge_probe.mjs     # 1097 records, 55 families, 344 edges, 14 undeclared, 6 dangling
+node scripts/tresridge_probe.mjs     # 1097 records, 55 families, 344 resolved instances, 6 dangling
 grep -c '_scan_directory(_data_path' game/core/services/data_service.gd   # 42
 wc -l game/tests/test_data_naming_lint.gd                                 # 2272
 ```
@@ -206,4 +223,5 @@ wc -l game/tests/test_data_naming_lint.gd                                 # 2272
 
 | Date | Author | Summary |
 |------|--------|---------|
-| 2026-11-17 | Web Architecture Team | Initial creation. Binds the tresridge standard (`dhaupin/tresridge`) to Synmergia: the standard→deployment mapping, the 55 families / 344 edges / 14-field residue, the four-step ladder re-homed onto the standard's artifacts, and the four open rulings (the `currency_id` split, the prefix contradiction, the artifact format, the 6 dangling). Supersedes [`prd-data-graph.md`](./prd-data-graph.md) as the adoption plan while keeping it as the design record. |
+| 2026-11-17 | Web Architecture Team | Initial creation. Binds the tresridge standard (`dhaupin/tresridge`) to Synmergia: the standard→deployment mapping, the 55 families / 344 reference instances / 61 declaration pairs, the four-step ladder re-homed onto the standard's artifacts, and the four open rulings (the `currency_id` split, the prefix contradiction, the artifact format, the 6 dangling). Supersedes [`prd-data-graph.md`](./prd-data-graph.md) as the adoption plan while keeping it as the design record. |
+| 2026-11-17 | Web Architecture Team | Units named after the CLI landed and measured the tree directly. "Edge" had been used for three different counts (344 reference instances, 61 declaration pairs, 57 inferred pairs); the reconciliation is in the standard's SPEC §2 and every number here now names its unit. Two shapes the rule cannot express are recorded: the union target (item ids across `weapons/`/`armors/`/`resources/`) and the non-id (`service_id` holding a class name). |
