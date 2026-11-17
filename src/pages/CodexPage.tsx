@@ -2,46 +2,86 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, BookOpen, ArrowLeft } from 'lucide-react';
 
-import { buildCodex, CODEX_TOTAL, type CodexEntry } from '../lib/codex';
+import { buildCodex, CODEX_TOTAL, type CodexEntry, type CodexField } from '../lib/codex';
 
-// The Codex: a browsable read of the world's data files. Everything
-// here comes from src/data/godot_data.json, which the build regenerates
-// from game/data/**/*.tres (scripts/sync_godot_data.ts) -- so the page
-// can never claim a class, skill, or item the game does not ship. The
-// counts on the lander and the entries here share that one source.
+// The Codex: a browsable read of the world's data files. Everything here
+// comes from src/data/godot_data.json, which the build regenerates from
+// game/data/**/*.tres (scripts/sync_godot_data.ts) -- so the page can never
+// claim a field the game does not ship. It is a generic viewer: one entry
+// per source file, every authored field, and the engine's own enum labels
+// for enum-typed values. Nothing here is curated, so nothing here drifts.
 
-const Tag = ({ children }: { children: React.ReactNode }) => (
-  <span className="text-[10px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full border border-line text-ink-soft">
-    {children}
-  </span>
-);
+function FieldValue({ field }: { field: CodexField }) {
+  if (field.kind === 'color') {
+    return (
+      <span className="inline-flex items-center gap-2">
+        <span
+          className="inline-block w-4 h-4 rounded border border-line align-middle"
+          style={{ background: field.color }}
+          aria-hidden="true"
+        />
+        <span className="font-mono text-xs">{field.value}</span>
+      </span>
+    );
+  }
+  if (field.kind === 'list') {
+    return (
+      <details className="group">
+        <summary className="cursor-pointer text-sm text-ink marker:text-ink-soft">
+          {field.value} item{field.value === '1' ? '' : 's'}
+        </summary>
+        <ul className="mt-1.5 space-y-0.5 pl-4 list-disc marker:text-ink-soft">
+          {(field.items || []).map((it, i) => (
+            <li key={i} className="text-xs text-ink-soft font-mono break-all">{it}</li>
+          ))}
+        </ul>
+      </details>
+    );
+  }
+  if (field.kind === 'map') {
+    return (
+      <details className="group">
+        <summary className="cursor-pointer text-sm text-ink marker:text-ink-soft">
+          {field.value} key{field.value === '1' ? '' : 's'}
+        </summary>
+        <dl className="mt-1.5 space-y-0.5 pl-4">
+          {(field.pairs || []).map((p) => (
+            <div key={p.key} className="flex gap-2 text-xs">
+              <dt className="text-ink-soft shrink-0">{p.key}</dt>
+              <dd className="text-ink font-mono break-all">{p.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </details>
+    );
+  }
+  return <span className="text-sm text-ink break-words">{field.value}</span>;
+}
 
 function EntryDetail({ entry, categoryLabel }: { entry: CodexEntry; categoryLabel: string }) {
   return (
     <article className="rounded-xl border border-line bg-surface p-6">
       <p className="text-[11px] uppercase tracking-[0.24em] text-accent/80 mb-2">{categoryLabel}</p>
       <h2 className="font-display text-2xl text-ink leading-tight">{entry.name}</h2>
-      {entry.tags.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {entry.tags.map((t) => (
-            <Tag key={t}>{t}</Tag>
-          ))}
-        </div>
-      )}
       {entry.description && (
-        <p className="mt-4 text-sm text-ink-soft leading-relaxed">{entry.description}</p>
+        <p className="mt-3 text-sm text-ink-soft leading-relaxed">{entry.description}</p>
       )}
-      {entry.facts.length > 0 && (
+
+      {entry.fields.length > 0 && (
         <dl className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-          {entry.facts.map((f) => (
-            <div key={f.label} className="border-t border-line pt-2">
+          {entry.fields.map((f) => (
+            <div key={f.key} className="border-t border-line pt-2">
               <dt className="text-[11px] uppercase tracking-[0.14em] text-ink-soft">{f.label}</dt>
-              <dd className="text-sm text-ink mt-0.5">{f.value}</dd>
+              <dd className="mt-0.5"><FieldValue field={f} /></dd>
             </div>
           ))}
         </dl>
       )}
-      <p className="mt-6 text-[11px] text-ink-soft font-mono break-all">{entry.id}</p>
+
+      <p className="mt-6 text-[11px] text-ink-soft font-mono break-all">
+        {entry.id}
+        {entry.source && <span> · {entry.source}</span>}
+      </p>
     </article>
   );
 }
@@ -61,8 +101,7 @@ export default function CodexPage() {
     return activeCat.entries.filter((e) => e.search.includes(q));
   }, [activeCat, query]);
 
-  const selected =
-    filtered.find((e) => e.id === selectedId) ?? filtered[0] ?? null;
+  const selected = filtered.find((e) => e.id === selectedId) ?? filtered[0] ?? null;
 
   const selectCategory = (key: string) => {
     setCatKey(key);
@@ -83,11 +122,10 @@ export default function CodexPage() {
         <p className="text-[11px] tracking-[0.3em] uppercase text-accent/80 mb-3">The Codex</p>
         <h1 className="font-display text-3xl sm:text-4xl mb-3">Everything the world is made of</h1>
         <p className="text-sm text-ink-soft max-w-2xl leading-relaxed">
-          Classes, skills, species, enemies, items, recipes, mounts, the sky, and the hordes
-          — every entry with the real numbers behind it.{' '}
-          <span className="text-ink">{CODEX_TOTAL.toLocaleString()} entries</span> across{' '}
-          {categories.length} categories. Nothing here is aspirational; it is what is
-          actually in the world.
+          A direct read of the world's data files — every entry with every field it actually
+          carries, and the engine's own names for its enums.{' '}
+          <span className="text-ink">{CODEX_TOTAL.toLocaleString()} files</span> across{' '}
+          {categories.length} categories. Nothing here is summarized; it is what the .tres files say.
         </p>
       </header>
 
@@ -113,9 +151,7 @@ export default function CodexPage() {
         })}
       </div>
 
-      {activeCat && (
-        <p className="text-xs text-ink-soft mb-6 max-w-2xl">{activeCat.blurb}</p>
-      )}
+      {activeCat && <p className="text-xs text-ink-soft mb-6 max-w-2xl">{activeCat.blurb}</p>}
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] gap-6">
         {/* List column */}
@@ -132,7 +168,7 @@ export default function CodexPage() {
             />
           </div>
           <div className="rounded-xl border border-line bg-surface/60 overflow-hidden">
-            <ul className="max-h-[32rem] overflow-y-auto divide-y divide-line" aria-label={activeCat ? `${activeCat.label} entries` : 'Codex entries'}>
+            <ul className="max-h-[32rem] overflow-y-auto divide-y divide-line" aria-label={activeCat ? `${activeCat.label} files` : 'Codex files'}>
               {filtered.length === 0 && (
                 <li className="px-4 py-6 text-sm text-ink-soft text-center">
                   Nothing matches “{query}”.
@@ -152,8 +188,8 @@ export default function CodexPage() {
                       <span className={`text-sm ${active ? 'text-accent' : 'text-ink'}`}>
                         {e.name}
                       </span>
-                      {e.tags.length > 0 && (
-                        <span className="ml-2 text-[10px] text-ink-soft">{e.tags[0]}</span>
+                      {e.scriptClass && (
+                        <span className="ml-2 text-[10px] text-ink-soft">{e.scriptClass}</span>
                       )}
                     </button>
                   </li>
@@ -162,7 +198,7 @@ export default function CodexPage() {
             </ul>
           </div>
           <p className="mt-2 text-[11px] text-ink-soft" aria-live="polite">
-            {filtered.length} {filtered.length === 1 ? 'entry' : 'entries'}
+            {filtered.length} {filtered.length === 1 ? 'file' : 'files'}
           </p>
         </div>
 
