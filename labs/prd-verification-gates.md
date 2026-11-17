@@ -129,7 +129,29 @@ After the fixes: **836 compiled, 1 baselined, 0 broken.**
 - Registered first in `DEFAULT_SET`; a named run is
   `sh ./scripts/godot_test_runner.sh test_parse_check`.
 
-## 6. Open items
+## 6. Flake observed (this round): `probe_globe_world` radial-drift leg
+
+On PR #118's first CI run, `default-set` went red on a single test:
+`probe_globe_world` → `FAIL no radial drift (|v_rad|=-1.67)`.
+
+- The check is `abs(player.velocity.dot(normal)) < 1.5`, read immediately
+  after the auto-walk loop stops (`probe_globe_world.gd:80`). The probe is
+  already in the runner's `SERIAL_SET` (JOBS=1, ahead of the swarm) precisely
+  because a movement read is timing-sensitive.
+- It is NOT this PR's change: the diff touches no movement code, and the same
+  probe PASSES locally (`|v_rad|=-0.00`) and passed in the last green staging
+  run (31 s). A **job re-run went green** with no code change.
+- The failure is a velocity read landing on a single frame where the
+  tangential walk has a radial component just over the 1.5 threshold — a
+  slow-CI-box artifact, not a regression. The threshold has no smoothing:
+  one frame's `velocity` decides pass/fail.
+
+**Follow-up (not done here):** either widen the threshold with margin,
+sample `velocity` over a few frames (average) instead of one, or zero the
+velocity before the read. A one-frame velocity assertion on a wall-clock walk
+is a flake generator.
+
+## 7. Open items
 
 1. **Refactor or delete `healing.gd`** (remove the `BASELINE` entry when done;
    the file is a Godot-3 relic — split the inner classes into their own
