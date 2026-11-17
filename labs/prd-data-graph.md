@@ -42,7 +42,7 @@ mandates `item_`/`res_`/`wep_`, `zone_`, `quest_`, `faction_`. Both are "the law
 neither is authoritative, and `id_registry` is used by no content path.
 
 **4. Real defects hide in the gaps.** A convention-only resolver (prototype,
-`scripts/tres_graph.mjs`) extracts **344 relations** and immediately finds:
+`scripts/tresridge_probe.mjs`) extracts **344 relations** and immediately finds:
 
 - **`currency_id` uses two incompatible conventions.** Schemas write
   `"currency_gold"`; every `loot_tables/*.tres` writes `"gold"`. Same field name,
@@ -130,7 +130,7 @@ leaves **14 fields** that must be declared by hand.
 | `game/core/data/relations.gd` | **The single source of truth.** Family + Relation tables, as data. | baseline §2/§4 prose, scattered mappings |
 | `game/tools/data_graph.gd` | Generic walker: loads the graph, walks `game/data/`, returns resolved edges + dangling + orphans. | the 2272-line regex lint internals |
 | `game/tests/test_data_graph.gd` | Thin assertions over the walker (prefix, filename==id, ref resolution, cycles, orphans). | `test_data_naming_lint.gd` scanners |
-| `scripts/tres_graph.mjs` | Web-side extractor. Emits the graph for the Codex. | `sync_godot_data.ts` hardcoded category knowledge |
+| `scripts/tresridge_probe.mjs` | Web-side extractor. Emits the graph for the Codex. | `sync_godot_data.ts` hardcoded category knowledge |
 | `labs/data-authoring-baseline.md` §2/§4 | **Generated** from `relations.gd`. | hand-maintained tables |
 | Codex "Related" panel | Public, navigable edges + an orphan/dangling report. | nothing today |
 
@@ -142,8 +142,8 @@ once and cannot drift, because every consumer reads the same table.
 ## 4. The ladder
 
 ### Step 0 — EXTRACT (done, prototype)
-`scripts/tres_graph.mjs` infers edges by the resolution rule and reports the residue.
-Run it: `node scripts/tres_graph.mjs`. Current output: 344 edges, 14 undeclared
+`scripts/tresridge_probe.mjs` infers edges by the resolution rule and reports the residue.
+Run it: `node scripts/tresridge_probe.mjs`. Current output: 344 edges, 14 undeclared
 fields, 6 dangling.
 
 ### Step 1 — DECLARE
@@ -224,7 +224,7 @@ fails CI, not a code review.
 ## 7. Evidence (reproduce)
 
 ```
-node scripts/tres_graph.mjs
+node scripts/tresridge_probe.mjs
   schemas with class_name: 67
   records: 1097 across 55 dirs
   relations extracted: 344
@@ -238,4 +238,4 @@ node scripts/tres_graph.mjs
 
 | Date | Author | Summary |
 |------|--------|---------|
-| 2026-11-17 | Web Architecture Team | Initial creation. Measured the implicit relation web (344 edges, 14 undeclared fields, 6 dangling) via `scripts/tres_graph.mjs`; specified the Family/Relation model, the five edge kinds, the resolution rule, and a four-step ladder (extract → declare → enforce → publish). |
+| 2026-11-17 | Web Architecture Team | Initial creation. Measured the implicit relation web (344 edges, 14 undeclared fields, 6 dangling) via `scripts/tresridge_probe.mjs`; specified the Family/Relation model, the five edge kinds, the resolution rule, and a four-step ladder (extract → declare → enforce → publish). |
