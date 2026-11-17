@@ -105,16 +105,18 @@ export default function PlayGameIsland() {
             onClick={handleReload}
             className="p-2 rounded bg-surface/90 hover:bg-surface text-ink transition-colors"
             title="Restart the engine (fresh pack fetch)"
+            aria-label="Restart the game engine"
           >
-            <RotateCw className="w-4 h-4" />
+            <RotateCw className="w-4 h-4" aria-hidden="true" />
           </button>
           <button
             type="button"
             onClick={handleToggleFullscreen}
             className="p-2 rounded bg-accent/90 hover:bg-accent text-paper transition-colors"
             title="Toggle fullscreen"
+            aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
           >
-            {isFullscreen ? null : <Maximize2 className="w-4 h-4" />}
+            {isFullscreen ? null : <Maximize2 className="w-4 h-4" aria-hidden="true" />}
           </button>
         </div>
         {fsError && (

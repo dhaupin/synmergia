@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Menu, X } from 'lucide-react';
 
 // Pack-freshness chip: same live sha256 CI writes to web/game.pck.hash
@@ -70,35 +70,57 @@ export default function SiteLayout() {
   const pckHash = usePckHash();
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const mobileNavRef = useRef<HTMLElement>(null);
 
   // Close the mobile menu whenever the route changes.
   useEffect(() => {
     setMenuOpen(false);
   }, [location.pathname]);
 
+  // While the mobile menu is open, Escape closes it and focus returns to the
+  // toggle; opening moves focus to the first item so keyboard users land in
+  // the menu instead of behind it.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const firstLink = mobileNavRef.current?.querySelector<HTMLElement>('a, button');
+    firstLink?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMenuOpen(false);
+        toggleRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
+
   return (
     <div className="min-h-screen flex flex-col">
       <a href="#main" className="skip-link">Skip to content</a>
       <header className="border-b border-line bg-surface/80 backdrop-blur sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <Link to="/" className="flex items-center gap-3 shrink-0" aria-label="Synmergia home">
-            <img
-              src="/branding/logo-synmergia-emblem-small.png"
-              alt=""
-              width={32}
-              height={26}
-              className="h-7 w-auto"
-            />
-            <span className="font-display font-bold text-lg tracking-tight">Synmergia</span>
+          <div className="flex items-center gap-3 shrink-0">
+            <Link to="/" className="flex items-center gap-3" aria-label="Synmergia home">
+              <img
+                src="/branding/logo-synmergia-emblem-small.png"
+                alt=""
+                width={32}
+                height={26}
+                className="h-7 w-auto"
+              />
+              <span className="font-display font-bold text-lg tracking-tight">Synmergia</span>
+            </Link>
             {pckHash && (
               <span
+                aria-hidden="true"
                 className="hidden sm:inline text-[10px] px-1.5 py-0.5 rounded bg-surface text-accent border border-line font-mono"
                 title="sha256 prefix of the packed game.pck the engine loads"
               >
                 {pckHash}
               </span>
             )}
-          </Link>
+          </div>
 
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-1" aria-label="Primary">
@@ -111,6 +133,7 @@ export default function SiteLayout() {
 
           {/* Mobile burger */}
           <button
+            ref={toggleRef}
             type="button"
             className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-md border border-line text-ink-soft hover:text-ink hover:border-accent/60 transition-colors"
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
@@ -124,7 +147,7 @@ export default function SiteLayout() {
 
         {/* Mobile nav panel */}
         {menuOpen && (
-          <nav id="mobile-nav" className="md:hidden border-t border-line bg-surface/95" aria-label="Primary">
+          <nav ref={mobileNavRef} id="mobile-nav" className="md:hidden border-t border-line bg-surface/95" aria-label="Primary">
             <div className="max-w-6xl mx-auto px-4 py-2 flex flex-col">
               {NAV.map((n) =>
                 n.to.startsWith('http') ? (
@@ -177,6 +200,7 @@ export default function SiteLayout() {
                 className="hover:text-accent"
               >
                 Free &amp; open source
+                <span className="sr-only"> (opens in a new tab)</span>
               </a>
               {' · '}© {new Date().getFullYear()}{' '}
               <a
@@ -186,12 +210,15 @@ export default function SiteLayout() {
                 className="hover:text-accent"
               >
                 Creadev.org
+                <span className="sr-only"> (opens in a new tab)</span>
               </a>
             </span>
           </div>
           <nav className="flex items-center gap-4" aria-label="Footer">
             <Link to="/lore" className="hover:text-accent">Lore</Link>
             <Link to="/rules" className="hover:text-accent">Rules</Link>
+            <Link to="/accessibility" className="hover:text-accent">Accessibility</Link>
+            <Link to="/agents" className="hover:text-accent">Agents</Link>
             <Link to="/opensource" className="hover:text-accent">Open Source</Link>
             <a href={DOCS_URL} className="hover:text-accent">Docs</a>
             <Link to="/privacy" className="hover:text-accent">Privacy</Link>
@@ -203,6 +230,7 @@ export default function SiteLayout() {
               className="hover:text-accent"
             >
               GitHub
+              <span className="sr-only"> (opens in a new tab)</span>
             </a>
           </nav>
         </div>

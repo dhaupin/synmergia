@@ -186,7 +186,7 @@ export default function ExperiencesPage() {
           It is free to play and it is being built in the open, which means you can
           watch it grow and even help shape it. If that sounds like your kind of
           project,{' '}
-          <Link to="/opensource" className="text-accent hover:underline">
+          <Link to="/opensource" className="text-accent underline underline-offset-2 hover:text-accent-deep">
             come build it with us
           </Link>
           .

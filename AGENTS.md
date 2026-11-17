@@ -1349,9 +1349,9 @@ hook on setup. If a tool ever asks for LFS, do NOT re-add it here: the
 engine binary is provisioned by `scripts/setup-dev.sh`, not by LFS.
 
 
-### Canon + surface facts learned in the Part C lore round (2026-11-29)
+### Canon + surface facts learned in the Part C lore round (2026-11-13)
 
-- **The Bloom woods are "Gloamwood"** (owner call 2026-11-29). Ids always
+- **The Bloom woods are "Gloamwood"** (owner call 2026-11-13). Ids always
   read `gloam` (`enemy_gloamwood_stalker`, `quest_gloamwood_ledger`,
   `loot_gloam_*`, `res_gloam_spore`, `elixir_gloamward`); the DISPLAY strings
   had drifted to "Gloomwood". `test_data_naming_lint.gd` now has a gate that
@@ -1388,7 +1388,7 @@ engine binary is provisioned by `scripts/setup-dev.sh`, not by LFS.
   compatibility. Godot 4.7.2 at `~/godot-bin/godot`; run tests with
   `GODOT_BIN=~/godot-bin/godot scripts/godot_test_runner.sh`.
 
-### Flake + five-rung rarity parity (learned 2026-12-01)
+### Flake + five-rung rarity parity (learned 2026-11-14)
 
 - **`test_globe_input_parity` was flaky by design, not by timing.** Its
   attack leg can KILL the spawned dummy, and the later Tab leg asserted that
@@ -1471,7 +1471,7 @@ engine binary is provisioned by `scripts/setup-dev.sh`, not by LFS.
   live `spawn_boss` through `SpawnService`), not just the template. Negative
   control: deleting the seeder's crit lines must fail the test.
 
-### Quest objective bridges + CI triggers (learned 2026-11-29)
+### Quest objective bridges + CI triggers (learned 2026-11-13)
 
 - **Objective types and their bridges.** `quest_data.gd` `ObjectiveType`
   has 14 members; `quest_service.gd` bridges **8** of them (KILL, COLLECT,
@@ -1520,7 +1520,7 @@ engine binary is provisioned by `scripts/setup-dev.sh`, not by LFS.
   unauthored categories (raw stat names `distance`/`time`/`max_altitude`,
   the follow/waypoint convenience verbs) print as `[info]`, not failures.
 
-### Canon gates in the naming lint (learned 2026-11-29, canon-gates round)
+### Canon gates in the naming lint (learned 2026-11-13, canon-gates round)
 
 - **Objective integrity covers 8 types, now including CRAFT.** The lint's
   objective leg validates KILL(0)/COLLECT(1)/EXPLORE(4)/TALK(5)/

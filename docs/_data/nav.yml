@@ -30,6 +30,8 @@
   items:
     - title: Overview
       url: /build/
+    - title: The Laws
+      url: /build/laws/
     - title: The Frame
       url: /build/frame/
     - title: Local Setup

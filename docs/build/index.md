@@ -13,9 +13,10 @@ Synmergia is MIT-licensed and developed in the open. The engine, server, data, w
 
 1. [Set up the local toolchain]({{ '/build/local-setup/' | relative_url }}) - Godot 4.7.2, Node 20+, Bun, and the repository scripts.
 2. [Run the tests]({{ '/build/testing/' | relative_url }}) - the one Godot runner, the web checks, and the docs build.
-3. Read [CONTRIBUTING.md](https://github.com/dhaupin/synmergia/blob/main/CONTRIBUTING.md) for the PR flow and the conventions.
-4. If you are touching GDScript, read [AGENTS.md](https://github.com/dhaupin/synmergia/blob/main/AGENTS.md) first. It carries the autoload, indentation, and test rules.
-5. Read [Access and agents]({{ '/access/' | relative_url }}) before adding a UI control or an agent-facing endpoint. Every new actionable needs a name, a focus position, and a stable handle.
+3. Read [The Laws]({{ '/build/laws/' | relative_url }}) - the five rules that keep systems fluid, and the gate that enforces each one.
+4. Read [CONTRIBUTING.md](https://github.com/dhaupin/synmergia/blob/main/CONTRIBUTING.md) for the PR flow and the conventions.
+5. If you are touching GDScript, read [AGENTS.md](https://github.com/dhaupin/synmergia/blob/main/AGENTS.md) first. It carries the autoload, indentation, and test rules.
+6. Read [Access and agents]({{ '/access/' | relative_url }}) before adding a UI control or an agent-facing endpoint. Every new actionable needs a name, a focus position, and a stable handle.
 
 ## Repository map
 

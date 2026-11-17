@@ -98,7 +98,7 @@ export default function RulesPage() {
               href="https://github.com/dhaupin/synmergia/issues"
               target="_blank"
               rel="noreferrer"
-              className="text-accent hover:underline"
+              className="text-accent underline underline-offset-2 hover:text-accent-deep"
             >
               github.com/dhaupin/synmergia/issues
             </a>

@@ -37,7 +37,7 @@ Layout law:
   = `sync:data` + `tsc` + `prestruct build` + the deferred `/game/`
   copy; see `ssr.config.js` for the route list).
 
-Stack: Vite 6 · React 18 · react-router-dom 6 · Tailwind v4
+Stack: Vite 8 · React 19 · react-router-dom 7 · Tailwind v4
 (Bolete-style token architecture, dark Nocturne first) · prestruct
 prerender · Cloudflare Pages.
 

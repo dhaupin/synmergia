@@ -86,7 +86,7 @@ const CRAFT: { glyph: string; title: string; body: string }[] = [
 
 const STACK = [
   'Godot 4.7.2 — GDScript, browser-first',
-  'React 18 + Vite + Tailwind (this site)',
+  'React 19 + Vite 8 + Tailwind (this site)',
   'Authoritative server + multi-iso orchestrator',
   'Deterministic world generation from one seed',
   'MIT-licensed, built in the open',

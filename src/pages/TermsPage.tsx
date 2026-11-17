@@ -5,15 +5,17 @@ export default function TermsPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
       <h1 className="font-display text-3xl mb-2">Terms of Use</h1>
-      <p className="text-sm text-ink-soft mb-10">Last updated: October 19, 2026</p>
+      <p className="text-sm text-ink-soft mb-10">Last updated: November 17, 2026</p>
 
       <div className="space-y-8 text-sm leading-relaxed text-ink/90">
         <section>
           <h2 className="font-display text-xl mb-2">What this is</h2>
           <p>
             Synmergia is a free, open-source game by dhaupin and contributors.
-            Playing it in your browser or downloading a build costs nothing and
-            requires no account.
+            Playing it costs nothing. The browser build is gated to
+            early-access key holders while launch is finished, and playing the
+            live world uses a free account (email and a password); a
+            downloadable build can be run locally without one.
           </p>
         </section>
 
@@ -61,8 +63,8 @@ export default function TermsPage() {
           <p>
             Anything under /admin on this site is restricted operator
             tooling for running the game's services, not part of the public
-            game. Unauthorized access is prohibited and we log nothing about
-            you — meaning attempts are visible to the server operator alone.
+            game. Unauthorized access is prohibited. The server logs access
+            attempts to that surface, visible to the server operator alone.
           </p>
         </section>
 
@@ -70,7 +72,7 @@ export default function TermsPage() {
           <h2 className="font-display text-xl mb-2">Contact</h2>
           <p>
             Questions, disputes, or takedown requests:{' '}
-            <a href="https://github.com/dhaupin/synmergia/issues" target="_blank" rel="noreferrer" className="text-accent hover:underline">
+            <a href="https://github.com/dhaupin/synmergia/issues" target="_blank" rel="noreferrer" className="text-accent underline underline-offset-2 hover:text-accent-deep">
               github.com/dhaupin/synmergia/issues
             </a>.
           </p>

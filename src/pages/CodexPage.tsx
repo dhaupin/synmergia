@@ -145,7 +145,7 @@ export default function CodexPage() {
               }`}
             >
               {c.label}
-              <span className="ml-1.5 text-[10px] opacity-60">{c.entries.length}</span>
+              <span className="ml-1.5 text-[10px] opacity-80">{c.entries.length}</span>
             </button>
           );
         })}

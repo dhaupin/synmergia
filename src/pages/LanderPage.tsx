@@ -229,7 +229,7 @@ export default function LanderPage() {
         </div>
         <p className="mt-6 text-sm text-ink-soft">
           Every one of these is browsable, entry by entry, in the{' '}
-          <Link to="/codex" className="text-accent hover:underline">
+          <Link to="/codex" className="text-accent underline underline-offset-2 hover:text-accent-deep">
             Codex
           </Link>{' '}
           — {CODEX_TOTAL.toLocaleString()} data files across {CODEX_CATEGORY_COUNT} categories.
@@ -344,7 +344,7 @@ export default function LanderPage() {
           </div>
           <p className="mt-5 text-xs text-ink-soft">
             Curious how it is built, or want to help make it?{' '}
-            <Link to="/opensource" className="text-accent hover:underline">
+            <Link to="/opensource" className="text-accent underline underline-offset-2 hover:text-accent-deep">
               It is all open source
             </Link>
             .
