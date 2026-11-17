@@ -25,8 +25,9 @@
 //   for (const e of await syn.events()) console.log(e.event, e.data);
 //
 // The object returned by observe():
-//   { ok, frame, scene, in_world, player, target, party, actions[], events[] }
-// Each action: { id, kind, action, detail, disabled }  (act by `id`, always)
+//   { ok, frame, scene, in_world, player, target, party, focus, summary,
+//     actions[], events[] }   // focus + summary are SPEC N5
+// Each action: { id, kind, action, detail, focused, disabled }  (act by `id`, always)
 
 (function (global) {
         'use strict';

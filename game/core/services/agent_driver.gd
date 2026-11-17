@@ -172,6 +172,19 @@ func observe(principal: String = "") -> Dictionary:
 	var tree := get_tree()
 	if tree != null and tree.current_scene != null:
 		scene = String(tree.current_scene.name)
+	var actions := _actions()
+	# N5: observe MUST carry the current focus handle and a summary. Focus is the
+	# id of the one focused actionable (or null); the summary counts the surface so
+	# a client reads its size without walking the list. Mirrors gamestruct's own
+	# Bridge.observe() (focus + {nodes, actionable, live, focus}), so both lanes
+	# read one shape.
+	var focus: Variant = null
+	var actionable: int = 0
+	for a in actions:
+		if focus == null and bool(a.get("focused", false)):
+			focus = String(a.get("id", ""))
+		if not bool(a.get("disabled", false)):
+			actionable += 1
 	var out: Dictionary = {
 		"ok": true,
 		"frame": _frames,
@@ -182,7 +195,9 @@ func observe(principal: String = "") -> Dictionary:
 		"player": _player_block(player),
 		"target": _target_block(),
 		"party": _party_block(player),
-		"actions": _actions(),
+		"focus": focus,
+		"summary": {"nodes": actions.size(), "actionable": actionable, "live": 0, "focus": focus},
+		"actions": actions,
 		"events": _ring.slice(maxi(0, _ring.size() - 20)),
 	}
 	return out
@@ -273,6 +288,7 @@ func _actions() -> Array:
 			"kind": String(e.get("kind", "")),
 			"action": String(e.get("action", "")),
 			"detail": String(e.get("detail", "")),
+			"focused": bool(e.get("focused", false)),
 			"disabled": bool(e.get("disabled", false)),
 		}
 		# Settable controls carry their current value (so an agent can confirm a
@@ -488,6 +504,10 @@ func _verb_see(args: Dictionary) -> Dictionary:
 		"in_world": in_world(),
 		"note": "read this PNG with your own vision (eyestruct spot / any viewer)",
 	}
+	# N24: seeing is an EVENT. A successful capture records on the ring so the
+	# human lane's live region and the agent lane's cursor observe it -- never a
+	# silent side effect.
+	_record("see", {"path": abs_path, "bytes": size, "width": img.get_width(), "height": img.get_height()})
 	return view
 
 func _safe_label(label: String) -> String:

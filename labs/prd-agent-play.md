@@ -52,7 +52,7 @@ scraping, no index-based coordinates.
 
 | Verb | Shape | Meaning |
 |------|-------|---------|
-| `observe()` | `-> {ok, frame, scene, in_world, player, target, party, actions[], events[]}` | The structured snapshot. `actions[]` is the actionable list, each entry carrying a STABLE id. |
+| `observe()` | `-> {ok, frame, scene, in_world, player, target, party, focus, summary, actions[], events[]}` | The structured snapshot. `actions[]` is the actionable list, each entry carrying a STABLE id. `focus` is the focused handle (or null); `summary` counts `{nodes, actionable, live, focus}` -- SPEC N5. |
 | `act(id, args)` | `-> {ok, reason, ...}` | Perform one action by stable handle or by a small world-verb set. |
 | `wait_for(pred, ms)` | `-> {ok, waited_ms \| reason}` | Server-side wait; resolves when the predicate holds or the timeout expires. Kills fixed-sleep flake. |
 | `events(since)` | `-> [ {t, frame, event, data} ]` | The recent event ring (damage, kills, zone, gold, notifications, target actions). |
@@ -110,6 +110,23 @@ continuous things handles cannot express; everything discrete is a handle.
   owner and the door stays primitive-transport.
 
 Both reach the SAME `AgentDriver` verbs, so distance never changes the rules.
+
+### Wire conformance (gamestruct SPEC v1.1)
+
+The door is a SPEC binding, so it obeys the four primitives' rules verbatim:
+
+- **N5** -- `observe()` carries the current `focus` handle (or null) and a
+  `summary` (`{nodes, actionable, live, focus}`), matching gamestruct's own
+  `Bridge.observe()`. A client reads the surface size without walking the list.
+- **N16** -- `/health` is liveness and is **tokenless**; every other route
+  fails closed with HTTP **401** when `SYN_AGENT_TOKEN` is set and the request
+  carries no matching bearer / `x-api-key`.
+- **N21 / N26** -- every refusal is a value `{ok:false, reason}`, never an
+  `error` key and never a throw. A refused `act` crosses the wire under
+  **409**; an honest `wait_for` timeout under **408**; a driver timeout under
+  **504**; an unknown route under **404**. `DoorClient` reads these as data.
+- **N24** -- a successful `see` records a `see` event on the ring, so the human
+  lane's live region and the agent lane's cursor observe it.
 
 ### Threading law
 
