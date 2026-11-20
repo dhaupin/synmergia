@@ -1577,6 +1577,14 @@ engine binary is provisioned by `scripts/setup-dev.sh`, not by LFS.
   filesystem, which the page cannot fetch back, so in-page `see()` refuses by
   name ("the in-page surface has no eyes") instead of returning a path that
   does not resolve. The facade reports a missing `see` callback the same way.
+- **A step NAME is not a condition.** `web-ci.yml`'s "Sync art to R2 (push
+  to main)" had that name and a comment saying it ran on push-to-main, but no
+  `if:` at all -- so it ran on every PR and could overwrite the production R2
+  assets (game.wasm / game.pck) with an unmerged branch's build. It surfaced
+  only because a PR run hit a Cloudflare 500. The two sibling write-steps in
+  the same job already carried `github.event_name == 'push' && github.ref ==
+  'refs/heads/main'`; audit every write/publish step against its siblings
+  rather than trusting its name.
 - **`web/**` had no CI watcher.** `web-ci.yml` triggers on `game/**` only, so a
   change under `web/` ran nothing. `web-lockfile-guard.yml` now also triggers
   on `web/**` + `scripts/build_embedded_bundle.mjs` and runs the bundle-drift
