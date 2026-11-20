@@ -145,14 +145,11 @@ every change to `game/data/**` or `scripts/gen-relations.mjs`. The standard is n
 yet, so the lane clones `dhaupin/tresridge` at a **pinned commit** (`TRESRIDGE_REF` in the
 lane env) - the family's pinned-linter rule: a floating linter is a random CI.
 
-**The lane needs `TRESRIDGE_TOKEN`.** `dhaupin/tresridge` is private and this repository is
-public, so the default `GITHUB_TOKEN` cannot read it - it is scoped to this repository
-only. Add a fine-grained PAT with `Contents: read` on `dhaupin/tresridge` as the
-`TRESRIDGE_TOKEN` secret. A missing secret fails the lane by name; it never skips.
-
-The URL is the bare-token form (`https://<token>@github.com/...`), **not**
-`x-access-token:<token>@...`: the latter is the GitHub App installation-token shape and
-rejects a fine-grained PAT with "Invalid username or token". Both were measured.
+**No secret is needed.** `dhaupin/tresridge` is public, so the pin is fetched anonymously
+and a fork's pull request runs the same lane as `main`. Keep it that way: a gate that
+needs a secret is a gate that silently skips on a fork, which is exactly the silent pass
+this lane exists to catch. (While the repo was private this lane needed a PAT, and the
+`x-access-token:<token>@` URL shape rejected it - that whole branch is gone.)
 
 **A pin is a claim about the linter, so the lane tests the claim.** The `Pin canary` step
 builds a two-record tree, points the pinned CLI one level above it, and requires exit `2`

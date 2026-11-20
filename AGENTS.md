@@ -41,11 +41,12 @@ Six facts from that log that still shape every round:
   pinned linter still refuses a wrong root before any verdict is trusted. When
   you add a pinned external tool, pin it AND assert one behaviour that must
   fail.
-- **A repo's token cannot read a private sibling.** `tresridge` is private,
-  this repo is public, and the default `GITHUB_TOKEN` is scoped to this repo
-  only. Cross-repo pins need `TRESRIDGE_TOKEN` in the bare
-  `https://<token>@github.com/...` form -- `x-access-token:<token>@` rejects a
-  fine-grained PAT with "Invalid username or token".
+- **A pinned lane must not need a secret.** `tresridge` is public, so the pin
+  is fetched anonymously and a fork's PR runs the same lane as `main`. A gate
+  behind a secret silently skips on every fork. (When tresridge was private the
+  lane needed a PAT; the `x-access-token:<token>@` URL shape rejects a
+  fine-grained PAT, so the bare `https://<token>@github.com/...` form was the
+  only one that worked.)
 - **The clipmap is the sole terrain renderer.** `LODManager` and the legacy
   `globe_terrain_streamer` are retired; the one idea that survived (Markov
   prefetch) is `PropLayer.enable_prefetch`.

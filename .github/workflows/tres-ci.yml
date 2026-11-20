@@ -9,11 +9,10 @@ name: Tres Relation Gate
 # dhaupin/tresridge (the family's pinned-linter rule: a floating linter is a
 # random CI). When the pin moves, re-derive the declaration in the SAME commit.
 #
-# dhaupin/tresridge is PRIVATE while this repository is public, so the pin
-# cannot be fetched anonymously - the default GITHUB_TOKEN is scoped to this
-# repository only and cannot read a sibling. The lane therefore needs a
-# TRESRIDGE_TOKEN secret: a fine-grained PAT with `Contents: read` on
-# dhaupin/tresridge. Without it the lane REFUSES by name; it never skips.
+# dhaupin/tresridge is PUBLIC, so the pin is fetched anonymously: no token, no
+# secret, and a fork's pull request runs the same lane as `main`. That is
+# deliberate - a gate that needs a secret is a gate that silently skips on a
+# fork, which is the failure mode this lane exists to catch.
 
 on:
   push:
@@ -65,26 +64,16 @@ jobs:
       # Clone the standard at the pinned commit. Zero runtime deps, so no
       # install step is needed - the CLI runs straight from the checkout.
       #
-      # The token is required because the standard is a PRIVATE sibling of a
-      # PUBLIC repository. A missing secret is a named refusal, not a skip: a
-      # lane that quietly does nothing when it cannot fetch is the silent pass
-      # this gate exists to prevent.
+      # An unreachable pin is a named refusal, not a skip: a lane that quietly
+      # does nothing when it cannot fetch is the silent pass this gate exists
+      # to prevent.
       - name: Fetch the pinned standard
-        env:
-          TRESRIDGE_TOKEN: ${{ secrets.TRESRIDGE_TOKEN }}
         run: |
-          if [ -z "${TRESRIDGE_TOKEN:-}" ]; then
-            echo "::error::TRESRIDGE_TOKEN is not set. dhaupin/tresridge is private and this repository is public, so the default GITHUB_TOKEN cannot read it. Add a fine-grained PAT with 'Contents: read' on dhaupin/tresridge as the TRESRIDGE_TOKEN secret."
-            exit 1
-          fi
           git init -q "$RUNNER_TEMP/tresridge"
           cd "$RUNNER_TEMP/tresridge"
-          # Bare-token form, NOT `x-access-token:...`: the latter is the GitHub
-          # App installation-token shape and a fine-grained PAT is rejected by it
-          # ("Invalid username or token"). Measured, not assumed.
-          git remote add origin "https://${TRESRIDGE_TOKEN}@github.com/dhaupin/tresridge.git"
+          git remote add origin https://github.com/dhaupin/tresridge.git
           if ! git fetch -q --depth 1 origin "$TRESRIDGE_REF"; then
-            echo "::error::Cannot fetch TRESRIDGE_REF=$TRESRIDGE_REF. Either the pin is unreachable or the token lacks read access to dhaupin/tresridge."
+            echo "::error::Cannot fetch TRESRIDGE_REF=$TRESRIDGE_REF from dhaupin/tresridge. The pin is unreachable - check that the commit exists and that the repo is public."
             exit 1
           fi
           git checkout -q FETCH_HEAD
