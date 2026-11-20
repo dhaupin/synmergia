@@ -19,7 +19,10 @@
     "verify:lane": "node scripts/verify_lane.mjs",
     "verify:codex": "node scripts/verify_codex.mjs",
     "docs:build": "cd docs && bundle exec jekyll build && cd .. && node node_modules/freestruct/bin/freestruct.mjs --strict",
-    "docs:serve": "cd docs && bundle exec jekyll serve --host 0.0.0.0 --port 4000"
+    "docs:serve": "cd docs && bundle exec jekyll serve --host 0.0.0.0 --port 4000",
+    "test:web-agent": "node --test scripts/web_probe/test_agent_client_embedded.mjs",
+    "build:embedded": "node scripts/build_embedded_bundle.mjs",
+    "check:embedded": "node scripts/build_embedded_bundle.mjs --check"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",
@@ -36,7 +39,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.3.0",
     "freestruct": "1.4.1",
-    "gamestruct": "github:dhaupin/gamestruct#1576774e86e25741a9766dd3c82f267851ef3808",
+    "gamestruct": "github:dhaupin/gamestruct#2816773a0c14faa4a31344928f7f20ee677badd4",
     "prestruct": "^1.5.1",
     "tailwindcss": "^4.3.5",
     "tsx": "^4.23.13",

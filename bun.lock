@@ -19,7 +19,7 @@
         "@types/react-dom": "^19.3.0",
         "@vitejs/plugin-react": "^6.3.0",
         "freestruct": "1.4.1",
-        "gamestruct": "github:dhaupin/gamestruct#1576774e86e25741a9766dd3c82f267851ef3808",
+        "gamestruct": "github:dhaupin/gamestruct#2816773a0c14faa4a31344928f7f20ee677badd4",
         "prestruct": "^1.5.1",
         "tailwindcss": "^4.3.5",
         "tsx": "^4.23.13",
@@ -237,7 +237,7 @@
 
     "fsevents": ["fsevents@2.3.3", "", { "os": "darwin" }, "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw=="],
 
-    "gamestruct": ["gamestruct@github:dhaupin/gamestruct#1576774", { "bin": { "gamestruct": "bin/gamestruct.mjs" } }, "dhaupin-gamestruct-1576774", "sha512-5HbKppmn9WzHzb6gM1vBbq9w3cmMD5kxT89SL9TzWGw3vCuofbn/+/9Vus4g7w1m3+9Et1pUmbUg1vs6ecqkew=="],
+    "gamestruct": ["gamestruct@github:dhaupin/gamestruct#2816773", { "bin": { "gamestruct": "bin/gamestruct.mjs" } }, "dhaupin-gamestruct-2816773", "sha512-5dXoZRKDbeQttCWx3YHshM1aZVIrAO1pg8LSv+WkkoIByO/eyJR1dta9JxPtVQOBr0nIojjGDaZiLQ27apcNrQ=="],
 
     "graceful-fs": ["graceful-fs@4.2.11", "", {}, "sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ=="],
 
