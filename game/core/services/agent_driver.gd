@@ -316,6 +316,33 @@ func _actions() -> Array:
 ## Perform one action by stable handle (ui:<path> / world:<id>) or by a small
 ## set of world verbs (move/look/chat/attack/target/party_invite/stop). Every
 ## path routes through the real pipeline; returns {ok, reason, ...}.
+## The gamestruct wire act body is {id, verb, value}; act(id, args) takes an
+## id plus a verb-specific args object, so fold `value` in. ONE implementation:
+## the HTTP door (agent_door.gd) and the in-page hook (web_input_bridge.gd)
+## both call this, because they are the same protocol at two distances and a
+## private copy in each is how the in-page set_value silently became an
+## activate (it sent flat {id,verb,value} into a reader expecting {id,args}).
+## Tolerates the legacy {id, args} shape a vant/companion client may still send.
+static func fold_act_body(body: Dictionary) -> Dictionary:
+	var args: Dictionary = body.get("args", {}) if body.get("args", {}) is Dictionary else {}
+	args = args.duplicate(true)
+	# The wire carries a `verb`; the driver reads it to tell a VALUE WRITE
+	# (`set_value`) from ACTIVATION. Keep it, and fold a dictionary `value`
+	# in as the verb-specific args (a scalar `value` rides as `value`).
+	if body.has("verb"):
+		args["verb"] = String(body.get("verb", ""))
+	var value = body.get("value", null)
+	if value is Dictionary:
+		for k in value:
+			args[k] = value[k]
+	elif value != null:
+		args["value"] = value
+	# A per-body principal (labs/prd-agent-play.md sec 1/7): the caller names
+	# WHICH body a verb drives. Absent/"" = the local seat (the human).
+	if body.has("principal"):
+		args["principal"] = String(body.get("principal", ""))
+	return {"id": String(body.get("id", "")), "args": args}
+
 func act(action_id: String, args: Dictionary = {}) -> Dictionary:
 	if not _enabled:
 		return {"ok": false, "reason": "agent driver disabled"}

@@ -1548,3 +1548,38 @@ engine binary is provisioned by `scripts/setup-dev.sh`, not by LFS.
   (lancer/wyrm/reef_glider/plains_runner) even though its own comment says
   "only VENDOR is sold here" -- a known inconsistency left for a deliberate
   call (re-source the mounts, or relax the comment), not a drive-by edit.
+
+### The in-page agent door: two transports, ONE act fold (learned 2026-11-20)
+
+- **The agent wire is the same protocol at two distances, and the fold is
+  shared.** `AgentDriver.fold_act_body` is the ONLY place `{id, verb, value}`
+  becomes `{id, args}`. The HTTP door (`agent_door.gd`) and the in-page hook
+  (`web_input_bridge.gd`) both call it. A private copy per transport is how the
+  in-page `set_value` silently degraded to an ACTIVATE: the page sent flat
+  `{id, verb, value}` into a reader that only looked at `{id, args}`, so the
+  verb was dropped and `_act_handle` treated the write as a click. A silent
+  wrong-verb is worse than a refusal -- pin the fold, and pin that BOTH call
+  sites use it (`test_agent_web_hooks.gd`).
+- **The wasm boundary does not return values.** A
+  `JavaScriptBridge.create_callback` return value arrives in JS as null and a
+  JS OBJECT argument arrives in GDScript as an opaque `JavaScriptObject`. The
+  host therefore publishes each hook's JSON on `window.__synAgentResult` and the
+  page reads it back in the SAME turn. That is gamestruct's embedded binding
+  (SPEC N27); the client half is `createFacade({callbacks, read})`.
+- **`web/` is loaded as plain `<script>` tags -- there is no bundler on that
+  path.** gamestruct ships ESM, so the client half must be pre-bundled into a
+  classic-script global. `scripts/build_embedded_bundle.mjs` DERIVES
+  `web/shared/gamestruct-embedded.js` from the installed package and
+  `--check` (npm `check:embedded`) fails on drift. Never hand-edit the bundle;
+  regenerate after a gamestruct re-pin. The bundle must load BEFORE
+  `agent-client.js` (it assigns `window.GamestructEmbedded`).
+- **`see` is door-only.** A viewport capture writes a PNG into the wasm virtual
+  filesystem, which the page cannot fetch back, so in-page `see()` refuses by
+  name ("the in-page surface has no eyes") instead of returning a path that
+  does not resolve. The facade reports a missing `see` callback the same way.
+- **`web/**` had no CI watcher.** `web-ci.yml` triggers on `game/**` only, so a
+  change under `web/` ran nothing. `web-lockfile-guard.yml` now also triggers
+  on `web/**` + `scripts/build_embedded_bundle.mjs` and runs the bundle-drift
+  check and `npm run test:web-agent`. When you add a JS test, put it under
+  `scripts/web_probe/` -- NOT `web/`, which the vite copy plugin ships verbatim
+  to `dist/game/`.

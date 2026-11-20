@@ -80,7 +80,39 @@ func _run() -> void:
 	_check(driver._web_opt_in() == false, "web opt-in is false on a non-web build (fail closed)")
 	driver.free()
 
-	print("SUMMARY: 13 checks, %d failed" % _fails)
+	# --- Behaviour: ONE act fold shared by both transports ---------------
+	# The HTTP door and the in-page hook are the same protocol at two
+	# distances. A private copy per transport is how the in-page set_value
+	# silently became an activate: it sent flat {id,verb,value} into a
+	# reader expecting {id,args}. Pin the fold on AgentDriver and pin that
+	# BOTH transports call it rather than carrying their own.
+	var driver_script = load("res://core/services/agent_driver.gd")
+	_check(driver_script.has_method("fold_act_body"),
+		"AgentDriver.fold_act_body exists (the ONE act-body fold)")
+	var folded = driver_script.fold_act_body({"id": "ui:X", "verb": "set_value", "value": "hi"})
+	_check(folded.get("id", "") == "ui:X", "fold keeps the id")
+	_check(folded.get("args", {}).get("verb", "") == "set_value",
+		"fold lifts a top-level verb into args (set_value survives)")
+	_check(folded.get("args", {}).get("value", "") == "hi",
+		"fold lifts a top-level scalar value into args")
+	var nested = driver_script.fold_act_body({"id": "move", "args": {"forward": 1}})
+	_check(nested.get("args", {}).get("forward", 0) == 1,
+		"fold keeps a nested args object (companion act(id,{forward:1}))")
+	var dict_value = driver_script.fold_act_body({"id": "ui:Y", "value": {"label": "go"}})
+	_check(dict_value.get("args", {}).get("label", "") == "go",
+		"fold merges a dictionary value into args")
+	var principal = driver_script.fold_act_body({"id": "move", "principal": "agent-2"})
+	_check(principal.get("args", {}).get("principal", "") == "agent-2",
+		"fold carries a per-body principal")
+	_check(driver_script.fold_act_body({}).get("id", "x") == "",
+		"fold tolerates an empty body (id is empty, never a crash)")
+	_check(bridge_src.contains("AgentDriver.fold_act_body"),
+		"the in-page hook folds through AgentDriver.fold_act_body")
+	var door_src := _read("res://core/services/agent_door.gd")
+	_check(door_src.contains("AgentDriver.fold_act_body"),
+		"the HTTP door folds through the SAME AgentDriver.fold_act_body")
+
+	print("SUMMARY: 23 checks, %d failed" % _fails)
 	if _fails == 0:
 		print("ALL TESTS PASSED")
 	quit(0 if _fails == 0 else 1)

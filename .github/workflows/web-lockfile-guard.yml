@@ -12,12 +12,16 @@ on:
     paths:
       - 'package.json'
       - 'bun.lock'
+      - 'web/**'
+      - 'scripts/build_embedded_bundle.mjs'
       - '.github/workflows/web-lockfile-guard.yml'
   pull_request:
-    branches: [main]
+    branches: [staging, main]
     paths:
       - 'package.json'
       - 'bun.lock'
+      - 'web/**'
+      - 'scripts/build_embedded_bundle.mjs'
       - '.github/workflows/web-lockfile-guard.yml'
   workflow_dispatch:
 
@@ -46,3 +50,17 @@ jobs:
       # "lockfile had changes, but lockfile is frozen" instead of in prod.
       - name: Verify lockfile is in sync
         run: bun install --frozen-lockfile
+
+      # web/ is loaded by the Godot shell as plain <script> tags, so the
+      # gamestruct embedded binding has to reach the page pre-bundled. The
+      # bundle is DERIVED from the installed package; this fails if it was
+      # hand-edited or left stale after a gamestruct re-pin.
+      - name: Verify embedded bundle matches the installed gamestruct
+        run: bun run check:embedded
+
+      # The in-page agent transport (gamestruct embedded binding, SPEC N27)
+      # drives the real bundled facade against a fake host that reproduces the
+      # wasm boundary law: callbacks return nothing and publish JSON on a side
+      # channel. Nothing here touches a browser.
+      - name: Test the in-page agent transport
+        run: bun run test:web-agent

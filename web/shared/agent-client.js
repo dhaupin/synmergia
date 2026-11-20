@@ -3,7 +3,11 @@
 //
 // One protocol, two transports, chosen automatically:
 //   * in-page  -> window.SynmergiaAgent (the WebInputBridge hooks; same page
-//                 as the Godot canvas). Zero network.
+//                 as the Godot canvas). Zero network. This transport is built
+//                 on gamestruct's EMBEDDED binding (SPEC N27): the host
+//                 publishes JSON text on a side channel and the facade reads
+//                 it back in the same turn, because a create_callback return
+//                 value does not survive the wasm boundary.
 //   * remote   -> the AgentDoor HTTP listener (game/core/services/agent_door.gd)
 //                 on 127.0.0.1 (or wherever the door is fronted). The door
 //                 speaks the gamestruct four-primitive wire (/observe, /act,
@@ -32,28 +36,81 @@
 (function (global) {
         'use strict';
 
-        // -- In-page transport (window.SynmergiaAgent) ---------------------
+        // -- In-page transport (the gamestruct EMBEDDED binding, SPEC N27) ---
+        //
+        // The host (WebInputBridge) publishes each hook's JSON on
+        // window.__synAgentResult and the client reads it back in the same turn.
+        // The facade is built HERE, never handed across as a host-side literal:
+        // an object containing host callbacks does not survive the marshal.
+        // createFacade turns every failure mode (a missing hook, a throw, an
+        // empty publish, malformed JSON) into an honest { ok:false, reason }.
         class InPageTransport {
                 constructor() {
-                        this._bridge = global.SynmergiaAgent || null;
+                        this._facade = null;
                 }
                 get available() {
                         // The hooks register once the Godot runtime is up.
-                        if (!global.SynmergiaAgent) this._bridge = global.SynmergiaAgent;
-                        return !!this._bridge;
+                        return !!global.SynmergiaAgent;
+                }
+                _build() {
+                        if (this._facade) return this._facade;
+                        // Both the host hooks and the bundle must be present; a
+                        // facade built against a missing host would cache a
+                        // permanently broken transport.
+                        var hooks = global.SynmergiaAgent;
+                        var embed = global.GamestructEmbedded;
+                        if (!hooks) return null;
+                        if (!embed || typeof embed.createFacade !== 'function') return null;
+                        // Each callback takes the JSON string the facade sends and
+                        // hands it to the hook; the hook publishes the result.
+                        this._facade = embed.createFacade({
+                                callbacks: {
+                                        observe: () => { hooks.observe(); },
+                                        act: (json) => { hooks.act(JSON.parse(json)); },
+                                        events: (json) => { hooks.events(JSON.parse(json)); },
+                                },
+                                read: () => global.__synAgentResult,
+                        });
+                        return this._facade;
                 }
                 async observe() {
-                        if (!this.available) return { ok: false, reason: 'game not ready' };
-                        return JSON.parse(this._bridge.observe());
+                        var f = this._build();
+                        if (!f) return { ok: false, reason: 'game not ready' };
+                        return f.observe();
                 }
                 async act(id, args) {
-                        if (!this.available) return { ok: false, reason: 'game not ready' };
-                        return JSON.parse(this._bridge.act(args ? { id, args } : id));
+                        var f = this._build();
+                        if (!f) return { ok: false, reason: 'game not ready' };
+                        // The wire body is {id, verb, value} and the host folds it
+                        // (AgentDriver.fold_act_body), which reads a nested `args`
+                        // object AND lifts a top-level verb/value. Send both shapes
+                        // so a companion's act(id, {forward:1}) keeps its args and a
+                        // set_value still arrives as a value write.
+                        if (id && typeof id === 'object') return f.act(id);
+                        var payload = { id: id };
+                        if (args && typeof args === 'object') {
+                                payload.args = args;
+                                if (args.verb !== undefined) payload.verb = args.verb;
+                                if (args.value !== undefined) payload.value = args.value;
+                        }
+                        return f.act(payload);
                 }
                 async events(since) {
-                        if (!this.available) return [];
-                        return JSON.parse(this._bridge.events(since == null ? -1 : since));
+                        var f = this._build();
+                        if (!f) return [];
+                        return f.events(since == null ? -1 : since);
                 }
+                // wait_for polls observe() here, exactly as the facade does for a
+                // browser door: a boundary callback cannot park a host thread.
+                async waitFor(predicate, timeoutMs) {
+                        var f = this._build();
+                        if (!f) return { ok: false, reason: 'game not ready' };
+                        return f.waitFor((snap) => matches(snap, predicate), timeoutMs || 8000);
+                }
+                // A viewport capture writes a PNG into the wasm virtual
+                // filesystem, which the page cannot fetch back; the door serves
+                // this verb, the page does not. Refuse by name, never silently.
+                async see() { return { ok: false, reason: 'the in-page surface has no eyes (use the door)' }; }
                 // Multi-agent lives on the door, not in-page; report honestly.
                 async coord() { return { ok: false, reason: 'coordinator needs the door (remote)' }; }
         }
@@ -79,6 +136,7 @@
                 async observe() { return this._get('/observe'); }
                 async act(id, args) { return this._post('/act', { id, args: args || {} }); }
                 async events(since) { return this._get('/events?since=' + (since == null ? -1 : since)); }
+                async see(opts) { return this._post('/see', opts || {}); }
                 async coord(op, extra) { return this._post('/coord', Object.assign({ op }, extra || {})); }
                 async waitFor(predicate, timeoutMs) {
                         return this._post('/wait_for', { predicate, timeoutMs: timeoutMs || 8000 });
@@ -106,6 +164,7 @@
                 observe() { return this._t.observe(); }
                 act(id, args) { return this._t.act(id, args); }
                 events(since) { return this._t.events(since); }
+                see(opts) { return this._t.see(opts); }
 
                 // -- Multi-agent (the coordinator; remote/door only) ----------------
                 coord(op, extra) { return this._t.coord(op, extra); }

@@ -104,19 +104,20 @@ func _js_agent_act(args: Array) -> void:
 		_publish_agent_result('{"ok":false,"reason":"driver missing"}')
 		return
 	var payload = _json_arg(args, {})
-	var action_id: String = ""
-	var extra: Dictionary = {}
+	# The wire body is {id, verb, value}; fold it through the SAME function the
+	# HTTP door uses, so a set_value from the page is a value write and not an
+	# activate. Accepts a bare id string and the legacy {id, args} shape.
+	var body: Dictionary = {}
 	if payload is String:
-		action_id = String(payload)
+		body = {"id": String(payload)}
 	elif payload is Dictionary:
-		action_id = String(payload.get("id", ""))
-		var a = payload.get("args", null)
-		if a is Dictionary:
-			extra = a
+		body = payload
+	var folded: Dictionary = AgentDriver.fold_act_body(body)
+	var action_id: String = String(folded.get("id", ""))
 	if action_id == "":
 		_publish_agent_result('{"ok":false,"reason":"act needs an action id"}')
 		return
-	_publish_agent_result(JSON.stringify(d.act(action_id, extra)))
+	_publish_agent_result(JSON.stringify(d.act(action_id, folded.get("args", {}))))
 
 func _js_agent_events(args: Array) -> void:
 	var d := _agent_driver()
