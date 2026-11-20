@@ -79,7 +79,10 @@ jobs:
           fi
           git init -q "$RUNNER_TEMP/tresridge"
           cd "$RUNNER_TEMP/tresridge"
-          git remote add origin "https://x-access-token:${TRESRIDGE_TOKEN}@github.com/dhaupin/tresridge.git"
+          # Bare-token form, NOT `x-access-token:...`: the latter is the GitHub
+          # App installation-token shape and a fine-grained PAT is rejected by it
+          # ("Invalid username or token"). Measured, not assumed.
+          git remote add origin "https://${TRESRIDGE_TOKEN}@github.com/dhaupin/tresridge.git"
           if ! git fetch -q --depth 1 origin "$TRESRIDGE_REF"; then
             echo "::error::Cannot fetch TRESRIDGE_REF=$TRESRIDGE_REF. Either the pin is unreachable or the token lacks read access to dhaupin/tresridge."
             exit 1

@@ -150,6 +150,10 @@ public, so the default `GITHUB_TOKEN` cannot read it - it is scoped to this repo
 only. Add a fine-grained PAT with `Contents: read` on `dhaupin/tresridge` as the
 `TRESRIDGE_TOKEN` secret. A missing secret fails the lane by name; it never skips.
 
+The URL is the bare-token form (`https://<token>@github.com/...`), **not**
+`x-access-token:<token>@...`: the latter is the GitHub App installation-token shape and
+rejects a fine-grained PAT with "Invalid username or token". Both were measured.
+
 **A pin is a claim about the linter, so the lane tests the claim.** The `Pin canary` step
 builds a two-record tree, points the pinned CLI one level above it, and requires exit `2`
 (the root refusal) - then requires the correct root to pass. Without it, moving
