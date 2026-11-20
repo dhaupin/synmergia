@@ -8,20 +8,24 @@ name: Tres Relation Gate
 # The standard is not on npm yet, so the linter is a PINNED COMMIT of
 # dhaupin/tresridge (the family's pinned-linter rule: a floating linter is a
 # random CI). When the pin moves, re-derive the declaration in the SAME commit.
+#
+# dhaupin/tresridge is PRIVATE while this repository is public, so the pin
+# cannot be fetched anonymously - the default GITHUB_TOKEN is scoped to this
+# repository only and cannot read a sibling. The lane therefore needs a
+# TRESRIDGE_TOKEN secret: a fine-grained PAT with `Contents: read` on
+# dhaupin/tresridge. Without it the lane REFUSES by name; it never skips.
 
 on:
   push:
     branches: [staging, main]
     paths:
       - 'game/data/**'
-      - 'game/core/data/**'
       - 'scripts/gen-relations.mjs'
       - '.github/workflows/tres-ci.yml'
   pull_request:
     branches: [staging, main]
     paths:
       - 'game/data/**'
-      - 'game/core/data/**'
       - 'scripts/gen-relations.mjs'
       - '.github/workflows/tres-ci.yml'
   workflow_dispatch:
@@ -35,7 +39,17 @@ concurrency:
 
 env:
   # The pinned standard. A commit, never a branch - see the header.
-  TRESRIDGE_REF: de22ac88451b739ebadfd12901a7a132f2581123
+  #
+  # 0fdcb90 carries the contract-root guard, the `doctor` refusal, and the
+  # drift `changed` category. The previous pin (de22ac8) predates all three:
+  # it accepted a root above the tree root and reported "0 edges inferred"
+  # with exit 0, so the gate was measuring a tree it could not judge. The
+  # canary step below is what stops that from recurring.
+  #
+  # NOTE: this commit is the head of dhaupin/tresridge#10. Re-pin to the merge
+  # commit on `staging` once that PR lands, so the pin rests on a durable
+  # branch instead of a PR head.
+  TRESRIDGE_REF: 0fdcb907a08bf537f938ab3166b56b5e9d3dfe7b
 
 jobs:
   relation-gate:
@@ -50,13 +64,56 @@ jobs:
 
       # Clone the standard at the pinned commit. Zero runtime deps, so no
       # install step is needed - the CLI runs straight from the checkout.
+      #
+      # The token is required because the standard is a PRIVATE sibling of a
+      # PUBLIC repository. A missing secret is a named refusal, not a skip: a
+      # lane that quietly does nothing when it cannot fetch is the silent pass
+      # this gate exists to prevent.
       - name: Fetch the pinned standard
+        env:
+          TRESRIDGE_TOKEN: ${{ secrets.TRESRIDGE_TOKEN }}
         run: |
+          if [ -z "${TRESRIDGE_TOKEN:-}" ]; then
+            echo "::error::TRESRIDGE_TOKEN is not set. dhaupin/tresridge is private and this repository is public, so the default GITHUB_TOKEN cannot read it. Add a fine-grained PAT with 'Contents: read' on dhaupin/tresridge as the TRESRIDGE_TOKEN secret."
+            exit 1
+          fi
           git init -q "$RUNNER_TEMP/tresridge"
           cd "$RUNNER_TEMP/tresridge"
-          git remote add origin https://github.com/dhaupin/tresridge.git
-          git fetch -q --depth 1 origin "$TRESRIDGE_REF"
+          git remote add origin "https://x-access-token:${TRESRIDGE_TOKEN}@github.com/dhaupin/tresridge.git"
+          if ! git fetch -q --depth 1 origin "$TRESRIDGE_REF"; then
+            echo "::error::Cannot fetch TRESRIDGE_REF=$TRESRIDGE_REF. Either the pin is unreachable or the token lacks read access to dhaupin/tresridge."
+            exit 1
+          fi
           git checkout -q FETCH_HEAD
+          echo "pinned standard: $(git rev-parse --short HEAD)"
+
+      # The pin is a linter with known behaviour, so assert that behaviour
+      # before trusting its verdict. Without this, moving TRESRIDGE_REF can
+      # silently move the gate onto a linter that passes everything.
+      - name: Pin canary (the pinned linter still refuses a wrong root)
+        run: |
+          CLI="$RUNNER_TEMP/tresridge/bin/cli.mjs"
+          T="$RUNNER_TEMP/canary"
+          mkdir -p "$T/tree/zones" "$T/tree/npcs"
+          printf 'script_class="ZoneData"\nid = "zn_a"\n' > "$T/tree/zones/zn_a.tres"
+          printf 'script_class="NpcData"\nid = "npc_a"\nzone_id = "zn_a"\n' > "$T/tree/npcs/npc_a.tres"
+
+          # `$T` is one level ABOVE the tree root (`$T/tree`), so every record
+          # collapses into a single family and no edge can resolve. That is the
+          # shape that used to report "0 edges inferred" and exit 0.
+          set +e
+          node "$CLI" graph "$T" >/dev/null 2>&1
+          code=$?
+          set -e
+          if [ "$code" -ne 2 ]; then
+            echo "::error::The pinned linter accepted a root above the tree root (exit $code, want 2). It is passing a tree it cannot judge - bump TRESRIDGE_REF to a commit that carries the root guard."
+            exit 1
+          fi
+
+          # ...and the same linter must accept the correct root, or the canary
+          # only proves that it refuses everything.
+          node "$CLI" graph "$T/tree" >/dev/null 2>&1
+          echo "canary: wrong root refused (2), correct root accepted (0)."
 
       # The verdict: every declared edge resolves; no undeclared _id; no cycles.
       - name: Lint the declaration against the tree

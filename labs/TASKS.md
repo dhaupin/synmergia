@@ -93,6 +93,19 @@ environment/CI-only until proven otherwise.
 
 ## RECENT SESSIONS (verbatim, in log order -- newest block at top)
 
+## 2026-11-28a -- the tres gate was red and measuring nothing: private-sibling auth + a pin canary (PR #123 -> staging)
+
+- CONTEXT: the tres CI lane (added 2026-11-17) was RED on PR #123 and had been since it landed. `gh run view --log-failed` named it: `fatal: could not read Username for 'https://github.com'`. Local runs of all three steps were green, which is exactly the shape that hides a dead gate.
+- ROOT CAUSE (two, both measured):
+  1. `dhaupin/tresridge` is PRIVATE, `dhaupin/synmergia` is PUBLIC. The lane cloned the pin anonymously; the default `GITHUB_TOKEN` is scoped to this repository and cannot read a sibling. Verified: an authenticated fetch of the private repo with the Actions-scoped token fails, and a plain `git ls-remote` on the public repo succeeds while the private one demands a username.
+  2. The pin (`de22ac8`) predates the standard's own fixes. Measured against a real tree: `graph <root above the tree root>` printed `1 families, 1097 records, 0 edges inferred` and exited **0**; a retargeted `balance.currency_id` (currencies -> worlds) reported `0 added, 0 removed` and exited **0**. So even with auth fixed, the lane would have judged nothing and stayed green.
+- FIX (`.github/workflows/tres-ci.yml`):
+  - `TRESRIDGE_TOKEN` (fine-grained PAT, `Contents: read` on tresridge) authenticates the fetch. A missing secret is a named `::error::` and exit 1 - never a skip.
+  - `Pin canary` step: builds a 2-record tree, points the pinned CLI one level ABOVE it, requires exit 2, then requires the correct root to pass. A pin that passes everything now fails the lane by name. Run verbatim against both linters: old pin -> `::error:: ... accepted a root above the tree root (exit 0, want 2)`, exit 1; new pin -> `canary: wrong root refused (2), correct root accepted (0)`, exit 0.
+  - Pin bumped `de22ac8` -> `0fdcb90` (tresridge#10 head). Dropped the `game/core/data/**` trigger path: that directory does not exist.
+- VERDICT with the new pin: `lint` 55 families / 1097 records / 607 edges, 0 violations; `graph --against` `0 added, 0 removed, 0 changed`; regeneration byte-identical. On the retargeted declaration the new pin reports `~ balance.currency_id: declared "worlds" (ref), inferred "currencies" (ref)` and exits 1.
+- REMAINING: the `TRESRIDGE_TOKEN` secret must be created by a human (an agent cannot mint a PAT). Until then the lane fails by name, which is the intended state - a red lane that says why beats a green lane that skipped. Re-pin to tresridge's `staging` merge commit once #10 lands, so the pin rests on a durable branch.
+
 ## 2026-11-17d -- the in-page agent wire works: window.SynmergiaAgent drives menu -> world (PR -> staging)
 - CONTEXT: OSS parity round, resumed outside-in drive of the browser build. Prior run stalled at char select; R38 fixed the signature, but the next blocker was `window.SynmergiaAgent` being `undefined` in the wasm export (a sibling `window.__synA11yDump` worked). Confirmed a REAL code bug, not a stale pck (rebuilt from current source via `--export-pack`, still broken).
 - ROOT CAUSE (two wasm marshalling laws, both live-verified by isolating a retained `create_callback`):

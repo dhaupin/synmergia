@@ -129,7 +129,7 @@ readable end-to-end. **Do not re-derive them from this list — read the owner.*
 | **Item catalog** | `godot --headless --path game --script res://tests/test_item_catalog.gd` | item family identity, authored words, recipe bill |
 | **Content ref integrity** | `godot --headless --path game --script res://tests/test_content_ref_integrity.gd` | loot/offering/enemy ids resolve |
 | **Tres relation gate** | `node <tresridge>/bin/cli.mjs lint game/data --decl game/data/relations.json` | every declared edge resolves, no undeclared `_id`, no cycles (the standard's verdict) |
-| **Tres drift gate** | `node <tresridge>/bin/cli.mjs graph game/data --against game/data/relations.json` | the declaration the tree implies vs the committed one (added / removed) |
+| **Tres drift gate** | `node <tresridge>/bin/cli.mjs graph game/data --against game/data/relations.json` | the declaration the tree implies vs the committed one (added / removed / changed) |
 | **Full game sweep** | `sh scripts/godot_test_runner.sh [-j N]` | 214 `test_*.gd` |
 | **Codex verify** | `npm run verify:codex` | vocab, coverage, fidelity, nothing-skipped |
 | **Web build** | `npm run build` | `sync:data` → `verify:codex` → `tsc` → prerender + SEO audit |
@@ -145,10 +145,24 @@ every change to `game/data/**` or `scripts/gen-relations.mjs`. The standard is n
 yet, so the lane clones `dhaupin/tresridge` at a **pinned commit** (`TRESRIDGE_REF` in the
 lane env) - the family's pinned-linter rule: a floating linter is a random CI.
 
+**The lane needs `TRESRIDGE_TOKEN`.** `dhaupin/tresridge` is private and this repository is
+public, so the default `GITHUB_TOKEN` cannot read it - it is scoped to this repository
+only. Add a fine-grained PAT with `Contents: read` on `dhaupin/tresridge` as the
+`TRESRIDGE_TOKEN` secret. A missing secret fails the lane by name; it never skips.
+
+**A pin is a claim about the linter, so the lane tests the claim.** The `Pin canary` step
+builds a two-record tree, points the pinned CLI one level above it, and requires exit `2`
+(the root refusal) - then requires the correct root to pass. Without it, moving
+`TRESRIDGE_REF` could move the gate onto a linter that passes everything, and the lane
+would stay green while measuring nothing. This is not hypothetical: the previous pin
+(`de22ac8`) accepted a root above the tree root, printed `0 edges inferred`, and exited
+`0`.
+
 To move the pin: bump `TRESRIDGE_REF`, re-run `npm run gen:relations`, and commit the pin
 and any declaration delta together. The reproducibility step refuses a stale
 `relations.json` (it regenerates and byte-compares), so a tree change that should have
-moved the declaration cannot land quietly.
+moved the declaration cannot land quietly. If the canary fails, the new pin cannot judge a
+tree - fix the standard before moving the pin.
 
 Locally, the same three steps run with `TRESRIDGE=/path/to/tresridge/bin/cli.mjs`.
 
