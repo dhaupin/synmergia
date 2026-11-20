@@ -1388,6 +1388,55 @@ engine binary is provisioned by `scripts/setup-dev.sh`, not by LFS.
   compatibility. Godot 4.7.2 at `~/godot-bin/godot`; run tests with
   `GODOT_BIN=~/godot-bin/godot scripts/godot_test_runner.sh`.
 
+### Wall-clock waits in tests are a race (learned 2026-11-20)
+
+- **`test_a11y_service` failed on CI's `default-set` job (199 passed, 1
+  failed) while passing locally 3/3.** The test was not wrong about the
+  service -- the WAIT was wrong. `A11yService._process` accumulates
+  `_debounce += delta` and fires at `>= 0.25` of ACCUMULATED process delta,
+  but the test waited a fixed **2.5s of WALL time**. A loaded CI runner can
+  burn a wall-clock second without the engine banking much delta at all, so
+  the wait expires before the debounce does. Same class hit the R38
+  disabled-signature legs and the wolf-damage leg (`create_timer(0.3)`).
+- **The fix is to poll a predicate, not to raise the constant.** A new
+  `_wait_until(cond, max_wall := 20.0)` polls every 0.05s and is bounded so a
+  real regression fails instead of hanging. For a "state changed since X"
+  leg, take the baseline AFTER the debounce settles (`_wait_until(n >= 1)`
+  then a short settle) -- otherwise the flip is measured against a moving
+  count. Side benefit: 6s instead of 12s, because it no longer sleeps out
+  walls it does not need.
+- **Prove a polled wait is non-vacuous.** Stub the thing being waited on
+  (here `_debounce >= 0.25` -> `>= 99999.0`) and confirm the legs FAIL. All
+  three did. A poll that cannot fail is worse than the fixed wall it
+  replaced.
+- **You cannot read the failing assertion from CI**: the runner writes
+  `/tmp/syn_<test>.log` on the RUNNER and `godot-ci.yml` uploads no artifact,
+  so the summary line (`FAIL <test>`) is all you get. Reproduce under load
+  locally, or reason from the test's own waits.
+
+### The web agent door is a derived artifact (learned 2026-11-20)
+
+- **`web/shared/gamestruct-embedded.js` is GENERATED from the INSTALLED
+  package**, not from source: `scripts/build_embedded_bundle.mjs` reads
+  `node_modules/gamestruct` and stamps the version into the header
+  (`// Source: gamestruct@<v> lib/bindings/embedded.mjs`). So a pin bump is a
+  THREE-part change -- `package.json` + `bun.lock` + the regenerated bundle.
+  Bumping the pin without reinstalling leaves the old bundle and the
+  `check:embedded` drift gate fails (it compares the bundle to the installed
+  version, so it cannot be satisfied by hand-editing).
+- **The Web Lockfile Guard job runs three things that must all pass**:
+  `bun install --frozen-lockfile` (package.json and bun.lock must agree),
+  `bun run check:embedded` (bundle matches the installed gamestruct), and
+  `bun run test:web-agent` (the in-page transport). Reproduce all three
+  locally before pushing -- the job only fires on paths that can drift the
+  lockfile, so a stale bundle otherwise surfaces at the Cloudflare build.
+- **`bun` may not be installed and there is no root in this sandbox.**
+  `apt-get` fails on the dpkg lock and `bun.sh/install` needs `unzip`. What
+  works: download `bun-linux-x64.zip` from the oven-sh/bun releases, extract
+  the `bun-linux-x64/bun` member with Python's `zipfile` (the archive has no
+  `bin/` prefix), `chmod +x`, and put it in `~/.bun/bin`. `bun install`
+  rewrites `bun.lock` -- commit it with the pin, never alone.
+
 ### Flake + five-rung rarity parity (learned 2026-11-14)
 
 - **`test_globe_input_parity` was flaky by design, not by timing.** Its
