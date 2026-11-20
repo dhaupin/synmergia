@@ -19,7 +19,14 @@ const DATA = join(REPO, 'game', 'data');
 const OUT = join(DATA, 'relations.json');
 // Invoke the sibling's PUBLIC CLI, never its internals - the interop law is
 // "no host imports a sibling to check a sibling; it invokes the sibling's CLI".
-const CLI = process.env.TRESRIDGE || 'tresridge';
+// The standard is not on npm yet, so there is no bare name to fall back on:
+// an unset TRESRIDGE is a named refusal here, not a module-resolution stack.
+const CLI = process.env.TRESRIDGE;
+if (!CLI) {
+  console.error('gen-relations: TRESRIDGE is unset - point it at the standard\'s CLI.');
+  console.error('  TRESRIDGE=/path/to/tresridge/bin/cli.mjs node scripts/gen-relations.mjs [--write]');
+  process.exit(2);
+}
 
 // ---------------------------------------------------------------------------
 // The curation. Every entry is a decision the resolution rule could not make.

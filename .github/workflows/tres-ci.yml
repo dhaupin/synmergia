@@ -39,16 +39,13 @@ concurrency:
 env:
   # The pinned standard. A commit, never a branch - see the header.
   #
-  # 0fdcb90 carries the contract-root guard, the `doctor` refusal, and the
-  # drift `changed` category. The previous pin (de22ac8) predates all three:
-  # it accepted a root above the tree root and reported "0 edges inferred"
-  # with exit 0, so the gate was measuring a tree it could not judge. The
-  # canary step below is what stops that from recurring.
-  #
-  # NOTE: this commit is the head of dhaupin/tresridge#10. Re-pin to the merge
-  # commit on `staging` once that PR lands, so the pin rests on a durable
-  # branch instead of a PR head.
-  TRESRIDGE_REF: 0fdcb907a08bf537f938ab3166b56b5e9d3dfe7b
+  # This is the merge commit of dhaupin/tresridge#10 on `staging`, so the pin
+  # rests on a durable branch instead of a PR head. It carries the contract-root
+  # guard, the `doctor` refusal, and the drift `changed` category. The previous
+  # pin (de22ac8) predates all three: it accepted a root above the tree root and
+  # reported "0 edges inferred" with exit 0, so the gate was measuring a tree it
+  # could not judge. The canary step below is what stops that from recurring.
+  TRESRIDGE_REF: 35172b9f1ca9d5dd3dcc26619059186b894783ee
 
 jobs:
   relation-gate:
