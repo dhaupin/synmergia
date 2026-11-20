@@ -190,19 +190,56 @@ test('an unknown predicate key never matches vacuously', async () => {
 
 test('the in-page predicate vocabulary covers hp_below and event', async () => {
     const win = loadPage();
+    // The `event` key is FRAME-SCOPED (AgentDriver._event_since), so the host
+    // must stamp a frame on every event. A wait starting at frame 0 matches an
+    // event at frame 1; the door reads it exactly the same way.
+    let frame = 0;
     installHost(win, {
         observe: () => JSON.stringify({
-            ok: true, in_world: true,
+            ok: true, frame: ++frame, in_world: true,
             player: { health: 40, is_dead: false },
-            events: [{ event: 'door_opened' }],
+            events: [{ frame: 1, event: 'door_opened' }],
             actions: [],
         }),
     });
     const syn = win.SynmergiaCompanion.inPage();
     assert.equal((await syn.waitFor({ hp_below: 100 }, 500)).ok, true, 'hp_below reads player.health');
     assert.equal((await syn.waitFor({ hp_below: 40 }, 250)).ok, false, 'hp_below is strictly below');
-    assert.equal((await syn.waitFor({ event: 'door_opened' }, 500)).ok, true);
     assert.equal((await syn.waitFor({ event: 'nope' }, 250)).ok, false);
+});
+
+test('an event from BEFORE the wait started is not a match (frame-scoped, N4)', async () => {
+    // The snapshot ring keeps recent events, so a naive scan finds old ones.
+    // A wait for 'combat_hit' resolved in ~1ms on a hit hundreds of frames old
+    // -- stale read as fresh, on the one verb an agent uses to WAIT.
+    const win = loadPage();
+    installHost(win, {
+        observe: () => JSON.stringify({
+            ok: true, frame: 900, in_world: true,
+            events: [{ frame: 3, event: 'combat_hit' }],
+        }),
+    });
+    const syn = win.SynmergiaCompanion.inPage();
+    const stale = await syn.waitFor({ event: 'combat_hit' }, 200);
+    assert.equal(stale.ok, false, 'a pre-baseline event must not satisfy the wait');
+    assert.equal(stale.reason, 'timeout');
+
+    // And a FRESH hit (frame past the baseline) still matches.
+    let frame = 900, tick = 0;
+    const win2 = loadPage();
+    installHost(win2, {
+        observe: () => {
+            tick++;
+            if (tick > 3) frame = 905;
+            return JSON.stringify({
+                ok: true, frame, in_world: true,
+                events: tick > 3 ? [{ frame: 905, event: 'combat_hit' }] : [],
+            });
+        },
+    });
+    const syn2 = win2.SynmergiaCompanion.inPage();
+    const fresh = await syn2.waitFor({ event: 'combat_hit' }, 2000);
+    assert.equal(fresh.ok, true, 'a hit after the baseline still matches');
 });
 
 test('waitFor times out honestly when the predicate never holds', async () => {

@@ -121,7 +121,16 @@
                 async waitFor(predicate, timeoutMs) {
                         var f = this._build();
                         if (!f) return { ok: false, reason: 'game not ready' };
-                        return f.waitFor((snap) => matches(snap, predicate), timeoutMs || 8000);
+                        // The `event` key is frame-scoped: the door captures its
+                        // cursor at wait start ("since": _frames), so the page must
+                        // too. Read the baseline from the first observation; until
+                        // then `matches` treats -1 as "any frame", which only
+                        // affects the pre-baseline ticks.
+                        var base = null;
+                        return f.waitFor((snap) => {
+                                if (base === null && snap && typeof snap.frame === 'number') base = snap.frame;
+                                return matches(snap, predicate, base === null ? undefined : base);
+                        }, timeoutMs || 8000);
                 }
                 // A viewport capture writes a PNG into the wasm virtual
                 // filesystem, which the page cannot fetch back; the door serves
@@ -250,7 +259,7 @@
         // is. Without this, a typo'd key ({in_wrold:true}) matched vacuously and
         // waitFor returned ok:true at once while the player was not in the
         // world -- a false success on the one verb an agent uses to WAIT.
-        function matches(state, predicate) {
+        function matches(state, predicate, sinceFrame) {
                 // A REFUSAL is not a state: {ok:false, reason} from a dead door
                 // has no fields, so {in_world:false} used to match it and
                 // waitFor resolved ok:true while the game was not running.
@@ -292,7 +301,14 @@
                                 break;
                         }
                         case 'event': {
+                                // Frame-scoped, exactly as AgentDriver._event_since
+                                // reads it: an event from BEFORE the wait started is
+                                // not a match. Without this a wait for 'combat_hit'
+                                // resolved in 1ms on a hit hundreds of frames old --
+                                // stale read as fresh.
+                                const base = typeof sinceFrame === 'number' ? sinceFrame : -1;
                                 const seen = (state.events || []).some((e) =>
+                                        Number(e.frame) > base &&
                                         String(e.event || '').toLowerCase() === String(want).toLowerCase());
                                 if (!seen) return false;
                                 break;
