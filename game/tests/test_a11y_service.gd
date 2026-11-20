@@ -21,6 +21,21 @@ func _assert(cond: bool, label: String) -> void:
 		_fail += 1
 		print("FAIL: %s" % label)
 
+## Wait until `cond` holds, polling a frame at a time. The a11y debounce
+## banks 0.25s of ACCUMULATED process delta, and a loaded CI runner can
+## spend a wall-clock second without the engine banking much delta at all --
+## a fixed wall is a race that passes locally and fails in CI. Polling waits
+## exactly as long as the engine needs, bounded so a real regression still
+## fails instead of hanging.
+func _wait_until(cond: Callable, max_wall: float = 20.0) -> bool:
+	var waited := 0.0
+	while waited < max_wall:
+		if cond.call():
+			return true
+		await create_timer(0.05).timeout
+		waited += 0.05
+	return cond.call()
+
 func _run() -> void:
 	var svc = root.get_node_or_null("A11yService")
 	_assert(svc != null, "A11yService autoload present")
@@ -127,10 +142,7 @@ func _run() -> void:
 	# would otherwise fill/focus-steal over the first panel's controls
 	# (containers stack siblings -- the topmost wins pointer delivery).
 	root.add_child(extra)
-	# 2.5s wall: the debounce threshold is 0.25s of ACCUMULATED delta,
-	# and a headless script-mode boot runs slow frames -- 0.6s was too
-	# tight for the engine to bank 0.25s of process delta.
-	await create_timer(2.5).timeout
+	await _wait_until(func() -> bool: return fired["n"] >= 1)
 	_assert(fired["n"] >= 1, "focusables_changed fires (debounced) after a new actionable appears")
 	snap = svc.snapshot()
 	var has_late := false
@@ -152,10 +164,12 @@ func _run() -> void:
 	enable_btn.text = "Enter World"
 	enable_btn.disabled = true
 	root.add_child(enable_btn)
-	await create_timer(2.5).timeout
+	# Let the debounce settle so `n_before` is a stable baseline before the flip.
+	await _wait_until(func() -> bool: return state_fired["n"] >= 1)
+	await create_timer(0.4).timeout
 	var n_before: int = state_fired["n"]
 	enable_btn.disabled = false
-	await create_timer(2.5).timeout
+	await _wait_until(func() -> bool: return state_fired["n"] > n_before)
 	_assert(state_fired["n"] > n_before, "a disabled-only change re-announces (the signature folds state, not label alone)")
 	var enabled_seen := false
 	for e in svc.snapshot():
@@ -300,7 +314,7 @@ func _run() -> void:
 		var hp0: int = int(enemy2.current_health)
 		var activated: bool = svc.activate(idx2)
 		_assert(activated, "world activation routes through the real game verb")
-		await create_timer(0.3).timeout
+		await _wait_until(func() -> bool: return int(enemy2.current_health) < hp0)
 		_assert(int(enemy2.current_health) < hp0, "Activate-the-wolf dealt REAL damage through the player's attack path")
 	if es:
 		es.unregister_entity(enemy2, "probe cleanup")
