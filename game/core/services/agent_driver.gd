@@ -172,6 +172,15 @@ func events(since_frame: int = -1) -> Array:
 			out.append(e)
 	return out
 
+## The SPEC N4 events ANSWER: {ok, frame, events[]}. The frame cursor rides
+## top-level so a client advances without deriving it from the events. Both
+## transports answer through this one function -- the HTTP verb and the in-page
+## hook -- because a private copy per transport is how the page published a BARE
+## ARRAY while the door published the object, and DoorClient.events() then read
+## `res.frame` off an array and never advanced its cursor.
+func events_reply(since_frame: int = -1) -> Dictionary:
+	return {"ok": true, "frame": _frames, "events": events(since_frame)}
+
 # -- observe() -------------------------------------------------------------
 
 ## The structured snapshot: who/where I am, what I can do, what just happened.
@@ -772,7 +781,7 @@ func _drain_queue() -> void:
 			"act":
 				_respond(int(req["id"]), act(String(args.get("id", "")), args.get("args", {})))
 			"events":
-				_respond(int(req["id"]), {"ok": true, "frame": _frames, "events": events(int(args.get("since", -1)))})
+				_respond(int(req["id"]), events_reply(int(args.get("since", -1))))
 			"wait_for":
 				_waits.append({
 					"id": int(req["id"]),

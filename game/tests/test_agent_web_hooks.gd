@@ -112,7 +112,33 @@ func _run() -> void:
 	_check(door_src.contains("AgentDriver.fold_act_body"),
 		"the HTTP door folds through the SAME AgentDriver.fold_act_body")
 
-	print("SUMMARY: 23 checks, %d failed" % _fails)
+	# N21: a missing driver must refuse honestly, never publish an empty
+	# snapshot that reads as "in the world with nothing to do".
+	_check(not bridge_src.contains('if d == null:\n\t\t_publish_agent_result("{}")'),
+		"a missing driver never publishes an empty observe snapshot")
+	_check(bridge_src.contains('"reason":"driver missing"'),
+		"a missing driver publishes an honest refusal")
+
+	# N27: the side channel is stateful, so it must be invalidated before the
+	# invoke -- a dead hook would otherwise return the previous result.
+	_check(bridge_src.contains("__synAgentClear"),
+		"the bridge exposes a side-channel invalidator")
+	_check(bridge_src.count("__synAgentClear()") >= 3,
+		"every hook invalidates the side channel before invoking")
+
+	# N4: the events ANSWER shape must be ONE function shared by both
+	# transports. A private copy per transport is how the page published a bare
+	# array while the door published {ok, frame, events}, so DoorClient read
+	# `res.frame` off an array and never advanced its cursor.
+	var drv_src := _read("res://core/services/agent_driver.gd")
+	_check(drv_src.contains("func events_reply("),
+		"AgentDriver.events_reply exists (the ONE events answer)")
+	_check(bridge_src.contains("d.events_reply("),
+		"the in-page hook answers events through events_reply")
+	_check(drv_src.contains("events_reply(int(args.get(\"since\", -1)))"),
+		"the HTTP verb answers events through the SAME events_reply")
+
+	print("SUMMARY: 30 checks, %d failed" % _fails)
 	if _fails == 0:
 		print("ALL TESTS PASSED")
 	quit(0 if _fails == 0 else 1)

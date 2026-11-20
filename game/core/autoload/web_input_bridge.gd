@@ -65,13 +65,16 @@ func _install_agent_hooks() -> void:
 	win.__synAgentAct = _agent_act_cb
 	win.__synAgentEvents = _agent_events_cb
 	JavaScriptBridge.eval(
+		"window.__synAgentClear = function () { window.__synAgentResult = undefined; };" +
 		"window.SynmergiaAgent = {" +
-		"  observe: function () { window.__synAgentObserve(); return window.__synAgentResult; }," +
+		"  observe: function () { window.__synAgentClear(); window.__synAgentObserve(); return window.__synAgentResult; }," +
 		"  act: function (id, args) {" +
 		"    var payload = (id && typeof id === 'object') ? id : { id: id, args: args || null };" +
+		"    window.__synAgentClear();" +
 		"    window.__synAgentAct(JSON.stringify(payload));" +
 		"    return window.__synAgentResult; }," +
 		"  events: function (since) {" +
+		"    window.__synAgentClear();" +
 		"    window.__synAgentEvents(JSON.stringify(since == null ? -1 : since));" +
 		"    return window.__synAgentResult; }," +
 		"};", true)
@@ -94,7 +97,9 @@ func _json_arg(args: Array, fallback = null):
 func _js_agent_observe(_args: Array) -> void:
 	var d := _agent_driver()
 	if d == null:
-		_publish_agent_result("{}")
+		# N21: a missing driver is an honest refusal, never an empty snapshot
+		# that an agent would read as "in the world with nothing to do".
+		_publish_agent_result('{"ok":false,"reason":"driver missing"}')
 		return
 	_publish_agent_result(JSON.stringify(d.observe()))
 
@@ -122,9 +127,12 @@ func _js_agent_act(args: Array) -> void:
 func _js_agent_events(args: Array) -> void:
 	var d := _agent_driver()
 	if d == null:
+		# events() is a BARE ARRAY in both transports (an object would
+		# make a consumer's for...of throw). Door-down is signalled by
+		# observe(), which refuses honestly.
 		_publish_agent_result("[]")
 		return
-	_publish_agent_result(JSON.stringify(d.events(int(_json_arg(args, -1)))))
+	_publish_agent_result(JSON.stringify(d.events_reply(int(_json_arg(args, -1)))))
 
 func _js_a11y_dump(args: Array) -> void:
 	A11yService.dump()

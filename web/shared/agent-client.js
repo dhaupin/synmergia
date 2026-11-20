@@ -26,11 +26,15 @@
 //
 // Usage (remote, e.g. a helper on the website talking to a running shard):
 //   const syn = SynmergiaCompanion.remote('http://127.0.0.1:3789');
-//   for (const e of await syn.events()) console.log(e.event, e.data);
+//   const { frame, events } = await syn.events();
+//   for (const e of events) console.log(e.event, e.data);
 //
 // The object returned by observe():
 //   { ok, frame, scene, in_world, player, target, party, focus, summary,
 //     actions[], events[] }   // focus + summary are SPEC N5
+//
+// The object returned by events():
+//   { ok, frame, events[] }  // SPEC N4: the cursor rides top-level
 // Each action: { id, kind, action, detail, focused, disabled }  (act by `id`, always)
 
 (function (global) {
@@ -70,6 +74,15 @@
                                         events: (json) => { hooks.events(JSON.parse(json)); },
                                 },
                                 read: () => global.__synAgentResult,
+                                // The side channel is stateful: a hook that dies
+                                // without publishing would otherwise hand back the
+                                // PREVIOUS result as a success that never happened.
+                                // The host exposes __synAgentClear for exactly this;
+                                // absent it, the facade cannot invent one.
+                                clear: () => {
+                                        if (typeof global.__synAgentClear === 'function') global.__synAgentClear();
+                                        else global.__synAgentResult = undefined;
+                                },
                         });
                         return this._facade;
                 }
@@ -97,7 +110,10 @@
                 }
                 async events(since) {
                         var f = this._build();
-                        if (!f) return [];
+                        // SPEC N4 shape even when the door is down: a bare []
+                        // would read as "no events yet", and a caller doing
+                        // `res.events` would throw on an array.
+                        if (!f) return { ok: false, reason: 'game not ready', events: [] };
                         return f.events(since == null ? -1 : since);
                 }
                 // wait_for polls observe() here, exactly as the facade does for a
@@ -225,28 +241,65 @@
                 }
         }
 
-        // Predicate evaluation shared with the GDScript vocabulary.
+        // Predicate evaluation shared with the GDScript vocabulary
+        // (AgentDriver._predicate_met). The two MUST agree: a predicate that
+        // resolves in-page but times out at the door (or the reverse) makes the
+        // transport, not the game, decide what an agent sees.
+        //
+        // An UNKNOWN key is a refusal, exactly as GDScript's `_: return false`
+        // is. Without this, a typo'd key ({in_wrold:true}) matched vacuously and
+        // waitFor returned ok:true at once while the player was not in the
+        // world -- a false success on the one verb an agent uses to WAIT.
         function matches(state, predicate) {
+                // A REFUSAL is not a state: {ok:false, reason} from a dead door
+                // has no fields, so {in_world:false} used to match it and
+                // waitFor resolved ok:true while the game was not running.
+                if (!state || state.ok === false) return false;
                 for (const key of Object.keys(predicate)) {
                         const want = predicate[key];
-                        if (key === 'in_world' && !!state.in_world !== !!want) return false;
-                        if (key === 'player_dead') {
+                        switch (key) {
+                        case 'in_world':
+                                if (!!state.in_world !== !!want) return false;
+                                break;
+                        case 'player_dead': {
                                 const dead = !!(state.player && state.player.is_dead);
                                 if (dead !== !!want) return false;
+                                break;
                         }
-                        if (key === 'action_present') {
+                        case 'hp_below': {
+                                // The snapshot field is `health` (see
+                                // AgentDriver._player_block), not `hp`.
+                                const hp = state.player && typeof state.player.health === 'number'
+                                        ? state.player.health : null;
+                                if (hp === null || hp >= Number(want)) return false;
+                                break;
+                        }
+                        case 'action_present': {
                                 const ok = (state.actions || []).some((a) =>
                                         String(a.action).toLowerCase().includes(String(want).toLowerCase()));
                                 if (!ok) return false;
+                                break;
                         }
-                        if (key === 'action_absent') {
+                        case 'action_absent': {
                                 const ok = (state.actions || []).some((a) =>
                                         String(a.action).toLowerCase().includes(String(want).toLowerCase()));
                                 if (ok) return false;
+                                break;
                         }
-                        if (key === 'target') {
+                        case 'target': {
                                 const name = state.target ? String(state.target.name).toLowerCase() : '';
                                 if (!name.includes(String(want).toLowerCase())) return false;
+                                break;
+                        }
+                        case 'event': {
+                                const seen = (state.events || []).some((e) =>
+                                        String(e.event || '').toLowerCase() === String(want).toLowerCase());
+                                if (!seen) return false;
+                                break;
+                        }
+                        default:
+                                // Unknown key: never vacuously true.
+                                return false;
                         }
                 }
                 return true;

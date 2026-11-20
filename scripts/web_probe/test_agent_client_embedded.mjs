@@ -133,17 +133,24 @@ test('act lifts verb + value to the top level (the set_value fold)', async () =>
     assert.equal(seen.args.value, 'ada');
 });
 
-test('events passes the cursor through', async () => {
+test('events passes the cursor through and answers the N4 object shape', async () => {
     const win = loadPage();
     let seen = null;
     installHost(win, {
         observe: () => JSON.stringify({ ok: true }),
-        events: (since) => { seen = since; return JSON.stringify([{ event: 'x' }]); },
+        // SPEC N4: { ok, frame, events[] } -- the cursor rides top-level, which
+        // is what DoorClient.events() reads. A bare array left that cursor
+        // unadvanced forever.
+        events: (since) => {
+            seen = since;
+            return JSON.stringify({ ok: true, frame: 7, events: [{ event: 'x' }] });
+        },
     });
     const syn = win.SynmergiaCompanion.inPage();
-    const evts = await syn.events(42);
+    const res = await syn.events(42);
     assert.equal(seen, 42);
-    assert.equal(evts.length, 1);
+    assert.equal(res.frame, 7, 'the frame cursor is readable top-level (N4)');
+    assert.equal(res.events.length, 1);
     // A missing cursor is the wire's -1 sentinel, not undefined.
     await syn.events();
     assert.equal(seen, -1);
@@ -166,6 +173,38 @@ test('waitFor polls observe and honours the Synmergia predicate vocabulary', asy
     assert.equal(out.ok, true);
 });
 
+test('an unknown predicate key never matches vacuously', async () => {
+    // The door's matcher has `_: return false`. Without the same default the
+    // page matched a typo'd key and returned ok:true at once -- a false
+    // success on the one verb an agent uses to WAIT.
+    const win = loadPage();
+    installHost(win, { observe: () => JSON.stringify({ ok: true, in_world: false, actions: [] }) });
+    const syn = win.SynmergiaCompanion.inPage();
+    const typo = await syn.waitFor({ in_wrold: true }, 250);
+    assert.equal(typo.ok, false, 'a typo must not resolve');
+    assert.equal(typo.reason, 'timeout');
+    // A real key with a real mismatch still refuses.
+    const real = await syn.waitFor({ in_world: true }, 250);
+    assert.equal(real.ok, false);
+});
+
+test('the in-page predicate vocabulary covers hp_below and event', async () => {
+    const win = loadPage();
+    installHost(win, {
+        observe: () => JSON.stringify({
+            ok: true, in_world: true,
+            player: { health: 40, is_dead: false },
+            events: [{ event: 'door_opened' }],
+            actions: [],
+        }),
+    });
+    const syn = win.SynmergiaCompanion.inPage();
+    assert.equal((await syn.waitFor({ hp_below: 100 }, 500)).ok, true, 'hp_below reads player.health');
+    assert.equal((await syn.waitFor({ hp_below: 40 }, 250)).ok, false, 'hp_below is strictly below');
+    assert.equal((await syn.waitFor({ event: 'door_opened' }, 500)).ok, true);
+    assert.equal((await syn.waitFor({ event: 'nope' }, 250)).ok, false);
+});
+
 test('waitFor times out honestly when the predicate never holds', async () => {
     const win = loadPage();
     installHost(win, { observe: () => JSON.stringify({ ok: true, in_world: false }) });
@@ -182,6 +221,28 @@ test('see refuses by name in-page (no eyes on the wasm surface)', async () => {
     const out = await syn.see({ label: 'x' });
     assert.equal(out.ok, false);
     assert.match(out.reason, /no eyes/);
+});
+
+test('a hook that dies without publishing never returns the previous result', async () => {
+    // The side channel is stateful: a dead hook publishes nothing, so without
+    // invalidation the client would hand back the PREVIOUS result and report
+    // success for an action that never ran. Proven live on the wasm build.
+    const win = loadPage();
+    let actAlive = true;
+    win.SynmergiaAgent = {
+        observe: () => { win.__synAgentResult = JSON.stringify({ ok: true, frame: 42 }); },
+        act: () => { if (actAlive) win.__synAgentResult = JSON.stringify({ ok: true, acted: 'yes' }); },
+        events: () => {},
+    };
+    const syn = win.SynmergiaCompanion.inPage();
+    const first = await syn.observe();
+    assert.equal(first.ok, true);
+    assert.equal(first.frame, 42);
+
+    actAlive = false;
+    const acted = await syn.act('ui:Start');
+    assert.equal(acted.ok, false, 'a dead act must not report the observe snapshot as success');
+    assert.equal(acted.frame, undefined, 'the stale observe frame must not leak through');
 });
 
 test('in-page is not available before the hooks install', async () => {
