@@ -34,6 +34,18 @@ Six facts from that log that still shape every round:
 - **One test runner:** `scripts/godot_test_runner.sh` (`-j N`, `--all`,
   `--resume`). Timing-sensitive movement/terrain probes are pinned to a
   serial phase ahead of the parallel swarm.
+- **A pinned tool is a claim, so test the claim.** `TRESRIDGE_REF` pins the
+  linter, but a pin can point at a build that passes everything: the lane
+  looked green while the pin reported "0 edges inferred, exit 0" over a root it
+  could not judge. The `Pin canary` step in `tres-ci.yml` now asserts the
+  pinned linter still refuses a wrong root before any verdict is trusted. When
+  you add a pinned external tool, pin it AND assert one behaviour that must
+  fail.
+- **A repo's token cannot read a private sibling.** `tresridge` is private,
+  this repo is public, and the default `GITHUB_TOKEN` is scoped to this repo
+  only. Cross-repo pins need `TRESRIDGE_TOKEN` in the bare
+  `https://<token>@github.com/...` form -- `x-access-token:<token>@` rejects a
+  fine-grained PAT with "Invalid username or token".
 - **The clipmap is the sole terrain renderer.** `LODManager` and the legacy
   `globe_terrain_streamer` are retired; the one idea that survived (Markov
   prefetch) is `PropLayer.enable_prefetch`.
