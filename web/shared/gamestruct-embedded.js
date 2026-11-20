@@ -1,6 +1,6 @@
 // gamestruct embedded binding (SPEC N27) - GENERATED, DO NOT EDIT.
 //
-// Source: gamestruct@1.5.0 lib/bindings/embedded.mjs
+// Source: gamestruct@1.5.1 lib/bindings/embedded.mjs
 // Regenerate: node scripts/build_embedded_bundle.mjs
 //
 // The client half of the boundary law: createFacade({ callbacks, read })
@@ -121,11 +121,13 @@ var GamestructEmbedded = (() => {
 
   // node_modules/gamestruct/lib/bridge.mjs
   function matchesSnapshot(snap, expected) {
+    if (!snap || snap.ok === false) return false;
     for (const key of Object.keys(expected)) {
       if (key === "summary") {
         const want = expected.summary;
+        const have = snap.summary || {};
         for (const k of Object.keys(want)) {
-          if (snap.summary[k] !== want[k]) return false;
+          if (have[k] !== want[k]) return false;
         }
       } else if (snap[key] !== expected[key]) {
         return false;
@@ -184,7 +186,15 @@ var GamestructEmbedded = (() => {
   function createFacade(opts = {}) {
     const callbacks = opts.callbacks || {};
     const read = typeof opts.read === "function" ? opts.read : null;
+    const clear = typeof opts.clear === "function" ? opts.clear : null;
     const parse = typeof opts.parse === "function" ? opts.parse : JSON.parse;
+    function invalidate() {
+      if (!clear) return;
+      try {
+        clear();
+      } catch (e) {
+      }
+    }
     function readResult(what) {
       if (!read) return { ok: false, reason: "the embedded door has no side channel" };
       let raw;
@@ -207,6 +217,7 @@ var GamestructEmbedded = (() => {
       if (typeof fn !== "function") {
         return { ok: false, reason: 'the embedded door has no "' + name + '" callback' };
       }
+      invalidate();
       try {
         fn(arg === void 0 ? "" : arg);
       } catch (e) {
@@ -252,6 +263,7 @@ var GamestructEmbedded = (() => {
       async see(o = {}) {
         const fn = callbacks.see;
         if (typeof fn !== "function") return { ok: false, reason: "this surface has no eyes" };
+        invalidate();
         let out;
         try {
           out = fn(JSON.stringify(o || {}));
