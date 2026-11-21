@@ -1,0 +1,128 @@
+name: Tres Relation Gate
+
+# Synmergia is the FIRST CONSUMER of the .tres relation standard (tresridge).
+# This lane is the teeth: the declaration in game/data/relations.json is judged
+# against the tree on every change to the data or the generator, so a dangling
+# or undeclared reference fails the build instead of surfacing in playtest.
+#
+# The standard is not on npm yet, so the linter is a PINNED COMMIT of
+# dhaupin/tresridge (the family's pinned-linter rule: a floating linter is a
+# random CI). When the pin moves, re-derive the declaration in the SAME commit.
+#
+# dhaupin/tresridge is PUBLIC, so the pin is fetched anonymously: no token, no
+# secret, and a fork's pull request runs the same lane as `main`. That is
+# deliberate - a gate that needs a secret is a gate that silently skips on a
+# fork, which is the failure mode this lane exists to catch.
+
+on:
+  push:
+    branches: [staging, main]
+    paths:
+      - 'game/data/**'
+      - 'scripts/gen-relations.mjs'
+      - '.github/workflows/tres-ci.yml'
+  pull_request:
+    branches: [staging, main]
+    paths:
+      - 'game/data/**'
+      - 'scripts/gen-relations.mjs'
+      - '.github/workflows/tres-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tres-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The pinned standard. A commit, never a branch - see the header.
+  #
+  # This is the merge commit of dhaupin/tresridge#10 on `staging`, so the pin
+  # rests on a durable branch instead of a PR head. It carries the contract-root
+  # guard, the `doctor` refusal, and the drift `changed` category. The previous
+  # pin (de22ac8) predates all three: it accepted a root above the tree root and
+  # reported "0 edges inferred" with exit 0, so the gate was measuring a tree it
+  # could not judge. The canary step below is what stops that from recurring.
+  TRESRIDGE_REF: 35172b9f1ca9d5dd3dcc26619059186b894783ee
+
+jobs:
+  relation-gate:
+    name: Relation gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      # Clone the standard at the pinned commit. Zero runtime deps, so no
+      # install step is needed - the CLI runs straight from the checkout.
+      #
+      # An unreachable pin is a named refusal, not a skip: a lane that quietly
+      # does nothing when it cannot fetch is the silent pass this gate exists
+      # to prevent.
+      - name: Fetch the pinned standard
+        run: |
+          git init -q "$RUNNER_TEMP/tresridge"
+          cd "$RUNNER_TEMP/tresridge"
+          git remote add origin https://github.com/dhaupin/tresridge.git
+          if ! git fetch -q --depth 1 origin "$TRESRIDGE_REF"; then
+            echo "::error::Cannot fetch TRESRIDGE_REF=$TRESRIDGE_REF from dhaupin/tresridge. The pin is unreachable - check that the commit exists and that the repo is public."
+            exit 1
+          fi
+          git checkout -q FETCH_HEAD
+          echo "pinned standard: $(git rev-parse --short HEAD)"
+
+      # The pin is a linter with known behaviour, so assert that behaviour
+      # before trusting its verdict. Without this, moving TRESRIDGE_REF can
+      # silently move the gate onto a linter that passes everything.
+      - name: Pin canary (the pinned linter still refuses a wrong root)
+        run: |
+          CLI="$RUNNER_TEMP/tresridge/bin/cli.mjs"
+          T="$RUNNER_TEMP/canary"
+          mkdir -p "$T/tree/zones" "$T/tree/npcs"
+          printf 'script_class="ZoneData"\nid = "zn_a"\n' > "$T/tree/zones/zn_a.tres"
+          printf 'script_class="NpcData"\nid = "npc_a"\nzone_id = "zn_a"\n' > "$T/tree/npcs/npc_a.tres"
+
+          # `$T` is one level ABOVE the tree root (`$T/tree`), so every record
+          # collapses into a single family and no edge can resolve. That is the
+          # shape that used to report "0 edges inferred" and exit 0.
+          set +e
+          node "$CLI" graph "$T" >/dev/null 2>&1
+          code=$?
+          set -e
+          if [ "$code" -ne 2 ]; then
+            echo "::error::The pinned linter accepted a root above the tree root (exit $code, want 2). It is passing a tree it cannot judge - bump TRESRIDGE_REF to a commit that carries the root guard."
+            exit 1
+          fi
+
+          # ...and the same linter must accept the correct root, or the canary
+          # only proves that it refuses everything.
+          node "$CLI" graph "$T/tree" >/dev/null 2>&1
+          echo "canary: wrong root refused (2), correct root accepted (0)."
+
+      # The verdict: every declared edge resolves; no undeclared _id; no cycles.
+      - name: Lint the declaration against the tree
+        run: node "$RUNNER_TEMP/tresridge/bin/cli.mjs" lint game/data --decl game/data/relations.json
+
+      # The drift gate: the declaration the tree implies must match the committed
+      # one. A record that quietly stopped being referenced fails here.
+      - name: Drift gate (graph --against)
+        run: node "$RUNNER_TEMP/tresridge/bin/cli.mjs" graph game/data --against game/data/relations.json
+
+      # The generator is the one source of the declaration; it must be
+      # deterministic, or the committed artifact is not reproducible.
+      - name: Declaration is reproducible (regenerate == committed)
+        env:
+          TRESRIDGE: ${{ runner.temp }}/tresridge/bin/cli.mjs
+        run: |
+          node scripts/gen-relations.mjs > "$RUNNER_TEMP/relations.regen.json"
+          if ! diff -q "$RUNNER_TEMP/relations.regen.json" game/data/relations.json; then
+            echo "relations.json is stale: run 'npm run gen:relations' (or scripts/gen-relations.mjs --write) and commit the result."
+            diff "$RUNNER_TEMP/relations.regen.json" game/data/relations.json || true
+            exit 1
+          fi
+          echo "relations.json matches a fresh generation."
