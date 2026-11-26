@@ -47,6 +47,18 @@ Six facts from that log that still shape every round:
   lane needed a PAT; the `x-access-token:<token>@` URL shape rejects a
   fine-grained PAT, so the bare `https://<token>@github.com/...` form was the
   only one that worked.)
+- **tresridge is on npm (`0.9.0`), and the npm build is a local stand-in for
+  the pin.** `npm i tresridge` gives `bin/cli.mjs` with the same root guard the
+  `Pin canary` asserts (wrong root exits 2, correct root 0), so
+  `TRESRIDGE=node_modules/tresridge/bin/cli.mjs scripts/gen-relations.mjs`
+  reproduces the whole relation gate without cloning the repo. The tarball
+  carries no git metadata, so it cannot PROVE it is the pinned commit -- CI
+  stays the authority. Two traps: `gen-relations.mjs` exits 0 and writes
+  nothing when `TRESRIDGE` is unset, so an un-exported run looks like a clean
+  reproducibility check while having done nothing (always confirm the CLI path
+  is set and the output file is non-empty); and `/tmp` does not survive between
+  sessions, so a `/tmp` tresridge clone or bun install is gone on the next
+  round -- reinstall rather than assuming a stale path still resolves.
 - **The clipmap is the sole terrain renderer.** `LODManager` and the legacy
   `globe_terrain_streamer` are retired; the one idea that survived (Markov
   prefetch) is `PropLayer.enable_prefetch`.
