@@ -279,6 +279,26 @@
   ],
   "edges": [
     {
+      "family": "achievements",
+      "field": "target_type",
+      "kind": "literal",
+      "note": "not a reference: enum/display text, judged by hand"
+    },
+    {
+      "family": "achievements",
+      "field": "title_reward",
+      "target": "titles",
+      "kind": "ref",
+      "required": true
+    },
+    {
+      "family": "armors",
+      "field": "required_class",
+      "target": "classes",
+      "kind": "ref",
+      "required": true
+    },
+    {
       "family": "balance",
       "field": "currency_id",
       "target": "currencies",
@@ -290,6 +310,13 @@
       "field": "default_house_id",
       "target": "houses",
       "kind": "ref",
+      "required": true
+    },
+    {
+      "family": "balance",
+      "field": "items_by_role",
+      "target": "weapons",
+      "kind": "nested",
       "required": true
     },
     {
@@ -309,6 +336,20 @@
       "field": "world_id",
       "target": "worlds",
       "kind": "ref",
+      "required": true
+    },
+    {
+      "family": "classes",
+      "field": "skill_tree_unlocks",
+      "target": "skills",
+      "kind": "nested",
+      "required": true
+    },
+    {
+      "family": "classes",
+      "field": "starting_skills",
+      "target": "skills",
+      "kind": "nested",
       "required": true
     },
     {
@@ -344,6 +385,12 @@
       "target": "factions",
       "kind": "ref",
       "required": true
+    },
+    {
+      "family": "dialogues",
+      "field": "nodes.choices",
+      "kind": "literal",
+      "note": "not a reference: enum/display text, judged by hand"
     },
     {
       "family": "dialogues",
@@ -405,10 +452,24 @@
       "required": true
     },
     {
+      "family": "events",
+      "field": "rewards.id",
+      "target": "items",
+      "kind": "nested",
+      "required": true
+    },
+    {
       "family": "factions",
       "field": "species_id",
       "target": "species",
       "kind": "ref",
+      "required": true
+    },
+    {
+      "family": "furnishings",
+      "field": "dismantle_returns.id",
+      "target": "resources",
+      "kind": "nested",
       "required": true
     },
     {
@@ -423,6 +484,13 @@
       "field": "use_skill_id",
       "target": "skills",
       "kind": "ref",
+      "required": true
+    },
+    {
+      "family": "gates",
+      "field": "key_mounts",
+      "target": "mounts",
+      "kind": "nested",
       "required": true
     },
     {
@@ -482,6 +550,12 @@
       ],
       "kind": "ref",
       "required": true
+    },
+    {
+      "family": "hordes",
+      "field": "instance_scope",
+      "kind": "literal",
+      "note": "not a reference: enum/display text, judged by hand"
     },
     {
       "family": "hordes",
@@ -572,6 +646,13 @@
       "required": true
     },
     {
+      "family": "mounts",
+      "field": "source_ref",
+      "target": "loot_tables",
+      "kind": "ref",
+      "required": true
+    },
+    {
       "family": "mysteries",
       "field": "gate_act_id",
       "target": "acts",
@@ -629,6 +710,27 @@
     },
     {
       "family": "npc",
+      "field": "includes.dialogue_id",
+      "target": "dialogues",
+      "kind": "nested",
+      "required": true
+    },
+    {
+      "family": "npc",
+      "field": "includes.quest_ids",
+      "target": "quests",
+      "kind": "nested",
+      "required": true
+    },
+    {
+      "family": "npc",
+      "field": "includes.ref_id",
+      "target": "npc_offerings",
+      "kind": "nested",
+      "required": true
+    },
+    {
+      "family": "npc",
       "field": "model_id",
       "target": "models",
       "kind": "ref",
@@ -657,6 +759,12 @@
     },
     {
       "family": "quests",
+      "field": "objectives.target",
+      "kind": "literal",
+      "note": "not a reference: enum/display text, judged by hand"
+    },
+    {
+      "family": "quests",
       "field": "previous_quest_id",
       "target": "quests",
       "kind": "ref",
@@ -664,9 +772,72 @@
     },
     {
       "family": "quests",
+      "field": "rewards.id",
+      "target": [
+        "accessories",
+        "consumables",
+        "resources"
+      ],
+      "kind": "nested",
+      "required": true
+    },
+    {
+      "family": "quests",
       "field": "turn_in_npc_id",
       "target": "npc",
       "kind": "ref",
+      "required": true
+    },
+    {
+      "family": "quests",
+      "field": "zone_restriction",
+      "target": "zones",
+      "kind": "ref",
+      "required": true
+    },
+    {
+      "family": "recipes",
+      "field": "byproducts.item_id",
+      "target": [
+        "weapons",
+        "armors",
+        "accessories",
+        "resources",
+        "items",
+        "consumables",
+        "gliders"
+      ],
+      "kind": "nested",
+      "required": true
+    },
+    {
+      "family": "recipes",
+      "field": "inputs.item_id",
+      "target": [
+        "weapons",
+        "armors",
+        "accessories",
+        "resources",
+        "items",
+        "consumables",
+        "gliders"
+      ],
+      "kind": "nested",
+      "required": true
+    },
+    {
+      "family": "recipes",
+      "field": "output.item_id",
+      "target": [
+        "weapons",
+        "armors",
+        "accessories",
+        "resources",
+        "items",
+        "consumables",
+        "gliders"
+      ],
+      "kind": "nested",
       "required": true
     },
     {
@@ -680,6 +851,13 @@
       "field": "effects.effect_id",
       "target": "status_effects",
       "kind": "nested",
+      "required": true
+    },
+    {
+      "family": "skills",
+      "field": "required_class",
+      "target": "classes",
+      "kind": "ref",
       "required": true
     },
     {
@@ -697,6 +875,20 @@
       "required": true
     },
     {
+      "family": "species",
+      "field": "home_faction",
+      "target": "factions",
+      "kind": "ref",
+      "required": true
+    },
+    {
+      "family": "species",
+      "field": "home_zone",
+      "target": "zones",
+      "kind": "ref",
+      "required": true
+    },
+    {
       "family": "territories",
       "field": "active_war_id",
       "kind": "literal",
@@ -707,6 +899,13 @@
       "field": "boss_ids",
       "kind": "literal",
       "note": "empty; bosses are named on the horde, not the territory"
+    },
+    {
+      "family": "territories",
+      "field": "claimants.id",
+      "target": "factions",
+      "kind": "nested",
+      "required": true
     },
     {
       "family": "territories",
@@ -758,9 +957,40 @@
       "required": true
     },
     {
+      "family": "titles",
+      "field": "unlock_source",
+      "target": [
+        "achievements",
+        "mysteries"
+      ],
+      "kind": "ref",
+      "required": true
+    },
+    {
       "family": "vehicles",
       "field": "currency_id",
       "target": "currencies",
+      "kind": "ref",
+      "required": true
+    },
+    {
+      "family": "vehicles",
+      "field": "route_gateways",
+      "target": "gateways",
+      "kind": "nested",
+      "required": true
+    },
+    {
+      "family": "weapons",
+      "field": "required_class",
+      "target": "classes",
+      "kind": "ref",
+      "required": true
+    },
+    {
+      "family": "weather_events",
+      "field": "stir_horde_config",
+      "target": "hordes",
       "kind": "ref",
       "required": true
     },
@@ -803,6 +1033,16 @@
     },
     {
       "family": "zones",
+      "field": "npcs",
+      "target": [
+        "models",
+        "npc"
+      ],
+      "kind": "nested",
+      "required": true
+    },
+    {
+      "family": "zones",
       "field": "world_id",
       "target": "worlds",
       "kind": "ref",
@@ -823,6 +1063,27 @@
       "field": "entries.item_id",
       "reason": "virtual book ids (book_<skill>_<tier>) expand at runtime; a file resolver cannot see them (SPEC section 5)",
       "expires": "2027-01-31"
+    },
+    {
+      "code": "dangling-ref",
+      "record": "titles/title_deepseabaron.tres",
+      "field": "unlock_source",
+      "reason": "RULED: unlock_method 6 (PURCHASE) is granted outside the data, so unlock_source carries a ROUTE LABEL (\"sigil_sink\"), not a record id. The host contract in game/tests/test_data_naming_lint.gd validates sources for methods 0 and 1 only, so method 6 is deliberately unchecked. The purchase route exists in code: game/core/services/sigil_sink_service.gd lists sink_id \"title_deepseabaron\" (SinkKind.TITLE, 500 sigils) and grants it via _title_data_id(). unlock_source itself is documentation-only - game/core/schemas/title_data.gd declares the field and no runtime code reads it. Baselines record the divergence from tresridge's stricter \"every unlock_source is an id\" reading; the edge still resolves the other 23 titles.",
+      "expires": "2027-06-30"
+    },
+    {
+      "code": "dangling-ref",
+      "record": "titles/title_pillarsworn.tres",
+      "field": "unlock_source",
+      "reason": "RULED: unlock_method 6 (PURCHASE); same route-label case as title_deepseabaron. game/core/services/sigil_sink_service.gd lists sink_id \"title_pillarsworn\" (SinkKind.TITLE, 200 sigils), so the grant path exists in code rather than as a data record. unlock_source is documentation-only (declared in game/core/schemas/title_data.gd, never read at runtime), and the host contract checks sources for methods 0/1 only.",
+      "expires": "2027-06-30"
+    },
+    {
+      "code": "dangling-ref",
+      "record": "titles/title_guild_founder.tres",
+      "field": "unlock_source",
+      "reason": "RULED: unlock_method 1 (QUEST) with source \"found_guild\", a SENTINEL for a guild-foundation event rather than a quest record; no quest carries that id. game/tests/test_data_naming_lint.gd accepts a \"found_\" prefix for method 1 explicitly (tsource.begins_with(\"found_\")), so the token is sanctioned by the host contract, not a typo. unlock_source is documentation-only, never read at runtime.",
+      "expires": "2027-06-30"
     }
   ]
 }

@@ -58,12 +58,48 @@ const CURATED = {
   'territories.boss_ids': { literal: true, note: 'empty; bosses are named on the horde, not the territory' },
   'balance.rolls.roll_id': { literal: true, note: 'a pull label (tide/depths), not a record id' },
   'balance.skus.sku_id': { literal: true, note: 'a store SKU (sigil_100), not a content record' },
+  'achievements.target_type': { literal: true, note: 'not a reference: enum/display text, judged by hand' },
+  'dialogues.nodes.choices': { literal: true, note: 'not a reference: enum/display text, judged by hand' },
+  'hordes.instance_scope': { literal: true, note: 'not a reference: enum/display text, judged by hand' },
+  'quests.objectives.target': { literal: true, note: 'not a reference: enum/display text, judged by hand' },
+
+  // Residue the rule could not name a target for. Each is a real reference the
+  // human resolves; a `literal` row above is the opposite decision.
+  'achievements.title_reward': { target: 'titles', kind: 'ref' },
+  'armors.required_class': { target: 'classes', kind: 'ref' },
+  'balance.items_by_role': { target: 'weapons', kind: 'nested' },
+  'classes.skill_tree_unlocks': { target: 'skills', kind: 'nested' },
+  'classes.starting_skills': { target: 'skills', kind: 'nested' },
+  'events.rewards.id': { target: 'items', kind: 'nested' },
+  'furnishings.dismantle_returns.id': { target: 'resources', kind: 'nested' },
+  'gates.key_mounts': { target: 'mounts', kind: 'nested' },
+  'mounts.source_ref': { target: 'loot_tables', kind: 'ref' },
+  'npc.includes.ref_id': { target: 'npc_offerings', kind: 'nested' },
+  'quests.rewards.id': { target: ['accessories', 'consumables', 'resources'], kind: 'nested' },
+  'quests.zone_restriction': { target: 'zones', kind: 'ref' },
+  'skills.required_class': { target: 'classes', kind: 'ref' },
+  'species.home_faction': { target: 'factions', kind: 'ref' },
+  'species.home_zone': { target: 'zones', kind: 'ref' },
+  'territories.claimants.id': { target: 'factions', kind: 'nested' },
+  // Route labels, not record ids: the host contract validates unlock_source for
+  // methods 0/1 only, and nothing reads the field at runtime. The 23 titles whose
+  // source IS an id resolve through the `achievements`/`mysteries` union.
+  'titles.unlock_source': { target: ['achievements', 'mysteries'], kind: 'ref' },
+  'vehicles.route_gateways': { target: 'gateways', kind: 'nested' },
+  'weapons.required_class': { target: 'classes', kind: 'ref' },
+  'weather_events.stir_horde_config': { target: 'hordes', kind: 'ref' },
+  'zones.npcs': { target: ['models', 'npc'], kind: 'nested' },
 };
 
 // Edges the rule guessed at one family, but which are really a union.
 const RETARGET = {
   'loot_tables.entries.item_id': ITEM_FAMILIES,
   'npc_offerings.catalog_items.item_id': ITEM_FAMILIES,
+  // Recipe slots hold any item id, so the inferred single family (`items`) would
+  // refuse every weapon/armor/resource id a recipe actually names.
+  'recipes.byproducts.item_id': ITEM_FAMILIES,
+  'recipes.inputs.item_id': ITEM_FAMILIES,
+  'recipes.output.item_id': ITEM_FAMILIES,
 };
 
 // The acknowledged breaks. A baseline names the code, the record, a non-empty
@@ -82,6 +118,27 @@ const BASELINES = [
     field: 'entries.item_id',
     reason: 'virtual book ids (book_<skill>_<tier>) expand at runtime; a file resolver cannot see them (SPEC section 5)',
     expires: '2027-01-31',
+  },
+  {
+    code: 'dangling-ref',
+    record: 'titles/title_deepseabaron.tres',
+    field: 'unlock_source',
+    reason: 'RULED: unlock_method 6 (PURCHASE) is granted outside the data, so unlock_source carries a ROUTE LABEL ("sigil_sink"), not a record id. The host contract in game/tests/test_data_naming_lint.gd validates sources for methods 0 and 1 only, so method 6 is deliberately unchecked. The purchase route exists in code: game/core/services/sigil_sink_service.gd lists sink_id "title_deepseabaron" (SinkKind.TITLE, 500 sigils) and grants it via _title_data_id(). unlock_source itself is documentation-only - game/core/schemas/title_data.gd declares the field and no runtime code reads it. Baselines record the divergence from tresridge\'s stricter "every unlock_source is an id" reading; the edge still resolves the other 23 titles.',
+    expires: '2027-06-30',
+  },
+  {
+    code: 'dangling-ref',
+    record: 'titles/title_pillarsworn.tres',
+    field: 'unlock_source',
+    reason: 'RULED: unlock_method 6 (PURCHASE); same route-label case as title_deepseabaron. game/core/services/sigil_sink_service.gd lists sink_id "title_pillarsworn" (SinkKind.TITLE, 200 sigils), so the grant path exists in code rather than as a data record. unlock_source is documentation-only (declared in game/core/schemas/title_data.gd, never read at runtime), and the host contract checks sources for methods 0/1 only.',
+    expires: '2027-06-30',
+  },
+  {
+    code: 'dangling-ref',
+    record: 'titles/title_guild_founder.tres',
+    field: 'unlock_source',
+    reason: 'RULED: unlock_method 1 (QUEST) with source "found_guild", a SENTINEL for a guild-foundation event rather than a quest record; no quest carries that id. game/tests/test_data_naming_lint.gd accepts a "found_" prefix for method 1 explicitly (tsource.begins_with("found_")), so the token is sanctioned by the host contract, not a typo. unlock_source is documentation-only, never read at runtime.',
+    expires: '2027-06-30',
   },
 ];
 
