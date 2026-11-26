@@ -39,14 +39,16 @@ concurrency:
 env:
   # The pinned standard. A commit, never a branch - see the header.
   #
-  # This commit carries the contract-root guard, the `doctor` refusal, the drift
-  # `changed` category, and the 0.9.0 fixes: same-field cycle chains, residue
-  # answered against the declaration, and the nested-container guard. The
-  # previous pin (35172b9) predates those fixes and reported 26 phantom
-  # `removed` rows against this declaration, so the drift gate could not be
-  # satisfied by any honest declaration. The canary step below is what stops a
-  # pin from landing on a linter that passes everything.
-  TRESRIDGE_REF: 91abeebcf4fc7c8d5d69045c926d4b41a91c49b1
+  # This is the squash-merge of dhaupin/tresridge#27 on `staging`, so the pin
+  # rests on a durable branch commit instead of a PR head. It carries the
+  # contract-root guard, the `doctor` refusal, the drift `changed` category,
+  # and the 0.9.0 fixes: same-field cycle chains, residue answered against the
+  # declaration, and the nested-container guard. The previous pin (35172b9)
+  # predates those fixes and reported 26 phantom `removed` rows against this
+  # declaration, so no honest declaration could satisfy the drift gate. The
+  # canary step below is what stops a pin from landing on a linter that passes
+  # everything.
+  TRESRIDGE_REF: 0057c57ad3a16b1977bb8007a1cbc29229d1e67e
 
 jobs:
   relation-gate:
