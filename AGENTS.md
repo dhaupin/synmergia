@@ -1343,6 +1343,26 @@ the file existed ONLY in the sandbox when the disk filled, and
   stays because staging is the integration/review branch, and `main` is
   promoted from it.
 
+  ### staging mirrors main automatically (learned 2026-11-27)
+
+  - **`.github/workflows/staging-ff-sync.yml` fast-forwards staging to main**
+    on every push to main, so a promotion no longer leaves staging one behind.
+    Ported from tresridge, where the lane already did this; synmergia did not
+    have it and staging had to be pushed by hand after each promote PR.
+  - **A failed sync job is information, not noise.** The push is ff-only by
+    refspec (`origin/main:refs/heads/staging`), so the job fails exactly when
+    staging holds a commit main lacks. That is a real divergence - do not
+    force-push it away; find the commit that landed on staging and promote or
+    revert it.
+  - **A promote PR's head IS staging**, so `gh pr merge --delete-branch`
+    deletes the permanent branch. The workflow's `delete` trigger restores it
+    at main, but the flag should still be omitted. Only a repo ruleset can
+    actually prevent the delete.
+  - **The lane needs the file on `main` to exist at all** - GitHub registers
+    workflows from the default branch only. It does not appear in
+    `gh workflow list` until it is promoted, which is why it must ride a
+    promote PR rather than sit on staging.
+
 ### Bound the logs
 
 Probe/test stdout goes to /tmp and is regenerable — but it must
