@@ -571,8 +571,14 @@ func _activate_world(entry: Dictionary) -> bool:
 		# body's basic attack at it through the real combat entry point
 		# (CombatComponent: GCD + live stack). Attack must not depend on
 		# skillbar ORDER -- a shared verb can sort into slot 0.
+		#
+		# No RNG reseed here. A per-activation `seed(Time.get_ticks_msec())`
+		# used to sit on this line; it made the combat roll unrepeatable (and
+		# made the whole world's RNG stream depend on how often a screen reader
+		# pressed Attack). The world RNG is already seeded once at boot from the
+		# world registry, so combat stays deterministic per world seed and a
+		# test can pin the roll with seed().
 		_set_game_target(entity)
-		seed(int(Time.get_ticks_msec()) % 100000)
 		if player.has_method("basic_attack_target"):
 			return player.basic_attack_target(entity)
 		if player.has_method("use_skill"):
