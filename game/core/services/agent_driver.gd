@@ -257,6 +257,18 @@ func _player_block(player: Node) -> Variant:
 		"max_health": hp_max,
 		"is_dead": dead,
 	}
+	# Locomotion state: a client must be able to tell "I am moving" from "the
+	# world moved under me" without measuring distances over wall-clock time
+	# (fps-dependent). Speed is the TANGENTIAL component on the body's own up
+	# axis, so gravity/falling never reads as walking.
+	if "velocity" in player:
+		var vel: Vector3 = player.velocity
+		var up: Vector3 = player.up_direction if "up_direction" in player else Vector3.UP
+		var tangential: Vector3 = vel - up * vel.dot(up)
+		block["speed"] = snappedf(tangential.length(), 0.001)
+		block["moving"] = tangential.length() > 0.1
+	if player.has_method("is_on_floor"):
+		block["on_ground"] = bool(player.is_on_floor())
 	if "level" in player:
 		block["level"] = int(player.level)
 	if "current_mana" in player:
@@ -271,16 +283,6 @@ func _player_block(player: Node) -> Variant:
 		block["class"] = str(player.character_class)
 	if "species_id" in player:
 		block["species"] = String(player.species_id)
-	# Locomotion STATE. A caller that just said "move forward" needs to know
-	# whether the body moved; reporting the state lets a probe assert a
-	# transition instead of timing a distance (fps changes the distance, not
-	# the state).
-	if player is CharacterBody3D:
-		var body := player as CharacterBody3D
-		var horiz: float = Vector2(body.velocity.x, body.velocity.z).length()
-		block["speed"] = snappedf(horiz, 0.01)
-		block["moving"] = horiz > 0.05
-		block["on_ground"] = body.is_on_floor()
 	# Who am I: the chosen character's own name and species. A bare PlayerBase
 	# probe has no character behind it, so both stay absent rather than empty.
 	var gm := get_node_or_null("/root/GameManager")

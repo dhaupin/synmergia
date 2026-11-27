@@ -6,12 +6,16 @@ on:
     paths:
       - 'game/**'
       - 'scripts/agent_play/**'
+      - 'scripts/web_probe/**'
+      - 'scripts/serve_web.py'
       - '.github/workflows/web-ci.yml'
   pull_request:
     branches: [staging, main]
     paths:
       - 'game/**'
       - 'scripts/agent_play/**'
+      - 'scripts/web_probe/**'
+      - 'scripts/serve_web.py'
       - '.github/workflows/web-ci.yml'
   workflow_dispatch:
     inputs:
@@ -305,6 +309,58 @@ jobs:
             web/game.audio.position.worklet.js
           retention-days: 3
           if-no-files-found: warn
+
+  # The outside-in acceptance probe: drive the REAL wasm export through the
+  # agent wire by stable handle, then prove locomotion by STATE TRANSITION
+  # (no input -> still; forward -> moving; stop -> still). It runs against the
+  # wasm bundle the job above just exported, not the tracked copy, so a
+  # regression in the browser build is caught here rather than on the CDN.
+  #
+  # Headless by default (PROBE_HEADED=1 for a human to watch): the probe needs
+  # no xvfb and no mesa/vulkan install -- chrome's own swiftshader supplies
+  # WebGL2. Wall time is ~3 min, dominated by the software-GL boot.
+  probe-agent-wire:
+    name: Agent wire probe (wasm)
+    needs: validate-and-pack
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # The artifact carries the engine files only; index.html + shared/ come
+      # from the checkout, so downloading into web/ composes the real export.
+      - name: Download Web Game Artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: synmergia-web-game
+          path: web
+
+      - name: Install Probe Dependencies
+        run: npm install --no-audit --no-fund --prefix scripts/web_probe
+
+      - name: Run Agent Wire Probe (headless chromium)
+        env:
+          PROBE_CHROME: /usr/bin/google-chrome
+        run: node scripts/web_probe/probe_agent_wire.js
+
+      - name: Upload Probe Forensics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: agent-wire-probe-failure
+          path: |
+            /tmp/syn_wire_console.txt
+            /tmp/syn_wire_fail.png
+          retention-days: 7
+          if-no-files-found: warn
+
 
   # The label-only acceptance walk: register an account, create a character and
   # move the body -- every step by the LABEL a screen reader announces, against
