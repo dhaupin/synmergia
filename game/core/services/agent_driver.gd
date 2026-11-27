@@ -257,6 +257,18 @@ func _player_block(player: Node) -> Variant:
 		"max_health": hp_max,
 		"is_dead": dead,
 	}
+	# Locomotion state: a client must be able to tell "I am moving" from "the
+	# world moved under me" without measuring distances over wall-clock time
+	# (fps-dependent). Speed is the TANGENTIAL component on the body's own up
+	# axis, so gravity/falling never reads as walking.
+	if "velocity" in player:
+		var vel: Vector3 = player.velocity
+		var up: Vector3 = player.up_direction if "up_direction" in player else Vector3.UP
+		var tangential: Vector3 = vel - up * vel.dot(up)
+		block["speed"] = snappedf(tangential.length(), 0.001)
+		block["moving"] = tangential.length() > 0.1
+	if player.has_method("is_on_floor"):
+		block["on_ground"] = bool(player.is_on_floor())
 	if "level" in player:
 		block["level"] = int(player.level)
 	if "current_mana" in player:
