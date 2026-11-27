@@ -5,14 +5,19 @@ name: Tres Relation Gate
 # against the tree on every change to the data or the generator, so a dangling
 # or undeclared reference fails the build instead of surfacing in playtest.
 #
-# The standard is not on npm yet, so the linter is a PINNED COMMIT of
-# dhaupin/tresridge (the family's pinned-linter rule: a floating linter is a
-# random CI). When the pin moves, re-derive the declaration in the SAME commit.
+# The linter is a PINNED VERSION from npm, not a branch (the family's
+# pinned-linter rule: a floating linter is a random CI). `1.1.0` is exact - no
+# `^`, no `~` - so the gate cannot drift under us between runs. When the pin
+# moves, re-derive the declaration in the SAME commit.
 #
-# dhaupin/tresridge is PUBLIC, so the pin is fetched anonymously: no token, no
-# secret, and a fork's pull request runs the same lane as `main`. That is
-# deliberate - a gate that needs a secret is a gate that silently skips on a
-# fork, which is the failure mode this lane exists to catch.
+# tresridge is PUBLIC on npm, so the install is anonymous: no token, no secret,
+# and a fork's pull request runs the same lane as `main`. That is deliberate - a
+# gate that needs a secret is a gate that silently skips on a fork, which is the
+# failure mode this lane exists to catch.
+#
+# This pin replaced a commit pin (0057c57), which existed only because the
+# standard was unpublished. The version pin is the forward move: npm serves the
+# tarball with provenance, and the tag is the artifact rather than a git SHA.
 
 on:
   push:
@@ -37,18 +42,18 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # The pinned standard. A commit, never a branch - see the header.
+  # The pinned standard. An exact version, never a range - see the header.
   #
-  # This is the squash-merge of dhaupin/tresridge#27 on `staging`, so the pin
-  # rests on a durable branch commit instead of a PR head. It carries the
-  # contract-root guard, the `doctor` refusal, the drift `changed` category,
-  # and the 0.9.0 fixes: same-field cycle chains, residue answered against the
-  # declaration, and the nested-container guard. The previous pin (35172b9)
-  # predates those fixes and reported 26 phantom `removed` rows against this
-  # declaration, so no honest declaration could satisfy the drift gate. The
-  # canary step below is what stops a pin from landing on a linter that passes
-  # everything.
-  TRESRIDGE_REF: 0057c57ad3a16b1977bb8007a1cbc29229d1e67e
+  # 1.1.0 carries the reader seam (`--reader`) and the type declarations. The
+  # declaration in game/data/relations.json was re-derived under this exact
+  # version in the commit that moved the pin: `graph --against` reports 0
+  # added / 0 removed / 0 changed, and the generator reproduces the committed
+  # file byte for byte, so the pin move is proven inert before it lands.
+  #
+  # The canary step below is what stops a pin from landing on a linter that
+  # passes everything - it asserts a refusal (wrong root) and an acceptance
+  # (correct root), so neither a broken pin nor a permissive one can pass.
+  TRESRIDGE_VERSION: 1.1.0
 
 jobs:
   relation-gate:
@@ -61,30 +66,35 @@ jobs:
         with:
           node-version: '22'
 
-      # Clone the standard at the pinned commit. Zero runtime deps, so no
-      # install step is needed - the CLI runs straight from the checkout.
+      # Install the standard at the pinned version. Zero runtime deps, so the
+      # CLI runs straight from node_modules - no build step.
       #
-      # An unreachable pin is a named refusal, not a skip: a lane that quietly
-      # does nothing when it cannot fetch is the silent pass this gate exists
-      # to prevent.
-      - name: Fetch the pinned standard
+      # The tarball is fetched anonymously (the package is public), so this
+      # works identically on a fork's PR. An unreachable pin is a named
+      # refusal, not a skip: a lane that quietly does nothing when it cannot
+      # install is the silent pass this gate exists to prevent.
+      - name: Install the pinned standard
         run: |
-          git init -q "$RUNNER_TEMP/tresridge"
-          cd "$RUNNER_TEMP/tresridge"
-          git remote add origin https://github.com/dhaupin/tresridge.git
-          if ! git fetch -q --depth 1 origin "$TRESRIDGE_REF"; then
-            echo "::error::Cannot fetch TRESRIDGE_REF=$TRESRIDGE_REF from dhaupin/tresridge. The pin is unreachable - check that the commit exists and that the repo is public."
+          mkdir -p "$RUNNER_TEMP/tres"
+          cd "$RUNNER_TEMP/tres"
+          npm init -y >/dev/null 2>&1
+          if ! npm install --no-fund --no-audit --no-save "tresridge@$TRESRIDGE_VERSION" >/dev/null 2>&1; then
+            echo "::error::Cannot install tresridge@$TRESRIDGE_VERSION from npm. The pin is unreachable - check that the version exists and that the package is public."
             exit 1
           fi
-          git checkout -q FETCH_HEAD
-          echo "pinned standard: $(git rev-parse --short HEAD)"
+          CLI="$RUNNER_TEMP/tres/node_modules/tresridge/bin/cli.mjs"
+          if [ ! -f "$CLI" ]; then
+            echo "::error::tresridge@$TRESRIDGE_VERSION installed but ships no bin/cli.mjs. The package shape changed - bump the pin deliberately."
+            exit 1
+          fi
+          echo "pinned standard: $(node "$CLI" --version)"
 
       # The pin is a linter with known behaviour, so assert that behaviour
-      # before trusting its verdict. Without this, moving TRESRIDGE_REF can
+      # before trusting its verdict. Without this, moving TRESRIDGE_VERSION can
       # silently move the gate onto a linter that passes everything.
       - name: Pin canary (the pinned linter still refuses a wrong root)
         run: |
-          CLI="$RUNNER_TEMP/tresridge/bin/cli.mjs"
+          CLI="$RUNNER_TEMP/tres/node_modules/tresridge/bin/cli.mjs"
           T="$RUNNER_TEMP/canary"
           mkdir -p "$T/tree/zones" "$T/tree/npcs"
           printf 'script_class="ZoneData"\nid = "zn_a"\n' > "$T/tree/zones/zn_a.tres"
@@ -98,7 +108,7 @@ jobs:
           code=$?
           set -e
           if [ "$code" -ne 2 ]; then
-            echo "::error::The pinned linter accepted a root above the tree root (exit $code, want 2). It is passing a tree it cannot judge - bump TRESRIDGE_REF to a commit that carries the root guard."
+            echo "::error::The pinned linter accepted a root above the tree root (exit $code, want 2). It is passing a tree it cannot judge - bump TRESRIDGE_VERSION to a release that carries the root guard."
             exit 1
           fi
 
@@ -109,18 +119,18 @@ jobs:
 
       # The verdict: every declared edge resolves; no undeclared _id; no cycles.
       - name: Lint the declaration against the tree
-        run: node "$RUNNER_TEMP/tresridge/bin/cli.mjs" lint game/data --decl game/data/relations.json
+        run: node "$RUNNER_TEMP/tres/node_modules/tresridge/bin/cli.mjs" lint game/data --decl game/data/relations.json
 
       # The drift gate: the declaration the tree implies must match the committed
       # one. A record that quietly stopped being referenced fails here.
       - name: Drift gate (graph --against)
-        run: node "$RUNNER_TEMP/tresridge/bin/cli.mjs" graph game/data --against game/data/relations.json
+        run: node "$RUNNER_TEMP/tres/node_modules/tresridge/bin/cli.mjs" graph game/data --against game/data/relations.json
 
       # The generator is the one source of the declaration; it must be
       # deterministic, or the committed artifact is not reproducible.
       - name: Declaration is reproducible (regenerate == committed)
         env:
-          TRESRIDGE: ${{ runner.temp }}/tresridge/bin/cli.mjs
+          TRESRIDGE: ${{ runner.temp }}/tres/node_modules/tresridge/bin/cli.mjs
         run: |
           node scripts/gen-relations.mjs > "$RUNNER_TEMP/relations.regen.json"
           if ! diff -q "$RUNNER_TEMP/relations.regen.json" game/data/relations.json; then

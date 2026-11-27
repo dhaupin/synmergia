@@ -632,7 +632,9 @@ func _verb_attack(player: Node, args: Dictionary) -> Dictionary:
 		if not bool(t.get("ok", false)):
 			return t
 	if player.has_method("use_skill"):
-		seed(int(Time.get_ticks_msec()) % 100000)
+		# No RNG reseed here (see a11y_service._activate_world): a per-verb
+		# `seed(Time.get_ticks_msec())` made every agent swing unrepeatable and
+		# rewired the world's RNG stream. The world seed is bound once at boot.
 		player.use_skill(int(args.get("skill", 0)))
 		return {"ok": true}
 	return {"ok": false, "reason": "player cannot use_skill"}

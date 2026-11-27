@@ -34,31 +34,33 @@ Six facts from that log that still shape every round:
 - **One test runner:** `scripts/godot_test_runner.sh` (`-j N`, `--all`,
   `--resume`). Timing-sensitive movement/terrain probes are pinned to a
   serial phase ahead of the parallel swarm.
-- **A pinned tool is a claim, so test the claim.** `TRESRIDGE_REF` pins the
+- **A pinned tool is a claim, so test the claim.** `TRESRIDGE_VERSION` pins the
   linter, but a pin can point at a build that passes everything: the lane
   looked green while the pin reported "0 edges inferred, exit 0" over a root it
   could not judge. The `Pin canary` step in `tres-ci.yml` now asserts the
   pinned linter still refuses a wrong root before any verdict is trusted. When
   you add a pinned external tool, pin it AND assert one behaviour that must
   fail.
-- **A pinned lane must not need a secret.** `tresridge` is public, so the pin
+- **A pinned lane must not need a secret.** `tresridge` is public on npm, so the pin
   is fetched anonymously and a fork's PR runs the same lane as `main`. A gate
   behind a secret silently skips on every fork. (When tresridge was private the
   lane needed a PAT; the `x-access-token:<token>@` URL shape rejects a
   fine-grained PAT, so the bare `https://<token>@github.com/...` form was the
   only one that worked.)
-- **tresridge is on npm (`0.9.0`), and the npm build is a local stand-in for
-  the pin.** `npm i tresridge` gives `bin/cli.mjs` with the same root guard the
-  `Pin canary` asserts (wrong root exits 2, correct root 0), so
+- **tresridge is on npm (`1.1.0`), and npm IS the pin.** CI installs
+  `tresridge@1.1.0` exactly (no `^`, no `~`) and runs `bin/cli.mjs` from
+  `node_modules`, so the gate judges the tree with the same artifact any host
+  installs -- with provenance, from a tag, not from a bare SHA. Locally,
   `TRESRIDGE=node_modules/tresridge/bin/cli.mjs scripts/gen-relations.mjs`
-  reproduces the whole relation gate without cloning the repo. The tarball
-  carries no git metadata, so it cannot PROVE it is the pinned commit -- CI
-  stays the authority. Two traps: `gen-relations.mjs` exits 0 and writes
-  nothing when `TRESRIDGE` is unset, so an un-exported run looks like a clean
-  reproducibility check while having done nothing (always confirm the CLI path
-  is set and the output file is non-empty); and `/tmp` does not survive between
-  sessions, so a `/tmp` tresridge clone or bun install is gone on the next
-  round -- reinstall rather than assuming a stale path still resolves.
+  reproduces the whole relation gate. The pin moved off a commit (`0057c57`)
+  once the standard was published; the version pin is strictly stronger,
+  because a published tarball is immutable and its tag names the release.
+  Two traps: `gen-relations.mjs` exits 0 and writes nothing when `TRESRIDGE`
+  is unset, so an un-exported run looks like a clean reproducibility check
+  while having done nothing (always confirm the CLI path is set and the output
+  file is non-empty); and `/tmp` does not survive between sessions, so a `/tmp`
+  install is gone on the next round -- reinstall rather than assuming a stale
+  path still resolves.
 - **The clipmap is the sole terrain renderer.** `LODManager` and the legacy
   `globe_terrain_streamer` are retired; the one idea that survived (Markov
   prefetch) is `PropLayer.enable_prefetch`.
@@ -1342,6 +1344,26 @@ the file existed ONLY in the sandbox when the disk filled, and
   the old "staging saves the bill" rationale is gone; the staging-first flow
   stays because staging is the integration/review branch, and `main` is
   promoted from it.
+
+  ### staging mirrors main automatically (learned 2026-11-27)
+
+  - **`.github/workflows/staging-ff-sync.yml` fast-forwards staging to main**
+    on every push to main, so a promotion no longer leaves staging one behind.
+    Ported from tresridge, where the lane already did this; synmergia did not
+    have it and staging had to be pushed by hand after each promote PR.
+  - **A failed sync job is information, not noise.** The push is ff-only by
+    refspec (`origin/main:refs/heads/staging`), so the job fails exactly when
+    staging holds a commit main lacks. That is a real divergence - do not
+    force-push it away; find the commit that landed on staging and promote or
+    revert it.
+  - **A promote PR's head IS staging**, so `gh pr merge --delete-branch`
+    deletes the permanent branch. The workflow's `delete` trigger restores it
+    at main, but the flag should still be omitted. Only a repo ruleset can
+    actually prevent the delete.
+  - **The lane needs the file on `main` to exist at all** - GitHub registers
+    workflows from the default branch only. It does not appear in
+    `gh workflow list` until it is promoted, which is why it must ride a
+    promote PR rather than sit on staging.
 
 ### Bound the logs
 
