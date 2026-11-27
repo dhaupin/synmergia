@@ -26,18 +26,9 @@ func setup(c: CharacterClass, _sp: Species) -> void:
 	cls = c
 	name_label.text = c.display_name
 	desc_label.text = c.description if c.description else ""
-	# Accessibility & Agent-Action layer: name the CHOICE ("Play Warrior",
-	# with role and resource as the consequence).
-	var UIStyles = preload("res://ui/components/ui_styles.gd")
-	UIStyles.apply_accessibility(
-		select_btn,
-		"Play %s" % c.display_name,
-		"%s. Creates the character and enters the world" % String(role_label.text)
-	)
+	role_label.text = CharacterClass.role_label(c.role)
 
-	role_label.text = CharacterClass.Role.keys()[c.role]
-
-	resource_label.text = "Resource: " + CharacterClass.ResourceType.keys()[c.resource_type]
+	resource_label.text = "Resource: " + CharacterClass.resource_label(c.resource_type)
 
 	var armor_pieces := []
 	var armor := c.can_use_armor
@@ -55,6 +46,21 @@ func setup(c: CharacterClass, _sp: Species) -> void:
 	for v in c.skill_tree_unlocks.values():
 		all_skills += v.size()
 	skills_label.text = "Skills: %d unlocked" % all_skills
+
+	# Accessibility & Agent-Action layer: name the CHOICE ("Play Warrior", with
+	# the consequence spelled out). The description carries role, resource,
+	# armor and skill count because those are drawn as plain Labels -- a screen
+	# reader never reaches them, so the button must speak them. Read the labels
+	# AFTER they are set: reading role_label first announced the scene's
+	# placeholder for every class.
+	var UIStyles = preload("res://ui/components/ui_styles.gd")
+	UIStyles.apply_accessibility(
+		select_btn,
+		"Play %s" % c.display_name,
+		"%s. %s. %s. %s. Creates the character and enters the world" % [
+			role_label.text, resource_label.text, armor_label.text, skills_label.text,
+		]
+	)
 
 
 func _on_select() -> void:
