@@ -47,6 +47,37 @@ const IDENTITY_VERB_BY_ROLE: Dictionary = {
 static func identity_verb(role: int) -> String:
 	return str(IDENTITY_VERB_BY_ROLE.get(role, ""))
 
+## The human words for a role. A screen reader announces these, so they are
+## prose ("Melee damage"), never the enum key ("DD" reads as two letters and
+## "DPS_MELEE" reads as nothing at all). THE one home for the mapping.
+const ROLE_LABELS: Dictionary = {
+	Role.GM: "Game Master",
+	Role.TANK: "Tank",
+	Role.DD: "Melee damage",
+	Role.MAGE: "Magic damage",
+	Role.ROGUE: "Rogue damage",
+	Role.BENDER: "Support",
+	Role.HEALER: "Healer",
+	Role.DPS_MELEE: "Melee damage",
+	Role.DPS_RANGED: "Ranged damage",
+}
+
+static func role_label(role: int) -> String:
+	return str(ROLE_LABELS.get(role, "Adventurer"))
+
+## Resource words, for the same reason: `RUNIC_POWER` is announced as
+## "RUNIC underscore POWER" by a screen reader, so the spoken form is data.
+const RESOURCE_LABELS: Dictionary = {
+	ResourceType.MANA: "Mana",
+	ResourceType.ENERGY: "Energy",
+	ResourceType.RAGE: "Rage",
+	ResourceType.RUNIC_POWER: "Runic power",
+	ResourceType.CHI: "Chi",
+}
+
+static func resource_label(resource_type: int) -> String:
+	return str(RESOURCE_LABELS.get(resource_type, "Resource"))
+
 @export var id: String = ""
 @export var display_name: String = "Warrior"
 @export var description: String = ""
