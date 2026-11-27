@@ -160,6 +160,7 @@ test_zenith_capstone
 test_item_use
 test_a11y_service
 test_a11y_contrast
+test_class_card_a11y
 test_movement_profiles
 test_anticheat_limits
 test_hitbox_profiles
