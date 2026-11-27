@@ -279,8 +279,19 @@ func _player_block(player: Node) -> Variant:
 		block["is_sprinting"] = bool(player.is_sprinting)
 	if "char_class" in player:
 		block["char_class"] = String(player.char_class)
+	if "character_class" in player and str(player.character_class) != "":
+		block["class"] = str(player.character_class)
 	if "species_id" in player:
 		block["species"] = String(player.species_id)
+	# Who am I: the chosen character's own name and species. A bare PlayerBase
+	# probe has no character behind it, so both stay absent rather than empty.
+	var gm := get_node_or_null("/root/GameManager")
+	if gm != null and "selected_character_data" in gm and gm.selected_character_data != null:
+		var cd = gm.selected_character_data
+		if "display_name" in cd and str(cd.display_name) != "":
+			block["character_name"] = str(cd.display_name)
+		if "species_id" in cd and str(cd.species_id) != "":
+			block["species"] = str(cd.species_id)
 	return block
 
 func _target_block() -> Variant:

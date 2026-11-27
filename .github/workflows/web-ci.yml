@@ -5,6 +5,7 @@ on:
     branches: [staging, main]
     paths:
       - 'game/**'
+      - 'scripts/agent_play/**'
       - 'scripts/web_probe/**'
       - 'scripts/serve_web.py'
       - '.github/workflows/web-ci.yml'
@@ -12,6 +13,7 @@ on:
     branches: [staging, main]
     paths:
       - 'game/**'
+      - 'scripts/agent_play/**'
       - 'scripts/web_probe/**'
       - 'scripts/serve_web.py'
       - '.github/workflows/web-ci.yml'
@@ -359,3 +361,55 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
+
+  # The label-only acceptance walk: register an account, create a character and
+  # move the body -- every step by the LABEL a screen reader announces, against
+  # the wasm bundle the job above exported. It is the outside-in twin of
+  # probe-agent-wire (which drives by stable handle): this one fails when a
+  # control loses its name, so an a11y regression cannot ship silently.
+  #
+  # Headless; chrome's own swiftshader supplies WebGL2. ~5 min, dominated by
+  # the software-GL boot and the register flow.
+  play-smoke:
+    name: Play smoke (wasm, by label)
+    needs: validate-and-pack
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # The artifact carries the engine files only; index.html + shared/ come
+      # from the checkout, so downloading into web/ composes the real export.
+      - name: Download Web Game Artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: synmergia-web-game
+          path: web
+
+      # playwright-core lives in the probe rig; the play session resolves it
+      # from there, so one install serves both.
+      - name: Install Probe Dependencies
+        run: npm install --no-audit --no-fund --prefix scripts/web_probe
+
+      - name: Play by label (headless chromium)
+        env:
+          PROBE_CHROME: /usr/bin/google-chrome
+        run: sh scripts/agent_play/smoke.sh
+
+      - name: Upload Play Forensics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: play-smoke-failure
+          path: |
+            /tmp/agent_play_*.log
+            /tmp/syn_agent_play_session.log
+          retention-days: 7
+          if-no-files-found: warn
