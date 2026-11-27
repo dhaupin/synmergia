@@ -27,29 +27,32 @@ entity entries).
 3. A chromium build. playwright-core resolves its browser cache
    automatically (`~/.cache/ms-playwright`); override with
    `PROBE_CHROME=/path/to/chrome`.
-4. Headless sandboxes need software GL (the R32/R33 recipe):
-   `apt-get install -y xvfb mesa-vulkan-drivers` -- lavapipe gives
-   ANGLE/SwiftShader a working Vulkan ICD; run chrome headed under
-   Xvfb with the flags the probes pass
-   (`--no-sandbox --disable-dev-shm-usage --disable-gpu-sandbox
-   --enable-unsafe-swiftshader`). Forcing `--use-angle=swiftshader` is
-   what BROKE it; do not add it.
+
+The probes run **headless by default** and need no display server: chrome's
+own swiftshader supplies WebGL2, so `xvfb` and `mesa-vulkan-drivers` are not
+required (installing a Vulkan stack in a sandbox has taken whole sessions
+down). Set `PROBE_HEADED=1` to watch a run in a real window.
 
 ## Run (from the repo root)
 
     sh scripts/pack_web.sh                           # refresh web/game.pck
-    xvfb-run -a node scripts/web_probe/probe_boot.js
-    xvfb-run -a node scripts/web_probe/probe_a11y.js
-    xvfb-run -a node scripts/web_probe/probe_mount_journey.js
+    node scripts/web_probe/probe_boot.js
+    node scripts/web_probe/probe_a11y.js
+    node scripts/web_probe/probe_agent_wire.js
+    node scripts/web_probe/probe_mount_journey.js
+
+`probe_agent_wire.js` is gated in CI (`web-ci.yml`, job `probe-agent-wire`)
+against the wasm bundle the export job produces, and takes ~3 min.
 
 ## Env vars
 
 | Var | Default | Purpose |
 |-----|---------|---------|
 | `PROBE_CHROME` | playwright browser cache | chromium binary to launch |
-| `PROBE_PORT` | 8134 (boot: 8123) | local static server port |
+| `PROBE_PORT` | 8134 (boot: 8123, wire: 8138) | local static server port |
 | `PROBE_WEB` | `<cwd>/web` | export directory to serve |
 | `PROBE_OUT` | `/tmp` | directory for screenshots + the console dump on failure |
+| `PROBE_HEADED` | unset (headless) | set to `1` to launch a real window instead of headless |
 
 ## What PASS means
 

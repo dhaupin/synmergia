@@ -78,6 +78,9 @@ const bail = async (tag, extra) => {
         if (extra) console.log(extra);
         console.log("MARKS:", JSON.stringify(Array.from(marks)));
         console.log("ERRORS:", JSON.stringify(errors.slice(0, 6)));
+        // CI uploads these on failure: a red probe whose console only lived on
+        // the runner cannot be diagnosed from the summary line.
+        fs.writeFileSync(OUT + "/syn_wire_console.txt", consoleLines.join("\n"));
         await page.screenshot({ path: OUT + "/syn_wire_fail.png" }).catch(() => {});
         await browser.close().catch(() => {});
         server.close();
@@ -86,7 +89,7 @@ const bail = async (tag, extra) => {
 
 (async () => {
         await new Promise((r) => server.listen(PORT, "127.0.0.1", r));
-        const launchOpts = { headless: false, args: ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu-sandbox", "--enable-unsafe-swiftshader"] };
+        const launchOpts = { headless: !process.env.PROBE_HEADED, args: ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu-sandbox", "--enable-unsafe-swiftshader"] };
         if (process.env.PROBE_CHROME) launchOpts.executablePath = process.env.PROBE_CHROME;
         browser = await chromium.launch(launchOpts);
         page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -185,24 +188,70 @@ const bail = async (tag, extra) => {
         if (!world) return bail("never-in-world", "observe().in_world stayed false");
         console.log("STEP7 player:", JSON.stringify(world.player));
 
-        // STEP 8: a real world verb -- move forward, then stop (rides the input
-        // map). The walked distance is ADVISORY only: the spawn position can
-        // still be settling when "before" is read, so a jump is not a failure.
-        // The movement path itself is pinned on native by test_agent_driver.gd.
-        const before = world.player && world.player.position ? world.player.position : null;
+        // STEP 8: locomotion is asserted as a STATE TRANSITION, never as a
+        // distance over wall-clock time. A displacement threshold is
+        // fps-dependent (software GL runs at 2-4 fps and the body can still be
+        // settling), which is how this step spent a round reporting 0.001 m and
+        // nearly filed a bogus "wasm movement is broken" bug.
+        //
+        // The driver's player block carries `moving`/`speed` (the TANGENTIAL
+        // component on the body's own up axis, so falling never reads as
+        // walking). The claim is causal: no input -> not moving; forward ->
+        // moving; stop -> not moving. A no-op move verb cannot pass any hop.
+        const loco = { legs: [] };
+        const locoFail = async (tag, extra) => {
+                console.log("STEP8 legs:", JSON.stringify(loco.legs));
+                return bail(tag, extra);
+        };
+        if (!world.player || typeof world.player.moving !== "boolean") {
+                return locoFail("no-locomotion-state", "player block has no moving/speed: the served pck predates the driver locomotion fields");
+        }
+        const pollState = async (pred, ms) => {
+                const end = Date.now() + Math.min(ms, left());
+                let last = null;
+                while (Date.now() < end) {
+                        const s = await obs();
+                        last = s.player || null;
+                        if (last && pred(last)) return last;
+                        await new Promise((r) => setTimeout(r, 250));
+                }
+                return null;
+        };
+
+        // L1 (negative control): with no input the body must stay put. This is
+        // the hop that proves the assertion can fail.
+        const idle = await pollState((p) => p.moving === true, 4000);
+        const idleSnap = await obs();
+        loco.legs.push({ leg: "L1 control: no input stays still", pass: idle === null, speed: idleSnap.player ? idleSnap.player.speed : -1 });
+        if (idle !== null) return locoFail("loco-idle-moved", "the body reports moving=true with no input, so L2 would prove nothing");
+
+        // L2: forward is held -> the body reports motion.
         const mv = await act("move", { forward: 1 });
-        await new Promise((r) => setTimeout(r, 1200));
+        if (!mv || !mv.ok) return locoFail("move-refused", JSON.stringify(mv));
+        const startPos = (await obs()).player.position;
+        const walking = await pollState((p) => p.moving === true, 60000);
+        loco.legs.push({ leg: "L2 forward -> moving", pass: !!walking, speed: walking ? walking.speed : 0 });
+        if (!walking) return locoFail("loco-never-moved", "move{forward:1} returned ok but the body never reported moving");
+
+        // L3: stop -> motion ends (the verb is not a sticky state).
         const st = await act("stop");
-        const after = (await obs()).player;
-        const moved = before && after && after.position
-                ? Math.hypot(after.position.x - before.x, after.position.z - before.z)
-                : -1;
-        console.log("STEP8 move verb:", JSON.stringify(mv), "| stop:", JSON.stringify(st), "| delta m (advisory):", moved.toFixed(3));
+        if (!st || !st.ok) return locoFail("stop-refused", JSON.stringify(st));
+        const stopped = await pollState((p) => p.moving === false, 60000);
+        loco.legs.push({ leg: "L3 stop -> not moving", pass: !!stopped });
+        if (!stopped) return locoFail("loco-never-stopped", "stop returned ok but the body kept reporting moving");
+
+        // L4 (coarse, non-threshold): the body's position is not frozen while
+        // walking. Any change at all counts; the magnitude is logged only.
+        const endPos = (await obs()).player.position;
+        const travelled = startPos && endPos ? Math.hypot(endPos.x - startPos.x, endPos.y - startPos.y, endPos.z - startPos.z) : -1;
+        loco.legs.push({ leg: "L4 position advanced", pass: travelled > 0, travelled_m: Number(travelled.toFixed(3)) });
+        if (!(travelled > 0)) return locoFail("loco-position-frozen", "moving=true but the position never changed");
+        console.log("STEP8 locomotion:", JSON.stringify(loco.legs));
 
         console.log("MARKS:", JSON.stringify(Array.from(marks)));
         console.log("ERRORS:", JSON.stringify(errors.slice(0, 6)));
-        const pass = !!world && errors.length === 0;
-        console.log("RESULT:", pass ? "PASS (drove menu -> register -> lobby -> species -> class -> world by stable handle through window.SynmergiaAgent)" : "PARTIAL");
+        const pass = !!world && errors.length === 0 && loco.legs.every((l) => l.pass);
+        console.log("RESULT:", pass ? "PASS (drove menu -> register -> lobby -> species -> class -> world by stable handle through window.SynmergiaAgent; locomotion proven by state transition)" : "PARTIAL");
         await browser.close().catch(() => {});
         server.close();
         process.exit(pass ? 0 : 1);

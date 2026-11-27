@@ -75,7 +75,7 @@ let page = null;
 function ACTIONS_NOW() { return "ACTIONS_NOW: " + JSON.stringify(Array.from(actions.keys())) + " "; }
 (async () => {
 	await new Promise((r) => server.listen(PORT, "127.0.0.1", r));
-	const launchOpts = { headless: false, args: ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu-sandbox", "--enable-unsafe-swiftshader"] };
+	const launchOpts = { headless: !process.env.PROBE_HEADED, args: ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu-sandbox", "--enable-unsafe-swiftshader"] };
 	if (process.env.PROBE_CHROME) launchOpts.executablePath = process.env.PROBE_CHROME;
 	const browser = await chromium.launch(launchOpts);
 	// 1280x720 is the calibrated rig: the a11y rects are canvas-space,

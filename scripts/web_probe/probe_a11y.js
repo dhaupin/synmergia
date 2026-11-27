@@ -149,7 +149,7 @@ const bail = async (tag) => {
 
 (async () => {
         await new Promise((r) => server.listen(PORT, "127.0.0.1", r));
-        const launchOpts = { headless: false, args: ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu-sandbox", "--enable-unsafe-swiftshader"] };
+        const launchOpts = { headless: !process.env.PROBE_HEADED, args: ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu-sandbox", "--enable-unsafe-swiftshader"] };
         if (process.env.PROBE_CHROME) launchOpts.executablePath = process.env.PROBE_CHROME;
         browser = await chromium.launch(launchOpts);
         page = await browser.newPage({ viewport: { width: 1280, height: 720 } });

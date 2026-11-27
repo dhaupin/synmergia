@@ -13,6 +13,7 @@ managed preview (or any container) can front it.
 
 Usage:  python3 scripts/serve_web.py   (from the repo root)
 """
+import functools
 import os
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
@@ -41,7 +42,10 @@ class GodotWebHandler(SimpleHTTPRequestHandler):
 
 def main():
 	port = int(os.environ.get("PORT", "8000"))
-	httpd = ThreadingHTTPServer(("0.0.0.0", port), GodotWebHandler)
+	# directory= is explicit on purpose: SimpleHTTPRequestHandler serves the
+	# process CWD by default, so a run from the repo root would serve the
+	# marketing shell instead of the game export.
+	httpd = ThreadingHTTPServer(("0.0.0.0", port), functools.partial(GodotWebHandler, directory=WEB_DIR))
 	print("[serve_web] serving %s on 0.0.0.0:%d (cross-origin isolated)" % (WEB_DIR, port))
 	httpd.serve_forever()
 
