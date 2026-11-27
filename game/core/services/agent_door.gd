@@ -274,28 +274,13 @@ func _reply(payload: Dictionary, status: int) -> Dictionary:
 		payload["__status"] = status
 	return payload
 
-## The gamestruct /act body is {id, verb, value}. The driver's act(id, args)
-## takes an id plus a verb-specific args object, so fold `value` in (tolerating
-## the legacy {id, args} shape a vant/companion client may still send).
+## The gamestruct /act body is {id, verb, value}; the driver's act(id, args)
+## takes an id plus a verb-specific args object. The fold lives on AgentDriver
+## (fold_act_body) so the in-page hook and this door share ONE implementation --
+## a private copy per transport is how in-page set_value silently degraded to
+## an activate (flat {id,verb,value} read by a {id,args} parser).
 func _act_args(body: Dictionary) -> Dictionary:
-	var args: Dictionary = body.get("args", {}) if body.get("args", {}) is Dictionary else {}
-	args = args.duplicate(true)
-	# The gamestruct wire carries a `verb`; the driver reads it to tell a VALUE
-	# WRITE (`set_value`) from ACTIVATION. Keep it, and fold a dictionary
-	# `value` in as the verb-specific args (a scalar `value` rides as `value`).
-	if body.has("verb"):
-		args["verb"] = String(body.get("verb", ""))
-	var value = body.get("value", null)
-	if value is Dictionary:
-		for k in value:
-			args[k] = value[k]
-	elif value != null:
-		args["value"] = value
-	# A per-body principal (labs/prd-agent-play.md sec 1/7): the caller names
-	# WHICH body a verb drives. Absent/"" = the local seat (the human).
-	if body.has("principal"):
-		args["principal"] = String(body.get("principal", ""))
-	return {"id": String(body.get("id", "")), "args": args}
+	return AgentDriver.fold_act_body(body)
 
 ## Submit to AgentDriver (main thread does the work), then poll this thread
 ## until the response lands. Never touches the scene tree here.

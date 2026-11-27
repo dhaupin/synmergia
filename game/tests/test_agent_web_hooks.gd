@@ -80,7 +80,65 @@ func _run() -> void:
 	_check(driver._web_opt_in() == false, "web opt-in is false on a non-web build (fail closed)")
 	driver.free()
 
-	print("SUMMARY: 13 checks, %d failed" % _fails)
+	# --- Behaviour: ONE act fold shared by both transports ---------------
+	# The HTTP door and the in-page hook are the same protocol at two
+	# distances. A private copy per transport is how the in-page set_value
+	# silently became an activate: it sent flat {id,verb,value} into a
+	# reader expecting {id,args}. Pin the fold on AgentDriver and pin that
+	# BOTH transports call it rather than carrying their own.
+	var driver_script = load("res://core/services/agent_driver.gd")
+	_check(driver_script.has_method("fold_act_body"),
+		"AgentDriver.fold_act_body exists (the ONE act-body fold)")
+	var folded = driver_script.fold_act_body({"id": "ui:X", "verb": "set_value", "value": "hi"})
+	_check(folded.get("id", "") == "ui:X", "fold keeps the id")
+	_check(folded.get("args", {}).get("verb", "") == "set_value",
+		"fold lifts a top-level verb into args (set_value survives)")
+	_check(folded.get("args", {}).get("value", "") == "hi",
+		"fold lifts a top-level scalar value into args")
+	var nested = driver_script.fold_act_body({"id": "move", "args": {"forward": 1}})
+	_check(nested.get("args", {}).get("forward", 0) == 1,
+		"fold keeps a nested args object (companion act(id,{forward:1}))")
+	var dict_value = driver_script.fold_act_body({"id": "ui:Y", "value": {"label": "go"}})
+	_check(dict_value.get("args", {}).get("label", "") == "go",
+		"fold merges a dictionary value into args")
+	var principal = driver_script.fold_act_body({"id": "move", "principal": "agent-2"})
+	_check(principal.get("args", {}).get("principal", "") == "agent-2",
+		"fold carries a per-body principal")
+	_check(driver_script.fold_act_body({}).get("id", "x") == "",
+		"fold tolerates an empty body (id is empty, never a crash)")
+	_check(bridge_src.contains("AgentDriver.fold_act_body"),
+		"the in-page hook folds through AgentDriver.fold_act_body")
+	var door_src := _read("res://core/services/agent_door.gd")
+	_check(door_src.contains("AgentDriver.fold_act_body"),
+		"the HTTP door folds through the SAME AgentDriver.fold_act_body")
+
+	# N21: a missing driver must refuse honestly, never publish an empty
+	# snapshot that reads as "in the world with nothing to do".
+	_check(not bridge_src.contains('if d == null:\n\t\t_publish_agent_result("{}")'),
+		"a missing driver never publishes an empty observe snapshot")
+	_check(bridge_src.contains('"reason":"driver missing"'),
+		"a missing driver publishes an honest refusal")
+
+	# N27: the side channel is stateful, so it must be invalidated before the
+	# invoke -- a dead hook would otherwise return the previous result.
+	_check(bridge_src.contains("__synAgentClear"),
+		"the bridge exposes a side-channel invalidator")
+	_check(bridge_src.count("__synAgentClear()") >= 3,
+		"every hook invalidates the side channel before invoking")
+
+	# N4: the events ANSWER shape must be ONE function shared by both
+	# transports. A private copy per transport is how the page published a bare
+	# array while the door published {ok, frame, events}, so DoorClient read
+	# `res.frame` off an array and never advanced its cursor.
+	var drv_src := _read("res://core/services/agent_driver.gd")
+	_check(drv_src.contains("func events_reply("),
+		"AgentDriver.events_reply exists (the ONE events answer)")
+	_check(bridge_src.contains("d.events_reply("),
+		"the in-page hook answers events through events_reply")
+	_check(drv_src.contains("events_reply(int(args.get(\"since\", -1)))"),
+		"the HTTP verb answers events through the SAME events_reply")
+
+	print("SUMMARY: 30 checks, %d failed" % _fails)
 	if _fails == 0:
 		print("ALL TESTS PASSED")
 	quit(0 if _fails == 0 else 1)

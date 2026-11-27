@@ -34,6 +34,31 @@ Six facts from that log that still shape every round:
 - **One test runner:** `scripts/godot_test_runner.sh` (`-j N`, `--all`,
   `--resume`). Timing-sensitive movement/terrain probes are pinned to a
   serial phase ahead of the parallel swarm.
+- **A pinned tool is a claim, so test the claim.** `TRESRIDGE_REF` pins the
+  linter, but a pin can point at a build that passes everything: the lane
+  looked green while the pin reported "0 edges inferred, exit 0" over a root it
+  could not judge. The `Pin canary` step in `tres-ci.yml` now asserts the
+  pinned linter still refuses a wrong root before any verdict is trusted. When
+  you add a pinned external tool, pin it AND assert one behaviour that must
+  fail.
+- **A pinned lane must not need a secret.** `tresridge` is public, so the pin
+  is fetched anonymously and a fork's PR runs the same lane as `main`. A gate
+  behind a secret silently skips on every fork. (When tresridge was private the
+  lane needed a PAT; the `x-access-token:<token>@` URL shape rejects a
+  fine-grained PAT, so the bare `https://<token>@github.com/...` form was the
+  only one that worked.)
+- **tresridge is on npm (`0.9.0`), and the npm build is a local stand-in for
+  the pin.** `npm i tresridge` gives `bin/cli.mjs` with the same root guard the
+  `Pin canary` asserts (wrong root exits 2, correct root 0), so
+  `TRESRIDGE=node_modules/tresridge/bin/cli.mjs scripts/gen-relations.mjs`
+  reproduces the whole relation gate without cloning the repo. The tarball
+  carries no git metadata, so it cannot PROVE it is the pinned commit -- CI
+  stays the authority. Two traps: `gen-relations.mjs` exits 0 and writes
+  nothing when `TRESRIDGE` is unset, so an un-exported run looks like a clean
+  reproducibility check while having done nothing (always confirm the CLI path
+  is set and the output file is non-empty); and `/tmp` does not survive between
+  sessions, so a `/tmp` tresridge clone or bun install is gone on the next
+  round -- reinstall rather than assuming a stale path still resolves.
 - **The clipmap is the sole terrain renderer.** `LODManager` and the legacy
   `globe_terrain_streamer` are retired; the one idea that survived (Markov
   prefetch) is `PropLayer.enable_prefetch`.
@@ -1388,6 +1413,55 @@ engine binary is provisioned by `scripts/setup-dev.sh`, not by LFS.
   compatibility. Godot 4.7.2 at `~/godot-bin/godot`; run tests with
   `GODOT_BIN=~/godot-bin/godot scripts/godot_test_runner.sh`.
 
+### Wall-clock waits in tests are a race (learned 2026-11-20)
+
+- **`test_a11y_service` failed on CI's `default-set` job (199 passed, 1
+  failed) while passing locally 3/3.** The test was not wrong about the
+  service -- the WAIT was wrong. `A11yService._process` accumulates
+  `_debounce += delta` and fires at `>= 0.25` of ACCUMULATED process delta,
+  but the test waited a fixed **2.5s of WALL time**. A loaded CI runner can
+  burn a wall-clock second without the engine banking much delta at all, so
+  the wait expires before the debounce does. Same class hit the R38
+  disabled-signature legs and the wolf-damage leg (`create_timer(0.3)`).
+- **The fix is to poll a predicate, not to raise the constant.** A new
+  `_wait_until(cond, max_wall := 20.0)` polls every 0.05s and is bounded so a
+  real regression fails instead of hanging. For a "state changed since X"
+  leg, take the baseline AFTER the debounce settles (`_wait_until(n >= 1)`
+  then a short settle) -- otherwise the flip is measured against a moving
+  count. Side benefit: 6s instead of 12s, because it no longer sleeps out
+  walls it does not need.
+- **Prove a polled wait is non-vacuous.** Stub the thing being waited on
+  (here `_debounce >= 0.25` -> `>= 99999.0`) and confirm the legs FAIL. All
+  three did. A poll that cannot fail is worse than the fixed wall it
+  replaced.
+- **You cannot read the failing assertion from CI**: the runner writes
+  `/tmp/syn_<test>.log` on the RUNNER and `godot-ci.yml` uploads no artifact,
+  so the summary line (`FAIL <test>`) is all you get. Reproduce under load
+  locally, or reason from the test's own waits.
+
+### The web agent door is a derived artifact (learned 2026-11-20)
+
+- **`web/shared/gamestruct-embedded.js` is GENERATED from the INSTALLED
+  package**, not from source: `scripts/build_embedded_bundle.mjs` reads
+  `node_modules/gamestruct` and stamps the version into the header
+  (`// Source: gamestruct@<v> lib/bindings/embedded.mjs`). So a pin bump is a
+  THREE-part change -- `package.json` + `bun.lock` + the regenerated bundle.
+  Bumping the pin without reinstalling leaves the old bundle and the
+  `check:embedded` drift gate fails (it compares the bundle to the installed
+  version, so it cannot be satisfied by hand-editing).
+- **The Web Lockfile Guard job runs three things that must all pass**:
+  `bun install --frozen-lockfile` (package.json and bun.lock must agree),
+  `bun run check:embedded` (bundle matches the installed gamestruct), and
+  `bun run test:web-agent` (the in-page transport). Reproduce all three
+  locally before pushing -- the job only fires on paths that can drift the
+  lockfile, so a stale bundle otherwise surfaces at the Cloudflare build.
+- **`bun` may not be installed and there is no root in this sandbox.**
+  `apt-get` fails on the dpkg lock and `bun.sh/install` needs `unzip`. What
+  works: download `bun-linux-x64.zip` from the oven-sh/bun releases, extract
+  the `bun-linux-x64/bun` member with Python's `zipfile` (the archive has no
+  `bin/` prefix), `chmod +x`, and put it in `~/.bun/bin`. `bun install`
+  rewrites `bun.lock` -- commit it with the pin, never alone.
+
 ### Flake + five-rung rarity parity (learned 2026-11-14)
 
 - **`test_globe_input_parity` was flaky by design, not by timing.** Its
@@ -1548,3 +1622,46 @@ engine binary is provisioned by `scripts/setup-dev.sh`, not by LFS.
   (lancer/wyrm/reef_glider/plains_runner) even though its own comment says
   "only VENDOR is sold here" -- a known inconsistency left for a deliberate
   call (re-source the mounts, or relax the comment), not a drive-by edit.
+
+### The in-page agent door: two transports, ONE act fold (learned 2026-11-20)
+
+- **The agent wire is the same protocol at two distances, and the fold is
+  shared.** `AgentDriver.fold_act_body` is the ONLY place `{id, verb, value}`
+  becomes `{id, args}`. The HTTP door (`agent_door.gd`) and the in-page hook
+  (`web_input_bridge.gd`) both call it. A private copy per transport is how the
+  in-page `set_value` silently degraded to an ACTIVATE: the page sent flat
+  `{id, verb, value}` into a reader that only looked at `{id, args}`, so the
+  verb was dropped and `_act_handle` treated the write as a click. A silent
+  wrong-verb is worse than a refusal -- pin the fold, and pin that BOTH call
+  sites use it (`test_agent_web_hooks.gd`).
+- **The wasm boundary does not return values.** A
+  `JavaScriptBridge.create_callback` return value arrives in JS as null and a
+  JS OBJECT argument arrives in GDScript as an opaque `JavaScriptObject`. The
+  host therefore publishes each hook's JSON on `window.__synAgentResult` and the
+  page reads it back in the SAME turn. That is gamestruct's embedded binding
+  (SPEC N27); the client half is `createFacade({callbacks, read})`.
+- **`web/` is loaded as plain `<script>` tags -- there is no bundler on that
+  path.** gamestruct ships ESM, so the client half must be pre-bundled into a
+  classic-script global. `scripts/build_embedded_bundle.mjs` DERIVES
+  `web/shared/gamestruct-embedded.js` from the installed package and
+  `--check` (npm `check:embedded`) fails on drift. Never hand-edit the bundle;
+  regenerate after a gamestruct re-pin. The bundle must load BEFORE
+  `agent-client.js` (it assigns `window.GamestructEmbedded`).
+- **`see` is door-only.** A viewport capture writes a PNG into the wasm virtual
+  filesystem, which the page cannot fetch back, so in-page `see()` refuses by
+  name ("the in-page surface has no eyes") instead of returning a path that
+  does not resolve. The facade reports a missing `see` callback the same way.
+- **A step NAME is not a condition.** `web-ci.yml`'s "Sync art to R2 (push
+  to main)" had that name and a comment saying it ran on push-to-main, but no
+  `if:` at all -- so it ran on every PR and could overwrite the production R2
+  assets (game.wasm / game.pck) with an unmerged branch's build. It surfaced
+  only because a PR run hit a Cloudflare 500. The two sibling write-steps in
+  the same job already carried `github.event_name == 'push' && github.ref ==
+  'refs/heads/main'`; audit every write/publish step against its siblings
+  rather than trusting its name.
+- **`web/**` had no CI watcher.** `web-ci.yml` triggers on `game/**` only, so a
+  change under `web/` ran nothing. `web-lockfile-guard.yml` now also triggers
+  on `web/**` + `scripts/build_embedded_bundle.mjs` and runs the bundle-drift
+  check and `npm run test:web-agent`. When you add a JS test, put it under
+  `scripts/web_probe/` -- NOT `web/`, which the vite copy plugin ships verbatim
+  to `dist/game/`.

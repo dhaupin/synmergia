@@ -202,11 +202,17 @@ jobs:
       # No credentials leaks: keys live only in repo secrets /
       # CLOUDFLARE_API_TOKEN, never echoed.
       - name: Sync art to R2 (push to main)
+        # Push-to-main ONLY. Without this guard the step ran on every PR
+        # too: a pull request would overwrite the production R2 assets
+        # (game.wasm / game.pck) with an unmerged branch's build. The
+        # sibling commit-back and staging-ff steps below already carry
+        # this exact condition; this one was missing it.
         # Step-level if gets github/vars/needs contexts only — neither
         # env nor secrets is legal here (secrets in a step if made
         # GitHub reject the workflow before it started, killing every
         # run at 0s). Existence of the token is checked inside the
         # run block below, which is the only place it's readable.
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

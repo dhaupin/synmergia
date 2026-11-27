@@ -118,6 +118,10 @@ if (talk) await syn.act(talk.id);
 
 `auto()` picks the in-page hooks when they are live, otherwise the remote door. `waitFor` is server-side on the door and JS-side polling in-page. Both reach the same driver.
 
+The in-page transport rides gamestruct's **embedded binding** (SPEC N27), and the wasm boundary is why. A `JavaScriptBridge.create_callback` return value never crosses back to JS, and a structured argument arrives as an opaque handle -- so the host publishes each hook's JSON text on `window.__synAgentResult` and the client reads it back in the same turn. `scripts/build_embedded_bundle.mjs` derives `web/shared/gamestruct-embedded.js` from the installed package (never hand-edit it; `npm run check:embedded` fails on drift), and `agent-client.js` builds the facade over it. Every failure mode -- a hook that is not installed, one that throws, an empty publish, malformed JSON -- comes back as an honest `{ ok: false, reason }` rather than a throw.
+
+One act body, two distances: both the in-page hook and the HTTP door fold `{id, verb, value}` through `AgentDriver.fold_act_body`, so a `set_value` from the page is a value write and not an activate. `see` is the one verb the page does not serve: a viewport capture writes a PNG into the wasm virtual filesystem, which the page cannot fetch back. In-page `see()` refuses by name (`the in-page surface has no eyes`) while the door serves it, so a companion can tell the two apart instead of getting a silent no-op.
+
 ## MCP is a projection, not a route
 
 The door does **not** serve MCP JSON-RPC. gamestruct owns that binding; it speaks MCP `2024-11-05` over JSON-RPC 2.0:
