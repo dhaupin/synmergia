@@ -156,24 +156,48 @@ func _run() -> void:
 			if mat != null:
 				ok = _check("the shader loads (strata + veins, cull_front)", \
 					mat.shader != null) and ok
-				# One clock: the tide is a pure function of the epoch.
+				# One clock: the tide is a pure function of the epoch. Pin the
+				# epoch FIRST. `_glow_tide_phase()` is
+				# `fposmod(_epoch_days() / 1.0, 1.0)` and `_epoch_days()` reads
+				# the SignService clock, so two unpinned reads are two wall-clock
+				# reads separated by however long this runner took between them.
+				# Measured: 2% of adjacent pairs differ by more than the 1e-9 the
+				# determinism check allows, and the median pair already sits at
+				# 70% of it. Pinning turns "deterministic" into a claim about the
+				# function instead of a claim about how fast the machine is.
+				var clock_svc = root_node.get_node_or_null("/root/SignService")
+				ok = _check("the Concord clock is reachable (SignService)", \
+					clock_svc != null and clock_svc.has_method("set_clock_override")) and ok
+				var pinned_epoch: float = 249408.25
+				if clock_svc != null:
+					clock_svc.set_clock_override(pinned_epoch * float(clock_svc.SKY_DAY_SECONDS))
 				var p1: float = globe._glow_tide_phase()
 				var p2: float = globe._glow_tide_phase()
 				ok = _check("the glow tide reads the Concord epoch (deterministic)", \
 					absf(p1 - p2) < 1e-9 and p1 >= 0.0 and p1 < 1.0) and ok
-				# Periodicity: one cycle per Synmergia day. Simulate
-				# the closed form at two epochs half a cycle apart by
-				# evaluating the formula directly (no clock monkeying).
-				var epoch: float = globe._epoch_days()
-				var pa: float = fposmod(epoch / 1.0, 1.0)
-				var pb: float = fposmod((epoch + 0.5) / 1.0, 1.0)
+				# The phase is the epoch itself, not a second clock that happens
+				# to tick alongside it: the globe's number must equal the
+				# service's own epoch reduced to [0, 1).
+				var svc_epoch: float = clock_svc.sky_epoch_days() if clock_svc != null else p1
+				ok = _check("the tide IS the Concord epoch (one clock, not two)", \
+					absf(p1 - fposmod(svc_epoch, 1.0)) < 1e-9) and ok
+				# Periodicity: one cycle per Synmergia day, evaluated at two
+				# epochs half a cycle apart through the clock the globe reads.
+				var pa: float = globe._glow_tide_phase()
+				if clock_svc != null:
+					clock_svc.set_clock_override((pinned_epoch + 0.5) * float(clock_svc.SKY_DAY_SECONDS))
+				var pb: float = globe._glow_tide_phase()
 				ok = _check("the tide is periodic (half a day flips the phase)", \
 					absf(absf(pb - pa) - 0.5) < 1e-6) and ok
+				if clock_svc != null:
+					clock_svc.set_clock_override(pinned_epoch * float(clock_svc.SKY_DAY_SECONDS))
 				# The material actually receives the phase (one frame).
 				globe._process(0.016)
 				var fed = mat.get_shader_parameter("tide_phase")
 				ok = _check("the material is fed the tide (one frame eval)", \
 					fed != null and absf(float(fed) - p1) < 1e-6) and ok
+				if clock_svc != null:
+					clock_svc.set_clock_override(-1.0)
 
 	# ---------- F. The camp lives (S15.3) ------------------------------
 	var warden = null
