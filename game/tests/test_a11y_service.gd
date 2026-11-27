@@ -310,12 +310,33 @@ func _run() -> void:
 		for i in range(world_snap.size()):
 			if String(world_snap[i]["path"]) == "world/entity:a11y_wolf":
 				idx2 = i
+		# Two PINNED rolls make this leg prove ROUTING in both directions
+		# instead of luck in one direction. The production path used to reseed
+		# the RNG from the wall clock on every activation (issue #130), which
+		# discarded this pin and failed ~9% of runs on a legitimate miss.
+		# seed 37 lands in the damage band; seed 13 lands in the miss band.
 		seed(37)
 		var hp0: int = int(enemy2.current_health)
 		var activated: bool = svc.activate(idx2)
 		_assert(activated, "world activation routes through the real game verb")
 		await _wait_until(func() -> bool: return int(enemy2.current_health) < hp0)
-		_assert(int(enemy2.current_health) < hp0, "Activate-the-wolf dealt REAL damage through the player's attack path")
+		_assert(int(enemy2.current_health) < hp0, "Activate-the-wolf dealt REAL damage through the player's attack path (pinned hit roll)")
+
+		# The miss half: the same verb must report that it RAN while dealing
+		# nothing. A stub that always damages fails here; a no-op activation
+		# fails both halves. Both cast gates (skill cooldown + GCD) are cleared
+		# explicitly so the second cast is refused by the ROLL, not by a gate.
+		if fake_player.get("basic_attack") != null:
+			fake_player.basic_attack.remaining_cooldown = 0.0
+		if fake_player.get("combat_component") != null:
+			fake_player.combat_component.gcd_remaining = 0.0
+		var hp1: int = int(enemy2.current_health)
+		seed(13)
+		var activated_miss: bool = svc.activate(idx2)
+		await process_frame
+		await process_frame
+		_assert(activated_miss, "activation reports success on a pinned MISS roll (the verb ran, the roll did not land)")
+		_assert(int(enemy2.current_health) == hp1, "a pinned MISS roll deals no damage (the roll really decides)")
 	if es:
 		es.unregister_entity(enemy2, "probe cleanup")
 	if pm2:
