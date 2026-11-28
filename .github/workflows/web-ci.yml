@@ -337,7 +337,7 @@ jobs:
       # The artifact carries the engine files only; index.html + shared/ come
       # from the checkout, so downloading into web/ composes the real export.
       - name: Download Web Game Artifact
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: synmergia-web-game
           path: web
@@ -388,7 +388,7 @@ jobs:
       # The artifact carries the engine files only; index.html + shared/ come
       # from the checkout, so downloading into web/ composes the real export.
       - name: Download Web Game Artifact
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: synmergia-web-game
           path: web
